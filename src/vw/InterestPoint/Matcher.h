@@ -56,14 +56,14 @@ namespace ip {
   /// provide early termination of computation if result will exceed maxdist.
   struct L2NormMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
-                      float maxdist = std::numeric_limits<float>::max()) const;
+		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_L2;
   };
 
   /// Hamming distance for binary descriptors
   struct HammingMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
-                      float maxdist = std::numeric_limits<float>::max()) const;
+		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_Hamming;
   };
 
@@ -72,7 +72,7 @@ namespace ip {
   /// termination of computation if result will exceed maxdist.
   struct RelativeEntropyMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
-                      float maxdist = std::numeric_limits<float>::max()) const;
+		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_Unsupported;
   };
 
@@ -81,8 +81,8 @@ namespace ip {
 
   template <class ListT>
   inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
-                                   std::vector<ip::InterestPoint> & ip1_sorted,
-                                   std::vector<ip::InterestPoint> & ip2_sorted);
+				   std::vector<ip::InterestPoint> & ip1_sorted,
+				   std::vector<ip::InterestPoint> & ip2_sorted);
 
   /// Interest Point Match contraints functors to return a list of
   /// allowed match candidates to an interest point.
@@ -119,7 +119,7 @@ namespace ip {
     double ori_diff_max;
 
     ScaleOrientationConstraint(double srmin = 0.9, double srmax = 1.1,
-                               double odmin = -0.1, double odmax = 0.1) :
+			       double odmin = -0.1, double odmax = 0.1) :
       scale_ratio_min(srmin), scale_ratio_max(srmax),
       ori_diff_min(odmin), ori_diff_max(odmax) {}
 
@@ -139,7 +139,7 @@ namespace ip {
     double max_y;
 
     PositionConstraint(double _min_x = -10.0, double _max_x = 10.0,
-                       double _min_y = -10.0, double _max_y = 10.0) :
+		       double _min_y = -10.0, double _max_y = 10.0) :
       min_x(_min_x), max_x(_max_x), min_y(_min_y), max_y(_max_y) {}
 
     bool operator()(InterestPoint const& baseline_ip, InterestPoint const& test_ip) const;
@@ -184,15 +184,15 @@ namespace ip {
     /// of size_t in the event that a match was not found.
     template <class ListT, class IndexListT >
     void operator()( ListT const& ip1, ListT const& ip2,
-                     IndexListT& index_list,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+		     IndexListT& index_list,
+		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
 
     /// Given two lists of interest points, this routine returns the two lists
     /// of matching interest points based on the Metric and Constraints provided by the user.
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
-                     MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+		     MatchListT& matched_ip1, MatchListT& matched_ip2,
+		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
   };
 
 
@@ -213,8 +213,8 @@ namespace ip {
     /// of matching interest points based on the Metric and Constraints provided by the user.
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
-                     MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+		     MatchListT& matched_ip1, MatchListT& matched_ip2,
+		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
   };
 
 
@@ -226,20 +226,20 @@ namespace ip {
   /// Matching doesn't constraint a point to being matched to only one
   /// other point. Here's a way to remove duplicates and have only pairwise points.
   void remove_duplicates(std::vector<InterestPoint>& ip1,
-                         std::vector<InterestPoint>& ip2);
+			 std::vector<InterestPoint>& ip2);
 
   /// The name of the match file.
   std::string match_filename(std::string const& out_prefix,
-                             std::string const& input_file1,
-                             std::string const& input_file2);
+			     std::string const& input_file1,
+			     std::string const& input_file2);
 
   /// The names of IP files.
   void ip_filenames(std::string const& out_prefix,
-                    std::string const& input_file1,
-                    std::string const& input_file2,
-                    std::string      & output_ip1,
-                    std::string      & output_ip2
-                    );
+		    std::string const& input_file1,
+		    std::string const& input_file2,
+		    std::string      & output_ip1,
+		    std::string      & output_ip2
+		    );
 
 
 //==========================================================================
@@ -250,8 +250,8 @@ namespace ip {
 
 template <class ListT>
 inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
-                                 std::vector<ip::InterestPoint> & ip1_sorted,
-                                 std::vector<ip::InterestPoint> & ip2_sorted){
+				 std::vector<ip::InterestPoint> & ip1_sorted,
+				 std::vector<ip::InterestPoint> & ip2_sorted){
   // The interest points may be in random order due to the fact that
   // they are obtained using multiple threads. Must sort them to
   // restore a unique order for the matcher to give a unique result.
@@ -279,7 +279,7 @@ InterestPointMatcher<MetricT, ConstraintT>::
 check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
   if (m_bidirectional) {
     if (m_constraint(ip2, ip1) &&
-        m_constraint(ip1, ip2))
+	m_constraint(ip1, ip2))
       return true;
   } else {
     if (m_constraint(ip1, ip2))
@@ -295,9 +295,8 @@ check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
 template <class MetricT, class ConstraintT>
 template <class ListT, class IndexListT >
 void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                 IndexListT& index_list,
-                 const ProgressCallback &progress_callback) const {
-  typedef typename ListT::const_iterator IterT;
+		 IndexListT& index_list,
+		 const ProgressCallback &progress_callback) const {
 
   Timer total_time("Total elapsed time", DebugMessage, "interest_point");
   size_t ip1_size = ip1.size(), ip2_size = ip2.size();
@@ -346,7 +345,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
       // Convert the descriptor to unsigned chars, then call FLANN
       vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
       for (size_t i=0; i<ip.descriptor.size(); ++i)
-        uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
+	uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
       num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
     }
     else // Use float
@@ -371,15 +370,15 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 
       // Check the user constraint on the record
       if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
-        double dist0 = m_distance_metric(nearest_records[0], ip);
-        double dist1 = m_distance_metric(nearest_records[1], ip);
+	double dist0 = m_distance_metric(nearest_records[0], ip);
+	double dist1 = m_distance_metric(nearest_records[1], ip);
 
-        // As a final check, make sure the nearest record is significantly closer than the next one.
-        if (dist0 < m_threshold * dist1) {
-          index_list.push_back( indices[0] );
-        } else {
-          index_list.push_back( (size_t)(-1) ); // Last value of size_t
-        }
+	// As a final check, make sure the nearest record is significantly closer than the next one.
+	if (dist0 < m_threshold * dist1) {
+	  index_list.push_back( indices[0] );
+	} else {
+	  index_list.push_back( (size_t)(-1) ); // Last value of size_t
+	}
       } // End check constraint
     } // End both valid case
   }
@@ -391,9 +390,8 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 template <class MetricT, class ConstraintT>
 template <class ListT, class MatchListT>
 void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                 MatchListT& matched_ip1, MatchListT& matched_ip2,
-                 const ProgressCallback &progress_callback) const {
-  typedef typename ListT::const_iterator IterT;
+		 MatchListT& matched_ip1, MatchListT& matched_ip2,
+		 const ProgressCallback &progress_callback) const {
 
   // Clear output lists
   matched_ip1.clear();
@@ -436,9 +434,8 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 template <class MetricT, class ConstraintT>
 template <class ListT, class MatchListT>
 void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                 MatchListT& matched_ip1, MatchListT& matched_ip2,
-                 const ProgressCallback &progress_callback) const {
-  typedef typename ListT::const_iterator IterT;
+		 MatchListT& matched_ip1, MatchListT& matched_ip2,
+		 const ProgressCallback &progress_callback) const {
 
   Timer total_time("Total elapsed time", DebugMessage, "interest_point");
 
@@ -465,17 +462,17 @@ void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& 
     for (size_t j = 0; j < ip2.size(); j++ ) {
 
       if ( ip1[i].polarity != ip2[j].polarity )
-        continue;
+	continue;
 
       // Use the selected distance metric to measure the distance between the points
       double distance = m_distance_metric( ip1[i], ip2[j] );
 
       if ( distance < first_pick ) {
-        match_index[i] = j;
-        second_pick = first_pick;
-        first_pick = distance;
+	match_index[i] = j;
+	second_pick = first_pick;
+	first_pick = distance;
       } else if ( distance < second_pick ) {
-        second_pick = distance;
+	second_pick = distance;
       }
 
     }

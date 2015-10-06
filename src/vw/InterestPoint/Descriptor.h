@@ -52,14 +52,14 @@ namespace ip {
     /// compute_descriptor() method provided by the subclass.
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image,
-                      InterestPointList         & points ) {
+		      InterestPointList         & points ) {
       (*this)( image, points.begin(), points.end() );
     }
 
     /// Overload that takes the list of IP's as two iterators.
     template <class ViewT, class IterT>
     void operator() ( ImageViewBase<ViewT> const& image,
-                      IterT start, IterT end );
+		      IterT start, IterT end );
 
     int support_size   () { return 41;  } ///< Default suport size ( i.e. descriptor window)
     int descriptor_size() { return 128; } ///< Default descriptor(vector) length
@@ -70,7 +70,7 @@ namespace ip {
     template <class ViewT>
     inline TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
     get_support( InterestPoint        const& pt,
-                 ImageViewBase<ViewT> const& source);
+		 ImageViewBase<ViewT> const& source);
 
     // All derived classes must implement this function:
     //   Given the support image for one feature point, compute all descriptor elements
@@ -90,7 +90,7 @@ namespace ip {
 
     template <class ViewT, class IterT>
     void compute_descriptor( ImageViewBase<ViewT> const& support,
-                             IterT first, IterT last ) const;
+			     IterT first, IterT last ) const;
 
     int descriptor_size() { return 41*41; }
   };
@@ -103,7 +103,7 @@ namespace ip {
     Vector<float> pca_avg;
 
     PCASIFTDescriptorGenerator(const std::string& pcabasis_filename,
-                               const std::string& pcaavg_filename)
+			       const std::string& pcaavg_filename)
       : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
 
       // Read the PCA basis matrix and average vector
@@ -114,7 +114,7 @@ namespace ip {
 
     template <class ViewT, class IterT>
     void compute_descriptor( ImageViewBase<ViewT> const& support,
-                             IterT first, IterT last) const;
+			     IterT first, IterT last) const;
 
     int descriptor_size() { return pca_basis.cols(); }
   };
@@ -129,7 +129,7 @@ namespace ip {
 
     template <class ViewT, class IterT>
     void compute_descriptor(ImageViewBase<ViewT> const& support,
-                            IterT first, IterT last) const;
+			    IterT first, IterT last) const;
 
     int support_size   () { return  42; }
     int descriptor_size() { return 180; }
@@ -140,7 +140,7 @@ namespace ip {
 /* Probably don't need this, just get OpenCV descriptions when the IP's are found.
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
   /// Wrapper for OpenCV description generator.
-  /// - Maybe delete this class since OpenCV works better generating the descriptors at the 
+  /// - Maybe delete this class since OpenCV works better generating the descriptors at the
   ///   same time as detection is performed.
   struct OpenCVDescriptorGenerator : public DescriptorGeneratorBase<OpenCVDescriptorGenerator> {
 
@@ -153,44 +153,44 @@ namespace ip {
     /// - If passthrough is set to true, this functor will do nothing!
     ///   This can be useful if you know the descriptors have already been generated.
     OpenCVDescriptorGenerator(OpenCvIpDetectorType detector_type=OPENCV_IP_DETECTOR_TYPE_ORB,
-                              bool passthrough = false) 
-        : m_passthrough(passthrough), m_detector_type(detector_type) {
+			      bool passthrough = false)
+	: m_passthrough(passthrough), m_detector_type(detector_type) {
       cv::initModule_nonfree();
       // Set up the OpenCV descriptor object
 
       switch (m_detector_type)
       {
-        //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
-        //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::ORB::create();    break;
-        case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::DescriptorExtractor::create("BRISK");  break;
-        case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::DescriptorExtractor::create("ORB"  );  break;
-        case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_extractor = cv::DescriptorExtractor::create("SIFT" );  break;
-        case OPENCV_IP_DETECTOR_TYPE_SURF:  m_extractor = cv::DescriptorExtractor::create("SURF" );  break;
-        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-      }; 
+	//case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
+	//case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::ORB::create();    break;
+	case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::DescriptorExtractor::create("BRISK");  break;
+	case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::DescriptorExtractor::create("ORB"  );  break;
+	case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_extractor = cv::DescriptorExtractor::create("SIFT" );  break;
+	case OPENCV_IP_DETECTOR_TYPE_SURF:  m_extractor = cv::DescriptorExtractor::create("SURF" );  break;
+	default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+      };
     }
 
     /// Overload that takes the list of IP's as two iterators.
-    /// - For the OpenCV class we need to override this function do describe all the 
+    /// - For the OpenCV class we need to override this function do describe all the
     ///    ip's in one call.
     template <class ViewT, class IterT>
     void operator() ( ImageViewBase<ViewT> const& image,
-                      IterT start, IterT end ) {
+		      IterT start, IterT end ) {
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
       if (m_passthrough)
-        return;
+	return;
 
       // Count the number of IPs
       size_t num_ips = 0;
       for (InterestPointList::iterator i = start; i != end; ++i)
-        ++num_ips;
+	++num_ips;
 
       // Loop through input IP's and convert to the OpenCV IP structure
       std::vector<cv::KeyPoint> cvIpList;
       cvIpList.reserve(num_ips);
       for (InterestPointList::iterator i = start; i != end; ++i)
-        cvIpList.push_back(i->makeOpenCvKeypoint());
+	cvIpList.push_back(i->makeOpenCvKeypoint());
 
       // Convert the image into a plain uint8 image buffer wrapped by OpenCV
       ImageView<PixelGray<vw::uint8> > buffer_image;
@@ -201,7 +201,7 @@ namespace ip {
       m_extractor->compute(cv_image, cvIpList, cvDescriptors);
       size_t descriptor_length = cvDescriptors.cols;
       if (static_cast<size_t>(cvDescriptors.rows) != num_ips)
-        vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
+	vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
 
       // Copy the data to the output iterator
       // - Each IP needs the descriptor (a vector of floats) updated
@@ -225,9 +225,9 @@ namespace ip {
 
   public:
     InterestPointDescriptionTask( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                                  int id, int max_id,
-                                  typename InterestPointList::iterator start,
-                                  typename InterestPointList::iterator stop ) :
+				  int id, int max_id,
+				  typename InterestPointList::iterator start,
+				  typename InterestPointList::iterator stop ) :
       m_view( view.impl() ), m_descriptor( descriptor ), m_id( id ),
       m_max_id( max_id ), m_start(start), m_stop( stop ) {}
 
@@ -264,9 +264,9 @@ namespace ip {
   public:
 
     InterestDescriptionQueue( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                              std::vector<BBox2i> const& bboxes,
-                              std::vector<typename InterestPointList::iterator> const& section_start,
-                              std::vector<typename InterestPointList::iterator> const& section_stop ) :
+			      std::vector<BBox2i> const& bboxes,
+			      std::vector<typename InterestPointList::iterator> const& section_start,
+			      std::vector<typename InterestPointList::iterator> const& section_stop ) :
       m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
       m_section_start(section_start), m_section_stop(section_stop), m_index(0)  {
       this->notify();
@@ -284,7 +284,7 @@ namespace ip {
   /// 1024 pixel block plus some padding.
   template <class ViewT, class DescriptorT>
   void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                                 InterestPointList& list );
+				 InterestPointList& list );
 
 
 
@@ -303,7 +303,7 @@ namespace ip {
 template <class ImplT>
 template <class ViewT, class IterT>
 void DescriptorGeneratorBase<ImplT>::operator() ( ImageViewBase<ViewT> const& image,
-                  IterT start, IterT end ) {
+		  IterT start, IterT end ) {
   // Timing
   Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
@@ -329,7 +329,7 @@ template <class ImplT>
 template <class ViewT>
 TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
 DescriptorGeneratorBase<ImplT>::get_support( InterestPoint const& pt,
-                                             ImageViewBase<ViewT> const& source) {
+					     ImageViewBase<ViewT> const& source) {
 
   // Compute a fine image region based on the scaling parameters attached to the InterestPoint
   float  half_size = ((float)(impl().support_size() - 1)) / 2.0f;
@@ -337,11 +337,11 @@ DescriptorGeneratorBase<ImplT>::get_support( InterestPoint const& pt,
   double c         = cos(-pt.orientation), s=sin(-pt.orientation);
 
   return transform(source.impl(),
-                   AffineTransform( Matrix2x2(scaling*c, -scaling*s,
-                                              scaling*s, scaling*c),
-                                    Vector2(scaling*(s*pt.y-c*pt.x)+half_size,
-                                            -scaling*(s*pt.x+c*pt.y)+half_size) ),
-                   impl().support_size(), impl().support_size() );
+		   AffineTransform( Matrix2x2(scaling*c, -scaling*s,
+					      scaling*s, scaling*c),
+				    Vector2(scaling*(s*pt.y-c*pt.x)+half_size,
+					    -scaling*(s*pt.x+c*pt.y)+half_size) ),
+		   impl().support_size(), impl().support_size() );
 }
 
 
@@ -354,7 +354,7 @@ void InterestPointDescriptionTask<ViewT, DescriptorT>::operator()() {
   BBox2i image_crop_bounds;
   const float half_size = ((float)( m_descriptor.support_size() - 1)) / 2.0f;
   BBox2i support_size( 0, 0, m_descriptor.support_size(),
-                       m_descriptor.support_size() );
+		       m_descriptor.support_size() );
   // Loop through all the assigned IPs
   for ( typename InterestPointList::iterator it = m_start; it != m_stop; it++ ) {
     // Figure out scaled and rotated base of support
@@ -362,16 +362,16 @@ void InterestPointDescriptionTask<ViewT, DescriptorT>::operator()() {
     double c       = cos(-it->orientation), s=sin(-it->orientation);
 
     AffineTransform tx( Matrix2x2(scaling*c, -scaling*s,
-                                  scaling*s, scaling*c),
-                        Vector2(scaling*(s * it->y - c * it->x) + half_size,
-                                -scaling*(s * it->x + c * it->y) + half_size) );
+				  scaling*s, scaling*c),
+			Vector2(scaling*(s * it->y - c * it->x) + half_size,
+				-scaling*(s * it->x + c * it->y) + half_size) );
     // Accumulate the bounding box of the image needed to compute all IP descriptions
     image_crop_bounds.grow( tx.reverse_bbox( support_size ) );
   }
   image_crop_bounds.expand( 1 );
   vw_out(InfoMessage, "interest_point") << "Describing interest points in block "
-                                        << m_id + 1 << "/" << m_max_id << "   [ "
-                                        << image_crop_bounds << " ]\n";
+					<< m_id + 1 << "/" << m_max_id << "   [ "
+					<< image_crop_bounds << " ]\n";
 
   // Reindex all the points to use image_crop_bounds
   // - Point x/y location is no relative to the cropped image.
@@ -412,7 +412,7 @@ get_next_task() {
 
   // Generate a task to build descriptors for these interest points that exist only in this bbox
   return boost::shared_ptr<Task> ( new task_type( m_view, m_descriptor, m_index-1, m_bboxes.size(),
-                                                  sstart, sstop ) );
+						  sstart, sstop ) );
 }
 
 
@@ -422,8 +422,7 @@ get_next_task() {
 // 1024 pixel block plus some padding.
 template <class ViewT, class DescriptorT>
 void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                               InterestPointList& list ) {
-  typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+			       InterestPointList& list ) {
 
   VW_OUT(DebugMessage, "interest_point")
     << "Running MT interest point descriptor.  Input image: [ "
@@ -431,7 +430,7 @@ void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& de
 
   // Process the image in 1024x1024 pixel blocks.
   int tile_size = vw_settings().default_tile_size();
-  if (tile_size < 1024) 
+  if (tile_size < 1024)
     tile_size = 1024;
   std::vector<BBox2i> bboxes = image_blocks(view.impl(), tile_size, tile_size);
   std::vector<typename InterestPointList::iterator> section_start, section_stop;
@@ -444,7 +443,7 @@ void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& de
   }
 
   InterestDescriptionQueue<ViewT, DescriptorT>descriptor_que(view, descriptor, bboxes,
-                                                             section_start, section_stop);
+							     section_start, section_stop);
 
   VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
   descriptor_que.join_all();
@@ -458,7 +457,7 @@ void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& de
 
 template <class ViewT, class IterT>
 void PatchDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const& support,
-                         IterT first, IterT last ) const {
+			 IterT first, IterT last ) const {
   double sqr_length = 0;
   IterT fill = first;
   for (int j = 0; j < support.impl().rows(); j++) {
@@ -482,9 +481,9 @@ void PatchDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const& s
 
 template <class ViewT, class IterT>
 void PCASIFTDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const& support,
-                         IterT first, IterT last) const {
+			 IterT first, IterT last) const {
 
-  // Init all 
+  // Init all
   for ( IterT fill = first; fill != last; fill++ )
     *fill = 0;
 
@@ -506,8 +505,8 @@ void PCASIFTDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const&
 
       IterT fill = first;
       for (unsigned k = 0; k < pca_basis.cols(); k++) {
-        *fill += norm_pixel * pca_basis(index,k);
-        fill++;
+	*fill += norm_pixel * pca_basis(index,k);
+	fill++;
       }
       ++index;
     }
@@ -520,7 +519,7 @@ void PCASIFTDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const&
 
 template <class ViewT, class IterT>
 void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& support,
-                        IterT first, IterT last) const {
+			IterT first, IterT last) const {
 
   typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
   ImageView<channel_type> iimage = IntegralImage(support);
@@ -535,42 +534,42 @@ void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
     // Iterate though quadrants
     for ( uint8 i = 0; i < 3; i++ ) {
       for ( uint8 j = 0; j < 3; j++ ) {
-        Vector2i top_left( box_strt[s]+i*box_size[s],
-                           box_strt[s]+j*box_size[s] );
+	Vector2i top_left( box_strt[s]+i*box_size[s],
+			   box_strt[s]+j*box_size[s] );
 
-        float minor_quad[4];
+	float minor_quad[4];
 
-        // 1.) Top Left in local
-        minor_quad[0] = IntegralBlock( iimage,
-                                       top_left,
-                                       top_left+Vector2i(box_half[s],
-                                                         box_half[s]) );
-        // 2.) Top Right in local
-        minor_quad[1] = IntegralBlock( iimage,
-                                       top_left+Vector2i(box_half[s],0),
-                                       top_left+Vector2i(2*box_half[s],
-                                                         box_half[s]) );
-        // 3.) Bot Left in local
-        minor_quad[2] = IntegralBlock( iimage,
-                                       top_left+Vector2i(0,box_half[s]),
-                                       top_left+Vector2i(box_half[s],
-                                                         2*box_half[s]) );
-        // 4.) Bot Right in local
-        minor_quad[3] = IntegralBlock( iimage,
-                                       top_left+Vector2i(box_half[s],
-                                                         box_half[s]),
-                                       top_left+Vector2i(2*box_half[s],
-                                                         2*box_half[s]) );
+	// 1.) Top Left in local
+	minor_quad[0] = IntegralBlock( iimage,
+				       top_left,
+				       top_left+Vector2i(box_half[s],
+							 box_half[s]) );
+	// 2.) Top Right in local
+	minor_quad[1] = IntegralBlock( iimage,
+				       top_left+Vector2i(box_half[s],0),
+				       top_left+Vector2i(2*box_half[s],
+							 box_half[s]) );
+	// 3.) Bot Left in local
+	minor_quad[2] = IntegralBlock( iimage,
+				       top_left+Vector2i(0,box_half[s]),
+				       top_left+Vector2i(box_half[s],
+							 2*box_half[s]) );
+	// 4.) Bot Right in local
+	minor_quad[3] = IntegralBlock( iimage,
+				       top_left+Vector2i(box_half[s],
+							 box_half[s]),
+				       top_left+Vector2i(2*box_half[s],
+							 2*box_half[s]) );
 
-        // 5.) Pulling out gradients
-        *fill = (minor_quad[0] - minor_quad[2])*inv_bh2;
-        sqr_length += (*fill)*(*fill); fill++;
-        *fill = (minor_quad[1] - minor_quad[3])*inv_bh2;
-        sqr_length += (*fill)*(*fill); fill++;
-        *fill = (minor_quad[0] - minor_quad[1])*inv_bh2;
-        sqr_length += (*fill)*(*fill); fill++;
-        *fill = (minor_quad[2] - minor_quad[3])*inv_bh2;
-        sqr_length += (*fill)*(*fill); fill++;
+	// 5.) Pulling out gradients
+	*fill = (minor_quad[0] - minor_quad[2])*inv_bh2;
+	sqr_length += (*fill)*(*fill); fill++;
+	*fill = (minor_quad[1] - minor_quad[3])*inv_bh2;
+	sqr_length += (*fill)*(*fill); fill++;
+	*fill = (minor_quad[0] - minor_quad[1])*inv_bh2;
+	sqr_length += (*fill)*(*fill); fill++;
+	*fill = (minor_quad[2] - minor_quad[3])*inv_bh2;
+	sqr_length += (*fill)*(*fill); fill++;
       } // end j
     } // end i
   } // end s
