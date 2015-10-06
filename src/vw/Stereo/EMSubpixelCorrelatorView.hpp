@@ -27,10 +27,6 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <iostream>
 
-#ifdef USE_GRAPHICS
-#include <vw/gui/Graphics.h>
-#endif
-
 namespace vw {
   namespace stereo {
 
