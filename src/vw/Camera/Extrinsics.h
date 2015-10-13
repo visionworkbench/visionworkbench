@@ -44,7 +44,7 @@ namespace camera {
 
   public:
     LinearPositionInterpolation(Vector3 const& initial_position,
-                                Vector3 const& velocity_vector);
+				Vector3 const& velocity_vector);
 
     Vector3 operator()(double t) const;
   };
@@ -52,24 +52,30 @@ namespace camera {
   /// Simple linear interpolation between a series of positions.
   class LinearPiecewisePositionInterpolation {
     std::vector<Vector3> m_position;
-    double m_t0, m_dt;
+    double m_t0, m_dt, m_tend;
   public:
     LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                          double t0, double dt );
+					  double t0, double dt );
 
     Vector3 operator()( double t ) const;
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
   };
 
   /// Interpolation between a series of positions incorporating accelleration information.
   class PiecewiseAPositionInterpolation {
     std::vector<Vector3> m_position, m_velocity;
-    double m_t0, m_dt;
+    double m_t0, m_dt, m_tend;
   public:
     PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
-                                     std::vector<Vector3> const& velocity_samples,
-                                     double t0, double dt );
+				     std::vector<Vector3> const& velocity_samples,
+				     double t0, double dt );
 
     Vector3 operator()( double t ) const;
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
   };
 
 
@@ -98,7 +104,7 @@ namespace camera {
     ///              | t^2 |
     ///
     Curve3DPositionInterpolation(std::vector<Vector3> const& position_samples,
-                                 double t0, double dt);
+				 double t0, double dt);
 
     /// The call operator evaluates the curve at the given time t.
     /// See the constructor documentation for a summary of the
@@ -110,15 +116,17 @@ namespace camera {
   // provide the velocity measurements.
   class HermitePositionInterpolation {
     std::vector<Vector3> m_position, m_velocity;
-    double m_t0, m_dt;
+    double m_t0, m_dt, m_tend;
   public:
     HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                  std::vector<Vector3> const& velocity_samples,
-                                  double t0, double dt );
+				  std::vector<Vector3> const& velocity_samples,
+				  double t0, double dt );
 
     Vector3 operator()( double t ) const;
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
   };
-
 
   // --------------------------------------------------------------------------
   // POSE INTERPOLATION
@@ -140,7 +148,7 @@ namespace camera {
   /// spherical linear interpolation algorithm.
   class SLERPPoseInterpolation {
     std::vector<Quat > m_pose_samples;
-    double m_t0, m_dt;
+    double m_t0, m_dt, m_tend;
 
     Quat slerp(double alpha, Quat const& a, Quat const& b, int spin) const;
 
@@ -150,6 +158,9 @@ namespace camera {
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
 
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
   };
 
   // --------------------------------------------------------------------------
@@ -175,7 +186,7 @@ namespace camera {
     // TLC is straight from the IMG XML tag from Digital Globe
     // products. The pairings are expected to be <Line, Time>.
     TLCTimeInterpolation( std::vector<std::pair<double, double> > const& tlc,
-                          double time_offset = 0 );
+			  double time_offset = 0 );
 
     double operator()( double line ) const;
   };

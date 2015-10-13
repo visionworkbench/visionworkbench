@@ -38,10 +38,7 @@
 #include <vw/Camera/ExifData.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-#include <vw/Camera/Extrinsics.h>
 #include <vw/Camera/LinescanModel.h>
-#include <vw/Camera/LinearPushbroomModel.h>
-#include <vw/Camera/OrbitingPushbroomModel.h>
 #include <vw/Camera/CameraGeometry.h>
 #endif
 

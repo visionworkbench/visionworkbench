@@ -41,11 +41,57 @@ LinearPositionInterpolation::operator()(double t) const {
 }
 
 //======================================================================
+// LinearPiecewisePositionInterpolation class
+
+LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
+									    double t0, double dt ) :
+  m_position(position_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
+
+Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_tend,
+	     ArgumentErr() << "Cannot extrapolate position for time "
+	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= " << m_tend << "\n" );
+
+  // Get bounding indices
+  size_t low_i  = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+
+  double low_t  = m_t0 + m_dt * low_i;
+  double norm_t = ( t - low_t) / m_dt; // t as fraction of time between points
+
+  Vector3 result = m_position[low_i] + norm_t * ( m_position[high_i] - m_position[low_i] );
+
+  return result;
+}
+
+//======================================================================
+// PiecewiseAPositionInterpolation class
+
+PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
+								  std::vector<Vector3> const& velocity_samples,
+								  double t0, double dt ) :
+  m_position( position_samples ), m_velocity( velocity_samples ),
+  m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
+
+Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_tend,
+	     ArgumentErr() << "Cannot extrapolate position for time "
+	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= " << m_tend << "\n" );
+
+  // Get the bounding indices and the distance from the time at the lower index
+  size_t low_i    = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i   = low_i + 1;
+  double offset_t = t - (m_t0 + m_dt * low_i);
+
+  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
+  return m_position[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
+}
+
+//======================================================================
 // Curve3DPositionInterpolation class
 
-Curve3DPositionInterpolation::Curve3DPositionInterpolation(
-                                                           std::vector<Vector3> const& position_samples,
-                                                           double t0, double dt) {
+Curve3DPositionInterpolation::Curve3DPositionInterpolation(std::vector<Vector3> const& position_samples,
+							   double t0, double dt) {
   Matrix<double> Z(position_samples.size()*3, 9);
 
   Vector<double> p(position_samples.size() * 3);
@@ -92,15 +138,15 @@ Vector3 Curve3DPositionInterpolation::operator()( double t ) const {
 // HermitePositionInterpolation class
 
 HermitePositionInterpolation::HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                                            std::vector<Vector3> const& velocity_samples,
-                                                            double t0, double dt ) :
+							    std::vector<Vector3> const& velocity_samples,
+							    double t0, double dt ) :
   m_position( position_samples ), m_velocity( velocity_samples ),
-  m_t0(t0), m_dt(dt) {}
+  m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
 
 Vector3 HermitePositionInterpolation::operator()( double t ) const {
-  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
-             ArgumentErr() << "Cannot extrapolate position for time "
-             << t << ". Out of range." );
+  VW_ASSERT( t >= m_t0 && t < m_tend,
+	     ArgumentErr() << "Cannot extrapolate position for time "
+	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= " << m_tend << "\n");
 
   size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
   size_t high_i = low_i + 1;
@@ -118,53 +164,6 @@ Vector3 HermitePositionInterpolation::operator()( double t ) const {
 }
 
 //======================================================================
-// PiecewiseAPositionInterpolation class
-
-PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
-                                                                  std::vector<Vector3> const& velocity_samples,
-                                                                  double t0, double dt ) :
-  m_position( position_samples ), m_velocity( velocity_samples ),
-  m_t0(t0), m_dt(dt) {}
-
-Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
-  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
-             ArgumentErr() << "Cannot extrapolate position for time "
-             << t << ". Out of range." );
-
-  // Get the bounding indices and the distance from the time at the lower index
-  size_t low_i    = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i   = low_i + 1;
-  double offset_t = t - (m_t0 + m_dt * low_i);
-
-  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
-  return m_position[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
-}
-
-//======================================================================
-// LinearPiecewisePositionInterpolation class
-
-LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                                                            double t0, double dt ) :
-  m_position( position_samples ), m_t0(t0), m_dt(dt) {}
-
-Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
-  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
-             ArgumentErr() << "Cannot extrapolate position for time "
-             << t << ". Out of range." );
-
-  // Get bounding indices
-  size_t low_i  = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i = low_i + 1;
-
-  double low_t  = m_t0 + m_dt * low_i;
-  double norm_t = ( t - low_t) / m_dt; // t as fraction of time between points
-
-  Vector3 result = m_position[low_i] + norm_t * ( m_position[high_i] - m_position[low_i] );
-
-  return result;
-}
-
-//======================================================================
 // ConstantPoseInterpolation class
 
 ConstantPoseInterpolation::ConstantPoseInterpolation(Quat const& pose) : m_pose(pose) {}
@@ -173,7 +172,7 @@ ConstantPoseInterpolation::ConstantPoseInterpolation(Quat const& pose) : m_pose(
 // SLERPPoseInterpolation class
 
 Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
-                                   Quat const& b, int spin) const {
+				   Quat const& b, int spin) const {
   const double SLERP_EPSILON = 1.0E-6;              // a tiny number
   double beta;                      // complementary interp parameter
   double theta;                     // angle between A and B
@@ -210,19 +209,19 @@ Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
 
   // interpolate
   return Quat( beta*a(0) + alpha*b(0),
-               beta*a(1) + alpha*b(1),
-               beta*a(2) + alpha*b(2),
-               beta*a(3) + alpha*b(3) );
+	       beta*a(1) + alpha*b(1),
+	       beta*a(2) + alpha*b(2),
+	       beta*a(3) + alpha*b(3) );
 }
 
 SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat > const& pose_samples, double t0, double dt) :
-  m_pose_samples(pose_samples), m_t0(t0), m_dt(dt) {}
+  m_pose_samples(pose_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)) {}
 
 Quat SLERPPoseInterpolation::operator()(double t) const {
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
-  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_pose_samples.size() - 1),
-             ArgumentErr() << "Cannot extrapolate point for time "
-             << t << ". Out of valid range." );
+  VW_ASSERT( t >= m_t0 && t < m_tend,
+	     ArgumentErr() << "Cannot extrapolate point for time "
+	     << t << ". Out of valid range. Expecting: " << m_t0 << " <= " << t << " <= " << m_tend << "\n");
 
   size_t low_ind = (size_t)floor( (t-m_t0) / m_dt );
   size_t high_ind = low_ind + 1;
@@ -237,14 +236,14 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
   double norm_t = (t - low_t)/m_dt;
 
   return this->slerp(norm_t, m_pose_samples[low_ind],
-                     m_pose_samples[high_ind], 0);
+		     m_pose_samples[high_ind], 0);
 }
 
 //======================================================================
 // LinearTimeInterpolation class
 
 LinearTimeInterpolation::LinearTimeInterpolation( double initial_time, double time_per_line ) :
-  m_t0( initial_time ), m_dt( time_per_line ) {}
+  m_t0( initial_time ), m_dt(time_per_line) {}
 
 double LinearTimeInterpolation::operator()( double line ) const {
   return m_dt * line + m_t0;
@@ -254,7 +253,7 @@ double LinearTimeInterpolation::operator()( double line ) const {
 // TLCTimeInterpolation class
 
 TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
-                                           double time_offset ) {
+					   double time_offset ) {
   for ( size_t i = 0; i < tlc.size() - 1; i++ ) {
     double t = time_offset + tlc[i].second;
     m_m[tlc[i].first] = ( tlc[i].second - tlc[i+1].second ) / ( tlc[i].first - tlc[i+1].first );
