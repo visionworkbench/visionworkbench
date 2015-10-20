@@ -48,13 +48,14 @@ LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation( std:
   m_position(position_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
 
 Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
+
   VW_ASSERT( t >= m_t0 && t <= m_tend,
 	     ArgumentErr() << "Cannot extrapolate position for time "
 	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= " << m_tend << "\n" );
 
   // Get bounding indices
-  size_t low_i  = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i = (size_t) ceil ( ( t - m_t0 ) / m_dt );
+  int low_i  = (int) floor( ( t - m_t0 ) / m_dt );
+  int high_i = (int) ceil ( ( t - m_t0 ) / m_dt );
 
   double low_t  = m_t0 + m_dt * low_i;
   double norm_t = ( t - low_t) / m_dt; // t as fraction of time between points
@@ -74,13 +75,14 @@ PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation( std::vector<Ve
   m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
 
 Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
+
   VW_ASSERT( t >= m_t0 && t < m_tend,
 	     ArgumentErr() << "Cannot extrapolate position for time "
 	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " < " << m_tend << "\n" );
 
   // Get the bounding indices and the distance from the time at the lower index
-  size_t low_i    = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i   = low_i + 1;
+  int low_i    = (int) floor( ( t - m_t0 ) / m_dt );
+  int high_i   = low_i + 1;
   double offset_t = t - (m_t0 + m_dt * low_i);
 
   Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
@@ -144,12 +146,13 @@ HermitePositionInterpolation::HermitePositionInterpolation( std::vector<Vector3>
   m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position.size() - 1)) {}
 
 Vector3 HermitePositionInterpolation::operator()( double t ) const {
+
   VW_ASSERT( t >= m_t0 && t < m_tend,
 	     ArgumentErr() << "Cannot extrapolate position for time "
 	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " < " << m_tend << "\n");
 
-  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i = low_i + 1;
+  int low_i = (int) floor( ( t - m_t0 ) / m_dt );
+  int high_i = low_i + 1;
 
   double low_t = m_t0 + m_dt * low_i;
   double norm_t = ( t - low_t) / m_dt;
@@ -218,18 +221,26 @@ SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat > const& pose_sa
   m_pose_samples(pose_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)) {}
 
 Quat SLERPPoseInterpolation::operator()(double t) const {
+
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
+
   VW_ASSERT( t >= m_t0 && t <= m_tend,
 	     ArgumentErr() << "Cannot extrapolate point for time "
-	     << t << ". Out of valid range. Expecting: " << m_t0 << " <= " << t << " <= " << m_tend << "\n");
+	     << t << ". Out of valid range. Expecting: "
+	     << m_t0 << " <= " << t << " <= " << m_tend << "\n");
 
-  size_t low_ind  = (size_t)floor( (t-m_t0) / m_dt );
-  size_t high_ind = (size_t)ceil ( (t-m_t0) / m_dt );
+
+  int low_ind  = (int)floor( (t-m_t0) / m_dt );
+  int high_ind = (int)ceil ( (t-m_t0) / m_dt );
 
   // If there are not enough points to interpolate at the end, we
   // will limit the high_ind here.
-  if ( high_ind >= m_pose_samples.size() ) {
-    vw_throw( ArgumentErr() << "Attempted to interpolate a quaternion past the last available control point." );
+  if ( low_ind < 0 || high_ind >= (int)m_pose_samples.size() ) {
+    vw_throw( ArgumentErr() << "Attempted to interpolate a quaternion past the "
+	      << "last available control point. t0, t, and t_end are: "
+	      << m_t0 << ' ' << t << ' ' << m_tend
+	      << " low_ind, high_ind, and num samples are: "
+	      << low_ind << ' ' << high_ind << ' ' << m_pose_samples.size() << "\n" );
   }
 
   double low_t =  m_t0 + m_dt * low_ind;
