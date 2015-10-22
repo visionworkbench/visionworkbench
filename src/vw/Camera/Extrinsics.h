@@ -40,18 +40,18 @@ namespace camera {
 
   /// Simple position interpolation when only an initial point and velocity are known.
   class LinearPositionInterpolation {
-    Vector3 m_initial_position, m_velocity_vector;
+    Vector3 m_position_samples, m_velocity_samples;
 
   public:
-    LinearPositionInterpolation(Vector3 const& initial_position,
-				Vector3 const& velocity_vector);
+    LinearPositionInterpolation(Vector3 const& position_samples,
+				Vector3 const& velocity_samples);
 
     Vector3 operator()(double t) const;
   };
 
   /// Simple linear interpolation between a series of positions.
   class LinearPiecewisePositionInterpolation {
-    std::vector<Vector3> m_position;
+    std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
   public:
     LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
@@ -63,9 +63,30 @@ namespace camera {
     double get_tend() const { return m_tend;}
   };
 
+  /// Performs smooth interpolation between sparse pose data points using gaussians.
+  class SmoothPiecewisePositionInterpolation {
+    std::vector<Vector3> m_position_samples;
+    double m_t0, m_dt, m_tend;
+    int m_num_wts;
+    double m_sigma;
+
+  public:
+    SmoothPiecewisePositionInterpolation(std::vector<Vector3> const& pose_samples,
+					 double t0, double dt,
+					 int num_wts, double sigma);
+
+    /// Compute the pose at a given time t.  The pose will be an interpolated value
+    Vector3 operator()(double t) const;
+
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
+    std::vector<int> get_indices_of_largest_weights(double t) const;
+  };
+
   /// Interpolation between a series of positions incorporating accelleration information.
   class PiecewiseAPositionInterpolation {
-    std::vector<Vector3> m_position, m_velocity;
+    std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
     PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
@@ -115,7 +136,7 @@ namespace camera {
   // Cubic Hermite Spline interpolation or CSpline. Assumes you
   // provide the velocity measurements.
   class HermitePositionInterpolation {
-    std::vector<Vector3> m_position, m_velocity;
+    std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
     HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
@@ -143,17 +164,34 @@ namespace camera {
     }
   };
 
-
   /// Performs interpolation between sparse pose data points using the
   /// spherical linear interpolation algorithm.
   class SLERPPoseInterpolation {
-    std::vector<Quat > m_pose_samples;
+    std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
 
-    Quat slerp(double alpha, Quat const& a, Quat const& b, int spin) const;
+  public:
+    SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt);
+
+    /// Compute the pose at a given time t.  The pose will be an interpolated value
+    Quat operator()(double t) const;
+
+    double get_t0() const { return m_t0;}
+    double get_dt() const { return m_dt;}
+    double get_tend() const { return m_tend;}
+  };
+
+  /// Performs smooth interpolation between sparse pose data points using the
+  /// spherical linear interpolation algorithm.
+  class SmoothSLERPPoseInterpolation {
+    std::vector<Quat> m_pose_samples;
+    double m_t0, m_dt, m_tend;
+    int m_num_wts;
+    double m_sigma;
 
   public:
-    SLERPPoseInterpolation(std::vector<Quat > const& pose_samples, double t0, double dt);
+    SmoothSLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
+				 int num_wts, double sigma);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;

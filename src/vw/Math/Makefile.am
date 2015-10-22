@@ -33,13 +33,13 @@ flann_sources = FLANNTree.cc
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h BBox.tcc Functions.h Functors.h	\
-                  Quaternion.h EulerAngles.h ConjugateGradient.h	\
-                  NelderMead.h Statistics.h DisjointSet.h		\
-                  MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
-                  BresenhamLine.h \
-                  RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
+		  Quaternion.h EulerAngles.h ConjugateGradient.h	\
+		  NelderMead.h Statistics.h DisjointSet.h		\
+		  MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
+		  BresenhamLine.h \
+		  RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
 
-libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)
+libvwMath_la_SOURCES = Quaternion.cc MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la
