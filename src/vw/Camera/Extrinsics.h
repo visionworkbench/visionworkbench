@@ -54,6 +54,7 @@ namespace camera {
     std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
   public:
+    LinearPiecewisePositionInterpolation(){}
     LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
 					  double t0, double dt );
 
@@ -71,6 +72,7 @@ namespace camera {
     double m_sigma;
 
   public:
+    SmoothPiecewisePositionInterpolation(){}
     SmoothPiecewisePositionInterpolation(std::vector<Vector3> const& pose_samples,
 					 double t0, double dt,
 					 int num_wts, double sigma);
@@ -171,6 +173,7 @@ namespace camera {
     double m_t0, m_dt, m_tend;
 
   public:
+    SLERPPoseInterpolation(){}
     SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
@@ -190,6 +193,7 @@ namespace camera {
     double m_sigma;
 
   public:
+    SmoothSLERPPoseInterpolation(){}
     SmoothSLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
 				 int num_wts, double sigma);
 
