@@ -105,6 +105,9 @@ Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
   int low_i  = (int) floor( ( t - m_t0 ) / m_dt );
   int high_i = (int) ceil ( ( t - m_t0 ) / m_dt );
 
+  VW_ASSERT( low_i >= 0 && high_i < (int)m_position_samples.size(),
+	     ArgumentErr() << "Out of bounds in LinearPiecewisePositionInterpolation.\n" );
+
   double low_t  = m_t0 + m_dt * low_i;
   double norm_t = ( t - low_t) / m_dt; // t as fraction of time between points
 
@@ -183,6 +186,9 @@ Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
   int high_i   = low_i + 1;
   double offset_t = t - (m_t0 + m_dt * low_i);
 
+  VW_ASSERT( low_i >= 0 && high_i < (int)m_position_samples.size(),
+	     ArgumentErr() << "Out of bounds in PiecewiseAPositionInterpolation.\n" );
+
   Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
   return m_position_samples[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
 }
@@ -252,6 +258,9 @@ Vector3 HermitePositionInterpolation::operator()( double t ) const {
   int low_i = (int) floor( ( t - m_t0 ) / m_dt );
   int high_i = low_i + 1;
 
+  VW_ASSERT( low_i >= 0 && high_i < (int)m_position_samples.size(),
+	     ArgumentErr() << "Out of bounds in HermitePositionInterpolation.\n" );
+
   double low_t = m_t0 + m_dt * low_i;
   double norm_t = ( t - low_t) / m_dt;
   Vector4 poly(1,0,0,0);
@@ -284,23 +293,16 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
 	     << t << ". Out of valid range. Expecting: "
 	     << m_t0 << " <= " << t << " <= " << m_tend << "\n");
 
-  int low_ind  = (int)floor( (t-m_t0) / m_dt );
-  int high_ind = (int)ceil ( (t-m_t0) / m_dt );
+  int low_i  = (int)floor( (t-m_t0) / m_dt );
+  int high_i = (int)ceil ( (t-m_t0) / m_dt );
 
-  // If there are not enough points to interpolate at the end, we
-  // will limit the high_ind here.
-  if ( low_ind < 0 || high_ind >= (int)m_pose_samples.size() ) {
-    vw_throw( ArgumentErr() << "Attempted to interpolate a quaternion past the "
-	      << "last available control point. t0, t, and t_end are: "
-	      << m_t0 << ' ' << t << ' ' << m_tend
-	      << " low_ind, high_ind, and num samples are: "
-	      << low_ind << ' ' << high_ind << ' ' << m_pose_samples.size() << "\n" );
-  }
+  VW_ASSERT( low_i >= 0 && high_i < (int)m_pose_samples.size(),
+	     ArgumentErr() << "Out of bounds in SLERPPoseInterpolation.\n" );
 
-  double low_t =  m_t0 + m_dt * low_ind;
+  double low_t =  m_t0 + m_dt * low_i;
   double norm_t = (t - low_t)/m_dt;
 
-  return vw::math::slerp(norm_t, m_pose_samples[low_ind], m_pose_samples[high_ind], 0);
+  return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
 }
 
 //======================================================================
