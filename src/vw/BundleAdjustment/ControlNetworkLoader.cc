@@ -100,6 +100,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     std::vector<boost::shared_ptr<camera::CameraModel> >
                                     const& camera_models,
                                     std::vector<std::string> const& image_files,
+                                    std::map< std::pair<int, int>, std::string> const& match_files,
                                     size_t min_matches,
                                     std::string const& prefix,
                                     double min_angle) {
@@ -120,7 +121,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
   }
 
   // Look for match files starting with given prefix.
-  std::vector<std::string> match_files;
+  std::vector<std::string> match_files_vec;
   std::vector<size_t> index1_vec, index2_vec;
 
   // Searching through the directories available to us.
@@ -130,7 +131,15 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     for (int j = i+1; j < num_images; j++){
       std::string image1 = image_files[i];
       std::string image2 = image_files[j];
-      std::string match_file = ip::match_filename(prefix, image1, image2);
+
+      // The match file
+      std::pair<int, int> pair_ind(i, j);
+      std::map< std::pair<int, int>, std::string>::const_iterator pair_it
+        = match_files.find(pair_ind);
+      if (pair_it == match_files.end())
+        vw_throw(ArgumentErr() << "Could not find matchfiles.\n");
+      std::string match_file = pair_it->second;
+
       std::string prefix1 = fs::path(image1).replace_extension().string();
       std::string prefix2 = fs::path(image2).replace_extension().string();
       MapIterator it1 = image_prefix_map.find( prefix1 );
@@ -141,15 +150,15 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
         vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
         continue;
       }
-      match_files.push_back(match_file);
+      match_files_vec.push_back(match_file);
       index1_vec.push_back(it1->second);
       index2_vec.push_back(it2->second);
     }
   }
 
   size_t num_load_rejected = 0, num_loaded = 0;
-  for (size_t file_iter  =  0; file_iter < match_files.size(); file_iter++){
-    std::string match_file = match_files[file_iter];
+  for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++){
+    std::string match_file = match_files_vec[file_iter];
     size_t index1 = index1_vec[file_iter];
     size_t index2 = index2_vec[file_iter];
 
