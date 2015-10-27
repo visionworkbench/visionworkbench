@@ -57,13 +57,16 @@ slopemap_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Adds or adjusts an image's georeferencing information
 georef_SOURCES = georef.cc
 georef_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+# Adds or adjusts an image's georeferencing information
+georefquery_SOURCES = georef_query.cc
+georefquery_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Fades an image's alpha channel for blending
 grassfirealpha_SOURCES = grassfirealpha.cc
 grassfirealpha_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 if HAVE_PKG_GDAL
 cart_gdal_progs = georef hillshade
 endif
-cartography_progs = colormap $(cart_gdal_progs) slopemap grassfirealpha
+cartography_progs = colormap $(cart_gdal_progs) slopemap grassfirealpha georefquery
 endif
 
 # Command-line tools based on the HDR module
