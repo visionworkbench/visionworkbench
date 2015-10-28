@@ -335,7 +335,7 @@ namespace ba {
     ControlNetworkType m_type;
 
     /// Constructor
-    ControlNetwork(std::string ,
+    ControlNetwork(std::string id,
                    ControlNetworkType type = ControlNetwork::ImageToImage,
                    std::string target_name = "Unknown",
                    std::string descrip = "Null",

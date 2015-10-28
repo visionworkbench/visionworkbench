@@ -105,6 +105,8 @@ namespace vw { namespace cartography {
 
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
 
+    // TODO: This may fail around poles. Need to do the standard X trick, traverse
+    // the edges and diagonals of the box.
     BBox2 dbox;
     dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),   bbox.min().y()  ) ) )); // Top left
     dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1, bbox.min().y()  ) ) )); // Top right

@@ -30,9 +30,11 @@
 /// convert to the DEM pixel, then to the DEM lonlat, then to the DEM
 /// xyz, then project into the camera, and find the camera pixel.
 
-/// This class is not thread-safe. It must not be invoked for individual
-/// pixels, it does wholesale computation on entire tiles,
-/// and each tile needs a new instance of this class.
+/// This class is not thread-safe. For performance reasons it better not
+/// be invoked for individual pixels. The best approach is to first
+/// create a new instance of this class for each tile, do one wholesale
+/// caching computation on the entire tile, then invoke it repeatedly
+/// individual pixels in the tile.
 
 /// The class can handle DEMs with holes.
 
@@ -71,16 +73,16 @@ namespace vw { namespace cartography {
                   vw::Vector2i const& image_size,
                   bool call_from_mapproject
                   );
-    
+
     /// Convert Map Projected Coordinate to camera coordinate
     vw::Vector2 reverse(const vw::Vector2 &p) const;
-    
+
     // Not thread safe ... you must copy this object
     void       cache_dem   ( vw::BBox2i const& bbox ) const;
     vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
   };
 
-  
+
 }} // namespace vw::cartography
 
 #endif//__VW_CARTOGRAPHY_MAP_TRANSFORM_H__

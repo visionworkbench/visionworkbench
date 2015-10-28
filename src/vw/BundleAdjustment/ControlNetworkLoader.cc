@@ -102,7 +102,6 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     std::vector<std::string> const& image_files,
                                     std::map< std::pair<int, int>, std::string> const& match_files,
                                     size_t min_matches,
-                                    std::string const& prefix,
                                     double min_angle) {
   cnet.clear();
 

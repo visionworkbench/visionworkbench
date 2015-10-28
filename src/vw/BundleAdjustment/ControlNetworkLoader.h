@@ -42,7 +42,7 @@ namespace ba {
                              std::vector<std::string> const& image_files,
                              std::map< std::pair<int, int>, std::string> const& match_files,
                              size_t min_matches,
-                             std::string const& prefix, double min_angle);
+                             double min_angle);
 
   void triangulate_control_point( ControlPoint& cp,
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
