@@ -267,9 +267,9 @@ TEST( MaskedPixelMath, PixelMaskInterpolation ) {
 }
 
 TEST( MaskedPixelMath, MixedTypes ) {
-  typedef PixelRGB<float> CPx;
-  typedef PixelMask<CPx> MCPx;
-  typedef PixelMask<float> MSx;
+  //typedef PixelRGB<float> CPx;
+  //typedef PixelMask<CPx> MCPx;
+  //typedef PixelMask<float> MSx;
 
   // This is not possible in the current frame work
   //

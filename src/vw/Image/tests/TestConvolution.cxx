@@ -200,7 +200,6 @@ TEST( Convolution, SeparableView_Compound ) {
   ImageView<PixelGray<float32> > src(2,2); src(0,0)=1; src(1,0)=0.2; src(0,1)=0.3; src(1,1)=0.4;
   std::vector<double> krn; krn.push_back(1); krn.push_back(-1);
   SeparableConvolutionView<ImageView<PixelGray<float32> >,double,ZeroEdgeExtension> cnv( src, krn, krn );
-  PixelGray<float32> monkey = cnv(0,1);
   ASSERT_TRUE( is_of_type<PixelGray<float32> >( cnv(0,0) ) );
 }
 
