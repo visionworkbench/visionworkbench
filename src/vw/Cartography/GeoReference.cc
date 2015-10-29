@@ -118,22 +118,22 @@ namespace cartography {
     init_proj();
   }
 
-  GeoReference::GeoReference(Datum const& datum) : 
+  GeoReference::GeoReference(Datum const& datum) :
         m_pixel_interpretation( PixelAsArea ), m_datum(datum){
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
 
-  GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation) 
+  GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
       : m_pixel_interpretation ( pixel_interpretation ), m_datum(datum) {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
-    
+
   GeoReference::GeoReference(Datum const& datum,
-                             Matrix<double,3,3> const& transform) : 
+                             Matrix<double,3,3> const& transform) :
                    m_pixel_interpretation( PixelAsArea ), m_datum(datum) {
     set_transform(transform);
     set_geographic();
@@ -734,7 +734,7 @@ namespace cartography {
         return pixel_to_point_bbox(pixel_bbox);
       }
 
-    // Testing the parameter of the pixel bbox
+    // Go along the perimeter of the pixel bbox.
     for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
       try {
         lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.min().y()) ));
@@ -748,7 +748,7 @@ namespace cartography {
       } catch ( const cartography::ProjectionErr& e ) {}
     }
 
-    // Drawing an X inside the bbox. This covers the poles. It will
+    // Draw an X inside the bbox. This covers the poles. It will
     // produce a lonlat boundary that is within at least one pixel of
     // the pole. This will also help catch terminator boundaries from
     // orthographic projections.
@@ -772,10 +772,10 @@ namespace cartography {
   }
 
   BBox2i GeoReference::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
-  
+
     if (!m_is_projected) {
       return point_to_pixel_bbox(lonlat_bbox);
-    }   
+    }
     BBox2 point_bbox = lonlat_to_point_bbox( lonlat_bbox, nsamples );
     return point_to_pixel_bbox( point_bbox );
   }

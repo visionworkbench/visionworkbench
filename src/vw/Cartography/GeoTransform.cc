@@ -151,6 +151,65 @@ namespace cartography {
     return grow_bbox_to_int(r);
   }
 
+  // Convert a pixel in respect to src_georef to a point (hence in projected coordinates)
+  // in respect to dst_georef.
+  Vector2 GeoTransform::pixel_to_point( Vector2 const& pix ) const {
+
+    if (m_src_georef.datum().semi_major_axis() != m_dst_georef.datum().semi_major_axis()  ||
+        m_src_georef.datum().semi_minor_axis() != m_dst_georef.datum().semi_minor_axis()  )
+      vw_throw(NoImplErr() << "pixel_to_point was not implemented when datums differ.");
+
+    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(pix);
+
+    // Take into account the offset when going from src lonlat to dst lonlat
+    Vector2 dst_lonlat = src_lonlat + m_offset;
+
+    return m_dst_georef.lonlat_to_point(dst_lonlat);
+  }
+
+  // Convert a pixel box in respect to src_georef to a point box
+  // in respect to dst_georef.
+  BBox2 GeoTransform::pixel_to_point_bbox( BBox2i const& pixel_bbox ) const {
+
+    BBox2 point_bbox;
+
+    // Go along the perimeter of the pixel bbox.
+    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
+      try {
+        point_bbox.grow(this->pixel_to_point( Vector2(x,pixel_bbox.min().y())   ));
+        point_bbox.grow(this->pixel_to_point( Vector2(x,pixel_bbox.max().y()-1) ));
+      } catch ( const cartography::ProjectionErr& e ) {}
+    }
+    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
+      try {
+        point_bbox.grow(this->pixel_to_point( Vector2(pixel_bbox.min().x(),y)   ));
+        point_bbox.grow(this->pixel_to_point( Vector2(pixel_bbox.max().x()-1,y) ));
+      } catch ( const cartography::ProjectionErr& e ) {}
+    }
+
+    // Draw an X inside the bbox. This covers the poles. It will
+    // produce a lonlat boundary that is within at least one pixel of
+    // the pole. This will also help catch terminator boundaries from
+    // orthographic projections.
+    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
+    while ( l1.is_good() ) {
+      try {
+        point_bbox.grow( this->pixel_to_point( *l1 ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l1;
+    }
+    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width(),0),
+                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),0) );
+    while ( l2.is_good() ) {
+      try {
+        point_bbox.grow( this->pixel_to_point( *l2 ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l2;
+    }
+
+    return point_bbox;
+  }
+
   void reproject_point_image(ImageView<Vector3> const& point_image,
                              GeoReference const& src_georef,
                              GeoReference const& dst_georef) {

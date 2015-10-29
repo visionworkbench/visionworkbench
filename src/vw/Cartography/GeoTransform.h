@@ -31,18 +31,18 @@
 namespace vw {
 namespace cartography {
 
-  /// Transforms between pixel coordinates of two images, 
+  /// Transforms between pixel coordinates of two images,
   /// each with an associated georeference object.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
-    ProjContext  m_src_proj, 
+    ProjContext  m_src_proj,
                  m_dst_proj;
     bool         m_skip_map_projection;
     bool         m_skip_datum_conversion;
     Vector2      m_offset;
-    
+
     // Converts between datums. The parameter 'forward' specifies whether
     // we convert forward (true) or reverse (false).
     Vector2 datum_convert(Vector2 const& v, bool forward) const;
@@ -84,6 +84,16 @@ namespace cartography {
     // We do the same for reverse_bbox
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
 
+    // Convert a pixel in respect to src_georef to a point (hence in projected coordinates)
+    // in respect to dst_georef.
+    Vector2 pixel_to_point( Vector2 const& pix ) const;
+
+    // Convert a pixel box in respect to src_georef to a point box
+    // in respect to dst_georef.
+    BBox2 pixel_to_point_bbox( BBox2i const& pixel_bbox ) const;
+
+    // Sometimes the offset is not computed correctly, for example, when one
+    // of the two georeferenced images encompasses the whole globe.
     void set_offset(Vector2 const& offset);
   };
 
@@ -91,7 +101,7 @@ namespace cartography {
   // Functional API
   // ---------------------------------------------------------------------------
 
-  
+
 
   /// Returns a transformed image view.  The user can specify the type
   /// of interpolation and edge extension to be done by supplying the
