@@ -57,11 +57,11 @@ namespace cartography {
     Vector2 reverse(Vector2 const& v) const {
       if (m_skip_map_projection)
         return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
+      Vector2 src_lonlat = m_dst_georef.pixel_to_lonlat(v) - m_offset;
       if(m_skip_datum_conversion)
-        return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v) - m_offset);
-      Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v) - m_offset;
-      dst_lonlat = datum_convert(dst_lonlat, false);
-      return m_src_georef.lonlat_to_pixel(dst_lonlat);
+        return m_src_georef.lonlat_to_pixel(src_lonlat);
+      src_lonlat = datum_convert(src_lonlat, false);
+      return m_src_georef.lonlat_to_pixel(src_lonlat);
     }
 
     /// Given a pixel coordinate of an image in a source
@@ -70,11 +70,11 @@ namespace cartography {
     Vector2 forward(Vector2 const& v) const {
       if (m_skip_map_projection)
         return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
+      Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
       if(m_skip_datum_conversion)
-        return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v) + m_offset);
-      Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
-      src_lonlat = datum_convert(src_lonlat, true);
-      return m_dst_georef.lonlat_to_pixel(src_lonlat);
+        return m_dst_georef.lonlat_to_pixel(dst_lonlat);
+      dst_lonlat = datum_convert(dst_lonlat, true);
+      return m_dst_georef.lonlat_to_pixel(dst_lonlat);
     }
 
     // We override forward_bbox so it understands to check if the image
@@ -86,11 +86,11 @@ namespace cartography {
 
     // Convert a pixel in respect to src_georef to a point (hence in projected coordinates)
     // in respect to dst_georef.
-    Vector2 pixel_to_point( Vector2 const& pix ) const;
+    Vector2 forward_pixel_to_point( Vector2 const& v ) const;
 
     // Convert a pixel box in respect to src_georef to a point box
     // in respect to dst_georef.
-    BBox2 pixel_to_point_bbox( BBox2i const& pixel_bbox ) const;
+    BBox2 forward_pixel_to_point_bbox( BBox2i const& pixel_bbox ) const;
 
     // Sometimes the offset is not computed correctly, for example, when one
     // of the two georeferenced images encompasses the whole globe.
