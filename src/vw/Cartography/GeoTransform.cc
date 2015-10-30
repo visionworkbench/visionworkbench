@@ -56,10 +56,11 @@ namespace cartography {
     else
       m_skip_map_projection = false;
 
-    // Bugfix: If both projections are lon-lat, and the offset is 360 degrees,
+    // Bugfix: If one of the projections is lon-lat, and the offset is 360 degrees,
     // don't skip map-projection, as have to correct for the offset.
-    if (m_src_georef.proj4_str().find("+proj=longlat") != std::string::npos &&
-        m_offset != Vector2()) {
+    bool has_lonat = (m_src_georef.proj4_str().find("+proj=longlat") != std::string::npos ||
+                      m_dst_georef.proj4_str().find("+proj=longlat") != std::string::npos );
+    if (has_lonat && m_offset != Vector2()) {
       m_skip_map_projection = false;
     }
 
