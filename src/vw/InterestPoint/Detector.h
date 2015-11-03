@@ -1039,6 +1039,11 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
   //if (!m_detector)
   //    vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector is not initialized!\n");
 
+  // If the image is too small to use, don't return any interest points.
+  const int MIN_DETECTOR_SIZE = 32;
+  if ( (image.impl().cols() < MIN_DETECTOR_SIZE) || (image.impl().rows() < MIN_DETECTOR_SIZE))
+    return InterestPointList();
+
   // Convert the image into a plain uint8 image buffer wrapped by OpenCV
   ImageView<PixelGray<vw::uint8> > buffer_image;
   cv::Mat cv_image = get_opencv_wrapper(image, buffer_image, m_normalize);

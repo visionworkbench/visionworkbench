@@ -73,6 +73,8 @@ namespace math {
     /// - Hamming distance can take any data type but just compares the bits of the input data.
     template <class MatrixT>
     void load_match_data( MatrixBase<MatrixT> const& features,  FLANN_DistType dist_type) {
+      if (features.impl().rows() == 0)
+        vw_throw( ArgumentErr() << "Cannot create a FLANN tree with no input data!" );
       m_dist_type           = dist_type;
       m_features_cast       = features;
       m_num_features_loaded = m_features_cast.rows();
