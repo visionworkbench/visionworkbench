@@ -59,6 +59,7 @@ namespace {
   vw::RunOnce _gdal_init_once = VW_RUNONCE_INIT;
   vw::Mutex* _gdal_mutex;
 
+  // Note the kill_gdal() function later on.
   void init_gdal() {
     CPLPushErrorHandler(gdal_error_handler);
     // If we run out of handles, GDALs error out. If you have more than 400
@@ -66,14 +67,6 @@ namespace {
     CPLSetConfigOption("GDAL_MAX_DATASET_POOL_SIZE", "400");
     GDALAllRegister();
     _gdal_mutex = new vw::Mutex();
-  }
-  void kill_gdal() {
-    delete _gdal_mutex;
-    GDALDumpOpenDatasets(stderr);
-    GDALDestroyDriverManager();
-    CPLDumpSharedList(0);
-    CPLCleanupTLS();
-    CPLPopErrorHandler();
   }
 
   // returns true if the color interp is either the expected one, or undefined.
@@ -118,6 +111,20 @@ namespace {
 namespace vw {
 namespace fileio {
 namespace detail {
+
+  // 1. This kill function is never called. The _gdal_mutex will persist
+  // until the end of the program. This is not a memory leak since
+  // only one copy of it is ever present.
+  // 2. This function is here, rather than above in the anonymous
+  // namespace, to not get compilation warnings.
+  void kill_gdal() {
+    delete _gdal_mutex;
+    GDALDumpOpenDatasets(stderr);
+    GDALDestroyDriverManager();
+    CPLDumpSharedList(0);
+    CPLCleanupTLS();
+    CPLPopErrorHandler();
+  }
 
 vw::Mutex& gdal() {
   _gdal_init_once.run( init_gdal );
