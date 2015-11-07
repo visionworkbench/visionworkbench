@@ -269,8 +269,8 @@ template <>
     switch(m_dist_type) {
     case FLANN_DistType_Hamming:
       m_index_ptr = new flann::Index<flann::Hamming<unsigned char> >( flann::Matrix<unsigned char>( (unsigned char*)data_ptr, rows, cols ),
-                                                          flann::LshIndexParams(), // This method does not match everything!
-                                                          //flann::HierarchicalClusteringIndexParams(), // This matches everything, but poorly!
+                                                          //flann::LshIndexParams(), // Bad performance on small IP data sets
+                                                          flann::HierarchicalClusteringIndexParams(),
                                                           flann::Hamming<unsigned char>() );
       cast_index_ptr_HAMM_u(this->m_index_ptr)->buildIndex();
       return;
