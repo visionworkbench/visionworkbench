@@ -46,10 +46,12 @@ namespace vw {
 
     BlockRasterizeView( ImageT const& image, Vector2i const& block_size,
                         int num_threads = 0, Cache *cache = NULL )
-      : m_child      ( new ImageT(image) ),
-        m_block_size ( block_size ),
-        m_num_threads( num_threads ),
-        m_cache_ptr  ( cache ),
+      : m_child           ( new ImageT(image) ),
+        m_block_size      ( block_size ),
+        m_num_threads     ( num_threads ),
+        m_cache_ptr       ( cache ),
+        m_table_width     ( 0 ),
+        m_table_height    ( 0 ),
         m_block_table_size( 0 )
     {
       initialize();
@@ -77,7 +79,7 @@ namespace vw {
               iy = y/m_block_size.y();
         const Cache::Handle<BlockGenerator>& handle = block(ix,iy);
                                     // Convert from global indices to indices within a block
-        result_type result = handle->operator()( x - ix*m_block_size.x(), 
+        result_type result = handle->operator()( x - ix*m_block_size.x(),
                                                  y - iy*m_block_size.y(), p );
         handle.release(); // Let the Cache know we are finished with this block of data.
         return result;
@@ -120,7 +122,7 @@ namespace vw {
           int32 ix=bbox.min().x()/m_view.m_block_size.x(), // Compute the block
                 iy=bbox.min().y()/m_view.m_block_size.y();
 #if VW_DEBUG_LEVEL > 1
-          int32 maxix=(bbox.max().x()-1)/m_view.m_block_size.x(), 
+          int32 maxix=(bbox.max().x()-1)/m_view.m_block_size.x(),
                 maxiy=(bbox.max().y()-1)/m_view.m_block_size.y();
           if( maxix != ix || maxiy != iy ) {
             vw_throw(LogicErr() << "BlockRasterizeView::RasterizeFunctor: bbox spans more than one cache block!");
@@ -145,7 +147,7 @@ namespace vw {
       boost::shared_ptr<ImageT> m_child; ///< Source image view.
       BBox2i m_bbox; ///< ROI of the source image.
     public:
-      typedef ImageView<pixel_type> value_type; ///< A plain image view 
+      typedef ImageView<pixel_type> value_type; ///< A plain image view
 
       /// Set this object up to represent a region of an image view.
       BlockGenerator( boost::shared_ptr<ImageT> const& child, BBox2i const& bbox )
@@ -178,7 +180,7 @@ namespace vw {
         m_block_size = Vector2i( cols(), block_rows );
       }
       if( m_cache_ptr ) {
-        // Compute the 
+        // Compute the
         m_table_width  = (cols()-1) / m_block_size.x() + 1;
         m_table_height = (rows()-1) / m_block_size.y() + 1;
         m_block_table_size = m_table_height * m_table_width;
@@ -225,21 +227,21 @@ namespace vw {
 
   /// Create a BlockRasterizeView with no caching.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image, 
+  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image,
                                                      Vector2i const& block_size, int num_threads = 0 ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads );
   }
 
   /// Create a BlockRasterizeView using the vw system Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, 
+  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image,
                                                  Vector2i const& block_size, int num_threads = 0 ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &vw_system_cache() );
   }
 
   /// Create a BlockRasterizeView using the provided Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, 
+  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image,
                                                  Vector2i const& block_size, int num_threads, Cache& cache ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &cache );
   }
