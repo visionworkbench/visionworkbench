@@ -45,12 +45,12 @@ namespace ba {
   /// and a identifier for the image from which it was derived.
   class ControlMeasure {
     std::string m_serialNumber;
-    float m_col, m_row, m_col_sigma, m_row_sigma, m_diameter;
+    float       m_col, m_row, m_col_sigma, m_row_sigma, m_diameter;
     std::string m_date_time, m_description, m_chooserName;
-    double m_focalplane_x, m_focalplane_y;
-    double m_ephemeris_time;
-    uint64 m_image_id;
-    bool m_ignore, m_pixels_dominant;
+    double      m_focalplane_x, m_focalplane_y;
+    double      m_ephemeris_time;
+    uint64      m_image_id;
+    bool        m_ignore, m_pixels_dominant;
 
   public:
 
@@ -177,12 +177,12 @@ namespace ba {
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
 
     /// File I/O
-    void read_binary( std::istream& f );
-    void read_isis( std::istream& f );
-    void write_binary( std::ostream &f ) const;
-    void write_isis( std::ostream &f ) const;
+    void read_binary ( std::istream& f );
+    void read_isis   ( std::istream& f );
+    void write_binary( std::ostream& f ) const;
+    void write_isis  ( std::ostream& f ) const;
 
-  };
+  }; // End class ControlMeasure
 
   /// Two control meaures are considered equal if their position,
   /// sigma, and image_id are equal.
@@ -206,18 +206,18 @@ namespace ba {
 
     std::string m_id;
     std::vector<ControlMeasure> m_measures;
-    bool m_ignore;
+    bool    m_ignore;
     Vector3 m_position;
     Vector3 m_sigma;
 
   public:
     /// Iterators
-    typedef std::vector<ControlMeasure>::iterator iterator;
+    typedef std::vector<ControlMeasure>::iterator             iterator;
     typedef std::vector<ControlMeasure>::const_iterator const_iterator;
-    iterator begin() { return m_measures.begin(); }
-    iterator end() { return m_measures.end(); }
+          iterator begin()       { return m_measures.begin(); }
+          iterator end  ()       { return m_measures.end  (); }
     const_iterator begin() const { return m_measures.begin(); }
-    const_iterator end() const { return m_measures.end(); }
+    const_iterator end  () const { return m_measures.end  (); }
 
     /// Control Point Type
     enum ControlPointType { GroundControlPoint, TiePoint };
@@ -258,15 +258,15 @@ namespace ba {
     void delete_measure(size_t index);
 
     /// Access a specific control measure that is associated with this control point.
-    ControlMeasure& operator[] (size_t index) { return m_measures[index]; }
+          ControlMeasure& operator[] (size_t index)       { return m_measures[index]; }
     const ControlMeasure& operator[] (size_t index) const { return m_measures[index]; }
 
     /// Vector access methods
-    void clear() { m_measures.clear(); }
-    void resize(size_t sz) { m_measures.resize( sz ); }
-    size_t capacity() const { return m_measures.capacity(); }
-    bool empty() const { return m_measures.empty(); }
-    void reserve(size_t sz) { m_measures.reserve(sz); }
+    void clear     ()                { m_measures.clear();           }
+    void resize    (size_t sz)       { m_measures.resize( sz );      }
+    size_t capacity()          const { return m_measures.capacity(); }
+    bool empty     ()          const { return m_measures.empty();    }
+    void reserve   (size_t sz)       { m_measures.reserve(sz);       }
 
     /// Locate a control measure that is equal to the query.  Returns
     /// this->size() if no match is found.
@@ -289,12 +289,12 @@ namespace ba {
     Vector3 sigma() const { return m_sigma; }
 
     /// File I/O
-    void read_binary( std::istream& f );
-    void read_isis( std::istream& f );
-    void write_binary( std::ostream &f ) const;
-    void write_isis( std::ostream &f );
+    void read_binary ( std::istream& f );
+    void read_isis   ( std::istream& f );
+    void write_binary( std::ostream& f ) const;
+    void write_isis  ( std::ostream& f );
 
-  };
+  }; // End class ControlPoint
 
   std::ostream& operator<<( std::ostream& os, ControlPoint const& point);
 
@@ -317,12 +317,12 @@ namespace ba {
   public:
 
     /// Iterators
-    typedef std::vector<ControlPoint>::iterator iterator;
+    typedef std::vector<ControlPoint>::iterator             iterator;
     typedef std::vector<ControlPoint>::const_iterator const_iterator;
-    iterator begin() { return m_control_points.begin(); }
-    iterator end() { return m_control_points.end(); }
+          iterator begin()       { return m_control_points.begin(); }
+          iterator end  ()       { return m_control_points.end  (); }
     const_iterator begin() const { return m_control_points.begin(); }
-    const_iterator end() const { return m_control_points.end(); }
+    const_iterator end  () const { return m_control_points.end  (); }
 
     /// Control Network Type
     ///
@@ -391,15 +391,15 @@ namespace ba {
 
     /// Access a specific control measure that is associated with this
     /// control point.
-    ControlPoint& operator[] (size_t index) { return m_control_points[index]; }
+          ControlPoint& operator[] (size_t index)       { return m_control_points[index]; }
     const ControlPoint& operator[] (size_t index) const { return m_control_points[index]; }
 
     /// Vector capacity interface
-    void clear() { m_control_points.clear(); }
-    void resize(size_t sz) { m_control_points.resize(sz); }
-    size_t capacity() const { return m_control_points.capacity(); }
-    bool empty() const { return m_control_points.empty(); }
-    void reserve(size_t sz) { m_control_points.reserve(sz); }
+    void   clear   ()                { m_control_points.clear();           }
+    void   resize  (size_t sz)       { m_control_points.resize(sz);        }
+    size_t capacity()          const { return m_control_points.capacity(); }
+    bool   empty   ()          const { return m_control_points.empty();    }
+    void   reserve (size_t sz)       { m_control_points.reserve(sz);       }
 
     /// Locate a control point that contains the control measure that
     /// is equal to the query.  Returns this->size() if no match is
@@ -407,12 +407,12 @@ namespace ba {
     size_t find_measure(ControlMeasure const& query);
 
     /// File I/O
-    void read_binary( std::string const& filename );
-    void read_isis( std::string const& filename );
-    void write_binary( std::string filename ) const;
-    void write_isis( std::string filename );
+    void read_binary ( std::string const& filename );
+    void read_isis   ( std::string const& filename );
+    void write_binary( std::string        filename ) const;
+    void write_isis  ( std::string        filename );
 
-  };
+  }; // End class ControlNetwork
 
   std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet);
 

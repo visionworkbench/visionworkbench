@@ -59,8 +59,8 @@ namespace vw {
       const Transform* m_tx;
     public:
       ForwardLMA( const Transform* tx ) : m_tx(tx) {}
-      typedef Vector2 result_type;
-      typedef Vector2 domain_type;
+      typedef Vector2   result_type;
+      typedef Vector2   domain_type;
       typedef Matrix2x2 jacobian_type;
 
       inline result_type operator()( domain_type const& x ) const {
@@ -72,8 +72,8 @@ namespace vw {
       const Transform* m_tx;
     public:
       ReverseLMA( const Transform* tx ) : m_tx(tx) {}
-      typedef Vector2 result_type;
-      typedef Vector2 domain_type;
+      typedef Vector2   result_type;
+      typedef Vector2   domain_type;
       typedef Matrix2x2 jacobian_type;
 
       inline result_type operator()( domain_type const& x ) const {
@@ -341,7 +341,9 @@ namespace vw {
       return Vector2(m_ai*px+m_bi*py,
                      m_ci*px+m_di*py);
     }
+   friend std::ostream& operator<<(std::ostream&, const AffineTransform&); 
   };
+  std::ostream& operator<<(std::ostream& os, const AffineTransform& trans);
 
   // Helper functions to pull and push a matrix to an affine transform
   Matrix3x3 affine2mat(AffineTransform const& transform);
@@ -387,7 +389,9 @@ namespace vw {
       return Vector2( ( m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2) ) / w,
                       ( m_H(1,0) * p(0) + m_H(1,1) * p(1) + m_H(1,2) ) / w);
     }
+    friend std::ostream& operator<<(std::ostream&, const HomographyTransform&);
   };
+  std::ostream& operator<<(std::ostream& os, const HomographyTransform& trans);
 
 
   // PointLookup image transform functor

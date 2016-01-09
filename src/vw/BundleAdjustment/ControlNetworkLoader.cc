@@ -44,7 +44,7 @@ void safe_measurement( ip::InterestPoint& ip ) {
   if ( ip.scale <= 0 ) ip.scale = 10;
 }
 
-void vw::ba::triangulate_control_point( ControlPoint& cp,
+double vw::ba::triangulate_control_point( ControlPoint& cp,
                                         std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                         double const& minimum_angle ) {
   Vector3 position_sum;
@@ -79,8 +79,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
   if ( !count ) {
     vw_out(WarningMessage,"ba") << "Unable to triangulate point!\n";
     // At the very least we can provide a point that is some
-    // distance out from the camera center and is in the 'general'
-    // area.
+    // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
     try {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
@@ -89,9 +88,11 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
                        camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,10)) );
     }
+    return 0;
   } else {
     error_sum /= double(count);
     cp.set_position( position_sum / double(count) );
+    return error_sum;
   }
 }
 
@@ -106,8 +107,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
-  // std::map to give ourselves a sorted list and access to a binary
-  // search.
+  // std::map to give ourselves a sorted list and access to a binary search.
   std::map<std::string,size_t> image_prefix_map;
   size_t count = 0;
   ba::CameraRelationNetwork<ba::IPFeature> crn;

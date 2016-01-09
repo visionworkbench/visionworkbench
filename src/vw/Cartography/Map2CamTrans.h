@@ -69,7 +69,7 @@ namespace vw { namespace cartography {
     Map2CamTrans( vw::camera::CameraModel const* cam,
                   GeoReference const& image_georef,
                   GeoReference const& dem_georef,
-                  std::string const& dem_file,
+                  std::string  const& dem_file,
                   vw::Vector2i const& image_size,
                   bool call_from_mapproject
                   );
@@ -81,6 +81,8 @@ namespace vw { namespace cartography {
     void       cache_dem   ( vw::BBox2i const& bbox ) const;
     vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
   };
+  
+  std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
 
 
 }} // namespace vw::cartography

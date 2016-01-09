@@ -32,10 +32,10 @@
 namespace vw {
 namespace ba {
 
-  // Builds a control network using given camera models and original
-  // image names. This function uses Boost::FS to then find match files
-  // that would have been created by 'ipmatch' by searching the entire
-  // permutation of the image_files vector.
+  /// Builds a control network using given camera models and original
+  /// image names. This function uses Boost::FS to then find match files
+  /// that would have been created by 'ipmatch' by searching the entire
+  /// permutation of the image_files vector.
   bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
                              std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
@@ -44,17 +44,18 @@ namespace ba {
                              size_t min_matches,
                              double min_angle);
 
-  void triangulate_control_point( ControlPoint& cp,
+  /// Recomputes the world location of a point based on camera observations.
+  /// - Returns the mean triangulation error.
+  double triangulate_control_point( ControlPoint& cp,
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                   double const& minimum_angle );
 
-  // Adds ground control points from GCP files to an already built
-  // Control Network. The vector image_files serves as a look up chart
-  // for relating image names in GCP files to CNET's internal
-  // indexing.  Each GCP is a line in the file, containing the point
-  // id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
-  // for each image, the image file name, pixel measurements, and
-  // their sigmas.
+  /// Adds ground control points from GCP files to an already built
+  /// Control Network. The vector image_files serves as a look up chart
+  /// for relating image names in GCP files to CNET's internal
+  /// indexing.  Each GCP is a line in the file, containing the point
+  /// id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
+  /// for each image, the image file name, pixel measurements, and their sigmas.
   template <class IterT>
   void add_ground_control_points( ControlNetwork& cnet,
                                   std::vector<std::string> const& image_files,

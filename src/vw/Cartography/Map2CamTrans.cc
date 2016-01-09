@@ -177,4 +177,12 @@ namespace vw { namespace cartography {
     return m_cached_rv_box;
   }
 
+  std::ostream& operator<<( std::ostream& os, Map2CamTrans const& trans ) {
+    std::ostringstream oss; // To use custom precision
+    oss.precision(17);
+    oss << "TODO: Fill in Map2CamTrans printer!\n";
+    os << oss.str();
+    return os;
+  }
+
 }} // namespace vw::cartography

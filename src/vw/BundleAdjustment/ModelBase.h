@@ -46,11 +46,11 @@ namespace ba {
   class ModelBase {
   public:
     static const size_t camera_params_n = CameraParamsN;
-    static const size_t point_params_n = PointParamsN;
+    static const size_t point_params_n  = PointParamsN;
 
     /// \cond INTERNAL
     // Methods to access the derived type
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
 
@@ -142,10 +142,11 @@ namespace ba {
 
     // -- Report Functions -------------------------------------------
 
-    std::string image_unit() { return "pixels"; }
-    std::string camera_position_unit() { return "meters"; }
-    std::string camera_pose_unit() { return "radians"; }
-    std::string gcp_unit() { return "meters"; }
+    std::string image_unit          () { return "pixels";  }
+    std::string camera_position_unit() { return "meters";  }
+    std::string camera_pose_unit    () { return "radians"; }
+    std::string gcp_unit            () { return "meters";  }
+    
     // Forcing the user to define
     inline double image_compare( Vector2 const& meas,
                                  Vector2 const& obj ) {

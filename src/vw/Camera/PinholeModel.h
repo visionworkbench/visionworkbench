@@ -169,7 +169,7 @@ namespace camera {
     /// constructor:
     ///
     ///   +u (increasing image columns)                     =  +X   [1 0 0]
-    ///   +v (increasing image rows)                        =  +Y   [0 -1 0]
+    ///   +v (increasing image rows)                        =  +Y   [0 -1 0] TODO: NOT THE DEFAULT!
     ///   +w (complete the RH coordinate system with
     ///       u and v -- points into the image)             =  +Z   [0 0 1]
     ///

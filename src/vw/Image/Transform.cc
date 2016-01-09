@@ -51,4 +51,35 @@ namespace vw{
   AffineTransform mat2affine(Matrix3x3 const& T){
     return AffineTransform(submatrix(T, 0, 0, 2, 2), Vector2(T(0, 2), T(1, 2)));
   }
+  
+std::ostream& operator<<( std::ostream& os, AffineTransform const& trans ) {
+  std::ostringstream oss; // To use custom precision
+  oss.precision(10);
+  oss << "AffineTransform: " << trans.m_a  << ", " << trans.m_b  << ", " 
+                             << trans.m_c  << ", " << trans.m_d  << std::endl;
+  oss << "               : " << trans.m_ai << ", " << trans.m_bi << ", " 
+                             << trans.m_ci << ", " << trans.m_di << std::endl;
+  oss << "               : " << trans.m_x  << ", " << trans.m_y  << std::endl;
+  os << oss.str();
+  return os;
+}
+  
+  
+std::ostream& operator<<( std::ostream& os, HomographyTransform const& trans ) {
+  std::ostringstream oss; // To use custom precision
+  oss.precision(10);
+  oss << "HomograpyTransform: " << trans.m_H << std::endl;
+  os << oss.str();
+  return os;
+}  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 }
