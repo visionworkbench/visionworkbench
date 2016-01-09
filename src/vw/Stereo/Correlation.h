@@ -36,29 +36,29 @@
 namespace vw {
 namespace stereo {
 
-  // This actually RASTERIZES/COPY the input images. It then makes an
-  // allocation to store current costs.
-  //
-  // Users pass us the active region of the left image. Hopefully this
-  // allows them to consider if they need edge extension.
-  //
-  // The return size of this function will be:
-  //     return size = left_region_size - kernel_size + 1.
-  //
-  // This means the user must take in account the kernel size for
-  // deciding the region size.
-  //
-  // The size of the area we're going to access in the right is
-  // calculated as follows:
-  //     right_region = left_region + search_volume - 1.
-  //
+  /// This actually RASTERIZES/COPY the input images. It then makes an
+  /// allocation to store current costs.
+  ///
+  /// Users pass us the active region of the left image. Hopefully this
+  /// allows them to consider if they need edge extension.
+  ///
+  /// The return size of this function will be:
+  ///     return size = left_region_size - kernel_size + 1.
+  ///
+  /// This means the user must take in account the kernel size for
+  /// deciding the region size.
+  ///
+  /// The size of the area we're going to access in the right is
+  /// calculated as follows:
+  ///     right_region = left_region + search_volume - 1.
+  ///
   template <template<class,bool> class CostFuncT, class ImageT1, class ImageT2>
   ImageView<PixelMask<Vector2i> >
   best_of_search_convolution( ImageViewBase<ImageT1> const& left,
                               ImageViewBase<ImageT2> const& right,
-                              BBox2i const& left_region,
-                              Vector2i const& search_volume,
-                              Vector2i const& kernel_size ) {
+                              BBox2i                 const& left_region,
+                              Vector2i               const& search_volume,
+                              Vector2i               const& kernel_size ) {
     // Sanity check the input:
     VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
                      ArgumentErr() << "best_of_search_convolution: Kernel input not sized with odd values." );
@@ -74,7 +74,8 @@ namespace stereo {
 
     typedef typename ImageT1::pixel_type PixelT1;
     typedef typename ImageT2::pixel_type PixelT2;
-    typedef typename CostFuncT<ImageT1,boost::is_integral<typename PixelChannelType<PixelT1>::type>::value>::accumulator_type AccumChannelT;
+    typedef typename CostFuncT<ImageT1,
+      boost::is_integral<typename PixelChannelType<PixelT1>::type>::value>::accumulator_type AccumChannelT;
     typedef typename PixelChannelCast<PixelT1,AccumChannelT>::type AccumT;
     typedef typename std::pair<AccumT,AccumT> QualT;
 
@@ -86,7 +87,8 @@ namespace stereo {
     ImageView<PixelT2> right_raster( crop(right.impl(), right_region) );
 
     // Build cost function which sometimes has side car data
-    CostFuncT<ImageT1,boost::is_integral<typename PixelChannelType<PixelT1>::type>::value> cost_function( left_raster, right_raster, kernel_size);
+    CostFuncT<ImageT1,boost::is_integral<typename PixelChannelType<PixelT1>::type>::value> 
+          cost_function( left_raster, right_raster, kernel_size);
 
     // Result buffers
     Vector2i result_size = left_region.size() - kernel_size + Vector2i(1,1);
@@ -95,7 +97,7 @@ namespace stereo {
     std::fill( disparity_map.data(), disparity_map.data() + prod(result_size),
                PixelMask<Vector2i>(Vector2i()) );
     // First channel is best, second is worst.
-    ImageView<QualT> quality_map( result_size[0], result_size[1] );
+    ImageView<QualT > quality_map( result_size[0], result_size[1] );
     ImageView<AccumT> cost_metric( result_size[0], result_size[1] );
 
     // Convolve across search volume
@@ -104,8 +106,7 @@ namespace stereo {
       for ( disparity.x() = 0; disparity.x() != search_volume[0]; ++disparity.x() ) {
         // There's only one raster here. Fast box sum calls each pixel
         // individually by pixel accessor. It only calls each pixel
-        // once so there's no reason to copy/rasterize the cost result
-        // before hand.
+        // once so there's no reason to copy/rasterize the cost result before hand.
         //
         // The cost function should also not be applying an edge
         // extension as we've already over cropped the input.
@@ -146,8 +147,8 @@ namespace stereo {
             ++quality_ptr;
           }
         }
-      }
-    }
+      } // End x loop
+    } // End y loop
 
     // Determine validity of result
     const QualT* quality_ptr      = quality_map.data();
@@ -161,41 +162,33 @@ namespace stereo {
     }
 
     return disparity_map;
-  }
+  } // End function best_of_search_convolution
 
+  /// A wrapper around the best_of_search_convolution function.
   template <class ImageT1, class ImageT2>
   ImageView<PixelMask<Vector2i> >
   calc_disparity(CostFunctionType cost_type,
                  ImageViewBase<ImageT1> const& left,
                  ImageViewBase<ImageT2> const& right,
-                 BBox2i const& left_region,
-                 Vector2i const& search_volume,
-                 Vector2i const& kernel_size){
-
-    // A wrapper around the best_of_search_convolution function.
+                 BBox2i                 const& left_region,
+                 Vector2i               const& search_volume,
+                 Vector2i               const& kernel_size){
 
     ImageView<PixelMask<Vector2i> > disparity;
 
     switch ( cost_type ) {
     case CROSS_CORRELATION:
-      disparity =
-        best_of_search_convolution<NCCCost>(left, right, left_region,
-                                            search_volume, kernel_size);
+      disparity = best_of_search_convolution<NCCCost>(left, right, left_region, search_volume, kernel_size);
       break;
     case SQUARED_DIFFERENCE:
-      disparity =
-        best_of_search_convolution<SquaredCost>(left, right, left_region,
-                                                search_volume, kernel_size);
+      disparity = best_of_search_convolution<SquaredCost>(left, right, left_region, search_volume, kernel_size);
       break;
     case ABSOLUTE_DIFFERENCE:
     default:
-      disparity =
-        best_of_search_convolution<AbsoluteCost>(left, right, left_region,
-                                                 search_volume, kernel_size);
+      disparity = best_of_search_convolution<AbsoluteCost>(left, right, left_region, search_volume, kernel_size);
     }
-
     return disparity;
-  }
+  } // End function calc_disparity
 
   // These are useful for pyramid stereo correlation and several other
   // algorithms. The prime result is "SearchParam" where the first
@@ -208,17 +201,16 @@ namespace stereo {
       double(S.second.width())*double(S.second.height());
   }
 
+  /// Create fake left and right images and search volume.  Do a fake
+  /// disparity calculation. Divide the run-time of this calculation
+  /// by left region size times search box size. This will enable us
+  /// to estimate how long disparity calculation takes for given cost
+  /// function and kernel size.
   template <class ImageT1, class ImageT2>
   double calc_seconds_per_op(CostFunctionType cost_type,
                              ImageViewBase<ImageT1> const& left,
                              ImageViewBase<ImageT2> const& right,
                              Vector2i const& kernel_size){
-
-    // Create fake left and right images and search volume.  Do a fake
-    // disparity calculation. Divide the run-time of this calculation
-    // by left region size times search box size. This will enable us
-    // to estimate how long disparity calculation takes for given cost
-    // function and kernel size.
 
     double elapsed = -1.0;
     double seconds_per_op = -1.0;
@@ -279,10 +271,10 @@ namespace stereo {
   // This function subdivides a disparity map into regions that
   // contain near equal disparity.
 
-  // This is a recursive function. It might be ideal to make this a
-  // template. However in all cases so far, I've only applied to
-  // PixelMask<Vector2i>. This should stay an image view as we'll be
-  // accessing the image alot and randomly.
+  /// This is a recursive function. It might be ideal to make this a
+  /// template. However in all cases so far, I've only applied to
+  /// PixelMask<Vector2i>. This should stay an image view as we'll be
+  /// accessing the image alot and randomly.
   bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                           BBox2i const& current_bbox,
                           std::vector<SearchParam>& list,

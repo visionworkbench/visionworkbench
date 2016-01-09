@@ -87,20 +87,20 @@ namespace stereo {
     return per_pixel_filter(image.impl(), MissingPixelImageFunc<typename ViewT::pixel_type>());
   }
 
-  //  disparity_mask()
-  //
-  //  ......formerly mask()
-  //
+  ///  disparity_mask()
+  ///
+  ///  ......formerly mask()
+  ///
   /// Given a pair of masks for the left and right images and a
   /// disparity map to be masked, this view will eliminate any pixels
   /// in the disparity map that correspond to locations in the mask
   /// that contain a value of zero.
   template <class ViewT, class MaskView1T, class MaskView2T>
   class DisparityMaskView : public ImageViewBase<DisparityMaskView<ViewT, MaskView1T, MaskView2T> > {
-    ViewT m_input_view;
+    ViewT      m_input_view;
     MaskView1T m_mask1_view;
     MaskView2T m_mask2_view;
-    BBox2i m_search_range;
+    BBox2i     m_search_range;
 
     template <class MaskPT>
     bool has_valid_mask( ImageView<MaskPT> const& mask ) const {
@@ -124,7 +124,7 @@ namespace stereo {
     typedef typename ViewT::pixel_type result_type;
     typedef ProceduralPixelAccessor<DisparityMaskView> pixel_accessor;
 
-    DisparityMaskView( ImageViewBase<ViewT> const& image,
+    DisparityMaskView( ImageViewBase<ViewT>      const& image,
                        ImageViewBase<MaskView1T> const& mask1,
                        ImageViewBase<MaskView2T> const& mask2,
                        BBox2i const& search_range = BBox2i() ) :
@@ -135,8 +135,8 @@ namespace stereo {
     }
 
     // Standard required ImageView interface
-    inline int32 cols() const { return m_input_view.cols(); }
-    inline int32 rows() const { return m_input_view.rows(); }
+    inline int32 cols  () const { return m_input_view.cols  (); }
+    inline int32 rows  () const { return m_input_view.rows  (); }
     inline int32 planes() const { return m_input_view.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -162,12 +162,14 @@ namespace stereo {
       return disparity;
     }
 
-    // Block rasterization section that does actual work
-    typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type> >, CropView<ImageView<typename MaskView1T::pixel_type> >, CropView<ImageView<typename MaskView2T::pixel_type> > > prerasterize_type;
+    /// Block rasterization section that does actual work
+    typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type     > >, 
+                              CropView<ImageView<typename MaskView1T::pixel_type> >, 
+                              CropView<ImageView<typename MaskView2T::pixel_type> > > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       typedef typename MaskView1T::pixel_type Mask1PT;
       typedef typename MaskView2T::pixel_type Mask2PT;
-      typedef typename ViewT::pixel_type ViewPT;
+      typedef typename ViewT::pixel_type      ViewPT;
 
       // Prerasterize Mask1 as we'll always be using it. I'm not using
       // the prerasterize type as I want to make sure I can write to
@@ -198,8 +200,7 @@ namespace stereo {
                 m_mask2_view.cols(), m_mask2_view.rows() );
         if ( !has_valid_mask(mask2_preraster.child()) ) {
           // It appears the right mask is completely empty. In order
-          // to make this view early exit, we'll set the left mask to
-          // entire zero.
+          // to make this view early exit, we'll set the left mask to entire zero.
           fill( mask1_preraster.child(), Mask1PT() );
           return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
                                     mask1_preraster,
@@ -230,8 +231,7 @@ namespace stereo {
                        bbox.max() + ceil(Vector2f(input_max[0],input_max[1])) );
       preraster.crop( bounding_box( m_mask2_view ) );
       // The bottom might be a little confusing. We're rasterizing the
-      // part of mask2 that we know the input disparity will actually
-      // touch.
+      // part of mask2 that we know the input disparity will actually touch.
       return prerasterize_type( disp_preraster,
                                 mask1_preraster,
                                 crop( ImageView<Mask2PT>( crop(m_mask2_view,preraster) ),
@@ -246,7 +246,7 @@ namespace stereo {
 
   template <class ViewT, class MaskView1T, class MaskView2T>
   DisparityMaskView<ViewT, MaskView1T, MaskView2T>
-  disparity_mask( ImageViewBase<ViewT> const& disparity_map,
+  disparity_mask( ImageViewBase<ViewT>      const& disparity_map,
                   ImageViewBase<MaskView1T> const& left_mask,
                   ImageViewBase<MaskView2T> const& right_mask,
                   BBox2i const& search_range = BBox2i() ) {
@@ -307,8 +307,7 @@ namespace stereo {
   /// You supply the half dimensions of the kernel window.
   ///
   /// Next, you supply the threshold that determines whether a
-  /// pixel is considered "close" to its neightbors (in units of
-  /// pixels).
+  /// pixel is considered "close" to its neightbors (in units of pixels).
   ///
   /// Finally, you supply the percentage of the pixels within the kernel
   /// that must "match" the center pixel if that pixel is to be
@@ -343,15 +342,15 @@ namespace stereo {
                 ArgumentErr() << "RmOutliersFunc: half kernel sizes must be non-zero.");
     }
 
-    int32 half_h_kernel() const { return m_half_h_kernel; }
-    int32 half_v_kernel() const { return m_half_v_kernel; }
-    double rejection_threshold() const { return m_rejection_threshold; }
-    double pixel_threshold() const { return m_pixel_threshold; }
-    int32 rejected_points() const { return m_state->rejected_points; }
-    int32 total_points() const { return m_state->total_points; }
+    int32  half_h_kernel      () const { return m_half_h_kernel;          }
+    int32  half_v_kernel      () const { return m_half_v_kernel;          }
+    double rejection_threshold() const { return m_rejection_threshold;    }
+    double pixel_threshold    () const { return m_pixel_threshold;        }
+    int32  rejected_points    () const { return m_state->rejected_points; }
+    int32  total_points       () const { return m_state->total_points;    }
 
     BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
-                                             Vector2i(m_half_h_kernel, m_half_v_kernel)); }
+                                             Vector2i( m_half_h_kernel,  m_half_v_kernel)); }
 
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {
@@ -395,8 +394,10 @@ namespace stereo {
     return os;
   }
 
+  ///
   template <class ViewT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, 
+                            RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
   rm_outliers_using_thresh(ImageViewBase<ViewT> const& disparity_map,
                            int32 half_h_kernel, int32 half_v_kernel,
                            double pixel_threshold,
@@ -408,20 +409,22 @@ namespace stereo {
                                pixel_threshold, rejection_threshold));
   }
 
+  /// Remove speckle outliers first using user specified parameters, and then
+  /// using a heuristic that isolates single pixel outliers.
+  /// - rejection_threshold is percentage of neighbors that must be within pixel_threshold distance
+  //    of the candidate pixel.
   template <class ViewT>
   inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
-                                                              RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+                                                              RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >, 
+                                                              RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
   disparity_cleanup_using_thresh(ImageViewBase<ViewT> const& disparity_map,
                                  int32 h_half_kernel, int32 v_half_kernel,
                                  double pixel_threshold,
                                  double rejection_threshold) {
-    // Remove outliers first using user specified parameters, and then
-    // using a heuristic that isolates single pixel outliers.
     typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type_thresh;
     typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
-      func_type_thresh > inner_type;
-    typedef UnaryPerPixelAccessorView<inner_type,
-      func_type_thresh > outer_type;
+                                      func_type_thresh > inner_type;
+    typedef UnaryPerPixelAccessorView<inner_type, func_type_thresh > outer_type;
     return outer_type(rm_outliers_using_thresh
                       (disparity_map.impl(),
                        h_half_kernel, v_half_kernel,
@@ -432,8 +435,7 @@ namespace stereo {
                       );
   }
 
-  // Method 2: Compare the central point to the mean of the
-  // neighbors (Ara's method).
+  // Method 2: Compare the central point to the mean of the neighbors (Ara's method).
   template <class PixelT>
   class RmOutliersUsingMeanFunc : public ReturnFixedType<PixelT>{
 

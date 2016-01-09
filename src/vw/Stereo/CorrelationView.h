@@ -36,35 +36,36 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
+  /// - For each left image pixel, compute disparity vector to matching pixel in the right image.
   template <class Image1T, class Image2T, class PreFilterT>
   class CorrelationView : public ImageViewBase<CorrelationView<Image1T, Image2T, PreFilterT> > {
 
-    Image1T m_left_image;
-    Image2T m_right_image;
-    PreFilterT m_prefilter;
-    BBox2i m_search_region;
-    Vector2i m_kernel_size;
+    Image1T          m_left_image;
+    Image2T          m_right_image;
+    PreFilterT       m_prefilter;
+    BBox2i           m_search_region;
+    Vector2i         m_kernel_size;
     CostFunctionType m_cost_type;
-    float m_consistency_threshold; // 0 = means don't do a consistency check
+    float            m_consistency_threshold; // 0 = means don't do a consistency check
 
   public:
     typedef PixelMask<Vector2i> pixel_type;
     typedef PixelMask<Vector2i> result_type;
     typedef ProceduralPixelAccessor<CorrelationView> pixel_accessor;
 
-    CorrelationView( ImageViewBase<Image1T> const& left,
-                     ImageViewBase<Image2T> const& right,
+    CorrelationView( ImageViewBase<Image1T>    const& left,
+                     ImageViewBase<Image2T>    const& right,
                      PreFilterBase<PreFilterT> const& prefilter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                     float consistency_threshold = -1 ) :
+                     float            consistency_threshold = -1 ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
       m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
       m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {}
 
     // Standard required ImageView interfaces
-    inline int32 cols() const { return m_left_image.cols(); }
-    inline int32 rows() const { return m_left_image.rows(); }
+    inline int32 cols  () const { return m_left_image.cols(); }
+    inline int32 rows  () const { return m_left_image.rows(); }
     inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -84,7 +85,7 @@ namespace stereo {
 
       // 1.) Expand the left raster region by the kernel size.
       Vector2i half_kernel = m_kernel_size/2;
-      BBox2i left_region = bbox;
+      BBox2i  left_region  = bbox;
       left_region.min() -= half_kernel;
       left_region.max() += half_kernel;
 
@@ -104,14 +105,12 @@ namespace stereo {
       // 4.0 ) Consistency check
       if ( m_consistency_threshold >= 0 ) {
         // Getting the crops correctly here is not important as we
-        // will re-crop later. The important bit is aligning up the
-        // origins.
+        // will re-crop later. The important bit is aligning up the origins.
         ImageView<pixel_type> rl_result
           = calc_disparity(m_cost_type,
                            crop(m_prefilter.filter(m_right_image),right_region),
                            crop(m_prefilter.filter(m_left_image),
-                                left_region
-                                -(m_search_region.size()+Vector2i(1,1))),
+                                left_region - (m_search_region.size()+Vector2i(1,1))),
                            right_region - right_region.min(),
                            m_search_region.size() + Vector2i(1,1),
                            m_kernel_size) -
@@ -132,13 +131,13 @@ namespace stereo {
 #endif
 
       return prerasterize_type( result, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
-    }
+    } // End function prerasterize
 
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
       vw::rasterize(prerasterize(bbox), dest, bbox);
     }
-  };
+  }; // End class CorrelationView
 
   template <class Image1T, class Image2T, class PreFilterT>
   CorrelationView<Image1T,Image2T,PreFilterT>
@@ -153,24 +152,26 @@ namespace stereo {
                         kernel_size, cost_type, consistency_threshold );
   }
 
-  /// An image view for performing pyramid image correlation (Faster
-  /// than CorrelationView).
+
+
+  /// An image view for performing pyramid image correlation (Faster than CorrelationView).
+  /// - TODO: What is prefilter?
   template <class Image1T, class Image2T, class Mask1T, class Mask2T, class PreFilterT>
   class PyramidCorrelationView : public ImageViewBase<PyramidCorrelationView<Image1T,Image2T, Mask1T, Mask2T,PreFilterT> > {
 
-    Image1T m_left_image;
-    Image2T m_right_image;
-    Mask1T  m_left_mask;
-    Mask2T  m_right_mask;
-    PreFilterT m_prefilter;
-    BBox2i m_search_region;
-    Vector2i m_kernel_size;
+    Image1T          m_left_image;
+    Image2T          m_right_image;
+    Mask1T           m_left_mask;
+    Mask2T           m_right_mask;
+    PreFilterT       m_prefilter;
+    BBox2i           m_search_region;
+    Vector2i         m_kernel_size;
     CostFunctionType m_cost_type;
-    int m_corr_timeout;
+    int              m_corr_timeout;
     // How long it takes to do one corr op with given kernel and cost function
     double m_seconds_per_op;
-    float m_consistency_threshold; // < 0 = means don't do a consistency check
-    int32 m_max_level_by_search;
+    float  m_consistency_threshold; // < 0 = means don't do a consistency check
+    int32  m_max_level_by_search;
 
     struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
       BBox2i work_area() const { return BBox2i(0,0,2,2); }
@@ -193,7 +194,7 @@ namespace stereo {
           return PixelT(ScalarTypeLimits<PixelT>::highest());
         return PixelT();
       }
-    };
+    }; // End struct SubsampleMaskByTwoFunc
 
     template <class ViewT>
     SubsampleView<UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, SubsampleMaskByTwoFunc> >
@@ -233,8 +234,8 @@ namespace stereo {
     }
 
     // Standard required ImageView interfaces
-    inline int32 cols() const { return m_left_image.cols(); }
-    inline int32 rows() const { return m_left_image.rows(); }
+    inline int32 cols  () const { return m_left_image.cols(); }
+    inline int32 rows  () const { return m_left_image.rows(); }
     inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -243,7 +244,7 @@ namespace stereo {
       return pixel_type();
     }
 
-    // Block rasterization section that does actual work
+    /// Block rasterization section that does actual work
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
@@ -261,8 +262,8 @@ namespace stereo {
       //      There's a maximum base on kernel size. There's also
       //      maximum defined by the search range. Here we determine
       //      the maximum based on kernel size and current bbox.
-      int32 smallest_bbox = math::min(bbox.size());
-      int32 largest_kernel = math::max(m_kernel_size);
+      int32 smallest_bbox      = math::min(bbox.size());
+      int32 largest_kernel     = math::max(m_kernel_size);
       int32 max_pyramid_levels = std::floor(log(smallest_bbox)/log(2.0f) - log(largest_kernel)/log(2.0f));
       if ( m_max_level_by_search < max_pyramid_levels )
         max_pyramid_levels = m_max_level_by_search;
@@ -270,11 +271,13 @@ namespace stereo {
         max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
-      // 2.0) Build the pyramid
-      std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid(max_pyramid_levels + 1 );
-      std::vector<ImageView<typename Image2T::pixel_type> > right_pyramid(max_pyramid_levels + 1 );
-      std::vector<ImageView<typename Mask1T::pixel_type> > left_mask_pyramid(max_pyramid_levels + 1 );
-      std::vector<ImageView<typename Mask2T::pixel_type> > right_mask_pyramid(max_pyramid_levels + 1 );
+      // 2.0) Build the pyramids
+      //      - Highest resolution image is stored at index zero.
+      //      - There really ought to be a function call for this!
+      std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid      (max_pyramid_levels + 1 );
+      std::vector<ImageView<typename Image2T::pixel_type> > right_pyramid     (max_pyramid_levels + 1 );
+      std::vector<ImageView<typename Mask1T::pixel_type > > left_mask_pyramid (max_pyramid_levels + 1 );
+      std::vector<ImageView<typename Mask2T::pixel_type > > right_mask_pyramid(max_pyramid_levels + 1 );
       int32 max_upscaling = 1 << max_pyramid_levels;
       BBox2i left_global_region, right_global_region;
       {
@@ -283,17 +286,13 @@ namespace stereo {
         left_global_region.max() += half_kernel * max_upscaling;
         right_global_region = left_global_region + m_search_region.min();
         right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
-        left_pyramid[0] = crop(edge_extend(m_left_image),left_global_region);
-        right_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
-        left_mask_pyramid[0] =
-          crop(edge_extend(m_left_mask,ConstantEdgeExtension()),
-               left_global_region);
-        right_mask_pyramid[0] =
-          crop(edge_extend(m_right_mask,ConstantEdgeExtension()),
-               right_global_region);
+        left_pyramid      [0] = crop(edge_extend(m_left_image), left_global_region);
+        right_pyramid     [0] = crop(edge_extend(m_right_image),right_global_region);
+        left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ConstantEdgeExtension()), left_global_region);
+        right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ConstantEdgeExtension()), right_global_region);
 
 #if VW_DEBUG_LEVEL > 0
-        VW_OUT(DebugMessage,"stereo") << " > Left ROI: " << left_global_region
+        VW_OUT(DebugMessage,"stereo") << " > Left ROI: "    << left_global_region
                                       << "\n > Right ROI: " << right_global_region << "\n";
 #endif
 
@@ -302,12 +301,8 @@ namespace stereo {
         typename Image1T::pixel_type left_mean;
         typename Image2T::pixel_type right_mean;
         try {
-          left_mean =
-            mean_pixel_value(subsample(copy_mask(left_pyramid[0],
-                                                 create_mask(left_mask_pyramid[0],0)),2));
-          right_mean =
-            mean_pixel_value(subsample(copy_mask(right_pyramid[0],
-                                                 create_mask(right_mask_pyramid[0],0)),2));
+          left_mean  = mean_pixel_value(subsample(copy_mask(left_pyramid [0], create_mask(left_mask_pyramid [0],0)),2));
+          right_mean = mean_pixel_value(subsample(copy_mask(right_pyramid[0], create_mask(right_mask_pyramid[0],0)),2));
         } catch ( const ArgumentErr& err ) {
           // Mean pixel value will throw an argument error if there
           // are no valid pixels. If that happens, it means either the
@@ -323,8 +318,8 @@ namespace stereo {
                                                          bbox.height()),
                                    -bbox.min().x(), -bbox.min().y(),
                                    cols(), rows() );
-        }
-        left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
+        } // End mean pixel insertion section
+        left_pyramid [0] = apply_mask(copy_mask(left_pyramid [0],create_mask(left_mask_pyramid [0],0)), left_mean  );
         right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],create_mask(right_mask_pyramid[0],0)), right_mean );
 
         // Don't actually need the whole over cropped disparity
@@ -332,10 +327,8 @@ namespace stereo {
         // just to calculate the mean color value options.
         BBox2i right_mask = bbox + m_search_region.min();
         right_mask.max() += m_search_region.size();
-        left_mask_pyramid[0] =
-          crop(left_mask_pyramid[0],bbox - left_global_region.min());
-        right_mask_pyramid[0] =
-          crop(right_mask_pyramid[0],right_mask - right_global_region.min());
+        left_mask_pyramid [0] = crop(left_mask_pyramid [0], bbox       - left_global_region.min());
+        right_mask_pyramid[0] = crop(right_mask_pyramid[0], right_mask - right_global_region.min());
 
         // Szeliski's book recommended this simple kernel. This
         // operation is quickly becoming a time sink, we might
@@ -347,26 +340,25 @@ namespace stereo {
         std::vector<uint8> mask_kern(max(m_kernel_size));
         std::fill(mask_kern.begin(), mask_kern.end(), 1 );
 
-        // Build the pyramid first and then apply the filter to each
-        // level.
+        // Build the pyramid first and then apply the filter to each level.
         for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
-          left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
+          left_pyramid [i+1] = subsample(separable_convolution_filter(left_pyramid [i],kernel,kernel),2);
           right_pyramid[i+1] = subsample(separable_convolution_filter(right_pyramid[i],kernel,kernel),2);
-          left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
+          left_pyramid [i] = m_prefilter.filter(left_pyramid [i]);
           right_pyramid[i] = m_prefilter.filter(right_pyramid[i]);
-          left_mask_pyramid[i+1] = subsample_mask_by_two(left_mask_pyramid[i]);
+          left_mask_pyramid [i+1] = subsample_mask_by_two(left_mask_pyramid [i]);
           right_mask_pyramid[i+1] = subsample_mask_by_two(right_mask_pyramid[i]);
         }
-        left_pyramid[max_pyramid_levels] = m_prefilter.filter(left_pyramid[max_pyramid_levels]);
+        left_pyramid [max_pyramid_levels] = m_prefilter.filter(left_pyramid [max_pyramid_levels]);
         right_pyramid[max_pyramid_levels] = m_prefilter.filter(right_pyramid[max_pyramid_levels]);
-      }
+      } // Done building the pyramids!
 
       // 3.0) Actually perform correlation now
       ImageView<pixel_type > disparity;
-      std::vector<SearchParam> zones;
+      std::vector<SearchParam> zones; // Initial search region at lowest resolution level
       zones.push_back( SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
-                                   BBox2i(0,0,m_search_region.width()/max_upscaling+1,
-                                          m_search_region.height()/max_upscaling+1)) );
+                                   BBox2i(0,0,m_search_region.width ()/max_upscaling+1,
+                                              m_search_region.height()/max_upscaling+1)) );
 
       // Perform correlation. Keep track of how much time elapsed
       // since we started and stop if we estimate that doing one more
@@ -381,6 +373,7 @@ namespace stereo {
       int measure_spacing = 2; // seconds
       double prev_estim = estim_elapsed;
 
+      // Loop down through all of the pyramid levels, low res to high res.
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
 
         int32 scaling = 1 << level;
@@ -393,14 +386,14 @@ namespace stereo {
         std::sort(zones.begin(), zones.end(), SearchParamLessThan());
         BOOST_FOREACH( SearchParam const& zone, zones ) {
 
-          BBox2i left_region = zone.first + region_offset;
+          BBox2i left_region = zone.first + region_offset; // Kernel width offset
           left_region.min() -= half_kernel;
           left_region.max() += half_kernel;
           BBox2i right_region = left_region + zone.second.min();
           right_region.max() += zone.second.size();
 
-          double next_elapsed = m_seconds_per_op
-            * search_volume(SearchParam(left_region, zone.second));
+          // Check timing estimate to see if we should go ahead with this zone or quit.
+          double next_elapsed = m_seconds_per_op * search_volume(SearchParam(left_region, zone.second));
           if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
             vw_out() << "Tile: " << bbox << " reached timeout: "
                      << m_corr_timeout << " s" << std::endl;
@@ -416,15 +409,19 @@ namespace stereo {
             prev_estim = estim_elapsed;
           }
 
-          crop(disparity,zone.first)
+          // Compute left to right disparity vectors in this zone.
+          crop(disparity, zone.first)
             = calc_disparity(m_cost_type,
-                             crop(left_pyramid[level], left_region),
+                             crop(left_pyramid [level], left_region),
                              crop(right_pyramid[level], right_region),
                              left_region - left_region.min(),
                              zone.second.size(), m_kernel_size);
 
+          // If at the last level and the user requested a left<->right consistency check,
+          //   compute right to left disparity.
           if ( m_consistency_threshold >= 0 && level == 0 ) {
 
+            // Check the time again before moving on with this
             double next_elapsed = m_seconds_per_op
               * search_volume(SearchParam(right_region, zone.second));
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
@@ -434,50 +431,49 @@ namespace stereo {
             }else{
               estim_elapsed += next_elapsed;
             }
-
+            // Compute right to left disparity in this zone
             ImageView<pixel_type> rl_result
               = calc_disparity(m_cost_type,
                                crop(edge_extend(right_pyramid[level]), right_region),
-                               crop(edge_extend(left_pyramid[level]),
+                               crop(edge_extend(left_pyramid [level]),
                                     left_region - zone.second.size()),
                                right_region - right_region.min(),
                                zone.second.size(), m_kernel_size)
               - pixel_type(zone.second.size());
 
+            // Find pixels where the disparity distance is greater than m_consistency_threshold
             stereo::cross_corr_consistency_check(crop(disparity,zone.first),
                                                   rl_result,
                                                  m_consistency_threshold, false);
-          }
+          } // End of last level right to left disparity check
 
-          // Fix the offset
-          crop(disparity,zone.first) += pixel_type(zone.second.min());
-        } // end of zone loop
+          // Fix the offsets to account for cropping.
+          crop(disparity, zone.first) += pixel_type(zone.second.min());
+        } // End of zone loop
 
-        // 3.2a) Filter the disparity so we are not processing more
-        // than we need to.
+        // 3.2a) Filter the disparity so we are not processing more than we need to.
+        //       - Inner function filtering is only to catch "speckle" type noise of individual ouliers.
+        //       - Outer function just merges the masks over the filtered disparity image.
         const int32 rm_half_kernel = 5;
         const float rm_min_matches_percent = 0.5;
         const float rm_threshold = 3.0;
         if ( level != 0 ) {
-          disparity =
-            disparity_mask(disparity_cleanup_using_thresh
-                           (disparity,
-                            rm_half_kernel, rm_half_kernel,
-                            rm_threshold,
-                            rm_min_matches_percent),
-                           left_mask_pyramid[level],
-                           right_mask_pyramid[level]);
+          disparity = disparity_mask(disparity_cleanup_using_thresh
+                                       (disparity,
+                                        rm_half_kernel, rm_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid[level],
+                                       right_mask_pyramid[level]);
         } else {
-          // We don't do a single hot pixel check on the final level
-          // as it leaves a border.
-          disparity =
-            disparity_mask(rm_outliers_using_thresh
-                           (disparity,
-                            rm_half_kernel, rm_half_kernel,
-                            rm_threshold,
-                            rm_min_matches_percent),
-                           left_mask_pyramid[level],
-                           right_mask_pyramid[level]);
+          // We don't do a single hot pixel check on the final level as it leaves a border.
+          disparity = disparity_mask(rm_outliers_using_thresh
+                                       (disparity,
+                                        rm_half_kernel, rm_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid[level],
+                                       right_mask_pyramid[level]);
         }
 
         // 3.2b) Refine search estimates but never let them go beyond
@@ -526,7 +522,7 @@ namespace stereo {
             zone.second.crop( scale_search_region );
           }
         }
-      }
+      } // End of the level loop
 
       VW_ASSERT( bbox.size() == bounding_box(disparity).size(),
                  MathErr() << "PyramidCorrelation: Solved disparity doesn't match requested bbox size." );
@@ -549,13 +545,13 @@ namespace stereo {
       return prerasterize_type(disparity + pixel_type(m_search_region.min()),
                                -bbox.min().x(), -bbox.min().y(),
                                cols(), rows() );
-    }
+    } // End function prerasterize
 
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
       vw::rasterize(prerasterize(bbox), dest, bbox);
     }
-  };
+  }; // End class PyramidCorrelationView
 
   template <class Image1T, class Image2T, class Mask1T, class Mask2T, class PreFilterT>
   PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T,PreFilterT>
