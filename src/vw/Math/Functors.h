@@ -463,13 +463,13 @@ namespace vw {
     };
 
 
-    // CDF (Cumulative Distribution Function) Accumulator
-    // Actually it's an approximation. It allows for a more memory efficient
-    // calculation of any quantile. Probably most importantly the median.
-    // - Use the quantile() function buried way down below to obtain percentile
-    //   values of the image, useful for intensity stretching of images.
-    //
-    // Taken from Numerical Recipes (3rd E) pg 435
+    /// CDF (Cumulative Distribution Function) Accumulator
+    /// Actually it's an approximation. It allows for a more memory efficient
+    /// calculation of any quantile. Probably most importantly the median.
+    /// - Use the quantile() function buried way down below to obtain percentile
+    ///   values of the image, useful for intensity stretching of images.
+    ///
+    /// Taken from Numerical Recipes (3rd E) pg 435
     template <class ValT>
     class CDFAccumulator : public ReturnFixedType<void> {
       size_t m_num_quantiles, m_buffer_idx;

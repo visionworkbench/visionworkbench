@@ -40,7 +40,8 @@ namespace vw {
   /// consider as the "no data" or masked value, returns a view with
   /// pixels that are of the PixelMask<PixelT>, with the appropriate
   /// pixels masked.
-  ///
+  /// - Should safely accept inputs which already contain a mask, in 
+  ///   which case the input mask is ignored.
   template <class PixelT>
   class CreatePixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_nodata_value;
@@ -127,7 +128,7 @@ namespace vw {
     }
   };
 
-  // Simple single value nodata
+  /// Simple single value nodata
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
@@ -136,7 +137,7 @@ namespace vw {
     return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>(value) );
   }
 
-  // Thresholded valid
+  /// Thresholded valid
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
@@ -146,14 +147,14 @@ namespace vw {
     return view_type( view.impl(), CreatePixelRangeMask<typename ViewT::pixel_type>( valid_min, valid_max ));
   }
 
-  // Default mask zero
+  /// Default mask zero
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view ) {
     return create_mask( view.impl(), typename ViewT::pixel_type() );
   }
 
-  // Mask values less than or equal to the nodata value.
+  /// Mask values less than or equal to the nodata value.
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMaskLE<typename ViewT::pixel_type> >
   create_mask_less_or_equal( ImageViewBase<ViewT> const& view,
@@ -325,7 +326,7 @@ namespace vw {
     // These vectors contain the indices of the first good pixel from
     // the edge of the image on each side.
     Vector<int> m_left, m_right;
-    Vector<int> m_top, m_bottom;
+    Vector<int> m_top,  m_bottom;
 
     // Use the edge vectors to determine if a pixel is valid.  Note:
     // this check fails for non convex edge masks!
@@ -337,10 +338,10 @@ namespace vw {
     }
 
   public:
-    typedef typename ViewT::pixel_type orig_pixel_type;
+    typedef typename ViewT::pixel_type            orig_pixel_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<orig_pixel_type>::type>::type unmasked_pixel_type;
-    typedef PixelMask<unmasked_pixel_type> pixel_type;
-    typedef PixelMask<unmasked_pixel_type> result_type;
+    typedef PixelMask<unmasked_pixel_type>        pixel_type;
+    typedef PixelMask<unmasked_pixel_type>        result_type;
     typedef ProceduralPixelAccessor<EdgeMaskView> pixel_accessor;
 
     // EdgeMaskView( ViewT const& view,
@@ -405,8 +406,8 @@ namespace vw {
       progress_callback.report_finished();
     }
 
-    inline int32 cols() const { return m_view.cols(); }
-    inline int32 rows() const { return m_view.rows(); }
+    inline int32 cols  () const { return m_view.cols();   }
+    inline int32 rows  () const { return m_view.rows();   }
     inline int32 planes() const { return m_view.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
@@ -558,7 +559,7 @@ namespace vw {
 
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> >
-  union_mask( ImageViewBase<ViewT> const& view,
+  union_mask( ImageViewBase<    ViewT> const&      view,
               ImageViewBase<MaskViewT> const& mask_view ) {
     typedef BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), mask_view.impl(), UnionPixelMask<typename ViewT::pixel_type>() );
@@ -591,7 +592,7 @@ namespace vw {
 
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> >
-  intersect_mask( ImageViewBase<ViewT> const& view,
+  intersect_mask( ImageViewBase<    ViewT> const&      view,
                   ImageViewBase<MaskViewT> const& mask_view ) {
     typedef BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), mask_view.impl(), IntersectPixelMask<typename ViewT::pixel_type>() );

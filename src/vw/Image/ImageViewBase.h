@@ -27,6 +27,7 @@
 /// classes.  Finally, there is the default rasterization function,
 /// \ref vw::rasterize, which iterates over source and destination views
 /// copying pixels from one into the other.
+/// - We write new image views all the time, so this is not a rare thing!
 ///
 #ifndef __VW_IMAGE_IMAGEVIEWBASE_H__
 #define __VW_IMAGE_IMAGEVIEWBASE_H__
@@ -132,18 +133,19 @@ namespace vw {
   // Pixel iteration functions
   // *******************************************************************
 
+  /// Function to apply a functor to each pixel of an input image.
   template <class ViewT, class FuncT>
   void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func, const ProgressCallback &progress ) {
     const ViewT& view = view_.impl();
     typedef typename ViewT::pixel_accessor pixel_accessor;
     pixel_accessor plane_acc = view.origin();
-    for( int32 plane = view.planes(); plane; --plane ) {
+    for( int32 plane = view.planes(); plane; --plane ) { // Loop through planes
       pixel_accessor row_acc = plane_acc;
-      for( int32 row = 0; row<view.rows(); ++row ) {
+      for( int32 row = 0; row<view.rows(); ++row ) { // Loop through rows
         progress.report_fractional_progress(row,view.rows());
         pixel_accessor col_acc = row_acc;
-        for( int32 col = view.cols(); col; --col ) {
-          func( *col_acc );
+        for( int32 col = view.cols(); col; --col ) { // Loop through columns
+          func( *col_acc );  // Apply the functor to this pixel value
           col_acc.next_col();
         }
         row_acc.next_row();
@@ -153,16 +155,18 @@ namespace vw {
     progress.report_finished();
   }
 
+  /// Overload with default no progress callback.
   template <class ViewT, class FuncT>
   void for_each_pixel( const ImageViewBase<ViewT> &view, FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
     for_each_pixel_<ViewT,FuncT>(view,func,progress);
   }
-
+  /// Const functor overload
   template <class ViewT, class FuncT>
   void for_each_pixel( const ImageViewBase<ViewT> &view, const FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
     for_each_pixel_<ViewT,const FuncT>(view,func,progress);
   }
 
+  /// Overload for applying a functor to two input images.
   template <class View1T, class View2T, class FuncT>
   void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, FuncT &func ) {
     const View1T& view1 = view1_.impl();
@@ -202,6 +206,7 @@ namespace vw {
     for_each_pixel_<View1T,View2T,const FuncT>(view1,view2,func);
   }
 
+  /// Overload for applying a functor to three input images.
   template <class View1T, class View2T, class View3T, class FuncT>
   void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, const ImageViewBase<View3T> &view3_, FuncT &func ) {
     const View1T& view1 = view1_.impl();
@@ -258,8 +263,7 @@ namespace vw {
   /// optimized rasterization methods.  The user can also call it
   /// explicitly when pixel-by-pixel rasterization is preferred to
   /// the default optimized rasterization behavior.  This can be
-  /// useful in some cases, such as when the views are heavily
-  /// subsampled.
+  /// useful in some cases, such as when the views are heavily subsampled.
   template <class SrcT, class DestT>
   inline void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
     typedef typename DestT::pixel_type     DestPixelT;

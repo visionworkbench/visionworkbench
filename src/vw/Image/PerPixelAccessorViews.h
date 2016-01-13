@@ -43,6 +43,8 @@
 ///    operator() (PixelAccessorT const& acc) const { ... }
 ///  };
 ///
+/// TODO: What is the reason for this class existing?
+
 #ifndef __VW_IMAGE_PERPIXELACCESSORVIEWS_H__
 #define __VW_IMAGE_PERPIXELACCESSORVIEWS_H__
 
@@ -61,22 +63,22 @@ namespace vw {
   // UnaryPerPixelAccessorView
   // *******************************************************************
 
-  // Image View Class Declaration
+
   template <class ImageT, class FuncT>
   class UnaryPerPixelAccessorView : public ImageViewBase<UnaryPerPixelAccessorView<ImageT,FuncT> > {
     ImageT m_image;
-    FuncT m_func;
+    FuncT  m_func;
   public:
 
-    typedef ProceduralPixelAccessor<UnaryPerPixelAccessorView> pixel_accessor;
+    typedef ProceduralPixelAccessor<UnaryPerPixelAccessorView>                      pixel_accessor;
     typedef typename boost::result_of<FuncT(typename ImageT::pixel_accessor)>::type result_type;
-    typedef typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_reference<result_type>::type                     pixel_type;
 
-    UnaryPerPixelAccessorView( ImageT const& image ) : m_image(image), m_func() {}
+    UnaryPerPixelAccessorView( ImageT const& image                    ) : m_image(image), m_func() {}
     UnaryPerPixelAccessorView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
 
-    inline int32 cols() const { return m_image.cols(); }
-    inline int32 rows() const { return m_image.rows(); }
+    inline int32 cols  () const { return m_image.cols();   }
+    inline int32 rows  () const { return m_image.rows();   }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
@@ -88,7 +90,7 @@ namespace vw {
     // additional overhead  then we should rasterize the child
     // before we proceed to rasterize ourself.
     BBox2i pad_bbox(BBox2i const& bbox) const {
-      int32 padded_width = bbox.width() + m_func.work_area().width();
+      int32 padded_width  = bbox.width()  + m_func.work_area().width();
       int32 padded_height = bbox.height() + m_func.work_area().height();
       return BBox2i (bbox.min().x() + m_func.work_area().min().x(),
                      bbox.min().y() + m_func.work_area().min().y(),

@@ -55,10 +55,10 @@ namespace vw {
     PixelT *m_base_ptr;
     int32 m_num_pixels;
 #endif
-    PixelT *m_ptr;
+    PixelT *m_ptr; ///< Pointer to whole pixels, not to bytes.
     ssize_t m_rstride, m_pstride;
   public:
-    typedef PixelT pixel_type;
+    typedef PixelT  pixel_type;
     typedef PixelT& result_type;
     typedef ssize_t offset_type;
 
@@ -74,8 +74,8 @@ namespace vw {
     }
 #endif
 
-    inline MemoryStridingPixelAccessor& next_col()   { ++m_ptr; return *this; }
-    inline MemoryStridingPixelAccessor& prev_col()   { --m_ptr; return *this; }
+    inline MemoryStridingPixelAccessor& next_col()   { ++m_ptr;            return *this; }
+    inline MemoryStridingPixelAccessor& prev_col()   { --m_ptr;            return *this; }
     inline MemoryStridingPixelAccessor& next_row()   { m_ptr += m_rstride; return *this; }
     inline MemoryStridingPixelAccessor& prev_row()   { m_ptr -= m_rstride; return *this; }
     inline MemoryStridingPixelAccessor& next_plane() { m_ptr += m_pstride; return *this; }
@@ -97,6 +97,7 @@ namespace vw {
       return tmp;
     }
 
+    /// Operator returns the pixel value at the current iterator location.
     inline result_type operator*() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       int32 delta = int32(m_ptr - m_base_ptr);

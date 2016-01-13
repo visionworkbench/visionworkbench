@@ -594,12 +594,12 @@ namespace vw {
   bool simple_conversion(PixelFormatEnum a, PixelFormatEnum b);
   bool simple_conversion(ChannelTypeEnum a, ChannelTypeEnum b);
 
-  uint32 channel_size( ChannelTypeEnum type );
-  uint32 channel_size_nothrow( ChannelTypeEnum type );
-  const char *channel_type_name( ChannelTypeEnum type );
-  uint32 num_channels( PixelFormatEnum format );
-  uint32 num_channels_nothrow( PixelFormatEnum format );
-  const char *pixel_format_name( PixelFormatEnum format );
+  uint32          channel_size        ( ChannelTypeEnum type    );
+  uint32          channel_size_nothrow( ChannelTypeEnum type    );
+  const char *    channel_type_name   ( ChannelTypeEnum type    );
+  uint32          num_channels        ( PixelFormatEnum format  );
+  uint32          num_channels_nothrow( PixelFormatEnum format  );
+  const char *    pixel_format_name   ( PixelFormatEnum format  );
   ChannelTypeEnum channel_name_to_enum( const std::string& name );
 
 } // namespace vw

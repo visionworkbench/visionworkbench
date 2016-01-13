@@ -102,8 +102,7 @@ namespace vw {
     max = accumulator.maximum();
   }
 
-  /// Compute the sum of all the channels of all the valid pixels of
-  /// the image.
+  /// Compute the sum of all the channels of all the valid pixels of the image.
   template <class ViewT>
   typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type
   sum_of_channel_values( const ImageViewBase<ViewT>& view ) {

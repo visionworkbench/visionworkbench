@@ -369,16 +369,20 @@ namespace stereo {
       // is proportional with image area times search range area. This
       // is not completely accurate, so every now and then do actual
       // timing, no more often than once in measure_spacing seconds.
-      double estim_elapsed = 0.0;
-      int measure_spacing = 2; // seconds
-      double prev_estim = estim_elapsed;
+      double estim_elapsed   = 0.0;
+      int    measure_spacing = 2; // seconds
+      double prev_estim      = estim_elapsed;
 
       // Loop down through all of the pyramid levels, low res to high res.
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
 
+        const bool on_last_level = (level == 0);
+
         int32 scaling = 1 << level;
         disparity.set_size( left_mask_pyramid[level] );
         Vector2i region_offset = max_upscaling*half_kernel/scaling;
+
+        vw_out() << "Processing level: " << level << " with size " << disparity.get_size() << std::endl;
 
         // 3.1) Process each zone with their refined search estimates
         // Do first the zones which take less time, as at some point
@@ -457,7 +461,8 @@ namespace stereo {
         const int32 rm_half_kernel = 5;
         const float rm_min_matches_percent = 0.5;
         const float rm_threshold = 3.0;
-        if ( level != 0 ) {
+
+        if ( !on_last_level ) {
           disparity = disparity_mask(disparity_cleanup_using_thresh
                                        (disparity,
                                         rm_half_kernel, rm_half_kernel,
@@ -478,13 +483,13 @@ namespace stereo {
 
         // 3.2b) Refine search estimates but never let them go beyond
         // the search region defined by the user
-        if ( level != 0 ) {
+        if ( !on_last_level ) {
           zones.clear();
 
           subdivide_regions( disparity, bounding_box(disparity),
                              zones, m_kernel_size );
 
-          if (0) {
+          if (0) { // DEBUG
             BBox2i scaled = bbox/2;
             std::ostringstream ostr;
             ostr << "disparity_" << scaled.min()[0] << "_"
@@ -495,17 +500,17 @@ namespace stereo {
             BOOST_FOREACH( SearchParam& zone, zones ) {
               f << zone.first << " " << zone.second << "\n";
             }
-            write_image( ostr.str() + "left.tif", normalize(left_pyramid[level]) );
+            write_image( ostr.str() + "left.tif",  normalize(left_pyramid [level]) );
             write_image( ostr.str() + "right.tif", normalize(right_pyramid[level]) );
-            write_image( ostr.str() + "lmask.tif", left_mask_pyramid[level] );
+            write_image( ostr.str() + "lmask.tif", left_mask_pyramid [level] );
             write_image( ostr.str() + "rmask.tif", right_mask_pyramid[level] );
             f.close();
-          }
+          } // End DEBUG
           scaling >>= 1;
           // Scale search range defines the maximum search range that
           // is possible in the next step. This (at lower levels) will
           // actually be larger than the search range that the user
-          // specified. We are able to due this because we are taking
+          // specified. We are able to do this because we are taking
           // advantage of the half kernel padding needed at the hight
           // level of the pyramid.
           BBox2i scale_search_region(0,0,
@@ -521,7 +526,7 @@ namespace stereo {
             // solution.
             zone.second.crop( scale_search_region );
           }
-        }
+        } // End not the last level case
       } // End of the level loop
 
       VW_ASSERT( bbox.size() == bounding_box(disparity).size(),

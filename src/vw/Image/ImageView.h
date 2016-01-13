@@ -51,7 +51,14 @@ namespace vw {
   /// that we decided to keep the name short.
   ///
   /// - WARNING: Never refer to these objects by reference!  The
-  //             behaviour is undefined.
+  ///            behaviour is undefined.
+  /// - The user manual discourages users from having multiple PLANES.
+  ///   This is distinct from multiple CHANNELS which is achieved by
+  ///   using a pixel type container object with multiple values, such
+  ///   as Vector3.  The manual does not address why this is but it is
+  ///   safe to say that using planes is not well supported.
+  /// - Because of the above, image data is stored internally in 
+  ///   INTERLEAVED (BIP) format.  You should never access the data directly.
   template <class PixelT>
   class ImageView : public ImageViewBase<ImageView<PixelT> >
   {
@@ -137,14 +144,11 @@ namespace vw {
       return *this;
     }
 
-    /// Returns the number of columns in the image.
-    inline int32 cols() const { return m_cols; }
-
-    /// Returns the number of rows in the image.
-    inline int32 rows() const { return m_rows; }
-
-    /// Returns the number of planes in the image.
-    inline int32 planes() const { return m_planes; }
+    inline int32 cols  () const { return m_cols;   } ///< Returns the number of columns in the image.
+    inline int32 rows  () const { return m_rows;   } ///< Returns the number of rows in the image.
+    inline int32 planes() const { return m_planes; } ///< Returns the number of planes in the image.
+    
+    inline Vector2 get_size() const {return Vector2(cols(), rows());} ///< Returns the image size
 
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
@@ -157,6 +161,7 @@ namespace vw {
     }
 
     /// Returns the pixel at the given position in the given plane.
+    /// - See the warning about using planes at the top of the class.
     inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       if (col < 0 || col >= cols() || row < 0 || row >= rows() || plane < 0 || plane >= planes())

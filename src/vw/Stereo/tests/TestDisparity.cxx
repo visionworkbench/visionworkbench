@@ -217,3 +217,56 @@ TEST( DisparityMap, GetDisparityRange ) {
   EXPECT_VECTOR_EQ( Vector2f(), range.min() );
   EXPECT_VECTOR_EQ( Vector2f(), range.max() );
 }
+
+
+TEST( DisparityMap, DisparityFiltering ) {
+  // Create an integer disparity image
+  typedef PixelMask<Vector2i> pixel_type;
+  
+  const int32 half_kernel = 3;
+  const float min_matches_percent = 0.2;
+  const float threshold = 10.0; //max dist considered a match
+  const float quantile  = 0.75;
+  const float multiple  = 3.0;
+  
+  // Make sure there is no seg fault on an empty image.
+  //ImageView<pixel_type> empty_image(0, 0);
+  ////ImageView<pixel_type> dummy = triple_disparity_cleanup(empty_image, 
+  ////        half_kernel, half_kernel, min_matches_percent, threshold, quantile, multiple);
+  //ImageView<pixel_type> dummy = disparity_cleanup_using_thresh(empty_image, 
+  //        half_kernel, half_kernel, threshold, min_matches_percent); //TODO: This existing function crashes here!
+  
+  const int IMAGE_SIZE = 100;
+  ImageView<pixel_type> image(IMAGE_SIZE, IMAGE_SIZE);
+  for (int r=0; r<IMAGE_SIZE; ++r) {
+    for (int c=0; c<IMAGE_SIZE; ++c) {
+      image(c,r) = pixel_type(c,r);
+    }
+  }
+  // Mess up a patch of pixels
+  for (int r=5; r<10; ++r) {
+    for (int c=5; c<10; ++c) {
+      image(c,r) = pixel_type(10000,5000);
+    }
+  }
+
+  // Run the filtering
+  ImageView<pixel_type> filtered_image = triple_disparity_cleanup(image,
+        half_kernel, half_kernel, threshold, min_matches_percent, quantile, multiple);
+
+  // Check that only the changed pixels have been filtered out.
+  const int INVALID_COUNT_ANS = 25;
+  for (int r=5; r<10; ++r) {
+    for (int c=5; c<10; ++c) {
+      EXPECT_FALSE(is_valid(filtered_image(c,r)));
+    }
+  }
+  int invalid_count = 0;
+  for (int r=0; r<IMAGE_SIZE; ++r) {
+    for (int c=0; c<IMAGE_SIZE; ++c) {
+      if (!is_valid(filtered_image(c,r)))
+        ++invalid_count;
+    }
+  }
+  EXPECT_EQ(INVALID_COUNT_ANS, invalid_count);
+}

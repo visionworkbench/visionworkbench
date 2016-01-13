@@ -37,20 +37,21 @@ namespace vw {
   // PerPixelIndexView
   // *******************************************************************
 
+  /// Calls the passed in functor on every pixel LOCATION
   template<class FuncT>
   class PerPixelIndexView : public ImageViewBase<PerPixelIndexView<FuncT> > {
     FuncT m_func;
     int32 m_cols, m_rows, m_planes;
   public:
     typedef typename FuncT::result_type pixel_type;
-    typedef pixel_type const result_type;
+    typedef pixel_type const            result_type;
     typedef ProceduralPixelAccessor<PerPixelIndexView> pixel_accessor;
 
     PerPixelIndexView( FuncT func, int32 cols, int32 rows, int32 planes = 1 )
       : m_func(func), m_cols(cols), m_rows(rows), m_planes(planes) {}
 
-    inline int32 cols() const { return m_cols; }
-    inline int32 rows() const { return m_rows; }
+    inline int32 cols  () const { return m_cols;   }
+    inline int32 rows  () const { return m_rows;   }
     inline int32 planes() const { return m_planes; }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
@@ -79,10 +80,10 @@ namespace vw {
   // Specialized Accessor
   template <class ImageIterT, class FuncT>
   class UnaryPerPixelAccessor {
-    ImageIterT m_iter;
+    ImageIterT   m_iter;
     FuncT const& m_func;
   public:
-    typedef typename boost::result_of<FuncT(typename ImageIterT::pixel_type)>::type result_type;
+    typedef typename boost::result_of<FuncT(typename ImageIterT::pixel_type)>::type              result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
     typedef typename ImageIterT::offset_type offset_type;
 
@@ -97,21 +98,21 @@ namespace vw {
     inline result_type operator*() const { return m_func(*m_iter); }
   };
 
-  // Image View Class Declaration
+  /// Calls the passed in functor on every pixel VALUE
   template <class ImageT, class FuncT>
   class UnaryPerPixelView : public ImageViewBase<UnaryPerPixelView<ImageT,FuncT> > {
     ImageT m_image;
-    FuncT m_func;
+    FuncT  m_func;
   public:
-    typedef typename boost::result_of<FuncT(typename ImageT::pixel_type)>::type result_type;
+    typedef typename boost::result_of<FuncT(typename ImageT::pixel_type)>::type                  result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
-    typedef UnaryPerPixelAccessor<typename ImageT::pixel_accessor, FuncT> pixel_accessor;
+    typedef UnaryPerPixelAccessor<typename ImageT::pixel_accessor, FuncT>                        pixel_accessor;
 
-    UnaryPerPixelView( ImageT const& image ) : m_image(image), m_func() {}
+    UnaryPerPixelView( ImageT const& image                    ) : m_image(image), m_func()     {}
     UnaryPerPixelView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
 
-    inline int32 cols() const { return m_image.cols(); }
-    inline int32 rows() const { return m_image.rows(); }
+    inline int32 cols  () const { return m_image.cols();   }
+    inline int32 rows  () const { return m_image.rows();   }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(),m_func); }
@@ -173,7 +174,7 @@ namespace vw {
   private:
     Image1T m_image1;
     Image2T m_image2;
-    FuncT m_func;
+    FuncT   m_func;
   public:
     typedef typename boost::result_of<FuncT(typename Image1T::pixel_type, typename Image2T::pixel_type)>::type result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
@@ -200,8 +201,8 @@ namespace vw {
                  ArgumentErr() << "BinaryPerPixelView: Images must have same dimensions in binary image operation." );
     }
 
-    inline int32 cols() const { return m_image1.cols(); }
-    inline int32 rows() const { return m_image1.rows(); }
+    inline int32 cols  () const { return m_image1.cols(); }
+    inline int32 rows  () const { return m_image1.rows(); }
     inline int32 planes() const { return m_image1.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image1.origin(),m_image2.origin(),m_func); }
