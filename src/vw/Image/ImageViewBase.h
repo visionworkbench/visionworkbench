@@ -271,13 +271,13 @@ namespace vw {
     typedef typename DestT::pixel_accessor DestAccT;
     VW_ASSERT( int(dest.cols())==bbox.width() && int(dest.rows())==bbox.height() && dest.planes()==src.planes(),
                ArgumentErr() << "rasterize: Source and destination must have same dimensions." );
-    SrcAccT splane = src.origin().advance(bbox.min().x(),bbox.min().y());
+    SrcAccT  splane = src.origin().advance(bbox.min().x(),bbox.min().y());
     DestAccT dplane = dest.origin();
     for( int32 plane=src.planes(); plane; --plane ) {
-      SrcAccT srow = splane;
+      SrcAccT  srow = splane;
       DestAccT drow = dplane;
       for( int32 row=bbox.height(); row; --row ) {
-        SrcAccT scol = srow;
+        SrcAccT  scol = srow;
         DestAccT dcol = drow;
         for( int32 col=bbox.width(); col; --col ) {
 #ifdef __llvm__

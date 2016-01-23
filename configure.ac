@@ -272,16 +272,6 @@ AX_PKG_ONE_OF(HDF,
     HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [M JPEG], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
 )
 
-AX_PKG_ONE_OF(GL,
-  APPLE_GL,
-    [AX_PKG_APPLE([GL], [], [-framework OpenGL -framework GLUT -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib])],
-  LINUX_GL,
-    [AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-     AX_PKG(LINUX_GL, [X11], [-lglut -lGLU -lGL], [GL/gl.h GL/glu.h GL/glut.h], [], [], [glCreateShader])])
-
-AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
-AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
-
 AX_PKG(TIFF, [Z JPEG], [-ltiff], [tiff.h])
 if test x"$HAVE_PKG_TIFF" = "xyes"; then
   PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
@@ -383,6 +373,9 @@ AX_MODULE(GEOMETRY,         [src/vw/Geometry],         [libvwGeometry.la],      
 AX_MODULE(BUNDLEADJUSTMENT, [src/vw/BundleAdjustment], [libvwBundleAdjustment.la], yes, [CAMERA CARTOGRAPHY INTERESTPOINT STEREO VW])
 
 AX_MODULE(TOOLS,   [src/vw/tools],  [],     yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
+# Would like to delete this module but the googlenasa tools that populate the 
+#  Google Earth Mars content actually depend on it!  We don't need to build it 
+#  all the time, but don't delete it until the googlenasa stuff dies.
 AX_MODULE_PYTHON(  [src/vw/Python], [no])
 
 
