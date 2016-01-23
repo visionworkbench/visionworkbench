@@ -147,14 +147,14 @@ namespace camera {
     virtual ~AdjustedCameraModel();
     virtual std::string type() const;
 
-    Vector3 translation() const;
-    Quat rotation() const;
+    Vector3 translation () const;
+    Quat    rotation    () const;
     Vector2 pixel_offset() const;
-    double scale() const;
+    double  scale       () const;
     Matrix<double,3,3> rotation_matrix() const;
 
     Vector3 axis_angle_rotation() const;
-    void set_rotation(Quat const&);
+    void    set_rotation(Quat const&);
 
     template <class MatrixT>
     void set_rotation(MatrixBase<MatrixT> const& m) {
@@ -180,9 +180,9 @@ namespace camera {
     }
 
     virtual Vector2 point_to_pixel (Vector3 const&) const;
-    virtual Vector3 pixel_to_vector (Vector2 const&) const;
-    virtual Vector3 camera_center (Vector2 const&) const;
-    virtual Quat camera_pose(Vector2 const&) const;
+    virtual Vector3 pixel_to_vector(Vector2 const&) const;
+    virtual Vector3 camera_center  (Vector2 const&) const;
+    virtual Quat    camera_pose    (Vector2 const&) const;
 
     boost::shared_ptr<CameraModel> unadjusted_model(){
       return m_camera;
@@ -193,7 +193,7 @@ namespace camera {
     }
 
     void write(std::string const&);
-    void read(std::string const&);
+    void read (std::string const&);
 
     friend std::ostream& operator<<(std::ostream&, AdjustedCameraModel const&);
   };
@@ -201,7 +201,7 @@ namespace camera {
   std::ostream& operator<<(std::ostream&, AdjustedCameraModel const&);
 
   // If this is an adjusted model, get the unadjusted one.
-  CameraModel* unadjusted_model(CameraModel * cam);
+        CameraModel* unadjusted_model(      CameraModel * cam);
   const CameraModel* unadjusted_model(const CameraModel * cam);
 
   /// Error during projection of a 3D point onto the image plane.

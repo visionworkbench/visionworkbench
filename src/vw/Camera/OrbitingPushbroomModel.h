@@ -53,38 +53,38 @@ namespace camera {
     // Constructors / Destructors
     //------------------------------------------------------------------
 
-    // Set up the position and pose estimators.  These are the
-    // characteristics that differentiate the orbiting pushbroom model
-    // from other linescan imagers.
-    OrbitingPushbroomModel( int number_of_lines,
-                            int samples_per_line,
-                            int sample_offset,
-                            double focal_length,
-                            double along_scan_pixel_size,
-                            double across_scan_pixel_size,
-                            double line_integration_time,
-                            double t0_camera_pose,
-                            double dt_camera_pose,
-                            double t0_position,
-                            double dt_position,
+    /// Set up the position and pose estimators.  These are the
+    /// characteristics that differentiate the orbiting pushbroom model
+    /// from other linescan imagers.
+    OrbitingPushbroomModel( int     number_of_lines,
+                            int     samples_per_line,
+                            int     sample_offset,
+                            double  focal_length,
+                            double  along_scan_pixel_size,
+                            double  across_scan_pixel_size,
+                            double  line_integration_time,
+                            double  t0_camera_pose,
+                            double  dt_camera_pose,
+                            double  t0_position,
+                            double  dt_position,
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
                             std::vector<Vector3> const& positions);
 
-    // This constructor is used when the exposure time varies from
-    // scanline to scanline, e.g. in the case of HRSC.
-    OrbitingPushbroomModel( int number_of_lines,
-                            int samples_per_line,
-                            int sample_offset,
-                            double focal_length,
-                            double along_scan_pixel_size,
-                            double across_scan_pixel_size,
+    /// This constructor is used when the exposure time varies from
+    /// scanline to scanline, e.g. in the case of HRSC.
+    OrbitingPushbroomModel( int     number_of_lines,
+                            int     samples_per_line,
+                            int     sample_offset,
+                            double  focal_length,
+                            double  along_scan_pixel_size,
+                            double  across_scan_pixel_size,
                             std::vector<double> line_times,
-                            double t0_camera_pose,
-                            double dt_camera_pose,
-                            double t0_position,
-                            double dt_position,
+                            double  t0_camera_pose,
+                            double  dt_camera_pose,
+                            double  t0_position,
+                            double  dt_position,
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
