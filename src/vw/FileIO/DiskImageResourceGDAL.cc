@@ -480,17 +480,27 @@ namespace vw {
             // Only one of channels() or planes() will be nonzero.
             GDALRasterBand  *band = dataset->GetRasterBand(c+p+1);
             GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-            band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+            CPLErr result =
+                band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                             (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c,
                             src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
+              if (result != CE_None) {
+                vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
+                    << CPLGetLastErrorMsg() << "'" << std::endl;
+              }
           }
         }
       }
       else { // palette conversion
         GDALRasterBand  *band = dataset->GetRasterBand(1);
         uint8 *index_data = new uint8[bbox.width() * bbox.height()];
-        band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+        CPLErr result =
+            band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
+        if (result != CE_None) {
+          vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
+              << CPLGetLastErrorMsg() << "'" << std::endl;
+        }
         PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) src.data;
         for( int i=0; i<bbox.width()*bbox.height(); ++i )
           rgba_data[i] = m_palette[index_data[i]];
@@ -523,9 +533,14 @@ namespace vw {
         for (uint32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
           GDALRasterBand *band = get_dataset_ptr()->GetRasterBand(c+p+1);
 
-          band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+          CPLErr result =
+              band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                           (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c,
                           dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
+          if (result != CE_None) {
+            vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
+                << CPLGetLastErrorMsg() << "'" << std::endl;
+          }
         }
       }
     }
