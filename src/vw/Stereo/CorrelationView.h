@@ -381,8 +381,7 @@ namespace stereo {
         int32 scaling = 1 << level;
         disparity.set_size( left_mask_pyramid[level] );
         Vector2i region_offset = max_upscaling*half_kernel/scaling;
-
-        vw_out() << "Processing level: " << level << " with size " << disparity.get_size() << std::endl;
+        //vw_out() << "Processing level: " << level << " with size " << disparity.get_size() << std::endl;
 
         // 3.1) Process each zone with their refined search estimates
         // Do first the zones which take less time, as at some point
