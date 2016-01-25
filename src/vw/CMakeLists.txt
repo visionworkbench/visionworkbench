@@ -72,36 +72,6 @@ message("--------------------------------------------------------------")
 
 
 message("--------------------------------------------------------------")
-message("Searching for QT...")
-set(REQUIRED_QT_LIBS QtCore QtXml QtGui )
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set (QT_QMAKE_EXECUTABLE  ${BINARYBUILDER_INSTALL_DIR}/bin/qmake)
-  set (QT_MOC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/moc)
-  set (QT_RCC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/rcc)
-  set (QT_UIC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/uic)
-  SET(CMAKE_PREFIX_PATH ${BINARYBUILDER_INSTALL_DIR} ${CMAKE_PREFIX_PATH}) 
-endif()
-
-find_package(Qt4 4.8.5 REQUIRED ${REQUIRED_QT_LIBS})
-
-if(Qt4_FOUND)
-    include(${QT_USE_FILE}) # Required after using QT find command
-    message("QT include dirs  " ${QT_INCLUDES})
-
-    # By default only QtCore and QtGui modules are enabled
-    # other modules must be enabled like this:
-    SET( QT_USE_QT3SUPPORT TRUE )   
-    SET( QT_USE_QTXML      TRUE )
-
-    # We need this to be able to include headers produced by uic in our
-    # code (CMAKE_BINARY_DIR holds a path to the build directory, while
-    # INCLUDE_DIRECTORIES() works just like INCLUDEPATH from qmake)
-    INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR} )
-
-endif(Qt4_FOUND)
-message("--------------------------------------------------------------")
-
-message("--------------------------------------------------------------")
 message("Searching for Google Protocol Buffers...")
 
 find_package(Protobuf REQUIRED)
@@ -368,11 +338,8 @@ endif()
 
 
 #TODO: Look for each of these installations!
-#set(VW_HAVE_PKG_BIGTIFF 1) TODO: Do we need this one?
+#set(VW_HAVE_PKG_BIGTIFF 1) 
 #set(VW_HAVE_PKG_HDF 0)
-#set(VW_HAVE_PKG_RABBITMQ_C 0) # Only used for plate!
-#set(VW_HAVE_PKG_ZEROMQ 1)
-#set(VW_HAVE_PKG_LIBKML 0) # Only used for plate!
 
 
 
@@ -433,17 +400,6 @@ get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
 get_all_source_files( "Geometry/tests" VW_GEOMETRY_TEST_FILES)
 set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 
-# DEPRECATED
-## --- VW_GPU ------------------------------------------------------------
-#get_all_source_files( "GPU"       VW_GPU_SRC_FILES)
-#get_all_source_files( "GPU/tests" VW_GPU_TEST_FILES)
-#set(VW_GPU_LIB_DEPENDENCIES VwCore VwMath)
-
-# DEPRECATED
-## --- VW_GUI ------------------------------------------------------------
-#get_all_source_files( "gui"       VW_GUI_SRC_FILES)
-#get_all_source_files( "gui/tests" VW_GUI_TEST_FILES)
-#set(VW_GUI_LIB_DEPENDENCIES VwCore VwMath)
 
 # --- VW_HDR ------------------------------------------------------------
 get_all_source_files( "HDR"       VW_HDR_SRC_FILES)
@@ -471,11 +427,6 @@ get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
 get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
 set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera VwCartography)
 
-# DEPRECATED
-## --- VW_PLATE ------------------------------------------------------------
-#get_all_source_files( "Plate"       VW_PLATE_SRC_FILES)
-#get_all_source_files( "Plate/tests" VW_PLATE_TEST_FILES)
-#set(VW_PLATE_LIB_DEPENDENCIES VwMath)
 
 # PYTHON directory????
 
