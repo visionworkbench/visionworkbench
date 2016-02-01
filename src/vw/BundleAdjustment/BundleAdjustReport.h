@@ -34,7 +34,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Cartography/SimplePointImageManipulation.h>
+#include <vw/Cartography/PointImageManipulation.h>
 #include <vw/FileIO/KML.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
 
@@ -89,8 +89,11 @@ namespace ba {
   bool vector_sorting( Vector3 i, Vector3 j);
 
   void write_kml_styles( KMLFile& kml );
+  
+  /// Writes an INACCURATE kml listing of the GCPs
   void write_gcps_kml( KMLFile& kml,
                        ControlNetwork const& cnet );
+  /// Inaccurate!
   void write_3d_est_kml( KMLFile& kml,
                          ControlNetwork const& cnet,
                          std::vector<double>& image_errors );

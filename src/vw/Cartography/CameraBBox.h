@@ -30,7 +30,8 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Cartography/SimplePointImageManipulation.h>
+//#include <vw/Cartography/SimplePointImageManipulation.h>
+#include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/GeoReference.h>
 
 
@@ -379,7 +380,8 @@ namespace cartography {
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
     Vector3 camera_llr = // Compute lon/lat/radius of camera center
-      XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
+      georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
+      //XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
     if ( camera_llr[0] < -90 ||
          camera_llr[0] > 90 )
       center_on_zero = false;

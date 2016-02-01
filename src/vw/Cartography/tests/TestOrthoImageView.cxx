@@ -22,7 +22,7 @@
 
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Cartography/OrthoImageView.h>
-#include <vw/Cartography/SimplePointImageManipulation.h>
+#include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Image/Transform.h>
 
@@ -51,8 +51,8 @@ public:
   TestPatternView( int32 cols, int32 rows, int32 planes = 1 )
     : m_cols(cols), m_rows(rows), m_planes(planes) {}
 
-  inline int32 cols() const { return m_cols; }
-  inline int32 rows() const { return m_rows; }
+  inline int32 cols  () const { return m_cols;   }
+  inline int32 rows  () const { return m_rows;   }
   inline int32 planes() const { return m_planes; }
 
   inline pixel_accessor origin() const { return pixel_accessor( *this ); }
@@ -134,9 +134,9 @@ TEST_F( OrthoImageTest, OrthoImageRun ) {
                   ZeroEdgeExtension() );
 
 
-  // Verifying the color
+  // Verifying the color - Maybe a problem since these are not accurate?
   Vector2 lonlat = moon.pixel_to_lonlat(Vector2(12,4));
-  Vector3 xyz = LonLatRadToXYZFunctor()(Vector3(lonlat[0], lonlat[1],
+  Vector3 xyz = LonLatRadToXYZEstimateFunctor()(Vector3(lonlat[0], lonlat[1],
                                                 1737400+DEM(12,4)));
   Vector2i camloc = apollo->point_to_pixel( xyz );
   EXPECT_GT( camloc[0], 0 );

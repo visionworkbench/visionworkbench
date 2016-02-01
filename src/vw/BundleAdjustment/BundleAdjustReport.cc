@@ -82,7 +82,7 @@ namespace ba {
           iter != cnet.end(); ++iter ) {
       if ( (*iter).type() == ControlPoint::GroundControlPoint ) {
         count++;
-        Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
+        Vector3 llr = cartography::xyz_to_lon_lat_radius_estimate( (*iter).position() ); // TODO: Not accurate!
 
         std::ostringstream desc;
         // GCP data
@@ -130,7 +130,7 @@ namespace ba {
     unsigned index = 0;
     for ( ControlNetwork::const_iterator iter = cnet.begin();
           iter != cnet.end(); ++iter ) {
-      Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
+      Vector3 llr = cartography::xyz_to_lon_lat_radius_estimate( (*iter).position() ); // TODO: Not accurate!
       double mean_image_error = 0;
       int count_measures = 0;
       for ( ControlPoint::const_iterator m_iter = (*iter).begin();
