@@ -34,13 +34,19 @@ noinst_LIBRARIES =
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
-camera_progs = print_exif bayer
+camera_progs = print_exif bayer undistort_image
+
 # Prints out an image's EXIF headers
 print_exif_SOURCES = print_exif.cc
 print_exif_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+
 # Applies an inverse Bayer filter to a raw camera image
 bayer_SOURCES = bayer.cc
 bayer_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+
+# Correct pinhole camera lens distortion
+undistort_image_SOURCES = undistort_image.cc
+undistort_image_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 endif
 
 # Command-line tools based on the Cartography module
