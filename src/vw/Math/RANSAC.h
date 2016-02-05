@@ -128,10 +128,11 @@ namespace math {
       int n = samples.size();
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
 
+      const double divisor = static_cast<double>(RAND_MAX) + 1.0;
       for (int i = 0; i < n; ++i) {
         bool done = false;
         while (!done) {
-          samples[i] = int( (double(std::rand()) / double(RAND_MAX)) * size );
+          samples[i] = static_cast<int>( (static_cast<double>(std::rand()) / divisor) * size );
           done = true;
           for (int j = 0; j < i; j++)
             if (samples[i] == samples[j])
