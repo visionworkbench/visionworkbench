@@ -44,9 +44,7 @@ namespace camera {
   /// is the +z unit vector, and the image plane is aligned such that the
   /// positive x-pixel direction (increasing image columns) is the camera frame's
   /// +x vector, and the positive y-pixel direction (increasing image
-  /// rows) is the frame's -y vector.  Note that this discrepancy in y
-  /// frames is due to the fact that images stored in memory are most
-  /// naturally indexed starting in the upper left hand corner.
+  /// rows) is the frame's y vector.
   ///
   /// --->The user can re-define the direction of increasing x-pixel,
   ///     increasing y-pixel, and pointing vector by specifying
@@ -57,16 +55,13 @@ namespace camera {
   ///
   /// The INTRINSIC portion of the camera matrix is nominally stored as
   ///
-  ///    [  fx   0   cx  ]
-  /// K= [  0   -fy  cy  ]
-  ///    [  0    0   1   ]
+  ///    [  fx   0    cx  ]
+  /// K= [  0    fy   cy  ]
+  ///    [  0    0    1   ]
   ///
   /// with fx, fy the focal length of the system (in horizontal and
   /// vertical pixels), and (cx, cy) the pixel offset of the
-  /// principal point of the camera on the image plane. --Note that
-  /// the default v direction is <0,-1,0>, so
-  /// K will be create with a POSITIVE fy term in the center; it
-  /// becomes negative when multiplied with the v_direction vector).
+  /// principal point of the camera on the image plane.
   ///
   /// Combining both the intrinsic camera matrix K with the
   /// extrinsic matrices, (u,v,w rotation, R and C) we see that a real-world point (x,
@@ -81,7 +76,7 @@ namespace camera {
   /// rotate and translate a vector in world coordinates into camera coordinates.
   ///
   ///
-  ///  The Tsai distortion model describes radial and tangential lens distortion. See below.
+  ///  Lens distortion models can be found in the file LensDistortion.h
   ///
 
   class PinholeModel : public CameraModel {
@@ -108,8 +103,7 @@ namespace camera {
 
     // Pixel Pitch, if the above units were not in pixels this should
     // convert it to that. For example, if distortion and focal length
-    // have been described in mm. Pixel pitch would then be described
-    // in mm/px.
+    // have been described in mm. Pixel pitch would then be described in mm/px.
     double m_pixel_pitch;
 
     // Cached values for pixel_to_vector
@@ -169,7 +163,7 @@ namespace camera {
     /// constructor:
     ///
     ///   +u (increasing image columns)                     =  +X   [1 0 0]
-    ///   +v (increasing image rows)                        =  +Y   [0 -1 0] TODO: NOT THE DEFAULT!
+    ///   +v (increasing image rows)                        =  +Y   [0 1 0]
     ///   +w (complete the RH coordinate system with
     ///       u and v -- points into the image)             =  +Z   [0 0 1]
     ///
@@ -190,18 +184,20 @@ namespace camera {
                  double f_u, double f_v,
                  double c_u, double c_v);
 
-    virtual std::string type() const;
-    virtual ~PinholeModel();
+    virtual std::string type() const { return "Pinhole"; }
+    virtual ~PinholeModel() {}
 
     /// Read / Write a pinhole model from a file on disk.
     /// Files will end in format .pinhole
     void read(std::string const& filename);
     void write(std::string const& filename) const;
 
+    // TODO: Remove the protobuf code and go back to text files
     /// DEPRECATED FILE IO
-    void read_file(std::string const& filename) VW_DEPRECATED;
-    void write_file(std::string const& filename) const VW_DEPRECATED;
-    void read_old_file(std::string const& filename) VW_DEPRECATED;
+    void read_file    (std::string const& filename)       VW_DEPRECATED;
+    void write_file   (std::string const& filename) const VW_DEPRECATED;
+    /// Always sets pixel pitch = 1.0, so the distortion and focal length should be in pixel units! 
+    void read_old_file(std::string const& filename)       VW_DEPRECATED; 
 
     //------------------------------------------------------------------
     // Methods
@@ -256,13 +252,12 @@ namespace camera {
                                   double c_u, double c_v) VW_DEPRECATED;
 
     Vector2 focal_length() const;
-    void set_focal_length(Vector2 const& f, bool rebuild=true );
-
     Vector2 point_offset() const;
+    double  pixel_pitch () const;
+    
+    void set_focal_length(Vector2 const& f, bool rebuild=true );
     void set_point_offset(Vector2 const& c, bool rebuild=true );
-
-    double pixel_pitch() const;
-    void set_pixel_pitch( double pitch );
+    void set_pixel_pitch (double pitch);
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables
@@ -283,10 +278,13 @@ namespace camera {
   //                 PinholeModel<NoLensDistortion> &dst_camera0,
   //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
+  /// Used to modify camera in the event to user resizes the image
   PinholeModel scale_camera(PinholeModel const& camera_model,
                             float scale);
+  /// ???
   PinholeModel linearize_camera(PinholeModel const& camera_model);
 
+  /// Write a description of a PinholeModel to the stream.
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);
 
 }}      // namespace vw::camera

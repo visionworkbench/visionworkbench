@@ -54,7 +54,7 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptim
   }
 };
 
-// Backup implemenations for Lens Distortion -------------------
+// Default implemenations for Lens Distortion -------------------
 
 LensDistortion::LensDistortion() {}
 
@@ -83,7 +83,16 @@ LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 c
   return solution;
 }
 
+
+std::ostream& camera::operator<<(std::ostream & os,
+                                 const camera::LensDistortion& ld) {
+  ld.write(os);
+  return os;
+}
+
 // Specific Implementations -------------------------------------
+
+// ======== NullLensDistortion ========
 
 boost::shared_ptr<LensDistortion> NullLensDistortion::copy() const {
   return boost::shared_ptr<NullLensDistortion>(new NullLensDistortion(*this));
@@ -97,6 +106,7 @@ std::string NullLensDistortion::name() const { return "NULL"; }
 
 void NullLensDistortion::scale(float scale) { }
 
+// ======== TsaiLensDistortion ========
 
 TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(params) {}
 
@@ -111,23 +121,33 @@ TsaiLensDistortion::copy() const {
 Vector2
 TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
 
-  Vector2 focal = cam.focal_length();
-  Vector2 offset = cam.point_offset();
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
 
   if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
-  Vector2 p_0 = elem_quot(p - offset, focal); // represents x and y
-  double r2 = norm_2_sqr( p_0 );
-  Vector2 distortion( m_distortion[3], m_distortion[2] );
-  Vector2 p_1 = elem_quot(distortion, p_0);
-  Vector2 p_3 = 2*elem_prod(distortion,p_0);
+  Vector2 dudv(p - offset); // = [u-cx, v-cy]
+  Vector2 p_0 = elem_quot(dudv, focal); // = dudv / f = [x, y] // Normalized pixel coordinates (1 == f)
+  double r2 = norm_2_sqr( p_0 ); // = x^2 + y^2
+  Vector2 distortion( m_distortion[3], m_distortion[2] ); // [p2, p1]
+  Vector2 p_1 =   elem_quot(distortion, p_0); // = [  p2/x,   p1/y]
+  Vector2 p_3 = 2*elem_prod(distortion, p_0); // = [2*p2*x, 2*p1*y]
 
-  Vector2 b =  elem_prod(r2,p_1);
+  Vector2 b =  elem_prod(r2,p_1); // = [r2*p2/x, r2*p1/y]
   b = elem_sum(b,r2*(m_distortion[0] + r2 * m_distortion[1]) + sum(p_3));
+  // = elem_sum(b, k1*r2 + k2*r4 + 2*p2*x + 2*p1*y);
+  // = [ k1*r2 + k2*r4 + 2*p2*x + 2*p1*y + r2*p2/x, 
+  //     k1*r2 + k2*r4 + 2*p2*x + 2*p1*y + r2*p1/y ]
+
+  // Note that after the multiplication step below, this matches the commonly seen equations:
+  // = [ x(k1*r2 + k2*r4) + 2*p2*x^2 + 2*p1*y*x + r2*p2, 
+  //     y(k1*r2 + k2*r4) + 2*p2*x*y + 2*p1*y^2 + r2*p1 ]
+  // = [ x(k1*r2 + k2*r4) + 2*p1*x*y + p2(r2 + 2x^2), 
+  //     y(k1*r2 + k2*r4) + 2*p2*x*y + p1(r2 + 2y^2) ]
 
   // Prevent divide by zero at the origin or along the x and y center line
-  Vector2 result = p + elem_prod(b,p - offset);
+  Vector2 result = p + elem_prod(b, dudv); // = p + [du, dv]*(b)
   if (p[0] == offset[0])
     result[0] = p[0];
   if (p[1] == offset[1])
@@ -148,6 +168,8 @@ std::string TsaiLensDistortion::name() const { return "TSAI"; }
 void TsaiLensDistortion::scale( float scale ) {
   m_distortion *= scale;
 }
+
+// ======== BrownConradyDistortion ========
 
 BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& params ) {
   VW_ASSERT( params.size() == 8,
@@ -203,6 +225,7 @@ void BrownConradyDistortion::scale( float scale ) {
   vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
 }
 
+// ======== AdjustableTsaiLensDistortion ========
 
 AdjustableTsaiLensDistortion::AdjustableTsaiLensDistortion(Vector<double> params) : m_distortion(params) {
   VW_ASSERT( params.size() > 3, ArgumentErr() << "Requires at least 4 coefficients for distortion. Last 3 are always the distortion coefficients and alpha. All leading elements are even radial distortion coefficients." );
@@ -265,8 +288,74 @@ void AdjustableTsaiLensDistortion::scale( float /*scale*/ ) {
 }
 
 
-std::ostream& camera::operator<<(std::ostream & os,
-                                 const camera::LensDistortion& ld) {
-  ld.write(os);
-  return os;
+// ======== PhotometrixLensDistortion ========
+
+PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<float64,7> const& params) 
+  : m_distortion(params) {
 }
+
+Vector<double>
+PhotometrixLensDistortion::distortion_parameters() const { 
+  return m_distortion; 
+}
+
+boost::shared_ptr<LensDistortion>
+PhotometrixLensDistortion::copy() const {
+  return boost::shared_ptr<PhotometrixLensDistortion>(new PhotometrixLensDistortion(*this));
+}
+
+Vector2
+PhotometrixLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+
+  double x_meas = p[0];
+  double y_meas = p[1];
+  
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+  double xp  = offset[0];
+  double yp  = offset[1];
+
+  double x   = x_meas - xp;
+  double y   = y_meas - yp;
+  double x2  = x*x;
+  double y2  = y*y;
+  double r2  = x2 + y2;
+  
+  double K1 = m_distortion[0];
+  double K2 = m_distortion[1];
+  double K3 = m_distortion[2];
+  
+  double drr = K1*r2 + K2*r2*r2 + K3*r2*r2*r2; // This is dr/r, not dr
+  
+  double P1 = m_distortion[3];
+  double P2 = m_distortion[4];
+  
+  double x_corr = x_meas - xp + x*drr + P1*(r2 +2.0*x2) + 2.0*P2*x*y;
+  double y_corr = y_meas - yp + y*drr + P2*(r2 +2.0*y2) + 2.0*P1*x*y;
+
+  // Note that parameters B1 and B2 are not used.  The software output provides them
+  // but did not specify their use since they were zero.  If you see an example that 
+  // includes them, update the calculations above!
+
+  return Vector2(x_corr, y_corr);
+}
+
+void PhotometrixLensDistortion::write(std::ostream & os) const {
+  os << "k1 = " << m_distortion[0] << "\n";
+  os << "k2 = " << m_distortion[1] << "\n";
+  os << "k3 = " << m_distortion[2] << "\n";
+  os << "p1 = " << m_distortion[3] << "\n";
+  os << "p2 = " << m_distortion[4] << "\n";
+  os << "b1 = " << m_distortion[5] << "\n";
+  os << "b2 = " << m_distortion[6] << "\n";
+}
+
+std::string PhotometrixLensDistortion::name() const { return "Photometrix"; }
+
+void PhotometrixLensDistortion::scale( float scale ) {
+  m_distortion *= scale;
+}
+
+
+
+
+

@@ -101,9 +101,6 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
   rebuild_camera_matrix();
 }
 
-std::string PinholeModel::type() const { return "Pinhole"; }
-PinholeModel::~PinholeModel() {}
-
 
 // Old deprecated format of Pinhole I/O. Didn't support all distortion options.
 // Reads in a file containing parameters of a pinhole model with
@@ -355,15 +352,18 @@ void PinholeModel::write(std::string const& filename) const {
 
 Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
 
-  //  Multiply the pixel location by the camera matrix.
+  // Multiply the pixel location by the 3x4 camera matrix.
+  // - The pixel coordinate is de-homogenized by dividing by the denominator.
   double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
-    m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
+                       m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
   Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
-                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
+                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)           ) / denominator,
                            (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
-                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
+                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)           ) / denominator);
 
-  //  Apply the lens distortion model
+  // Apply the lens distortion model
+  // - Divide by pixel pitch to convert from metric units to pixels if the intrinsic
+  //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
   return m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
 }
 
@@ -389,7 +389,8 @@ Vector3 PinholeModel::camera_center(Vector2 const& /*pix*/ ) const {
 };
 
 void PinholeModel::set_camera_center(Vector3 const& position) {
-  m_camera_center = position; rebuild_camera_matrix();
+  m_camera_center = position; 
+  rebuild_camera_matrix();
 }
 
 Quaternion<double> PinholeModel::camera_pose(Vector2 const& /*pix*/ ) const {
@@ -397,11 +398,13 @@ Quaternion<double> PinholeModel::camera_pose(Vector2 const& /*pix*/ ) const {
 }
 
 void PinholeModel::set_camera_pose(Quaternion<double> const& pose) {
-  m_rotation = pose.rotation_matrix(); rebuild_camera_matrix();
+  m_rotation = pose.rotation_matrix(); 
+  rebuild_camera_matrix();
 }
 
 void PinholeModel::set_camera_pose(Matrix<double,3,3> const& pose) {
-  m_rotation = pose; rebuild_camera_matrix();
+  m_rotation = pose; 
+  rebuild_camera_matrix();
 }
 
 void PinholeModel::coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
@@ -555,8 +558,7 @@ void PinholeModel::rebuild_camera_matrix() {
   m_inv_camera_transform = inverse(uvwRotation*rotation_inverse) * inverse(m_intrinsics);
 }
 
-// scale_camera
-//  Used to modify camera in the event to user resizes the image
+
 PinholeModel
 camera::scale_camera(PinholeModel const& camera_model,
                      float scale) {
@@ -584,7 +586,7 @@ camera::scale_camera(PinholeModel const& camera_model,
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 PinholeModel
 camera::linearize_camera(PinholeModel const& camera_model) {
-  Vector2 focal = camera_model.focal_length();
+  Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   NullLensDistortion distortion;
   return PinholeModel(camera_model.camera_center(),
