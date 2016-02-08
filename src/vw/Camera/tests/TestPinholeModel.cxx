@@ -199,10 +199,12 @@ TEST( PinholeModel, ProjectiveMatrix ) {
   }
 }
 
+/// Helper class for testing PinholeModel objects
 class PinholeTest : public ::testing::Test {
 protected:
   PinholeTest() {}
 
+  /// Init with a set of constants and no lens distortion
   virtual void SetUp() {
     expect_rot = vw::math::euler_to_rotation_matrix(1.15, 0.0, -1.57, "xyz");
     pinhole = PinholeModel(Vector3(-0.329, 0.065, -0.82),
@@ -213,6 +215,8 @@ protected:
                            387.5555114746094);
   }
 
+  /// Iterate through a grid of pixels and make sure that the pixels project
+  ///  out and then back in to the same pixel.
   void projection_test(double tolerance=1e-6) {
     Vector2 image_size = pinhole.point_offset();
     image_size *= 2;
@@ -226,8 +230,8 @@ protected:
     }
   }
 
+  /// Write a protobuf file, then read it back in and make sure nothing has changed.
   void readback_test(std::string const& file) {
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
     pinhole.write( file );
     PinholeModel read_back;
     read_back.read( file );
@@ -246,7 +250,6 @@ protected:
                   pinhole.lens_distortion()->name().c_str() );
     EXPECT_VECTOR_DOUBLE_EQ( read_back.lens_distortion()->distortion_parameters(),
                              pinhole.lens_distortion()->distortion_parameters() );
-#endif
   }
 
   PinholeModel pinhole;
@@ -255,7 +258,7 @@ protected:
 
 TEST_F( PinholeTest, NullLensDistortion ) {
   projection_test();
-  UnlinkName file("NullCam.pinhole");
+  UnlinkName file("NullCam.tsai");
   readback_test( file );
 
   // check enforcement that pose returns the rotation from camera
@@ -277,7 +280,7 @@ TEST_F( PinholeTest, TsaiLensDistortion ) {
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif
-  UnlinkName file("TsaiCam.pinhole");
+  UnlinkName file("TsaiCam.tsai");
   readback_test( file );
 }
 
@@ -293,7 +296,7 @@ TEST_F( PinholeTest, BrownConradyDistortion ) {
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif
-  UnlinkName file("BrownConrady.pinhole");
+  UnlinkName file("BrownConrady.tsai");
   readback_test( file );
 }
 
@@ -310,8 +313,9 @@ TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif
-  UnlinkName file("AdjustedTsai.pinhole");
-  readback_test( file );
+  UnlinkName file("AdjustedTsai.tsai");
+  //readback_test( file );
+  readback_test( "/home/smcmich1/repo/visionworkbench/src/vw/Camera/tests/adj.tsai");
 }
 
 TEST_F( PinholeTest, OldFormatReadTest ) {

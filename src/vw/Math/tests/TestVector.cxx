@@ -160,14 +160,28 @@ TEST(Vector, SubVector) {
 }
 
 TEST(Vector, IOStream) {
-  std::ostringstream oss;
+  // Check writing a vector to a stream
+  std::stringstream ss;
   Vector3f v1(1,2,3);
-  oss << v1;
-  EXPECT_EQ( oss.str(), "Vector3(1,2,3)" );
-  oss.str("");
+  ss << v1;
+  EXPECT_EQ( ss.str(), "Vector3(1,2,3)" );
+  ss.str("");
   Vector<float> v2=v1;
-  oss << v2;
-  EXPECT_EQ( oss.str(), "Vector3(1,2,3)" );
+  ss << v2;
+  EXPECT_EQ( ss.str(), "Vector3(1,2,3)" );
+  
+  // Check read from a stream
+  Vector<float32,0> vread;
+  ss >> vread;
+  EXPECT_EQ(v1, vread);
+  
+  ss.str("");
+  vread = Vector3f(.1336185e-8,-0.5226175e-12, 0);
+  const size_t ACCURATE_DIGITS = 17; // = std::numeric_limits<double>::max_digits10
+  ss << std::setprecision(ACCURATE_DIGITS) << vread;
+  Vector3f vread3;
+  ss >> vread3;
+  EXPECT_EQ(vread, vread3);
 }
 
 TEST(Vector, Equality) {

@@ -80,7 +80,7 @@ namespace camera {
   ///
 
   class PinholeModel : public CameraModel {
-    typedef boost::shared_ptr<const LensDistortion> DistortPtr;
+    typedef boost::shared_ptr<LensDistortion> DistortPtr;
 
     DistortPtr m_distortion;
     Matrix<double,3,4> m_camera_matrix;
@@ -91,7 +91,8 @@ namespace camera {
     Matrix<double,3,3> m_intrinsics;
     Matrix<double,3,4> m_extrinsics;
 
-    // Intrinsic parameters, in pixel units
+    /// Intrinsic parameters, in pixel units
+    /// Focal length in u and v, 
     double m_fu, m_fv, m_cu, m_cv;
 
     // Vectors that define how the coordinate system of the camera
@@ -104,9 +105,13 @@ namespace camera {
     // Pixel Pitch, if the above units were not in pixels this should
     // convert it to that. For example, if distortion and focal length
     // have been described in mm. Pixel pitch would then be described in mm/px.
+    // - To clarify, if the above units are given in pixels this should equal to 1.0.
+    // - It is kind of anoying that m_cu and m_cv must be in the same units as 
+    //   all the numbers in the lens distortion parameters.
     double m_pixel_pitch;
+    
 
-    // Cached values for pixel_to_vector
+    /// Cached values for pixel_to_vector
     Matrix<double,3,3> m_inv_camera_transform;
 
   public:
@@ -188,16 +193,14 @@ namespace camera {
     virtual ~PinholeModel() {}
 
     /// Read / Write a pinhole model from a file on disk.
-    /// Files will end in format .pinhole
-    void read(std::string const& filename);
+    /// - Supported file formats are .pinhole, .tsai
+    void read (std::string const& filename);
     void write(std::string const& filename) const;
 
-    // TODO: Remove the protobuf code and go back to text files
-    /// DEPRECATED FILE IO
-    void read_file    (std::string const& filename)       VW_DEPRECATED;
-    void write_file   (std::string const& filename) const VW_DEPRECATED;
-    /// Always sets pixel pitch = 1.0, so the distortion and focal length should be in pixel units! 
-    void read_old_file(std::string const& filename)       VW_DEPRECATED; 
+    // Always sets pixel pitch = 1.0, so the distortion and focal length should be in pixel units! 
+    
+    /// Reads a deprecated .pinhole protobuf file
+    void read_protobuf_file(std::string const& filename); 
 
     //------------------------------------------------------------------
     // Methods
@@ -247,9 +250,9 @@ namespace camera {
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units
     void intrinsic_parameters(double& f_u, double& f_v,
-                              double& c_u, double& c_v) const VW_DEPRECATED;
+                              double& c_u, double& c_v) const;
     void set_intrinsic_parameters(double f_u, double f_v,
-                                  double c_u, double c_v) VW_DEPRECATED;
+                                  double c_u, double c_v);
 
     Vector2 focal_length() const;
     Vector2 point_offset() const;
@@ -268,6 +271,12 @@ namespace camera {
   private:
     /// This must be called whenever camera parameters are modified.
     void rebuild_camera_matrix();
+    
+    /// Initialize m_distortion with the correct type of lens distortion
+    ///  model depending on a string from an input .tsai file.
+    /// - Returns true if it found a name or false if it did not and
+    ///   just created the default TSAI distortion model.
+    bool construct_lens_distortion(std::string const& config_line);
   };
 
   //   /// Given two pinhole camera models, this method returns two new camera

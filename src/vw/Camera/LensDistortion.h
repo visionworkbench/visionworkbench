@@ -40,23 +40,28 @@ namespace camera {
   /// - Trivia: Back in 2009 this was implemented using CRTP.  See commit e2749b36d3db37f3176acd8907434dbf4ab29096.
   class LensDistortion {
   public:
-    LensDistortion();
+    LensDistortion() {}
 
-    virtual ~LensDistortion();
+    virtual ~LensDistortion() {}
 
     // For the two functions below, default implementations are provided in which a
     //  solver attempts to use the *other* function to find the answer.
     
     /// From an undistorted input coordinate, compute the distorted coordinate.
-    /// - The input pixel is in the same units as the focal length that was provided to 
+    /// - The input location is in the same units as the focal length that was provided to 
     ///   the PinholeModel class.
     virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const&) const;
    
     /// From a distorted input coordinate, compute the undistorted coordinate.
+    /// - The input location is in the same units as the focal length that was provided to 
+    ///   the PinholeModel class.
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
     
     /// Write all the distortion parameters to the stream
     virtual void write(std::ostream & os) const = 0;
+    
+    /// Read all the distortion parameters from the stream
+    virtual void read(std::istream & os) = 0;
     
     /// Return a pointer to a copy of this distortion object
     virtual boost::shared_ptr<LensDistortion> copy() const = 0;
@@ -85,8 +90,10 @@ namespace camera {
     inline Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
 
     boost::shared_ptr<LensDistortion> copy() const;
-    void write(std::ostream & os) const;
-    std::string name() const;
+    void write(std::ostream& os) const;
+    void read (std::istream& os);
+    static std::string class_name()       { return "NULL";       }
+           std::string name      () const { return class_name(); }
     void scale(float /*scale*/);
   };
 
@@ -107,6 +114,7 @@ namespace camera {
   /// v' = v + (v - cy) * (k1 * r2 + k2 * r4 + 2 * p2 * x + p1 * (r2/y + 2y))
   ///
   /// k1 is distortion[0], k2 is distortion[1],  p1 is distortion[2], p2 is distortion[3]
+  /// The input pixel value is normalivzed before the calculations are performed.
   ///
   /// References: Roger Tsai, A Versatile Camera Calibration Technique for a High-Accuracy 3D
   /// Machine Vision Metrology Using Off-the-shelf TV Cameras and Lenses
@@ -117,17 +125,18 @@ namespace camera {
   class TsaiLensDistortion : public LensDistortion {
     Vector4 m_distortion;
   public:
+    TsaiLensDistortion() {}
     TsaiLensDistortion(Vector4 const& params);
     Vector<double> distortion_parameters() const;
     boost::shared_ptr<LensDistortion> copy() const;
 
-    /// Location where the given pixel would have appeared if there were no lens distortion.
-    /// - Input pixel location p is the distorted (observed) pixel location
     Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    void write(std::ostream & os) const;
+    
+    void write(std::ostream& os) const;
+    void read (std::istream& os);
 
-    std::string name() const;
-
+    static std::string class_name()       { return "TSAI";       }
+           std::string name      () const { return class_name(); }
     void scale( float scale );
   };
 
@@ -142,11 +151,12 @@ namespace camera {
   /// Close-Range Camera Calibration - D.C. Brown,
   ///   Photogrammetric Engineering, pages 855-866, Vol. 37, No. 8, 1971
   class BrownConradyDistortion : public LensDistortion {
-    Vector2 m_principal_point;
-    Vector3 m_radial_distortion;
-    Vector2 m_centering_distortion;
-    double m_centering_angle;
+    Vector2 m_principal_point;      // xp, yp
+    Vector3 m_radial_distortion;    // K1, K2, K3
+    Vector2 m_centering_distortion; // P1, P2
+    double  m_centering_angle;      // phi
   public:
+    BrownConradyDistortion() {}
     BrownConradyDistortion( Vector<double> const& params );
     BrownConradyDistortion( Vector<double> const& principal,
                             Vector<double> const& radial,
@@ -159,7 +169,9 @@ namespace camera {
     Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
 
     void write(std::ostream& os) const;
-    std::string name() const;
+    void read (std::istream& os);
+    static std::string class_name()       { return "BrownConrady"; }
+           std::string name      () const { return class_name();   }
     void scale( float /*scale*/ );
   };
 
@@ -178,15 +190,18 @@ namespace camera {
   class AdjustableTsaiLensDistortion : public LensDistortion {
     Vector<double> m_distortion;
   public:
+    AdjustableTsaiLensDistortion() {}
     AdjustableTsaiLensDistortion(Vector<double> params);
     Vector<double> distortion_parameters() const;
     boost::shared_ptr<LensDistortion> copy() const;
 
-    //  Location where the given pixel would have appeared if there were no lens distortion.
     Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
 
-    void write(std::ostream & os) const;
-    std::string name() const;
+    void write(std::ostream& os) const;
+    void read (std::istream& os);
+    
+    static std::string class_name()       { return "AdjustableTSAI"; }
+           std::string name      () const { return class_name(); }
     void scale( float /*scale*/ );
   };
   
@@ -199,8 +214,8 @@ namespace camera {
   /// This type of calibration was originally seen for the NASA IceBridge cameras.
   ///
   /// Parameters used: c, xp, yp, K1, K2, K3, P1, P2, B1, B2
-  ///  - c (focal length), xp (cx), and yp (cy) come from the base class so 
-  ///    the parameters stored here are [K1, K2, K3, P1, P2, B1, B2]
+  ///  - c (focal length) comes from the base class so 
+  ///    the parameters stored here are [xp, py, K1, K2, K3, P1, P2, B1, B2]
   ///
   /// As copied from a sample output calibration file:
   ///
@@ -218,18 +233,20 @@ namespace camera {
   /// parameters. principal point is at (xp, yp). B1 and B2 are not used yet.
   ///
   class PhotometrixLensDistortion : public LensDistortion {
-    Vector<float64,7> m_distortion;
+    Vector<float64,9> m_distortion;
   public:
-    PhotometrixLensDistortion(Vector<float64,7> const& params);
+    PhotometrixLensDistortion() {}
+    PhotometrixLensDistortion(Vector<float64,9> const& params);
     Vector<double> distortion_parameters() const;
     boost::shared_ptr<LensDistortion> copy() const;
 
-    /// Location where the given pixel would have appeared if there were no lens distortion.
-    /// - Input pixel location p is the distorted (observed) pixel location
-    Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    void write(std::ostream & os) const;
+    Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    
+    void write(std::ostream& os) const;
+    void read (std::istream& os);
 
-    std::string name() const;
+    static std::string class_name()       { return "Photometrix"; }
+           std::string name      () const { return class_name();  }
 
     void scale( float scale );
   };

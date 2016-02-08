@@ -1008,6 +1008,67 @@ namespace math {
     return os << ')';
   }
 
+
+  /// Reads a vector from a std::istream
+  //  - TODO: There must be a better way or place for this!
+  template <class VectorT>
+  inline std::istream& operator>>( std::istream& is, VectorBase<VectorT> & v ) {
+    VectorT & vr = v.impl();
+    
+    // Record where we started reading so we can go back to it if the read fails
+    std::streampos start_pos = is.tellg();
+    
+    // Skip past leading whitespace
+    while (is.peek() == ' ')
+       is.ignore(1,' ');
+    
+    // Check if the stream contains "Vector"
+    char buffer[6];
+    if (!is.read(buffer, 6)) {
+      is.seekg(start_pos, std::ios_base::beg);
+      vw_throw( IOErr() << "Vector::<< Did not find 'Vector'\n" );
+    }
+    // Read in the size
+    const size_t MAX_DIGITS = 5; // This is a really long vector to be in string form!
+    char next_char;
+    std::string num_str;
+    while (is.get(next_char)) {
+      if (next_char == '(') {
+        break;
+      }
+      if (num_str.size() == MAX_DIGITS) {
+        is.seekg(start_pos, std::ios_base::beg);
+        vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+      }
+      num_str += next_char;
+    }
+    if (!is.good()) {
+      is.seekg(start_pos, std::ios_base::beg);
+      vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+    }
+    // Set the read size
+    size_t size = atoi(num_str.c_str());
+    if (size < 1) {
+      is.seekg(start_pos, std::ios_base::beg);
+      vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+    }
+    vr.set_size(size);
+    
+    // Read in the values using their >> operator
+    char comma;
+    is >> vr[0];
+    for (size_t i=1; i<size; ++i) {
+      is >> comma >> vr[i];
+    }
+    // Read in the closing ')'
+    is.get(next_char);
+    if (next_char != ')'){
+      is.seekg(start_pos, std::ios_base::beg);
+      vw_throw( IOErr() << "Vector::<< Failed to close off vector'\n" );
+    }
+    return is;
+  }
+
   /// Dumps a transposed vector to a std::ostream
   template <class VectorT>
   inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
