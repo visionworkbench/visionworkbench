@@ -81,8 +81,7 @@ namespace vw {
   // Low Level Functions
 
   // Enter / Exit Folder
-  // This creates those actual folders in GE that the user can turn on
-  // or off.
+  // This creates those actual folders in GE that the user can turn on or off.
   void KMLFile::enter_folder( std::string name,
                               std::string desc ) {
     open_bracket("Folder");
@@ -183,8 +182,6 @@ namespace vw {
     close_bracket();
   }
 
-  // LatLonAltBox: This is a bounding box, that only displays contents
-  // when viewer is inside box.
   void KMLFile::append_latlonaltbox( float north, float south,
                                      float east, float west ) {
     open_bracket("LatLonAltBox");
@@ -195,7 +192,7 @@ namespace vw {
     close_bracket();
   }
 
-  // Lod: This sets the min max pixel viewing range for an object
+  
   void KMLFile::append_lod( float min, float max ) {
     open_bracket("Lod");
     m_output_file << m_tab << "<minLodPixels>"<<min<<"</minLodPixels>\n";
@@ -203,7 +200,6 @@ namespace vw {
     close_bracket();
   }
 
-  // Style: Defines an Icon to use later
   void KMLFile::append_style( std::string id, std::string color_hex,
                               float scale, std::string image_url ) {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
@@ -219,7 +215,6 @@ namespace vw {
     m_output_file << m_tab << "</Style>\n";
   }
 
-  // StyleMap: Maps two styles together to create a bipolar icon
   void KMLFile::append_stylemap( std::string id,
                                  std::string style_normal,
                                  std::string style_highlight ) {

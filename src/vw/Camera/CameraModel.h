@@ -77,8 +77,7 @@ namespace camera {
 
     /// Returns a pointing vector from the camera center through the
     /// position of the pixel 'pix' on the image plane.  For
-    /// consistency, the pointing vector should generally be
-    /// normalized.
+    /// consistency, the pointing vector should generally be normalized.
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const = 0;
 
     /// Returns the camera center in the frame of reference of the
@@ -86,6 +85,7 @@ namespace camera {
     /// a ray emanating from the focal point of the camera through a
     /// pixel on the image plane (e.g. for computing ray-ray
     /// intersection in a stereo vision algorithm).
+    /// - Generally the input pixel is only used for linescane cameras.
     virtual Vector3 camera_center(Vector2 const& pix) const = 0;
 
     /// Subclasses must define a method that return the camera type as a string.
@@ -93,6 +93,7 @@ namespace camera {
 
     /// Returns the pose (as a quaternion) of the camera for a given
     /// pixel. It represents the rotation from the camera frame to world frame.
+    /// - Generally the input pixel is only used for linescane cameras.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const;
 
     // This should be a value which can never occur in normal
@@ -139,8 +140,8 @@ namespace camera {
 
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                        Vector3 const& translation = Vector3(),
-                        Quat const& rotation = Quat(math::identity_matrix<3>()),
+                        Vector3 const& translation  = Vector3(),
+                        Quat    const& rotation     = Quat(math::identity_matrix<3>()),
                         Vector2 const& pixel_offset = Vector2(),
                         double scale = 1.0);
 

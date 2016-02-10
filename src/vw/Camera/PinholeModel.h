@@ -152,7 +152,8 @@ namespace camera {
                  double f_u, double f_v, double c_u, double c_v,
                  Vector3 u_direction, Vector3 v_direction,
                  Vector3 w_direction,
-                 LensDistortion const& distortion_model);
+                 LensDistortion const& distortion_model,
+                 double pixel_pitch = 1.0);
 
     /// Initialize the pinhole model with explicit parameters.
     ///
@@ -182,12 +183,14 @@ namespace camera {
     ///
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v, double c_u, double c_v,
-                 LensDistortion const& distortion_model);
+                 LensDistortion const& distortion_model,
+                 double pixel_pitch = 1.0);
 
     /// Construct a basic pinhole model with no lens distortion
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v,
-                 double c_u, double c_v);
+                 double c_u, double c_v,
+                 double pixel_pitch = 1.0);
 
     virtual std::string type() const { return "Pinhole"; }
     virtual ~PinholeModel() {}
@@ -220,11 +223,13 @@ namespace camera {
     //  through the position of the pixel 'pix' on the image plane.
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
 
+    // The pinhole camera position does not vary by pixel so the input pixel is ignored.
     virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
     void set_camera_center(Vector3 const& position);
 
     // Pose is a rotation which moves a vector in camera coordinates
     // into world coordinates.
+    // - The pinhole camera position does not vary by pixel so the input pixel is ignored.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const;
     void set_camera_pose(Quaternion<double> const& pose);
     void set_camera_pose(Matrix<double,3,3> const& pose);

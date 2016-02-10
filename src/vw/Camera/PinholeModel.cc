@@ -64,27 +64,29 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                            double f_u, double f_v, double c_u, double c_v,
                            Vector3 u_direction, Vector3 v_direction,
                            Vector3 w_direction,
-                           LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                                     m_camera_center(camera_center),
-  m_rotation(rotation),
-                                                                     m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-  m_u_direction(u_direction),
-  m_v_direction(v_direction),
-  m_w_direction(w_direction),
-  m_pixel_pitch(1) {
+                           LensDistortion const& distortion_model,
+                           double pixel_pitch) : m_distortion(DistortPtr(distortion_model.copy())),
+                                                 m_camera_center(camera_center),  
+                                                 m_rotation(rotation),
+                                                 m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
+                                                 m_u_direction(u_direction),
+                                                 m_v_direction(v_direction),
+                                                 m_w_direction(w_direction),
+                                                 m_pixel_pitch(pixel_pitch) {
   this->rebuild_camera_matrix();
 }
 
 PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                            double f_u, double f_v, double c_u, double c_v,
-                           LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                                     m_camera_center(camera_center),
-                                                                     m_rotation(rotation),
-  m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                                                     m_u_direction(Vector3(1,0,0)),
-  m_v_direction(Vector3(0,1,0)),
-  m_w_direction(Vector3(0,0,1)),
-  m_pixel_pitch(1) {
+                           LensDistortion const& distortion_model,
+                           double pixel_pitch) : m_distortion(DistortPtr(distortion_model.copy())),
+                                                 m_camera_center(camera_center),
+                                                 m_rotation(rotation),
+                                                 m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
+                                                 m_u_direction(Vector3(1,0,0)),
+                                                 m_v_direction(Vector3(0,1,0)),
+                                                 m_w_direction(Vector3(0,0,1)),
+                                                 m_pixel_pitch(pixel_pitch) {
   rebuild_camera_matrix();
 }
 
@@ -92,14 +94,15 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
 /// Construct a basic pinhole model with no lens distortion
 PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                            double f_u, double f_v,
-                           double c_u, double c_v) : m_distortion(DistortPtr(new NullLensDistortion)),
-                                                     m_camera_center(camera_center),
-                                                     m_rotation(rotation),
-                                                     m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                                     m_u_direction(Vector3(1,0,0)),
-  m_v_direction(Vector3(0,1,0)),
-  m_w_direction(Vector3(0,0,1)),
-  m_pixel_pitch(1) {
+                           double c_u, double c_v,
+                           double pixel_pitch) : m_distortion(DistortPtr(new NullLensDistortion)),
+                                                 m_camera_center(camera_center),
+                                                 m_rotation(rotation),
+                                                 m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
+                                                 m_u_direction(Vector3(1,0,0)),
+                                                 m_v_direction(Vector3(0,1,0)),
+                                                 m_w_direction(Vector3(0,0,1)),
+                                                 m_pixel_pitch(pixel_pitch) {
   rebuild_camera_matrix();
 }
 
@@ -119,9 +122,12 @@ void PinholeModel::read(std::string const& filename) {
     vw_throw( IOErr() << "PinholeModel::read_file: Could not open file: " << filename );
 
   // Check for version number on the first line
+  int file_version = 1; // The default version written before the 2016 changes
   std::string line;
   std::getline(cam_file, line);
   if (line.find("VERSION") != std::string::npos) {
+    sscanf(line.c_str(),"VERSION_%d", &file_version); // Parse the version of the input file
+    
     // Right now there is only one version (VERSION_3) so if we find the version
     //  we just skip it and move on to the next line.  If the version is changed,
     //  handler logic needs to be implemented here.
@@ -204,13 +210,24 @@ void PinholeModel::read(std::string const& filename) {
     std::getline(cam_file, line); // After reading the pitch, read the next line.
   }
   else // Pixel pitch not specified, use 1.0 as the default.
+  {
+    if (file_version > 2){
+      cam_file.close();
+      vw_throw( IOErr() << "PinholeModel::read_file(): Pitch value required in this file version!\n" );
+    }
     m_pixel_pitch = 1.0;
+  }
 
   // Now that we have loaded all the parameters, update the dependend class members.
   this->rebuild_camera_matrix();
 
   // This creates m_distortion but we still need to read the parameters.
   bool found_name = construct_lens_distortion(line);
+
+  if (!found_name && (file_version > 2)){
+    cam_file.close();
+    vw_throw( IOErr() << "PinholeModel::read_file(): Distortion name required in this file version!\n" );
+  }
   
   // If there was no line containing the distortion model name (true for old files)
   //  then we need to back up to before the distortion parameters begin in the file.
@@ -351,6 +368,7 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " << m_w_direction[2] << "\n";
   cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " << m_camera_center[2] << "\n";
   cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " " << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " " << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
+  cam_file << "pitch = " << m_pixel_pitch << "\n";
 
   // Write the name of the distortion model, then use the distortion model
   //  << overload to write it to the file. 
