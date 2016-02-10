@@ -314,8 +314,7 @@ TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
   projection_test(1e-4);
 #endif
   UnlinkName file("AdjustedTsai.tsai");
-  //readback_test( file );
-  readback_test( "/home/smcmich1/repo/visionworkbench/src/vw/Camera/tests/adj.tsai");
+  readback_test( file );
 }
 
 TEST_F( PinholeTest, OldFormatReadTest ) {
