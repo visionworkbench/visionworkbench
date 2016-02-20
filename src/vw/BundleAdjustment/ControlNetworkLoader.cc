@@ -126,25 +126,28 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
   // Searching through the directories available to us.
   typedef std::map<std::string,size_t>::iterator MapIterator;
   int num_images = image_files.size();
-  for (int i = 0; i < num_images; i++){
+  for (int i = 0; i < num_images; i++){ // Loop through all image pairs
     for (int j = i+1; j < num_images; j++){
       std::string image1 = image_files[i];
       std::string image2 = image_files[j];
 
-      // The match file
+      // Find the match file for this pair of images
       std::pair<int, int> pair_ind(i, j);
       std::map< std::pair<int, int>, std::string>::const_iterator pair_it
         = match_files.find(pair_ind);
       if (pair_it == match_files.end())
-        vw_throw(ArgumentErr() << "Could not find matchfiles.\n");
+        continue; // This match file was not passed in, that is ok.
       std::string match_file = pair_it->second;
 
+      // 
       std::string prefix1 = fs::path(image1).replace_extension().string();
       std::string prefix2 = fs::path(image2).replace_extension().string();
       MapIterator it1 = image_prefix_map.find( prefix1 );
       MapIterator it2 = image_prefix_map.find( prefix2 );
       if ( it1 == image_prefix_map.end() ||
            it2 == image_prefix_map.end() ) continue;
+           
+      // Verify that the match file exists
       if (!fs::exists(match_file)) {
         vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
         continue;
@@ -155,6 +158,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     }
   }
 
+  // 
   size_t num_load_rejected = 0, num_loaded = 0;
   for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++){
     std::string match_file = match_files_vec[file_iter];
@@ -204,9 +208,9 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
         // Doubly linking
         (*ipfeature1)->connection( *ipfeature2, false );
         (*ipfeature2)->connection( *ipfeature1, false );
-      }
+      } // End loop through ip1
     }
-  }
+  } // End loop through match files
 
   if ( num_load_rejected != 0 ) {
     vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
