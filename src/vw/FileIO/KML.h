@@ -87,6 +87,12 @@ namespace vw {
                            std::string style="",
                            double altitude=0,
                            bool extrude=false );
+                           
+    /// Add a line segment to the KML file
+    void append_line( std::vector<Vector3> coordinates,
+                      std::string name="",
+                      std::string style="");
+                           
     /// Add a 3d model to the KML file
     void append_model( std::string path_to_model,
                        double lon, double lat,
@@ -109,6 +115,10 @@ namespace vw {
     /// Style: Defines an Icon to use later
     void append_style( std::string id, std::string color_hex,
                        float scale, std::string image_url );
+
+    /// Style: Defines a line style to use later
+    void append_line_style( std::string id, std::string color_hex,
+                            float width=1.0);
    
     /// StyleMap: Maps two styles together to create a bipolar icon
     void append_stylemap( std::string id,

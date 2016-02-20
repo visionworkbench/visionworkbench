@@ -18,7 +18,6 @@
 
 /// \file KML.cc
 ///
-/// An abstract base class referring to an image on disk.
 ///
 
 // Vision Workbench
@@ -121,6 +120,24 @@ namespace vw {
                   << "</coordinates>\n";
     close_brackets(2);
   }
+  
+  void KMLFile::append_line( std::vector<Vector3> coordinates,
+                             std::string name,
+                             std::string style ) {
+    open_bracket("Placemark");
+    if ( name != "" )
+      m_output_file << m_tab << "<name>"<< name <<"</name>\n";
+    if ( style != "")
+      m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
+    open_bracket("LineString");
+    m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
+    m_output_file << m_tab << "<coordinates>"<< std::setw(10);
+    for (size_t i=0; i<coordinates.size(); ++i)
+      m_output_file << coordinates[i].x() <<","<< coordinates[i].y() <<"," 
+                    << coordinates[i].z() << "\n";
+    m_output_file << "</coordinates>\n";
+    close_brackets(2);
+  }
 
   // Model: Puts in a 3D model provided by path with a specific
   // position and pose
@@ -214,6 +231,20 @@ namespace vw {
     m_tab.count--;
     m_output_file << m_tab << "</Style>\n";
   }
+
+  void KMLFile::append_line_style( std::string id, std::string color_hex,
+                                   float width) {
+    m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
+    m_tab.count++;
+    open_bracket("LineStyle");
+    if (color_hex != "" )
+      m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
+    m_output_file << m_tab << "<width>" << width << "</width>\n";
+    close_brackets(1);
+    m_tab.count--;
+    m_output_file << m_tab << "</Style>\n";
+  }
+
 
   void KMLFile::append_stylemap( std::string id,
                                  std::string style_normal,
