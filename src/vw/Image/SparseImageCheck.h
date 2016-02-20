@@ -26,14 +26,18 @@
 
 namespace vw {
 
-  // This is the default version for most image views.  It simply
-  // checks for intersection with the entire bounding box of the
-  // image.
+  /// Checks to see if a given bounding box intersects the wrapped image.
+  /// - This is the default version for most image views, but some classes
+  ///   should specialize the class to work differently when it wraps them.
   template <class SrcViewT>
   class SparseImageCheck {
     BBox2i m_src_bbox;
+    
   public:
+    /// Constructor wraps another image object.
     SparseImageCheck(SrcViewT const& source) : m_src_bbox(0,0,source.cols(),source.rows()) {}
+    
+    /// Return true if the given bounding box intersects the image data.
     bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
   };
 

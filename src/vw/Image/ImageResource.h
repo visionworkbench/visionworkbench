@@ -98,9 +98,9 @@ namespace vw {
     public:
       virtual ~SrcImageResource() {}
 
-      virtual int32 cols  () const {return format().cols;  } /// Returns the number of columns in an image resource.
-      virtual int32 rows  () const {return format().rows;  } /// Returns the number of rows    in an image resource.
-      virtual int32 planes() const {return format().planes;} /// Returns the number of planes  in an image resource.
+      virtual int32 cols  () const {return format().cols;  }
+      virtual int32 rows  () const {return format().rows;  }
+      virtual int32 planes() const {return format().planes;}
 
       /// Returns the number of channels in a image resource.
       int32 channels() const { return num_channels( pixel_format() ); }

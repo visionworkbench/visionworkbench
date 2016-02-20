@@ -158,18 +158,13 @@ namespace vw {
     /// Automatic down-cast to the raw channel value in numeric contexts.
     operator ChannelT() const { return m_ch[0]; }
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// Value channel accessor.
-    inline ChannelT& v() { return m_ch[0]; }
-    /// Value channel accessor (const overload).
+    inline ChannelT      & v()       { return m_ch[0]; }
     inline ChannelT const& v() const { return m_ch[0]; }
   };
 
@@ -240,22 +235,15 @@ namespace vw {
       m_ch[1] = ChannelT(other[3]);
     }
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// Value channel accessor.
-    inline ChannelT& v() { return m_ch[0]; }
-    /// Value channel accessor (const overload).
+    inline ChannelT      & v()       { return m_ch[0]; }
     inline ChannelT const& v() const { return m_ch[0]; }
-    /// Alpha channel accessor.
-    inline ChannelT& a() { return m_ch[1]; }
-    /// Alpha channel accessor (const overload).
+    inline ChannelT      & a()       { return m_ch[1]; }
     inline ChannelT const& a() const { return m_ch[1]; }
   };
 
@@ -342,26 +330,17 @@ namespace vw {
     /// Explicit conversion from PixelLab types.
     template <class OtherT> explicit PixelRGB( PixelLab<OtherT> const& other );
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// Red channel accessor.
-    inline ChannelT& r() { return m_ch[0]; }
-    /// Red channel accessor (const overload).
+    inline ChannelT      & r()       { return m_ch[0]; }
     inline ChannelT const& r() const { return m_ch[0]; }
-    /// Green channel accessor.
-    inline ChannelT& g() { return m_ch[1]; }
-    /// Green channel accessor (const overload).
+    inline ChannelT      & g()       { return m_ch[1]; }
     inline ChannelT const& g() const { return m_ch[1]; }
-    /// Blue channel accessor.
-    inline ChannelT& b() { return m_ch[2]; }
-    /// Blue channel accessor (const overload).
+    inline ChannelT      & b()       { return m_ch[2]; }
     inline ChannelT const& b() const { return m_ch[2]; }
   };
 
@@ -443,30 +422,19 @@ namespace vw {
       m_ch[3] = ChannelT(other[3]);
     }
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Value channel accessor (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Value channel accessor (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// Red channel accessor.
-    inline ChannelT& r() { return m_ch[0]; }
-    /// Red channel accessor (const overload).
+    inline ChannelT      & r()       { return m_ch[0]; }
     inline ChannelT const& r() const { return m_ch[0]; }
-    /// Green channel accessor.
-    inline ChannelT& g() { return m_ch[1]; }
-    /// Green channel accessor (const overload).
+    inline ChannelT      & g()       { return m_ch[1]; }
     inline ChannelT const& g() const { return m_ch[1]; }
-    /// Blue channel accessor.
-    inline ChannelT& b() { return m_ch[2]; }
-    /// Blue channel accessor (const overload).
+    inline ChannelT      & b()       { return m_ch[2]; }
     inline ChannelT const& b() const { return m_ch[2]; }
-    /// Alpha channel accessor.
-    inline ChannelT& a() { return m_ch[3]; }
-    /// Alpha channel accessor (const overload).
+    inline ChannelT      & a()       { return m_ch[3]; }
     inline ChannelT const& a() const { return m_ch[3]; }
   };
 
@@ -543,26 +511,17 @@ namespace vw {
     /// Explicit conversion from PixelRGB types.
     template <class OtherT> explicit PixelHSV( PixelRGB<OtherT> const& rgb );
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// Hue channel accessor.
-    inline ChannelT& h() { return m_ch[0]; }
-    /// Hue channel accessor (const overload).
+    inline ChannelT      & h()       { return m_ch[0]; }
     inline ChannelT const& h() const { return m_ch[0]; }
-    /// Saturation channel accessor.
-    inline ChannelT& s() { return m_ch[1]; }
-    /// Saturation channel accessor (const overload).
+    inline ChannelT      & s()       { return m_ch[1]; }
     inline ChannelT const& s() const { return m_ch[1]; }
-    /// Value channel accessor.
-    inline ChannelT& v() { return m_ch[2]; }
-    /// Value channel accessor (const overload).
+    inline ChannelT      & v()       { return m_ch[2]; }
     inline ChannelT const& v() const { return m_ch[2]; }
   };
 
@@ -676,25 +635,16 @@ namespace vw {
     template <class OtherT> explicit PixelXYZ( PixelLab<OtherT> const& lab );
 
     /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// X channel accessor.
-    inline ChannelT& x() { return m_ch[0]; }
-    /// X channel accessor (const overload).
+    inline ChannelT      & x()       { return m_ch[0]; }
     inline ChannelT const& x() const { return m_ch[0]; }
-    /// Y channel accessor.
-    inline ChannelT& y() { return m_ch[1]; }
-    /// Y channel accessor (const overload).
+    inline ChannelT      & y()       { return m_ch[1]; }
     inline ChannelT const& y() const { return m_ch[1]; }
-    /// Z channel accessor.
-    inline ChannelT& z() { return m_ch[2]; }
-    /// Z channel accessor (const overload).
+    inline ChannelT      & z()       { return m_ch[2]; }
     inline ChannelT const& z() const { return m_ch[2]; }
   };
 
@@ -779,26 +729,17 @@ namespace vw {
     /// Explicit conversion from PixelRGB types.
     template <class OtherT> explicit PixelLuv( PixelRGB<OtherT> const& rgb );
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// l channel accessor.
-    inline ChannelT& l() { return m_ch[0]; }
-    /// l channel accessor (const overload).
+    inline ChannelT      & l()       { return m_ch[0]; }
     inline ChannelT const& l() const { return m_ch[0]; }
-    /// u channel accessor.
-    inline ChannelT& u() { return m_ch[1]; }
-    /// u channel accessor (const overload).
+    inline ChannelT      & u()       { return m_ch[1]; }
     inline ChannelT const& u() const { return m_ch[1]; }
-    /// v channel accessor.
-    inline ChannelT& v() { return m_ch[2]; }
-    /// v channel accessor (const overload).
+    inline ChannelT      & v()       { return m_ch[2]; }
     inline ChannelT const& v() const { return m_ch[2]; }
   };
 
@@ -930,26 +871,17 @@ namespace vw {
     /// Explicit conversion from PixelRGB types.
     template <class OtherT> explicit PixelLab( PixelRGB<OtherT> const& rgb );
 
-    /// Channel indexing operator.
-    inline ChannelT& operator[](size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    /// Channel indexing operators.
+    inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator[](size_t i) const { return m_ch[i]; }
-    /// Channel indexing operator.
-    inline ChannelT& operator()(size_t i) { return m_ch[i]; }
-    /// Channel indexing operator (const overload).
+    inline ChannelT      & operator()(size_t i)       { return m_ch[i]; }
     inline ChannelT const& operator()(size_t i) const { return m_ch[i]; }
 
-    /// l channel accessor.
-    inline ChannelT& l() { return m_ch[0]; }
-    /// l channel accessor (const overload).
+    inline ChannelT      & l()       { return m_ch[0]; }
     inline ChannelT const& l() const { return m_ch[0]; }
-    /// a channel accessor.
-    inline ChannelT& a() { return m_ch[1]; }
-    /// a channel accessor (const overload).
+    inline ChannelT      & a()       { return m_ch[1]; }
     inline ChannelT const& a() const { return m_ch[1]; }
-    /// b channel accessor.
-    inline ChannelT& b() { return m_ch[2]; }
-    /// b channel accessor (const overload).
+    inline ChannelT      & b()       { return m_ch[2]; }
     inline ChannelT const& b() const { return m_ch[2]; }
   };
 

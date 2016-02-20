@@ -519,8 +519,8 @@ namespace vw {
       }
     }
     
-    inline int32 cols() const { return m_img.cols(); }
-    inline int32 rows() const { return m_img.rows(); }
+    inline int32 cols  () const { return m_img.cols(); }
+    inline int32 rows  () const { return m_img.rows(); }
     inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }

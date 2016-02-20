@@ -125,24 +125,25 @@ namespace vw {
     offset_type m_c, m_r;
     int32 m_p;
   public:
-    typedef typename ViewT::pixel_type pixel_type;
+    typedef typename ViewT::pixel_type  pixel_type;
     typedef typename ViewT::result_type result_type;
 
     ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(), m_r(), m_p() {}
-    ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int32 p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
+    ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int32 p=0 )
+       : m_view(view), m_c(c), m_r(r), m_p(p) {}
 
-    inline ProceduralPixelAccessor& next_col() { ++m_c; return *this; }
-    inline ProceduralPixelAccessor& prev_col() { --m_c; return *this; }
-    inline ProceduralPixelAccessor& next_row() { ++m_r; return *this; }
-    inline ProceduralPixelAccessor& prev_row() { --m_r; return *this; }
+    inline ProceduralPixelAccessor& next_col  () { ++m_c; return *this; }
+    inline ProceduralPixelAccessor& prev_col  () { --m_c; return *this; }
+    inline ProceduralPixelAccessor& next_row  () { ++m_r; return *this; }
+    inline ProceduralPixelAccessor& prev_row  () { --m_r; return *this; }
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
     inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, ssize_t dp=0 ) { m_c+=dc; m_r+=dr; m_p+=(int32)dp; return *this; }
 
-    inline ProceduralPixelAccessor next_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.next_col();   return tmp; }
-    inline ProceduralPixelAccessor prev_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_col();   return tmp; }
-    inline ProceduralPixelAccessor next_row_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.next_row();   return tmp; }
-    inline ProceduralPixelAccessor prev_row_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_row();   return tmp; }
+    inline ProceduralPixelAccessor next_col_copy  () const { ProceduralPixelAccessor tmp(*this); tmp.next_col  (); return tmp; }
+    inline ProceduralPixelAccessor prev_col_copy  () const { ProceduralPixelAccessor tmp(*this); tmp.prev_col  (); return tmp; }
+    inline ProceduralPixelAccessor next_row_copy  () const { ProceduralPixelAccessor tmp(*this); tmp.next_row  (); return tmp; }
+    inline ProceduralPixelAccessor prev_row_copy  () const { ProceduralPixelAccessor tmp(*this); tmp.prev_row  (); return tmp; }
     inline ProceduralPixelAccessor next_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.next_plane(); return tmp; }
     inline ProceduralPixelAccessor prev_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.prev_plane(); return tmp; }
     inline ProceduralPixelAccessor advance_copy ( offset_type dc, offset_type dr, ssize_t dp=0 ) const {

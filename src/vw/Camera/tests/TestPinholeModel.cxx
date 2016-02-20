@@ -230,7 +230,7 @@ protected:
     }
   }
 
-  /// Write a protobuf file, then read it back in and make sure nothing has changed.
+  /// Write a .tsai file, then read it back in and make sure nothing has changed.
   void readback_test(std::string const& file) {
     pinhole.write( file );
     PinholeModel read_back;
@@ -302,12 +302,12 @@ TEST_F( PinholeTest, BrownConradyDistortion ) {
 
 TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
   Vector<double> distort_coeff(6);
-  distort_coeff[0] = 0.007646500298509824;
-  distort_coeff[1] = -0.01743067138801845;
-  distort_coeff[2] = 0.00980946292640812;
-  distort_coeff[3] = -2.98092556225311e-05;
-  distort_coeff[4] = -1.339089765674149e-05;
-  distort_coeff[5] = -1.221974557659228e-05;
+  distort_coeff[0] = 0.007646500298509824;   // k1
+  distort_coeff[1] = -0.01743067138801845;   // k2
+  distort_coeff[2] = 0.00980946292640812;    // k3
+  distort_coeff[3] = -2.98092556225311e-05;  // p1
+  distort_coeff[4] = -1.339089765674149e-05; // p2
+  distort_coeff[5] = -1.221974557659228e-05; // alpha = skew
   pinhole.set_lens_distortion(
      AdjustableTsaiLensDistortion( distort_coeff ) );
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1

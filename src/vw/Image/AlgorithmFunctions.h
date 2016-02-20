@@ -286,12 +286,10 @@ namespace vw {
 
   /// A utility that numbers off blobs of valid pixels. So it's
   /// important that you use pixel mask, or the entire image will be
-  /// numbered one. This is for the most part a clone of bwlabel.
-  ///
-
+  /// numbered one. This is for the most part a clone of the Matlab function bwlabel.
   template <class SourceT>
   void blob_index( ImageViewBase<SourceT> const& src,
-                   ImageView<uint32>& dst ) {
+                   ImageView<uint32>           & dst ) {
 
     if ( src.impl().planes() > 1 )
       vw_throw( NoImplErr() << "Blob index currently only works with 2D images." );

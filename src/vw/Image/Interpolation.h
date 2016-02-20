@@ -237,28 +237,28 @@ namespace vw {
   {
   private:
     typedef typename InterpT::template Interpolator<ImageT>::type interp_type;
-    ImageT m_image;
+    ImageT      m_image;
     interp_type m_interp_func;
   public:
 
     typedef typename ImageT::pixel_type pixel_type;
-    typedef pixel_type result_type;
+    typedef pixel_type                  result_type;
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
 
     InterpolationView( ImageT const& image,
                        InterpT const& /*interp_stub*/ = InterpT()) :
       m_image(image), m_interp_func(InterpT::interpolator(image)) {}
 
-    inline int32 cols() const { return m_image.cols(); }
-    inline int32 rows() const { return m_image.rows(); }
+    inline int32 cols  () const { return m_image.cols  (); }
+    inline int32 rows  () const { return m_image.rows  (); }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
     inline result_type operator() (double i, double j, int32 p = 0) const { return m_interp_func(m_image,i,j,p); }
 
-    ImageT const& child() const { return m_image; }
-    InterpT const& func() const { return m_interp_func; }
+    ImageT  const& child() const { return m_image;       }
+    InterpT const& func () const { return m_interp_func; }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -301,6 +301,8 @@ namespace vw {
   struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public true_type {};
   /// \endcond
 
+  /// Specialize the SparseImageCheck class for wrapping the InterpolationView class.
+  /// - The test bbox is expanded by the interpolation buffer size.
   template <class ImageT, class InterpT>
   class SparseImageCheck<InterpolationView<ImageT, InterpT> > {
     InterpolationView<ImageT, InterpT> const& m_view;

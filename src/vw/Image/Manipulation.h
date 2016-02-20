@@ -194,15 +194,15 @@ namespace vw {
   private:
     ChildT m_child;
   public:
-    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::pixel_type  pixel_type;
     typedef typename ChildT::result_type result_type;
     typedef typename ChildT::offset_type offset_type;
     Rotate180PixelAccessor( ChildT const& image ) : m_child(image) {}
 
-    inline Rotate180PixelAccessor& next_col() { m_child.prev_col(); return *this; }
-    inline Rotate180PixelAccessor& prev_col() { m_child.next_col(); return *this; }
-    inline Rotate180PixelAccessor& next_row() { m_child.prev_row(); return *this; }
-    inline Rotate180PixelAccessor& prev_row() { m_child.next_row(); return *this; }
+    inline Rotate180PixelAccessor& next_col  () { m_child.prev_col  (); return *this; }
+    inline Rotate180PixelAccessor& prev_col  () { m_child.next_col  (); return *this; }
+    inline Rotate180PixelAccessor& next_row  () { m_child.prev_row  (); return *this; }
+    inline Rotate180PixelAccessor& prev_row  () { m_child.next_row  (); return *this; }
     inline Rotate180PixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate180PixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
     inline Rotate180PixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
@@ -218,14 +218,14 @@ namespace vw {
     ImageT m_child;
   public:
 
-    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::pixel_type   pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef Rotate180PixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
     Rotate180View( ImageT const& image ) : m_child(image) {}
 
-    inline int32 cols() const { return m_child.cols(); }
-    inline int32 rows() const { return m_child.rows(); }
+    inline int32 cols  () const { return m_child.cols  (); }
+    inline int32 rows  () const { return m_child.rows  (); }
     inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(cols()-1,rows()-1); }
@@ -254,7 +254,9 @@ namespace vw {
       BBox2i child_bbox( cols()-bbox.max().x(), rows()-bbox.max().y(), bbox.width(), bbox.height() );
       return prerasterize_type( m_child.prerasterize(child_bbox) );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { 
+      vw::rasterize( prerasterize(bbox), dest, bbox ); 
+    }
     /// \endcond
   };
 
@@ -1022,7 +1024,7 @@ namespace vw {
     SelectChannelFunctor( int32 channel ) : m_channel(channel) {}
 
     // Computes an appropriate reference-to-channel type.
-    typedef typename CompoundChannelType<typename ImageT::pixel_type>::type channel_type;
+    typedef typename CompoundChannelType<typename ImageT::pixel_type>::type   channel_type;
     typedef typename CopyCVR<typename ImageT::result_type,channel_type>::type result_type;
 
     result_type operator()( typename ImageT::result_type pixel ) const {
@@ -1031,8 +1033,7 @@ namespace vw {
   };
 
   /// Extracts a single channel of a multi-channel image.  This function
-  /// returns a writeable view of a single channel of a multi-channel
-  /// image.
+  /// returns a writeable view of a single channel of a multi-channel image.
   template <class ImageT>
   UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
   inline select_channel( ImageViewBase<ImageT>& image, int32 channel ) {

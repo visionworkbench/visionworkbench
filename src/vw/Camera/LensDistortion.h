@@ -183,7 +183,7 @@ namespace camera {
   /// the Matlab Camera Calibration Tool Box.
   ///
   /// Coefficients are [r2,r4,r6, ...., t1, t2, alpha]. The last 3
-  /// elements tangential and alpha are always supplied.
+  /// elements tangential and alpha(=skew) are always supplied.
   ///
   /// References:
   /// http://www.vision.caltech.edu/bouguetj/calib_doc/htmls/parameters.html
