@@ -103,7 +103,7 @@ namespace vw {
     ~ImageViewRefAccessor() {}
 
     ImageViewRefAccessor( ImageViewRefAccessor const& other ) : m_iter( other.m_iter->copy() ) {}
-    ImageViewRefAccessor& operator=( ImageViewRefAccessor const& other ) { m_iter = other.m_iter->copy(); }
+    ImageViewRefAccessor& operator=( ImageViewRefAccessor const& other ) { m_iter = other.m_iter->copy(); return *this; }
 
     inline ImageViewRefAccessor& next_col() { m_iter->next_col(); return *this; }
     inline ImageViewRefAccessor& prev_col() { m_iter->prev_col(); return *this; }
