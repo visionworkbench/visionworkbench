@@ -218,9 +218,15 @@ namespace vw {
   }
 
   void KMLFile::append_style( std::string id, std::string color_hex,
-                              float scale, std::string image_url ) {
+                              float scale, std::string image_url,
+                              bool hide_label ) {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
     m_tab.count++;
+    if (hide_label) {
+      open_bracket("LabelStyle");
+      m_output_file << m_tab << "<scale>0.0</scale>\n";
+      close_brackets(1);
+    }
     open_bracket("IconStyle");
     if (color_hex != "" )
       m_output_file << m_tab << "<color>" << color_hex << "</color>\n";

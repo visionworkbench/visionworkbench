@@ -113,8 +113,10 @@ namespace vw {
     void append_lod( float min, float max );
     
     /// Style: Defines an Icon to use later
+    /// - If hide_label is set, the placemark labels will only be shown if highlighted.
     void append_style( std::string id, std::string color_hex,
-                       float scale, std::string image_url );
+                       float scale, std::string image_url,
+                       bool hide_label=false );
 
     /// Style: Defines a line style to use later
     void append_line_style( std::string id, std::string color_hex,
