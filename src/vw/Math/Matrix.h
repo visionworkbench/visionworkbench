@@ -59,16 +59,14 @@ namespace vw {
 namespace math {
 
   /// A type function to compute the number of rows of a matrix
-  /// expression at compile time (or zero for dynamically-sized
-  /// vectors).
+  /// expression at compile time (or zero for dynamically-sized vectors).
   template <class MatrixT>
   struct MatrixRows {
     const static size_t value = 0;
   };
 
   /// A type function to compute the number of columns of a matrix
-  /// expression at compile time (or zero for dynamically-sized
-  /// vectors).
+  /// expression at compile time (or zero for dynamically-sized vectors).
   template <class MatrixT>
   struct MatrixCols {
     const static size_t value = 0;
@@ -90,35 +88,14 @@ namespace math {
   template <class MatrixT>
   struct MatrixBase {
 
-    /// Returns the derived implementation type.
-    MatrixT& impl() { return *static_cast<MatrixT*>(this); }
-
-    /// Returns the derived implementation type.
-    MatrixT const& impl() const { return *static_cast<MatrixT const*>(this); }
-
-    /// Sum-assignment operator
-    template <class T>
-    MatrixT& operator+=( T const& m ) {
-      return impl() = impl() + m;
-    }
-
-    /// Difference-assignment operator
-    template <class T>
-    MatrixT& operator-=( T const& m ) {
-      return impl() = impl() - m;
-    }
-
-    /// Product-assignment operator
-    template <class T>
-    MatrixT& operator*=( T s ) {
-      return impl() = impl() * s;
-    }
-
-    /// Quotient-assignment operator
-    template <class T>
-    MatrixT& operator/=( T s ) {
-      return impl() = impl() / s;
-    }
+    
+    MatrixT      & impl()       { return *static_cast<MatrixT      *>(this); } ///< Returns the derived implementation type.
+    MatrixT const& impl() const { return *static_cast<MatrixT const*>(this); } ///< Returns the derived implementation type.
+    
+    template <class T>  MatrixT& operator+=( T const& m ) { return impl() = impl() + m; } ///< Sum-assignment operator
+    template <class T>  MatrixT& operator-=( T const& m ) { return impl() = impl() - m; } ///< Difference-assignment operator   
+    template <class T>  MatrixT& operator*=( T s        ) { return impl() = impl() * s; } ///< Product-assignment operator
+    template <class T>  MatrixT& operator/=( T s        ) { return impl() = impl() / s; } ///< Quotient-assignment operator
 
     /// Access an individual matrix row, for further access using a second operator[].
     MatrixRow<MatrixT> operator[]( size_t row ) {
@@ -158,7 +135,7 @@ namespace math {
         for( size_t j=0; j<impl().cols(); ++j )
           impl()(i,j) = (typename MatrixT::value_type(1));
     }
-  };
+  }; // End class MatrixBase
 
 
   // *******************************************************************
@@ -396,11 +373,9 @@ namespace math {
       return *this;
     }
 
-    /// Returns the number of rows in the matrix.
-    size_t rows() const { return RowsN; }
-
-    /// Returns the number of columns in the matrix.
-    size_t cols() const { return ColsN; }
+    
+    size_t rows() const { return RowsN; } ///< Returns the number of rows in the matrix.
+    size_t cols() const { return ColsN; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
     void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
@@ -424,29 +399,13 @@ namespace math {
       return core_[row*ColsN+col];
     }
 
-    value_type *data() {
-      return &(operator()(0,0));
-    }
+          value_type *data()       { return &(operator()(0,0)); }
+    const value_type *data() const { return &(operator()(0,0)); }
 
-    const value_type *data() const {
-      return &(operator()(0,0));
-    }
-
-    iterator begin() {
-      return core_.begin();
-    }
-
-    const_iterator begin() const {
-      return core_.begin();
-    }
-
-    iterator end() {
-      return core_.end();
-    }
-
-    const_iterator end() const {
-      return core_.end();
-    }
+          iterator begin()       { return core_.begin(); }
+    const_iterator begin() const { return core_.begin(); }
+          iterator end  ()       { return core_.end();   }
+    const_iterator end  () const { return core_.end();   }
 
   };
 
@@ -535,11 +494,8 @@ namespace math {
       else return *this = m.impl();
     }
 
-    /// Returns the number of rows in the matrix.
-    size_t rows() const { return m_rows; }
-
-    /// Returns the number of columns in the matrix.
-    size_t cols() const { return m_cols; }
+    size_t rows() const { return m_rows; } ///< Returns the number of rows in the matrix.
+    size_t cols() const { return m_cols; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
     void set_size( size_t rows, size_t cols, bool preserve = false ) {
@@ -575,30 +531,13 @@ namespace math {
       return core_[row*m_cols+col];
     }
 
-    value_type *data() {
-      return &(operator()(0,0));
-    }
+          value_type *data()       { return &(operator()(0,0)); }
+    const value_type *data() const { return &(operator()(0,0)); }
 
-    const value_type *data() const {
-      return &(operator()(0,0));
-    }
-
-    iterator begin() {
-      return core_.begin();
-    }
-
-    const_iterator begin() const {
-      return core_.begin();
-    }
-
-    iterator end() {
-      return core_.end();
-    }
-
-    const_iterator end() const {
-      return core_.end();
-    }
-
+          iterator begin()       { return core_.begin(); }
+    const_iterator begin() const { return core_.begin(); }
+          iterator end  ()       { return core_.end();   }
+    const_iterator end  () const { return core_.end();   }
   };
 
 
@@ -651,11 +590,9 @@ namespace math {
       return *this;
     }
 
-    /// Returns the number of rows in the matrix.
-    size_t rows() const { return RowsN; }
-
-    /// Returns the number of columns in the matrix.
-    size_t cols() const { return ColsN; }
+    
+    size_t rows() const { return RowsN; } ///< Returns the number of rows in the matrix.
+    size_t cols() const { return ColsN; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
@@ -680,30 +617,13 @@ namespace math {
       return m_ptr[row*cols()+col];
     }
 
-    value_type *data() {
-      return &(operator()(0,0));
-    }
+          value_type *data()       { return &(operator()(0,0)); }
+    const value_type *data() const { return &(operator()(0,0)); }
 
-    const value_type *data() const {
-      return &(operator()(0,0));
-    }
-
-    iterator begin() {
-      return m_ptr;
-    }
-
-    const_iterator begin() const {
-      return m_ptr;
-    }
-
-    iterator end() {
-      return m_ptr+rows()*cols();
-    }
-
-    const_iterator end() const {
-      return m_ptr+rows()*cols();
-    }
-
+          iterator begin()       { return m_ptr;               }
+    const_iterator begin() const { return m_ptr;               }
+          iterator end  ()       { return m_ptr+rows()*cols(); }
+    const_iterator end  () const { return m_ptr+rows()*cols(); }
   };
 
   template <class ElemT, size_t RowsN, size_t ColsN>
@@ -771,11 +691,9 @@ namespace math {
       return *this;
     }
 
-    /// Returns the number of rows in the matrix.
-    size_t rows() const { return m_rows; }
-
-    /// Returns the number of columns in the matrix.
-    size_t cols() const { return m_cols; }
+    
+    size_t rows() const { return m_rows; } ///< Returns the number of rows in the matrix.
+    size_t cols() const { return m_cols; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
@@ -800,29 +718,13 @@ namespace math {
       return m_ptr[row*m_cols+col];
     }
 
-    value_type *data() {
-      return &(operator()(0,0));
-    }
-
-    const value_type *data() const {
-      return &(operator()(0,0));
-    }
-
-    iterator begin() {
-      return m_ptr;
-    }
-
-    const_iterator begin() const {
-      return m_ptr;
-    }
-
-    iterator end() {
-      return m_ptr+rows()*cols();
-    }
-
-    const_iterator end() const {
-      return m_ptr+rows()*cols();
-    }
+          value_type *data()       { return &(operator()(0,0)); }
+    const value_type *data() const { return &(operator()(0,0)); }
+    
+          iterator begin()       { return m_ptr;               }
+    const_iterator begin() const { return m_ptr;               }
+          iterator end  ()       { return m_ptr+rows()*cols(); }
+    const_iterator end  () const { return m_ptr+rows()*cols(); }
 
   };
 
@@ -894,16 +796,12 @@ namespace math {
     }
 
     /// Returns the underlying non-transposed matrix.
-    MatrixT& child() { return m_matrix; }
+    MatrixT      & child()       { return m_matrix; }
+    MatrixT const& child() const { return m_matrix; } ///< Const overload
 
-    /// Returns the underlying non-transposed matrix (const overload).
-    MatrixT const& child() const { return m_matrix; }
-
-    /// Returns the number of rows in the matrix.
-    size_t rows() const { return m_matrix.cols(); }
-
-    /// Returns the number of columns in the matrix.
-    size_t cols() const { return m_matrix.rows(); }
+    
+    size_t rows() const { return m_matrix.cols(); } ///< Returns the number of rows in the matrix.
+    size_t cols() const { return m_matrix.rows(); } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
@@ -1021,9 +919,7 @@ namespace math {
     MatrixT      & child()       { return m; }
     MatrixT const& child() const { return m; }
 
-    size_t size() const {
-      return child().cols();
-    }
+    size_t size() const { return child().cols(); }
 
           reference_type operator()( size_t i )       { return child()(row,i); }
     const_reference_type operator()( size_t i ) const { return child()(row,i); }
@@ -1132,24 +1028,20 @@ namespace math {
       return *this;
     }
 
-    MatrixT& child() { return m; }
+    MatrixT      & child()       { return m; }
     MatrixT const& child() const { return m; }
 
-    size_t size() const {
-      return child().rows();
-    }
+    size_t size() const { return child().rows(); }
 
-    reference_type operator()( size_t i ) { return child()(i,col); }
+          reference_type operator()( size_t i )       { return child()(i,col); }
     const_reference_type operator()( size_t i ) const { return child()(i,col); }
-    reference_type operator[]( size_t i ) { return child()(i,col); }
+          reference_type operator[]( size_t i )       { return child()(i,col); }
     const_reference_type operator[]( size_t i ) const { return child()(i,col); }
 
-    iterator begin() { return iterator( child().begin() + col, child().cols() ); }
-    const_iterator begin() const {
-      return const_iterator( child().begin() + col, child().cols() );
-    }
-    iterator end() { return begin() + size(); }
-    const_iterator end() const { return begin() + size(); }
+          iterator begin()       { return       iterator( child().begin() + col, child().cols() ); }
+    const_iterator begin() const { return const_iterator( child().begin() + col, child().cols() ); }
+          iterator end  ()       { return begin() + size(); }
+    const_iterator end  () const { return begin() + size(); }
 
   };
 
@@ -1230,17 +1122,13 @@ namespace math {
     size_t rows() const { return m_rows; }
     size_t cols() const { return m_cols; }
 
-    reference_type operator()( size_t row, size_t col ) {
-      return child()( row+m_row, col+m_col );
-    }
-    const_reference_type operator()( size_t row, size_t col ) const {
-      return child()( row+m_row, col+m_col );
-    }
+          reference_type operator()( size_t row, size_t col )       { return child()( row+m_row, col+m_col ); }
+    const_reference_type operator()( size_t row, size_t col ) const { return child()( row+m_row, col+m_col ); }
 
-    iterator begin() { return iterator( *this, 0, 0 ); }
-    const_iterator begin() const { return const_iterator( *this, 0, 0 ); }
-    iterator end() { return iterator( *this, rows(), 0 ); }
-    const_iterator end() const { return const_iterator( *this, rows(), 0 ); }
+          iterator begin()       { return       iterator( *this, 0,      0 ); }
+    const_iterator begin() const { return const_iterator( *this, 0,      0 ); }
+          iterator end  ()       { return       iterator( *this, rows(), 0 ); }
+    const_iterator end  () const { return const_iterator( *this, rows(), 0 ); }
 
   };
 
@@ -1305,7 +1193,7 @@ namespace math {
 
     typedef iterator const_iterator;
     iterator begin() const { return iterator(child().begin(),func); }
-    iterator end() const { return iterator(child().end(),func); }
+    iterator end  () const { return iterator(child().end(),  func); }
   };
 
   template <class MatrixT, class FuncT>
@@ -1375,7 +1263,7 @@ namespace math {
 
     typedef iterator const_iterator;
     iterator begin() const { return iterator(child1().begin(),child2().begin(),func); }
-    iterator end() const { return iterator(child1().end(),child2().end(),func); }
+    iterator end  () const { return iterator(child1().end(),child2().end(),    func); }
   };
 
   template <class Matrix1T, class Matrix2T, class FuncT>
@@ -1478,8 +1366,7 @@ namespace math {
 
   /// Inequality of two matrices measured to within epsilon.  Two
   /// matrices are considered equal only if they have the same
-  /// dimensions and their elements are equal to within the specified
-  /// tolerance.
+  /// dimensions and their elements are equal to within the specified tolerance.
   template <class Matrix1T, class Matrix2T>
   inline bool not_equal( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0 ) {
     return ! equal(m1, m2, epsilon);
@@ -1967,16 +1854,16 @@ namespace math {
     typename MatrixClosure<MatrixT>::type m_matrix;
 
     template <class VecT> struct VectorClosure { typedef Vector<typename VecT::value_type, VectorSize<VecT>::value> type; };
-    template <class ElemT, size_t SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, size_t SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, size_t SizeN> struct VectorClosure<VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<      Vector     <ElemT,SizeN> > { typedef Vector     <ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<const Vector     <ElemT,SizeN> > { typedef Vector     <ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<      VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
     template <class ElemT, size_t SizeN> struct VectorClosure<const VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
     typename VectorClosure<VectorT>::type m_vector;
 
   public:
     typedef typename ProductType<typename MatrixT::value_type, typename VectorT::value_type>::type value_type;
 
-    typedef value_type reference_type;
+    typedef value_type       reference_type;
     typedef value_type const_reference_type;
 
     MatrixVectorProduct( MatrixT const& m, VectorT const& v ) : m_matrix(m), m_vector(v) {}
@@ -2007,8 +1894,8 @@ namespace math {
     };
     typedef iterator const_iterator;
 
-    iterator begin() const { return iterator(*this,0); }
-    iterator end() const { return iterator(*this,size()); }
+    iterator begin() const { return iterator(*this,0);      }
+    iterator end  () const { return iterator(*this,size()); }
 
   };
 
@@ -2076,8 +1963,8 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixMatrixProduct> iterator;
     typedef iterator const_iterator;
 
-    iterator begin() const { return iterator(*this,0,0); }
-    iterator end() const { return iterator(*this,rows(),0); }
+    iterator begin() const { return iterator(*this,0,     0); }
+    iterator end  () const { return iterator(*this,rows(),0); }
   };
 
   /// Product of two matrices.
@@ -2273,9 +2160,9 @@ namespace math {
   typedef Matrix<float32,2,2> Matrix2x2f;
   typedef Matrix<float32,3,3> Matrix3x3f;
   typedef Matrix<float32,4,4> Matrix4x4f;
-  typedef Matrix<int32,2,2> Matrix2x2i;
-  typedef Matrix<int32,3,3> Matrix3x3i;
-  typedef Matrix<int32,4,4> Matrix4x4i;
+  typedef Matrix<int32,  2,2> Matrix2x2i;
+  typedef Matrix<int32,  3,3> Matrix3x3i;
+  typedef Matrix<int32,  4,4> Matrix4x4i;
 
 } // namespace vw
 
