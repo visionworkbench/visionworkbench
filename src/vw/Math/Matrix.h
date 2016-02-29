@@ -1073,7 +1073,7 @@ namespace math {
   class SubMatrix : public MatrixBase<SubMatrix<MatrixT> >
   {
     MatrixT& m_matrix;
-    size_t m_row, m_col;
+    size_t m_row,  m_col;
     size_t m_rows, m_cols;
 
   public:
@@ -1116,7 +1116,7 @@ namespace math {
       return *this;
     }
 
-    MatrixT& child() { return m_matrix; }
+    MatrixT      & child()       { return m_matrix; }
     MatrixT const& child() const { return m_matrix; }
 
     size_t rows() const { return m_rows; }

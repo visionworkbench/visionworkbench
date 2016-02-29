@@ -29,7 +29,8 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PixelAccessors.h>
-//#include <vw/Image/BlockCacheView.h>
+
+#include <boost/math/special_functions/next.hpp>
 
 namespace vw {
 
@@ -57,7 +58,7 @@ namespace vw {
     }
   };
 
-  // Mask values less than or equal to the nodata value.
+  /// Mask values less than or equal to the nodata value.
   template <class PixelT>
   class CreatePixelMaskLE : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_nodata_value;
@@ -73,6 +74,7 @@ namespace vw {
     }
   };
 
+  /// Mask values fall within a range.
   template <class PixelT>
   class CreatePixelRangeMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_valid_min;
@@ -126,7 +128,24 @@ namespace vw {
 
       return MPixelT(value);
     }
+  }; // End class CreatePixelRangeMask
+
+  /// Masks out pixels which are equal to NaN
+  /// - Only use this with floats and doubles!
+  template <class PixelT>
+  class CreatePixelMaskNan : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+  public:
+    CreatePixelMaskNan(){}
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      if ( boost::math::isnan(value) ) {
+        return MPixelT();
+      }
+      return MPixelT(value);
+    }
   };
+
+
 
   /// Simple single value nodata
   template <class ViewT>
@@ -137,7 +156,7 @@ namespace vw {
     return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>(value) );
   }
 
-  /// Thresholded valid
+  /// Valid if data falls within a range
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
@@ -162,6 +181,16 @@ namespace vw {
     typedef UnaryPerPixelView<ViewT,CreatePixelMaskLE<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), CreatePixelMaskLE<typename ViewT::pixel_type>(value) );
   }
+  
+  /// Mask out values which are NaN
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,CreatePixelMaskNan<typename ViewT::pixel_type> >
+  create_mask_nan( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,CreatePixelMaskNan<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), CreatePixelMaskNan<typename ViewT::pixel_type>() );
+  }  
+  
+  
 
   // Indicate that create_mask is "reasonably fast" and should never
   // induce an extra rasterization step during prerasterization.

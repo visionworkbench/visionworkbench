@@ -122,9 +122,9 @@ namespace mosaic {
       return *this;
     }
 
-    int32 cols() const { return m_cols; }
-    int32 rows() const { return m_rows; }
-    int32 planes() const { return 1; }
+    int32 cols  () const { return m_cols; }
+    int32 rows  () const { return m_rows; }
+    int32 planes() const { return 1;      }
 
     typedef PositionedImage prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
@@ -212,14 +212,14 @@ namespace mosaic {
 
     std::vector<BBox2i > bboxes;
     BBox2i view_bbox, data_bbox;
-    int mindim, levels;
-    bool m_draft_mode;
-    bool m_fill_holes;
-    bool m_reuse_masks;
+    int    mindim, levels;
+    bool   m_draft_mode;
+    bool   m_fill_holes;
+    bool   m_reuse_masks;
     Cache& m_cache;
-    std::vector<ImageViewRef<pixel_type> > sourcerefs;
-    std::vector<Cache::Handle<SourceGenerator> > sources;
-    std::vector<Cache::Handle<AlphaGenerator> > alphas;
+    std::vector<ImageViewRef<pixel_type> >        sourcerefs;
+    std::vector<Cache::Handle<SourceGenerator > > sources;
+    std::vector<Cache::Handle<AlphaGenerator  > > alphas;
     std::vector<Cache::Handle<PyramidGenerator> > pyramids;
 
     void generate_masks( ProgressCallback const& progress_callback ) const;
@@ -242,31 +242,18 @@ namespace mosaic {
       else return blend_patch( patch_bbox );
     }
 
-    void set_draft_mode( bool draft_mode ) { m_draft_mode = draft_mode; }
+    void set_draft_mode (bool draft_mode ) { m_draft_mode = draft_mode; }
 
-    void set_fill_holes( bool fill_holes ) { m_fill_holes = fill_holes; }
+    void set_fill_holes (bool fill_holes ) { m_fill_holes = fill_holes; }
 
-    void set_reuse_masks( bool reuse_masks ) { m_reuse_masks = reuse_masks; }
+    void set_reuse_masks(bool reuse_masks) { m_reuse_masks = reuse_masks; }
 
-    int32 cols() const {
-      return view_bbox.width();
-    }
-
-    int32 rows() const {
-      return view_bbox.height();
-    }
-
-    BBox2i const& bbox() const {
-      return data_bbox;
-    }
-
-    BBox2i const& source_data_bbox() const {
-      return view_bbox;
-    }
-
-    int32 planes() const {
-      return 1;
-    }
+    int32 cols  () const { return view_bbox.width();  }
+    int32 rows  () const { return view_bbox.height(); }
+    int32 planes() const { return 1;                  }
+        
+    BBox2i const& bbox            () const { return data_bbox; }
+    BBox2i const& source_data_bbox() const { return view_bbox; }
 
     pixel_type operator()( int x, int y, int p=0 ) const {
       // FIXME: This is horribly slow, and totally untested for
@@ -319,7 +306,7 @@ namespace mosaic {
     bool operator() (BBox2i const& bbox) {
       return composite.sparse_check(bbox);
     }
-  };
+  }; // End class ImageComposite
 
 } // namespace vw
 

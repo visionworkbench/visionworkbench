@@ -48,8 +48,8 @@ namespace vw {
     impl_type m_impl;
 
   public:
-    typedef typename impl_type::pixel_type pixel_type;
-    typedef typename impl_type::result_type result_type;
+    typedef typename impl_type::pixel_type     pixel_type;
+    typedef typename impl_type::result_type    result_type;
     typedef typename impl_type::pixel_accessor pixel_accessor;
 
     /// Constructs a DiskImageView of the given file on disk

@@ -133,7 +133,7 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 
 static void register_default_file_types_impl() {
 
-  if( ! open_map ) open_map = new OpenMapType();
+  if( ! open_map   ) open_map   = new OpenMapType();
   if( ! create_map ) create_map = new CreateMapType();
 
 // Let's cut the verbosity of this func just a bit.

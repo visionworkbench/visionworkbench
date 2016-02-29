@@ -24,6 +24,8 @@
 /// the actual work is done lazily by filtering views, of which
 /// the most important are the convolution views declared in
 /// Convolution.h.
+/// Also contains some morphological functions.
+/// Also contains some per-pixel utility functions.
 #ifndef __VW_IMAGE_FILTER_H__
 #define __VW_IMAGE_FILTER_H__
 
@@ -353,6 +355,8 @@ namespace vw {
     return mean;
   }
   
+  //===============================================================================
+  //===============================================================================
   // Per-pixel filter functions
 
   /// Filters an image by applying a user-supplied function to each
