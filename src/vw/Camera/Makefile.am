@@ -33,11 +33,12 @@ lapack_headers = \
 	Extrinsics.h \
 	LensDistortion.h \
 	LinescanModel.h \
+	LinescanModel.tcc \
 	PinholeModelCalibrate.h
 
 lapack_sources = \
-	CameraGeometry.cc OrbitingPushbroomModel.cc \
-	Extrinsics.cc LinearPushbroomModel.cc
+	CameraGeometry.cc \
+	Extrinsics.cc
 endif
 
 include_HEADERS =   \
