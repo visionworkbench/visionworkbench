@@ -32,9 +32,7 @@ lapack_headers = \
 	CameraGeometry.h \
 	Extrinsics.h \
 	LensDistortion.h \
-	LinearPushbroomModel.h \
 	LinescanModel.h \
-	OrbitingPushbroomModel.h \
 	PinholeModelCalibrate.h
 
 lapack_sources = \
