@@ -19,7 +19,7 @@
 /// \file LinearPushbroomModel.h
 ///
 /// Linear pushbroom camera model object.
-///
+
 #ifndef __VW_CAMERA_LINEARPUSHBROOM_MODEL_H__
 #define __VW_CAMERA_LINEARPUSHBROOM_MODEL_H__
 
@@ -39,8 +39,8 @@ namespace camera {
     //------------------------------------------------------------------
 
     // Set up the position and pose estimator.  These are the
-    // characteristics that differentiate the linear pushbroom model
-    // from other linescan imagers.
+    /// characteristics that differentiate the linear pushbroom model
+    /// from other linescan imagers.
     LinearPushbroomModel( double  scan_duration,
                           int     number_of_lines,
                           int     samples_per_line,
@@ -50,7 +50,7 @@ namespace camera {
                           double  across_scan_pixel_size,
                           Vector3 pointing_vec,
                           Vector3 u_vec,
-                          Quaternion<double> const& camera_pose,
+                          Quaternion<double> const& camera_pose, // Constant pose!
                           Vector3 const& initial_position,
                           Vector3 const& velocity_vector);
 

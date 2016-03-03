@@ -63,14 +63,14 @@ namespace camera {
                             double  along_scan_pixel_size,
                             double  across_scan_pixel_size,
                             double  line_integration_time,
-                            double  t0_camera_pose,
-                            double  dt_camera_pose,
-                            double  t0_position,
-                            double  dt_position,
+                            double  t0_camera_pose, // Time of camera_poses[0]
+                            double  dt_camera_pose, // Time increment for camera_poses
+                            double  t0_position,    // Time of positions[0]
+                            double  dt_position,    // Time increment for positions
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
-                            std::vector<Vector3> const& positions);
+                            std::vector<Vector3            > const& positions);
 
     /// This constructor is used when the exposure time varies from
     /// scanline to scanline, e.g. in the case of HRSC.
@@ -88,7 +88,7 @@ namespace camera {
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
-                            std::vector<Vector3> const& positions);
+                            std::vector<Vector3            > const& positions);
 
     virtual ~OrbitingPushbroomModel();
     virtual std::string type() const;

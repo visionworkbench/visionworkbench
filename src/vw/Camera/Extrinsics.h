@@ -59,8 +59,8 @@ namespace camera {
 					  double t0, double dt );
 
     Vector3 operator()( double t ) const;
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
 
@@ -80,8 +80,8 @@ namespace camera {
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Vector3 operator()(double t) const;
 
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
     std::vector<int> get_indices_of_largest_weights(double t) const;
   };
@@ -96,8 +96,8 @@ namespace camera {
 				     double t0, double dt );
 
     Vector3 operator()( double t ) const;
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
 
@@ -135,8 +135,8 @@ namespace camera {
     Vector3 operator()(double t) const;
   };
 
-  // Cubic Hermite Spline interpolation or CSpline. Assumes you
-  // provide the velocity measurements.
+  /// Cubic Hermite Spline interpolation or CSpline. Assumes you
+  /// provide the velocity measurements.
   class HermitePositionInterpolation {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
@@ -146,8 +146,8 @@ namespace camera {
 				  double t0, double dt );
 
     Vector3 operator()( double t ) const;
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
 
@@ -179,8 +179,8 @@ namespace camera {
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
 
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
 
@@ -200,8 +200,8 @@ namespace camera {
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
 
-    double get_t0() const { return m_t0;}
-    double get_dt() const { return m_dt;}
+    double get_t0  () const { return m_t0;  }
+    double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
 
@@ -227,8 +227,7 @@ namespace camera {
   public:
     // TLC is straight from the IMG XML tag from Digital Globe
     // products. The pairings are expected to be <Line, Time>.
-    TLCTimeInterpolation( std::vector<std::pair<double, double> > const& tlc,
-			  double time_offset = 0 );
+    TLCTimeInterpolation( std::vector<std::pair<double, double> > const& tlc, double time_offset = 0 );
 
     double operator()( double line ) const;
   };

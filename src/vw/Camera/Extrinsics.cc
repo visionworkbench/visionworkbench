@@ -350,11 +350,16 @@ double LinearTimeInterpolation::operator()( double line ) const {
 // TLCTimeInterpolation class
 
 TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
-					   double time_offset ) {
+					                                 double time_offset ) {
+  // Loop until next-to-last entry
   for ( size_t i = 0; i < tlc.size() - 1; i++ ) {
-    double t = time_offset + tlc[i].second;
-    m_m[tlc[i].first] = ( tlc[i].second - tlc[i+1].second ) / ( tlc[i].first - tlc[i+1].first );
-    m_b[tlc[i].first] = t - m_m[tlc[i].first] * tlc[i].first;
+    const double this_line = tlc[i].first;
+    const double t         = time_offset + tlc[i].second; // The time for this entry
+    
+    // Compute instantaneous slope at this time = (time diff) / (line diff)
+    m_m[this_line] = ( tlc[i].second - tlc[i+1].second ) / ( tlc[i].first - tlc[i+1].first );
+    // ?
+    m_b[this_line] = t - m_m[this_line] * this_line;
   }
 }
 
@@ -364,6 +369,6 @@ double TLCTimeInterpolation::operator()( double line ) const {
   if ( m != m_m.begin() ) {
     m--; b--;
   }
-
+  // ?
   return line  * m->second + b->second;
 }
