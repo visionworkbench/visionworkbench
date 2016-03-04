@@ -29,6 +29,9 @@
 using namespace vw;
 using namespace vw::camera;
 
+
+// TODO: Move this somewhere else!
+
 // Given the values ti = t0 + i*dt for i = 0, 1, ..., num_samples - 1,
 // and the value t, compute the weights
 // w_i=exp(-sigma*(t-ti)^2/dt^2). Keep the largest m_num_wts weights.
@@ -79,12 +82,13 @@ namespace vw { namespace camera {
 //======================================================================
 // LinearPositionInterpolation class
 
-LinearPositionInterpolation::LinearPositionInterpolation(Vector3 const& position_samples, Vector3 const& velocity_samples) :
-  m_position_samples(position_samples), m_velocity_samples(velocity_samples) {}
+LinearPositionInterpolation::LinearPositionInterpolation(Vector3 const& initial_position, 
+                                                         Vector3 const& initial_velocity) :
+  m_initial_position(initial_position), m_initial_velocity(initial_velocity) {}
 
 Vector3
 LinearPositionInterpolation::operator()(double t) const {
-  return m_position_samples + t * m_velocity_samples;
+  return m_initial_position + t * m_initial_velocity;
 }
 
 //======================================================================

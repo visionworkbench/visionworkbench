@@ -17,137 +17,139 @@
 
 // This file is included in LinescanModel.h
 
-template <class PositionFuncT, class PoseFuncT>
-LinescanModel<PositionFuncT, PoseFuncT>::LinescanModel( int     number_of_lines,
-                                                        int     samples_per_line,
-                                                        int     sample_offset,
-                                                        double  focal_length,
-                                                        double  along_scan_pixel_size,
-                                                        double  across_scan_pixel_size,
-                                                        std::vector<double> const& line_times,
-                                                        Vector3 pointing_vec,
-                                                        Vector3 u_vec,
-                                                        PositionFuncT const& position_func,
-                                                        PoseFuncT const& pose_func) : m_position_func(position_func),
-                                                                                      m_pose_func(pose_func) {
-
-  VW_ASSERT(int(line_times.size()) == number_of_lines,
-            ArgumentErr() << "LinescanModel: number of line integration times does not match the number of scanlines.\n");
-
-  // Intrinsics
-  m_number_of_lines  = number_of_lines;
-  m_samples_per_line = samples_per_line;
-  m_sample_offset    = sample_offset;
-  m_focal_length     = focal_length;
-  m_along_scan_pixel_size  = along_scan_pixel_size;
-  m_across_scan_pixel_size = across_scan_pixel_size;
-
-  m_line_times = line_times;
-
-  m_pointing_vec = normalize(pointing_vec);
-  m_u_vec        = normalize(u_vec);
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+Vector2 LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>
+::point_to_pixel(Vector3 const& point) const {
+  return point_to_pixel(point, -1);
 }
 
-template <class PositionFuncT, class PoseFuncT>
-LinescanModel<PositionFuncT, PoseFuncT>::LinescanModel( int     number_of_lines,
-                                                        int     samples_per_line,
-                                                        int     sample_offset,
-                                                        double  focal_length,
-                                                        double  along_scan_pixel_size,
-                                                        double  across_scan_pixel_size,
-                                                        double  line_integration_time,
-                                                        Vector3 pointing_vec,
-                                                        Vector3 u_vec,
-                                                        PositionFuncT const& position_func,
-                                                        PoseFuncT const& pose_func) : m_position_func(position_func),
-                                                                                      m_pose_func(pose_func) {
+// Here we use an initial guess for the line number
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+Vector2 LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>
+::point_to_pixel(Vector3 const& point, double starty) const {
 
-  // Intrinsics
-  m_number_of_lines  = number_of_lines;
-  m_samples_per_line = samples_per_line;
-  m_sample_offset    = sample_offset;
-  m_focal_length     = focal_length;
-  m_along_scan_pixel_size = along_scan_pixel_size;
-  m_across_scan_pixel_size = across_scan_pixel_size;
-
-  m_line_times.resize(number_of_lines);
-  double sum = 0;
-  for (int i = 0; i < number_of_lines; ++i) {
-    m_line_times[i] = sum;
-    sum += line_integration_time;
-  }
-
-  m_pointing_vec = normalize(pointing_vec);
-  m_u_vec        = normalize(u_vec);
+  if (!m_correct_velocity_aberration)
+    return point_to_pixel_uncorrected(point, starty);
+  return point_to_pixel_corrected(point, starty);
 }
 
-template <class PositionFuncT, class PoseFuncT>
-Vector3 LinescanModel<PositionFuncT, PoseFuncT>::pixel_to_vector(Vector2 const& pix) const {
-  double u = pix[0]; // Column
-  double v = pix[1]; // Line
-
-  // Check to make sure that this is a valid pixel
-  if (int(round(v)) < 0 || int(round(v)) >= int(m_line_times.size()))
-    vw_throw( PixelToRayErr() << "LinescanModel: requested pixel "
-              << pix << " is not on a valid scanline." );
-
-  // The view_matrix takes vectors from the camera (extrinsic)
-  // coordinate system to the world frame
-  //
-  // The position and veloctiy are not actually needed, since we are
-  // purely interested in returning the direction of the ray at this
-  // point and not its origin.
-  //
-  double approx_line_time = interp_line_time(pix[1]);
-
-  // The viewplane is the [pointing_vec cross u_vec] plane of the
-  // camera coordinate system.  Assuming the origin of the
-  // coordinate system is at the center of projection, the image
-  // plane is at pointing_vec = +f, and the pixel position in
-  // camera coordinates is:
-  double pixel_pos_u = (u + m_sample_offset) * m_across_scan_pixel_size;
-  Vector3 pixel_direction =
-    pixel_pos_u * m_u_vec + m_focal_length * m_pointing_vec;
-
-  // Transform to world coordinates using the rigid rotation
-  Quat pose = m_pose_func(approx_line_time);
-  return normalize(pose.rotate(pixel_direction));
+/// Constants used by the internal solvers
+namespace linescan {
+  const double ABS_TOL = 1e-16;
+  const double REL_TOL = 1e-16;
+  const int    MAX_ITERATIONS = 1e+5;
 }
 
-template <class PositionFuncT, class PoseFuncT>
-Vector3 LinescanModel<PositionFuncT, PoseFuncT>::camera_center(Vector2 const& pix ) const {
-  // Check to make sure that this is a valid pixel
-  if (int(round(pix[1])) < 0 ||
-      int(round(pix[1])) >= int(m_line_times.size()))
-    vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+Vector2 LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>
+::point_to_pixel_uncorrected(Vector3 const& point, double starty) const {
 
-  double approx_line_time = interp_line_time(pix[1]);
+  // Solve for the correct line number to use
+  LinescanLMA model( this, point );
+  int status;
+  Vector<double> objective(1), start(1);
+  start[0] = m_image_size.y()/2;
 
-  return m_position_func(approx_line_time);
+  // Use a refined guess, if available
+  if (starty >= 0)
+    start[0] = starty;
+
+  Vector<double> solution = math::levenberg_marquardt(model, start, objective, status,
+                                                      linescan::ABS_TOL,
+                                                      linescan::REL_TOL,
+                                                      linescan::MAX_ITERATIONS);
+
+  VW_ASSERT( status > 0, camera::PointToPixelErr() << "Unable to project point into LinescanDG model" );
+
+  // Solve for sample location
+  double  t  = m_time_func( solution[0] );
+  Vector3 pt = inverse( m_pose_func(t) ).rotate( point - m_position_func(t) );
+  pt *= m_focal_length / pt.z();
+
+  return Vector2(pt.x() - m_detector_origin[0], solution[0]);
 }
 
-template <class PositionFuncT, class PoseFuncT>
-Quaternion<double> LinescanModel<PositionFuncT, PoseFuncT>::camera_pose(Vector2 const& pix) const {
-  // Check to make sure that this is a valid pixel
-  if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
-    vw_throw( PixelToRayErr() << "LinescanModel::camera_pose(): requested pixel " << pix << " is not on a valid scanline." );
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+Vector2 LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>
+::point_to_pixel_corrected(Vector3 const& point, double starty) const {
 
-  double approx_line_time = interp_line_time(pix[1]);
+  LinescanCorrLMA model( this, point );
+  int status;
+  Vector2 start = point_to_pixel_uncorrected(point, starty);
 
-  return m_pose_func(approx_line_time);
+  Vector3 objective(0, 0, 0);
+  Vector2 solution = math::levenberg_marquardt(model, start, objective, status,
+                                               linescan::ABS_TOL,
+                                               linescan::REL_TOL,
+                                               linescan::MAX_ITERATIONS);
+  VW_ASSERT( status > 0,
+	     camera::PointToPixelErr() << "Unable to project point into LinescanDG model" );
+
+  return solution;
 }
 
-template <class PositionFuncT, class PoseFuncT>
-double LinescanModel<PositionFuncT, PoseFuncT>::interp_line_time(double row) const {
-  int    y     = int(floor(row));
-  double normy = row - y;
-  double approx_line_time = double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
-  return approx_line_time;
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+Vector3 LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>
+::pixel_to_vector(Vector2 const& pix) const {
+
+  // Compute local vector from the pixel out of the sensor
+  // - m_detector_origin and m_focal_length have been converted into units of pixels
+  Vector3 local_vec(pix[0]+m_detector_origin[0], m_detector_origin[1], m_focal_length);
+  // Put the local vector in world coordinates using the pose information.
+  Vector3 pix_to_vec = normalize(camera_pose(pix).rotate(local_vec));
+
+  if (!m_correct_velocity_aberration) return pix_to_vec;
+
+  // Correct for velocity aberration
+
+  // 1. Find the distance from the camera to the first
+  // intersection of the current ray with the Earth surface.
+  Vector3 cam_ctr          = camera_center(pix);
+  double  earth_ctr_to_cam = norm_2(cam_ctr);
+  double  cam_angle_cos    = dot_prod(pix_to_vec, -normalize(cam_ctr));
+  double  len_cos          = earth_ctr_to_cam*cam_angle_cos;
+  double  earth_rad        = 6371000.0; // TODO: Vary by location?
+  double  cam_to_surface   = len_cos - sqrt(earth_rad*earth_rad
+					    + len_cos*len_cos
+					    - earth_ctr_to_cam*earth_ctr_to_cam);
+
+  // 2. Correct the camera velocity due to the fact that the Earth
+  // rotates around its axis.
+  double seconds_in_day = 86164.0905;
+  Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/seconds_in_day);
+  Vector3 cam_vel = camera_velocity(pix);
+  Vector3 cam_vel_corr1 = cam_vel - cam_to_surface * cross_prod(earth_rotation_vec, pix_to_vec);
+
+  // 3. Find the component of the camera velocity orthogonal to the
+  // direction the camera is pointing to.
+  Vector3 cam_vel_corr2 = cam_vel_corr1 - dot_prod(cam_vel_corr1, pix_to_vec) * pix_to_vec;
+
+  // 4. Correct direction for velocity aberration due to the speed of light.
+  double light_speed = 299792458.0;
+  Vector3 corr_pix_to_vec = pix_to_vec - cam_vel_corr2/light_speed;
+  return normalize(corr_pix_to_vec);
 }
 
 
-template <class PositionFuncT, class PoseFuncT>
-std::ostream& operator<<( std::ostream& os, LinescanModel<PositionFuncT, PoseFuncT> const& camera_model) {
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+typename LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>::LinescanLMA::result_type
+LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT>::LinescanLMA
+::operator()( domain_type const& y ) const {
+  double t = m_model->m_time_func( y[0] );
+
+  // Rotate the point into our camera's frame
+  Vector3 pt = inverse( m_model->m_pose_func(t) ).rotate( m_point - m_model->m_position_func(t) );
+  pt *= m_model->m_focal_length / pt.z(); // Rescale to pixel units
+  result_type result(1);
+  result[0] = pt.y() -
+    m_model->m_detector_origin[1]; // Error against the location of the detector
+  return result;
+}
+
+
+
+template <class PositionFuncT, class VelocityFuncT, class PoseFuncT, class TimeFuncT>
+std::ostream& operator<<( std::ostream& os, LinescanModel<PositionFuncT, VelocityFuncT, PoseFuncT, TimeFuncT> const& camera_model) {
   os << "\n-------------------- Linescan Camera Model -------------------\n\n";
   os << " Camera center @ origin :   " << camera_model.camera_center(Vector2(0,0)) << "\n";
   os << " Number of Lines        :   " << camera_model.number_of_lines()        << "\n";

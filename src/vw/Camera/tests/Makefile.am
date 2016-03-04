@@ -28,17 +28,17 @@ TestCAHVOREModel_SOURCES          = TestCAHVOREModel.cxx
 TestCameraGeometry_SOURCES        = TestCameraGeometry.cxx
 TestExifData_SOURCES              = TestExifData.cxx
 TestExtrinsics_SOURCES            = TestExtrinsics.cxx
-TestLinearPushbroomModel_SOURCES  = TestLinearPushbroomModel.cxx
 TestPinholeModel_SOURCES          = TestPinholeModel.cxx
 TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.cxx
 TestAdjustedCamera_SOURCES        = TestAdjustedCamera.cxx
+TestLinescanModel_SOURCES         = TestLinescanModel.cxx
 
 #TestLensDistortion_SOURCES       = TestLensDistortion.oldtest
 #TestCameraTransform_SOURCES      = TestCameraTransform.oldtest
 
-TESTS = TestCAHVModel TestCAHVORModel TestCAHVOREModel        \
-        TestCameraGeometry TestExifData TestExtrinsics        \
-        TestLinearPushbroomModel TestPinholeModel             \
+TESTS = TestCAHVModel TestCAHVORModel TestCAHVOREModel  \
+        TestCameraGeometry TestExifData TestExtrinsics  \
+        TestLinescanModel TestPinholeModel               \
         TestPinholeModelCalibrate TestAdjustedCamera
 
 #include $(top_srcdir)/config/instantiate.am

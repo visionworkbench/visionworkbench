@@ -19,8 +19,11 @@
 /// \file Extrinsics.h
 ///
 /// Utilities for describing extrinsic camera parameters (position and pose).
-///
-///
+
+
+// TODO: Most of these are generic interpolation algorithms, they ought to 
+//       live somewhere else.
+
 #ifndef __VW_CAMERA_EXTRINSICS_H__
 #define __VW_CAMERA_EXTRINSICS_H__
 
@@ -35,16 +38,16 @@ namespace vw {
 namespace camera {
 
   // --------------------------------------------------------------------------
-  // POSITION INTERPOLATION
+  // POSITION INTERPOLATION - can also be used for velocity.
   // --------------------------------------------------------------------------
 
   /// Simple position interpolation when only an initial point and velocity are known.
   class LinearPositionInterpolation {
-    Vector3 m_position_samples, m_velocity_samples;
+    Vector3 m_initial_position, m_initial_velocity;
 
   public:
-    LinearPositionInterpolation(Vector3 const& position_samples,
-				Vector3 const& velocity_samples);
+    LinearPositionInterpolation(Vector3 const& initial_position,
+                        				Vector3 const& initial_velocity);
 
     Vector3 operator()(double t) const;
   };
