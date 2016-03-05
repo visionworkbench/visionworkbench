@@ -33,11 +33,11 @@ lapack_headers = \
 	Extrinsics.h \
 	LensDistortion.h \
 	LinescanModel.h \
-	LinescanModel.tcc \
 	PinholeModelCalibrate.h
 
 lapack_sources = \
 	CameraGeometry.cc \
+	LinescanModel.cc \
 	Extrinsics.cc
 endif
 

@@ -212,6 +212,15 @@ namespace camera {
   /// from the camera center.
   VW_DEFINE_EXCEPTION(PixelToRayErr, vw::Exception);
 
+  /// Given a point in world coordinates, convert it to camera coordinates.
+  /// - This is generic coordinate frame code but there is nowhere else to put it.
+  inline Vector3 point_to_camera_coord(Vector3 const& camera_position,
+                                Quat    const& camera_pose,     Vector3 const& point) {
+    return inverse(camera_pose).rotate(point - camera_position);
+  }
+
+
+
 }} // namespace vw::camera
 
 #endif // __VW_CAMERA_CAMERAMODEL_H__
