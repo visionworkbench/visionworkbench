@@ -49,7 +49,9 @@ namespace cartography {
 
   public:
     /// Normal constructor
-    GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef);
+    GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
+                 BBox2i const& src_bbox = BBox2i(0, 0, 0, 0),
+                 BBox2i const& dst_bbox = BBox2i(0, 0, 0, 0));
 
     /// Given a pixel coordinate of an image in a destination
     /// georeference frame, this routine computes the corresponding

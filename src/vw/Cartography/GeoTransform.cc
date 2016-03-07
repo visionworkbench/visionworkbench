@@ -34,14 +34,35 @@ namespace cartography {
   using vw::math::BresenhamLine;
 
   // Constructor
-  GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
+  GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
+                             BBox2i const& src_bbox, BBox2i const& dst_bbox) :
     m_src_georef(src_georef), m_dst_georef(dst_georef) {
 
     // Deal with the fact that longitudes could differ by 360 degreees
     // between src and dst.
-    Vector2 src_orgin = src_georef.pixel_to_lonlat(Vector2(0, 0));
-    Vector2 dst_orgin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
-    m_offset = Vector2( 360.0*round( (dst_orgin[0] - src_orgin[0])/360.0 ), 0.0 );
+
+    if (src_bbox.min() == Vector2(0, 0) && dst_bbox.min()  == Vector2(0, 0)) {
+      // If we don't know the image areas, simply use the 0, 0 corner
+      Vector2 src_origin = src_georef.pixel_to_lonlat(Vector2(0, 0));
+      Vector2 dst_origin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
+      m_offset = Vector2( 360.0*round( (dst_origin[0] - src_origin[0])/360.0 ), 0.0 );
+    } else{
+
+      // Try to offset by 360 degrees until the lon-lat boxes are most compatible
+
+      BBox2 src_lonlat_box = src_georef.pixel_to_lonlat_bbox(src_bbox);
+      BBox2 dst_lonlat_box = dst_georef.pixel_to_lonlat_bbox(dst_bbox);
+      std::vector<double> shift, area;
+      for (int val = -360; val <= 360; val+= 360) {
+        shift.push_back(val);
+        BBox2i shifted_src = src_lonlat_box + Vector2(val, 0);
+        shifted_src.crop(dst_lonlat_box);
+        double a = shifted_src.width()*shifted_src.height();
+        area.push_back(a);
+      }
+      int max_index = std::distance(area.begin(), max_element(area.begin(), area.end()));
+      m_offset = Vector2(shift[max_index], 0.0 );
+    }
 
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
