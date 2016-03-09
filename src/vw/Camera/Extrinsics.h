@@ -88,6 +88,21 @@ namespace camera {
     double get_tend() const { return m_tend;}
     std::vector<int> get_indices_of_largest_weights(double t) const;
   };
+  
+  /// Performs Lagrangian interpolation between data points.
+  class LagrangianInterpolation {
+    std::vector<Vector3> m_samples;
+    std::vector<double > m_times;
+    int m_radius;
+  public:
+    /// Construct with a set of data samples and times.
+    /// - The radius is the number of points before and after time t used for interpolation.
+    LagrangianInterpolation(std::vector<Vector3> const& samples, 
+                            std::vector<double > const& times, int radius=4);
+  
+    /// Compute the interpolated value at a given time t.
+    Vector3 operator()(double t) const;
+  };
 
   /// Interpolation between a series of positions incorporating accelleration information.
   class PiecewiseAPositionInterpolation {
@@ -114,7 +129,7 @@ namespace camera {
     /// call operator.
     ///
     /// This routine will fit a 3d parametric curve (2nd degree
-    /// polynomial) to a serios of N points in the Nx3 matrix points.
+    /// polynomial) to a series of N points in the Nx3 matrix points.
     ///
     /// The curve is specified by the coefficient
     /// matrix, which has the form:

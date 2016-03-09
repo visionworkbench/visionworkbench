@@ -171,6 +171,78 @@ std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_we
 }
 
 //======================================================================
+// LagrangianInterpolation class
+
+LagrangianInterpolation::LagrangianInterpolation
+(std::vector<Vector3> const& samples, std::vector<double> const& times, int radius):
+  m_samples(samples), m_times(times), m_radius(radius) {
+
+  VW_ASSERT(m_samples.size() > 1,
+	    ArgumentErr() << "Expecting at least two samples.\n" );
+  VW_ASSERT(m_samples.size() == m_times.size(),
+	    ArgumentErr() << "The number of samples and times must be equal.\n" );
+    VW_ASSERT(m_radius > 1,
+	    ArgumentErr() << "Radius must be > 0.\n" );
+}
+
+Vector3 LagrangianInterpolation::operator()( double t ) const {
+
+  // This is the number of points before and after the sample that will be used
+  //  for interpolation.
+
+  // Find where t lies in our list of samples
+  const int num_samples = static_cast<int>(m_times.size());
+  int next = -1;
+  for (int i=0; i<num_samples; ++i) {
+    if (m_times[i] > t) {
+      next = i;
+      break;
+    }
+  }
+  
+  // Check that we have enough bordering points to interpolate
+  int start = next - m_radius;
+  int end   = next + m_radius;
+  VW_ASSERT((start >= 0) && (end <= num_samples),
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n" );
+    
+  // Perform the interpolation
+  Vector3 ans;
+  double  num_part=0, denominator=0;
+  for (int j=start; j<end; ++j) {
+    // Numerator
+    bool first = true;
+    for (int i=start; i<end; ++i){
+      if (i == j)
+        continue;
+      if (first) {
+        num_part = (t - m_times[i]);
+        first = false;
+      }
+      else  
+        num_part *= (t - m_times[i]);
+    }
+
+    // Denominator
+    first = true;
+    for (int i=start; i<end; ++i){
+      if (i == j)
+        continue;
+      if (first) {
+        denominator = (m_times[j] - m_times[i]);
+        first = false;
+      }
+      else  
+        denominator *= (m_times[j] - m_times[i]);
+    }
+    
+    ans += m_samples[j] * (num_part/denominator);
+  }
+
+  return ans;
+}
+
+//======================================================================
 // PiecewiseAPositionInterpolation class
 
 PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,

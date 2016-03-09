@@ -138,6 +138,30 @@ TEST( Extrinsics, LinearPiecewisePositionInterpolation ) {
   EXPECT_VECTOR_NEAR( Vector3(1,0.1,0.1), acc(4.11), 1e-12 );
 }
 
+
+Vector3 test_poly(double x) {return Vector3(x*x-x+4.0, x, -2/x);}
+
+TEST( Extrinsics, LagrangianInterpolation ) {
+
+  // Create a simple set of input data
+  const size_t NUM_POINTS = 20;
+  std::vector<Vector3> points(NUM_POINTS);
+  std::vector<double > times (NUM_POINTS);
+  for (size_t i=0; i<NUM_POINTS; ++i){
+    double d = static_cast<double>(i);
+    times[i]  = d * 0.1;
+    points[i] = test_poly(d);
+  }
+  
+  LagrangianInterpolation functor(points, times);
+
+  const double EPS = 1e-6;
+  EXPECT_VECTOR_NEAR(test_poly(9.0 ), functor(0.90), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(11.5), functor(1.15), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(12.2), functor(1.22), EPS);
+}
+
+
 TEST( Extrinsics, LinearTime ) {
   LinearTimeInterpolation time( 5, 0.1 );
 
