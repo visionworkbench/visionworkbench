@@ -55,13 +55,17 @@ namespace cartography {
       std::vector<double> shift, area;
       for (int val = -360; val <= 360; val+= 360) {
         shift.push_back(val);
-        BBox2i shifted_src = src_lonlat_box + Vector2(val, 0);
+        BBox2 shifted_src = src_lonlat_box + Vector2(val, 0);
         shifted_src.crop(dst_lonlat_box);
         double a = shifted_src.width()*shifted_src.height();
         area.push_back(a);
       }
       int max_index = std::distance(area.begin(), max_element(area.begin(), area.end()));
-      m_offset = Vector2(shift[max_index], 0.0 );
+      m_offset = Vector2(shift[max_index], 0);
+      if (area[max_index] == 0)
+        m_offset = Vector2(0, 0); // If the trick does not work, assume zero offset
+
+
     }
 
     const std::string src_datum = m_src_georef.datum().proj4_str();
