@@ -18,7 +18,11 @@
 
 /// \file ImageResource.h
 ///
-/// Defines the abstract base image resource type.
+/// Defines the abstract base image resource types.  These types are for
+///  abstracting low level image writing to the level of writing entire
+///  ROIs of an image to a buffer in memory or on disk.  The
+///  FileIO/DiskImageView.h child of this class is the parent for all
+///  disk-based implementations.
 ///
 #ifndef __VW_IMAGE_IMAGERESOURCE_H__
 #define __VW_IMAGE_IMAGERESOURCE_H__
@@ -140,7 +144,7 @@ namespace vw {
       virtual size_t native_size() const;
   };
 
-  // A write-only image resource
+  /// A write-only image resource
   class DstImageResource {
     public:
       virtual ~DstImageResource() {}
@@ -230,6 +234,7 @@ namespace vw {
     }
 
     /// Read the image resource at the given location into the given buffer.
+    /// - Though the ImageBuffer object is const, the contents of the buffer will change!
     inline void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
       convert( buf, cropped(bbox) );
     }

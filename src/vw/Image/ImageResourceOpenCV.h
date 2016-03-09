@@ -32,15 +32,16 @@ namespace cv {class Mat;}
 
 namespace vw {
 
+/// ImageResource to read/write OpenCV in-memory images.
 class ImageResourceOpenCV : public ImageResource {
   private:
-    ImageFormat m_format;
+    ImageFormat                m_format;
     boost::shared_ptr<cv::Mat> m_matrix;
 
   protected:
-    // is the given bbox roi stored contiguously in memory?
+    /// is the given bbox roi stored contiguously in memory?
     bool contiguous_roi(const BBox2i& bbox) const;
-    // identify the current matrix type
+    /// identify the current matrix type
     ImageFormat identify() const;
 
   public:
@@ -61,10 +62,10 @@ class ImageResourceOpenCV : public ImageResource {
 
     virtual void flush() {}
 
-    virtual bool has_block_write() const  {return false;}
+    virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read() const   {return false;}
-    virtual bool has_nodata_read() const  {return false;}
+    virtual bool has_block_read  () const {return false;}
+    virtual bool has_nodata_read () const {return false;}
 };
 
 }

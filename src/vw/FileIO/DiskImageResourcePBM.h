@@ -35,6 +35,7 @@
 
 namespace vw {
 
+  /// Provides support for the Netpbm format.
   class DiskImageResourcePBM : public DiskImageResource {
   public:
 
@@ -53,27 +54,33 @@ namespace vw {
     // Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read(ImageBuffer const& buf, BBox2i const& bbox ) const;
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void read (ImageBuffer const& buf,  BBox2i const& bbox) const;
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
     virtual void flush() {}
 
+    /// Bind the resource to a file for reading.
     void open( std::string const& filename );
 
+    /// Bind the resource to a file for writing.
     void create( std::string const& filename,
                  ImageFormat const& format );
 
-    static DiskImageResource* construct_open( std::string const& filename );
-
+    // Factory functions
+    static DiskImageResource* construct_open( std::string const& filename ) {
+      return new DiskImageResourcePBM( filename );
+    }
     static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+                                                ImageFormat const& format ) {
+      return new DiskImageResourcePBM( filename, format );
+    }
 
     // Use ascii modes instead of binary ones? (default is binary)
     static void default_to_ascii(bool ascii);
 
-    virtual bool has_block_write()  const {return false;}
+    virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read()   const {return false;}
-    virtual bool has_nodata_read()  const {return false;}
+    virtual bool has_block_read  () const {return false;}
+    virtual bool has_nodata_read () const {return false;}
 
   private:
     std::streampos m_image_data_position;

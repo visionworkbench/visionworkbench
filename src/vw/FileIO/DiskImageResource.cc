@@ -35,6 +35,7 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePBM.h>
+#include <vw/FileIO/DiskImageResourceRaw.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -131,6 +132,7 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
   register_file_type_internal(boost::to_lower_copy(extension), disk_image_resource_type, open_func, create_func);
 }
 
+/// Hidden function to set up all the default supported types.
 static void register_default_file_types_impl() {
 
   if( ! open_map   ) open_map   = new OpenMapType();
@@ -207,12 +209,10 @@ static void register_default_file_types_impl() {
   REGISTER(".pbm", PBM)
   REGISTER(".pgm", PBM)
   REGISTER(".ppm", PBM)
+  REGISTER(".bil", Raw)
+  REGISTER(".bip", Raw)
+  REGISTER(".bsq", Raw)
 #undef REGISTER
-}
-
-// Kill this function eventually.. it's marked as deprecated now.
-void vw::DiskImageResource::register_default_file_types() {
-  register_default_file_types_internal();
 }
 
 vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename ) {

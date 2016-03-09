@@ -47,7 +47,8 @@ namespace vw {
     }
   };
 
-
+  /// Used internally by the ViewImageResource class.
+  /// - ??
   template <class ViewT>
   class ViewImageResourceImpl : public SrcImageResource {
   private:
@@ -81,7 +82,8 @@ namespace vw {
     }
   };
 
-  /// Base class from which specific image resources derive.
+  /// This ImageResource can wrap any vision workbench image view so
+  /// that it can be presented as an ImageResource to other subsystems.
   class ViewImageResource : public SrcImageResource {
     boost::shared_ptr<SrcImageResource> m_rsrc;
     Vector2i m_block_size;
@@ -106,7 +108,7 @@ namespace vw {
 
     virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read  () const {return true;}
+    virtual bool has_block_read  () const {return true; }
     virtual bool has_nodata_read () const {return false;}
 
     /// Returns the optimal block size/alignment for partial reads

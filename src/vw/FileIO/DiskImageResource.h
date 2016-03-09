@@ -44,8 +44,9 @@ namespace vw {
   // The DiskImageResource abstract base class
   // *******************************************************************
 
-  /// Base class from which specific file handlers derive.
-  /// Noncopyable because every impl is noncopyable
+  /// A base class for ImageResource objects where the buffer is on disk.
+  /// - Base class from which specific file handlers derive.
+  /// - Noncopyable because every impl is noncopyable
   class DiskImageResource : public ImageResource,
                             private boost::noncopyable {
   public:
@@ -87,24 +88,21 @@ namespace vw {
     typedef DiskImageResource* (*construct_create_func)( std::string const& filename,
                                                          ImageFormat const& format );
 
+    /// Specify that a certain file extension should be opened with a certain
+    ///  DiskImageResource derived type.
     static void register_file_type( std::string const& extension,
                                     std::string const& disk_image_resource_type,
-                                    construct_open_func open_func,
+                                    construct_open_func   open_func,
                                     construct_create_func create_func );
 
     /// This method is called automatically the first time you read or
     /// write a file, however in some situations you may want to
     /// register the default file types _before_ registering your own
     /// file types so that you can override the default FileIO drivers.
-    //
-    /// This function is called automatically when you call register_file_type
-    /// the first time, so you don't need to call it manually anymore.
-    static void register_default_file_types() VW_DEPRECATED;
 
     // Specify whether values should be rescaled when converting
     // from one channel type to another during reads or writes.
-    // Defaults to the value of default_rescale, which defaults to
-    // true.
+    // Defaults to the value of default_rescale, which defaults to true.
     void set_rescale(bool rescale);
 
     // Specify a global default for rescale.  This is a dangerous

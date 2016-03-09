@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file MemoryImageResource.h An abstract base class referring to an encoded image
+/// \file MemoryImageResource.h An abstract base class referring to an encoded image in memory.
 
 #ifndef __VW_FILEIO_MEMORYIMAGERESOURCE_H__
 #define __VW_FILEIO_MEMORYIMAGERESOURCE_H__

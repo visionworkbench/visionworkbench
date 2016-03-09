@@ -85,7 +85,7 @@ namespace camera {
     /// a ray emanating from the focal point of the camera through a
     /// pixel on the image plane (e.g. for computing ray-ray
     /// intersection in a stereo vision algorithm).
-    /// - Generally the input pixel is only used for linescane cameras.
+    /// - Generally the input pixel is only used for linescan cameras.
     virtual Vector3 camera_center(Vector2 const& pix) const = 0;
 
     /// Subclasses must define a method that return the camera type as a string.

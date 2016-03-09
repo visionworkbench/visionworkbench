@@ -31,6 +31,7 @@
 #include <vw/FileIO/DiskImageResourcePBM.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
+#include <vw/FileIO/DiskImageResourceRaw.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
 
 #include <ostream>
@@ -429,3 +430,9 @@ TEST( DiskImageResource, PNGComments ) {
     EXPECT_EQ( "Cow", read_rsrc.get_comment_value( 1 ) );
   }
 }
+
+
+
+
+
+

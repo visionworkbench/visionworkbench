@@ -30,7 +30,9 @@
 
 namespace vw {
 
-  /// A view of an image resource.
+  /// A view of an image resource.  This class wraps the ImageResource type
+  ///  so that image data in a buffer can be treated as a regular ImageView
+  ///  style image rather than the buffer style interface provided by ImageResource.
   template <class PixelT>
   class ImageResourceView : public ImageViewBase<ImageResourceView<PixelT> >
   {

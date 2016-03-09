@@ -26,6 +26,7 @@
 
 namespace vw {
 
+/// ImageResource that reads from an std::stream
 class SrcImageResourceStream : public SrcImageResource, private boost::noncopyable
 {
   public:
@@ -62,6 +63,7 @@ class SrcImageResourceStream : public SrcImageResource, private boost::noncopyab
     ImageFormat m_fmt;
 };
 
+/// ImageResource that writes to an std::stream
 class DstImageResourceStream : public DstImageResource, private boost::noncopyable
 {
   public:
@@ -96,6 +98,7 @@ class DstImageResourceStream : public DstImageResource, private boost::noncopyab
     ImageFormat m_fmt;
 };
 
+/// ImageResource that reads and writes from/to an std::stream
 class ImageResourceStream : public ImageResource, public SrcImageResourceStream, public DstImageResourceStream
 {
   public:
@@ -144,10 +147,10 @@ class ImageResourceStream : public ImageResource, public SrcImageResourceStream,
       DstImageResourceStream::flush();
     }
 
-    virtual bool has_block_write() const  {return DstImageResourceStream::has_block_write();}
+    virtual bool has_block_write () const {return DstImageResourceStream::has_block_write ();}
     virtual bool has_nodata_write() const {return DstImageResourceStream::has_nodata_write();}
-    virtual bool has_block_read() const   {return SrcImageResourceStream::has_block_read();}
-    virtual bool has_nodata_read() const  {return SrcImageResourceStream::has_nodata_read();}
+    virtual bool has_block_read  () const {return SrcImageResourceStream::has_block_read  ();}
+    virtual bool has_nodata_read () const {return SrcImageResourceStream::has_nodata_read ();}
 };
 
 }

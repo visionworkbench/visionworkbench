@@ -29,6 +29,9 @@
 
 namespace vw {
 
+  /// DiskImageResource implementation for the OpenEXR file format.
+  /// - OpenEXR is a high dynamic range image file format developed by
+  ///   Industrial Light and Magic (ILM).
   class DiskImageResourceOpenEXR : public DiskImageResource {
   protected:
 
@@ -76,12 +79,12 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
-    virtual bool has_block_write()  const {return true;}
+    virtual bool has_block_write () const {return true; }
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read()   const {return true;}
-    virtual bool has_nodata_read()  const {return false;}
+    virtual bool has_block_read  () const {return true; }
+    virtual bool has_nodata_read () const {return false;}
 
-    virtual Vector2i block_read_size() const;
+    virtual Vector2i block_read_size () const;
     virtual Vector2i block_write_size() const;
     virtual void set_block_write_size(const Vector2i&);
 
@@ -89,11 +92,11 @@ namespace vw {
     const static int m_openexr_rows_per_block = 10;
 
     std::string m_filename;
-    Vector2i m_block_size;
+    Vector2i    m_block_size;
     std::vector<std::string> m_labels;
     void* m_input_file_ptr;
     void* m_output_file_ptr;
-    bool m_tiled;
+    bool  m_tiled;
   };
 
 } // namespace vw

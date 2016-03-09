@@ -58,6 +58,7 @@ include_HEADERS = \
   DiskImageResource.h \
   DiskImageResourcePBM.h \
   DiskImageResourcePDS.h \
+  DiskImageResourceRaw.h \
   DiskImageView.h \
   DiskImageUtils.h \
   MemoryImageResource.h \
@@ -76,6 +77,7 @@ libvwFileIO_la_SOURCES = \
   DiskImageResource.cc \
   DiskImageResourcePBM.cc \
   DiskImageResourcePDS.cc \
+  DiskImageResourceRaw.cc \
   KML.cc \
   MemoryImageResource.cc \
   ScanlineIO.cc \

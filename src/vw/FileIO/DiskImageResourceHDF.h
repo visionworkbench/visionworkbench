@@ -19,7 +19,7 @@
 /// \file DiskImageResourceHDF.h
 ///
 /// Provides support for the HDF file format.
-///
+/// - HDF refers to the Hierarchical Data Formats: HDF4 and HDF5.
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 #define __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 
@@ -65,35 +65,35 @@ namespace vw {
 
     static DiskImageResource* construct_open( std::string const& filename );
 
-    virtual bool has_block_write()  const {return false;}
+    virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read()   const {return false;}
-    virtual bool has_nodata_read()  const {return false;}
+    virtual bool has_block_read  () const {return false;}
+    virtual bool has_nodata_read () const {return false;}
 
     // The HDF-specific interface:
 
     struct SDSInfo {
-      std::string name;
-      ChannelTypeEnum type;
-      int32 rank;
+      std::string        name;
+      ChannelTypeEnum    type;
+      int32              rank;
       std::vector<int32> dim_sizes;
-      bool coord;
-      int32 n_attrs;
+      bool               coord;
+      int32              n_attrs;
     };
 
     typedef std::vector<SDSInfo>::const_iterator sds_iterator;
     sds_iterator sds_begin() const;
-    sds_iterator sds_end() const;
+    sds_iterator sds_end  () const;
 
     struct AttrInfo {
-      std::string name;
+      std::string     name;
       ChannelTypeEnum type;
-      int size;
+      int             size;
     };
 
     struct SDSBand {
       std::string name;
-      int band;
+      int         band;
       SDSBand( std::string const& name, int band=0 ) : name(name), band(band) {}
     };
 

@@ -307,14 +307,3 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
     vw_throw( NoImplErr() << "Unknown input channel type." );
   }
 }
-
-// A FileIO hook to open a file for reading
-DiskImageResource* DiskImageResourcePBM::construct_open( std::string const& filename ) {
-  return new DiskImageResourcePBM( filename );
-}
-
-// A FileIO hook to open a file for writing
-DiskImageResource* DiskImageResourcePBM::construct_create( std::string const& filename,
-                                                           ImageFormat const& format ) {
-  return new DiskImageResourcePBM( filename, format );
-}

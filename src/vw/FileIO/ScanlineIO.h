@@ -27,6 +27,8 @@ namespace vw {
 namespace fileio {
 namespace detail {
 
+/// Abstract scanline reading interface.
+/// - This interface is common to several file types such as PNG and JPEG.
 class ScanlineBackend {
   protected:
     // The subclass constructor must initialize these
