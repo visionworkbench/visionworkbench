@@ -55,7 +55,22 @@ namespace vw {
     /// Constructs a DiskImageView of the given file on disk
     /// using the specified cache area. NULL cache means skip it.
     DiskImageView( std::string const& filename, Cache* cache = &vw_system_cache() )
-      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
+      : m_rsrc( DiskImageResource::open( filename ) ),       // Init file interface
+        m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), // Init memory storage
+                m_rsrc->block_read_size(), 1, cache ) {
+        // Check for type errors now instead of running into them when we access the image
+        try {
+          check_convertability(m_impl.child().format(), m_rsrc->format());
+        }
+        catch(vw::Exception& ex) {
+          std::string input_error(ex.what());
+          vw_throw( NoImplErr() << "DiskImageView constructor: Image file " << filename
+          << " does not match storage format in memory!\n"
+          << "    The specific error is:\n        " << input_error
+          << "\n    The ImageFormat on disk is  : " << m_rsrc->format()
+          << "\n    The ImageFormat in memory is: " << m_impl.child().format() << "\n" );
+        }
+      }
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.
@@ -66,13 +81,15 @@ namespace vw {
     /// specified cache area.  Takes ownership of the resource object
     /// (i.e. deletes it when it's done using it).
     DiskImageView( DiskImageResource *resource, Cache* cache = &vw_system_cache() )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
+      : m_rsrc( resource ), 
+        m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the specified
     /// cache area. Does not take ownership, you must ensure resource stays
     /// valid for the lifetime of DiskImageView
     DiskImageView( DiskImageResource &resource, Cache* cache = &vw_system_cache() )
-      : m_rsrc( &resource, NOP() ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
+      : m_rsrc( &resource, NOP() ), 
+        m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     ~DiskImageView() {}
 

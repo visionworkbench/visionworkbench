@@ -37,12 +37,6 @@ namespace vw {
   // Forward declaration
   struct ImageBuffer;
 
-
-  /// Copies image pixel data from the source buffer to the destination
-  /// buffer, converting the pixel format and channel type as required.
-  void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
-
-
   /// Describes the format of an image, i.e. its dimensions, pixel
   /// structure, and channel type.
   struct ImageFormat {
@@ -95,6 +89,13 @@ namespace vw {
        << "  premultiplied: " << f.premultiplied;
     return os;
   }
+
+  /// Copies image pixel data from the source buffer to the destination
+  /// buffer, converting the pixel format and channel type as required.
+  void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
+  
+  /// Throws an exception if src cannot be converted to dst using the convert() function.
+  void check_convertability(ImageFormat const& dst, ImageFormat const& src);
 
 
   /// A read-only image resource
