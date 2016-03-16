@@ -69,9 +69,13 @@ static void test_extension(string const& fn_base)
 }
 
 TEST( DiskImageResource, WriteReadView ) {
+  // This function will automatically run a read/write on every extension that
+  // has been registered with the DiskImageResource system using multiple data types.
+  
+  // Make a list of extensions that we DON'T want to test here.
   set<string> exclude;
-  const char *ex_list[] = {"img", "lbl", "pds", "cub", "vrt"}; // skip the raw PDS formats and .vrt
-  exclude.insert(ex_list, ex_list+5);
+  const char *ex_list[] = {"img", "lbl", "pds", "cub", "vrt", "bil", "bip", "bsq"}; 
+  exclude.insert(ex_list, ex_list+8);
   
   foreach_ext("rwtest",
               test_extension<PixelRGB<float> >,   exclude);
