@@ -48,24 +48,25 @@ namespace cartography {
       m_offset = Vector2( 360.0*round( (dst_origin[0] - src_origin[0])/360.0 ), 0.0 );
     } else{
 
-      // Try to offset by 360 degrees until the lon-lat boxes are most compatible
+      // Try to offset by 360 degrees until the lon-lat boxes are most compatible,
+      // measured by how close the centers of the boxes are.
 
       BBox2 src_lonlat_box = src_georef.pixel_to_lonlat_bbox(src_bbox);
       BBox2 dst_lonlat_box = dst_georef.pixel_to_lonlat_bbox(dst_bbox);
-      std::vector<double> shift, area;
+      std::vector<double> shift, dist_vec;
       for (int val = -360; val <= 360; val+= 360) {
         shift.push_back(val);
         BBox2 shifted_src = src_lonlat_box + Vector2(val, 0);
-        shifted_src.crop(dst_lonlat_box);
-        double a = shifted_src.width()*shifted_src.height();
-        area.push_back(a);
+
+	// Distance between centers of boxes. The smaller it is, the better.
+	double dist =
+	  norm_2((shifted_src.min() + shifted_src.max())/2.0
+		 - (dst_lonlat_box.min() + dst_lonlat_box.max())/2.0);
+        dist_vec.push_back(dist);
       }
-      int max_index = std::distance(area.begin(), max_element(area.begin(), area.end()));
-      m_offset = Vector2(shift[max_index], 0);
-      if (area[max_index] == 0)
-        m_offset = Vector2(0, 0); // If the trick does not work, assume zero offset
-
-
+      int min_index = std::distance(dist_vec.begin(),
+				    min_element(dist_vec.begin(), dist_vec.end()));
+      m_offset = Vector2(shift[min_index], 0);
     }
 
     const std::string src_datum = m_src_georef.datum().proj4_str();
