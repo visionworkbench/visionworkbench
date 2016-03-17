@@ -45,16 +45,17 @@ Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const
   Vector2 solution = math::levenberg_marquardt(model, start, objective, status,
                                                ABS_TOL, REL_TOL, MAX_ITERATIONS);
   VW_ASSERT( status > 0,
-	     camera::PointToPixelErr() << "Unable to project point into LinescanDG model" );
+	     camera::PointToPixelErr() << "Unable to project point into Linescan model" );
 
   return solution;
 }
 
-
-Vector3 LinescanModel::apply_velocity_aberration_correction(Vector2 const& pixel,
-                                       Vector3 const& uncorrected_vector) const {
-
-// 1. Find the distance from the camera to the first
+// WARNING: This currently only works for Earth!
+Vector3 LinescanModel::get_rotation_corrected_velocity(Vector2 const& pixel,
+                                                       Vector3 const& uncorrected_vector) const {
+  // TODO: This could be a function that lives somewhere else!
+  
+  // 1. Find the distance from the camera to the first
   // intersection of the current ray with the Earth surface.
   Vector3 cam_ctr          = camera_center(pixel);
   double  earth_ctr_to_cam = norm_2(cam_ctr);
@@ -62,21 +63,29 @@ Vector3 LinescanModel::apply_velocity_aberration_correction(Vector2 const& pixel
   double  len_cos          = earth_ctr_to_cam*cam_angle_cos;
   double  earth_rad        = 6371000.0; // TODO: Vary by location?
   double  cam_to_surface   = len_cos - sqrt(earth_rad*earth_rad
-					    + len_cos*len_cos
-					    - earth_ctr_to_cam*earth_ctr_to_cam);
-
-  // 2. Correct the camera velocity due to the fact that the Earth
-  // rotates around its axis.
+                                            + len_cos*len_cos
+                                            - earth_ctr_to_cam*earth_ctr_to_cam);
+  // 2. Account for Earth's rotation  
   double seconds_in_day = 86164.0905;
   Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/seconds_in_day);
-  Vector3 cam_vel       = camera_velocity(pixel);
-  Vector3 cam_vel_corr1 = cam_vel - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
+  Vector3 cam_vel      = camera_velocity(pixel);
+  Vector3 cam_vel_corr = cam_vel - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
+  return cam_vel_corr;
+}
 
-  // 3. Find the component of the camera velocity orthogonal to the
+
+Vector3 LinescanModel::apply_velocity_aberration_correction(Vector2 const& pixel,
+                                       Vector3 const& uncorrected_vector) const {
+
+  // 1. Correct the camera velocity due to the fact that the Earth
+  // rotates around its axis.
+  Vector3 cam_vel_corr1 = get_rotation_corrected_velocity(pixel, uncorrected_vector);
+
+  // 2. Find the component of the camera velocity orthogonal to the
   // direction the camera is pointing to.
   Vector3 cam_vel_corr2 = cam_vel_corr1 - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
 
-  // 4. Correct direction for velocity aberration due to the speed of light.
+  // 3. Correct direction for velocity aberration due to the speed of light.
   double light_speed = 299792458.0;
   Vector3 corrected_vector = uncorrected_vector - cam_vel_corr2/light_speed;
   return normalize(corrected_vector);

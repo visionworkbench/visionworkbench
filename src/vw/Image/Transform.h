@@ -143,7 +143,7 @@ namespace vw {
   template <class ImplT>
   class TransformBase : public Transform {
   public:
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
     virtual BBox2i forward_bbox( BBox2i const& bbox ) const {
@@ -152,9 +152,9 @@ namespace vw {
       if (bbox.empty()) return transformed_bbox; // bugfix
       switch( txform.forward_type() ) {
       case ConvexFunction:
-        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),bbox.min().y()) ) ); // Top left
-        transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,bbox.min().y()) ) ); // Top right
-        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),bbox.max().y()-1) ) ); // Bottom left
+        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
+        transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,bbox.min().y()  ) ) ); // Top right
+        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),  bbox.max().y()-1) ) ); // Bottom left
         transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) ); // Bottom right
         break;
       case ContinuousFunction:
@@ -182,9 +182,9 @@ namespace vw {
       if (bbox.empty()) return transformed_bbox; // bugfix
       switch( txform.reverse_type() ) {
       case ConvexFunction:
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),bbox.min().y()) ) ); // Top left
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,bbox.min().y()) ) ); // Top right
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),bbox.max().y()-1) ) ); // Bottom left
+        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
+        transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,bbox.min().y()  ) ) ); // Top right
+        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),  bbox.max().y()-1) ) ); // Bottom left
         transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) ); // Bottom right
         break;
       case ContinuousFunction:
@@ -1049,8 +1049,8 @@ namespace vw {
   template <class ImageT, class TransformT, class BBoxRealT>
   CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> >
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func,
-                    BBox<BBoxRealT,2> const& bbox ) {
+                    TransformT            const& transform_func,
+                    BBox<BBoxRealT,2>     const& bbox ) {
     return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func), bbox);
   }
@@ -1062,10 +1062,10 @@ namespace vw {
   TransformViewNoData<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
   inline transform_nodata( ImageViewBase<ImageT> const& v,
                            TransformT const& transform_func,
-                           int32 width,
-                           int32 height,
-                           EdgeT const& edge_func,
-                           InterpT const& interp_func,
+                           int32             width,
+                           int32             height,
+                           EdgeT      const& edge_func,
+                           InterpT    const& interp_func,
                            typename ImageT::pixel_type nodata_val
                            ) {
     return TransformViewNoData<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
@@ -1083,7 +1083,7 @@ namespace vw {
   inline resample( ImageViewBase<ImageT> const& v,
                    double x_scale_factor,
                    double y_scale_factor,
-                   EdgeT const& edge_func,
+                   EdgeT   const& edge_func,
                    InterpT const& interp_func ) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor),
                      int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
@@ -1123,7 +1123,7 @@ namespace vw {
                    double scale_factor,
                    int32 output_width,
                    int32 output_height,
-                   EdgeT const& edge_func,
+                   EdgeT   const& edge_func,
                    InterpT const& interp_func ) {
     return transform(v, ResampleTransform(scale_factor, scale_factor),
                      output_width, output_height,
@@ -1136,7 +1136,7 @@ namespace vw {
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
                    double scale_factor,
-                   EdgeT const& edge_func,
+                   EdgeT   const& edge_func,
                    InterpT const& interp_func ) {
     return transform(v, ResampleTransform(scale_factor, scale_factor),
                      int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
@@ -1177,7 +1177,7 @@ namespace vw {
   inline resize( ImageViewBase<ImageT> const& v,
                  int32 output_width,
                  int32 output_height,
-                 EdgeT const& edge_func,
+                 EdgeT   const& edge_func,
                  InterpT const& interp_func ) {
     return transform(v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()),
                      output_width, output_height, edge_func, interp_func );
@@ -1216,7 +1216,7 @@ namespace vw {
   inline translate( ImageViewBase<ImageT> const& v,
                     double x_offset,
                     double y_offset,
-                    EdgeT const& edge_func,
+                    EdgeT   const& edge_func,
                     InterpT const& interp_func ) {
     return transform(v, TranslateTransform(x_offset, y_offset),
                      v.impl().cols(), v.impl().rows(),
@@ -1282,7 +1282,7 @@ namespace vw {
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, RotateTransform>
   inline rotate( ImageViewBase<ImageT> const& v,
                  double theta, Vector2 translate,
-                 EdgeT const& edge_func,
+                 EdgeT   const& edge_func,
                  InterpT const& interp_func ) {
     return transform(v, RotateTransform(theta, translate), /* dims */
                      edge_func, interp_func);

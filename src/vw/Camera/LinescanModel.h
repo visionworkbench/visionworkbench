@@ -127,8 +127,15 @@ namespace camera {
     bool m_correct_velocity_aberration;
 
   private:
+
+    /// Returns the velocity corrected to account for the planetary rotation.
+    /// - For efficiency, requires the uncorrected look vector at this location.
+    virtual Vector3 get_rotation_corrected_velocity(Vector2 const& pixel,
+                                                    Vector3 const& uncorrected_vector) const;
   
     /// Account for velocity aberration.
+    /// - Set earth_rotation_in_velocity if the camera velocity already includes
+    ///   correction for the Earth's rotation.
     Vector3 apply_velocity_aberration_correction(Vector2 const& pixel,
                                                  Vector3 const& uncorrected_vector) const;
 
@@ -155,7 +162,11 @@ namespace camera {
       // Minimize the difference between the vector from the pixel and
       //  the vector from the point to the camera.
       inline result_type operator()( domain_type const& pix ) const {
-        return m_model->pixel_to_vector(pix) - normalize(m_point - m_model->camera_center(pix));
+        try {
+          return m_model->pixel_to_vector(pix) - normalize(m_point - m_model->camera_center(pix));
+        } catch(...) { // Handle camera misses by returning a very large error
+          return Vector3(999999,999999,999999);
+        }
       }
     }; // End class LinescanGenericLMA
 

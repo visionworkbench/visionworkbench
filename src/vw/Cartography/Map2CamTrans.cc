@@ -135,8 +135,7 @@ namespace vw { namespace cartography {
 
   // This function will be called whenever we start to apply the
   // transform in a tile. It computes and caches the point cloud at
-  // each pixel in the tile, to be used later when we iterate over
-  // pixels.
+  // each pixel in the tile, to be used later when we iterate over pixels.
   vw::BBox2i
   Map2CamTrans::reverse_bbox( vw::BBox2i const& bbox ) const {
 
