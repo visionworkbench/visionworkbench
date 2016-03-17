@@ -264,6 +264,9 @@ TEST(BBox, Ops) {
   EXPECT_FALSE( b5.empty());
   b5.min()[0] = b5.max()[0];
   EXPECT_TRUE( b5.empty());
+  
+  BBox2 b6(100, 200, 0, 0);
+  EXPECT_TRUE( b6.empty());
 }
 
 TEST(BBox, Math) {

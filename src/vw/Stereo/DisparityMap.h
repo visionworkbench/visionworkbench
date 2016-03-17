@@ -43,10 +43,10 @@ namespace vw {
 
   // Registering the Pixel Disparity type for FileIO
   template<> struct PixelFormatID<PixelMask<Vector2f> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector2> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector2> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector2 > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector2             > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
   template<> struct PixelFormatID<PixelMask<Vector2i> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector2i> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector2i            > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
 
 namespace stereo {
 

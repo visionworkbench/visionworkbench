@@ -112,7 +112,7 @@ TEST( DiskCacheImageView, Construction ) {
 
 // This DiskImageResource test is located in this file so that we can
 //  use DiskImageView to help us test it.
-TEST( DiskImageResource , Read ) {
+TEST( DiskImageResource , Raw ) {
 
   // Create a read-only image reader for the sample image
   ImageFormat format;
