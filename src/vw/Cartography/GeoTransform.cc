@@ -43,9 +43,13 @@ namespace cartography {
 
     if (src_bbox.min() == Vector2(0, 0) && dst_bbox.min()  == Vector2(0, 0)) {
       // If we don't know the image areas, simply use the 0, 0 corner
-      Vector2 src_origin = src_georef.pixel_to_lonlat(Vector2(0, 0));
-      Vector2 dst_origin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
-      m_offset = Vector2( 360.0*round( (dst_origin[0] - src_origin[0])/360.0 ), 0.0 );
+      try {
+        Vector2 src_origin = src_georef.pixel_to_lonlat(Vector2(0, 0));
+        Vector2 dst_origin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
+        m_offset = Vector2( 360.0*round( (dst_origin[0] - src_origin[0])/360.0 ), 0.0 );
+      }catch ( const std::exception & e ) {
+        m_offset = Vector2(0, 0);
+      }
     } else{
 
       // Try to offset by 360 degrees until the lon-lat boxes are most compatible,

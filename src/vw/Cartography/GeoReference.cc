@@ -728,26 +728,26 @@ namespace cartography {
   }
 
   BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
+
     BBox2 lonlat_bbox;
-
-      if (!m_is_projected) {
-        return pixel_to_point_bbox(pixel_bbox);
-      }
-
+    if (!m_is_projected) {
+      return pixel_to_point_bbox(pixel_bbox);
+    }
+    
     // Go along the perimeter of the pixel bbox.
     for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
-      try {
-        lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.min().y()) ));
-        lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.max().y()-1) ));
-      } catch ( const cartography::ProjectionErr& e ) {}
+      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.min().y()) )); }
+      catch ( const std::exception & e ) {}
+      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.max().y()-1) )); }
+      catch ( const std::exception & e ) {}
     }
     for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
-      try {
-        lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.min().x(),y) ));
-        lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.max().x()-1,y) ));
-      } catch ( const cartography::ProjectionErr& e ) {}
+      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.min().x(),y) )); }
+      catch ( const std::exception & e ) {}
+      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.max().x()-1,y) )); }
+      catch ( const std::exception & e ) {}
     }
-
+    
     // Draw an X inside the bbox. This covers the poles. It will
     // produce a lonlat boundary that is within at least one pixel of
     // the pole. This will also help catch terminator boundaries from
@@ -756,7 +756,7 @@ namespace cartography {
     while ( l1.is_good() ) {
       try {
         lonlat_bbox.grow( pixel_to_lonlat( *l1 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+      }catch ( const std::exception & e ) {}
       ++l1;
     }
     BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width(),0),
@@ -764,7 +764,7 @@ namespace cartography {
     while ( l2.is_good() ) {
       try {
         lonlat_bbox.grow( pixel_to_lonlat( *l2 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+      } catch ( const std::exception& e ) {}
       ++l2;
     }
 
@@ -790,18 +790,21 @@ namespace cartography {
     Vector2 lower_fraction(lonlat_bbox.width()/double(nsamples),
                            lonlat_bbox.height()/double(nsamples));
     for(size_t i = 0; i < nsamples; i++) {
-      try {
         // Walk the top & bottom (technically past the edge of pixel space) rows
         double x = lonlat_bbox.min().x() + double(i) * lower_fraction.x();
-        point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.min().y())));
-        point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.max().y())));
-
-
+        try { point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.min().y()))); }
+        catch ( const std::exception& e ) {}
+        
+        try { point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.max().y()))); }
+        catch ( const std::exception& e ) {}
+        
+        
         // Walk the left & right (technically past the edge of pixel space) columns
         double y = lonlat_bbox.min().y() + double(i) * lower_fraction.y();
-        point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.min().x(),y)));
-        point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.max().x(),y)));
-      } catch ( const cartography::ProjectionErr& e ) {}
+        try { point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.min().x(),y))); }
+        catch ( const std::exception& e ) {}
+        try { point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.max().x(),y))); }
+        catch ( const std::exception& e ) {}
     }
 
     // It is possible that this may not required. However in the
@@ -810,14 +813,15 @@ namespace cartography {
     while ( l1.is_good() ) {
       try {
         point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min() ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+      } catch ( const std::exception& e ) {}
       ++l1;
     }
     BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
     while ( l2.is_good() ) {
       try {
-        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l2),lower_fraction) + lonlat_bbox.min() ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l2),lower_fraction)
+                                          + lonlat_bbox.min() ) );
+      } catch ( const std::exception& e ) {}
       ++l2;
     }
 
@@ -832,31 +836,35 @@ namespace cartography {
                             point_bbox.height()/double(nsamples) );
 
     for (size_t i = 0; i < nsamples; i++ ) {
-      try {
-        double x = point_bbox.min().x() + double(i) * lower_fraction.x();
-        lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.min().y())));
-        lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.max().y())));
-
-        double y = point_bbox.min().y() + double(i) * lower_fraction.y();
-        lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.min().x(),y)));
-        lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.max().x(),y)));
-      } catch ( const cartography::ProjectionErr& e ) {}
+      double x = point_bbox.min().x() + double(i) * lower_fraction.x();
+      try { lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.min().y()))); }
+      catch ( const std::exception& e ) {}
+      try { lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.max().y()))); }
+      catch ( const std::exception& e ) {}
+      
+      double y = point_bbox.min().y() + double(i) * lower_fraction.y();
+      try { lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.min().x(),y))); }
+      catch ( const std::exception& e ) {}
+      try { lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.max().x(),y))); }
+      catch ( const std::exception& e ) {}
     }
-
+    
     // This X pattern is to capture in crossing of the poles.
     BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
     while ( l1.is_good() ) {
       try {
-        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l1),lower_fraction) + point_bbox.min() ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l1), lower_fraction)
+                                           + point_bbox.min() ) );
+      } catch ( const std::exception& e ) {}
       ++l1;
     }
 
     BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
     while ( l2.is_good() ) {
       try {
-        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l2),lower_fraction) + point_bbox.min() ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
+        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l2), lower_fraction)
+                                           + point_bbox.min() ) );
+      } catch ( const std::exception& e ) {}
       ++l2;
     }
 

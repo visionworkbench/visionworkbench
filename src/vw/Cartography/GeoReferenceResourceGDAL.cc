@@ -87,9 +87,15 @@ namespace cartography {
     // georeference is likely to run into this problem (and warn the
     // user) by checking whether forward- and reverse-projecting the
     // origin pixel lands us back at the origin.
-    Vector2 origin =
-      georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
-    if( origin.x()*origin.x() + origin.y()*origin.y() > 0.1 ) {
+    bool have_error = false;
+    Vector2 origin;
+    try {
+      origin = georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
+    } catch (std::exception &e) {
+      vw_out(WarningMessage) << e.what() << std::endl;
+      have_error = true;
+    }
+    if ( origin.x()*origin.x() + origin.y()*origin.y() > 0.1 || have_error ) {
       vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
         resource.filename() << " contains a non-normal georeference." << std::endl;
     }
