@@ -28,6 +28,16 @@ There you will also be able to download an up-to-date copy of the
 user's guide, called the Vision Workbook, which contains a more
 complete description of how to get started with the Vision Workbench.
 
+Compilers
+============
+
+Vision Workbench needs g++ (version >= 4.4.7). In particular, for the
+Mac, you will need to get the FSF GCC, for example using HomeBrew,
+rather than counting on the included Apple LLVM compiler.
+
+Libraries
+============
+
 You will also need to obtain and install whichever pre-requisite
 libraries you will need.  The only strict requirement is the Boost C++
 Libraries, a set of extensions to the standard C++ libraries that is
