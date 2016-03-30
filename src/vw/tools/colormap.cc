@@ -108,30 +108,30 @@ UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view
 // -------------------------------------------------------------------------------------
 
 template <class PixelT>
-void do_colorized_dem(Options& opt) {
-  vw_out() << "Creating colorized DEM.\n";
+void do_colormap(Options& opt) {
+  vw_out() << "Creating color map.\n";
 
   cartography::GeoReference georef;
   cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
-  SrcImageResource *disk_dem_rsrc =
+  SrcImageResource *disk_img_rsrc =
     DiskImageResource::open(opt.input_file_name);
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
-  } else if ( disk_dem_rsrc->has_nodata_read() ) {
-    opt.nodata_value = disk_dem_rsrc->nodata_read();
+  } else if ( disk_img_rsrc->has_nodata_read() ) {
+    opt.nodata_value = disk_img_rsrc->nodata_read();
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
   // Compute min/max of input image values
-  DiskImageView<PixelT> disk_dem_file(opt.input_file_name);
+  DiskImageView<PixelT> disk_img_file(opt.input_file_name);
   ImageViewRef<PixelGray<float> > input_image =
-    pixel_cast<PixelGray<float> >(select_channel(disk_dem_file,0));
+    pixel_cast<PixelGray<float> >(select_channel(disk_img_file,0));
   if (opt.min_val == 0 && opt.max_val == 0) {
     min_max_channel_values( create_mask( input_image, opt.nodata_value),
                             opt.min_val, opt.max_val);
-    vw_out() << "\t--> DEM color map range: ["
+    vw_out() << "\t--> Image color map range: ["
              << opt.min_val << "  " << opt.max_val << "]\n";
   } else {
     vw_out() << "\t--> Using user-specified color map range: ["
@@ -156,21 +156,22 @@ void do_colorized_dem(Options& opt) {
   }
 
   // Mask input
-  ImageViewRef<PixelMask<PixelGray<float> > > dem;
+  ImageViewRef<PixelMask<PixelGray<float> > > img;
   if ( PixelHasAlpha<PixelT>::value )
-    dem = alpha_to_mask(channel_cast<float>(disk_dem_file) );
-  else if (opt.nodata_value != std::numeric_limits<float>::max())
-    dem = channel_cast<float>(create_mask(input_image, opt.nodata_value));
-  else if ( disk_dem_rsrc->has_nodata_read() )
-    dem = create_mask(input_image, opt.nodata_value);
+    img = alpha_to_mask(channel_cast<float>(disk_img_file) );
+  else if (opt.nodata_value != std::numeric_limits<float>::max()) {
+    img = channel_cast<float>(create_mask(input_image, opt.nodata_value));
+  }else if ( disk_img_rsrc->has_nodata_read() ) {
+    img = create_mask(input_image, opt.nodata_value);
+  }
   else
-    dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+    img = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
 
-  delete disk_dem_rsrc;
+  delete disk_img_rsrc;
 
   // Apply colormap
   ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
-    colormap(normalize(dem, opt.min_val, opt.max_val, 0, 1.0), opt.lut_map);
+    colormap(normalize(img, opt.min_val, opt.max_val, 0, 1.0), opt.lut_map);
 
   if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
     vw_out() << "\t--> Incorporating hillshading from: "
@@ -228,7 +229,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
      "cubehelix (works for most color-blind people), "
      "or the name of a file having the colormap, similar to the file used by gdaldem.")
     ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
-                      "Remap the DEM default value to the min altitude value.")
+                      "Remap the nodata default value to the min altitude value.")
     ("min",           po::value(&opt.min_val)->default_value(0),
                       "Minimum height of the color map.")
     ("max",           po::value(&opt.max_val)->default_value(0),
@@ -258,7 +259,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   }
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <input dem> \n";
+  usage << "Usage: " << argv[0] << " [options] <input img> \n";
 
   if ( vm.count("help") )
     vw_throw( ArgumentErr() << usage.str() << general_options );
@@ -665,22 +666,22 @@ int main( int argc, char *argv[] ) {
     switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:
       switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGray<uint8>   >(opt); break;
-      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(opt); break;
-      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(opt); break;
-      default:                do_colorized_dem<PixelGray<float32> >(opt); break;
+      case VW_CHANNEL_UINT8:  do_colormap<PixelGray<uint8>   >(opt); break;
+      case VW_CHANNEL_INT16:  do_colormap<PixelGray<int16>   >(opt); break;
+      case VW_CHANNEL_UINT16: do_colormap<PixelGray<uint16>  >(opt); break;
+      default:                do_colormap<PixelGray<float32> >(opt); break;
       }
       break;
     case VW_PIXEL_GRAYA:
       switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGrayA<uint8>   >(opt); break;
-      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGrayA<int16>   >(opt); break;
-      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGrayA<uint16>  >(opt); break;
-      default:                do_colorized_dem<PixelGrayA<float32> >(opt); break;
+      case VW_CHANNEL_UINT8:  do_colormap<PixelGrayA<uint8>   >(opt); break;
+      case VW_CHANNEL_INT16:  do_colormap<PixelGrayA<int16>   >(opt); break;
+      case VW_CHANNEL_UINT16: do_colormap<PixelGrayA<uint16>  >(opt); break;
+      default:                do_colormap<PixelGrayA<float32> >(opt); break;
       }
       break;
     default:
-      vw_throw( ArgumentErr() << "Unsupported pixel format. The DEM image must have only one channel." );
+      vw_throw( ArgumentErr() << "Unsupported pixel format. The image must have only one channel." );
     }
 
     // Draw legend

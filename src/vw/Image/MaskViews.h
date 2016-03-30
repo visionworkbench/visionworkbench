@@ -48,16 +48,17 @@ namespace vw {
     PixelT m_nodata_value;
   public:
     CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
-
+    
     inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
       typedef typename MaskedPixelType<PixelT>::type MPixelT;
-      if ( value == m_nodata_value ) {
-        return MPixelT();
-      }
-      return MPixelT(value);
+      if ( value != m_nodata_value && value == value ) // need the latter for NaNs 
+	return MPixelT(value);
+      
+      return MPixelT();
     }
+    
   };
-
+  
   /// Mask values less than or equal to the nodata value.
   template <class PixelT>
   class CreatePixelMaskLE : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
@@ -67,11 +68,13 @@ namespace vw {
 
     inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
       typedef typename MaskedPixelType<PixelT>::type MPixelT;
-      if ( value <= m_nodata_value ) {
-        return MPixelT();
-      }
-      return MPixelT(value);
+      if ( value > m_nodata_value ) 
+	return MPixelT(value);
+
+      // The below also covers the NaN situation
+      return MPixelT();
     }
+    
   };
 
   /// Mask values fall within a range.
@@ -122,7 +125,9 @@ namespace vw {
 
       typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
       if (help_func::greater_than(value,m_valid_max) ||
-          help_func::less_than(value,m_valid_min) ) {
+          help_func::less_than(value,m_valid_min)    ||
+	  value != value // need this for NaN
+	  ) {
         return MPixelT();
       }
 
