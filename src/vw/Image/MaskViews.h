@@ -54,6 +54,14 @@ namespace vw {
       if ( value != m_nodata_value && value == value ) // need the latter for NaNs 
 	return MPixelT(value);
       
+      if (value != value) 
+        return  MPixelT();  // Mask NaN values
+
+      if (m_nodata_value != m_nodata_value) 
+        return MPixelT(value); // If value is non-NaN, but m_nodata_value is NaN, return good
+
+      // We arrive here only if both value and m_nodata_value are not NaN,
+      // and value == m_nodata_value.
       return MPixelT();
     }
     
@@ -71,7 +79,14 @@ namespace vw {
       if ( value > m_nodata_value ) 
 	return MPixelT(value);
 
-      // The below also covers the NaN situation
+      if (value != value) 
+        return  MPixelT();  // Mask NaN values
+
+      if (m_nodata_value != m_nodata_value) 
+        return MPixelT(value); // If value is non-NaN, but m_nodata_value is NaN, return good
+
+      // We arrive here only if both value and m_nodata_value are not NaN,
+      // and value <= m_nodata_value.
       return MPixelT();
     }
     
