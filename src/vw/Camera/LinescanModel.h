@@ -126,7 +126,7 @@ namespace camera {
     /// - For satellites this makes a big difference, make sure it is set!
     bool m_correct_velocity_aberration;
 
-  private:
+  protected:
 
     /// Returns the velocity corrected to account for the planetary rotation.
     /// - For efficiency, requires the uncorrected look vector at this location.
