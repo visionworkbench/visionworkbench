@@ -16,13 +16,13 @@
 // __END_LICENSE__
 
 #include <vw/Camera/LinescanModel.h>
+#include <vw/Camera/CameraSolve.h>
 
 namespace vw {
 namespace camera {
 
-Vector2 LinescanModel
-::point_to_pixel(Vector3 const& point) const {
-  return point_to_pixel(point, -1); // Redirect to other function with no guess
+Vector2 LinescanModel::point_to_pixel(Vector3 const& point) const {
+  return point_to_pixel(point, -1); // Redirect to thefunction with no guess
 }
 
 
@@ -30,7 +30,7 @@ Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const
 
   // Use the generic solver to find the pixel 
   // - This method will be slower but works for more complicated geometries
-  LinescanGenericLMA model( this, point );
+  CameraGenericLMA model( this, point );
   int status;
   Vector2 start = m_image_size / 2.0; // Use the center as the initial guess
   if (starty >= 0) // If the user provided a line number guess..

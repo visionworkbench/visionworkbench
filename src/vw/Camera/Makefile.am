@@ -30,6 +30,7 @@ endif
 if HAVE_PKG_LAPACK
 lapack_headers = \
 	CameraGeometry.h \
+	CameraSolve.h \
 	Extrinsics.h \
 	LensDistortion.h \
 	LinescanModel.h \

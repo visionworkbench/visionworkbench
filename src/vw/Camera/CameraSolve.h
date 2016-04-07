@@ -18,11 +18,6 @@
 
 /// \file CameraSolve.h
 ///
-/// Contains assorted functions for solving for camera matrices.
-/// This is an expansion on Math/Geometry.h but requires that
-/// container p1 is Vector3 and container p2 is Vector4 since
-/// cameras map 3D points to 2D locations.
-///
 #ifndef __CAMERA_CAMERA_SOLVE_H__
 #define __CAMERA_CAMERA_SOLVE_H__
 

@@ -139,37 +139,6 @@ namespace camera {
     Vector3 apply_velocity_aberration_correction(Vector2 const& pixel,
                                                  Vector3 const& uncorrected_vector) const;
 
-  protected:
-  
-    // Levenberg Marquardt solver for linescan number (y) and pixel
-    // number (x) for the given point in space. The obtained solution
-    // pixel (x, y) must be such that the vector from this camera
-    // pixel goes through the given point. This version does uses only
-    // functions declared in LinescanModel class and should work for 
-    // any LineScan camera. Some cameras may be able to use a faster
-    // implementation that solves for y first and then for x seperately.
-    class LinescanGenericLMA : public math::LeastSquaresModelBase<LinescanGenericLMA> {
-      const LinescanModel* m_model;
-      Vector3 m_point;
-    public:
-      typedef Vector2 domain_type;     // 2D pixel, input to cost function vector
-      typedef Vector3 result_type;     // 3D error, output of cost function vector
-      typedef Matrix<double, 3, 2> jacobian_type;
-
-      LinescanGenericLMA( const LinescanModel* model, const vw::Vector3& pt ) :
-        m_model(model), m_point(pt) {}
-
-      // Minimize the difference between the vector from the pixel and
-      //  the vector from the point to the camera.
-      inline result_type operator()( domain_type const& pix ) const {
-        try {
-          return m_model->pixel_to_vector(pix) - normalize(m_point - m_model->camera_center(pix));
-        } catch(...) { // Handle camera misses by returning a very large error
-          return Vector3(999999,999999,999999);
-        }
-      }
-    }; // End class LinescanGenericLMA
-
   }; // End class LinescanModel
   
 /*
