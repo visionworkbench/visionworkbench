@@ -158,7 +158,6 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     }
   }
 
-  // 
   size_t num_load_rejected = 0, num_loaded = 0;
   for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++){
     std::string match_file = match_files_vec[file_iter];
@@ -189,6 +188,10 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
 
       // Checking to see if features already exist, adding if they
       // don't, then linking them.
+      vw_out() << "Building the control network for " << match_file <<".\n";
+      TerminalProgressCallback progress("ba", "Building: ");
+      progress.report_progress(0);
+      double inc_prog = 1.0/double(ip1.size());
       for ( size_t k = 0; k < ip1.size(); k++ ) {
         f_itr ipfeature1 = std::find_if( crn[index1].begin(),
                                          crn[index1].end(),
@@ -208,7 +211,9 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
         // Doubly linking
         (*ipfeature1)->connection( *ipfeature2, false );
         (*ipfeature2)->connection( *ipfeature1, false );
+	progress.report_incremental_progress(inc_prog );
       } // End loop through ip1
+      progress.report_finished();
     }
   } // End loop through match files
 
@@ -225,7 +230,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
 
   // Triangulating Positions
   if (triangulate_control_points){
-    TerminalProgressCallback progress("ba", "Triangulating:");
+    TerminalProgressCallback progress("ba", "Triangulating: ");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {

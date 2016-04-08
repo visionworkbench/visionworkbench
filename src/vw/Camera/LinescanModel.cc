@@ -22,7 +22,7 @@ namespace vw {
 namespace camera {
 
 Vector2 LinescanModel::point_to_pixel(Vector3 const& point) const {
-  return point_to_pixel(point, -1); // Redirect to thefunction with no guess
+  return point_to_pixel(point, -1); // Redirect to the function with no guess
 }
 
 
