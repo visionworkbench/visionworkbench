@@ -93,17 +93,23 @@ Vector3 LinescanModel::apply_velocity_aberration_correction(Vector2 const& pixel
 }
 
 Vector3 LinescanModel::pixel_to_vector(Vector2 const& pixel) const {
+  try {
+    // Compute local vector from the pixel out of the sensor
+    // - m_detector_origin and m_focal_length have been converted into units of pixels
+    Vector3 local_vec = get_local_pixel_vector(pixel);
+    // Put the local vector in world coordinates using the pose information.
+    Vector3 uncorrected_vector = camera_pose(pixel).rotate(local_vec);
 
-  // Compute local vector from the pixel out of the sensor
-  // - m_detector_origin and m_focal_length have been converted into units of pixels
-  Vector3 local_vec = get_local_pixel_vector(pixel);
-  // Put the local vector in world coordinates using the pose information.
-  Vector3 uncorrected_vector = camera_pose(pixel).rotate(local_vec);
-
-  if (!m_correct_velocity_aberration) 
-    return uncorrected_vector;
-  else
-    return apply_velocity_aberration_correction(pixel, uncorrected_vector); 
+    if (!m_correct_velocity_aberration) 
+      return uncorrected_vector;
+    else
+      return apply_velocity_aberration_correction(pixel, uncorrected_vector);
+      
+  } catch(const vw::Exception &e) {
+    // Repackage any of our exceptions thrown below this point as a 
+    //  pixel to ray exception that other code will be able to handle.
+    vw_throw(vw::camera::PixelToRayErr() << e.what());
+  }
 }
 
 /*
