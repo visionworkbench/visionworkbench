@@ -69,21 +69,24 @@ Vector3 LinescanModel::get_rotation_corrected_velocity(Vector2 const& pixel,
   double seconds_in_day = 86164.0905;
   Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/seconds_in_day);
   Vector3 cam_vel      = camera_velocity(pixel);
-  Vector3 cam_vel_corr = cam_vel - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
+  Vector3 cam_vel_corr = cam_vel
+    - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
   return cam_vel_corr;
 }
 
 
-Vector3 LinescanModel::apply_velocity_aberration_correction(Vector2 const& pixel,
-                                       Vector3 const& uncorrected_vector) const {
-
+Vector3 LinescanModel::
+apply_velocity_aberration_correction(Vector2 const& pixel,
+				     Vector3 const& uncorrected_vector) const {
+  
   // 1. Correct the camera velocity due to the fact that the Earth
   // rotates around its axis.
   Vector3 cam_vel_corr1 = get_rotation_corrected_velocity(pixel, uncorrected_vector);
 
   // 2. Find the component of the camera velocity orthogonal to the
   // direction the camera is pointing to.
-  Vector3 cam_vel_corr2 = cam_vel_corr1 - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
+  Vector3 cam_vel_corr2 = cam_vel_corr1
+    - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
 
   // 3. Correct direction for velocity aberration due to the speed of light.
   double light_speed = 299792458.0;

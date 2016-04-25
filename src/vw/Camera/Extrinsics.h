@@ -202,8 +202,29 @@ namespace camera {
     double get_tend() const { return m_tend;}
   };
 
+  /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
+  class SlerpGridPointingInterpolation {
+    std::vector< std::vector<vw::Vector3> > m_directions;
+    double m_row0, m_drow, m_row_end;
+    double m_col0, m_dcol, m_col_end;
+  public:
+    SlerpGridPointingInterpolation(){}
+    SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3> > const& directions,
+                                   double row0, double drow, double col0, double dcol);
+
+    // Careful here, pix[0] is a column, and pix[1] is a row,
+    // so we'll access directions(pix[1], pix[0]).
+    Vector3 operator()( vw::Vector2 const& pix ) const;
+    double get_row0    () const { return m_row0;    }
+    double get_drow    () const { return m_drow;    }
+    double get_row_end () const { return m_row_end; }
+    double get_col0    () const { return m_col0;    }
+    double get_dcol    () const { return m_dcol;    }
+    double get_col_end () const { return m_col_end; }
+  };
+
   /// Performs smooth interpolation between sparse pose data points using the
-  /// spherical linear interpolation algorithm.
+  /// spherical linear interpolation algorithm. Highly experimental and not tested.
   class SmoothSLERPPoseInterpolation {
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
@@ -250,6 +271,7 @@ namespace camera {
     double operator()( double line ) const;
   };
 
+  
 }} // namespace vw::camera
 
 #endif // __VW_CAMERA_EXTRINSICS_H__

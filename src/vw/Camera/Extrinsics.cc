@@ -30,15 +30,16 @@ using namespace vw;
 using namespace vw::camera;
 
 
-// TODO: Move this somewhere else!
-
-// Given the values ti = t0 + i*dt for i = 0, 1, ..., num_samples - 1,
-// and the value t, compute the weights
-// w_i=exp(-sigma*(t-ti)^2/dt^2). Keep the largest m_num_wts weights.
-// Normalize the weights to add to 1 and return them. We'll use them
-// later for interpolation. This works even when t is out of range.
-
 namespace vw { namespace camera {
+
+  // Given the values ti = t0 + i*dt for i = 0, 1, ..., num_samples - 1,
+  // and the value t, compute the weights
+  // w_i=exp(-sigma*(t-ti)^2/dt^2). Keep the largest m_num_wts weights.
+  // Normalize the weights to add to 1 and return them. We'll use them
+  // later for interpolation. This works even when t is out of range.
+  
+  // TODO: Move this somewhere else!
+
   typedef std::pair<double, int> val_index;
 
   struct sort_descending_by_val {
@@ -358,8 +359,10 @@ ConstantPoseInterpolation::ConstantPoseInterpolation(Quat const& pose) : m_pose(
 
 //======================================================================
 // SLERPPoseInterpolation class
-SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt) :
-  m_pose_samples(pose_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)) {}
+SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat> const& pose_samples,
+                                               double t0, double dt) :
+  m_pose_samples(pose_samples), m_t0(t0), m_dt(dt),
+  m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)) {}
 
 Quat SLERPPoseInterpolation::operator()(double t) const {
 
@@ -381,8 +384,91 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
   return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
 }
 
+/// Simple slerp interpolation between a table of pointing directions arranged on a grid.
+SlerpGridPointingInterpolation
+::SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3> > const& directions,
+                                 double row0, double drow, double col0, double dcol):
+  m_directions(directions), m_row0(row0), m_drow(drow), m_col0(col0), m_dcol(dcol){
+  
+
+  std::cout << "--now in constructor!" << std::endl;
+  VW_ASSERT( !m_directions.empty() && !m_directions.front().empty(),
+	     ArgumentErr() << "Empty input table in SlerpGridPointingInterpolation.\n" );
+
+  m_row_end = m_row0 + m_drow * (m_directions.size() - 1);
+  m_col_end = m_col0 + m_dcol * (m_directions.front().size() - 1);
+
+  std::cout << "constructor: " << std::endl;
+  std::cout << "row0 drow rowend " << m_row0 << ' ' << m_drow << ' ' << m_row_end << std::endl;
+  std::cout << "col0 dcol colend " << m_col0 << ' ' << m_dcol << ' ' << m_col_end << std::endl;
+}
+
+// Careful here, pix[0] is a column, and pix[1] is a row, so we'll
+// access directions(pix[1], pix[0]).
+Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const {
+
+  double row = pix[1], col = pix[0];
+  VW_ASSERT( row >= m_row0 && row <= m_row_end,
+	     ArgumentErr() << "Cannot interpolate for pixel row "
+	     << row << ". Out of valid range. Expecting "
+             << m_row0 << " <= " << row << " <= " << m_row_end << "\n" );
+  VW_ASSERT( col >= m_col0 && col <= m_col_end,
+	     ArgumentErr() << "Cannot interpolate for pixel col "
+	     << col << ". Out of valid range. Expecting "
+             << m_col0 << " <= " << col << " <= " << m_col_end << "\n" );
+
+  // Calculations for the row
+  int low_irow  = (int) floor( ( row - m_row0 ) / m_drow );
+  int high_irow = (int) ceil ( ( row - m_row0 ) / m_drow );
+  VW_ASSERT( low_irow >= 0 && high_irow < (int)m_directions.size(),
+	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n" );
+  double low_row  = m_row0 + m_drow * low_irow;
+  double norm_row = ( row - low_row) / m_drow; // row as fraction of time between points
+
+  // Calculations for the col
+  int low_icol  = (int) floor( ( col - m_col0 ) / m_dcol );
+  int high_icol = (int) ceil ( ( col - m_col0 ) / m_dcol );
+  VW_ASSERT( low_icol >= 0 && high_icol < (int)m_directions.front().size(),
+	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n" );
+  double low_col  = m_col0 + m_dcol * low_icol;
+  double norm_col = ( col - low_col) / m_dcol; // col as fraction of time between points
+
+  vw::Vector3 p;
+  Quat L, H;
+
+  {
+    // Interpolate the pointing vector for low_col
+    p = m_directions[low_irow][low_icol];
+    Quat ll(0, p[0], p[1], p[2]);
+    p = m_directions[high_irow][low_icol];
+    Quat hl(0, p[0], p[1], p[2]);
+    L = vw::math::slerp(norm_row, ll, hl, 0);
+
+    //std::cout << "ll hl L " << ll << ' ' << hl << ' ' << L << std::endl;
+  }
+
+  {
+    // Interpolate the pointing vector for high_col
+    p = m_directions[low_irow][high_icol];
+    Quat lh(0, p[0], p[1], p[2]);
+    p = m_directions[high_irow][high_icol];
+    Quat hh(0, p[0], p[1], p[2]);
+    H = vw::math::slerp(norm_row, lh, hh, 0);
+    // std::cout << "lh hh H " << lh << ' ' << hh << ' ' << H << std::endl;
+  }
+
+  // Now interpolate between low_col and high_col
+  Quat Res = vw::math::slerp(norm_col, L, H, 0);
+  //std::cout << "L H Res " << L << ' ' << H << ' ' << Res << std::endl;
+
+  Vector3 result( Res.x(), Res.y(), Res.z());
+  //std::cout << "--result is " << result << std::endl;
+  return result;
+}
+
 //======================================================================
 // SmoothSLERPPoseInterpolation class
+// Very speculative. Use with a lot of care. 
 SmoothSLERPPoseInterpolation::SmoothSLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt, int num_wts, double sigma):
   m_pose_samples(pose_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)), m_num_wts(num_wts), m_sigma(sigma) {
 
