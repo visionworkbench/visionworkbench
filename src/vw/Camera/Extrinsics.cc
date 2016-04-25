@@ -391,16 +391,11 @@ SlerpGridPointingInterpolation
   m_directions(directions), m_row0(row0), m_drow(drow), m_col0(col0), m_dcol(dcol){
   
 
-  std::cout << "--now in constructor!" << std::endl;
   VW_ASSERT( !m_directions.empty() && !m_directions.front().empty(),
 	     ArgumentErr() << "Empty input table in SlerpGridPointingInterpolation.\n" );
 
   m_row_end = m_row0 + m_drow * (m_directions.size() - 1);
   m_col_end = m_col0 + m_dcol * (m_directions.front().size() - 1);
-
-  std::cout << "constructor: " << std::endl;
-  std::cout << "row0 drow rowend " << m_row0 << ' ' << m_drow << ' ' << m_row_end << std::endl;
-  std::cout << "col0 dcol colend " << m_col0 << ' ' << m_dcol << ' ' << m_col_end << std::endl;
 }
 
 // Careful here, pix[0] is a column, and pix[1] is a row, so we'll
@@ -443,8 +438,6 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
     p = m_directions[high_irow][low_icol];
     Quat hl(0, p[0], p[1], p[2]);
     L = vw::math::slerp(norm_row, ll, hl, 0);
-
-    //std::cout << "ll hl L " << ll << ' ' << hl << ' ' << L << std::endl;
   }
 
   {
@@ -454,15 +447,12 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
     p = m_directions[high_irow][high_icol];
     Quat hh(0, p[0], p[1], p[2]);
     H = vw::math::slerp(norm_row, lh, hh, 0);
-    // std::cout << "lh hh H " << lh << ' ' << hh << ' ' << H << std::endl;
   }
 
   // Now interpolate between low_col and high_col
   Quat Res = vw::math::slerp(norm_col, L, H, 0);
-  //std::cout << "L H Res " << L << ' ' << H << ' ' << Res << std::endl;
 
   Vector3 result( Res.x(), Res.y(), Res.z());
-  //std::cout << "--result is " << result << std::endl;
   return result;
 }
 
