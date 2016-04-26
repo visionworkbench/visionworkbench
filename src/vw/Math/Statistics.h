@@ -29,6 +29,9 @@
 namespace vw {
 namespace math {
 
+// The two functors in this class should not be confused with the similar
+// classes in Functors.h.  These two are only used in the Geometry.h file.
+
   /// Finds the mean of a set of points.
   class MeanFunctor {
     bool m_homogeneous;
@@ -42,8 +45,7 @@ namespace math {
 
     /// This function can use points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
+    /// vw::Vector<>, but you could substitute other classes here as well.
     template <class ContainerT>
     ContainerT operator() (std::vector<ContainerT> const& points) const {
       ContainerT result = points[0]; // to resize container if necessary
@@ -89,8 +91,7 @@ namespace math {
 
     /// This function can use points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
+    /// vw::Vector<>, but you could substitute other classes here as well.
     template <class ContainerT>
     ContainerT operator() (std::vector<ContainerT> const& points) const {
       ContainerT result = points[0]; // to resize container if necessary

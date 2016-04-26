@@ -456,9 +456,15 @@ namespace vw {
         num_samples += 1.0;
       }
 
+      /// Return the standard deviation
       value_type value() const {
         VW_ASSERT(num_samples, ArgumentErr() << "StdDevAccumulator(): no valid samples.");
         return sqrt(mom2_accum/num_samples - (mom1_accum/num_samples)*(mom1_accum/num_samples));
+      }
+      /// Return the mean
+      value_type mean() const {
+        VW_ASSERT(num_samples, ArgumentErr() << "StdDevAccumulator(): no valid samples.");
+        return mom1_accum / num_samples;
       }
     };
 
