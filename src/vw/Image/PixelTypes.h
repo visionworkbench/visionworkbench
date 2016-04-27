@@ -133,8 +133,7 @@ namespace vw {
     }
 
     /// Explicit conversion from PixelGrayA types.  Discards the alpha
-    /// channel, which is equivalent to compositing over a black
-    /// background.
+    /// channel, which is equivalent to compositing over a black background.
     template <class OtherT> explicit PixelGray( PixelGrayA<OtherT> other ) {
       m_ch[0]=ChannelT(other[0]);
     }

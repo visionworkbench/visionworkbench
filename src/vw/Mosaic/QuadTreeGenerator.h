@@ -139,16 +139,16 @@ namespace mosaic {
 
 
     // Simple "set" functions
-    void set_name              ( std::string             const& name               ) { m_tree_name          = name;               }
-    void set_file_type         ( std::string             const& extension          ) { m_file_type          = extension;          }
-    void set_tile_size         ( int32                          size               ) { m_tile_size          = size;               }
-    void set_crop_images       ( bool                           crop               ) { m_crop_images        = crop;               }
-    void set_cull_images       ( bool                           cull               ) { m_cull_images        = cull;               }
-    void set_image_path_func   ( image_path_func_type           image_path_func    ) { m_image_path_func    = image_path_func;    }
-    void set_branch_func       ( branch_func_type        const& branch_func        ) { m_branch_func        = branch_func;        }
-    void set_tile_resource_func( tile_resource_func_type const& tile_resource_func ) { m_tile_resource_func = tile_resource_func; }
-    void set_metadata_func     ( metadata_func_type             metadata_func      ) { m_metadata_func      = metadata_func;      }
-    void set_sparse_image_check( sparse_image_check_type const& func               ) { m_sparse_image_check = func;               }
+    void set_name              (std::string             const& name              ) {m_tree_name          = name;              }
+    void set_file_type         (std::string             const& extension         ) {m_file_type          = extension;         }
+    void set_tile_size         (int32                          size              ) {m_tile_size          = size;              }
+    void set_crop_images       (bool                           crop              ) {m_crop_images        = crop;              }
+    void set_cull_images       (bool                           cull              ) {m_cull_images        = cull;              }
+    void set_image_path_func   (image_path_func_type           image_path_func   ) {m_image_path_func    = image_path_func;   }
+    void set_branch_func       (branch_func_type        const& branch_func       ) {m_branch_func        = branch_func;       }
+    void set_tile_resource_func(tile_resource_func_type const& tile_resource_func) {m_tile_resource_func = tile_resource_func;}
+    void set_metadata_func     (metadata_func_type             metadata_func     ) {m_metadata_func      = metadata_func;     }
+    void set_sparse_image_check(sparse_image_check_type const& func              ) {m_sparse_image_check = func;              }
 
 
     std::string image_path( std::string const& name ) const {

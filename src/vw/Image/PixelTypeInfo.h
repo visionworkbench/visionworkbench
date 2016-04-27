@@ -534,6 +534,7 @@ namespace vw {
   };
 
   // PixelFormatID<>
+  /// Return a VW enum for a pixel data type.
   template <class PixelT> struct PixelFormatID { static const PixelFormatEnum value = VW_PIXEL_UNKNOWN; };
   template<> struct PixelFormatID<vw::int8>    { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::uint8>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
@@ -577,6 +578,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
 
   // ChannelTypeID<>
+  /// Get the VW enum for a data type.
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
   template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
   template<> struct ChannelTypeID<vw::uint8>     { static const ChannelTypeEnum value = VW_CHANNEL_UINT8; };
@@ -597,7 +599,7 @@ namespace vw {
   uint32          channel_size        ( ChannelTypeEnum type    );
   uint32          channel_size_nothrow( ChannelTypeEnum type    );
   const char *    channel_type_name   ( ChannelTypeEnum type    );
-  uint32          num_channels        ( PixelFormatEnum format  );
+  uint32          num_channels        ( PixelFormatEnum format  ); ///< Return the number of channels of a PixelFormatEnum.
   uint32          num_channels_nothrow( PixelFormatEnum format  );
   const char *    pixel_format_name   ( PixelFormatEnum format  );
   ChannelTypeEnum channel_name_to_enum( const std::string& name );

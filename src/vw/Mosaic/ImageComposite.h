@@ -46,6 +46,7 @@ namespace mosaic {
   // PositionedImage
   // *******************************************************************
 
+  /// ?
   template <class PixelT>
   class PositionedImage : public ImageViewBase<PositionedImage<PixelT> > {
   public:
@@ -57,7 +58,8 @@ namespace mosaic {
     typedef PixelT result_type;
 
     template <class ImageT>
-    PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) : m_cols(cols), m_rows(rows), image(image), bbox(bbox) {}
+    PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) 
+      : m_cols(cols), m_rows(rows), image(image), bbox(bbox) {}
 
     PositionedImage reduce() const {
       const int border = 1;
@@ -138,6 +140,7 @@ namespace mosaic {
   // ImageComposite
   // *******************************************************************
 
+  /// ?
   template <class PixelT>
   class ImageComposite : public ImageViewBase<ImageComposite<PixelT> > {
   public:
@@ -146,7 +149,7 @@ namespace mosaic {
 
   private:
     struct Pyramid {
-      std::vector<PositionedImage<pixel_type> > images;
+      std::vector<PositionedImage<pixel_type  > > images;
       std::vector<PositionedImage<channel_type> > masks;
     };
 

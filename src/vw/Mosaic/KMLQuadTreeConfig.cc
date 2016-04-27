@@ -37,8 +37,7 @@ namespace vw {
 
   // This wrapper class intercepts premultiplied alpha data being written
   // to a PNG resource, and implements a pyramid-based hole-filling
-  // algorithm to extrapolate data into the alpha-masked regions of the
-  // image.
+  // algorithm to extrapolate data into the alpha-masked regions of the image.
   //
   // This is a workaround hack for a Google Earth bug, in which GE's
   // rendering of semi-transparent GroundOverlays interpolates
