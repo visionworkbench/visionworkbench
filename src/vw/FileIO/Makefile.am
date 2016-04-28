@@ -61,6 +61,7 @@ include_HEADERS = \
   DiskImageResourceRaw.h \
   DiskImageView.h \
   DiskImageUtils.h \
+  DiskImageManager.h \
   MemoryImageResource.h \
   KML.h \
   ScanlineIO.h \
