@@ -77,9 +77,7 @@ namespace cartography {
 
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
-    // the affine transform.  This will break, of course, as soon as
-    // we have mare than one type of GeoReference object, but it
-    // makes life faster for now. -mbroxton
+    // the affine transform.
     if (m_src_georef.proj4_str() == m_dst_georef.proj4_str())
       m_skip_map_projection = true;
     else

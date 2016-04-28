@@ -26,13 +26,19 @@
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
 
-/// \file GeoTransform.h Tools for converting point and images between geographic datums.
+/// \file GeoTransform.h Tools for converting points and images between geographic datums.
 
 namespace vw {
 namespace cartography {
 
+
   /// Transforms between pixel coordinates of two images,
   /// each with an associated georeference object.
+  
+  /// A structure to allow the fast and accurate conversion of coordinates between
+  /// two GeoReference objects.
+  /// - Use of this class is the ONLY safe method to convert coordinates between two
+  ///   GeoReference objects that fully handles all variables.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference m_src_georef;
@@ -99,8 +105,10 @@ namespace cartography {
     void set_offset(Vector2 const& offset);
   };
 
+
+
   // ---------------------------------------------------------------------------
-  // Functional API
+  // Image View Functions
   // ---------------------------------------------------------------------------
 
 
@@ -189,6 +197,11 @@ namespace cartography {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef), width, height);
   }
+
+
+  // ---------------------------------------------------------------------------
+  // Miscellaneous Functions
+  // ---------------------------------------------------------------------------
 
 
   /// Reproject an image whose pixels contain 3D points (usually in

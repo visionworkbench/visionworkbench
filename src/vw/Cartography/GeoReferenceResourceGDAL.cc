@@ -129,8 +129,7 @@ namespace cartography {
 
     // This is a little ridiculous, but GDAL can't write geotiffs
     // without a string of Well Known Text (WKT), so we must conjure
-    // up an OGRSpatialReference here and use it to convert from
-    // proj.4 to WKT.
+    // up an OGRSpatialReference here and use it to convert from proj.4 to WKT.
     std::string wkt_str = georef.get_wkt();
     dataset->SetProjection( wkt_str.c_str() );
 

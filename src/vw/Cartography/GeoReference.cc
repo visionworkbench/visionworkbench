@@ -108,7 +108,8 @@ namespace cartography {
   }
 
   void GeoReference::init_proj() {
-    // Update the projection context object with the current proj4 string, then make sure the lon center is still correct.
+    // Update the projection context object with the current proj4 string, 
+    //  then make sure the lon center is still correct.
     m_proj_context = ProjContext( overall_proj4_str() );
     update_lon_center();
   }
@@ -319,12 +320,26 @@ namespace cartography {
       m_proj_projection_str.append(" +over");
 
     init_proj(); // Initialize m_proj_context
-
+    // The last step of init_proj() is to call update_lon_center().
   }
 
   void GeoReference::set_lon_center(bool centered_on_lon_zero) {
     if (m_proj_projection_str.find("+proj=utm") == std::string::npos)
       m_center_lon_zero = centered_on_lon_zero;
+  }
+
+  // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
+  // - Used to strip an extra tag out of [-180,180] range images where it is not needed.
+  void GeoReference::clear_proj4_over() {
+    
+    // Clear out m_proj_projection_str, then recreate the ProjContext object.
+    const std::string over_text = "+over";
+    size_t pos = m_proj_projection_str.find(over_text);
+    if (pos == std::string::npos)
+      return;
+    m_proj_projection_str.replace(pos, over_text.length(), "");
+
+    m_proj_context = ProjContext( overall_proj4_str() );
   }
 
   void GeoReference::update_lon_center() {
@@ -339,6 +354,7 @@ namespace cartography {
     if (m_proj_projection_str.find("+proj=utm") != std::string::npos) {
       m_center_lon_zero = true;
       std::cout << "UTM projections always center on 0.\n";
+      clear_proj4_over();
       return;
     }
     
@@ -360,6 +376,7 @@ namespace cartography {
     if (start_lon < 0) {
       m_center_lon_zero = true;
       std::cout << "Start lon < 0, center on 0.\n";
+      clear_proj4_over();
       return;
     }
     // Otherwise the projected space falls in the shared lon range, so figure out
@@ -376,6 +393,7 @@ namespace cartography {
     } else { // Increasing pixels decreases projected coordinate
       m_center_lon_zero = true;
       std::cout << "Decreasing in shared zone, center on 0.\n";
+      clear_proj4_over();
     }
     return;
   } // End function update_lon_center

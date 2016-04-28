@@ -47,8 +47,7 @@ namespace cartography {
                      double width=0, double height=0 );
 
   /// Overload of crop() that takes a bounding box object (still in pixels)
-  GeoReference crop( GeoReference const& input,
-                     BBox2 const& bbox );
+  GeoReference crop( GeoReference const& input, BBox2 const& bbox );
 
   /// Modify the scale in the projected coordinate to pixel coordinate transform.
   /// - A larger scale increases the number of pixels.

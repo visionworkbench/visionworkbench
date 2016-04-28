@@ -151,6 +151,7 @@ namespace cartography {
 
     
     void update_lon_center(); ///< Updates m_center_lon_zero
+    void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
 
     /// Version of the public function that does not perform normalization
     Vector2 point_to_lonlat_no_normalize(Vector2 loc) const;
@@ -270,6 +271,14 @@ namespace cartography {
     // Get the wkt string from the georef. It only has projection and datum information.
     std::string get_wkt() const;
 #endif
+
+    //---------------------------------------------------------------------------
+    // The functions below here are for conversion between lonlat, point, and point 
+    //  coordinates within the scope of a SINGLE GeoReference object.  It is 
+    //  dangerous to use these functions to go between two GeoReferences because
+    //  they do not take into account the potential difference in datum between 
+    //  them.  To convert between coordinates of two GeoReference objects, 
+    //  load them both into a GeoTransform class object (see GeoTransform.h).
 
     /// For a given pixel coordinate, compute the position of that
     /// pixel in this georeferenced space.
