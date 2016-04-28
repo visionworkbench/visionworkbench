@@ -22,7 +22,6 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Cartography/Datum.h>
-//#include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Exception.h>
 
@@ -36,6 +35,27 @@
 namespace vw {
 namespace cartography {
 
+  /// Normalizes a degree longitude value into either the -180 to 180 range (default) or the 0-360 range.
+  inline double normalize_longitude(double lon, bool center_on_zero=true) {
+    const double MULTIPLE = 360.0;
+    if (center_on_zero) {
+      while (lon < -180)
+          lon += MULTIPLE;
+      while (lon >  180)
+          lon -= MULTIPLE;
+    }
+    else {
+      while (lon < 0)
+          lon += MULTIPLE;
+      while (lon > 360)
+          lon -= MULTIPLE;
+    }
+    return lon;
+  }
+
+  ///// Returns true if the longitude maps to the -180 to 180 range.
+  //inline double longitude_is_zero_centered(double lon) {
+  //}
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also
@@ -67,6 +87,9 @@ namespace cartography {
                  ArgumentErr() << "ProjContext: Projection not initialized." );
       return m_proj_ptr.get();
     }
+    
+    /// Return true if the proj4 string has been loaded.
+    bool is_initialized() const {return(!m_proj4_str.empty());}
 
     int error_no() const;
   };
@@ -116,9 +139,21 @@ namespace cartography {
     std::string m_proj_projection_str, m_gml_str;
     ProjContext m_proj_context;
     bool        m_is_projected;
+    
+    /// If true, the projected space maps to the -180 to 180 degree longitude range.
+    /// - If false, the projected space maps to the 0 to 360 degree longitude range. 
+    /// - Output longitude values are always given in the specified range.
+    /// - Any input longitude value can be handled.
+    bool m_center_lon_zero;
 
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
+
+    
+    void update_lon_center(); ///< Updates m_center_lon_zero
+
+    /// Version of the public function that does not perform normalization
+    Vector2 point_to_lonlat_no_normalize(Vector2 loc) const;
 
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the
@@ -156,6 +191,26 @@ namespace cartography {
 
     PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
     void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
+
+    /// Set the GeoReference to either the [-180,180] longitude range or to the [0,360] longitude range.
+    /// - The value set by this function MUST properly correspond to the range of projected space
+    ///   occupied by the GeoReference.
+    /// - UTM projections must always be in the [-180,180] range and this function enforces this.
+    /// - If this function is not called the class will attempt to automatically select the best value.
+    /// - All longitude inputs are accepted.
+    /// - All longitude outputs will be given in this range.
+    void set_lon_center(bool centered_on_lon_zero);
+    
+    /// Returns true if the output longitude values will be normalized to the [-180, 180] range.
+    /// - Otherwise they will be normalized to the [0, 360] range.
+    bool is_lon_center_around_zero() const {return m_center_lon_zero;}
+    
+    ///// Checks if an image with the given dimensions is properly contained in the projected space.
+    ///// - In particular, all of the projected coordinates must fall in the selected longitude range.
+    //bool check_projection_validity(Vector2i image_size) const;
+
+    /// Returns the error in pixels for converting from a pixel to lonlat and back.
+    double test_pixel_reprojection_error(Vector2 const& pixel);
 
     Datum const& datum() const { return m_datum; }
 
@@ -285,18 +340,6 @@ namespace cartography {
   /// Format a GeoReference to a text stream
   std::ostream& operator<<(std::ostream& os, const GeoReference& georef);
 
-  /// Get point coordinate bounding box of an image
-  template <class ViewT>
-  BBox2 GeoReference::bounding_box(ImageViewBase<ViewT> const& view) const {
-    return pixel_to_point_bbox(vw::bounding_box(view.impl()));
-  }
-
-  /// Get lonlat coordinate bounding box of an image
-  template <class ViewT>
-  BBox2 GeoReference::lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
-    return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
-  }
-
   //
   // Georeference I/O operations
   //
@@ -347,53 +390,22 @@ namespace cartography {
   void write_header_string( ImageResource& resource, std::string const& str_name,
                             std::string const& str_val );
 
-  /// The following namespace contains functions that return GeoReferences
-  /// for certain well-known output styles, such as KML (and related
-  /// functions involved in doing so).
-  namespace output {
-    namespace kml {
-      // Returns the number of pixels per planetary circumference,
-      // rounding up to a power of two.
-      template <class TransformT>
-      inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
-        Vector2 pos = tx.forward( pixel );
-        Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
-        Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
-        double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
-        double pixels_per_circumference = 360.0 / degrees_per_pixel;
-        int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2.0) );
-        if (scale_exponent >= 31) scale_exponent = 30;
-        return 1 << scale_exponent;
-      }
-    } // namespace: vw::cartography::output::kml
+  // -----------------------------------------------------------
+  // Template function definitions for the GeoReference class
 
-    namespace tms {
-      // Returns the number of pixels per planetary circumference,
-      // rounding up to a power of two.
-      template <class TransformT>
-      inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
-        // It's exactly the same as the one for KML.
-        return vw::cartography::output::kml::compute_resolution(tx, pixel);
-      }
-    } // namespace vw::cartography::output::tms
-  } // namespace vw::cartography::output
+  /// Get point coordinate bounding box of an image
+  template <class ViewT>
+  BBox2 GeoReference::bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_point_bbox(vw::bounding_box(view.impl()));
+  }
 
-  // Simple GeoReference modification tools
+  /// Get lonlat coordinate bounding box of an image
+  template <class ViewT>
+  BBox2 GeoReference::lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
+  }
 
-  /// Generates a new georeference which covers a sub-region of this georeference object.
-  /// - Input coordinates are pixels in the corresponding image
-  GeoReference crop( GeoReference const& input,
-                     double upper_left_x, double upper_left_y,
-                     double width=0, double height=0 );
 
-  /// Overload of crop() that takes a bounding box object (still in pixels)
-  GeoReference crop( GeoReference const& input,
-                     BBox2 const& bbox );
-
-  GeoReference resample( GeoReference const& input,
-                         double scale_x, double scale_y );
-  GeoReference resample( GeoReference const& input,
-                         double scale );
 
 }} // namespace vw::cartography
 

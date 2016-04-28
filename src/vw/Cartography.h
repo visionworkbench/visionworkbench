@@ -25,6 +25,7 @@
 
 #include <vw/Cartography/Datum.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/OrthoImageView.h>

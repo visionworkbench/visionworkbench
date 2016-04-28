@@ -23,6 +23,7 @@
 if MAKE_MODULE_CARTOGRAPHY
 
 TestGeoReference_SOURCES           = TestGeoReference.cxx
+TestGeoReferenceUtils_SOURCES      = TestGeoReferenceUtils.cxx
 TestGeoTransform_SOURCES           = TestGeoTransform.cxx
 TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
 TestToastTransform_SOURCES         = TestToastTransform.cxx
@@ -31,7 +32,8 @@ TestOrthoImageView_SOURCES         = TestOrthoImageView.cxx
 TestDatum_SOURCES                  = TestDatum.cxx
 
 TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation   \
-        TestToastTransform TestCameraBBox TestOrthoImageView TestDatum
+        TestToastTransform TestCameraBBox TestOrthoImageView TestDatum \
+        TestGeoReferenceUtils
 
 #include $(top_srcdir)/config/instantiate.am
 

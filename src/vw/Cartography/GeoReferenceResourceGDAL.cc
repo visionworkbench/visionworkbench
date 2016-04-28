@@ -43,9 +43,8 @@ namespace cartography {
       vw_throw( LogicErr() << "read_gdal_georeference: Could not read georeference. No file has been opened." );
 
     // Pull the projection and datum information out of the file if available
-    if( dataset->GetProjectionRef() != NULL ) {
+    if( dataset->GetProjectionRef() != NULL )
       georef.set_wkt(dataset->GetProjectionRef());
-    }
 
     double geo_transform[6];
     Matrix<double,3,3> transform;
@@ -86,18 +85,30 @@ namespace cartography {
     // problem.  In the mean time, we at least test whether the
     // georeference is likely to run into this problem (and warn the
     // user) by checking whether forward- and reverse-projecting the
-    // origin pixel lands us back at the origin.
-    bool have_error = false;
-    Vector2 origin;
-    try {
-      origin = georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
-    } catch (std::exception &e) {
-      vw_out(WarningMessage) << e.what() << std::endl;
-      have_error = true;
-    }
-    if ( origin.x()*origin.x() + origin.y()*origin.y() > 0.1 || have_error ) {
-      vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
-        resource.filename() << " contains a non-normal georeference." << std::endl;
+    // four corner pixels lands us back at the same pixel.
+    
+    // Test pixels at the four corners of the image.
+    int cols = resource.format().cols;
+    int rows = resource.format().rows; 
+    std::vector<Vector2> test_pixels(4);
+    test_pixels[0] = Vector2(0,     0);
+    test_pixels[1] = Vector2(0,     rows-1);
+    test_pixels[2] = Vector2(cols-1,0);
+    test_pixels[3] = Vector2(cols-1,rows-1);
+    
+    for (int i=0; i<4; ++i) {
+      double error = 9999;
+      bool have_error = false;
+      try {
+        error = georef.test_pixel_reprojection_error(test_pixels[i]);
+      } catch (std::exception &e) {
+        vw_out(WarningMessage) << e.what() << std::endl;
+        have_error = true;
+      }
+      if ( error > 0.1 || have_error ) {
+        vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
+          resource.filename() << " contains a non-normal georeference." << std::endl;
+      }
     }
     return true;
   }

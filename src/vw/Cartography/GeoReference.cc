@@ -64,8 +64,7 @@ namespace cartography {
       dynamic_cast<DiskImageResourceGDAL*>( &resource );
     if ( gdal ) return write_gdal_georeference( *gdal, georef );
 #endif
-    // DiskImageResourcePDS is currently read-only, so we don't bother
-    // checking for it.
+    // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
@@ -77,8 +76,7 @@ namespace cartography {
       dynamic_cast<DiskImageResourceGDAL const*>( &resource );
     if ( gdal ) return read_gdal_string( *gdal, str_name, str_val );
 #endif
-    // DiskImageResourcePDS is currently read-only, so we don't bother
-    // checking for it.
+    // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
@@ -91,10 +89,13 @@ namespace cartography {
     if ( gdal ) write_gdal_string( *gdal, str_name, str_val );
     return;
 #endif
-    // DiskImageResourcePDS is currently read-only, so we don't bother
-    // checking for it.
+    // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
+
+
+//=============================================================================================
+
 
   std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
@@ -107,7 +108,9 @@ namespace cartography {
   }
 
   void GeoReference::init_proj() {
+    // Update the projection context object with the current proj4 string, then make sure the lon center is still correct.
     m_proj_context = ProjContext( overall_proj4_str() );
+    update_lon_center();
   }
 
 
@@ -154,9 +157,12 @@ namespace cartography {
     m_shifted_transform = m_transform;
     m_shifted_transform(0,2) += 0.5*m_transform(0,0);
     m_shifted_transform(1,2) += 0.5*m_transform(1,1);
-    m_inv_transform = vw::math::inverse(m_transform);
+    m_inv_transform         = vw::math::inverse(m_transform);
     m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
 
+    // If proj4 is already set up update the lon center, otherwise wait for proj4.
+    if (m_proj_context.is_initialized())
+      update_lon_center();
   }
 
   // We override the base classes method here so that we have the
@@ -298,80 +304,107 @@ namespace cartography {
 
   void GeoReference::set_proj4_projection_str(std::string const& s) {
 
-    m_proj_projection_str = s; // Store the string in this class (it is also stored in m_proj_context)
+    m_proj_projection_str = boost::trim_copy(s); // Store the string in this class (it is also stored in m_proj_context)
 
     // Extract some information from the string
-    if (s.find("+proj=longlat") == 0)
+    if (m_proj_projection_str.find("+proj=longlat") == 0)
       m_is_projected = false;
     else
       m_is_projected = true;
 
+    // Disable -180 to 180 longitude wrapping in proj4.
+    // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
+    // - We will make sure that the input longitudes are in a safe range.
+    if (m_proj_projection_str.find("+over") == std::string::npos)
+      m_proj_projection_str.append(" +over");
+
     init_proj(); // Initialize m_proj_context
+
   }
 
-
-#if 0
-  // This function is turned off as it causes other trouble.
-  void GeoReference::update_lon_wrap() {
-
-      if (m_proj_projection_str.find("+proj=eqc") != 0) {
-        m_using_lon_wrap = false; // Other projections currently not using this correction.
-        return; // Nothing else to do here!
-     }
-
-     // Start of special handling code for eqc case.
-
-     // Since we don't have any image information we have to assume this
-     //  georef needs to be valid for a full 360 degrees.
-     const double GEOREF_VALID_WIDTH = 360.0;
-     const double halfWidth = GEOREF_VALID_WIDTH / 2.0;
-
-     // Proj4 won't work with angles outside of these.  Pulled from pj_fwd.cc
-     const double PROJ4_MAX_LON =  10 * RAD_TO_DEG;
-     const double PROJ4_MIN_LON = -10 * RAD_TO_DEG;
-
-     // This method won't work if there is a rotation so check for that.
-     if (fabs(m_transform(0,1)) > 0.01)
-       vw_throw(NoImplErr() << "EQC projections with rotation are not supported.");
-
-     // Figure out where the 0,0 pixel transforms to in lon/lat.
-     // - Remember that we turned off wrapping before this call.
-     Vector2 lonlatBound = pixel_to_lonlat(Vector2(0,0)); // No wiggle room here since we are aligning to 90 degrees anyways
-     double minLon, maxLon;
-
-     // In order to make the normalization range look better, shift it
-     //  to start at the nearest multiple of 90 degrees.
-     // - Doing this will cause us to fail on 360 degree images that do not start on a multiple of 90!
-     const double ALIGN_MULTIPLE = 90.0;
-     if (m_transform(0,0) > 0) { // This is the minimum longitude
-       minLon = GEOREF_VALID_WIDTH * 4; // Start outside of the valid Proj4 bounds
-       while (minLon > lonlatBound[0]) // Get the next multiple of 90 below the bound we found
-         minLon -= ALIGN_MULTIPLE;
-       maxLon = minLon + GEOREF_VALID_WIDTH;
-     }
-     else { // This is the maximum longitude, offset to get the minimum.
-       maxLon = -GEOREF_VALID_WIDTH * 4; // Start outside of the valid Proj4 bounds
-       while (maxLon < lonlatBound[0]) // Get the next multiple of 90 below the bound we found
-         maxLon += ALIGN_MULTIPLE;
-       minLon = maxLon - GEOREF_VALID_WIDTH;
-     }
-
-     // Now that we now the range that the the georef "naturally"
-     //  projects from, get the center point.
-
-     // Need to adjust to make sure we stay inside proj4 bounds
-     // - A better solution is needed to function outside those bounds, but that would add a lot of complexity.
-     if (minLon < PROJ4_MIN_LON) { // Shift upwards to -10 radians
-       minLon = PROJ4_MIN_LON;
-     }
-     if (maxLon > PROJ4_MAX_LON) { // Shift downwards to 10 radians
-       minLon -= (maxLon - PROJ4_MAX_LON);
-     }
-
-     m_center_lon_wrap = minLon + halfWidth;
-     m_using_lon_wrap  = true;
+  void GeoReference::set_lon_center(bool centered_on_lon_zero) {
+    if (m_proj_projection_str.find("+proj=utm") == std::string::npos)
+      m_center_lon_zero = centered_on_lon_zero;
   }
-#endif
+
+  void GeoReference::update_lon_center() {
+  
+    // The goal of this function is to determine which of the two standard longitude ranges
+    //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
+    // TODO: Allow the user to specify the space on creation!!!
+  
+    //m_center_lon_zero = true; 
+    //return; // DEBUG
+    
+    if (m_proj_projection_str.find("+proj=utm") != std::string::npos) {
+      m_center_lon_zero = true;
+      std::cout << "UTM projections always center on 0.\n";
+      return;
+    }
+    
+    
+    // Figure out where the 0,0 pixel transforms to in lon/lat.
+    // - It is important that we do not normalize here!
+    Vector2 lon_lat_pixel_00 = point_to_lonlat_no_normalize(pixel_to_point(Vector2(0,0)));
+    std::cout << "lon_lat_pixel_00 = " << lon_lat_pixel_00 << std::endl;
+    double start_lon = lon_lat_pixel_00[0]; 
+
+    // Handle the easy cases.
+    // - If the projected space converts outside the shared space of the two ranges, 
+    //   select the range containing its location.
+    if (start_lon > 180) {
+      m_center_lon_zero = false;
+      std::cout << "Start lon > 180, center on 180.\n";
+      return;
+    }
+    if (start_lon < 0) {
+      m_center_lon_zero = true;
+      std::cout << "Start lon < 0, center on 0.\n";
+      return;
+    }
+    // Otherwise the projected space falls in the shared lon range, so figure out
+    //  which of the two ranges gives the most room for the image to "grow" as
+    //  the pixel coordinate increases from 0,0.
+
+    // TODO: More accurate calculation to handle nonstandard transform matrix!!!
+    // Determine if increasing pixels increases the projected X coordinate
+    bool increasing_proj_coords = (m_transform(0,0) > 0);
+
+    if (increasing_proj_coords) { // Increasing pixels increases projected coordinate
+      m_center_lon_zero = false;
+      std::cout << "Increasing in shared zone, center on 180.\n";
+    } else { // Increasing pixels decreases projected coordinate
+      m_center_lon_zero = true;
+      std::cout << "Decreasing in shared zone, center on 0.\n";
+    }
+    return;
+  } // End function update_lon_center
+
+/*
+bool GeoReference::check_projection_validity(Vector2i image_size) const {
+
+    int NUM_PARTS = 10;
+    int spacing_x = image_size[0] / (NUM_PARTS-1); // Make sure we go through most of the image
+    int spacing_y = image_size[1] / (NUM_PARTS-1);
+
+    // Loop through a grid in the image    
+    for (int r=0; r<NUM_PARTS; ++r) {
+      for (int c=0; c<NUM_PARTS; ++c) {
+        Vector2 pixel(c*spacing_x,r*spacing_y);
+        Vector2 point = pixel_to_point(pixel);
+      }
+    }
+}
+*/
+
+double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
+ 
+  Vector2 out_pixel = lonlat_to_pixel( pixel_to_lonlat(pixel) );
+  Vector2 diff = out_pixel - pixel;
+  double error = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
+  return error;
+}
+
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
   void GeoReference::set_wkt(std::string const& wkt) {
@@ -519,6 +552,33 @@ namespace cartography {
   /// For a point in the projected space, compute the position of
   /// that point in unprojected (Geographic) coordinates (lat,lon).
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
+  
+    Vector2 lon_lat;
+    if ( !m_is_projected ) {
+      lon_lat = loc;
+    } else {
+
+      projXY projected;
+      projLP unprojected;
+
+      projected.u = loc[0]; // Store in proj4 object
+      projected.v = loc[1];
+
+      // Call proj4 to do the conversion and check for errors.
+      unprojected = pj_inv(projected, m_proj_context.proj_ptr());
+      CHECK_PROJ_ERROR( m_proj_context );
+
+      // Convert from radians to degrees.
+      lon_lat = Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
+    }
+
+    // Get the longitude into the correct range for this georeference.    
+    lon_lat[0] = normalize_longitude(lon_lat[0], m_center_lon_zero);
+    return lon_lat;
+  }
+
+
+  Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 loc) const {
     if ( ! m_is_projected ) return loc;
 
     projXY projected;
@@ -532,14 +592,18 @@ namespace cartography {
     CHECK_PROJ_ERROR( m_proj_context );
 
     // Convert from radians to degrees.
-    return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
+    return Vector2 (unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
   }
-
 
   /// Given a position in geographic coordinates (lat,lon), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
-    if ( ! m_is_projected ) return lon_lat;
+
+    // Get the longitude into the correct range for this georeference.    
+    lon_lat[0] = normalize_longitude(lon_lat[0], m_center_lon_zero);
+
+    if ( ! m_is_projected ) 
+      return lon_lat;
 
     // This value is proj's internal limit
     static const double BOUND = 1.5707963267948966 - (1e-10) - std::numeric_limits<double>::epsilon();
@@ -645,57 +709,6 @@ namespace cartography {
 #endif
 //************** End functions for class ProjContext ******************
 //*********************************************************************
-
-
-  // Simple GeoReference modification tools
-
-
-  GeoReference crop( GeoReference const& input,
-                     double upper_left_x, double upper_left_y,
-                     double /*width*/, double /*height*/ ) {
-    Vector2 top_left_ll;
-    if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
-      top_left_ll = input.pixel_to_point( Vector2(upper_left_x, upper_left_y ) - Vector2(0.5,0.5) );
-    } else {
-      top_left_ll = input.pixel_to_point( Vector2(upper_left_x, upper_left_y ) );
-    }
-    GeoReference output = input;      // Start with copy of current transform
-    Matrix3x3 T = output.transform();
-    T(0,2) = top_left_ll[0];          // Shift the translation to the crop region
-    T(1,2) = top_left_ll[1];          //  (don't need to worry about width/height)
-    output.set_transform(T);
-    return output;
-  }
-
-  GeoReference crop( GeoReference const& input,
-                     BBox2 const& bbox ) {
-    // Redirect to the other georeference crop call
-    return crop(input, bbox.min().x(), bbox.min().y(),
-                bbox.width(), bbox.height());
-  }
-
-  GeoReference resample( GeoReference const& input,
-                         double scale_x, double scale_y ) {
-    GeoReference output = input;
-    Matrix3x3 T = output.transform();
-    T(0,0) /= scale_x;
-    T(1,1) /= scale_y;
-    if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
-      Vector2 top_left_ll =
-        input.pixel_to_point( -Vector2(0.5 / scale_x, 0.5 / scale_y) );
-      T(0,2) = top_left_ll[0];
-      T(1,2) = top_left_ll[1];
-    }
-    output.set_transform(T);
-    return output;
-  }
-
-  GeoReference resample( GeoReference const& input,
-                         double scale ) {
-    return resample(input, scale, scale );
-  }
-
-
 
 
 
@@ -883,6 +896,10 @@ namespace cartography {
       os << "pixel as area\n";
     else if (georef.pixel_interpretation() == GeoReference::PixelAsPoint)
       os << "pixel as point\n";
+    if (georef.is_lon_center_around_zero())
+      os << "longitude range: [-180, 180]\n";
+    else
+      os << "longitude range: [0, 360]\n";
     return os;
   }
 

@@ -21,6 +21,7 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h> // If this file gets big enough, separate the tests.
 
 using namespace vw;
 using namespace vw::cartography;
@@ -174,12 +175,14 @@ TEST( GeoReference, BasicProjections ) {
 TEST( GeoReference, UTM_to_LonLat ) {
   std::vector<Vector2> ll(5), utm(5), px(5);
 
+  // lon, lat coordinates
   ll[0] = Vector2(170.008619281089, -43.4851542659474); // UL
   ll[1] = Vector2(170.000341300606, -43.9847965111766); // LL
   ll[2] = Vector2(170.620731735563, -43.4888289623561); // UR
   ll[3] = Vector2(170.617564317696, -43.9885355997305); // LR
   ll[4] = Vector2(170.311817924037, -43.7372482005704); // Center
 
+  // UTM coordinates
   utm[0] = Vector2(419832.648, 5184829.285); // UL
   utm[1] = Vector2(419832.648, 5129329.285); // LL
   utm[2] = Vector2(469332.648, 5184829.285); // UR
@@ -222,9 +225,48 @@ TEST( GeoReference, UTM_to_LonLat ) {
     EXPECT_VECTOR_NEAR( check_point, utm[i], 1 ); // Accurate within 1m
     EXPECT_VECTOR_NEAR( check_lonlat, ll[i], 1e-5 );
   }
+
+}
+
+TEST( GeoReference, LonLat_to_UTM ) {
+
+  // Set up a UTM object. The "within-zone" part can be constant.
+  
+  Datum d("NAD83");
+  Matrix3x3 affine;
+  affine(0,0) =  1.0; // meters per pixel
+  affine(1,1) = 1.0; // meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = 0; // Degrees
+  affine(1,2) = 0;
+  
+  GeoReference georef(d, affine);
+
+  // Loop through all 60 UTM zones and make sure we get a valid pixel for each one.
+  const double ZONE_WIDTH = 6.0;
+  double longitude = -180 + 3.012345;
+  for (int zone=1; zone<=60; ++zone) {
+  
+    // Re-init the georef object for each UTM zone.
+    std::stringstream s;
+    s << "+proj=utm +zone=" << zone << " +units=m";
+    std::string proj_string = s.str();
+    georef.set_proj4_projection_str(proj_string );
+    //georef.set_lon_center(false); // Force to 0-360 range -> don't hit the UTM zone!
+    //std::cout << georef << std::endl;
+    
+    // Test lonlat to pixel conversion.
+    Vector2 pixel = georef.lonlat_to_pixel(Vector2(longitude, 44.059883787682551));
+    std::cout << std::setprecision(10) << "pixel = " << pixel << std::endl;
+    const double EPS = 1e-2;
+    EXPECT_VECTOR_NEAR( pixel, Vector2(500988.2534,4878523.61), EPS);
+
+    longitude += ZONE_WIDTH;
+  }
 }
 
 TEST( GeoReference, IOLoop ) {
+  // Make a dummy image and projection transform
   ImageView<PixelRGB<float> > test_image(2,2);
   test_image(0,0) = PixelRGB<float>(1,2,3);
   test_image(0,1) = PixelRGB<float>(4,1,4);
@@ -237,9 +279,11 @@ TEST( GeoReference, IOLoop ) {
   test_transform(2,2) = 1; test_transform(2,1) = 0;
 
   {
+    // Pack into dummy GeoReference
     Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
     GeoReference test_georeference( test_datum, test_transform );
 
+    // Write it to a temporary file
     UnlinkName test_filename( "georeference_test.tif" );
     ASSERT_NO_THROW(
       write_georeferenced_image( test_filename, test_image,
@@ -251,11 +295,13 @@ TEST( GeoReference, IOLoop ) {
     EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georeference,
                                            test_filename ) );
 
+    // Verify that the pixels are identical
     typedef ImageView<PixelRGB<float> >::iterator iterator;
     for ( iterator test = test_image.begin(), retn = retn_image.begin();
           test != test_image.end(); test++, retn++ )
       EXPECT_PIXEL_EQ( *retn, *test );
 
+    // Check the proj4 strings and transform matrices
     EXPECT_STREQ( boost::trim_copy(retn_georeference.proj4_str()).c_str(),
                   boost::trim_copy(test_georeference.proj4_str()).c_str() );
     EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
@@ -335,8 +381,7 @@ TEST(GeoReference, BoundingBoxNoProj) {
 }
 
 TEST(GeoReference, BoundingBox) {
-  // TODO: I'm not familar with projections, so this is the best I'm going to
-  // do for now.
+  // TODO: I'm not familar with projections, so this is the best I'm going to do for now.
   // TODO: Test different types of projections
   Matrix3x3 affine;
   affine(0,0) = 0.01; // 100 pix/degree
@@ -448,13 +493,8 @@ TEST(GeoReference, NED_MATRIX) {
 
 }
 
-#if 0
-
-// This test is off since the underlying functionality was
-// turned off as well as it was causing problems.
-
-// Loop through a bunch of pixels in an image and
-//  make sure we can go from and back to the same pixel.
+/// Loop through a bunch of pixels in an image and
+///  make sure we can go from and back to the same pixel.
 void georefMatchTest(const GeoReference &georef)
 {
 
@@ -463,6 +503,7 @@ void georefMatchTest(const GeoReference &georef)
   const double MAX_DEGREE_DIFF = 0.00001;
   const double MAX_POINT_CHANGE_DIFF   = 0.1;
   const double MAX_DEGREE_CHANGE_DIFF  = 0.01;
+  const int    PIXEL_SPACING = 50;
 
   for (int r=0; r<5; ++r) // Check a few rows
   {
@@ -470,23 +511,25 @@ void georefMatchTest(const GeoReference &georef)
     double lastLon     = 0;
     double lastDiffX   = 0;
     double lastDiffLon = 0;
-    for (int c=0; c<40; ++c) // Check a bunch of columns
+    for (int c=0; c<5; ++c) // Check several columns
     {
-      // Check that we can go from a pixel back to the same pixel
-      Vector2 pixel1(c*500,r*500);
+      // Make a test pixel
+      Vector2 pixel1(c*PIXEL_SPACING,r*PIXEL_SPACING);
+      
+      // Go to a point and lonlat and back to the pixel
       Vector2 point1  = georef.pixel_to_point(pixel1);
       Vector2 lonlat1 = georef.point_to_lonlat(point1);
       Vector2 point2  = georef.lonlat_to_point(lonlat1);
       Vector2 pixel2  = georef.point_to_pixel(point2);
 
-      // Need to be able to handle equivalent lon values too!
+      // Also check equivalent shifted longitude values.
       Vector2 lonlat2 = lonlat1;
       if (lonlat1[0] > 180)
         lonlat2[0] -= 360;
       else
         lonlat2[0] += 360;
 
-      Vector2 point3  = georef.lonlat_to_point(lonlat2);
+      //Vector2 point3  = georef.lonlat_to_point(lonlat2);
       Vector2 pixel3  = georef.lonlat_to_pixel(lonlat2);
 
       // Also check that we can go from lon to lon (at least in a limited range)
@@ -527,6 +570,7 @@ void georefMatchTest(const GeoReference &georef)
 ///   anything that is likely to be seen.
 TEST( GeoReference, eqcReverseTest) {
 
+  //std::cout << "Default init.\n";
   GeoReference georef;
   Matrix3x3 affine;
 
@@ -535,26 +579,29 @@ TEST( GeoReference, eqcReverseTest) {
   georef.set_well_known_geogcs("D_MOON");
 
   // Offset these points near where proj4 can mess with the conversions
+  double pi     = 3.141592653589793238462643383279;
   double radius = georef.datum().semi_major_axis();
-  double bound  = radius * 3.141592653589793238462643383279;
+  double bound  = radius * pi;
 
-  // Set up a transform so the projected coordinates
-  affine(0,0) =  100.0; // 100 meters per pixel
-  affine(1,1) = -100.0; // 100 meters per pixel
+  // Set up a transform that needs to be handled in the 0-360 range.
+  // - This image could wrap around the 360 line, but that would not be a valid georeference.
+  affine(0,0) =  1.0; // 1 meters per pixel
+  affine(1,1) = -1.0; // 1 meters per pixel
   affine(2,2) = 1;
-  affine(0,2) = 2*bound - 1000; // This is around 180 degrees in proj4 space
+  affine(0,2) = 2*bound - 5000; // This is short of 360 degrees in proj4 space
   affine(1,2) = 50000;  // Some value in the northern hemisphere
   georef.set_transform(affine);
 
   georef.set_well_known_geogcs("D_MOON");
-  georef.set_equirectangular(0, 0, 0, 0, 0);
-
+  georef.set_equirectangular(0, 0, 0, 0, 0); // Default EQC parameters
+  //std::cout << georef << std::endl;
+  //std::cout << "Finished initializing georef!\n";
 
   georefMatchTest(georef); // Run a set of tests on the georef
 
   // Test #2
 
-  // Set up a transform so the projected coordinates
+  // An arbitrary weird set of parameters
   affine(0,0) =  10.0; // 10 meters per pixel
   affine(1,1) = -8.0; // 8 meters per pixel
   affine(2,2) = 1;
@@ -562,14 +609,18 @@ TEST( GeoReference, eqcReverseTest) {
   affine(1,2) = 50000;  // Some value in the northern hemisphere
   georef.set_transform(affine);
 
+  // center_latitude, center_longitude, latitude_of_true_scale, false_easting, false_northing
   georef.set_equirectangular(-18, 13, -45, -500, -4000);
   georef.set_well_known_geogcs("D_MOON");
+  //std::cout << georef << std::endl;
+  //std::cout << "Finished initializing georef!\n";
 
   georefMatchTest(georef); // Run a set of tests on the georef
 
   // Test #3
 
-  // Set up a transform so the projected coordinates
+  // The center lon and the projection offset put this near the -180 line
+  // - This georef needs to be handled in the -180 to 180 range.
   affine(0,0) =  -3.0; // 3 meters per pixel
   affine(1,1) = 11.0; // 11 meters per pixel
   affine(2,2) = 1;
@@ -577,11 +628,13 @@ TEST( GeoReference, eqcReverseTest) {
   affine(1,2) = -50000;  // Some value in the southern hemisphere
   georef.set_transform(affine);
 
-  georef.set_equirectangular(-45, -90, 13, 64, 8.5);
+  // center_latitude, center_longitude, latitude_of_true_scale, false_easting, double false_northing
+  georef.set_equirectangular(-45, -15, 13, 14, 8.5);
   georef.set_well_known_geogcs("D_MOON");
+  //std::cout << georef << std::endl;
+  //std::cout << "Finished initializing georef!\n";
 
   georefMatchTest(georef); // Run a set of tests on the georef
 
 }
 
-#endif

@@ -33,7 +33,7 @@ camerabbox_sources = CameraBBox.cc
 endif
 
 
-include_HEADERS = GeoReference.h                       \
+include_HEADERS = GeoReference.h  GeoReferenceUtils.h                  \
                   GeoTransform.h Datum.h SimplePointImageManipulation.h   \
                   PointImageManipulation.h Map2CamTrans.h                 \
                   OrthoImageView.h GeoReferenceResourcePDS.h              \
@@ -45,7 +45,7 @@ include_HEADERS = GeoReference.h                       \
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
-                  PointImageManipulation.cc         \
+                  PointImageManipulation.cc GeoReferenceUtils.cc        \
                   Map2CamTrans.cc Chipper.cc $(gdal_sources)            \
                   $(camerabbox_sources)
 
