@@ -71,8 +71,8 @@ namespace cartography {
       m_offset = Vector2(shift[min_index], 0);
     }
     
-    std::cout << "Geotransform: m_offset = " << m_offset << std::endl;
-    //m_offset = Vector2(0, 0);
+    //std::cout << "Geotransform: m_offset = " << m_offset << std::endl;
+    m_offset = Vector2(0, 0); // Disable offset code!
     
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
