@@ -53,7 +53,7 @@ namespace cartography {
   /// - A larger scale increases the number of pixels.
   GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
   GeoReference resample( GeoReference const& input, double scale );
-
+/*
   // TODO: These functions (like all other georef functions) can fail when the lon coordinates
   //       are 360 degrees off.  This should be handled in the georef functions.
 
@@ -73,7 +73,7 @@ namespace cartography {
                                           cartography::GeoReference const& georef1,
                                           cartography::GeoReference const& georef2);
 
-
+*/
 
   /// The following namespace contains functions that return GeoReferences
   /// for certain well-known output styles, such as KML (and related

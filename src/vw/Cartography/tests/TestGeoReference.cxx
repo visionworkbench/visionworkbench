@@ -635,6 +635,26 @@ TEST( GeoReference, eqcReverseTest) {
   //std::cout << "Finished initializing georef!\n";
 
   georefMatchTest(georef); // Run a set of tests on the georef
+}
 
+TEST( GeoReference, orthoTest) {
+
+  Matrix3x3 affine;
+  Datum d;
+  std::string proj_str = "+proj=ortho +lat_0=37 +lon_0=350 +x_0=0 +y_0=0 +a=606000 +b=606000 +units=m +no_defs";
+  d.set_datum_from_proj_str(proj_str);
+
+  affine(0,0) =  1200; // meters per pixel
+  affine(1,1) = -1200; // meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = -606000.000; // Degrees
+  affine(1,2) = 606000.000;
+
+  GeoReference georef(d, affine); 
+  georef.set_proj4_projection_str(proj_str);
+  //std::cout << georef << std::endl;
+
+  Vector2 lonlat = georef.pixel_to_lonlat(Vector2(400,600));
+  EXPECT_VECTOR_NEAR(lonlat, Vector2(-23.2265,25.2555), 10e-4);
 }
 

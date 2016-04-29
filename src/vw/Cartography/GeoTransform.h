@@ -32,9 +32,6 @@ namespace vw {
 namespace cartography {
 
 
-  /// Transforms between pixel coordinates of two images,
-  /// each with an associated georeference object.
-  
   /// A structure to allow the fast and accurate conversion of coordinates between
   /// two GeoReference objects.
   /// - Use of this class is the ONLY safe method to convert coordinates between two
@@ -43,15 +40,11 @@ namespace cartography {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
-    ProjContext  m_src_proj,
-                 m_dst_proj;
+    ProjContext  m_src_datum_proj,
+                 m_dst_datum_proj;
     bool         m_skip_map_projection;
     bool         m_skip_datum_conversion;
-    Vector2      m_offset;
-
-    // Converts between datums. The parameter 'forward' specifies whether
-    // we convert forward (true) or reverse (false).
-    Vector2 datum_convert(Vector2 const& v, bool forward) const;
+    Vector2      m_offset; // TODO delete
 
   public:
     /// Normal constructor
@@ -59,51 +52,62 @@ namespace cartography {
                  BBox2i const& src_bbox = BBox2i(0, 0, 0, 0),
                  BBox2i const& dst_bbox = BBox2i(0, 0, 0, 0));
 
-    /// Given a pixel coordinate of an image in a destination
-    /// georeference frame, this routine computes the corresponding
-    /// pixel from an image in the source georeference frame.
-    Vector2 reverse(Vector2 const& v) const {
-      if (m_skip_map_projection)
-        return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
-      Vector2 src_lonlat = m_dst_georef.pixel_to_lonlat(v) - m_offset;
-      if(m_skip_datum_conversion)
-        return m_src_georef.lonlat_to_pixel(src_lonlat);
-      src_lonlat = datum_convert(src_lonlat, false);
-      return m_src_georef.lonlat_to_pixel(src_lonlat);
-    }
+    //---------------------------------------------------------------
+    // These functions implement the Transform interface and allow
+    //  this class to be passed in to functions expecting a Transform object.
 
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
     /// pixel the destination (transformed) image.
-    Vector2 forward(Vector2 const& v) const {
-      if (m_skip_map_projection)
-        return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-      Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
-      if(m_skip_datum_conversion)
-        return m_dst_georef.lonlat_to_pixel(dst_lonlat);
-      dst_lonlat = datum_convert(dst_lonlat, true);
-      return m_dst_georef.lonlat_to_pixel(dst_lonlat);
-    }
+    Vector2 forward(Vector2 const& v) const;
 
-    // We override forward_bbox so it understands to check if the image
-    // crosses the poles or not.
+    /// Given a pixel coordinate of an image in a destination
+    /// georeference frame, this routine computes the corresponding
+    /// pixel from an image in the source georeference frame.
+    Vector2 reverse(Vector2 const& v) const;
+
+    /// Convert a pixel bounding box in the source image to
+    ///  a pixel bounding box in the destination image.
+    /// - This function handles the case where the image crosses the poles.
     BBox2i forward_bbox( BBox2i const& bbox ) const;
 
-    // We do the same for reverse_bbox
+    /// As forward_bbox, but from destination to source.
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
 
-    // Convert a pixel in respect to src_georef to a point (hence in projected coordinates)
-    // in respect to dst_georef.
-    Vector2 forward_pixel_to_point( Vector2 const& v ) const;
 
-    // Convert a pixel box in respect to src_georef to a point box
-    // in respect to dst_georef.
-    BBox2 forward_pixel_to_point_bbox( BBox2i const& pixel_bbox ) const;
+    //------------------------------------------------------------
+    // These functions do not implement the Transform interface.
 
-    // Sometimes the offset is not computed correctly, for example, when one
-    // of the two georeferenced images encompasses the whole globe.
+    /// Convert a pixel in the source to a pixel in the destination.
+    Vector2 pixel_to_pixel( Vector2 const& v ) const {return forward(v);}
+
+    /// Convert a pixel in the source to a point (projected coords) in the destination.
+    Vector2 pixel_to_point( Vector2 const& v ) const;
+
+    /// Convert a point in the source to a pixel in the destination.
+    Vector2 point_to_pixel( Vector2 const& v ) const;
+
+    /// Converts lonlat coords, taking the datums into account.
+    /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
+    Vector2 lonlat_to_lonlat(Vector2 const& lonlat, bool forward) const;
+
+    /// Convert a pixel bounding box in the source to a point (projected coords)
+    ///  bounding box in the destination.
+    BBox2 pixel_to_pixel_bbox( BBox2 const& pixel_bbox ) const {return(forward_bbox(pixel_bbox));}
+
+    /// Convert a pixel bounding box in the source to a point (projected coords)
+    ///  bounding box in the destination.
+    BBox2 pixel_to_point_bbox( BBox2 const& pixel_bbox ) const;
+
+    /// Convert a point bounding box in the source to a pixel bounding box in the destination.
+    BBox2 point_to_pixel_bbox( BBox2 const& point_bbox ) const;
+
+
+    /// Sometimes the offset is not computed correctly, for example, when one
+    /// of the two georeferenced images encompasses the whole globe.
     void set_offset(Vector2 const& offset);
-  };
+    
+  }; // End class GeoTransform
 
 
 

@@ -35,6 +35,7 @@
 namespace vw {
 namespace cartography {
 
+  /// TODO: Move to a generic location!
   /// Normalizes a degree longitude value into either the -180 to 180 range (default) or the 0-360 range.
   inline double normalize_longitude(double lon, bool center_on_zero=true) {
     const double MULTIPLE = 360.0;
@@ -53,9 +54,33 @@ namespace cartography {
     return lon;
   }
 
-  ///// Returns true if the longitude maps to the -180 to 180 range.
-  //inline double longitude_is_zero_centered(double lon) {
-  //}
+  // TODO: Move to a generic location!
+  /// Computes the absolute distance between to measurements in degrees, accounting for wraparound.
+  inline double degree_diff(double d1, double d2) {
+    double diff  = fabs(d1 - d2);
+    double diff2 = fabs(d1 - (d2+360));
+    double diff3 = fabs(d1 - (d2-360));
+    if (diff2 < diff)
+      diff = diff2;
+    if (diff3 < diff)
+      diff = diff3;
+    return diff;
+  }
+
+  // TODO: Move to a generic location!
+  /// Executes a find-replace operation in-place on a string.
+  /// - Returns the number of instances replaced.
+  inline size_t string_replace(std::string &s, std::string const& find, std::string const& replace) {
+    // Keep replacing the first match found until we don't find any more.
+    size_t count = 0;
+    while (true) {
+      size_t pos = s.find(find);
+      if (pos == std::string::npos)
+        return count;
+      s.replace(pos, find.length(), replace);
+      ++count;
+    }
+  }
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also
@@ -74,6 +99,7 @@ namespace cartography {
     boost::shared_ptr<void> m_proj_ptr;
     std::string             m_proj4_str;
 
+    /// 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
@@ -155,6 +181,10 @@ namespace cartography {
 
     /// Version of the public function that does not perform normalization
     Vector2 point_to_lonlat_no_normalize(Vector2 loc) const;
+
+    /// Attempts to extract the value of a key= part of the proj4 string.
+    static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
+                                    double &value);
 
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the
@@ -272,7 +302,7 @@ namespace cartography {
     std::string get_wkt() const;
 #endif
 
-    //---------------------------------------------------------------------------
+    //===============================================================================
     // The functions below here are for conversion between lonlat, point, and point 
     //  coordinates within the scope of a SINGLE GeoReference object.  It is 
     //  dangerous to use these functions to go between two GeoReferences because

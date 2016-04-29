@@ -46,12 +46,12 @@ namespace vw {
     DiscontinuousFunction
   };
 
+  // TODO: Move many of these classes out of the Image library!!!!!!!!
 
   // The abstract base class of all transform functors.  You should
   // not subclass Transform directly, but rather indirectly via
   // TransformBase or TransformHelper.  Similarly, you should not use
-  // Transform pointers or references directly, but rather indirectly
-  // via TransformRef.
+  // Transform pointers or references directly, but rather indirectly via TransformRef.
   class Transform {
     double m_tolerance;
 
@@ -89,8 +89,7 @@ namespace vw {
     // 'Forward' defines the transformation from coordinates in the source
     // image to coordinates in the destination image.  That routine is
     // not actually needed to perform  the transformation itself, but
-    // it can be used to determine the appropriate dimensions for the
-    // output.
+    // it can be used to determine the appropriate dimensions for the output.
     //
     // 'Reverse' defines the transformation from coordinates in our
     // target image back to coordinates in the original image. This
@@ -102,34 +101,40 @@ namespace vw {
     // one. It may not be accurate however.
     virtual Vector2 forward( Vector2 const& point ) const {
       int status;
-      return levenberg_marquardt( ForwardLMA( this ), point,
-                                  point, status );
+      return levenberg_marquardt( ForwardLMA( this ), point, point, status );
     }
     virtual Vector2 reverse( Vector2 const& point ) const {
       int status;
-      return levenberg_marquardt( ReverseLMA( this ), point,
-                                  point, status );
+      return levenberg_marquardt( ReverseLMA( this ), point, point, status );
     }
 
-    // Specifies the properties of the forward mapping function.
+    /// Specifies the properties of the forward mapping function.
     virtual FunctionType forward_type() const { return DiscontinuousFunction; }
 
-    // Specifies the properties of the reverse mapping function.
+    /// Specifies the properties of the reverse mapping function.
     virtual FunctionType reverse_type() const { return DiscontinuousFunction; }
 
-    // This applies the forward transformation to an entire bounding box of pixels.
-    virtual BBox2i forward_bbox( BBox2i const& /*output_bbox*/ ) const { vw_throw( NoImplErr() << "forward_bbox() is not implemented for this transform." ); return BBox2i(); }
+    /// This applies the forward transformation to an entire bounding box of pixels.
+    virtual BBox2i forward_bbox( BBox2i const& /*output_bbox*/ ) const { 
+      vw_throw( NoImplErr() << "forward_bbox() is not implemented for this transform." ); 
+      return BBox2i(); 
+    }
 
-    // This applies the reverse transformation to an entire bounding box of pixels.
-    virtual BBox2i reverse_bbox( BBox2i const& /*input_bbox*/ ) const { vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); return BBox2i(); }
+    /// This applies the reverse transformation to an entire bounding box of pixels.
+    virtual BBox2i reverse_bbox( BBox2i const& /*input_bbox*/ ) const { 
+      vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); 
+      return BBox2i(); 
+    }
 
-    // Set the tolerance (in pixels) to which this Transform is willing to be approximated.
+    // TODO: Do we use this for anything???
+
+    /// Set the tolerance (in pixels) to which this Transform is willing to be approximated.
     virtual void set_tolerance( double tolerance ) { m_tolerance = tolerance; }
 
-    // Get the tolerance (in pixels) to which this Transform is willing to be approximated.
+    /// Get the tolerance (in pixels) to which this Transform is willing to be approximated.
     virtual double tolerance() const { return m_tolerance; }
 
-  };
+  }; // End class Transform
 
 
   // The CRTP base class for all transform functors.
@@ -149,7 +154,8 @@ namespace vw {
     virtual BBox2i forward_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
-      if (bbox.empty()) return transformed_bbox; // bugfix
+      if (bbox.empty()) 
+        return transformed_bbox; // bugfix
       switch( txform.forward_type() ) {
       case ConvexFunction:
         transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
@@ -179,7 +185,8 @@ namespace vw {
     virtual BBox2i reverse_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
-      if (bbox.empty()) return transformed_bbox; // bugfix
+      if (bbox.empty()) 
+        return transformed_bbox; // bugfix
       switch( txform.reverse_type() ) {
       case ConvexFunction:
         transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
@@ -211,7 +218,7 @@ namespace vw {
     BBox2i compute_input_bbox( BBox2i const& output_bbox ) const VW_DEPRECATED {
       return reverse_bbox( output_bbox );
     }
-  };
+  }; // End class TransformBase
 
 
   // A helper CRTP base class for transform functors.

@@ -39,8 +39,7 @@ namespace cartography {
 
   /// A geodetic datum, i.e. a reference ellipsoid coordinate system
   /// for a planetary body.  This implementation assumes a relatively
-  /// modern notion of a datum, ie. a geocentric bi-axial ellipsoidal
-  /// model.
+  /// modern notion of a datum, ie. a geocentric bi-axial ellipsoidal model.
   ///
   /// To express a spherical datum, set the semi-major axis equal to
   /// the semi-minor axis.  All angles are measured in degrees, and

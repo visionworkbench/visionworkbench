@@ -102,8 +102,8 @@ namespace cartography {
   }
 
   std::string GeoReference::overall_proj4_str() const {
-    std::string proj4_str =
-      m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
+    std::string proj4_str = boost::trim_copy(m_proj_projection_str) + " "
+                            + boost::trim_copy(m_datum.proj4_str()) + " +no_defs";
     return proj4_str;
   }
 
@@ -316,7 +316,8 @@ namespace cartography {
     // Disable -180 to 180 longitude wrapping in proj4.
     // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
     // - We will make sure that the input longitudes are in a safe range.
-    if (m_proj_projection_str.find("+over") == std::string::npos)
+    if  ( (m_proj_projection_str.find("+over") == std::string::npos) &&
+          (m_proj_projection_str.find("+proj=utm") == std::string::npos) )
       m_proj_projection_str.append(" +over");
 
     init_proj(); // Initialize m_proj_context
@@ -328,40 +329,86 @@ namespace cartography {
       m_center_lon_zero = centered_on_lon_zero;
   }
 
+  bool GeoReference::extract_proj4_value(std::string const& proj4_string, std::string const& key,
+                                         double &value) {
+    // Try to find the key
+    value = 0.0;
+    size_t key_pos = proj4_string.find(key);
+    if (key_pos == std::string::npos)
+      return false;
+    size_t key_end = key_pos + key.size();
+    
+    // Figure out the bounds of the number
+    size_t eq_pos    = proj4_string.find("=", key_pos);
+    size_t space_pos = proj4_string.find(" ", eq_pos);
+    if ((eq_pos == std::string::npos) ||
+         (eq_pos - key_end > 2)) // Make sure we got the right "="
+      return false;
+    if (space_pos == std::string::npos)
+      space_pos = proj4_string.size();
+    size_t start  = eq_pos + 1;
+    size_t length = space_pos - start;
+    std::string num_string = proj4_string.substr(eq_pos+1, length);
+    value = atof(num_string.c_str());
+    //std::cout << "num_string = " << num_string << std::endl;
+    //std::cout << "value = " << value << std::endl;
+    return true;
+  }
+
   // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
   // - Used to strip an extra tag out of [-180,180] range images where it is not needed.
   void GeoReference::clear_proj4_over() {
     
     // Clear out m_proj_projection_str, then recreate the ProjContext object.
-    const std::string over_text = "+over";
-    size_t pos = m_proj_projection_str.find(over_text);
-    if (pos == std::string::npos)
-      return;
-    m_proj_projection_str.replace(pos, over_text.length(), "");
-
-    m_proj_context = ProjContext( overall_proj4_str() );
+    if (string_replace(m_proj_projection_str, "+over", "")) {
+      // If we had to make any changes, strip out any double spaces and 
+      //  trailing spaces and then update our ProjContext object.
+      string_replace(m_proj_projection_str, "  ", " ");
+      m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
+      m_proj_context        = ProjContext( overall_proj4_str() );
+    }
   }
 
   void GeoReference::update_lon_center() {
   
     // The goal of this function is to determine which of the two standard longitude ranges
     //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
-    // TODO: Allow the user to specify the space on creation!!!
-  
-    //m_center_lon_zero = true; 
-    //return; // DEBUG
     
+    // UTM projections always center on 0.
     if (m_proj_projection_str.find("+proj=utm") != std::string::npos) {
       m_center_lon_zero = true;
-      std::cout << "UTM projections always center on 0.\n";
+      //std::cout << "UTM projections always center on 0.\n";
       clear_proj4_over();
       return;
     }
-    
+
+    // Ortho projections are tricky because pixel 0,0 may not project.
+    // - Pick the longitude range where the center is closer to the projection center.
+    if (m_proj_projection_str.find("+proj=ortho") != std::string::npos) {
+      double lon0=0;
+      m_center_lon_zero = true;
+      if (extract_proj4_value(m_proj_projection_str, "+lon_0", lon0)) {
+        // If the projection center is closer to 180 than it is to 0,
+        //  set 180 as the projection center.
+        double diff0   = degree_diff(lon0,   0);
+        double diff180 = degree_diff(lon0, 180);
+        if (diff180 < diff0) {
+          std::cout << "Setting ortho projection center around 180.\n";
+          m_center_lon_zero = false;
+        }
+      }
+      if (m_center_lon_zero)
+        clear_proj4_over();
+      return;
+    }
     
     // Figure out where the 0,0 pixel transforms to in lon/lat.
     // - It is important that we do not normalize here!
-    Vector2 lon_lat_pixel_00 = point_to_lonlat_no_normalize(pixel_to_point(Vector2(0,0)));
+    //std::cout << "proj4 = " << m_proj_projection_str << std::endl;
+    //std::cout << "matrix = " << m_transform << std::endl;
+    Vector2 point_pixel_00   = pixel_to_point(Vector2(0,0));
+    std::cout << "point_pixel_00 = " << point_pixel_00 << std::endl;
+    Vector2 lon_lat_pixel_00 = point_to_lonlat_no_normalize(point_pixel_00);
     std::cout << "lon_lat_pixel_00 = " << lon_lat_pixel_00 << std::endl;
     double start_lon = lon_lat_pixel_00[0]; 
 
@@ -597,7 +644,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
 
   Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 loc) const {
-    if ( ! m_is_projected ) return loc;
+    if ( !m_is_projected ) 
+      return loc;
 
     projXY projected;
     projLP unprojected;

@@ -74,7 +74,7 @@ GeoReference resample( GeoReference const& input, double scale ) {
 }
 
 
-
+/*
 Vector2 georef_point_to_georef_pixel(Vector2 const& proj_pt1,
                                      cartography::GeoReference const& georef1,
                                      cartography::GeoReference const& georef2){
@@ -145,7 +145,7 @@ BBox2 georef_pixel_to_georef_point_bbox(BBox2 pixel_box1,
   cartography::GeoTransform T(georef1, georef2);
   return T.forward_pixel_to_point_bbox(pixel_box1);
 }
-
+*/
 
 
 
