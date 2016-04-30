@@ -15,7 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
+#include <vw/Math/Geometry.h>
 #include <vw/Cartography/GeoReference.h>
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
@@ -350,8 +350,6 @@ namespace cartography {
     size_t length = space_pos - start;
     std::string num_string = proj4_string.substr(eq_pos+1, length);
     value = atof(num_string.c_str());
-    //std::cout << "num_string = " << num_string << std::endl;
-    //std::cout << "value = " << value << std::endl;
     return true;
   }
 
@@ -390,10 +388,10 @@ namespace cartography {
       if (extract_proj4_value(m_proj_projection_str, "+lon_0", lon0)) {
         // If the projection center is closer to 180 than it is to 0,
         //  set 180 as the projection center.
-        double diff0   = degree_diff(lon0,   0);
-        double diff180 = degree_diff(lon0, 180);
+        double diff0   = math::degree_diff(lon0,   0);
+        double diff180 = math::degree_diff(lon0, 180);
         if (diff180 < diff0) {
-          std::cout << "Setting ortho projection center around 180.\n";
+          //std::cout << "Setting ortho projection center around 180.\n";
           m_center_lon_zero = false;
         }
       }
@@ -407,9 +405,9 @@ namespace cartography {
     //std::cout << "proj4 = " << m_proj_projection_str << std::endl;
     //std::cout << "matrix = " << m_transform << std::endl;
     Vector2 point_pixel_00   = pixel_to_point(Vector2(0,0));
-    std::cout << "point_pixel_00 = " << point_pixel_00 << std::endl;
+    //std::cout << "point_pixel_00 = " << point_pixel_00 << std::endl;
     Vector2 lon_lat_pixel_00 = point_to_lonlat_no_normalize(point_pixel_00);
-    std::cout << "lon_lat_pixel_00 = " << lon_lat_pixel_00 << std::endl;
+    //std::cout << "lon_lat_pixel_00 = " << lon_lat_pixel_00 << std::endl;
     double start_lon = lon_lat_pixel_00[0]; 
 
     // Handle the easy cases.
@@ -417,12 +415,12 @@ namespace cartography {
     //   select the range containing its location.
     if (start_lon > 180) {
       m_center_lon_zero = false;
-      std::cout << "Start lon > 180, center on 180.\n";
+      //std::cout << "Start lon > 180, center on 180.\n";
       return;
     }
     if (start_lon < 0) {
       m_center_lon_zero = true;
-      std::cout << "Start lon < 0, center on 0.\n";
+      //std::cout << "Start lon < 0, center on 0.\n";
       clear_proj4_over();
       return;
     }
@@ -436,10 +434,10 @@ namespace cartography {
 
     if (increasing_proj_coords) { // Increasing pixels increases projected coordinate
       m_center_lon_zero = false;
-      std::cout << "Increasing in shared zone, center on 180.\n";
+      //std::cout << "Increasing in shared zone, center on 180.\n";
     } else { // Increasing pixels decreases projected coordinate
       m_center_lon_zero = true;
-      std::cout << "Decreasing in shared zone, center on 0.\n";
+      //std::cout << "Decreasing in shared zone, center on 0.\n";
       clear_proj4_over();
     }
     return;
@@ -638,7 +636,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     }
 
     // Get the longitude into the correct range for this georeference.    
-    lon_lat[0] = normalize_longitude(lon_lat[0], m_center_lon_zero);
+    lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
     return lon_lat;
   }
 
@@ -666,7 +664,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 
     // Get the longitude into the correct range for this georeference.    
-    lon_lat[0] = normalize_longitude(lon_lat[0], m_center_lon_zero);
+    lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
 
     if ( ! m_is_projected ) 
       return lon_lat;

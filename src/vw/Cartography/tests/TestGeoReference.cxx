@@ -257,7 +257,7 @@ TEST( GeoReference, LonLat_to_UTM ) {
     
     // Test lonlat to pixel conversion.
     Vector2 pixel = georef.lonlat_to_pixel(Vector2(longitude, 44.059883787682551));
-    std::cout << std::setprecision(10) << "pixel = " << pixel << std::endl;
+    //std::cout << std::setprecision(10) << "pixel = " << pixel << std::endl;
     const double EPS = 1e-2;
     EXPECT_VECTOR_NEAR( pixel, Vector2(500988.2534,4878523.61), EPS);
 

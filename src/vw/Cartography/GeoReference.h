@@ -35,38 +35,6 @@
 namespace vw {
 namespace cartography {
 
-  /// TODO: Move to a generic location!
-  /// Normalizes a degree longitude value into either the -180 to 180 range (default) or the 0-360 range.
-  inline double normalize_longitude(double lon, bool center_on_zero=true) {
-    const double MULTIPLE = 360.0;
-    if (center_on_zero) {
-      while (lon < -180)
-          lon += MULTIPLE;
-      while (lon >  180)
-          lon -= MULTIPLE;
-    }
-    else {
-      while (lon < 0)
-          lon += MULTIPLE;
-      while (lon > 360)
-          lon -= MULTIPLE;
-    }
-    return lon;
-  }
-
-  // TODO: Move to a generic location!
-  /// Computes the absolute distance between to measurements in degrees, accounting for wraparound.
-  inline double degree_diff(double d1, double d2) {
-    double diff  = fabs(d1 - d2);
-    double diff2 = fabs(d1 - (d2+360));
-    double diff3 = fabs(d1 - (d2-360));
-    if (diff2 < diff)
-      diff = diff2;
-    if (diff3 < diff)
-      diff = diff3;
-    return diff;
-  }
-
   // TODO: Move to a generic location!
   /// Executes a find-replace operation in-place on a string.
   /// - Returns the number of instances replaced.

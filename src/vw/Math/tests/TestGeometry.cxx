@@ -25,6 +25,23 @@
 using namespace vw;
 using namespace vw::math;
 
+TEST(Geometry, DegreeMath) {
+
+  EXPECT_EQ(normalize_longitude( 45, true ),   45);
+  EXPECT_EQ(normalize_longitude(-45, true ),  -45);
+  EXPECT_EQ(normalize_longitude(200, true ), -160);
+  EXPECT_EQ(normalize_longitude(360, true ),    0);
+  EXPECT_EQ(normalize_longitude( 45, false),   45);
+  EXPECT_EQ(normalize_longitude(-30, false),  330);
+  EXPECT_EQ(normalize_longitude(400, false),   40);
+
+  EXPECT_EQ(degree_diff(   0,  120), 120);
+  EXPECT_EQ(degree_diff(   0, -240), 120);
+  EXPECT_EQ(degree_diff( -30,  -50),  20);
+  EXPECT_EQ(degree_diff(-400,  -40),   0);
+  EXPECT_EQ(degree_diff( 350,  -20),  10);
+}
+
 TEST(Geometry, HomographyFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,

@@ -38,8 +38,6 @@
 namespace vw {
 namespace cartography {
 
-
-
   /// Generates a new georeference which covers a sub-region of this georeference object.
   /// - Input coordinates are pixels in the corresponding image
   GeoReference crop( GeoReference const& input,
@@ -53,27 +51,7 @@ namespace cartography {
   /// - A larger scale increases the number of pixels.
   GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
   GeoReference resample( GeoReference const& input, double scale );
-/*
-  // TODO: These functions (like all other georef functions) can fail when the lon coordinates
-  //       are 360 degrees off.  This should be handled in the georef functions.
 
-  /// Given a projected coordinate in georef1, convert it to a pixel coordinate in georef2.
-  Vector2 georef_point_to_georef_pixel(Vector2 const& proj_pt1,
-                                       cartography::GeoReference const& georef1,
-                                       cartography::GeoReference const& georef2);
-
-  /// Given bounding box of projected coordinates in georef1, convert it to pixel coordinates in georef2.
-  BBox2 georef_point_to_georef_pixel_bbox(BBox2 point_box1,
-                                          cartography::GeoReference const& georef1,
-                                          cartography::GeoReference const& georef2);
-
-
-  /// Given a bounding box of pixels in georef1, convert it to projected coordinates in georef2.
-  BBox2 georef_pixel_to_georef_point_bbox(BBox2 pixel_box1,
-                                          cartography::GeoReference const& georef1,
-                                          cartography::GeoReference const& georef2);
-
-*/
 
   /// The following namespace contains functions that return GeoReferences
   /// for certain well-known output styles, such as KML (and related
