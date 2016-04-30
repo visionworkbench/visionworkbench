@@ -128,12 +128,18 @@ TEST( DiskImageResource , Raw ) {
   EXPECT_EQ(view.rows(), format.rows);
   EXPECT_EQ(64, view(82, 109));
   
-  // Check that we can write the image using the block writer
-  DiskImageResourceGDAL gdal_resource("bil_test.tif", view.impl().format());
-  ASSERT_NO_THROW(block_write_image(gdal_resource, view));
+  // Check that we can write the image using the block writer.
+  // To ensure the image is completely written, force gdal_resource
+  // to go out of scope.
+  {
+    DiskImageResourceGDAL gdal_resource("bil_test.tif", view.impl().format());
+    ASSERT_NO_THROW(block_write_image(gdal_resource, view));
+  }
+
+  // Now read it back
   boost::shared_ptr<DiskImageResource> gdal_resource2;
   ASSERT_NO_THROW(gdal_resource2.reset(DiskImageResource::open("bil_test.tif")));
-  
+
   // Test that the default loader behaves as expected
   boost::shared_ptr<DiskImageResource> generic_resource_ptr;
   EXPECT_THROW(generic_resource_ptr.reset(DiskImageResource::open("sample.BIL")), vw::NoImplErr); 
