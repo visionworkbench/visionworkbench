@@ -31,6 +31,37 @@ namespace vw {
 namespace cartography {
 
 
+
+
+
+
+
+
+GdalWriteOptions::GdalWriteOptions() {
+#if defined(VW_HAS_BIGTIFF) && VW_HAS_BIGTIFF == 1
+  gdal_options["COMPRESS"] = "LZW";
+#else
+  gdal_options["COMPRESS"] = "NONE";
+  gdal_options["BIGTIFF"] = "NO";
+#endif
+  raster_tile_size = Vector2i(vw_settings().default_tile_size(),
+                              vw_settings().default_tile_size());
+}
+
+
+
+GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt ) {
+  namespace po = boost::program_options;
+  (*this).add_options()
+    ("threads", po::value(&opt.num_threads)->default_value(0),
+     "Select the number of processors (threads) to use.")
+    ("no-bigtiff", "Tell GDAL to not create bigtiffs.")
+    ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
+     "TIFF Compression method. [None, LZW, Deflate, Packbits]")
+    ("version,v", "Display the version of software.")
+    ("help,h", "Display this help message.");
+}
+
 GeoReference crop( GeoReference const& input,
                    double upper_left_x, double upper_left_y,
                    double /*width*/, double /*height*/ ) {

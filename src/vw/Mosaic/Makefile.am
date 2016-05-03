@@ -24,6 +24,7 @@ if MAKE_MODULE_MOSAIC
 
 include_HEADERS = \
   CelestiaQuadTreeConfig.h \
+  DiskImagePyramid.h \
   GigapanQuadTreeConfig.h \
   GMapQuadTreeConfig.h \
   ImageComposite.h \

@@ -35,20 +35,6 @@
 namespace vw {
 namespace cartography {
 
-  // TODO: Move to a generic location!
-  /// Executes a find-replace operation in-place on a string.
-  /// - Returns the number of instances replaced.
-  inline size_t string_replace(std::string &s, std::string const& find, std::string const& replace) {
-    // Keep replacing the first match found until we don't find any more.
-    size_t count = 0;
-    while (true) {
-      size_t pos = s.find(find);
-      if (pos == std::string::npos)
-        return count;
-      s.replace(pos, find.length(), replace);
-      ++count;
-    }
-  }
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also

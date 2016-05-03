@@ -36,6 +36,7 @@ include_HEADERS = \
   ProgressCallback.h \
   RunOnce.h \
   Settings.h \
+  StringUtils.h \
   Stopwatch.h \
   System.h \
   Thread.h \
@@ -52,6 +53,7 @@ libvwCore_la_SOURCES = \
   Log.cc \
   ProgressCallback.cc \
   Settings.cc \
+  StringUtils.cc \
   Stopwatch.cc \
   System.cc \
   Thread.cc \

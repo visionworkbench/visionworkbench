@@ -77,3 +77,33 @@ TEST(GeoReferenceUtils, CropAndResample) {
 
 
 
+TEST( Common, gdal_write_checks ) {
+
+  // Init a georef, the numbers are pretty arbitrary, it just must be valid
+  cartography::GeoReference georef;
+  georef.set_geographic();
+  georef.set_proj4_projection_str("+proj=longlat +a=3396190 +b=3396190 +no_defs ");
+  georef.set_well_known_geogcs("D_MARS");
+  Matrix3x3 affine;
+  affine(0,0) = 0.01; // 100 pix/degree
+  affine(1,1) = -0.01; // 100 pix/degree
+  affine(2,2) = 1;
+  affine(0,2) = 30;   // 30 deg east
+  affine(1,2) = -35;  // 35 deg south
+  georef.set_transform(affine);
+
+  // For the test below to pass, the files must be present.
+  ImageView<float> dem(100, 100);
+  double nodata = -1000;
+  bool has_nodata = true, has_georef = true;
+  TerminalProgressCallback tpc("vw", "");
+  BaseOptions opt;
+
+  block_write_gdal_image("img1.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+  block_write_gdal_image("img2.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+  block_write_gdal_image("img3.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+  block_write_gdal_image("img4.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+  block_write_gdal_image("dem.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+
+
+} // End test StereoMultiCmdCheck

@@ -31,6 +31,9 @@
 #include <boost/scoped_ptr.hpp>
 */
 
+#include <boost/program_options.hpp>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+
 #include <vw/Cartography/GeoReference.h>
 
 /// \file GeoReferenceUtils.h Tools for working with GeoReferenc objects
@@ -51,6 +54,310 @@ namespace cartography {
   /// - A larger scale increases the number of pixels.
   GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
   GeoReference resample( GeoReference const& input, double scale );
+
+
+
+
+  /// Standard options for multi-threaded GDAL (tif) image writing.
+  struct GdalWriteOptions {
+    DiskImageResourceGDAL::Options gdal_options;
+    Vector2i     raster_tile_size;
+    int32        num_threads;
+    std::string  tif_compress;
+
+    GdalWriteOptions();
+  };
+
+  /// An object to let Program Options know about our GdalWriteOptions
+  struct GdalWriteOptionsDescription : public boost::program_options::options_description {
+    GdalWriteOptionsDescription( GdalWriteOptions& opt);
+  };
+
+
+  //---------------------------------------------------------------------------
+  // Functions for writing GDAL images - multithreaded.
+
+
+  template <class ImageT>
+  DiskImageResourceGDAL*
+  build_gdal_rsrc( const std::string &filename,
+                   ImageViewBase<ImageT> const& image,
+                   GdalWriteOptions const& opt ) {
+    return new DiskImageResourceGDAL(filename, image.impl().format(),
+                                         opt.raster_tile_size, opt.gdal_options);
+  }
+
+  /// Multi-threaded block write image with, if available, nodata, georef, and
+  /// keywords to geoheader.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              bool has_georef,
+                              cartography::GeoReference const& georef,
+                              bool has_nodata, double nodata,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback =
+                              ProgressCallback::dummy_instance(),
+                              std::map<std::string, std::string> const& keywords =
+                              std::map<std::string, std::string>() );
+
+  /// Block write image without georef and nodata.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback =
+                              ProgressCallback::dummy_instance(),
+                              std::map<std::string, std::string> const& keywords =
+                              std::map<std::string, std::string>() );
+
+  /// Block write image with nodata.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              double nodata,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback =
+                              ProgressCallback::dummy_instance(),
+                              std::map<std::string, std::string> const& keywords =
+                              std::map<std::string, std::string>() );
+
+  //---------------------------------------------------------------------------
+  // Functions for writing GDAL images - single threaded.
+
+  /// Single-threaded write image with, if available, nodata, georef, and
+  /// keywords to geoheader.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        bool has_georef,
+                        cartography::GeoReference const& georef,
+                        bool has_nodata, double nodata,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback
+                        = ProgressCallback::dummy_instance(),
+                        std::map<std::string, std::string> const& keywords
+                        = std::map<std::string, std::string>() );
+
+
+  /// Single-threaded write image with georef and keywords to geoheader.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        cartography::GeoReference const& georef,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback
+                        = ProgressCallback::dummy_instance(),
+                        std::map<std::string, std::string> const& keywords
+                        = std::map<std::string, std::string>() );
+
+  /// Single-threaded write image with georef, nodata, and keywords to geoheader.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        cartography::GeoReference const& georef,
+                        double nodata,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback
+                        = ProgressCallback::dummy_instance(),
+                        std::map<std::string, std::string> const& keywords
+                        = std::map<std::string, std::string>() );
+
+  /// Single-threaded write image.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback
+                        = ProgressCallback::dummy_instance(),
+                        std::map<std::string, std::string> const& keywords
+                        = std::map<std::string, std::string>() );
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Multi-threaded block write image with, if available, nodata, georef, and
+  // keywords to geoheader.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              bool has_georef,
+                              cartography::GeoReference const& georef,
+                              bool has_nodata, double nodata,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback,
+                              std::map<std::string, std::string> const& keywords) {
+
+    boost::scoped_ptr<DiskImageResourceGDAL>
+      rsrc( build_gdal_rsrc( filename, image, opt ) );
+
+    if (has_nodata)
+      rsrc->set_nodata_write(nodata);
+
+    for (std::map<std::string, std::string>::const_iterator i = keywords.begin();
+         i != keywords.end(); i++)
+      cartography::write_header_string(*rsrc, i->first, i->second);
+
+    if (has_georef)
+      cartography::write_georeference(*rsrc, georef);
+
+    block_write_image( *rsrc, image.impl(), progress_callback );
+  }
+
+  // Block write image without georef and nodata.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback,
+                              std::map<std::string, std::string> const& keywords) {
+    bool has_nodata = false;
+    bool has_georef = false;
+    float nodata = std::numeric_limits<float>::quiet_NaN();
+    cartography::GeoReference georef;
+    block_write_gdal_image(filename, image, has_georef, georef,
+                           has_nodata, nodata, opt,
+                           progress_callback, keywords);
+  }
+
+
+  // Block write image with nodata.
+  template <class ImageT>
+  void block_write_gdal_image(const std::string &filename,
+                              ImageViewBase<ImageT> const& image,
+                              double nodata,
+                              GdalWriteOptions const& opt,
+                              ProgressCallback const& progress_callback,
+                              std::map<std::string, std::string> const& keywords) {
+    bool has_nodata = true;
+    bool has_georef = false;
+    cartography::GeoReference georef;
+    block_write_gdal_image(filename, image, has_georef, georef,
+                           has_nodata, nodata, opt,
+                           progress_callback, keywords);
+  }
+
+  // Single-threaded write functions.
+
+  // Single-threaded write image with, if available, nodata, georef, and
+  // keywords to geoheader.
+
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        bool has_georef,
+                        cartography::GeoReference const& georef,
+                        bool has_nodata, double nodata,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback,
+                        std::map<std::string, std::string> const& keywords) {
+
+    boost::scoped_ptr<DiskImageResourceGDAL>
+      rsrc( build_gdal_rsrc( filename, image, opt ) );
+
+    if (has_nodata)
+      rsrc->set_nodata_write(nodata);
+
+    for (std::map<std::string, std::string>::const_iterator i = keywords.begin();
+         i != keywords.end(); i++)
+      cartography::write_header_string(*rsrc, i->first, i->second);
+
+    if (has_georef)
+      cartography::write_georeference(*rsrc, georef);
+
+    write_image( *rsrc, image.impl(), progress_callback );
+  }
+
+
+  // Single-threaded write image with georef and keywords to geoheader.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        cartography::GeoReference const& georef,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback,
+                        std::map<std::string, std::string> const& keywords) {
+
+    bool has_georef = true;
+    bool has_nodata = false;
+    float nodata = std::numeric_limits<float>::quiet_NaN();
+
+    write_gdal_image(filename, image, has_georef, georef,
+                     has_nodata, nodata, opt, progress_callback,
+                     keywords);
+  }
+
+  // Single-threaded write image with georef, nodata, and keywords to geoheader.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        cartography::GeoReference const& georef,
+                        double nodata,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback,
+                        std::map<std::string, std::string> const& keywords) {
+
+    bool has_georef = true;
+    bool has_nodata = true;
+    write_gdal_image(filename, image, has_georef, georef,
+                     has_nodata, nodata, opt, progress_callback,
+                     keywords);
+  }
+
+  // Single-threaded write image.
+  template <class ImageT>
+  void write_gdal_image(const std::string &filename,
+                        ImageViewBase<ImageT> const& image,
+                        GdalWriteOptions const& opt,
+                        ProgressCallback const& progress_callback,
+                        std::map<std::string, std::string> const& keywords) {
+
+    bool has_nodata = false;
+    bool has_georef = false;
+    float nodata = std::numeric_limits<float>::quiet_NaN();
+    cartography::GeoReference georef;
+    write_gdal_image(filename, image, has_georef, georef,
+                     has_nodata, nodata, opt, progress_callback,
+                     keywords);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   /// The following namespace contains functions that return GeoReferences

@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <vw/Core/StringUtils.h>
 #include <vw/Math/Geometry.h>
 #include <vw/Cartography/GeoReference.h>
 
