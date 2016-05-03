@@ -274,10 +274,6 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
     GeoTransform geotx( input_georef, output_georef );
 
-    // Even though the output georeference starts at -180, and input georef may start
-    // close to 180, here we don't want to correct for this discrepancy.
-    geotx.set_offset(Vector2(0, 0));
-
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
     // Handle nodata values/mask

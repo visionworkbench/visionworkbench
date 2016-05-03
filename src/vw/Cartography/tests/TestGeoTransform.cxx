@@ -147,7 +147,7 @@ TEST(GeoTransform, RefToRef) {
   //std::cout << "pixel1 = "       << pixel1 << std::endl;
   //std::cout << "point1 = "       << point1 << std::endl;
   
-  Vector2 lonlat = georef1.point_to_lonlat(point1);
+  //Vector2 lonlat = georef1.point_to_lonlat(point1);
   //Vector2 point2 = georef2.lonlat_to_point(lonlat);
   //Vector2 pixel2 = georef2.point_to_pixel(point2);
   //std::cout << "lonlat = " << lonlat << std::endl;

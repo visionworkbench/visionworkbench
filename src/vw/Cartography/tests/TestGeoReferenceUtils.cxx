@@ -97,7 +97,7 @@ TEST( Common, gdal_write_checks ) {
   double nodata = -1000;
   bool has_nodata = true, has_georef = true;
   TerminalProgressCallback tpc("vw", "");
-  BaseOptions opt;
+  GdalWriteOptions opt;
 
   block_write_gdal_image("img1.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
   block_write_gdal_image("img2.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);

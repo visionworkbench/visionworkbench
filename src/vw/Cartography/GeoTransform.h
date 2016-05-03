@@ -44,7 +44,6 @@ namespace cartography {
                  m_dst_datum_proj;
     bool         m_skip_map_projection;
     bool         m_skip_datum_conversion;
-    Vector2      m_offset; // TODO delete
 
   public:
     /// Normal constructor
@@ -102,10 +101,6 @@ namespace cartography {
     /// Convert a point bounding box in the source to a pixel bounding box in the destination.
     BBox2 point_to_pixel_bbox( BBox2 const& point_bbox ) const;
 
-
-    /// Sometimes the offset is not computed correctly, for example, when one
-    /// of the two georeferenced images encompasses the whole globe.
-    void set_offset(Vector2 const& offset);
     
   }; // End class GeoTransform
 

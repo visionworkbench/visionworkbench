@@ -36,43 +36,7 @@ namespace cartography {
   // Constructor
   GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
                              BBox2i const& src_bbox, BBox2i const& dst_bbox) :
-    m_src_georef(src_georef), m_dst_georef(dst_georef), m_offset(Vector2(0, 0)) {
-
-    // Deal with the fact that longitudes could differ by 360 degrees
-
-    // between src and dst.
-    if (src_bbox.empty() || dst_bbox.empty()) {
-      // If we don't know the image areas, simply use the 0, 0 corner
-      try {
-        Vector2 src_origin = src_georef.pixel_to_lonlat(Vector2(0, 0));
-        Vector2 dst_origin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
-        m_offset = Vector2( 360.0*round( (dst_origin[0] - src_origin[0])/360.0 ), 0.0 );
-            }catch ( const std::exception & e ) {
-        m_offset = Vector2(0, 0);
-      }
-    } else{
-	
-      // Try to offset by 360 degrees until the lon-lat boxes are most compatible,
-      // measured by how close the centers of the boxes are.
-	
-      BBox2 src_lonlat_box = src_georef.pixel_to_lonlat_bbox(src_bbox);
-      BBox2 dst_lonlat_box = dst_georef.pixel_to_lonlat_bbox(dst_bbox);
-      std::vector<double> shift, dist_vec;
-      for (int val = -360; val <= 360; val+= 360) {
-        shift.push_back(val);
-        BBox2 shifted_src = src_lonlat_box + Vector2(val, 0);
-          
-        // Distance between centers of boxes. The smaller it is, the better.
-        double dist = norm_2((shifted_src.min() + shifted_src.max())/2.0
-                      - (dst_lonlat_box.min() + dst_lonlat_box.max())/2.0);
-        dist_vec.push_back(dist);
-      }
-      int min_index = std::distance(dist_vec.begin(), min_element(dist_vec.begin(), dist_vec.end()));
-      m_offset = Vector2(shift[min_index], 0);
-    }
-    
-    //std::cout << "Geotransform: m_offset = " << m_offset << std::endl;
-    m_offset = Vector2(0, 0); // Disable offset code!
+    m_src_georef(src_georef), m_dst_georef(dst_georef) {
     
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
@@ -84,14 +48,6 @@ namespace cartography {
       m_skip_map_projection = true;
     else
       m_skip_map_projection = false;
-
-    // Bugfix: If one of the projections is lon-lat, and the offset is 360 degrees,
-    // don't skip map-projection, as have to correct for the offset.
-    bool has_lonat = (m_src_georef.proj4_str().find("+proj=longlat") != std::string::npos ||
-                      m_dst_georef.proj4_str().find("+proj=longlat") != std::string::npos );
-    if (has_lonat && m_offset != Vector2()) {
-      m_skip_map_projection = false;
-    }
 
     // This optimizes the case where the two datums are the same,
     // and thus we don't need to call proj to convert between them
@@ -119,14 +75,11 @@ namespace cartography {
     set_tolerance( 0.1 );
   }
 
-  void GeoTransform::set_offset(Vector2 const& offset){
-    m_offset = offset;
-  }
 
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
-    Vector2 src_lonlat = m_dst_georef.pixel_to_lonlat(v) - m_offset;
+    Vector2 src_lonlat = m_dst_georef.pixel_to_lonlat(v);
     if(m_skip_datum_conversion)
       return m_src_georef.lonlat_to_pixel(src_lonlat);
     src_lonlat = lonlat_to_lonlat(src_lonlat, false);
@@ -137,7 +90,7 @@ namespace cartography {
   Vector2 GeoTransform::forward(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-    Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
+    Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v);
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(dst_lonlat);
     dst_lonlat = lonlat_to_lonlat(dst_lonlat, true);
@@ -192,7 +145,7 @@ namespace cartography {
   Vector2 GeoTransform::pixel_to_point( Vector2 const& v ) const {
     if (m_skip_map_projection)
       return m_src_georef.pixel_to_point(v);
-    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
+    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_point(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
@@ -202,7 +155,7 @@ namespace cartography {
   Vector2 GeoTransform::point_to_pixel( Vector2 const& v ) const {
     if (m_skip_map_projection)
       return m_src_georef.point_to_pixel(v);
-    Vector2 src_lonlat = m_src_georef.point_to_lonlat(v) + m_offset;
+    Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
