@@ -25,15 +25,20 @@
 using namespace vw;
 using namespace vw::math;
 
+
 TEST(Geometry, DegreeMath) {
 
-  EXPECT_EQ(normalize_longitude( 45, true ),   45);
-  EXPECT_EQ(normalize_longitude(-45, true ),  -45);
-  EXPECT_EQ(normalize_longitude(200, true ), -160);
-  EXPECT_EQ(normalize_longitude(360, true ),    0);
-  EXPECT_EQ(normalize_longitude( 45, false),   45);
-  EXPECT_EQ(normalize_longitude(-30, false),  330);
-  EXPECT_EQ(normalize_longitude(400, false),   40);
+  EXPECT_EQ(normalize_longitude(  45, true ),   45);
+  EXPECT_EQ(normalize_longitude( -45, true ),  -45);
+  EXPECT_EQ(normalize_longitude( 200, true ), -160);
+  EXPECT_EQ(normalize_longitude( 360, true ),    0);
+  EXPECT_EQ(normalize_longitude(  45, false),   45);
+  EXPECT_EQ(normalize_longitude( -30, false),  330);
+  EXPECT_EQ(normalize_longitude( 400, false),   40);
+  EXPECT_EQ(normalize_longitude( 180, true ),  180);
+  EXPECT_EQ(normalize_longitude(-180, true ), -180);
+  EXPECT_EQ(normalize_longitude(   0, true ),    0);
+  EXPECT_EQ(normalize_longitude(   0, false),    0);
 
   EXPECT_EQ(degree_diff(   0,  120), 120);
   EXPECT_EQ(degree_diff(   0, -240), 120);

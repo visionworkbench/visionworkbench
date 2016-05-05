@@ -151,11 +151,22 @@ namespace cartography {
   }
 
 
+  Vector2 GeoTransform::point_to_point( Vector2 const& v ) const {
+    if (m_skip_map_projection)
+      return v;
+    Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
+    if(m_skip_datum_conversion)
+      return m_dst_georef.lonlat_to_point(src_lonlat);
+    Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
+    return m_dst_georef.lonlat_to_point(dst_lonlat);
+  }
+
 
   Vector2 GeoTransform::pixel_to_point( Vector2 const& v ) const {
+    Vector2 src_point = m_src_georef.pixel_to_point(v);
     if (m_skip_map_projection)
-      return m_src_georef.pixel_to_point(v);
-    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+      return src_point;
+    Vector2 src_lonlat = m_src_georef.point_to_lonlat(src_point);
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_point(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
@@ -164,7 +175,7 @@ namespace cartography {
 
   Vector2 GeoTransform::point_to_pixel( Vector2 const& v ) const {
     if (m_skip_map_projection)
-      return m_src_georef.point_to_pixel(v);
+      return m_dst_georef.point_to_pixel(v);
     Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
@@ -281,6 +292,14 @@ namespace cartography {
     }
 
     return grow_bbox_to_int(out_box);
+  }
+
+  std::ostream& operator<<(std::ostream& os, const GeoTransform& trans) {   
+    os << "Source Georef  : \n"       << trans.m_src_georef << "\n";
+    os << "Dest Georef  : \n"         << trans.m_dst_georef << "\n";
+    os << "skip_map_projection: "     << trans.m_skip_map_projection << "\n";
+    os << "skip_datum_conversion: " << trans.m_skip_datum_conversion << "\n";
+    return os;
   }
 
 

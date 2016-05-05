@@ -22,24 +22,26 @@
 
 if MAKE_MODULE_MATH
 
+# TODO: This should be required
 if HAVE_PKG_LAPACK
-lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h PoseEstimation.h LapackExports.h
-lapack_sources = LapackExports.cc Geometry.cc
+lapack_headers = LinearAlgebra.h LevenbergMarquardt.h PoseEstimation.h LapackExports.h
+lapack_sources = LapackExports.cc
 endif
 
+# TODO: This should be required
 if HAVE_PKG_FLANN
 flann_headers = FLANNTree.h
 flann_sources = FLANNTree.cc
 endif
 
-include_HEADERS = Vector.h Matrix.h BBox.h BBox.tcc Functions.h Functors.h	\
+include_HEADERS = Geometry.h Vector.h Matrix.h BBox.h BBox.tcc Functions.h Functors.h	\
 		  Quaternion.h EulerAngles.h ConjugateGradient.h	\
 		  NelderMead.h Statistics.h DisjointSet.h		\
 		  MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
 		  BresenhamLine.h GaussianClustering.h \
 		  RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
 
-libvwMath_la_SOURCES = Quaternion.cc MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)
+libvwMath_la_SOURCES = Geometry.cc Quaternion.cc MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la

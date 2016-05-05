@@ -86,6 +86,9 @@ namespace cartography {
     /// Convert a pixel in the source to a pixel in the destination.
     Vector2 pixel_to_pixel( Vector2 const& v ) const {return forward(v);}
 
+    /// Convert a point in the source to a point (projected coords) in the destination.
+    Vector2 point_to_point( Vector2 const& v ) const;
+
     /// Convert a pixel in the source to a point (projected coords) in the destination.
     Vector2 pixel_to_point( Vector2 const& v ) const;
 
@@ -108,8 +111,11 @@ namespace cartography {
     BBox2 point_to_pixel_bbox( BBox2 const& point_bbox ) const;
 
     
+    friend std::ostream& operator<<(std::ostream& os, const GeoTransform& trans);
   }; // End class GeoTransform
 
+  /// Format a GeoTransform to a text stream (for debugging)
+  std::ostream& operator<<(std::ostream& os, const GeoTransform& trans);
 
 
   // ---------------------------------------------------------------------------

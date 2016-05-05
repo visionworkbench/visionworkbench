@@ -23,8 +23,50 @@
 
 #include <math.h>
 
+namespace vw{
+namespace math{
+
+double normalize_longitude(double lon, bool center_on_zero) {
+  const double MULTIPLE = 360.0;
+  double min, max;
+  if (center_on_zero) {
+    min=-180.0;
+    max= 180.0;
+  } else {
+    min=  0.0;
+    max=360.0;
+  }
+ 
+  if (lon < min){
+    double factor = (min - lon) / MULTIPLE;
+    lon += MULTIPLE*ceil(factor);
+  }
+  if (lon > max){
+    double factor = (lon - max) / MULTIPLE;
+    lon -= MULTIPLE*ceil(factor);
+  }
+   
+  return lon;
+}
+
+
+double degree_diff(double d1, double d2) {
+  double diff  = fabs(d1 - d2);
+  double diff2 = fabs(d1 - (d2+360));
+  double diff3 = fabs(d1 - (d2-360));
+  if (diff2 < diff)
+    diff = diff2;
+  if (diff3 < diff)
+    diff = diff3;
+  return diff;
+}
+
+
+}} // End namespace vw::math
+
 using namespace vw;
 using namespace vw::math;
+
 
 /// Solve for Normalization Similarity Matrix used for noise rej.
 Matrix3x3

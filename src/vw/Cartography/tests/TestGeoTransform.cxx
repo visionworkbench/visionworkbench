@@ -109,6 +109,47 @@ TEST( GeoTransform, StereographicSingularity ) {
   EXPECT_NEAR( 0, output.min()[1], 2 );
 }
 
+TEST(GeoTransform, skipProjectionTest) {
+
+  // Test GeoTransform functions when the skip_map_projection flag is set.
+
+  Matrix3x3 affine;
+  Datum d("WGS72");
+
+  affine(0,0) =  0.01; // degrees per pixel
+  affine(1,1) = -0.01; // degrees per pixel
+  affine(2,2) = 1;
+  affine(0,2) = 100.0; // Degrees
+  affine(1,2) = 30.0;
+  
+  GeoReference georef1(d, affine, GeoReference::PixelAsPoint);
+
+  affine(0,0) =  0.02; // degrees per pixel
+  affine(1,1) = -0.02; // degrees per pixel
+  
+  GeoReference georef2(d, affine, GeoReference::PixelAsPoint);
+  
+  georef1.set_proj4_projection_str("+proj=longlat +ellps=WGS72 +no_defs");
+  georef2.set_proj4_projection_str("+proj=longlat +ellps=WGS72 +no_defs");
+
+  GeoTransform trans(georef1, georef2);
+
+  // georef2 is half the pixel resolution as georef1, so the pixel coordinates
+  // should be halved but the projected coordinates should be the same.
+
+  Vector2 pixel1 = Vector2(10.0,20.0);
+  Vector2 point1 = georef1.pixel_to_point(pixel1);
+  
+  Vector2 pixel2  = trans.point_to_pixel(point1);
+  Vector2 point2  = trans.pixel_to_point(pixel1);
+  Vector2 point2b = trans.point_to_point(point1); // Should be same result
+
+  const double EPS = 1e-4;
+  EXPECT_VECTOR_NEAR(pixel2, Vector2(5.0, 10.0), EPS);
+  EXPECT_VECTOR_NEAR(point1, point2,  EPS);
+  EXPECT_VECTOR_NEAR(point2, point2b, EPS);
+
+}
 
 TEST(GeoTransform, RefToRef) {
   
