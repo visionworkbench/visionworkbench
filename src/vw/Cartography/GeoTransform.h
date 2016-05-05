@@ -46,10 +46,16 @@ namespace cartography {
     bool         m_skip_datum_conversion;
 
   public:
+  
+    /// Default constructor, does not generate a usable object.
+    GeoTransform() {}
+  
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
                  BBox2i const& src_bbox = BBox2i(0, 0, 0, 0),
                  BBox2i const& dst_bbox = BBox2i(0, 0, 0, 0));
+
+    GeoTransform& operator=(GeoTransform const& other);
 
     //---------------------------------------------------------------
     // These functions implement the Transform interface and allow

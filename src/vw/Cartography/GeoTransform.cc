@@ -75,6 +75,16 @@ namespace cartography {
     set_tolerance( 0.1 );
   }
 
+  GeoTransform& GeoTransform::operator=(GeoTransform const& other) {
+    m_src_georef            = other.m_src_georef;
+    m_dst_georef            = other.m_dst_georef;
+    m_src_datum_proj        = other.m_src_datum_proj;
+    m_dst_datum_proj        = other.m_dst_datum_proj;
+    m_skip_map_projection   = other.m_skip_map_projection;
+    m_skip_datum_conversion = other.m_skip_datum_conversion;
+    return *this;
+  }
+
 
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
     if (m_skip_map_projection)
