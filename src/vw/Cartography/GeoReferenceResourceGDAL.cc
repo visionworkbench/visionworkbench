@@ -76,6 +76,13 @@ namespace cartography {
       return false;
     }
 
+    // Update the longitude center of the georef using the image size.
+    int cols = resource.format().cols;
+    int rows = resource.format().rows; 
+    BBox2 image_bbox(0,0,cols, rows);
+    georef.update_lon_center(image_bbox);
+    
+
     // Georeference functions need not be invertible.  When we perform
     // a reverse lookup (e.g. during a geotransformation) we rely on
     // PROJ.4 to pick one possible value.  However, the georeference
@@ -87,9 +94,6 @@ namespace cartography {
     // user) by checking whether forward- and reverse-projecting the
     // four corner pixels lands us back at the same pixel.
     
-    // Test pixels at the four corners of the image.
-    int cols = resource.format().cols;
-    int rows = resource.format().rows; 
     std::vector<Vector2> test_pixels(4);
     test_pixels[0] = Vector2(0,     0);
     test_pixels[1] = Vector2(0,     rows-1);
@@ -110,6 +114,7 @@ namespace cartography {
           resource.filename() << " contains a non-normal georeference." << std::endl;
       }
     }
+    
     return true;
   }
 

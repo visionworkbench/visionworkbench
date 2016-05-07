@@ -214,4 +214,55 @@ TEST(GeoTransform, RefToRef) {
 }
 
 
+/*
+TEST(GeoTransform, bboxTest) {
+
+  // 
+
+  Matrix3x3 affine;
+  Datum d("D_MOON");
+
+  affine(0,0) =  0.02; // degrees per pixel
+  affine(1,1) = -0.02; // degrees per pixel
+  affine(2,2) = 1;
+  affine(0,2) = -1.0; // Degrees
+  affine(1,2) = 20.0;
+  
+  GeoReference georef1(d, affine);
+
+  // This georef will cross the 0 degree line
+  affine(0,2) = 50.0; // Degrees
+  affine(1,2) = 20.0; // 
+  
+  GeoReference georef2(d, affine);
+  
+  georef1.set_proj4_projection_str("+proj=longlat");
+  georef2.set_proj4_projection_str("+proj=longlat");
+
+  GeoTransform trans(georef1, georef2);
+
+  BBox2 pixel_bbox1  = BBox2(0, 0, 173, 200);
+  //BBox2 proj_bbox1   = georef1.pixel_to_point_bbox(pixel_bbox1);
+  //BBox2 lonlat_bbox2 = trans.pixel_to_lonlat_bbox(pixel_bbox1);
+  BBox2 point_bbox2  = trans.pixel_to_point_bbox(pixel_bbox1);
+  BBox2 pixel_bbox2  = trans.pixel_to_pixel_bbox(pixel_bbox1);
+
+
+  Vector2 p1 = trans.pixel_to_pixel(pixel_bbox1.min());
+  Vector2 p2 = trans.pixel_to_pixel(pixel_bbox1.max());
+  std::cout << "p1 "  << p1 << std::endl;
+  std::cout << "p2 "  << p2 << std::endl;
+  
+  //std::cout << "lonlat_bbox2 " << lonlat_bbox2 << std::endl;
+  std::cout << "point_bbox2 "  << point_bbox2 << std::endl;
+  std::cout << "pixel_bbox2 "  << pixel_bbox2 << std::endl;
+  
+  EXPECT_TRUE(false);
+  
+  const double EPS = 1e-4;
+  //EXPECT_VECTOR_NEAR(pixel2, Vector2(5.0, 10.0), EPS);
+  //EXPECT_VECTOR_NEAR(point1, point2,  EPS);
+  //EXPECT_VECTOR_NEAR(point2, point2b, EPS);
+
+}*/
 

@@ -130,7 +130,7 @@ namespace cartography {
     void init_proj();
 
     
-    void update_lon_center(); ///< Updates m_center_lon_zero
+    void update_lon_center_private(); ///< Updates m_center_lon_zero
     void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
 
     /// Version of the public function that does not perform normalization
@@ -173,6 +173,10 @@ namespace cartography {
 
     void set_transform(Matrix<double,3,3> transform);
     void set_datum(Datum const& datum);
+
+    /// Recompute the longitude center taking into account the given pixel bbox.
+    /// - This method will choose the -180 to 180 range if it will work.
+    void update_lon_center(BBox2 const& pixel_bbox);
 
     PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
     void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }

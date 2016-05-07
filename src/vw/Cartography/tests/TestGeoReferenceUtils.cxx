@@ -77,7 +77,7 @@ TEST(GeoReferenceUtils, CropAndResample) {
 
 
 
-TEST( Common, gdal_write_checks ) {
+TEST( GeoReferenceUtils, gdal_write_checks ) {
 
   // Init a georef, the numbers are pretty arbitrary, it just must be valid
   cartography::GeoReference georef;
@@ -104,6 +104,20 @@ TEST( Common, gdal_write_checks ) {
   block_write_gdal_image("img3.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
   block_write_gdal_image("img4.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
   block_write_gdal_image("dem.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
+} 
+
+TEST( GeoReferenceUtils, gdal_read_checks) {
+  // Verify that our GDAL read function assigns the -180 to 180
+  // longitude range to this image that could go either way.
+  GeoReference georef;
+  EXPECT_TRUE(read_georeference(georef, "dem.tif"));
+  EXPECT_TRUE(georef.is_lon_center_around_zero());
+}
 
 
-} // End test StereoMultiCmdCheck
+
+
+
+
+
+

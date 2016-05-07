@@ -145,8 +145,7 @@ TEST( GeoReference, BasicProjections ) {
   pix = georef.point_to_pixel(Vector2(500,500));
   EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(500,500) );
 
-  // Whip up a home-brew sinusoidal projection for testing against
-  // proj.4
+  // Whip up a home-brew sinusoidal projection for testing against proj.4
   double lon = 20;
   double lat = 15;
   double meters_per_degree = d.semi_major_axis() * M_PI * 2.0/360.0;

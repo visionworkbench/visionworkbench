@@ -110,15 +110,16 @@ namespace cartography {
 
   BBox2i GeoTransform::forward_bbox( BBox2i const& bbox ) const {
     BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::forward_bbox(bbox);
-    BresenhamLine l1( bbox.min(), bbox.max() );
+    // Top left to bottom right
+    BresenhamLine l1( bbox.min(), bbox.max()-Vector2(1,1));
     while ( l1.is_good() ) {
       try {
         r.grow( this->forward( *l1 ) );
       } catch ( const cartography::ProjectionErr& e ) {}
       ++l1;
     }
-    BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
-        bbox.max() + Vector2i(-bbox.width(),0) );
+    BresenhamLine l2( bbox.min() + Vector2i(bbox.width()-1,0),
+                      bbox.max() + Vector2i(-bbox.width(),-1) );
     while ( l2.is_good() ) {
       try {
         r.grow( this->forward( *l2 ) );
@@ -131,15 +132,15 @@ namespace cartography {
 
   BBox2i GeoTransform::reverse_bbox( BBox2i const& bbox ) const {
     BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
-    BresenhamLine l1( bbox.min(), bbox.max() );
+    BresenhamLine l1( bbox.min(), bbox.max()-Vector2(1,1) );
     while ( l1.is_good() ) {
       try {
         r.grow( this->reverse( *l1 ) );
       } catch ( const cartography::ProjectionErr& e ) {}
       ++l1;
     }
-    BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
-        bbox.max() + Vector2i(-bbox.width(),0) );
+    BresenhamLine l2( bbox.min() + Vector2i(bbox.width()-1,0),
+                      bbox.max() + Vector2i(-bbox.width(),-1) );
     while ( l2.is_good() ) {
       try {
         r.grow( this->reverse( *l2 ) );

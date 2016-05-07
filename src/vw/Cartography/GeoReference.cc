@@ -112,7 +112,7 @@ namespace cartography {
     // Update the projection context object with the current proj4 string, 
     //  then make sure the lon center is still correct.
     m_proj_context = ProjContext( overall_proj4_str() );
-    update_lon_center();
+    update_lon_center_private();
   }
 
 
@@ -164,7 +164,7 @@ namespace cartography {
 
     // If proj4 is already set up update the lon center, otherwise wait for proj4.
     if (m_proj_context.is_initialized())
-      update_lon_center();
+      update_lon_center_private();
   }
 
   // We override the base classes method here so that we have the
@@ -322,7 +322,7 @@ namespace cartography {
       m_proj_projection_str.append(" +over");
 
     init_proj(); // Initialize m_proj_context
-    // The last step of init_proj() is to call update_lon_center().
+    // The last step of init_proj() is to call update_lon_center_private().
   }
 
   void GeoReference::set_lon_center(bool centered_on_lon_zero) {
@@ -368,7 +368,7 @@ namespace cartography {
     }
   }
 
-  void GeoReference::update_lon_center() {
+  void GeoReference::update_lon_center(BBox2 const& pixel_bbox) {
   
     // The goal of this function is to determine which of the two standard longitude ranges
     //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
@@ -401,48 +401,55 @@ namespace cartography {
       return;
     }
     
-    // Figure out where the 0,0 pixel transforms to in lon/lat.
-    // - It is important that we do not normalize here!
-    //std::cout << "proj4 = " << m_proj_projection_str << std::endl;
-    //std::cout << "matrix = " << m_transform << std::endl;
-    Vector2 point_pixel_00   = pixel_to_point(Vector2(0,0));
-    //std::cout << "point_pixel_00 = " << point_pixel_00 << std::endl;
-    Vector2 lon_lat_pixel_00 = point_to_lonlat_no_normalize(point_pixel_00);
-    //std::cout << "lon_lat_pixel_00 = " << lon_lat_pixel_00 << std::endl;
-    double start_lon = lon_lat_pixel_00[0]; 
-
-    // Handle the easy cases.
-    // - If the projected space converts outside the shared space of the two ranges, 
-    //   select the range containing its location.
-    if (start_lon > 180) {
-      m_center_lon_zero = false;
-      //std::cout << "Start lon > 180, center on 180.\n";
-      return;
+    // See where the four corners of the image bbox project to
+    std::vector<Vector2> corner_pixels;
+    if (pixel_bbox.empty()) // No info, just use pixel 0,0
+      corner_pixels.push_back(Vector2(0,0));
+    else { 
+      // BBox provided, set up all four corners.
+      corner_pixels.resize(4);
+      corner_pixels[0] = pixel_bbox.min();
+      corner_pixels[1] = pixel_bbox.max() - Vector2(1,1);
+      corner_pixels[2] = pixel_bbox.min() + Vector2(pixel_bbox.width()-1,0);
+      corner_pixels[3] = pixel_bbox.min() + Vector2(0, pixel_bbox.height()-1);
     }
-    if (start_lon < 0) {
-      m_center_lon_zero = true;
-      //std::cout << "Start lon < 0, center on 0.\n";
-      clear_proj4_over();
-      return;
-    }
-    // Otherwise the projected space falls in the shared lon range, so figure out
-    //  which of the two ranges gives the most room for the image to "grow" as
-    //  the pixel coordinate increases from 0,0.
+    
+    for (size_t i=0; i<corner_pixels.size(); ++i) {
+    
+      // Figure out where the pixel transforms to in lon/lat.
+      // - It is important that we do not normalize here!
+      Vector2 point   = pixel_to_point(corner_pixels[i]);
+      Vector2 lon_lat = point_to_lonlat_no_normalize(point);
+      double lon = lon_lat[0]; 
 
-    // TODO: More accurate calculation to handle nonstandard transform matrix!!!
-    // Determine if increasing pixels increases the projected X coordinate
-    bool increasing_proj_coords = (m_transform(0,0) > 0);
+      // If the projected space converts outside the shared space of the two ranges, 
+      //   select the range containing its location.
+      if (lon > 180) {
+        m_center_lon_zero = false;
+        //std::cout << "Start lon > 180, center on 180.\n";
+        return;
+      }
+      if (lon < 0) {
+        m_center_lon_zero = true;
+        //std::cout << "Start lon < 0, center on 0.\n";
+        clear_proj4_over();
+        return;
+      }
+    } // End loop through corners
 
-    if (increasing_proj_coords) { // Increasing pixels increases projected coordinate
-      m_center_lon_zero = false;
-      //std::cout << "Increasing in shared zone, center on 180.\n";
-    } else { // Increasing pixels decreases projected coordinate
-      m_center_lon_zero = true;
-      //std::cout << "Decreasing in shared zone, center on 0.\n";
-      clear_proj4_over();
-    }
-    return;
+    // If we made it to here all pixels are in the 0-180 zone.
+    // In this case, default to the more common -180 to 180 range.
+    m_center_lon_zero = true;
+    //std::cout << "Decreasing in shared zone, center on 0.\n";
+    clear_proj4_over();      
+    
+    return; 
   } // End function update_lon_center
+
+  void GeoReference::update_lon_center_private() {
+    // Cal the bbox version with a zero size bbox
+    update_lon_center(BBox2(0,0,0,0));
+  } // End function update_lon_center_private
 
 /*
 bool GeoReference::check_projection_validity(Vector2i image_size) const {
