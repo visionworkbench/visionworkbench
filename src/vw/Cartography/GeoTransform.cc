@@ -35,8 +35,9 @@ namespace cartography {
 
   // Constructor
   GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
-                             BBox2i const& src_bbox, BBox2i const& dst_bbox) :
-    m_src_georef(src_georef), m_dst_georef(dst_georef) {
+                             BBox2 const& src_bbox, BBox2 const& dst_bbox) :
+    m_src_georef(src_georef), m_dst_georef(dst_georef),
+    m_src_bbox(src_bbox), m_dst_bbox(dst_bbox) {
     
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
@@ -97,7 +98,7 @@ namespace cartography {
   }
 
 
-  Vector2 GeoTransform::forward(Vector2 const& v) const {
+  Vector2 GeoTransform::pixel_to_pixel(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
     Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v);
@@ -201,6 +202,104 @@ namespace cartography {
   }
 
 
+  bool GeoTransform::check_bbox_wraparound() const {
+
+    // Check if we are converting between georefs with different lon centers.
+    bool lon_center_mismatch = (m_src_georef.is_lon_center_around_zero() != 
+                                m_dst_georef.is_lon_center_around_zero()   );
+    if (!lon_center_mismatch)
+      return false; // No chance of wraparound with the same center.
+
+    if (m_src_bbox.empty() || m_dst_bbox.empty())
+      vw_throw(LogicErr() << "Cannot check bbox GeoTransform wraparound without both bboxes!");
+
+    // The danger is that a small bounding box in one center can convert into
+    //  a planet-spanning bounding box when converted to the other center.
+
+    // Get the corners of the src image
+    std::vector<Vector2> corners(4);
+    corners[0] = m_src_bbox.min();
+    corners[1] = Vector2(m_src_bbox.width()-1,0);
+    corners[2] = Vector2(0, m_src_bbox.height()-1);
+    corners[3] = Vector2(m_src_bbox.width()-1,m_src_bbox.height()-1);
+
+    double center;
+    if (m_src_georef.is_lon_center_around_zero()) {
+      // [-180,180] to [0,360]
+      center = 0;
+    } else {
+      // [0,360] to [-180,180]
+      center = 180; 
+    }
+    
+    bool hasLeft  = false;
+    bool hasRight = false;
+    for (size_t i=0; i<4; ++i) {
+      Vector2 lonlat = m_src_georef.pixel_to_lonlat(corners[i]);
+      double lon = lonlat[0];
+      if (lon < center)
+        hasLeft = true;
+      else
+        hasRight = true;
+    }
+    return (hasRight && hasLeft);
+  }
+
+
+
+  BBox2 GeoTransform::lonlat_to_lonlat_bbox( BBox2 const& bbox ) const {
+
+    // Ensure we don't get incorrect results for empty boxes with strange corners.
+    if (bbox.empty())
+      return BBox2();
+
+    BBox2 out_box;
+    
+    double minx = bbox.min().x(), maxx = bbox.max().x();
+    double miny = bbox.min().y(), maxy = bbox.max().y();
+    double rangex = maxx-minx;
+    double rangey = maxy-miny;
+
+    // At the poles this won't be enough, more thought is needed.
+    int num_steps = 100;
+    for (int i = 0; i <= num_steps; i++) {
+      double r = double(i)/num_steps;
+
+      // left edge
+      Vector2 P2 = Vector2(minx, miny + r*rangey);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+
+      // right edge
+      P2 = Vector2(maxx, miny + r*rangey);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+
+      // bottom edge
+      P2 = Vector2(minx + r*rangex, miny);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+
+      // top edge
+      P2 = Vector2(minx + r*rangex, maxy);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+      
+      // diag1
+      P2 = Vector2(minx + r*rangex, miny + r*rangey);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+
+      // diag2
+      P2 = Vector2(maxx - r*rangex, miny + r*rangey);
+      try { out_box.grow(lonlat_to_lonlat(P2)); }
+      catch ( const std::exception & e ) {}
+    }
+
+    return out_box;
+  }
+  
+
 
   BBox2 GeoTransform::pixel_to_point_bbox( BBox2 const& pixel_bbox ) const {
 
@@ -292,7 +391,7 @@ namespace cartography {
       catch ( const std::exception & e ) {}
     }
 
-    return grow_bbox_to_int(out_box);
+    return out_box;
   }
 
   std::ostream& operator<<(std::ostream& os, const GeoTransform& trans) {   

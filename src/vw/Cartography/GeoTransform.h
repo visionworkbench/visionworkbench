@@ -40,6 +40,8 @@ namespace cartography {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
+    BBox2        m_src_bbox,
+                 m_dst_bbox;
     ProjContext  m_src_datum_proj,
                  m_dst_datum_proj;
     bool         m_skip_map_projection;
@@ -52,8 +54,8 @@ namespace cartography {
   
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
-                 BBox2i const& src_bbox = BBox2i(0, 0, 0, 0),
-                 BBox2i const& dst_bbox = BBox2i(0, 0, 0, 0));
+                 BBox2 const& src_bbox = BBox2i(0, 0, 0, 0),
+                 BBox2 const& dst_bbox = BBox2i(0, 0, 0, 0));
 
     GeoTransform& operator=(GeoTransform const& other);
 
@@ -64,7 +66,7 @@ namespace cartography {
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
     /// pixel the destination (transformed) image.
-    Vector2 forward(Vector2 const& v) const;
+    Vector2 forward(Vector2 const& v) const {return pixel_to_pixel(v);}
 
     /// Given a pixel coordinate of an image in a destination
     /// georeference frame, this routine computes the corresponding
@@ -84,7 +86,7 @@ namespace cartography {
     // These functions do not implement the Transform interface.
 
     /// Convert a pixel in the source to a pixel in the destination.
-    Vector2 pixel_to_pixel( Vector2 const& v ) const {return forward(v);}
+    Vector2 pixel_to_pixel( Vector2 const& v ) const;
 
     /// Convert a point in the source to a point (projected coords) in the destination.
     Vector2 point_to_point( Vector2 const& v ) const;
@@ -97,7 +99,16 @@ namespace cartography {
 
     /// Converts lonlat coords, taking the datums into account.
     /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
-    Vector2 lonlat_to_lonlat(Vector2 const& lonlat, bool forward) const;
+    Vector2 lonlat_to_lonlat(Vector2 const& lonlat, bool forward=true) const;
+
+
+    /// Returns true if bounding box conversions wrap around the output
+    ///  georeference, creating a very large bounding box.
+    bool check_bbox_wraparound() const;
+
+
+    /// Convert a lonlat bounding box in the source to a lonlat in the destination.
+    BBox2 lonlat_to_lonlat_bbox( BBox2 const& pixel_bbox ) const;
 
     /// Convert a pixel bounding box in the source to a point (projected coords)
     ///  bounding box in the destination.

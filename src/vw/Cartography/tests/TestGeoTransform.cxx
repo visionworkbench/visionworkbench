@@ -206,18 +206,16 @@ TEST(GeoTransform, RefToRef) {
   const double EPS = 1e-4;
 
   EXPECT_VECTOR_NEAR(pixel2, Vector2(81.3333,74), EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82,77), EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(7,8), EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82.3, 77.8267), EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(6.66667,6.66667), EPS);
   EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425, -74.951825), EPS);
-  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.0015, 0.00135), EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.00149999999999, 0.00135), EPS);
 
 }
 
 
-/*
-TEST(GeoTransform, bboxTest) {
 
-  // 
+TEST(GeoTransform, bboxTest) {
 
   Matrix3x3 affine;
   Datum d("D_MOON");
@@ -228,41 +226,34 @@ TEST(GeoTransform, bboxTest) {
   affine(0,2) = -1.0; // Degrees
   affine(1,2) = 20.0;
   
+  // This georef will cross the 0 degree line
   GeoReference georef1(d, affine);
 
-  // This georef will cross the 0 degree line
+  // This one will not.
   affine(0,2) = 50.0; // Degrees
   affine(1,2) = 20.0; // 
-  
   GeoReference georef2(d, affine);
+
+  // This one is in the 0-360 space.
+  affine(0,2) = 300.0; // Degrees
+  affine(1,2) =  20.0; // 
+  GeoReference georef3(d, affine);
   
   georef1.set_proj4_projection_str("+proj=longlat");
   georef2.set_proj4_projection_str("+proj=longlat");
+  georef3.set_proj4_projection_str("+proj=longlat");
 
-  GeoTransform trans(georef1, georef2);
+  BBox2 image_bbox(0, 0, 1000, 1000);  
+  GeoTransform trans12(georef1, georef2, image_bbox, image_bbox);
+  GeoTransform trans13(georef1, georef3, image_bbox, image_bbox);
+  GeoTransform trans21(georef2, georef1, image_bbox, image_bbox);
+  GeoTransform trans31(georef3, georef1, image_bbox, image_bbox);
 
-  BBox2 pixel_bbox1  = BBox2(0, 0, 173, 200);
-  //BBox2 proj_bbox1   = georef1.pixel_to_point_bbox(pixel_bbox1);
-  //BBox2 lonlat_bbox2 = trans.pixel_to_lonlat_bbox(pixel_bbox1);
-  BBox2 point_bbox2  = trans.pixel_to_point_bbox(pixel_bbox1);
-  BBox2 pixel_bbox2  = trans.pixel_to_pixel_bbox(pixel_bbox1);
-
-
-  Vector2 p1 = trans.pixel_to_pixel(pixel_bbox1.min());
-  Vector2 p2 = trans.pixel_to_pixel(pixel_bbox1.max());
-  std::cout << "p1 "  << p1 << std::endl;
-  std::cout << "p2 "  << p2 << std::endl;
-  
-  //std::cout << "lonlat_bbox2 " << lonlat_bbox2 << std::endl;
-  std::cout << "point_bbox2 "  << point_bbox2 << std::endl;
-  std::cout << "pixel_bbox2 "  << pixel_bbox2 << std::endl;
-  
-  EXPECT_TRUE(false);
-  
-  const double EPS = 1e-4;
-  //EXPECT_VECTOR_NEAR(pixel2, Vector2(5.0, 10.0), EPS);
-  //EXPECT_VECTOR_NEAR(point1, point2,  EPS);
-  //EXPECT_VECTOR_NEAR(point2, point2b, EPS);
-
-}*/
+  // The check_bbox_wraparound function should only trigger when the 
+  //  lon center changes in the source georef.
+  EXPECT_FALSE(trans12.check_bbox_wraparound());
+  EXPECT_TRUE( trans13.check_bbox_wraparound());
+  EXPECT_FALSE(trans21.check_bbox_wraparound());
+  EXPECT_FALSE(trans31.check_bbox_wraparound());
+}
 
