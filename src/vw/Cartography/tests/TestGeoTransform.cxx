@@ -211,10 +211,10 @@ TEST(GeoTransform, RefToRef) {
 
   EXPECT_VECTOR_NEAR(point2, Vector2(-113.242425,-74.950475), EPS);
   EXPECT_VECTOR_NEAR(pixel2, Vector2(81.3333,74), EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82.3, 77.8267),             EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(6.66667,6.66667),           EPS);
-  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425, -74.951825),   EPS);
-  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.00149999999999, 0.00135), EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82, 77),             EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(7,8),           EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425, -74.9517),   EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.00149999999999, 0.0012), EPS);
   EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425,-74.951675),    EPS);
   EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.0015,0.0012),             EPS);
 }
