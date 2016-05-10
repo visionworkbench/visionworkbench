@@ -356,7 +356,7 @@ namespace cartography {
       catch ( const std::exception & e ) {}
     }
 
-    return out_box;
+    return grow_bbox_to_int(out_box);
   }
 
   std::ostream& operator<<(std::ostream& os, const GeoTransform& trans) {   
