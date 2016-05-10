@@ -45,7 +45,8 @@ namespace cartography {
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
     // the affine transform.
-    if (m_src_georef.proj4_str() == m_dst_georef.proj4_str())
+    if ((m_src_georef.proj4_str() == m_dst_georef.proj4_str()) &&
+        (src_georef.is_lon_center_around_zero() == dst_georef.is_lon_center_around_zero()) )
       m_skip_map_projection = true;
     else
       m_skip_map_projection = false;

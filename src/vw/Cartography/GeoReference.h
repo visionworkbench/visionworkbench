@@ -132,6 +132,7 @@ namespace cartography {
     
     void update_lon_center_private(); ///< Updates m_center_lon_zero
     void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
+    void set_proj4_over  (); ///< Adds   the "+over" tag from our proj4 string.
 
     /// Version of the public function that does not perform normalization
     Vector2 point_to_lonlat_no_normalize(Vector2 loc) const;

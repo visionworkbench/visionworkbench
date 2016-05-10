@@ -112,6 +112,11 @@ TEST( GeoReferenceUtils, gdal_read_checks) {
   GeoReference georef;
   EXPECT_TRUE(read_georeference(georef, "dem.tif"));
   EXPECT_TRUE(georef.is_lon_center_around_zero());
+  EXPECT_TRUE(georef.proj4_str().find("+over") == std::string::npos);
+  //// Check handling of a 0-360 image
+  //EXPECT_TRUE(read_georeference(georef, "dem360.tif"));
+  //EXPECT_FALSE(georef.is_lon_center_around_zero());
+  //EXPECT_TRUE(georef.proj4_str().find("+over") != std::string::npos);
 }
 
 

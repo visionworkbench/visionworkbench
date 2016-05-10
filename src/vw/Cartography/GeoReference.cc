@@ -326,8 +326,19 @@ namespace cartography {
   }
 
   void GeoReference::set_lon_center(bool centered_on_lon_zero) {
-    if (m_proj_projection_str.find("+proj=utm") == std::string::npos)
-      m_center_lon_zero = centered_on_lon_zero;
+    // Don't allow switching of UTM georefs
+    if (m_proj_projection_str.find("+proj=utm") != std::string::npos)
+      return;
+    
+    // Otherwise update the field  
+    m_center_lon_zero = centered_on_lon_zero;
+
+    // Make sure that the +over flag is either in or not in the proj4
+    // string as appropriate for the new lon center.
+    if (m_center_lon_zero)
+      clear_proj4_over();
+    else 
+      set_proj4_over();
   }
 
   bool GeoReference::extract_proj4_value(std::string const& proj4_string, std::string const& key,
@@ -368,6 +379,22 @@ namespace cartography {
     }
   }
 
+  // Add the "+over" text to our stored proj4 info, but don't update_lon_center().
+  void GeoReference::set_proj4_over() {
+    
+    // Clear out m_proj_projection_str, then recreate the ProjContext object.
+    if (m_proj_projection_str.find("+over") == std::string::npos) {
+      m_proj_projection_str.append(" +over");
+    
+      // If we had to make any changes, strip out any double spaces and 
+      //  trailing spaces and then update our ProjContext object.
+      string_replace(m_proj_projection_str, "  ", " ");
+      m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
+      m_proj_context        = ProjContext( overall_proj4_str() );
+    }
+  }
+
+
   void GeoReference::update_lon_center(BBox2 const& pixel_bbox) {
   
     // The goal of this function is to determine which of the two standard longitude ranges
@@ -394,6 +421,7 @@ namespace cartography {
         if (diff180 < diff0) {
           //std::cout << "Setting ortho projection center around 180.\n";
           m_center_lon_zero = false;
+          set_proj4_over();
         }
       }
       if (m_center_lon_zero)
@@ -427,6 +455,7 @@ namespace cartography {
       if (lon > 180) {
         m_center_lon_zero = false;
         //std::cout << "Start lon > 180, center on 180.\n";
+        set_proj4_over();
         return;
       }
       if (lon < 0) {

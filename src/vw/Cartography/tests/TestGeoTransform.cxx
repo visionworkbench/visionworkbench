@@ -185,21 +185,38 @@ TEST(GeoTransform, RefToRef) {
   BBox2   point_bbox_1(246.75772, -74.952049, 0.001, 0.001);
   
   Vector2 point1 = georef1.pixel_to_point(pixel1);
+
+  //std::cout << "pixel1 = "       << pixel1 << std::endl;
+  //std::cout << "point1 = "       << point1 << std::endl;
+  
+  //Vector2 lonlat = georef1.point_to_lonlat(point1);
+  //Vector2 point2 = georef2.lonlat_to_point(lonlat);
+  //Vector2 pixel2 = georef2.point_to_pixel(point2);
+  //std::cout << "lonlat = " << lonlat << std::endl;
+  //std::cout << "point2 = " << point2 << std::endl;
+  //std::cout << "pixel2 = " << pixel2 << std::endl;
+  
+  Vector2 point2       = trans.pixel_to_point     (pixel1      );
   Vector2 pixel2       = trans.point_to_pixel     (point1      );
   BBox2   pixel_bbox_2 = trans.point_to_pixel_bbox(point_bbox_1);
   BBox2   point_bbox_2 = trans.pixel_to_point_bbox(pixel_bbox_1);
   
+  //std::cout << "point2 = "       << point2 << std::endl;
+  //std::cout << "pixel2 = "       << pixel2 << std::endl;
+  //std::cout << "pixel_bbox_2 = " << pixel_bbox_2 << std::endl;
+  //std::cout << "point_bbox_2 = " << std::setprecision(12) << point_bbox_2 << std::endl;
+  //std::cout << "point2 = " << std::setprecision(12) << point2 << std::endl;
+  
   const double EPS = 1e-4;
 
+  EXPECT_VECTOR_NEAR(point2, Vector2(-113.242425,-74.950475), EPS);
   EXPECT_VECTOR_NEAR(pixel2, Vector2(81.3333,74), EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82.3, 77.8267), EPS);
-  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(6.66667,6.66667), EPS);
-  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425, -74.951825), EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.min(),  Vector2(82.3, 77.8267),             EPS);
+  EXPECT_VECTOR_NEAR(pixel_bbox_2.size(), Vector2(6.66667,6.66667),           EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425, -74.951825),   EPS);
   EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.00149999999999, 0.00135), EPS);
-
-  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425,-74.951675),
-		     EPS);
-  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.0015,0.0012), EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.min(),  Vector2(-113.242425,-74.951675),    EPS);
+  EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.0015,0.0012),             EPS);
 }
 
 
