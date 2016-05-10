@@ -116,38 +116,46 @@ namespace vw {
       // Just return the handle if it is present
       if (m_fileHandles[index].get() != NULL)
 	return *m_fileHandles[index].get();
+
+      double min_pos_dist = 1.0;
       
       // Find the image whose box is furthest form the current one.
       std::vector<double> boxes_dist;
       for (size_t b = 0; b < m_imgBoxes.size(); b++) {
         
-	// If boxes intersect, they are of course very close
-	BBox2 curr_box     = m_imgBoxes[b];
-	BBox2 intersection = curr_box;
-	intersection.crop(bbox);
-	if (!intersection.empty()) {
-	  boxes_dist.push_back(0);
-	  continue;
-	}
-
-	// If this image is being used by another thread, again no
-	// good.
+	// If this image is being used by another thread, can't close it.
 	if (m_used[b] > 0) {
 	  boxes_dist.push_back(0);
 	  continue;
 	}
 
-	// If the current handle is not open, can't close it
-	if (m_fileHandles[b].get() == NULL){
-	  boxes_dist.push_back(0);
+	// If boxes intersect, they are of course very close.
+	// We'd like to pick such an image only if we really
+	// can't pick other ones whose boxes don't intersect,
+	// hence 1.5*min_pos_dist below.
+	BBox2 curr_box     = m_imgBoxes[b];
+	BBox2 intersection = curr_box;
+	intersection.crop(bbox);
+	if (!intersection.empty()) {
+	  boxes_dist.push_back(1.5*min_pos_dist);
 	  continue;
 	}
-	
-	// Else, use the distance between centers
-	double dist = norm_2((curr_box.min() + curr_box.max())/2.0
-			     - (bbox.min() + bbox.max())/2.0);
+
+	// If the current handle is not open, can't close it.
+	// Notice we give it a positive distance, but a small
+	// one, because we want handles that are closed to be
+	// picked only if there are no open handles. 
+	// That is why we add 2*min_pos_dist below.
+	if (m_fileHandles[b].get() == NULL){
+	  boxes_dist.push_back(min_pos_dist);
+	  continue;
+	}
+	double dist
+	  = norm_2((curr_box.min() + curr_box.max())/2.0
+		   - (bbox.min() + bbox.max())/2.0)
+	  + 2*min_pos_dist;
 	if (curr_box.empty() || bbox.empty()) 
-	  dist = 1.0; // overabundance of caution
+	  dist = 2*min_pos_dist; // overabundance of caution
 	
 	boxes_dist.push_back(dist);
       }

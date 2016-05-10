@@ -791,6 +791,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   /// For a bbox in projected space, return the corresponding bbox in
   /// pixels on the image
   BBox2i GeoReference::point_to_pixel_bbox(BBox2 const& point_bbox) const {
+    
+    // Ensure we don't get incorrect results for empty boxes with strange corners.
+    if (point_bbox.empty())
+    return BBox2();
+  
     // Technically we should only have to project 2 points as the
     // georeference transform should only have a scale an translation
     // transform. Rotations are possible but outside libraries rarely
@@ -800,63 +805,49 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     pixel_bbox.grow(point_to_pixel(point_bbox.max()));
     pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.min().x(), point_bbox.max().y())));
     pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.max().x(), point_bbox.min().y())));
+    
     return grow_bbox_to_int(pixel_bbox);
   }
 
   BBox2 GeoReference::pixel_to_point_bbox(BBox2i const& pixel_bbox) const {
+
+    if (pixel_bbox.empty()) return BBox2();
+    
     BBox2 point_bbox;
+
+    // Note that pixel_bbox().max() is exclusive.
     point_bbox.grow(pixel_to_point(pixel_bbox.min()));
-    point_bbox.grow(pixel_to_point(pixel_bbox.max()));
-    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y())));
-    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x(), pixel_bbox.min().y())));
+    point_bbox.grow(pixel_to_point(pixel_bbox.max() - Vector2(1, 1)));
+    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y()-1)));
+    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x()-1, pixel_bbox.min().y())));
     return point_bbox;
   }
 
   BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
 
+    if (pixel_bbox.empty()) return BBox2();
+    
     BBox2 lonlat_bbox;
     if (!m_is_projected) {
       return pixel_to_point_bbox(pixel_bbox);
     }
+
+    // Need to worry about what happens around poles
+    std::vector<vw::Vector2> points;
+    gen_bd_and_diag_pts(pixel_bbox, points);
     
     // Go along the perimeter of the pixel bbox.
-    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
-      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.min().y()) )); }
-      catch ( const std::exception & e ) {}
-      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.max().y()-1) )); }
-      catch ( const std::exception & e ) {}
-    }
-    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
-      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.min().x(),y) )); }
-      catch ( const std::exception & e ) {}
-      try { lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.max().x()-1,y) )); }
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
+      try { lonlat_bbox.grow(pixel_to_lonlat( points[ptiter] )); }
       catch ( const std::exception & e ) {}
     }
     
-    // Draw an X inside the bbox. This covers the poles. It will
-    // produce a lonlat boundary that is within at least one pixel of
-    // the pole. This will also help catch terminator boundaries from
-    // orthographic projections.
-    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
-    while ( l1.is_good() ) {
-      try {
-        lonlat_bbox.grow( pixel_to_lonlat( *l1 ) );
-      }catch ( const std::exception & e ) {}
-      ++l1;
-    }
-    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width(),0),
-                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),0) );
-    while ( l2.is_good() ) {
-      try {
-        lonlat_bbox.grow( pixel_to_lonlat( *l2 ) );
-      } catch ( const std::exception& e ) {}
-      ++l2;
-    }
-
     return lonlat_bbox;
   }
 
   BBox2i GeoReference::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
+
+    if (lonlat_bbox.empty()) return BBox2();
 
     if (!m_is_projected) {
       return point_to_pixel_bbox(lonlat_bbox);
@@ -869,6 +860,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     // Alternatively this function could avoid the nsamples
     // option. The sample discrete step could just be this average
     // size of pixel in degrees.
+
+    if (lonlat_bbox.empty()) return BBox2();
 
     BBox2 point_bbox;
 
@@ -913,8 +906,10 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return point_bbox;
   }
 
-  BBox2 GeoReference::point_to_lonlat_bbox(BBox2 const& point_bbox,
-                                               size_t nsamples) const {
+  BBox2 GeoReference::point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsamples) const {
+    
+    if (point_bbox.empty()) return BBox2();
+
     BBox2 lonlat_bbox;
 
     Vector2 lower_fraction( point_bbox.width()/double(nsamples),
@@ -975,6 +970,49 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return os;
   }
 
+  // Given an integer box, generate points on its boundary and the
+  // diagonal. It is important to note that the maximum is exclusive.
+  // This is used as a way of sampling the lon-lat values of all pixel values
+  // in this box.
+  void gen_bd_and_diag_pts(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points) {
+
+    // Reset the output
+    points.clear();
+
+    // An empty box can have strange corners. For such, just return no points.
+    if (pixel_bbox.empty()) return;
+    
+    // Go along the perimeter of the pixel bbox.
+    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
+      points.push_back(Vector2(x,pixel_bbox.min().y()));
+      points.push_back(Vector2(x,pixel_bbox.max().y()-1));
+    }
+    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
+      points.push_back(Vector2(pixel_bbox.min().x(),y));
+      points.push_back(Vector2(pixel_bbox.max().x()-1,y));
+    }
+    
+    // Draw an X inside the bbox. This covers the poles. It will
+    // produce a lonlat boundary that is within at least one pixel of
+    // the pole. This will also help catch terminator boundaries from
+    // orthographic projections. Note that pixel_bbox.max() is exclusive,
+    // we stop on the line right before we reach this point.
+    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
+    while ( l1.is_good() ) {
+      points.push_back(*l1);
+      ++l1;
+    }
+
+    // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
+    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
+                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),     1) );
+    while ( l2.is_good() ) {
+      points.push_back(*l2 );
+      ++l2;
+    }
+
+  }
+  
 
 }} // vw::cartography
 

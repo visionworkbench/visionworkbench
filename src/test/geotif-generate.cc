@@ -35,13 +35,14 @@ void grow_bbox( math::BresenhamLine l,
 void render_degree( ImageView<PixelGray<uint8> >& image,
                     cartography::GeoReference const& georef ) {
 
-  // Find our lat lon boundry
+  // Find our lat lon boundary. Notice how all our pixels
+  // have 0<= x < image.cols() and 0 <= y < image.rows().
   BBox2 ll_box;
   grow_bbox( math::BresenhamLine( Vector2(),
                                   Vector2(image.cols(),image.rows()) ),
              georef, ll_box );
-  grow_bbox( math::BresenhamLine( Vector2(image.cols(),0),
-                                  Vector2(0,image.rows()) ),
+  grow_bbox( math::BresenhamLine( Vector2(image.cols()-1,0),
+                                  Vector2(0,image.rows()-1) ),
              georef, ll_box );
   grow_bbox( math::BresenhamLine( Vector2(),
                                   Vector2(0,image.rows()) ),

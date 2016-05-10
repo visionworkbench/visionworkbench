@@ -110,43 +110,33 @@ namespace cartography {
 
 
   BBox2i GeoTransform::forward_bbox( BBox2i const& bbox ) const {
-    BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::forward_bbox(bbox);
-    // Top left to bottom right
-    BresenhamLine l1( bbox.min(), bbox.max()-Vector2(1,1));
-    while ( l1.is_good() ) {
+
+    if (bbox.empty()) return BBox2();
+
+    std::vector<vw::Vector2> points;
+    gen_bd_and_diag_pts(bbox, points);
+    
+    BBox2 r;
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        r.grow( this->forward( *l1 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l1;
-    }
-    BresenhamLine l2( bbox.min() + Vector2i(bbox.width()-1,0),
-                      bbox.max() + Vector2i(-bbox.width(),-1) );
-    while ( l2.is_good() ) {
-      try {
-        r.grow( this->forward( *l2 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l2;
+        r.grow( this->forward( points[ptiter] ) );
+      }catch ( const std::exception & e ) {}
     }
 
     return grow_bbox_to_int(r);
   }
 
   BBox2i GeoTransform::reverse_bbox( BBox2i const& bbox ) const {
-    BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
-    BresenhamLine l1( bbox.min(), bbox.max()-Vector2(1,1) );
-    while ( l1.is_good() ) {
+    if (bbox.empty()) return BBox2();
+
+    std::vector<vw::Vector2> points;
+    gen_bd_and_diag_pts(bbox, points);
+
+    BBox2 r;
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        r.grow( this->reverse( *l1 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l1;
-    }
-    BresenhamLine l2( bbox.min() + Vector2i(bbox.width()-1,0),
-                      bbox.max() + Vector2i(-bbox.width(),-1) );
-    while ( l2.is_good() ) {
-      try {
-        r.grow( this->reverse( *l2 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l2;
+        r.grow( this->reverse( points[ptiter] ) );
+      }catch ( const std::exception & e ) {}
     }
 
     return grow_bbox_to_int(r);
@@ -200,7 +190,6 @@ namespace cartography {
 
     return Vector2(lon, lat);
   }
-
 
   bool GeoTransform::check_bbox_wraparound() const {
 
@@ -299,46 +288,22 @@ namespace cartography {
     return out_box;
   }
   
-
-
   BBox2 GeoTransform::pixel_to_point_bbox( BBox2 const& pixel_bbox ) const {
 
+    // Ensure we don't get incorrect results for empty boxes with strange corners.
+    if (pixel_bbox.empty())
+      return BBox2();
+    
+    std::vector<vw::Vector2> points;
+    gen_bd_and_diag_pts(pixel_bbox, points);
+ 
     BBox2 point_bbox;
-
-    // Go along the perimeter of the pixel bbox.
-    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        point_bbox.grow(this->pixel_to_point( Vector2(x,pixel_bbox.min().y())   ));
-        point_bbox.grow(this->pixel_to_point( Vector2(x,pixel_bbox.max().y()-1) ));
-      } catch ( const cartography::ProjectionErr& e ) {}
+        point_bbox.grow(this->pixel_to_point(points[ptiter]));
+      }catch ( const std::exception & e ) {}
     }
-    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
-      try {
-        point_bbox.grow(this->pixel_to_point( Vector2(pixel_bbox.min().x(),y)   ));
-        point_bbox.grow(this->pixel_to_point( Vector2(pixel_bbox.max().x()-1,y) ));
-      } catch ( const cartography::ProjectionErr& e ) {}
-    }
-
-    // Draw an X inside the bbox. This covers the poles. It will
-    // produce a lonlat boundary that is within at least one pixel of
-    // the pole. This will also help catch terminator boundaries from
-    // orthographic projections.
-    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
-    while ( l1.is_good() ) {
-      try {
-        point_bbox.grow( this->pixel_to_point( *l1 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l1;
-    }
-    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width(),0),
-                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),0) );
-    while ( l2.is_good() ) {
-      try {
-        point_bbox.grow( this->pixel_to_point( *l2 ) );
-      } catch ( const cartography::ProjectionErr& e ) {}
-      ++l2;
-    }
-
+    
     return point_bbox;
   }
 
@@ -401,10 +366,6 @@ namespace cartography {
     os << "skip_datum_conversion: " << trans.m_skip_datum_conversion << "\n";
     return os;
   }
-
-
-
-
 
   void reproject_point_image(ImageView<Vector3> const& point_image,
                              GeoReference const& src_georef,

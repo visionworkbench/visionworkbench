@@ -93,8 +93,10 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                    step_amount, functor );
   functor.last_valid = false;
 
-  // Running once through the center
-  bresenham_apply( BresenhamLine(0,0,cols,rows),
+  // Do the x pattern
+  bresenham_apply( BresenhamLine(0,0,cols-1,rows-1),
+                   step_amount, functor );
+  bresenham_apply( BresenhamLine(0,rows-1,cols-1,0),
                    step_amount, functor );
 
   scale = functor.scale/double(step_amount);

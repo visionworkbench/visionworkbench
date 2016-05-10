@@ -402,7 +402,11 @@ namespace cartography {
     return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
   }
 
-
+  // Given an integer box, generate points on its boundary and the
+  // diagonal. It is important to note that the maximum is exclusive.
+  // This is used as a way of sampling the lon-lat values of all pixel values
+  // in this box.
+  void gen_bd_and_diag_pts(BBox2i const& pixel_bbox, std::vector<Vector2> & points);
 
 }} // namespace vw::cartography
 

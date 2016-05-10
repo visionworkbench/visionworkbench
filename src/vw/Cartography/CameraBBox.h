@@ -413,10 +413,12 @@ namespace cartography {
                      step_amount, functor );
     functor.last_valid = false;
 
-    // Top left corner diagonal down to bottom right corner
-    bresenham_apply( math::BresenhamLine(0,0,cols,rows),
+    // Do the x pattern
+    bresenham_apply( math::BresenhamLine(0,0,cols-1,rows-1),
                      step_amount, functor );
-
+    bresenham_apply( math::BresenhamLine(0,rows-1,cols-1,0),
+		     step_amount, functor );
+    
     // Estimate the smallest distance between adjacent points on the bounding box edges
     // - This is perhaps the finest resolution of the image.
     // - The units for this value are defined by the GeoReference and can be something weird!

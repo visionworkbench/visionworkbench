@@ -19,23 +19,8 @@
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Cartography/GeoTransform.h>
 
-//#include <vw/Math/BresenhamLine.h>
-//#include <vw/Cartography/GeoReferenceResourcePDS.h>
-//#include <vw/FileIO/DiskImageResourcePDS.h>
-
-// Boost
-//#include <boost/algorithm/string.hpp>
-//#include <boost/foreach.hpp>
-
 namespace vw {
 namespace cartography {
-
-
-
-
-
-
-
 
 GdalWriteOptions::GdalWriteOptions() {
 #if defined(VW_HAS_BIGTIFF) && VW_HAS_BIGTIFF == 1
@@ -47,8 +32,6 @@ GdalWriteOptions::GdalWriteOptions() {
   raster_tile_size = Vector2i(vw_settings().default_tile_size(),
                               vw_settings().default_tile_size());
 }
-
-
 
 GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt ) {
   namespace po = boost::program_options;
