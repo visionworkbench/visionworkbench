@@ -219,8 +219,6 @@ TEST(GeoTransform, RefToRef) {
   EXPECT_VECTOR_NEAR(point_bbox_2.size(), Vector2(0.0015,0.0012),             EPS);
 }
 
-
-
 TEST(GeoTransform, bboxTest) {
 
   Matrix3x3 affine;
@@ -261,5 +259,41 @@ TEST(GeoTransform, bboxTest) {
   EXPECT_TRUE( trans13.check_bbox_wraparound());
   EXPECT_FALSE(trans21.check_bbox_wraparound());
   EXPECT_FALSE(trans31.check_bbox_wraparound());
+}
+
+/// Set up two sinusoidal GeoRefs and see if we can go back-forth to the same bbox
+TEST(GeoTransform, sinusoidalTest) {
+
+  Matrix3x3 affine;
+  Datum d("D_EUROPA", "EUROPA", "EUROPA", 1564130, 1564130, 0);
+
+  affine(0,0) =  233.0515264;
+  affine(1,1) = -233.0515264;
+  affine(2,2) = 1;
+  affine(0,2) = -120254.588;
+  affine(1,2) = 1676805.732;  
+  GeoReference georef1(d, affine);
+
+  affine(0,0) =  227.994294037;
+  affine(1,1) = -227.994294037;
+  affine(0,2) = -102825.427;
+  affine(1,2) =  725933.832;
+  GeoReference georef2(d, affine);
+  
+  georef1.set_proj4_projection_str("+proj=sinu +lon_0=132.64203131646 +x_0=0 +y_0=0 +a=1564130 +b=1564130 +units=m +no_defs");
+  georef2.set_proj4_projection_str("+proj=sinu +lon_0=137.63572555431 +x_0=0 +y_0=0 +a=1564130 +b=1564130 +units=m +no_defs");
+
+  BBox2 image_bbox(0,0,924,914);
+  GeoTransform trans12(georef1, georef2, image_bbox, image_bbox);
+  GeoTransform trans21(georef2, georef1, image_bbox, image_bbox);
+
+  BBox2 point1 = trans21.pixel_to_point_bbox(image_bbox);
+  BBox2 pixel2 = trans12.point_to_pixel_bbox(point1);
+  
+  double eps = 35.0; // Yes, our back-forth accuracy is this bad!
+  EXPECT_NEAR(pixel2.min().x(),    0.0, eps);
+  EXPECT_NEAR(pixel2.min().y(),    0.0, eps);
+  EXPECT_NEAR(pixel2.max().x(), 924.0, eps);
+  EXPECT_NEAR(pixel2.max().y(), 914.0, eps);  
 }
 

@@ -173,7 +173,7 @@ namespace cartography {
     if(m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
-    return m_dst_georef.lonlat_to_point(dst_lonlat);
+    return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
 
   // Performs a forward or reverse datum conversion.
