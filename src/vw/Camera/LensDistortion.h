@@ -69,6 +69,9 @@ namespace camera {
     /// Return a vector containing all the distortion parameters.
     virtual Vector<double> distortion_parameters() const;
 
+    /// Initialize the object from a set of distortion parameters.
+    virtual void set_distortion_parameters(Vector<double> const& params);
+
     /// Each derived model needs to have a string name.
     virtual std::string name() const = 0;
     
@@ -86,15 +89,15 @@ namespace camera {
 
   /// A NULL lens distortion model.
   struct NullLensDistortion : public LensDistortion {
-    inline Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const& v) const { return v; }
-    inline Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
+    virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const& v) const { return v; }
+    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
 
-    boost::shared_ptr<LensDistortion> copy() const;
-    void write(std::ostream& os) const;
-    void read (std::istream& os);
-    static std::string class_name()       { return "NULL";       }
-           std::string name      () const { return class_name(); }
-    void scale(float /*scale*/);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
+    static  std::string class_name()       { return "NULL";       }
+    virtual std::string name      () const { return class_name(); }
+    virtual void        scale(float /*scale*/);
   };
 
   /// TSAI Lens Distortion Model
@@ -127,17 +130,18 @@ namespace camera {
   public:
     TsaiLensDistortion() {}
     TsaiLensDistortion(Vector4 const& params);
-    Vector<double> distortion_parameters() const;
-    boost::shared_ptr<LensDistortion> copy() const;
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
 
-    Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     
-    void write(std::ostream& os) const;
-    void read (std::istream& os);
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
 
-    static std::string class_name()       { return "TSAI";       }
-           std::string name      () const { return class_name(); }
-    void scale( float scale );
+    static  std::string class_name()       { return "TSAI";       }
+    virtual std::string name      () const { return class_name(); }
+    virtual void        scale( float scale );
   };
 
   /// Brown Conrady Distortion
@@ -163,16 +167,17 @@ namespace camera {
                             Vector<double> const& centering,
                             double const& angle );
 
-    Vector<double> distortion_parameters() const;
-    boost::shared_ptr<LensDistortion> copy() const;
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
 
-    Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
 
-    void write(std::ostream& os) const;
-    void read (std::istream& os);
-    static std::string class_name()       { return "BrownConrady"; }
-           std::string name      () const { return class_name();   }
-    void scale( float /*scale*/ );
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
+    static  std::string class_name()       { return "BrownConrady"; }
+    virtual std::string name      () const { return class_name();   }
+    virtual void        scale( float /*scale*/ );
   };
 
   /// Adjustable Tsai Distortion
@@ -192,17 +197,18 @@ namespace camera {
   public:
     AdjustableTsaiLensDistortion() {}
     AdjustableTsaiLensDistortion(Vector<double> params);
-    Vector<double> distortion_parameters() const;
-    boost::shared_ptr<LensDistortion> copy() const;
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
 
-    Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
+    virtual Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
 
-    void write(std::ostream& os) const;
-    void read (std::istream& os);
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
     
-    static std::string class_name()       { return "AdjustableTSAI"; }
-           std::string name      () const { return class_name(); }
-    void scale( float /*scale*/ );
+    static  std::string class_name()       { return "AdjustableTSAI"; }
+    virtual std::string name      () const { return class_name(); }
+    virtual void scale( float /*scale*/ );
   };
   
   
@@ -237,18 +243,19 @@ namespace camera {
   public:
     PhotometrixLensDistortion() {}
     PhotometrixLensDistortion(Vector<float64,9> const& params);
-    Vector<double> distortion_parameters() const;
-    boost::shared_ptr<LensDistortion> copy() const;
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
 
-    Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     
-    void write(std::ostream& os) const;
-    void read (std::istream& os);
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
 
-    static std::string class_name()       { return "Photometrix"; }
-           std::string name      () const { return class_name();  }
+    static  std::string class_name()       { return "Photometrix"; }
+    virtual std::string name      () const { return class_name();  }
 
-    void scale( float scale );
+    virtual void scale( float scale );
   };
   
   

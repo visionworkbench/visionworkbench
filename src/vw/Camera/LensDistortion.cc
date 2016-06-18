@@ -60,6 +60,8 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptim
 Vector<double>
 LensDistortion::distortion_parameters() const { return Vector<double>(); }
 
+void LensDistortion::set_distortion_parameters(Vector<double> const& params) {}
+
 Vector2
 LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
@@ -110,6 +112,10 @@ TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(par
 
 Vector<double>
 TsaiLensDistortion::distortion_parameters() const { return m_distortion; }
+
+void TsaiLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  m_distortion = params;
+}
 
 boost::shared_ptr<LensDistortion>
 TsaiLensDistortion::copy() const {
@@ -213,6 +219,13 @@ Vector<double> BrownConradyDistortion::distortion_parameters() const {
   return output;
 }
 
+void BrownConradyDistortion::set_distortion_parameters(Vector<double> const& params) {
+  m_principal_point      = subvector(params,0,2);
+  m_radial_distortion    = subvector(params,2,3);
+  m_centering_distortion = subvector(params,5,2);
+  m_centering_angle      = params[7];
+}
+
 Vector2
 BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
   Vector2 offset       = cam.point_offset();
@@ -280,6 +293,10 @@ AdjustableTsaiLensDistortion::AdjustableTsaiLensDistortion(Vector<double> params
 Vector<double>
 AdjustableTsaiLensDistortion::distortion_parameters() const {
   return m_distortion;
+}
+
+void AdjustableTsaiLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  m_distortion = params;
 }
 
 boost::shared_ptr<LensDistortion>
@@ -368,6 +385,10 @@ PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<float64,9> const& pa
 Vector<double>
 PhotometrixLensDistortion::distortion_parameters() const { 
   return m_distortion; 
+}
+
+void PhotometrixLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  m_distortion = params;
 }
 
 boost::shared_ptr<LensDistortion>
