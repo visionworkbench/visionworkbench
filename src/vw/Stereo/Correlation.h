@@ -45,8 +45,7 @@ namespace stereo {
                              ImageView<PixelT> const& right_raster,
                              BBox2i            const& left_region,
                              Vector2i          const& search_volume,
-                             Vector2i          const& kernel_size,
-                             bool debug ) {
+                             Vector2i          const& kernel_size) {
 
     typedef ImageView<PixelT> ImageType;
     typedef typename CostFuncT<ImageType,
@@ -93,14 +92,6 @@ namespace stereo {
         cost_applied      = cost_function( left_raster, right_raster_crop);
         cost_metric       = fast_box_sum<AccumChannelT>(cost_applied, kernel_size );
         cost_function.cost_modification( cost_metric, disparity );
-
-        // Dump the scores for this offset to disk
-        if (debug) {
-          std::ostringstream ostr;
-          ostr << "detail_" << disparity.y() << "_"
-                 << disparity.x() << ".tif";
-          write_image( ostr.str(),  cost_metric );
-        }
 
         // Loop across the region we want to compute disparities for.
         // - The correlation score for each pixel is located in "cost_metric"
@@ -184,8 +175,7 @@ namespace stereo {
                  ImageViewBase<ImageT2> const& right_in,
                  BBox2i                 const& left_region,
                  Vector2i               const& search_volume,
-                 Vector2i               const& kernel_size,
-                 bool debug=false){
+                 Vector2i               const& kernel_size){
 
     
     // Sanity check the input:
@@ -210,11 +200,11 @@ namespace stereo {
     // Call the lower level function with the appropriate cost function type
     switch ( cost_type ) {
     case CROSS_CORRELATION:
-      return best_of_search_convolution<NCCCost>(left, right, left_region, search_volume, kernel_size, debug);
+      return best_of_search_convolution<NCCCost>(left, right, left_region, search_volume, kernel_size);
     case SQUARED_DIFFERENCE:
-      return best_of_search_convolution<SquaredCost>(left, right, left_region, search_volume, kernel_size, debug);
+      return best_of_search_convolution<SquaredCost>(left, right, left_region, search_volume, kernel_size);
     default: // case ABSOLUTE_DIFFERENCE:
-      return best_of_search_convolution<AbsoluteCost>(left, right, left_region, search_volume, kernel_size, debug);
+      return best_of_search_convolution<AbsoluteCost>(left, right, left_region, search_volume, kernel_size);
     }
     
   } // End function calc_disparity
