@@ -26,10 +26,12 @@ include_HEADERS = \
   AlgorithmFunctions.h \
   Algorithms.h \
   AntiAliasing.h \
+  BlobIndex.h \
   BlockProcessor.h \
   BlockRasterize.h \
   Convolution.h \
   EdgeExtension.h \
+  ErodeView.h \
   Filter.h \
   Filter.tcc \
   ImageIO.h \
@@ -41,6 +43,7 @@ include_HEADERS = \
   ImageViewBase.h \
   ImageView.h \
   ImageViewRef.h \
+  InpaintView.h \
   Interpolation.h \
   Manipulation.h \
   MaskViews.h \
@@ -54,12 +57,14 @@ include_HEADERS = \
   PixelTypeInfo.h \
   PixelTypes.h \
   SparseImageCheck.h \
+  SparseView.h \
   Statistics.h \
   Transform.h \
   UtilityViews.h \
   ViewImageResource.h
 
 libvwImage_la_SOURCES = \
+  BlobIndex.cc \
   Filter.cc \
   ImageResource.cc \
   ImageResourceStream.cc \

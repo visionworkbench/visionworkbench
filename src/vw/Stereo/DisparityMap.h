@@ -1129,8 +1129,8 @@ namespace stereo {
     for_each_pixel(disparity_map, cdf_functor); // Apply the functor to each pixel in the image
     double max_val_x = multiple * cdf_functor.getQuantileX(quantile);
     double max_val_y = multiple * cdf_functor.getQuantileY(quantile);
-    vw_out() << "Computed max value X: " << max_val_x << std::endl;
-    vw_out() << "Computed max value Y: " << max_val_y << std::endl;
+    //vw_out() << "Computed max value X: " << max_val_x << std::endl;
+    //vw_out() << "Computed max value Y: " << max_val_y << std::endl;
 
     // Use UnaryPerPixelView to apply the threshold functor to every image pixel 
     typedef DisparityThresholdFunctor<typename ViewT::pixel_type> disp_thresh_functor;

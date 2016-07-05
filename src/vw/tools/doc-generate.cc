@@ -27,6 +27,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/BlobIndex.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Mosaic/QuadTreeGenerator.h>

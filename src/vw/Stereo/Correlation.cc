@@ -22,45 +22,19 @@
 namespace vw {
 namespace stereo {
 
-  bool
-  SearchParamLessThan::operator()(SearchParam const& A,
-                                  SearchParam const& B) const {
-    // The amount of computation for correlation for a given
-    // SearchParam instance is proportional to the product of the
-    // dimensions of its search boxes.
-    return search_volume(A) < search_volume(B);
-  }
+bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
+                        BBox2i const& current_bbox,
+                        std::vector<SearchParam>& list,
+                        Vector2i const& kernel_size,
+                        int32 fail_count ) {
 
-  inline int32 area( BBox2i const& a ) {
-    int32 width = a.width();
-    int32 heigh = a.height();
-    if ( width < 0 || heigh < 0 )
-      return 0;
-    return width * heigh;
-  }
+    // Looking at the 2d disparity vectors inside current_bbox
 
-  inline void expand_bbox( BBox2i& a, BBox2i const& b ) {
-
-    // Treat the cases of empty boxes. Those come in many
-    // shapes, some rather pathological.
-    if (b.empty()) return;
-    if (a.empty()) { a = b; return; }
-
-    a.min().x() = std::min(a.min().x(),b.min().x());
-    a.min().y() = std::min(a.min().y(),b.min().y());
-    a.max().x() = std::max(a.max().x(),b.max().x());
-    a.max().y() = std::max(a.max().y(),b.max().y());
-  }
-
-  bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
-                          BBox2i const& current_bbox,
-                          std::vector<SearchParam>& list,
-                          Vector2i const& kernel_size,
-                          int32 fail_count ) {
+    const int MIN_REGION_SIZE = 16;
 
     // 1.) Is this region too small? Must we stop?
     if ( prod(current_bbox.size()) <= 200 ||
-         current_bbox.width() < 16 || current_bbox.height() < 16 ){
+         current_bbox.width() < MIN_REGION_SIZE || current_bbox.height() < MIN_REGION_SIZE ){
       BBox2i expanded = current_bbox;
       expanded.expand(1);
       expanded.crop( bounding_box( disparity ) );
@@ -74,7 +48,7 @@ namespace stereo {
       return true;
     }
 
-    // 2) Divide the section into 4 quadrants, does it reduce total search?
+    // 2) Divide the current_bbox into 4 quadrants, does it reduce total search?
     Vector2i split_pt = current_bbox.size()/2;
     BBox2i q1( current_bbox.min(), current_bbox.min()+split_pt );
     BBox2i q4( current_bbox.min()+split_pt, current_bbox.max() );
@@ -84,6 +58,10 @@ namespace stereo {
                Vector2i(current_bbox.min()[0]+split_pt[0],current_bbox.max()[1]) );
     BBox2i q1_search, q2_search, q3_search, q4_search;
 
+    // Inside each of the four quadrants, find the min and max disparity.
+    // - Masked out pixels are ignored
+    // - Accumulate product of disparity search region + pixel area
+    // - TODO: Should get some of this logic into class functions.
     int32 split_search = 0;
     { // Q1
       PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
@@ -91,7 +69,7 @@ namespace stereo {
       if ( accumulator.is_valid() ) {
         q1_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += area(q1_search) * prod(q1.size()+kernel_size);
+        split_search += q1_search.area() * prod(q1.size()+kernel_size);
       }
     }
     { // Q2
@@ -100,7 +78,7 @@ namespace stereo {
       if ( accumulator.is_valid() ) {
         q2_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += area(q2_search) * prod(q2.size()+kernel_size);
+        split_search += q2_search.area() * prod(q2.size()+kernel_size);
       }
     }
     { // Q3
@@ -109,7 +87,7 @@ namespace stereo {
       if ( accumulator.is_valid() ) {
         q3_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += area(q3_search) * prod(q3.size()+kernel_size);
+        split_search += q3_search.area() * prod(q3.size()+kernel_size);
       }
     }
     { // Q4
@@ -118,30 +96,40 @@ namespace stereo {
       if ( accumulator.is_valid() ) {
         q4_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += area(q4_search) * prod(q4.size()+kernel_size);
+        split_search += q4_search.area() * prod(q4.size()+kernel_size);
       }
     }
+    // Now we have an estimate of the cost of processing these four
+    // quadrants seperately
 
     // 3) Find current search v2
+    //    - Get the min and max disparity search range that we just calculated
+    //      for the four quadrants.  This is faster than recomputing the min/max.
     BBox2i current_search_region;
     if ( q1_search != BBox2i() )
       current_search_region = q1_search;
     if ( q2_search != BBox2i() && current_search_region == BBox2i() )
       current_search_region = q2_search;
     else
-      expand_bbox( current_search_region, q2_search );
+      current_search_region.grow(q2_search);
     if ( q3_search != BBox2i() && current_search_region == BBox2i() )
       current_search_region = q3_search;
     else
-      expand_bbox( current_search_region, q3_search );
+      current_search_region.grow(q3_search);
     if ( q4_search != BBox2i() && current_search_region == BBox2i() )
       current_search_region = q4_search;
     else
-      expand_bbox( current_search_region, q4_search );
-    int32 current_search = area(current_search_region) * prod(current_bbox.size()+kernel_size);
+      current_search_region.grow(q4_search);
+    int32 current_search = current_search_region.area() * prod(current_bbox.size()+kernel_size);
 
-    if ( split_search > current_search*0.9 && fail_count == 0 ) {
-      // Did bad .. maybe next level will have better luck?
+    const double IMPROVEMENT_RATIO = 0.8;
+    
+    //std::cout << "split search: " << split_search << ", current = " << current_search*IMPROVEMENT_RATIO << std::endl;
+
+    if ( split_search > current_search*IMPROVEMENT_RATIO && fail_count == 0 ) {
+      // Splitting up the disparity region did not reduce our workload.
+      // This is our first failure, so see if we can still improve by
+      //  subdividing the quadrants one more time.
       std::vector<SearchParam> failed;
       if (!subdivide_regions( disparity, q1, list, kernel_size, fail_count + 1 ) )
         failed.push_back(SearchParam(q1,q1_search));
@@ -152,19 +140,20 @@ namespace stereo {
       if (!subdivide_regions( disparity, q4, list, kernel_size, fail_count + 1 ) )
         failed.push_back(SearchParam(q4,q4_search));
       if ( failed.size() == 4 ) {
-        // all failed, push back this region as a whole
+        // All failed, push back this region as a whole (what we started with)
         list.push_back( SearchParam( current_bbox,
                                      current_search_region ) );
         return true;
       } else if ( failed.size() == 3 ) {
         // 3 failed to split can I merge ?
+        // - See the failed==2 case for description!
         std::vector<SearchParam>::const_iterator it1 = failed.begin(), it2 = failed.begin();
         ++it2;
         if ( ( it1->first.min().x() == it2->first.min().x() ||
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          expand_bbox( merge, it2->first );
+          merge.grow(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( *++it2 );
           return true;
@@ -174,7 +163,7 @@ namespace stereo {
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          expand_bbox( merge, it2->first );
+          merge.grow(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( failed.front() );
           return true;
@@ -184,7 +173,7 @@ namespace stereo {
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          expand_bbox( merge, it2->first );
+          merge.grow(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( *++it1 );
           return true;
@@ -192,26 +181,30 @@ namespace stereo {
         // Push only the bombed regions, possibly a merge step could go here
         list.insert( list.end(), failed.begin(), failed.end() );
       } else if ( failed.size() == 2 ) {
-        // 2 failed to split .. can I merge?
+        // 2 failed to split.
+        // If the quadrants are adjacent and have the same disparity range,
+        //  merge them into a single search region.
+        // - TODO: How often does this actually work?
         if ( ( failed.front().first.min().x() == failed.back().first.min().x() ||
                failed.front().first.min().y() == failed.back().first.min().y() ) &&
              failed.front().second == failed.back().second ) {
           BBox2i merge = failed.front().first;
-          expand_bbox( merge, failed.back().first );
+          merge.grow(failed.back().first);
           list.push_back( SearchParam( merge, failed.front().second ) );
           return true;
         }
         list.insert( list.end(), failed.begin(), failed.end() );
       } else if ( failed.size() == 1 ) {
-        // Only 1 failed to split .. push it back
+        // Only 1 failed to split, use it in its entirety, allowing
+        // us to take advantage of the other regions which split well.
         list.push_back( failed.front() );
       }
       return true;
-    } else if ( split_search > current_search*0.9 && fail_count > 0 ) {
-      // Bad again .. back up
+    } else if ( split_search > current_search*IMPROVEMENT_RATIO && fail_count > 0 ) {
+      // Second failure trying to split this region, give up!
       return false;
     } else {
-      // Good split
+      // Good split, Try to keep splitting each of the four quadrants further.
       subdivide_regions( disparity, q1, list, kernel_size );
       subdivide_regions( disparity, q2, list, kernel_size );
       subdivide_regions( disparity, q3, list, kernel_size );
@@ -219,5 +212,6 @@ namespace stereo {
     }
     return true;
   }
+
 
 }} // end namespace vw::stereo

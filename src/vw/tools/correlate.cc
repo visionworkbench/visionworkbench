@@ -54,24 +54,24 @@ int main( int argc, char *argv[] ) {
     int32 h_corr_min, h_corr_max;
     int32 v_corr_min, v_corr_max;
     int32 xkernel, ykernel;
-    int lrthresh;
-    int correlator_type;
-    bool found_alignment = false;
+    int   lrthresh;
+    int   correlator_type;
+    bool  found_alignment = false;
     Matrix3x3 alignment;
 
     po::options_description desc("Options");
     desc.add_options()
       ("help,h", "Display this help message")
-      ("left", po::value(&left_file_name), "Explicitly specify the \"left\" input file")
-      ("right", po::value(&right_file_name), "Explicitly specify the \"right\" input file")
-      ("log", po::value(&log)->default_value(1.4), "Apply LOG filter with the given sigma, or 0 to disable")
+      ("left",       po::value(&left_file_name), "Explicitly specify the \"left\" input file")
+      ("right",      po::value(&right_file_name), "Explicitly specify the \"right\" input file")
+      ("log",        po::value(&log)->default_value(1.4), "Apply LOG filter with the given sigma, or 0 to disable")
       ("h-corr-min", po::value(&h_corr_min)->default_value(-30), "Minimum horizontal disparity")
       ("h-corr-max", po::value(&h_corr_max)->default_value(-30), "Maximum horizontal disparity")
       ("v-corr-min", po::value(&v_corr_min)->default_value(-5), "Minimum vertical disparity")
       ("v-corr-max", po::value(&v_corr_max)->default_value(5), "Maximum vertical disparity")
-      ("xkernel", po::value(&xkernel)->default_value(15), "Horizontal correlation kernel size")
-      ("ykernel", po::value(&ykernel)->default_value(15), "Vertical correlation kernel size")
-      ("lrthresh", po::value(&lrthresh)->default_value(2), "Left/right correspondence threshold")
+      ("xkernel",    po::value(&xkernel)->default_value(15), "Horizontal correlation kernel size")
+      ("ykernel",    po::value(&ykernel)->default_value(15), "Vertical correlation kernel size")
+      ("lrthresh",   po::value(&lrthresh)->default_value(2), "Left/right correspondence threshold")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       ("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)")
       ("pyramid", "Use the pyramid based correlator")
@@ -144,7 +144,7 @@ int main( int argc, char *argv[] ) {
         stereo::pyramid_correlate( left, right,
                                    constant_view( uint8(255), left ),
                                    constant_view( uint8(255), right ),
-                                   stereo::LaplacianOfGaussian(log),
+                                   stereo::PREFILTER_LOG, log,
                                    BBox2i(Vector2i(h_corr_min, v_corr_min),
                                           Vector2i(h_corr_max, v_corr_max)),
                                    Vector2i(xkernel, ykernel),

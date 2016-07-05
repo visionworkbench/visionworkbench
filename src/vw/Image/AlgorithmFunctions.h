@@ -279,7 +279,9 @@ namespace vw {
   image_blocks(ImageViewBase<T> const& view, int32 block_width, int32 block_height ) {
     return image_blocks( bounding_box(view.impl()), block_width, block_height );
   }
-
+  
+  
+/* Replaced by the BlobIndexThreaded class
   // ********************************************************************
   // blob_index()
   // ********************************************************************
@@ -438,7 +440,7 @@ namespace vw {
     blob_index( src, result );
     return result;
   }
-
+*/
 
 }
 

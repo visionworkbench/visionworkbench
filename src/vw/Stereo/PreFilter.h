@@ -24,9 +24,15 @@
 namespace vw {
 namespace stereo {
 
+  // ImageView Functors
+  enum PrefilterModeType {
+    PREFILTER_NONE    = 0,
+    PREFILTER_MEANSUB = 1,
+    PREFILTER_LOG     = 2
+  };
+
   // This is a base class that is used in other code to make sure the
-  // user is passing an actual pre-processing filter as opposed to say
-  // an 'int'.
+  // user is passing an actual pre-processing filter as opposed to say an 'int'.
   template <class ImplT>
   struct PreFilterBase {
     inline ImplT& impl() { return static_cast<ImplT&>(*this); }

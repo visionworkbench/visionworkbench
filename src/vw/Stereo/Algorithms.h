@@ -42,7 +42,7 @@ namespace stereo {
     typedef typename ViewT::pixel_type PixelT;
     typedef typename PixelChannelCast<PixelT,AccumulatorType>::type AccumT;
 
-    ViewT const& input( image.impl() );
+    ViewT const& input( image.impl() ); // This just helps keep the code cleaner
     VW_DEBUG_ASSERT( input.cols() >= kernel[0] && input.rows() >= kernel[1],
                      ArgumentErr() << "fast_box_sum: Image is not big enough for kernel." );
 

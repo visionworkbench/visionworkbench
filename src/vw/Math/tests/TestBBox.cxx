@@ -192,7 +192,7 @@ TEST(BBox, Ops) {
   EXPECT_DOUBLE_EQ( 5, b4.max()[0] );
   EXPECT_DOUBLE_EQ( 6, b4.max()[1] );
 
-  b5.expand(2);
+  b5.expand(Vector2(2,2));
   EXPECT_DOUBLE_EQ( 0, b5.min()[0] );
   EXPECT_DOUBLE_EQ( 0, b5.min()[1] );
   EXPECT_DOUBLE_EQ( 5, b5.max()[0] );

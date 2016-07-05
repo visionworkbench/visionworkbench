@@ -90,7 +90,8 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator=( BBox<RealT1, DimN1> const& bbox
 template <class RealT, size_t DimN>
 template <class VectorT>
 void BBox<RealT, DimN>::grow( VectorBase<VectorT> const& point ) {
-  VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
+  VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), 
+            ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
   if (m_min.size() == 0) {
     m_min = point;
     m_max = point;
@@ -108,7 +109,8 @@ void BBox<RealT, DimN>::grow( VectorBase<VectorT> const& point ) {
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
 void BBox<RealT, DimN>::crop( BBox<RealT1, DimN1> const& bbox ) {
-  VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
+  VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
+            ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
   for( size_t i=0; i<m_min.size(); ++i ) {
     if( m_min[i] < bbox.min()[i] ) {
       if( m_max[i] < bbox.min()[i] )
@@ -188,6 +190,24 @@ RealT BBox<RealT, DimN>::depth() const {
 }
 
 
+template <class RealT, size_t DimN>
+RealT BBox<RealT, DimN>::area() const {
+  checkLengthGte<2>();
+  if (empty()) return 0.0; // Bug fix for underflow/overflow
+  return (this->max()[0] - this->min()[0]) *
+         (this->max()[1] - this->min()[1]);
+}
+
+template <class RealT, size_t DimN>
+RealT BBox<RealT, DimN>::volume() const {
+  checkLengthGte<3>();
+  if (empty()) return 0.0; // Bug fix for underflow/overflow
+  return (this->max()[0] - this->min()[0]) *
+         (this->max()[1] - this->min()[1]) *
+         (this->max()[2] - this->min()[2]);
+}
+
+
 
 template <class RealT, size_t DimN>
 Vector<RealT, DimN> BBox<RealT, DimN>::size() const {
@@ -209,6 +229,18 @@ void BBox<RealT, DimN>::expand( RealT offset ) {
   for( size_t i=0; i<m_min.size(); ++i ) {
     m_min[i] -= offset;
     m_max[i] += offset;
+  }
+}
+
+template <class RealT, size_t DimN>
+template <class VectorT>
+void BBox<RealT, DimN>::expand( VectorBase<VectorT> const& vec ) {
+  VW_ASSERT(m_min.size() == 0 || vec.impl().size() == m_min.size(), 
+            ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
+  if (empty()) return; // Bug fix for underflow/overflow
+  for( size_t i=0; i<m_min.size(); ++i ) {
+    m_min[i] -= vec.impl()[i];
+    m_max[i] += vec.impl()[i];
   }
 }
 

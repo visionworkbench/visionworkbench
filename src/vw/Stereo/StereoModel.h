@@ -49,6 +49,9 @@ namespace stereo {
                 camera::CameraModel const* camera_model2,
                 bool least_squares_refine = false);
 
+    // This class does not modify the input models.
+    virtual ~StereoModel() {}
+
     //------------------------------------------------------------------
     // Public Methods
     //------------------------------------------------------------------

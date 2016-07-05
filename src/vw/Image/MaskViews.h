@@ -283,9 +283,10 @@ namespace vw {
     }
   };
 
+  /// Return a copy of the first argument with a mask copied from the second argument.
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> >
-  copy_mask( ImageViewBase<ViewT> const& view,
+  copy_mask( ImageViewBase<    ViewT> const&      view,
              ImageViewBase<MaskViewT> const& mask_view ) {
     typedef BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), mask_view.impl(), CopyPixelMask<typename ViewT::pixel_type>() );

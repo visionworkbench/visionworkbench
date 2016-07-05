@@ -157,9 +157,15 @@ struct Int2Type
     inline RealT height() const; ///< Returns the height (i.e. size in the second dimension) of the bounding box.
     inline RealT depth () const; ///< Returns the depth  (i.e. size in the third  dimension) of the bounding box.
 
+    inline RealT area  () const; ///< Returns width*height, min zero.
+    inline RealT volume() const; ///< Returns width*height*depth, min zero
+
     inline void expand  ( RealT offset ); ///< Expands   this bounding box by the given offset in every direction.
     inline void contract( RealT offset ); ///< Contracts this bounding box by the given offset in every direction.
 
+    /// Overload of the expand function that expands in each dimension according to the vector value.
+    template <class VectorT>
+    inline void expand( const VectorBase<VectorT> &point );
 
     /// Grows a bounding box to include the given point.
     template <class VectorT>
