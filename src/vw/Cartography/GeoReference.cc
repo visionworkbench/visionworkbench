@@ -49,12 +49,14 @@ namespace cartography {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
     DiskImageResourceGDAL const* gdal =
       dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-    if( gdal ) return read_gdal_georeference( georef, *gdal );
+    if( gdal ) 
+      return read_gdal_georeference( georef, *gdal );
 #endif
 
     DiskImageResourcePDS const* pds =
       dynamic_cast<DiskImageResourcePDS const*>( &resource );
-    if( pds ) return read_pds_georeference( georef, *pds );
+    if( pds ) 
+      return read_pds_georeference( georef, *pds );
     return false;
   }
 
@@ -63,7 +65,8 @@ namespace cartography {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
     DiskImageResourceGDAL* gdal =
       dynamic_cast<DiskImageResourceGDAL*>( &resource );
-    if ( gdal ) return write_gdal_georeference( *gdal, georef );
+    if ( gdal ) 
+      return write_gdal_georeference( *gdal, georef );
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
@@ -442,6 +445,9 @@ namespace cartography {
       corner_pixels[3] = pixel_bbox.min() + Vector2(0, pixel_bbox.height()-1);
     }
     
+    //std::cout << "Converting pixel corners...\n";
+    bool negLon = false, overLon=false;
+    double minLon=99999, maxLon=-99999;
     for (size_t i=0; i<corner_pixels.size(); ++i) {
     
       // Figure out where the pixel transforms to in lon/lat.
@@ -449,22 +455,41 @@ namespace cartography {
       Vector2 point   = pixel_to_point(corner_pixels[i]);
       Vector2 lon_lat = point_to_lonlat_no_normalize(point);
       double lon = lon_lat[0]; 
+      
+      //printf("%d = %lf\n", i, lon);
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
 
-      // If the projected space converts outside the shared space of the two ranges, 
-      //   select the range containing its location.
-      if (lon > 180) {
+      // Record the where the lonlat coordinates fall
+      if (lon > 180)
+        overLon = true;
+      if (lon < 0)
+        negLon = true;
+    } // End loop through corners
+
+    if (overLon && !negLon) { // Lons over 180, none under 0, must be 180 centered.
+      m_center_lon_zero = false;
+      set_proj4_over();
+      return;
+    }
+    if (negLon && !overLon) { // Lons under 0, none over 180, must be zero centered.
+      m_center_lon_zero = true;
+      clear_proj4_over();
+      return;
+    }
+    // Check for weird images with pixels that wrap-around more than 360 degrees!
+    // - In this situation, determine by where the center lon is closer to.
+    if (negLon && overLon) {
+      double centerLon = (minLon + maxLon) / 2.0;
+      double diff0     = abs(centerLon);
+      double diff180   = abs(centerLon - 180);
+      //printf("diff0 = %lf, diff180 = %lf\n", diff0, diff180);
+      if (diff180 < diff0) { // 180 is closer, 
         m_center_lon_zero = false;
-        //std::cout << "Start lon > 180, center on 180.\n";
         set_proj4_over();
         return;
-      }
-      if (lon < 0) {
-        m_center_lon_zero = true;
-        //std::cout << "Start lon < 0, center on 0.\n";
-        clear_proj4_over();
-        return;
-      }
-    } // End loop through corners
+      } // Otherwise proceed and with the zero centered case.
+    }
 
     // If we made it to here all pixels are in the 0-180 zone.
     // In this case, default to the more common -180 to 180 range.
