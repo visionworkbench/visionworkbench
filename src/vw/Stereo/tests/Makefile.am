@@ -32,6 +32,7 @@ TestPreFilter_SOURCES     = TestPreFilter.cxx
 TestPyramidCorrelationView_SOURCES = TestPyramidCorrelationView.cxx
 TestStereoModel_SOURCES   = TestStereoModel.cxx
 TestSubPixel_SOURCES      = TestSubPixel.cxx
+TestSGM_SOURCES = TestSGM.cxx
 
 TESTS = \
 	TestAlgorithms \
@@ -43,7 +44,8 @@ TESTS = \
 	TestPreFilter \
 	TestPyramidCorrelationView \
 	TestStereoModel \
-	TestSubPixel
+	TestSubPixel \
+	TestSGM
 
 #include $(top_srcdir)/config/instantiate.am
 

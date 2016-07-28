@@ -281,7 +281,7 @@ prerasterize(BBox2i const& bbox) const {
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
     BBox2i initial_disparity_range = BBox2i(0,0,m_search_region.width ()/max_upscaling+1,
-                                            m_search_region.height()/max_upscaling+1);
+                                                m_search_region.height()/max_upscaling+1);
     zones.push_back( SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
                                  initial_disparity_range) );
     //vw_out(DebugMessage,"stereo") << "initial_disparity_range = " << initial_disparity_range << std::endl;
@@ -344,13 +344,14 @@ prerasterize(BBox2i const& bbox) const {
         }
 
         // Compute left to right disparity vectors in this zone.
-        
+        // - The cropped regions we pass in have padding for the kernel.
         crop(disparity, zone.image_region())
           = calc_disparity(m_cost_type,
-                           crop(left_pyramid [level], left_region),
+                           crop(left_pyramid [level], left_region), 
                            crop(right_pyramid[level], right_region),
-                           left_region - left_region.min(),
-                           zone.disparity_range().size(), m_kernel_size);
+                           left_region - left_region.min(), // Specify that the whole cropped region is valid
+                           zone.disparity_range().size(), 
+                           m_kernel_size);
 
 
 

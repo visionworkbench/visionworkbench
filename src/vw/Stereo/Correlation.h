@@ -173,8 +173,8 @@ namespace stereo {
   calc_disparity(CostFunctionType cost_type,
                  ImageViewBase<ImageT1> const& left_in,
                  ImageViewBase<ImageT2> const& right_in,
-                 BBox2i                 const& left_region,
-                 Vector2i               const& search_volume,
+                 BBox2i                 const& left_region,   // Valid region in the left image
+                 Vector2i               const& search_volume, // Max disparity to search in right image
                  Vector2i               const& kernel_size){
 
     
