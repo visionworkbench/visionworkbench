@@ -30,10 +30,8 @@ using namespace vw;
 using namespace vw::stereo;
 
 TEST( SGM, basic ) {
-
-  int dx = 20;
-  int dy = 3;
-  /*
+  
+/*
   // For this example, the disparity is (2,1) for each pixel!
   DiskImageView<PixelGray<uint8> > inputLeft ("left.tif");
   DiskImageView<PixelGray<uint8> > inputRight("left_shift.tif");
@@ -52,20 +50,25 @@ TEST( SGM, basic ) {
   BBox2i leftRoi (0,0,200, 200);
   BBox2i rightRoi(0,0,200+dx, 200+dy);
 */
-
+/*
   DiskImageView<PixelGray<uint8> > inputLeft ("moc_right.tif");
   DiskImageView<PixelGray<uint8> > inputRight("moc_left.tif");
   BBox2i leftRoi (0,0,300, 300);
   BBox2i rightRoi(0,0,300+dx, 300+dy);
+*/
 
-
-/*// Note that the matches have higher column values in the left image.
+  // Note that the matches have higher column values in the left image.
   // X disparities are in the 0-140 range, y is 0 disparity.
+  int min_disp_x  = 30;
+  int max_disp_x  = 140;
+  int min_disp_y  = 0;
+  int max_disp_y  = 0;
+  int kernel_size = 5;
   DiskImageView<PixelGray<uint8> > inputLeft ("cones_right.pgm");
   DiskImageView<PixelGray<uint8> > inputRight("cones_left.pgm");
-  BBox2i leftRoi (0,0,700, 700);
-  BBox2i rightRoi(0,0,700+dx, 700+dy);
-*/
+  BBox2i leftRoi (0,0,700, 200);
+  BBox2i rightRoi(0,0,700+max_disp_x, 200+max_disp_y);
+
 
 
   ImageView<uint8> left  = crop(inputLeft, leftRoi);
@@ -74,8 +77,12 @@ TEST( SGM, basic ) {
   //write_image("left_in.tif", left);
   //write_image("right_in.tif", right);
   
-  ImageView<Vector<uint8, 2> > result = 
-  semi_global_matching_func(left, right);
+  
+  
+  SemiGlobalMatcher matcher;
+  matcher.setParameters(min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size);
+  ImageView<Vector<uint8, 2> > result = matcher.semi_global_matching_func(left, right);
+  
   std::cout << "Writing output...\n";
   write_image("SGM_output.tif", result);
   
