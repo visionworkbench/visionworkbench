@@ -14,11 +14,17 @@ namespace vw {
 
 /* TODO LIST
   - Increase speed, it is way too slow!
-  - Support min and max disparity range set on the fly.
   - Clean up interfaces/ROI handling.
   - Handle non-uint8 input images.
   - Integrate with disparity code as an option for the low-
     resolution disparity search.
+    
+NOTES:
+
+ - Using a block size in the initial cost calculation does not seem to improve the results.
+   Instead it gives splotchy output.  No real effect on speed.
+ - All the required time is in the path iteration functions!
+    
 */
 
 
@@ -33,6 +39,8 @@ public: // Definitions
   typedef int16 CostType;      ///< Used to describe a single disparity cost.
   typedef int32 AccumCostType; ///< Used to accumulate CostType values.
 
+  typedef ImageView<Vector<DisparityType,2> > DisparityImage;
+
 public: // Functions
 
   // Set the parameters to be used for future SGM calls
@@ -41,7 +49,7 @@ public: // Functions
                      int kernel_size);
 
   /// Invokes a 8 path version of SGM
-  ImageView<Vector<DisparityType,2> >
+  DisparityImage
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image );
 
@@ -91,7 +99,7 @@ private: // Functions
 
 
   /// Goes across all the viterbi diagrams and extracts out the minimum vector.
-  ImageView<Vector<DisparityType,2> >
+  DisparityImage
   create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs );
 
   /// Converts from a linear disparity index to the dx, dy values it represents.

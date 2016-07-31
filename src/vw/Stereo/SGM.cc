@@ -78,7 +78,7 @@ void SemiGlobalMatcher::evaluate_path(
       // Get something reasonable here, don't want to spend too much time tweaking up front.
     
       // TODO!
-      
+      /*
       AccumCostType penalty = 0;
       if ( disparity_diff == 0 ) {
         // No penalty, zero integer disparity
@@ -91,11 +91,11 @@ void SemiGlobalMatcher::evaluate_path(
          //   the smaller the assessed penalty is for a disparity jump.
          penalty = std::max(PENALTY1, path_intensity_gradient ? PENALTY2/path_intensity_gradient : PENALTY2);
       }
-      
+      */
      
-     //// TODO: Consider intensity diff?
-     //const AccumCostType P_A = 20; // TODO: This needs to be related to the local cost sizes!
-     //AccumCostType penalty  = disparity_diff * P_A;
+     // TODO: Consider intensity diff?
+     const AccumCostType P_A = 20; // TODO: This needs to be related to the local cost sizes!
+     AccumCostType penalty  = disparity_diff * P_A;
       
      
      
@@ -131,7 +131,7 @@ void SemiGlobalMatcher::evaluate_path(
 
 
 
-ImageView<Vector<SemiGlobalMatcher::DisparityType,2> >
+SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs ) {
   // Init output vector
   ImageView<Vector<DisparityType,2> > disparity( m_num_output_cols, m_num_output_rows );
@@ -181,9 +181,9 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost(ImageView<uint8> const& 
   return CostType(sum);
 }
 
-ImageView<Vector<SemiGlobalMatcher::DisparityType,2> >
+SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image,
-                           ImageView<uint8> const& right_image ) {
+                                              ImageView<uint8> const& right_image ) {
 
   std::cout << "Init!\n";
   
@@ -214,22 +214,40 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   {
     Timer timer("\tCost Calculation");
 
-    const int half_kernel_size = (m_kernel_size-1) / 2;
+    // Compute safe bounds to search through.
+    // - Any location we don't compute a cost for defaults to the max cost,
+    //   essentially ignoring that location.
+    // - 
     
+    const int half_kernel_size = (m_kernel_size-1) / 2;
+
+    int min_row = half_kernel_size - m_min_disp_y; // Assumes the (0,0) pixels are aligned
+    int min_col = half_kernel_size - m_min_disp_x;
+    int max_row = std::min(left_image.rows()  -  half_kernel_size,
+                           right_image.rows() - (half_kernel_size + m_max_disp_y) );
+    int max_col = std::min(left_image.cols()  -  half_kernel_size,
+                           right_image.cols() - (half_kernel_size + m_max_disp_x) );
+    if (min_row < 0) min_row = 0;
+    if (min_col < 0) min_col = 0;
+    if (max_row > left_image.rows()) min_row = left_image.rows();
+    if (max_col > left_image.cols()) min_col = left_image.cols();
+
+    std::cout << "Computed cost bounding box: " << std::endl;
+    printf("min_row = %d, min_col = %d, max_row = %d, max_col = %d\n", min_row, min_col, max_row, max_col);
 
     size_t d=0;    
     for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
       for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
   
         // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-        for ( int j = half_kernel_size; j < (size.y()-half_kernel_size)-dy; j++ ) { // For each row in left
-          for ( int i = half_kernel_size; i < (size.x()-half_kernel_size)-dx; i++ ) { // For each column in left
+        for ( int j = min_row; j < max_row; j++ ) { // For each row in left
+          for ( int i = min_col; i < max_col; i++ ) { // For each column in left
           
             // Currently this computes only the SINGLE PIXEL difference.
             // Could improve results by converting to block matching around the center pixel.
           
             // TODO: Add or subtract the disparity?
-            bool debug = ((i == 219) && (j == 173));
+            bool debug = ((i == 73) && (j == 159));
             size_t cost_index = get_cost_index(i, j, d);
             m_cost_buffer[cost_index] = get_cost(left_image, right_image, i, j, i+dx,j+dy, debug);
             
