@@ -33,6 +33,8 @@
 #include <boost/foreach.hpp>
 #include <ctime>
 
+#include <vw/Stereo/SGM.h>
+
 namespace vw {
 namespace stereo {
 

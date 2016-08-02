@@ -2,8 +2,10 @@
 #define __SEMI_GLBOAL_MATCHING_H__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Math/Vector.h>
-#include <vw/FileIO.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Stereo/DisparityMap.h>
+
+#include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
 
 namespace vw {
 
@@ -39,7 +41,7 @@ public: // Definitions
   typedef int16 CostType;      ///< Used to describe a single disparity cost.
   typedef int32 AccumCostType; ///< Used to accumulate CostType values.
 
-  typedef ImageView<Vector<DisparityType,2> > DisparityImage;
+  typedef ImageView<PixelMask<Vector2i> > DisparityImage; // The usual VW disparity type
 
 public: // Functions
 
@@ -60,6 +62,8 @@ private: // Variables
     int m_max_disp_x, m_max_disp_y;
     int m_kernel_size; ///< Must be odd. Use "1" for single pixel.
 
+    int m_min_row, m_max_row;
+    int m_min_col, m_max_col;
     int m_num_output_cols, m_num_output_rows;
     
     // Derived parameters for convenience
@@ -148,8 +152,8 @@ private: // Functions
 
   /// Returns a cost score at a given location
   CostType get_cost(ImageView<uint8> const& left_image,
-                 ImageView<uint8> const& right_image,
-                 int left_x, int left_y, int right_x, int right_y, bool debug);
+                    ImageView<uint8> const& right_image,
+                    int left_x, int left_y, int right_x, int right_y, bool debug);
 
 
   // Print out a disparity vector
@@ -161,6 +165,13 @@ private: // Functions
     std::cout << std::endl;
   }
   
+  /// Get the pixel diff along a line at a specified output location.
+  int get_path_pixel_diff(ImageView<uint8> const& left_image,
+                          int col, int row, int dir_x, int dir_y) const {
+    // Take the offset between the output location and the input pixel coordinates.
+    return abs(left_image(col-m_min_col,         row-m_min_row) - 
+               left_image((col-dir_x)-m_min_col, (row-dir_y)-m_min_row));
+  }
   
 
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.
@@ -191,7 +202,6 @@ private: // Functions
         add_cost_vector(0, j, accumulated_costs);
       }
       //std::cout << "L costs: " << costs(0,185) << std::endl;
-
       // Loop across to the opposite edge
       for ( int32 i = 1; i < m_num_output_cols; i++ ) {
         // Loop through the pixels in this column, limiting the range according
@@ -199,7 +209,7 @@ private: // Functions
         int32 jstart = std::max( 0,      0      + DIRY * i );
         int32 jstop  = std::min( m_num_output_rows, m_num_output_rows + DIRY * i );
         for ( int32 j = jstart; j < jstop; j++ ) {
-          int pixel_diff = abs(left_image(i,j)-left_image(i-DIRX,j-DIRY));
+          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
           evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j),
                          get_accum_vector(accumulated_costs, i,j), 
@@ -224,7 +234,7 @@ private: // Functions
                                  (DIRX <= 0 ? 0 : 1) + DIRX * j );
         int32 istop  = std::min( m_num_output_cols, m_num_output_cols + DIRX * j );
         for ( int32 i = istart; i < istop; i++ ) {
-          int pixel_diff         = abs(left_image(i,j)-left_image(i-DIRX,j-DIRY));
+          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
           evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
@@ -243,7 +253,7 @@ private: // Functions
                                  (DIRY <= 0 ? 0 : 1) - DIRY * (i - m_num_output_cols + 1) );
         int32 jstop  = std::min( m_num_output_rows, m_num_output_rows - DIRY * (i - m_num_output_cols + 1) );
         for ( int32 j = jstart; j < jstop; j++ ) {
-          int pixel_diff         = abs(left_image(i,j)-left_image(i-DIRX,j-DIRY));
+          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
           evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
@@ -264,7 +274,7 @@ private: // Functions
         int32 istop  = std::min( (DIRX >= 0 ? m_num_output_cols : m_num_output_cols - 1),
                                  (DIRX >= 0 ? m_num_output_cols : m_num_output_cols - 1) - DIRX * (j - m_num_output_rows + 1) );
         for ( int32 i = istart; i < istop; i++ ) {
-          int pixel_diff         = abs(left_image(i,j)-left_image(i-DIRX,j-DIRY));
+          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
           evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
@@ -274,9 +284,55 @@ private: // Functions
     }
   } // End function iterate_direction
 
-
-
 }; // end class SemiGlobalMatcher
+
+
+/// Wrapper function for SGM that handles ROIs.
+/// - Merge with the function in Correlation.h!
+/// - This function only searches positive disparities. The input images need to be
+///   already cropped so that this makes sense.
+template <class ImageT1, class ImageT2>
+  ImageView<PixelMask<Vector2i> >
+  calc_disparity_sgm(//CostFunctionType cost_type,
+                 ImageViewBase<ImageT1> const& left_in,
+                 ImageViewBase<ImageT2> const& right_in,
+                 BBox2i                 const& left_region,   // Valid region in the left image
+                 Vector2i               const& search_volume, // Max disparity to search in right image
+                 Vector2i               const& kernel_size){ // Only really takes an N by N kernel!
+
+    
+    // Sanity check the input:
+    VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
+                     ArgumentErr() << "best_of_search_convolution: Kernel input not sized with odd values." );
+    VW_DEBUG_ASSERT( kernel_size[0] <= left_region.width() &&
+                     kernel_size[1] <= left_region.height(),
+                     ArgumentErr() << "best_of_search_convolution: Kernel size too large of active region." );
+    VW_DEBUG_ASSERT( search_volume[0] > 0 && search_volume[1] > 0,
+                     ArgumentErr() << "best_of_search_convolution: Search volume must be greater than 0." );
+    VW_DEBUG_ASSERT( left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
+                     left_region.max().x() <= left_in.impl().cols() &&
+                     left_region.max().y() <= left_in.impl().rows(),
+                     ArgumentErr() << "best_of_search_convolution: Region not inside left image." );
+
+    // Rasterize input so that we can do a lot of processing on it.
+    BBox2i right_region = left_region;
+    right_region.max() += search_volume - Vector2i(1,1);
+    ImageView<typename ImageT1::pixel_type> left_crop ( crop(left_in.impl(),  left_region) );
+    ImageView<typename ImageT2::pixel_type> right_crop( crop(right_in.impl(), right_region) );
+
+    // TODO: Make scaling optional
+    // Convert the input image to uint8 with 2%-98% intensity scaling.
+    ImageView<PixelGray<vw::uint8> > left, right;
+    ip::percentile_scale_convert(left_crop,  left, 0.02, 0.98);
+    ip::percentile_scale_convert(right_crop, right, 0.02, 0.98);
+    
+    // TODO: Support different cost types?
+    SemiGlobalMatcher matcher;
+    matcher.setParameters(0, 0, search_volume[0], search_volume[1], kernel_size[0]);
+    return matcher.semi_global_matching_func(left, right);
+    
+  } // End function calc_disparity
+
 
 
 /*

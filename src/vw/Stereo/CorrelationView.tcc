@@ -284,7 +284,7 @@ prerasterize(BBox2i const& bbox) const {
                                                 m_search_region.height()/max_upscaling+1);
     zones.push_back( SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
                                  initial_disparity_range) );
-    //vw_out(DebugMessage,"stereo") << "initial_disparity_range = " << initial_disparity_range << std::endl;
+    vw_out(DebugMessage,"stereo") << "initial_disparity_range = " << initial_disparity_range << std::endl;
 
     // Perform correlation. Keep track of how much time elapsed
     // since we started and stop if we estimate that doing one more
@@ -304,13 +304,21 @@ prerasterize(BBox2i const& bbox) const {
 
       const bool on_last_level = (level == 0);
 
+      // Don't use SGM for larger regions!
+      bool use_sgm = (!on_last_level); // TODO: Base this on workload.
+      Vector2i sgm_kernel_size(1,1);
+      Vector2i layer_half_kernel = half_kernel;
+      if (use_sgm)
+        layer_half_kernel = Vector2i(0,0);
+      
+
       int32 scaling = 1 << level;
       disparity.set_size( left_mask_pyramid[level] );
-      Vector2i region_offset = max_upscaling*half_kernel/scaling;
-      //vw_out(DebugMessage,"stereo") << "\nProcessing level: " << level 
-      //                              << " with size " << disparity.get_size() << std::endl;
-      //vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
-      //vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
+      Vector2i region_offset = max_upscaling*layer_half_kernel/scaling;
+      vw_out(DebugMessage,"stereo") << "\nProcessing level: " << level 
+                                    << " with size " << disparity.get_size() << std::endl;
+      vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
+      vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
       // 3.1) Process each zone with their refined search estimates
       // - The zones are subregions of the image with similar disparities
@@ -321,9 +329,10 @@ prerasterize(BBox2i const& bbox) const {
       BOOST_FOREACH( SearchParam const& zone, zones ) {
 
         BBox2i left_region = zone.image_region() + region_offset; // Kernel width offset
-        left_region.expand(half_kernel);
-        BBox2i right_region = left_region + zone.disparity_range().min();
-        right_region.max() += zone.disparity_range().size();
+        left_region.expand(layer_half_kernel);
+        BBox2i right_region = left_region + zone.disparity_range().min(); // Make right region contain all of
+        right_region.max() += zone.disparity_range().size();              //  the needed match area.
+        // Setting up the ROIs in this way means that the range of disparities calculated is always >=0
 
         // Check timing estimate to see if we should go ahead with this zone or quit.
         SearchParam params(left_region, zone.disparity_range());
@@ -345,15 +354,24 @@ prerasterize(BBox2i const& bbox) const {
 
         // Compute left to right disparity vectors in this zone.
         // - The cropped regions we pass in have padding for the kernel.
-        crop(disparity, zone.image_region())
-          = calc_disparity(m_cost_type,
-                           crop(left_pyramid [level], left_region), 
-                           crop(right_pyramid[level], right_region),
-                           left_region - left_region.min(), // Specify that the whole cropped region is valid
-                           zone.disparity_range().size(), 
-                           m_kernel_size);
-
-
+        std::cout << "Generating disparity image region: " << zone.image_region() << std::endl;
+        if (use_sgm) {
+          crop(disparity, zone.image_region())
+            = calc_disparity_sgm(//m_cost_type,
+                             crop(left_pyramid [level], left_region), 
+                             crop(right_pyramid[level], right_region),
+                             left_region - left_region.min(), // Specify that the whole cropped region is valid
+                             zone.disparity_range().size(), 
+                             sgm_kernel_size);
+        } else {
+          crop(disparity, zone.image_region())
+            = calc_disparity(m_cost_type,
+                             crop(left_pyramid [level], left_region), 
+                             crop(right_pyramid[level], right_region),
+                             left_region - left_region.min(), // Specify that the whole cropped region is valid
+                             zone.disparity_range().size(), 
+                             m_kernel_size);
+        }
 
         // If at the last level and the user requested a left<->right consistency check,
         //   compute right to left disparity.
@@ -370,14 +388,27 @@ prerasterize(BBox2i const& bbox) const {
             estim_elapsed += next_elapsed;
           }
           // Compute right to left disparity in this zone
-          ImageView<pixel_type> rl_result
-            = calc_disparity(m_cost_type,
+          
+          
+          
+          ImageView<pixel_type> rl_result;
+          if (use_sgm) {
+            rl_result = calc_disparity_sgm(//m_cost_type,
+                             crop(edge_extend(right_pyramid[level]), right_region),
+                             crop(edge_extend(left_pyramid [level]),
+                                  left_region - zone.disparity_range().size()),
+                             right_region - right_region.min(),
+                             zone.disparity_range().size(), sgm_kernel_size)
+            - pixel_type(zone.disparity_range().size());
+          } else {
+            rl_result = calc_disparity(m_cost_type,
                              crop(edge_extend(right_pyramid[level]), right_region),
                              crop(edge_extend(left_pyramid [level]),
                                   left_region - zone.disparity_range().size()),
                              right_region - right_region.min(),
                              zone.disparity_range().size(), m_kernel_size)
             - pixel_type(zone.disparity_range().size());
+          }            
 
           // Find pixels where the disparity distance is greater than m_consistency_threshold
           stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
@@ -423,14 +454,30 @@ prerasterize(BBox2i const& bbox) const {
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user
       if ( !on_last_level ) {
+        const size_t next_level = level-1;
         zones.clear();
+
+        vw_out() << "Computing new zone(s) for level " << next_level << std::endl;
+
+        // SGM test: only one zone!
+        
+        PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
+        for_each_pixel( disparity, accumulator );
+        BBox2i new_disparity_range(accumulator.minimum(),
+                                   accumulator.maximum()+Vector2i(1,1));
+        vw_out() << "Last computed disparity range: " << new_disparity_range << std::endl;
+        
+        zones.push_back( SearchParam(bounding_box(left_mask_pyramid[next_level]),
+                                     new_disparity_range) );
+                                 
+/*      // Current method, multiple zones:
 
         // On the next resolution level, break up the image area into multiple
         // smaller zones with similar disparities.  This helps minimize
         // the total amount of searching done on the image.
         subdivide_regions( disparity, bounding_box(disparity),
                            zones, m_kernel_size );
-
+*/
         
         scaling >>= 1;
         // Scale search range defines the maximum search range that
@@ -439,7 +486,6 @@ prerasterize(BBox2i const& bbox) const {
         // specified. We are able to do this because we are taking
         // advantage of the half kernel padding needed at the hight
         // level of the pyramid.
-        const size_t next_level = level-1;
         BBox2i scale_search_region(0,0,
                                    right_pyramid[next_level].cols() - left_pyramid[next_level].cols(),
                                    right_pyramid[next_level].rows() - left_pyramid[next_level].rows() );
@@ -454,10 +500,10 @@ prerasterize(BBox2i const& bbox) const {
           //   significantly increases the processing times.
           zone.disparity_range().crop( scale_search_region );         
         } // End zone update loop
-        
+
       } // End not the last level case
       
-      if (0) { // DEBUG
+      if (1) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
         BBox2i scaled = bbox/2;
         std::ostringstream ostr;

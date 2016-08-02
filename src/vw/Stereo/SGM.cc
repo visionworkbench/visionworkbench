@@ -134,7 +134,7 @@ void SemiGlobalMatcher::evaluate_path(
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs ) {
   // Init output vector
-  ImageView<Vector<DisparityType,2> > disparity( m_num_output_cols, m_num_output_rows );
+  DisparityImage disparity( m_num_output_cols, m_num_output_rows );
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
   //Timer timer("\tCalculate Disparity Minimum");
@@ -147,14 +147,13 @@ SemiGlobalMatcher::create_disparity_view( boost::shared_array<AccumCostType> con
       DisparityType disp = find_min_index(vec_ptr);
       
       disp_to_xy(disp, dx, dy);
-      int SCALE = 1; // For debug display!
-      disparity(i,j) = SCALE*Vector<DisparityType,2>(dx, dy);      
+      disparity(i,j) = DisparityImage::pixel_type(dx, dy);      
       
       //if ((i == 219) && (j==173))
       //printf("ACC costs (%d,%d): %d, %d, %d\n", i, j, disp, dx, dy);
     }
   }
-  std::cout << "Done creating view\n";
+  printf("Done creating SGM result of size: %d, %d\n", disparity.cols(), disparity.rows());
   return disparity;
 }
 
@@ -190,16 +189,35 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   const CostType MAX_COST       = std::numeric_limits<     CostType>::max();
   const CostType MAX_ACCUM_COST = std::numeric_limits<AccumCostType>::max();
 
-  m_num_output_cols  = left_image.cols();
-  m_num_output_rows  = left_image.rows();
-  m_buffer_step_size = m_num_output_cols * m_num_disp;
 
-  // Calc one result for each left image pixel.
-  Vector2i size(m_num_output_cols, m_num_output_rows);
+
+  // Compute safe bounds to search through given the disparity range and kernel size.
+  
+  const int half_kernel_size = (m_kernel_size-1) / 2;
+
+  m_min_row = half_kernel_size - m_min_disp_y; // Assumes the (0,0) pixels are aligned
+  m_min_col = half_kernel_size - m_min_disp_x;
+  m_max_row = std::min(left_image.rows()  -  half_kernel_size,
+                       right_image.rows() - (half_kernel_size + m_max_disp_y) );
+  m_max_col = std::min(left_image.cols()  -  half_kernel_size,
+                       right_image.cols() - (half_kernel_size + m_max_disp_x) );
+  if (m_min_row < 0) m_min_row = 0;
+  if (m_min_col < 0) m_min_col = 0;
+  if (m_max_row > left_image.rows()) m_min_row = left_image.rows();
+  if (m_max_col > left_image.cols()) m_min_col = left_image.cols();
+
+  m_num_output_cols  = m_max_col - m_min_col + 1;
+  m_num_output_rows  = m_max_row - m_min_row + 1;
+
+  std::cout << "Computed cost bounding box: " << std::endl;
+  printf("min_row = %d, min_col = %d, max_row = %d, max_col = %d, output_height = %d, output_width = %d\n", 
+          m_min_row, m_min_col, m_max_row, m_max_col, m_num_output_rows, m_num_output_cols);
+  
+  m_buffer_step_size = m_num_output_cols * m_num_disp;
 
   // Init storage for processing all costs. W*H*D. D= NUM_DISPS
   // - Init all costs to the max possible value.
-  size_t num_output_pixels = size.x() * size.y();
+  size_t num_output_pixels = m_num_output_cols*m_num_output_rows;
   size_t num_cost_elements = num_output_pixels*m_num_disp;
   
   m_cost_buffer.reset(new CostType[num_cost_elements]);
@@ -214,41 +232,21 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   {
     Timer timer("\tCost Calculation");
 
-    // Compute safe bounds to search through.
-    // - Any location we don't compute a cost for defaults to the max cost,
-    //   essentially ignoring that location.
-    // - 
-    
-    const int half_kernel_size = (m_kernel_size-1) / 2;
-
-    int min_row = half_kernel_size - m_min_disp_y; // Assumes the (0,0) pixels are aligned
-    int min_col = half_kernel_size - m_min_disp_x;
-    int max_row = std::min(left_image.rows()  -  half_kernel_size,
-                           right_image.rows() - (half_kernel_size + m_max_disp_y) );
-    int max_col = std::min(left_image.cols()  -  half_kernel_size,
-                           right_image.cols() - (half_kernel_size + m_max_disp_x) );
-    if (min_row < 0) min_row = 0;
-    if (min_col < 0) min_col = 0;
-    if (max_row > left_image.rows()) min_row = left_image.rows();
-    if (max_col > left_image.cols()) min_col = left_image.cols();
-
-    std::cout << "Computed cost bounding box: " << std::endl;
-    printf("min_row = %d, min_col = %d, max_row = %d, max_col = %d\n", min_row, min_col, max_row, max_col);
 
     size_t d=0;    
     for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
       for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
   
         // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-        for ( int j = min_row; j < max_row; j++ ) { // For each row in left
-          for ( int i = min_col; i < max_col; i++ ) { // For each column in left
+        for ( int j = m_min_row; j < m_max_row; j++ ) { // For each row in left
+          for ( int i = m_min_col; i < m_max_col; i++ ) { // For each column in left
           
             // Currently this computes only the SINGLE PIXEL difference.
             // Could improve results by converting to block matching around the center pixel.
           
             // TODO: Add or subtract the disparity?
             bool debug = ((i == 73) && (j == 159));
-            size_t cost_index = get_cost_index(i, j, d);
+            size_t cost_index = get_cost_index(i-m_min_col, j-m_min_col, d);
             m_cost_buffer[cost_index] = get_cost(left_image, right_image, i, j, i+dx,j+dy, debug);
             
             //if (debug) {
@@ -268,7 +266,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   std::cout << "Done computing local costs.\n";
 
   // Note: For test images, correct disp: dx=2, dy=1 --> d_index=18
-
+/*
   // DEBUG!!!!
   ImageView<uint8> cost_image( m_num_output_cols, m_num_disp );
   for ( int i = 0; i < m_num_output_cols; i++ ) {
@@ -279,7 +277,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   }
   write_image("scanline_costs_block.tif",cost_image);
   std::cout << "Done writing line dump.\n";
-
+*/
   // Now that we have the local costs, accumulate the global costs.
   
   boost::shared_array<AccumCostType> dir_accumulated_costs; // TODO: Eliminate this!
@@ -302,7 +300,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
     {
       Timer timer("\tCost Propagation [1,0]");
       iterate_direction<1,0>( left_image, dir_accumulated_costs );
-      write_image("effect_1_0.tif", create_disparity_view( dir_accumulated_costs ) );
+      //write_image("effect_1_0.tif", create_disparity_view( dir_accumulated_costs ) );
       inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     }
     

@@ -47,7 +47,7 @@ using namespace vw;
 using namespace vw::stereo;
 
 int main( int argc, char *argv[] ) {
-  try {
+  //try {
 
     std::string left_file_name, right_file_name;
     float log;
@@ -62,18 +62,18 @@ int main( int argc, char *argv[] ) {
     po::options_description desc("Options");
     desc.add_options()
       ("help,h", "Display this help message")
-      ("left",       po::value(&left_file_name), "Explicitly specify the \"left\" input file")
-      ("right",      po::value(&right_file_name), "Explicitly specify the \"right\" input file")
-      ("log",        po::value(&log)->default_value(1.4), "Apply LOG filter with the given sigma, or 0 to disable")
+      ("left",       po::value(&left_file_name),                 "Explicitly specify the \"left\" input file")
+      ("right",      po::value(&right_file_name),                "Explicitly specify the \"right\" input file")
+      ("log",        po::value(&log)->default_value(1.4),        "Apply LOG filter with the given sigma, or 0 to disable")
       ("h-corr-min", po::value(&h_corr_min)->default_value(-30), "Minimum horizontal disparity")
       ("h-corr-max", po::value(&h_corr_max)->default_value(-30), "Maximum horizontal disparity")
-      ("v-corr-min", po::value(&v_corr_min)->default_value(-5), "Minimum vertical disparity")
-      ("v-corr-max", po::value(&v_corr_max)->default_value(5), "Maximum vertical disparity")
-      ("xkernel",    po::value(&xkernel)->default_value(15), "Horizontal correlation kernel size")
-      ("ykernel",    po::value(&ykernel)->default_value(15), "Vertical correlation kernel size")
-      ("lrthresh",   po::value(&lrthresh)->default_value(2), "Left/right correspondence threshold")
+      ("v-corr-min", po::value(&v_corr_min)->default_value(-5),  "Minimum vertical disparity")
+      ("v-corr-max", po::value(&v_corr_max)->default_value(5),   "Maximum vertical disparity")
+      ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
+      ("ykernel",    po::value(&ykernel)->default_value(15),     "Vertical correlation kernel size")
+      ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
-      ("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)")
+      //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
       ("pyramid", "Use the pyramid based correlator")
       ;
     po::positional_options_description p;
@@ -102,9 +102,9 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    std::string match_filename =
-      fs::path( left_file_name ).replace_extension().string() + "__" +
-      fs::path( right_file_name ).stem().string() + ".match";
+    // If the user provided a match file, use it to align the images.
+    std::string match_filename = fs::path( left_file_name ).replace_extension().string() + "__" +
+                                 fs::path( right_file_name ).stem().string() + ".match";
     if ( fs::exists( match_filename ) ) {
       vw_out() << "Found a match file. Using it to pre-align images.\n";
       std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
@@ -112,7 +112,8 @@ int main( int argc, char *argv[] ) {
                                   matched_ip1, matched_ip2 );
       std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
-      vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true );
+      vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 
+          ransac( vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true );
       alignment = ransac( ransac_ip2, ransac_ip1 );
 
       DiskImageView<PixelGray<float> > right_disk_image( right_file_name );
@@ -122,11 +123,11 @@ int main( int argc, char *argv[] ) {
       found_alignment = true;
     }
 
-    DiskImageView<PixelGray<float> > left_disk_image(left_file_name );
+    DiskImageView<PixelGray<float> > left_disk_image (left_file_name );
     DiskImageView<PixelGray<float> > right_disk_image(right_file_name );
     int cols = std::min(left_disk_image.cols(),right_disk_image.cols());
     int rows = std::min(left_disk_image.rows(),right_disk_image.rows());
-    ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
+    ImageViewRef<PixelGray<float> > left  = edge_extend(left_disk_image, 0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
 
@@ -139,24 +140,25 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelMask<Vector2i> > disparity_map;
     int corr_timeout = 0;
     double seconds_per_op = 0.0;
+    BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
+                        Vector2i(h_corr_max, v_corr_max));
+    Vector2i kernel_size(xkernel, ykernel);
     if (vm.count("pyramid")) {
+      const int max_pyramid_levels = 5;
       disparity_map =
         stereo::pyramid_correlate( left, right,
-                                   constant_view( uint8(255), left ),
+                                   constant_view( uint8(255), left  ), // Use all-true masks
                                    constant_view( uint8(255), right ),
-                                   stereo::PREFILTER_LOG, log,
-                                   BBox2i(Vector2i(h_corr_min, v_corr_min),
-                                          Vector2i(h_corr_max, v_corr_max)),
-                                   Vector2i(xkernel, ykernel),
+                                   //stereo::PREFILTER_LOG, log,
+                                   stereo::PREFILTER_NONE, log,
+                                   search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
-                                   lrthresh, 5 );
+                                   lrthresh, max_pyramid_levels );
     } else {
       disparity_map =
         stereo::correlate( left, right,
                            stereo::LaplacianOfGaussian(log),
-                           BBox2i(Vector2i(h_corr_min, v_corr_min),
-                                  Vector2i(h_corr_max, v_corr_max)),
-                           Vector2i(xkernel, ykernel),
+                           search_range, kernel_size,
                            corr_type, lrthresh);
     }
 
@@ -178,13 +180,16 @@ int main( int argc, char *argv[] ) {
     BBox2 disp_range = get_disparity_range(solution);
     std::cout << "Found disparity range: " << disp_range << "\n";
 
-    write_image( "x_disparity.tif",
-                 channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,0), disp_range.min().x(), disp_range.max().x(),0,255)),solution))) );
-    write_image( "y_disparity.tif",
-                 channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,1), disp_range.min().y(), disp_range.max().y(),0,255)),solution))) );
-  }
-  catch (const vw::Exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-  }
+    // Are these working properly?
+    //write_image( "x_disparity.tif",
+    //             channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,0), 
+    //                                 disp_range.min().x(), disp_range.max().x(),0,255)),solution))) );
+    //write_image( "y_disparity.tif",
+    //             channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,1), 
+    //                                 disp_range.min().y(), disp_range.max().y(),0,255)),solution))) );
+  //}
+  //catch (const vw::Exception& e) {
+  //  std::cerr << "Error: " << e.what() << std::endl;
+  //}
   return 0;
 }
