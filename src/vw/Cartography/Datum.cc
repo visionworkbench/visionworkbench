@@ -319,9 +319,9 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   const double e4 = e2 * e2;
 
   double xy_dist = sqrt( xyz[0] * xyz[0] + xyz[1] * xyz[1] );
-  double p = ( xyz[0] * xyz[0] + xyz[1] * xyz[1] ) / a2;
-  double q = ( 1 - e2 ) * xyz[2] * xyz[2] / a2;
-  double r = ( p + q - e4 ) / 6.0;
+  double p  = ( xyz[0] * xyz[0] + xyz[1] * xyz[1] ) / a2;
+  double q  = ( 1 - e2 ) * xyz[2] * xyz[2] / a2;
+  double r  = ( p + q - e4 ) / 6.0;
   double r3 = r * r * r;
 
   Vector3 llh;
@@ -332,8 +332,8 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
     // outside the evolute
     double right_inside_pow = sqrt(e4 * p * q);
     double sqrt_evolute = sqrt( evolute );
-    u = r + 0.5 * pow(sqrt_evolute + right_inside_pow,2.0/3.0) +
-      0.5 * pow(sqrt_evolute - right_inside_pow,2.0/3.0);
+    u = r + 0.5 * pow(sqrt_evolute + right_inside_pow, 2.0/3.0)
+          + 0.5 * pow(sqrt_evolute - right_inside_pow, 2.0/3.0);
   } else if ( fabs(xyz[2]) < std::numeric_limits<double>::epsilon() ) {
     // On the equator plane
     llh[1] = 0;
@@ -341,8 +341,8 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   } else if ( evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon() ) {
     // On or inside the evolute
     double atan_result = atan2( sqrt( e4 * p * q ), sqrt( -evolute ) + sqrt(-8 * r3) );
-    u = -4 * r * sin( 2.0 / 3.0 * atan_result ) *
-      cos( M_PI / 6.0 + 2.0 / 3.0 * atan_result );
+    u = -4 * r * sin( 2.0 / 3.0 * atan_result )
+               * cos( M_PI / 6.0 + 2.0 / 3.0 * atan_result );
   } else if ( fabs(q) < std::numeric_limits<double>::epsilon() and p <= e4 ) {
     // In the singular disc
     llh[2] = -m_semi_major_axis * sqrt(1 - e2) * sqrt(e2 - p) / sqrt(e2);
@@ -350,8 +350,8 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   } else {
     // Near the cusps of the evolute
     double inside_pow = sqrt(evolute) + sqrt(e4 * p * q);
-    u = r + 0.5 * pow(inside_pow,2.0/3.0) +
-      2 * r * r * pow(inside_pow,-2.0/3.0);
+    u = r + 0.5   * pow(inside_pow, 2.0/3.0)
+          + 2*r*r * pow(inside_pow,-2.0/3.0);
   }
 
   if (!std::isnan(u) ) {

@@ -8,7 +8,7 @@ namespace vw {
 namespace stereo {
 
 
-void SemiGlobalMatcher::setParameters(int min_disp_x, int min_disp_y,
+void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
                                       int max_disp_x, int max_disp_y,
                                       int kernel_size) {
     m_min_disp_x  = min_disp_x;
@@ -29,6 +29,91 @@ void SemiGlobalMatcher::setParameters(int min_disp_x, int min_disp_y,
 }
 
 
+void SemiGlobalMatcher::populate_constant_disp_bound_image() {
+  // Allocate the image
+  m_disp_bound_image.set_size(m_num_output_cols, m_num_output_rows);
+  // Fill it up with an identical vector
+  Vector4i bounds_vector(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y);
+  size_t buffer_size = m_num_output_cols*m_num_output_rows;
+  std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector); 
+}
+
+void SemiGlobalMatcher::populate_disp_bound_image(std::vector<stereo::SearchParam> const *zones) {
+  // populate_disp_bound_image should already be allocated with constant values.
+  
+  // Loop through all vzones
+  size_t num_zones = zones->size();
+  for (size_t i=0; i<num_zones; ++i) {
+  
+    // Get disparity vector for this zone
+    stereo::SearchParam zone = zones->operator[](i);
+    Vector4i zone_disp(zone.disparity_range().min().x(),
+                       zone.disparity_range().min().y(),
+                       zone.disparity_range().max().x(),
+                       zone.disparity_range().max().y() );
+                       
+    // Copy this vector to the region specified by the zone.
+    // - Note that the zone coordinates are in original left image coordinates, and
+    //   we need to fill in the (smaller) output image region.
+    int min_col = zone.image_region().min().x() - m_min_col; 
+    int min_row = zone.image_region().min().y() - m_min_row;
+    int max_col = zone.image_region().max().x() - m_min_col;
+    int max_row = zone.image_region().max().y() - m_min_row;
+    if (min_col < 0) min_col = 0;
+    if (min_row < 0) min_row = 0;
+    if (max_col >= m_num_output_cols) max_col = m_num_output_cols-1;
+    if (max_row >= m_num_output_rows) max_row = m_num_output_rows-1;
+    for (int row=min_row; row<max_row; ++row) {
+      for (int col=min_col; col<max_col; ++col) {
+        m_disp_bound_image(col, row) = zone_disp;
+      }
+    } // End loop through zone region
+  } // End loop through zones
+}
+
+void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_disparity,
+                                                  int search_buffer) {
+
+  std::cout << "m_disp_bound_image" << bounding_box(m_disp_bound_image) << std::endl;
+
+  const int SCALE_UP = 2;
+
+  // TODO: Revisit bounds with kernel sizes!
+  // TODO: Expand the bounds when the pixel is invalid!
+  // TOOD: Also handle case where we are at max search range.
+  int r_in, c_in;
+  PixelMask<Vector2i> input_disp;
+  Vector4i bounds;
+  for (int r=0; r<m_disp_bound_image.rows(); ++r) {
+    r_in = r / SCALE_UP;
+    for (int c=0; c<m_disp_bound_image.cols(); ++c) {
+      c_in = c / SCALE_UP;
+      if ( (c_in >= prev_disparity->cols()) || 
+           (r_in >= prev_disparity->rows())   ) {
+        vw_throw( LogicErr() << "Size error!\n" );
+      }
+      input_disp = prev_disparity->operator()(c_in,r_in);
+      bounds[0]  = input_disp[0]*SCALE_UP - search_buffer; // Min x
+      bounds[2]  = input_disp[0]*SCALE_UP + search_buffer; // Max X
+      bounds[1]  = input_disp[1]*SCALE_UP - search_buffer; // Min y
+      bounds[3]  = input_disp[1]*SCALE_UP + search_buffer; // Max y
+      
+      // Constrain to global limits
+      if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
+      if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;
+      if (bounds[2] > m_max_disp_x) bounds[2] = m_max_disp_x;
+      if (bounds[3] > m_max_disp_y) bounds[3] = m_max_disp_y;
+      
+      std::cout << input_disp << " --> " << bounds << std::endl;
+      
+      //bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
+      
+      m_disp_bound_image(c,r) = bounds;
+    }
+  }
+  
+}
+
 SemiGlobalMatcher::AccumCostType SemiGlobalMatcher::get_disparity_dist(DisparityType d1, DisparityType d2) {
 
   //// This is the traditional way for 1D disparities
@@ -48,7 +133,7 @@ SemiGlobalMatcher::AccumCostType SemiGlobalMatcher::get_disparity_dist(Disparity
 
 }
 
-void SemiGlobalMatcher::evaluate_path( 
+void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        AccumCostType* const prior, // Accumulated costs leading up to this pixel
                        CostType     * const local, // The disparity costs of the current pixel
                        AccumCostType*       output,
@@ -64,56 +149,59 @@ void SemiGlobalMatcher::evaluate_path(
   for (int i=0; i<m_num_disp; ++i)
     curr_cost[i] = local[i];
   
-  for ( int32 d = 0; d < m_num_disp; d++ ) { // Loop through disparities in current pixel
-    
-    // For this disparity, find the prior disparity with the lowest cost increase.
-    AccumCostType lowest_combined_cost = std::numeric_limits<int32>::max();
-    
-    for ( int32 d_p = 0; d_p < m_num_disp; d_p++ ) { // Loop through disparities in prior pixel
-    
-      AccumCostType prior_cost     = prior[d_p];                 // The cost to reach the disparity at the previous pixel
-      AccumCostType disparity_diff = get_disparity_dist(d, d_p); // Physical disparity distance from that disparity to this one
-      
-      // This penalty scheme is too simplistic for large possible disparity jumps which we can get with 2D disparity!
-      // Get something reasonable here, don't want to spend too much time tweaking up front.
-    
-      // TODO!
-      /*
-      AccumCostType penalty = 0;
-      if ( disparity_diff == 0 ) {
-        // No penalty, zero integer disparity
-      } else if ( disparity_diff <= 2 ) {
-        // Small penalty, eight-connected pixel disparity
-        penalty = PENALTY1;
-      } else {
-         // Large penalty, >1 pixel disparity
-         // - The larger the intensity difference between the previous pixel and this one,
-         //   the smaller the assessed penalty is for a disparity jump.
-         penalty = std::max(PENALTY1, path_intensity_gradient ? PENALTY2/path_intensity_gradient : PENALTY2);
-      }
-      */
-     
-     // TODO: Consider intensity diff?
-     const AccumCostType P_A = 20; // TODO: This needs to be related to the local cost sizes!
-     AccumCostType penalty  = disparity_diff * P_A;
-      
-     
-     
-      lowest_combined_cost = std::min(lowest_combined_cost, prior_cost+penalty);
+  Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
+  Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
 
-      if ((debug)){
-        printf("d: %d, d_p %d, curr_cost = %d, lcc = %d, prior_cost = %d, penalty = %d\n", 
-               d, d_p, curr_cost[d], lowest_combined_cost, prior_cost, penalty);
-      }
+  // Loop through disparities for this pixel 
+  for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
+  
+    // Get initial linear storage index for this dy row
+    int d = (dy-m_min_disp_y)*m_num_disp_x +
+            (pixel_disp_bounds[0] - m_min_disp_x);
+  
+    for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
       
+      // For this disparity, find the prior disparity with the lowest cost increase.
+      AccumCostType lowest_combined_cost = std::numeric_limits<int32>::max();
 
-           
-    } // End loop through prior disparity
+      // Loop through disparities in prior pixel
+      for (int dy_p=pixel_disp_bounds_p[1]; dy_p<=pixel_disp_bounds_p[3]; ++dy_p) {
+      
+        AccumCostType y_disp_diff = abs(dy_p - dy); // Precompute part of distance
+        
+        // Get initial linear storage index for this dy row
+        int d_p = (dy_p-m_min_disp_y)*m_num_disp_x +
+                  (pixel_disp_bounds_p[0] - m_min_disp_x);
+        
+        for (int dx_p=pixel_disp_bounds_p[0]; dx_p<=pixel_disp_bounds_p[2]; ++dx_p) {
+        
+          // This is the costliest portion of the entire algorithm since it is executed so many times!
+        
+          // The cost to reach the disparity at the previous pixel       
+          AccumCostType prior_cost     = prior[d_p];
+          // Physical disparity distance from that disparity to this one   
+          AccumCostType disparity_diff = abs(dx_p - dx) + y_disp_diff; // TODO: Experiment with this!
+        
+          // TODO: Consider intensity diff
+          const AccumCostType P_A = 20; // TODO: This needs to be related to the local cost sizes!
+          AccumCostType penalty  = disparity_diff * P_A;
+         
+          lowest_combined_cost = std::min(lowest_combined_cost, prior_cost+penalty);
+
+          //if ((debug)){
+          //  printf("d: %d, d_p %d, curr_cost = %d, lcc = %d, prior_cost = %d, penalty = %d\n", 
+          //         d, d_p, curr_cost[d], lowest_combined_cost, prior_cost, penalty);
+          //}
+        
+          ++d_p;
+        }
+      } // End loop through other pixel disparities
+      
+      // The output cost = local cost + lowest combined cost
+      curr_cost[d] += lowest_combined_cost;
     
-    // The output cost = local cost + lowest combined cost
-    curr_cost[d] += lowest_combined_cost;
-    
-    
+      ++d;
+    }
   } // End loop through this disparity
   
 
@@ -182,10 +270,10 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost(ImageView<uint8> const& 
 
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image,
-                                              ImageView<uint8> const& right_image ) {
+                                              ImageView<uint8> const& right_image,
+                                              DisparityImage const* prev_disparity,
+                                              int search_buffer) {
 
-  std::cout << "Init!\n";
-  
   const CostType MAX_COST       = std::numeric_limits<     CostType>::max();
   const CostType MAX_ACCUM_COST = std::numeric_limits<AccumCostType>::max();
 
@@ -203,17 +291,31 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
                        right_image.cols() - (half_kernel_size + m_max_disp_x) );
   if (m_min_row < 0) m_min_row = 0;
   if (m_min_col < 0) m_min_col = 0;
-  if (m_max_row > left_image.rows()) m_min_row = left_image.rows();
-  if (m_max_col > left_image.cols()) m_min_col = left_image.cols();
+  if (m_max_row > left_image.rows()) m_max_row = left_image.rows();
+  if (m_max_col > left_image.cols()) m_max_col = left_image.cols();
 
   m_num_output_cols  = m_max_col - m_min_col + 1;
   m_num_output_rows  = m_max_row - m_min_row + 1;
 
   std::cout << "Computed cost bounding box: " << std::endl;
+  printf("Left image size = (%d,%d), right image size = (%d, %d)\n", 
+         left_image.cols(), left_image.rows(), right_image.cols(), right_image.rows());
   printf("min_row = %d, min_col = %d, max_row = %d, max_col = %d, output_height = %d, output_width = %d\n", 
           m_min_row, m_min_col, m_max_row, m_max_col, m_num_output_rows, m_num_output_cols);
   
   m_buffer_step_size = m_num_output_cols * m_num_disp;
+
+  // By default the search bounds are the same for each image,
+  //  but set them from the zones if the user passed them in.
+  populate_constant_disp_bound_image();
+  //if (zones)
+  //  populate_disp_bound_image(zones);
+  //if (prev_disparity)
+  //  populate_disp_bound_image(prev_disparity, search_buffer);
+
+
+  // ==== Compute the cost values ====
+
 
   // Init storage for processing all costs. W*H*D. D= NUM_DISPS
   // - Init all costs to the max possible value.
@@ -278,7 +380,8 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   write_image("scanline_costs_block.tif",cost_image);
   std::cout << "Done writing line dump.\n";
 */
-  // Now that we have the local costs, accumulate the global costs.
+
+  // ==== Accumulate the global costs across paths ====
   
   boost::shared_array<AccumCostType> dir_accumulated_costs; // TODO: Eliminate this!
   dir_accumulated_costs.reset(new AccumCostType[num_cost_elements]);
@@ -303,59 +406,35 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
       //write_image("effect_1_0.tif", create_disparity_view( dir_accumulated_costs ) );
       inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     }
-    
     std::cout << "1, ";
-    {
-      //Timer timer("\tCost Propagation [-1,0]");
-      iterate_direction<-1,0>( left_image, dir_accumulated_costs );
-      //write_image("effect_-1_0.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
+    
+    iterate_direction<-1,0>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     std::cout << "2, ";
-    {
-      //Timer timer("\tCost Propagation [0,1]");
-      iterate_direction<0,1>( left_image, dir_accumulated_costs );
-      //write_image("effect_0_1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
+    
+    iterate_direction<0,1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     std::cout << "3, ";
-    {
-      //Timer timer("\tCost Propagation [0,-1]");
-      iterate_direction<0,-1>( left_image, dir_accumulated_costs );
-      //write_image("effect_0_-1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
     
+    iterate_direction<0,-1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     std::cout << "4, ";
-    {
-      //Timer timer("\tCost Propagation [1,1]");
-      iterate_direction<1,1>( left_image, dir_accumulated_costs );
-      //write_image("effect_1_1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
-    std::cout << "5, ";
-    {
-      //Timer timer("\tCost Propagation [-1,-1]");
-      iterate_direction<-1,-1>( left_image, dir_accumulated_costs );
-      //write_image("effect_-1_-1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
-    std::cout << "6, ";
-    {
-      //Timer timer("\tCost Propagation [1,-1]");
-      iterate_direction<1,-1>( left_image, dir_accumulated_costs );
-      //write_image("effect_1_-1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
-    std::cout << "7, ";
-    {
-      //Timer timer("\tCost Propagation [-1,1]");
-      iterate_direction<-1,1>( left_image, dir_accumulated_costs );
-      //write_image("effect_-1_1.tif", create_disparity_view( dir_accumulated_costs ) );
-      inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    }
-    std::cout << "8\n";
     
+    iterate_direction<1,1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
+    std::cout << "5, ";
+    
+    iterate_direction<-1,-1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
+    std::cout << "6, ";
+    
+    iterate_direction<1,-1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
+    std::cout << "7, ";
+    
+    iterate_direction<-1,1>( left_image, dir_accumulated_costs );
+    inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
+    std::cout << "8\n";   
   }
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.

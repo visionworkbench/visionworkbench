@@ -75,6 +75,7 @@ int main( int argc, char *argv[] ) {
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
       ("pyramid", "Use the pyramid based correlator")
+      ("sgm", "Use the SGM stereo algorithm.")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -143,6 +144,7 @@ int main( int argc, char *argv[] ) {
     BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
                         Vector2i(h_corr_max, v_corr_max));
     Vector2i kernel_size(xkernel, ykernel);
+    bool use_sgm = (vm.count("sgm") != 0);
     if (vm.count("pyramid")) {
       const int max_pyramid_levels = 5;
       disparity_map =
@@ -153,7 +155,7 @@ int main( int argc, char *argv[] ) {
                                    stereo::PREFILTER_NONE, log,
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
-                                   lrthresh, max_pyramid_levels );
+                                   lrthresh, max_pyramid_levels, use_sgm );
     } else {
       disparity_map =
         stereo::correlate( left, right,

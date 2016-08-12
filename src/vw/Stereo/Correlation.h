@@ -180,16 +180,16 @@ namespace stereo {
     
     // Sanity check the input:
     VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
-                     ArgumentErr() << "best_of_search_convolution: Kernel input not sized with odd values." );
+                     ArgumentErr() << "calc_disparity: Kernel input not sized with odd values." );
     VW_DEBUG_ASSERT( kernel_size[0] <= left_region.width() &&
                      kernel_size[1] <= left_region.height(),
-                     ArgumentErr() << "best_of_search_convolution: Kernel size too large of active region." );
+                     ArgumentErr() << "calc_disparity: Kernel size too large of active region." );
     VW_DEBUG_ASSERT( search_volume[0] > 0 && search_volume[1] > 0,
-                     ArgumentErr() << "best_of_search_convolution: Search volume must be greater than 0." );
+                     ArgumentErr() << "calc_disparity: Search volume must be greater than 0." );
     VW_DEBUG_ASSERT( left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
                      left_region.max().x() <= left_in.impl().cols() &&
                      left_region.max().y() <= left_in.impl().rows(),
-                     ArgumentErr() << "best_of_search_convolution: Region not inside left image." );
+                     ArgumentErr() << "calc_disparity: Region not inside left image." );
 
     // Rasterize input so that we can do a lot of processing on it.
     BBox2i right_region = left_region;
@@ -245,6 +245,11 @@ namespace stereo {
       return A.search_volume() < B.search_volume();
     }
   };
+  
+  inline std::ostream& operator<<( std::ostream& os, SearchParam const& p ) {
+    os << "SearchParam: " << p.image_region() << ", " << p.disparity_range() << std::endl;
+    return os;
+  }
   
 
   /// Create fake left and right images and search volume.  Do a fake

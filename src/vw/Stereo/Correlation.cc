@@ -122,10 +122,21 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
       current_search_region.grow(q4_search);
     int32 current_search = current_search_region.area() * prod(current_bbox.size()+kernel_size);
 
-    const double IMPROVEMENT_RATIO = 0.8;
-    
-    //std::cout << "split search: " << split_search << ", current = " << current_search*IMPROVEMENT_RATIO << std::endl;
+    if (current_search_region.empty())
+          std::cout << "Created empty search region zone: " << current_search_region << std::endl;
 
+    const double IMPROVEMENT_RATIO = 0.8;
+    /*
+    std::cout << "split search: " << split_search << ", current = " << current_search*IMPROVEMENT_RATIO << std::endl;
+    std::cout << "kernel = " << kernel_size << std::endl;
+    std::cout << "q1_search_area " << q1_search.area() << " q1 size " << prod(q1.size()+kernel_size) << " q1 " << q1 <<  std::endl;
+    std::cout << "q2_search_area " << q2_search.area() << " q2 size " << prod(q2.size()+kernel_size) << " q2 " << q2 <<  std::endl;
+    std::cout << "q3_search_area " << q3_search.area() << " q3 size " << prod(q3.size()+kernel_size) << " q3 " << q3 <<  std::endl;
+    std::cout << "q4_search_area " << q4_search.area() << " q4 size " << prod(q4.size()+kernel_size) << " q4 " << q4 <<  std::endl;
+    std::cout << "current_search_area " << current_search_region.area() 
+              << " current size " << prod(current_bbox.size()+kernel_size) 
+              << " current_bbox " << current_bbox << std::endl << std::endl;
+*/
     if ( split_search > current_search*IMPROVEMENT_RATIO && fail_count == 0 ) {
       // Splitting up the disparity region did not reduce our workload.
       // This is our first failure, so see if we can still improve by
@@ -139,6 +150,12 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
         failed.push_back(SearchParam(q3,q3_search));
       if (!subdivide_regions( disparity, q4, list, kernel_size, fail_count + 1 ) )
         failed.push_back(SearchParam(q4,q4_search));
+        
+      for (size_t f=0; f<failed.size(); ++f) {
+        if (failed[f].disparity_range().empty())
+          std::cout << "Created empty failed zone: " << failed[f] << std::endl;
+      }
+      
       if ( failed.size() == 4 ) {
         // All failed, push back this region as a whole (what we started with)
         list.push_back( SearchParam( current_bbox,

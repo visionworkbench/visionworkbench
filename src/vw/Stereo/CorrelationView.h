@@ -128,6 +128,7 @@ namespace stereo {
                             int   corr_timeout, double seconds_per_op,
                             float consistency_threshold,
                             int32 max_pyramid_levels,
+                            bool  use_sgm=false,
                             int   blob_filter_area=0) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
@@ -136,7 +137,11 @@ namespace stereo {
       m_cost_type(cost_type),
       m_corr_timeout(corr_timeout), m_seconds_per_op(seconds_per_op),
       m_consistency_threshold(consistency_threshold),
-      m_blob_filter_area(blob_filter_area){
+      m_blob_filter_area(blob_filter_area),
+      m_use_sgm(use_sgm){
+      
+      if (m_use_sgm)
+        m_prefilter_mode = PREFILTER_NONE; // SGM works best with no prefilter
       
       // Calculating max pyramid levels according to the supplied search region.
       int32 largest_search = max( search_region.size() );
@@ -145,7 +150,7 @@ namespace stereo {
         m_max_level_by_search = max_pyramid_levels;
       if ( m_max_level_by_search < 0 )
         m_max_level_by_search = 0;
-    }
+    } // End constructor
 
     // Standard required ImageView interfaces
     inline int32 cols  () const { return m_left_image.cols(); }
@@ -192,6 +197,8 @@ namespace stereo {
     /// Remove disparity blobs this size or less at the top level.
     /// - Set to zero to disable blob filtering.
     int    m_blob_filter_area;
+    
+    bool m_use_sgm; ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
 
   private: // Functions
 
@@ -260,6 +267,7 @@ namespace stereo {
                      int corr_timeout, double seconds_per_op,
                      float consistency_threshold,
                      int32 max_pyramid_levels,
+                     bool  use_sgm=false,
                      int   blob_filter_area=0) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;
     return result_type( left.impl(),      right.impl(), 
@@ -269,7 +277,7 @@ namespace stereo {
                         kernel_size, cost_type,
                         corr_timeout, seconds_per_op,
                         consistency_threshold, max_pyramid_levels,
-                        blob_filter_area );
+                        use_sgm, blob_filter_area );
   }
 
 }} // namespace vw::stereo

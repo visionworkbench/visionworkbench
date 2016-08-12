@@ -4,6 +4,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/Correlation.h>
 
 #include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
 
@@ -45,15 +46,18 @@ public: // Definitions
 
 public: // Functions
 
-  // Set the parameters to be used for future SGM calls
-  void setParameters(int min_disp_x, int min_disp_y,
+  /// Set the parameters to be used for future SGM calls
+  void set_parameters(int min_disp_x, int min_disp_y,
                      int max_disp_x, int max_disp_y,
                      int kernel_size);
 
-  /// Invokes a 8 path version of SGM
+  /// Compute SGM stereo on the images.
+  /// - TODO: Make search_buffer a parameter
   DisparityImage
   semi_global_matching_func( ImageView<uint8> const& left_image,
-                             ImageView<uint8> const& right_image );
+                             ImageView<uint8> const& right_image,
+                             DisparityImage const* prev_disparity=0,
+                             int search_buffer = 10);
 
 private: // Variables
 
@@ -73,8 +77,22 @@ private: // Variables
     boost::shared_array<CostType     > m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
     
+    /// Image containing the disparity bounds for each pixel.
+    /// - Stored as min_col, min_row, max_col, max_row.
+    ImageView<Vector4i> m_disp_bound_image;
+    
 
 private: // Functions
+
+  /// Fill in m_disp_bound_image using image-wide contstants
+  void populate_constant_disp_bound_image();
+
+  /// Fill in m_disp_bound_image using a zones object.
+  void populate_disp_bound_image(std::vector<stereo::SearchParam> const *zones);
+
+  /// Fill in m_disp_bound_image using a half resolution disparity image.
+  void populate_disp_bound_image(DisparityImage const* prev_disparity,
+                                 int search_buffer);
 
   /// Return the index into one of the buffers for a given location
   /// - The data is stored row major interleaved format.
@@ -177,7 +195,8 @@ private: // Functions
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.
   /// - For each disparity in the current pixel, add that disparity's cost with the "cheapest"
   ///   prior pixel disparity.
-  void evaluate_path( AccumCostType* const prior, // Accumulated costs leading up to this pixel
+  void evaluate_path( int col, int row, int col_p, int row_p,
+                      AccumCostType* const prior, // Accumulated costs leading up to this pixel
                       CostType     * const local, // The disparity costs of the current pixel
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // This variable is the magnitude of intensity change to this pixel
@@ -210,7 +229,8 @@ private: // Functions
         int32 jstop  = std::min( m_num_output_rows, m_num_output_rows + DIRY * i );
         for ( int32 j = jstart; j < jstop; j++ ) {
           int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
+          evaluate_path( i, j, i-DIRX,j-DIRY,
+                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j),
                          get_accum_vector(accumulated_costs, i,j), 
                          pixel_diff, false );         // Current pixel
@@ -235,7 +255,8 @@ private: // Functions
         int32 istop  = std::min( m_num_output_cols, m_num_output_cols + DIRX * j );
         for ( int32 i = istart; i < istop; i++ ) {
           int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
+          evaluate_path( i, j, i-DIRX,j-DIRY,
+                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
                          pixel_diff );         // Current pixel
@@ -254,7 +275,8 @@ private: // Functions
         int32 jstop  = std::min( m_num_output_rows, m_num_output_rows - DIRY * (i - m_num_output_cols + 1) );
         for ( int32 j = jstart; j < jstop; j++ ) {
           int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
+          evaluate_path( i, j, i-DIRX,j-DIRY,
+                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
                          pixel_diff );         // Current pixel
@@ -275,7 +297,8 @@ private: // Functions
                                  (DIRX >= 0 ? m_num_output_cols : m_num_output_cols - 1) - DIRX * (j - m_num_output_rows + 1) );
         for ( int32 i = istart; i < istop; i++ ) {
           int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
+          evaluate_path( i, j, i-DIRX,j-DIRY,
+                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j), 
                          get_accum_vector(accumulated_costs, i,j),
                          pixel_diff );         // Current pixel
@@ -298,7 +321,8 @@ template <class ImageT1, class ImageT2>
                  ImageViewBase<ImageT2> const& right_in,
                  BBox2i                 const& left_region,   // Valid region in the left image
                  Vector2i               const& search_volume, // Max disparity to search in right image
-                 Vector2i               const& kernel_size){ // Only really takes an N by N kernel!
+                 Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                 SemiGlobalMatcher::DisparityImage         const* prev_disparity=0){ 
 
     
     // Sanity check the input:
@@ -328,74 +352,11 @@ template <class ImageT1, class ImageT2>
     
     // TODO: Support different cost types?
     SemiGlobalMatcher matcher;
-    matcher.setParameters(0, 0, search_volume[0], search_volume[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right);
+    matcher.set_parameters(0, 0, search_volume[0], search_volume[1], kernel_size[0]);
+    return matcher.semi_global_matching_func(left, right, prev_disparity);
     
   } // End function calc_disparity
 
-
-
-/*
-
-  /// SGM view class.
-  /// - Currently only accepts uint8 images!
-  /// - Do we really need a view for this?
-  template <class Image1T, class Image2T>
-  class SemiGlobalMatchingView : public ImageViewBase<SemiGlobalMatchingView<Image1T,Image2T> > {
-    Image1T m_left_image;
-    Image2T m_right_image;
-  public:
-    typedef uint8 pixel_type;
-    typedef uint8 result_type;
-    typedef ProceduralPixelAccessor<SemiGlobalMatchingView> pixel_accessor;
-
-    SemiGlobalMatchingView( ImageViewBase<Image1T> const& left,
-                            ImageViewBase<Image2T> const& right ) :
-      m_left_image(left.impl()), m_right_image(right.impl()) {}
-
-    inline int32 cols  () const { return m_left_image.cols(); }
-    inline int32 rows  () const { return m_left_image.rows(); }
-    inline int32 planes() const { return 1; }
-
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-    inline pixel_type operator()( int32 i, int32 j, int32 p = 0) const {
-      vw_throw( NoImplErr() << "CorrelationView::operator()(....) has not been implemented." );
-      return pixel_type();
-    }
-
-    // Block rasterization section that does actual work
-    typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
-      // Rasterize the left image in the desired bbox
-      ImageView<PixelGray<uint8> > left = crop( edge_extend(m_left_image), bbox );
-      
-      // Figure out the associated bbox in the right image
-      // - This is the maximum possible match size.
-      // - TODO: If we switch to block matching, need to add the width of the matching kernel.
-      BBox2i rbbox = bbox;
-      rbbox.max() += Vector2i(DISP_RANGE_X,DISP_RANGE_Y);
-      
-      // Rasterize the needed section of the right image
-      ImageView<PixelGray<uint8> > right = crop( edge_extend(m_right_image), rbbox );
-      
-      // Call the SGM function, then do the crop trick to fake the whole resolution image.
-      return prerasterize_type( semi_global_matching_func( left, right ),
-                                -bbox.min().x(), -bbox.min().y(), cols(), rows() );
-    }
-
-    template <class DestT>
-    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
-      vw::rasterize(prerasterize(bbox), dest, bbox);
-    }
-  };
-
-  template <class Image1T, class Image2T>
-  SemiGlobalMatchingView<Image1T,Image2T>
-  semi_global_matching( ImageViewBase<Image1T> const& left,
-                        ImageViewBase<Image2T> const& right ) {
-    typedef SemiGlobalMatchingView<Image1T,Image2T> result_type;
-    return result_type( left.impl(), right.impl() );
-  }*/
 
 } // end namespace stereo
 } // end namespace vw
