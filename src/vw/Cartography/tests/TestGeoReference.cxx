@@ -657,3 +657,50 @@ TEST( GeoReference, orthoTest) {
   EXPECT_VECTOR_NEAR(lonlat, Vector2(-23.2265,25.2555), 10e-4);
 }
 
+
+TEST( GeoReference, albersTestNegLon) {
+  Matrix3x3 affine;
+  Datum d;
+  std::string proj_str = "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
+  d.set_datum_from_proj_str(proj_str);
+
+  affine(0,0) =  50; // meters per pixel
+  affine(1,1) = -50; // meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = -379823.0;
+  affine(1,2) = 2025169.0;
+
+  GeoReference georef(d, affine); 
+  georef.set_proj4_projection_str(proj_str); 
+  //std::cout << georef << std::endl;
+
+  Vector2 lonlat = georef.pixel_to_lonlat(Vector2(30,30));
+  EXPECT_VECTOR_NEAR(lonlat, Vector2(-162.981, 67.9422), 10e-3);
+  Vector2 pix = georef.lonlat_to_pixel(lonlat);
+  EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
+}
+
+TEST( GeoReference, albersTestHighLon) {
+  Matrix3x3 affine;
+  Datum d;
+  std::string proj_str = "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=200 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
+  d.set_datum_from_proj_str(proj_str);
+
+  affine(0,0) =  50; // meters per pixel
+  affine(1,1) = -50; // meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = -379823.0;
+  affine(1,2) = 2025169.0;
+
+  GeoReference georef(d, affine); 
+  georef.set_proj4_projection_str(proj_str); 
+  //std::cout << georef << std::endl;
+
+  Vector2 lonlat = georef.pixel_to_lonlat(Vector2(30,30));
+  EXPECT_VECTOR_NEAR(lonlat, Vector2(191.019, 67.9422), 10e-3);
+  Vector2 pix = georef.lonlat_to_pixel(lonlat);
+  EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
+}
+
+
+

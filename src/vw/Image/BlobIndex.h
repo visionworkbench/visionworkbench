@@ -115,9 +115,9 @@ namespace blob {
   public:
     // Constructor performs processing
     template <class SourceT>
-    BlobIndex( ImageViewBase<SourceT> const& src,
-                     ImageView<uint32>& dst,
-                     uint /*max_area*/=0 ) {
+    BlobIndex( ImageViewBase<SourceT> const& src, // Masked input image
+               ImageView<uint32>           & dst, // Output image contains labeled blobs
+               uint /*max_area*/=0 ) {
 
       if ( src.impl().planes() > 1 )
         vw_throw( NoImplErr()
@@ -132,9 +132,10 @@ namespace blob {
       m_blob_count=1;
 
       { // Initial Pass
-        typename SourceT::pixel_accessor s_acc = src.impl().origin();
+        // Leading and trailing iterators for the input and output images.
+        typename SourceT::pixel_accessor   s_acc = src.impl().origin();
         typename SourceT::pixel_accessor p_s_acc = src.impl().origin(); // previous
-        typename ImageView<uint32>::pixel_accessor d_acc = dst.origin();
+        typename ImageView<uint32>::pixel_accessor   d_acc = dst.origin();
         typename ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
 
         // Top Corner
@@ -148,14 +149,14 @@ namespace blob {
         d_acc.next_col();
         for ( int32 i = 1; i < dst.cols(); i++ ) {
           if ( is_valid(*s_acc) ) {
-            if ( is_valid(*p_s_acc) ) {
-              *d_acc = *p_d_acc;
-            } else {
+            if ( is_valid(*p_s_acc) ) { // Last pixel and this pixel valud
+              *d_acc = *p_d_acc; // Extend the current blob label.
+            } else { // Start of a new blob
               *d_acc = m_blob_count;
               m_blob_count++;
             }
           }
-          s_acc.next_col();
+          s_acc.next_col(); // Advance all iterators
           d_acc.next_col();
           p_s_acc.next_col();
           p_d_acc.next_col();
@@ -163,44 +164,53 @@ namespace blob {
       }
 
       { // Everything else (9 connected)
-        typename SourceT::pixel_accessor s_acc_row = src.impl().origin();
+        typename SourceT::pixel_accessor           s_acc_row = src.impl().origin();
         typename ImageView<uint32>::pixel_accessor d_acc_row = dst.origin();
-        s_acc_row.advance(0,1);
+        s_acc_row.advance(0,1); // We already did the first row, so go to the second.
         d_acc_row.advance(0,1);
 
-        for (int j = dst.rows()-1; j; --j ) { // Not for indexing
-          typename SourceT::pixel_accessor s_acc = s_acc_row;
-          typename SourceT::pixel_accessor p_s_acc = s_acc_row;
-          typename ImageView<uint32>::pixel_accessor d_acc = d_acc_row;
+        // Loop through the rows
+        for (int j = dst.rows()-1; j; --j ) {
+          // Leading and trailing iterators for the input and output images.
+          typename SourceT::pixel_accessor             s_acc = s_acc_row;
+          typename SourceT::pixel_accessor           p_s_acc = s_acc_row;
+          typename ImageView<uint32>::pixel_accessor   d_acc = d_acc_row;
           typename ImageView<uint32>::pixel_accessor p_d_acc = d_acc_row;
 
           // Process
+          
+          // Loop through columns
           for ( int i = dst.cols(); i; --i ) {
-            if ( is_valid(*s_acc) ) {
-              if ( i != dst.cols() ) {
-                // Left
+          
+            if ( is_valid(*s_acc) ) { // Current pixel is valid
+            
+              // TODO: Can we make this more efficient?
+            
+              if ( i != dst.cols() ) { // Not the first column
+                // Check the pixel to the left
                 p_s_acc.advance(-1,0);
                 p_d_acc.advance(-1,0);
-                if ( is_valid(*p_s_acc) ) {
-                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) )
+                if ( is_valid(*p_s_acc) ) { // It is valid...
+                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) // Will this case ever trigger? How is d_acc set here?
                     boost::add_edge(*p_d_acc,*d_acc,connections);
                   else
                     *d_acc = *p_d_acc;
                 }
-                // Upper Left
+                // Check the pixel to the upper left
                 p_s_acc.advance(0,-1);
                 p_d_acc.advance(0,-1);
-                if ( is_valid(*p_s_acc) ) {
-                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) )
-                    boost::add_edge(*p_d_acc,*d_acc,connections);
+                if ( is_valid(*p_s_acc) ) { // If valid...
+                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) // If current pixel and prev pixel have different labels
+                    boost::add_edge(*p_d_acc,*d_acc,connections); // Add a connection between the labels in boost
                   else
-                    *d_acc = *p_d_acc;
+                    *d_acc = *p_d_acc; // Copy the label from the previous pixel
                 }
-              } else {
-                p_s_acc.advance(-1,-1);
-                p_d_acc.advance(-1,-1);
+              } else { // This is the first column
+                p_s_acc.advance(-1,-1); // Move to the non-existant upper left location so that
+                p_d_acc.advance(-1,-1); //  the following commands to to the correct locations.
               }
-              // Upper
+              
+              // Check the upper pixel
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
               if ( is_valid(*p_s_acc) ) {
@@ -209,10 +219,11 @@ namespace blob {
                 else
                   *d_acc = *p_d_acc;
               }
-              // Upper Right
+              
+              // Check the upper right pixel
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
-              if ( i != 1 ) {
+              if ( i != 1 ) { // If not on the last column
                 if ( is_valid(*p_s_acc) ) {
                   if ( (*d_acc != 0) && (*d_acc != *p_d_acc) )
                     boost::add_edge(*p_d_acc,*d_acc,connections);
@@ -220,61 +231,71 @@ namespace blob {
                     *d_acc = *p_d_acc;
                 }
               }
-              // Setting if not
+              
+              // Move the trailing iterators up to the current pixel location.
               p_s_acc.advance(-1,1);
               p_d_acc.advance(-1,1);
-              if ( *d_acc == 0 ) {
+              if ( *d_acc == 0 ) { // If we have not yet assigned this pixel, start a new blob.
                 *d_acc = m_blob_count;
                 m_blob_count++;
               }
-            }
+            } // End case where current pixel is valid
+            
+            // Advance to the next column
             s_acc.next_col();
             p_s_acc.next_col();
             d_acc.next_col();
             p_d_acc.next_col();
-          } // end row process
+          } // end column loop
 
+          // Anvance to the next row
           s_acc_row.next_row();
           d_acc_row.next_row();
-        }
-      }
+        } // End row loop
+      } // End phantom bracket
 
       // Making sure connections has vertices for all indexes made
       add_edge(m_blob_count-1,m_blob_count-1,connections);
       std::vector<uint32> component(boost::num_vertices(connections));
       m_blob_count = boost::connected_components(connections, &component[0])-1;
       m_c_blob.resize(m_blob_count);
+      // component contains the true (consolidated) labels for each pixel
+      // m_c_blob will store the output blobs.
 
       { // Update index map to optimal numbering
         ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
 
+        // Loop through rows
         for ( int32 r = 0; r < dst.rows(); r++ ) {
           ImageView<uint32>::pixel_accessor d_acc = p_d_acc;
           bool building_segment=false;
-          int32 start_c = 0;
-          uint32 index = 0;
+           int32 start_col = 0;
+          uint32 index     = 0;
+          
+          // Loop through columns
+          // - In each column, build up a run-length-encoding for each blob.
           for ( int32 c = 0; c < dst.cols(); c++ ) {
-            if ( (*d_acc) != 0 ) {
+            if ( (*d_acc) != 0 ) { // If labeled pixel...
               if ( building_segment && (index != component[*d_acc]) ) {
                 vw_throw(LogicErr() << "Insert seems wrong.\n");
-                // I believe the way it's processed this shouldn't
-                // happen
+                // I believe the way it's processed this shouldn't happen
               } else if (!building_segment) {
+                // Start recording a new RLE segment
                 building_segment = true;
-                index = component[*d_acc];
-                start_c = c;
+                index     = component[*d_acc]; // Get the true label for this pixel
+                start_col = c;
               }
             } else if ( building_segment ) {
-              // Looks like we're finishing up here
+              // Finished with this blob for now, add an RLE segment
               building_segment = false;
-              m_c_blob[index-1].add_row( Vector2i(start_c,r),
-                                         c-start_c );
+              m_c_blob[index-1].add_row( Vector2i(start_col,r), c-start_col );
             }
             d_acc.next_col();
           }
-          if ( building_segment ) {
-            m_c_blob[index-1].add_row( Vector2i(start_c,r),
-                                       dst.cols()-start_c );
+          
+          if ( building_segment ) { // Hit the end of a row building a blob, cut it off.
+            m_c_blob[index-1].add_row( Vector2i(start_col,r),
+                                       dst.cols()-start_col );
           }
           p_d_acc.next_row();
         }
@@ -347,8 +368,6 @@ namespace blob {
   };
 } // end namespace blob
 
-
-// TODO: Clean up this file!
 
   // Simple interface
   template <class SourceT>

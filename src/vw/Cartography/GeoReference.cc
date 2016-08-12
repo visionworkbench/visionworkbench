@@ -432,6 +432,23 @@ namespace cartography {
       return;
     }
     
+    // Albers equal-area conic
+    if (m_proj_projection_str.find("+proj=aea") != std::string::npos){
+      // This seems to work best with the -180 to 180 center, so
+      //  use that unless the commanded center lon is outside that range.
+      double lon0=0;
+      m_center_lon_zero = true;
+      if (extract_proj4_value(m_proj_projection_str, "+lon_0", lon0)) {
+        if (lon0 > 180) {
+          m_center_lon_zero = false;
+          set_proj4_over();
+        }
+      }
+      if (m_center_lon_zero)
+        clear_proj4_over();
+      return;
+    }    
+    
     // See where the four corners of the image bbox project to
     std::vector<Vector2> corner_pixels;
     if (pixel_bbox.empty()) // No info, just use pixel 0,0
