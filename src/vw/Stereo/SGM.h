@@ -57,7 +57,7 @@ public: // Functions
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 10);
+                             int search_buffer = 4);
 
 private: // Variables
 
@@ -207,10 +207,11 @@ private: // Functions
   void iterate_direction( ImageView<uint8   > const& left_image,
                           boost::shared_array<AccumCostType>      & accumulated_costs ) {
 
-    // Zero out the output data   
+    // Init the output costs to the max value.
+    // - This means that disparity/location pairs we don't update will never be used.
     size_t num_cost_elements = m_num_output_cols*m_num_output_rows*m_num_disp;
     for (size_t i=0; i<num_cost_elements; ++i)
-      accumulated_costs[i] = 0;
+      accumulated_costs[i] = 0;//std::numeric_limits<AccumCostType>::max();
     
 
     // Walk along the edges in a clockwise fashion

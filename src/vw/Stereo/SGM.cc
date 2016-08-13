@@ -78,6 +78,8 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
 
   const int SCALE_UP = 2;
 
+  double area = 0, percent_trusted = 0;
+
   // TODO: Revisit bounds with kernel sizes!
   // TODO: Expand the bounds when the pixel is invalid!
   // TOOD: Also handle case where we are at max search range.
@@ -93,25 +95,47 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
         vw_throw( LogicErr() << "Size error!\n" );
       }
       input_disp = prev_disparity->operator()(c_in,r_in);
-      bounds[0]  = input_disp[0]*SCALE_UP - search_buffer; // Min x
-      bounds[2]  = input_disp[0]*SCALE_UP + search_buffer; // Max X
-      bounds[1]  = input_disp[1]*SCALE_UP - search_buffer; // Min y
-      bounds[3]  = input_disp[1]*SCALE_UP + search_buffer; // Max y
       
-      // Constrain to global limits
-      if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
-      if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;
-      if (bounds[2] > m_max_disp_x) bounds[2] = m_max_disp_x;
-      if (bounds[3] > m_max_disp_y) bounds[3] = m_max_disp_y;
+      // Disparity values on the edge of our 2D search range are not trustworthy!
+      // TODO: May need to relax this for the Y direction!
+      bool on_edge = ( (input_disp[0] == m_min_disp_x) ||
+                       (input_disp[1] == m_min_disp_y) ||
+                       (input_disp[0] == m_max_disp_x) ||
+                       (input_disp[1] == m_max_disp_y)   );
+      bool good_disparity = (is_valid(input_disp) && !on_edge);
       
-      std::cout << input_disp << " --> " << bounds << std::endl;
+      if (good_disparity) {
+        // We are more confident in the prior disparity, search nearby.
+        bounds[0]  = input_disp[0]*SCALE_UP - search_buffer; // Min x
+        bounds[2]  = input_disp[0]*SCALE_UP + search_buffer; // Max X
+        bounds[1]  = input_disp[1]*SCALE_UP - search_buffer; // Min y
+        bounds[3]  = input_disp[1]*SCALE_UP + search_buffer; // Max y
+        
+        // Constrain to global limits
+        if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
+        if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;
+        if (bounds[2] > m_max_disp_x) bounds[2] = m_max_disp_x;
+        if (bounds[3] > m_max_disp_y) bounds[3] = m_max_disp_y;
       
-      //bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
+        percent_trusted += 1.0;
+        //std::cout << input_disp << " --> " << bounds << std::endl;
+      } else {
+        // Not a trusted prior disparity, search the entire range!
+        bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
+      }
       
       m_disp_bound_image(c,r) = bounds;
+      area += (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
     }
   }
-  
+  // Compute some statistics for help improving the speed
+  double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
+  area            /= num_pixels;
+  percent_trusted /= num_pixels;
+  double max_search_area = (m_max_disp_x-m_min_disp_x+1)*(m_max_disp_y-m_min_disp_y+1);
+  std::cout << "Max pixel search area = " << max_search_area << std::endl;
+  std::cout << "Mean pixel search area = " << area << std::endl;
+  std::cout << "Percent trusted prior disparities = " << percent_trusted << std::endl;  
 }
 
 SemiGlobalMatcher::AccumCostType SemiGlobalMatcher::get_disparity_dist(DisparityType d1, DisparityType d2) {
@@ -139,17 +163,13 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        AccumCostType*       output,
                        int path_intensity_gradient, bool debug ) {
                        
-  // Two parameters controlling disparity smoothness, see the paper.
-  // The penalty type is the same as the cost type
-  const AccumCostType PENALTY1 = 15;
-  const AccumCostType PENALTY2 = 100;
-                       
-  // Init the output costs to the local costs
+  // Init the output costs to a large value so that we don't
+  //  use disparity combinations that we don't compute.
   std::vector<AccumCostType> curr_cost(m_num_disp);
   for (int i=0; i<m_num_disp; ++i)
-    curr_cost[i] = local[i];
+    curr_cost[i] = 2*std::numeric_limits<CostType>::max();
   
-  Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
+  Vector4i pixel_disp_bounds   = m_disp_bound_image(col,   row);
   Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
 
   // Loop through disparities for this pixel 
@@ -198,7 +218,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       } // End loop through other pixel disparities
       
       // The output cost = local cost + lowest combined cost
-      curr_cost[d] += lowest_combined_cost;
+      curr_cost[d] = local[d] + lowest_combined_cost;
     
       ++d;
     }
@@ -310,8 +330,10 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   populate_constant_disp_bound_image();
   //if (zones)
   //  populate_disp_bound_image(zones);
-  //if (prev_disparity)
-  //  populate_disp_bound_image(prev_disparity, search_buffer);
+  if (prev_disparity) {
+    std::cout << "Updating bound image from previous disparity.\n";
+    populate_disp_bound_image(prev_disparity, search_buffer);
+  }
 
 
   // ==== Compute the cost values ====
@@ -370,10 +392,11 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   // Note: For test images, correct disp: dx=2, dy=1 --> d_index=18
 /*
   // DEBUG!!!!
-  ImageView<uint8> cost_image( m_num_output_cols, m_num_disp );
+  int debug_row = m_num_output_rows / 2;
+  ImageView<uint8> cost_image( m_num_output_cols, m_num_disp ); // TODO: Change type?
   for ( int i = 0; i < m_num_output_cols; i++ ) {
     for ( int d = 0; d < m_num_disp; d++ ) {
-      size_t cost_index = get_cost_index(i, 185, d);
+      size_t cost_index = get_cost_index(i, debug_row, d);
       cost_image(i,d) = m_cost_buffer[cost_index]; // TODO: scale!
     }
   }
@@ -434,7 +457,8 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
     
     iterate_direction<-1,1>( left_image, dir_accumulated_costs );
     inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
-    std::cout << "8\n";   
+    std::cout << "8\n";
+    
   }
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.

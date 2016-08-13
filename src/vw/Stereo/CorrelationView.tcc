@@ -586,6 +586,9 @@ prerasterize(BBox2i const& bbox) const {
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
+      //if (level == 1)
+      //  vw_throw( NoImplErr() << "DEBUG" );
+      
     } // End of the level loop
 
     VW_ASSERT( bbox.size() == bounding_box(disparity).size(),
