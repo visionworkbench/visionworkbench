@@ -137,7 +137,7 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
   std::cout << "Mean pixel search area = " << area << std::endl;
   std::cout << "Percent trusted prior disparities = " << percent_trusted << std::endl;  
 }
-
+/*
 SemiGlobalMatcher::AccumCostType SemiGlobalMatcher::get_disparity_dist(DisparityType d1, DisparityType d2) {
 
   //// This is the traditional way for 1D disparities
@@ -154,7 +154,56 @@ SemiGlobalMatcher::AccumCostType SemiGlobalMatcher::get_disparity_dist(Disparity
   //return delX*delX + delY*delY;
   
   return abs(delX) + abs(delY); // How does this method compare?
+}*/
 
+
+void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
+
+  std::cout << "Generating lookup table...\n";
+  
+  const int TABLE_WIDTH = 8;
+  m_adjacent_disp_lookup.resize(m_num_disp*TABLE_WIDTH);
+  
+  // Loop through the disparities
+  int d = 0;
+  for (int dy=m_min_disp_y; dy<=m_max_disp_y; ++dy) {
+    // Figure out above and below disparities with bounds checking
+    int y_less = dy - 1;
+    int y_more = dy + 1;
+    if (y_less < m_min_disp_y) y_less = dy;
+    if (y_more > m_max_disp_y) y_more = dy;
+    
+    int y_less_o = y_less - m_min_disp_y; // Offset from min y disparity
+    int y_o      = dy     - m_min_disp_y;
+    int y_more_o = y_more - m_min_disp_y;
+    
+    for (int dx=m_min_disp_x; dx<=m_max_disp_x; ++dx) {
+
+      // Figure out left and right disparities with bounds checking
+      int x_less = dx - 1;
+      int x_more = dx + 1;
+      if (x_less < m_min_disp_x) x_less = dx;
+      if (x_more > m_max_disp_x) x_more = dx;
+
+      int x_less_o = x_less - m_min_disp_x; // Offset from min x disparity
+      int x_o      = dx     - m_min_disp_x;
+      int x_more_o = x_more - m_min_disp_x;
+      
+      // Record the disparity indices of each of the adjacent pixels
+      int table_pos = d*TABLE_WIDTH;
+      m_adjacent_disp_lookup[table_pos+0] = y_less_o*m_num_disp_x + x_less_o;
+      m_adjacent_disp_lookup[table_pos+1] = y_less_o*m_num_disp_x + x_o;
+      m_adjacent_disp_lookup[table_pos+2] = y_less_o*m_num_disp_x + x_more_o;
+      m_adjacent_disp_lookup[table_pos+3] = y_o     *m_num_disp_x + x_less_o;
+      m_adjacent_disp_lookup[table_pos+4] = y_o     *m_num_disp_x + x_more_o;
+      m_adjacent_disp_lookup[table_pos+5] = y_more_o*m_num_disp_x + x_less_o;
+      m_adjacent_disp_lookup[table_pos+6] = y_more_o*m_num_disp_x + x_o;
+      m_adjacent_disp_lookup[table_pos+7] = y_more_o*m_num_disp_x + x_more_o;
+      
+      ++d;
+    }
+  }
+  std::cout << "Finished generating lookup table.\n";
 }
 
 void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
@@ -162,7 +211,17 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        CostType     * const local, // The disparity costs of the current pixel
                        AccumCostType*       output,
                        int path_intensity_gradient, bool debug ) {
-                       
+
+  // TODO: Consider intensity diff
+  AccumCostType P_A = 20; // Dist = 1
+  AccumCostType P_B = 20; // Dist = 2
+  AccumCostType P_C = 200; // Dist > 2
+  
+  if (path_intensity_gradient > 0)
+    P_C /= path_intensity_gradient;
+  if (P_C < P_B)
+    P_C = P_B;
+
   // Init the output costs to a large value so that we don't
   //  use disparity combinations that we don't compute.
   std::vector<AccumCostType> curr_cost(m_num_disp);
@@ -171,6 +230,20 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   
   Vector4i pixel_disp_bounds   = m_disp_bound_image(col,   row);
   Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
+  
+
+  // TODO: Get this from the previous iteration!
+  DisparityType min_prev_disparity_index = 0;
+  CostType      min_prev_disparity_cost  = prior[0];
+  for (DisparityType i=1; i<m_num_disp; ++i) {
+    if (prior[i] < min_prev_disparity_cost) {
+      min_prev_disparity_index = i;
+      min_prev_disparity_cost  = prior[i];
+    }
+  }
+  
+  
+  AccumCostType penalty;
 
   // Loop through disparities for this pixel 
   for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
@@ -178,44 +251,29 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
     // Get initial linear storage index for this dy row
     int d = (dy-m_min_disp_y)*m_num_disp_x +
             (pixel_disp_bounds[0] - m_min_disp_x);
-  
+
     for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
-      
-      // For this disparity, find the prior disparity with the lowest cost increase.
-      AccumCostType lowest_combined_cost = std::numeric_limits<int32>::max();
 
-      // Loop through disparities in prior pixel
-      for (int dy_p=pixel_disp_bounds_p[1]; dy_p<=pixel_disp_bounds_p[3]; ++dy_p) {
+      // Start with the cost for the same disparity
+      AccumCostType lowest_combined_cost = prior[d];
       
-        AccumCostType y_disp_diff = abs(dy_p - dy); // Precompute part of distance
-        
-        // Get initial linear storage index for this dy row
-        int d_p = (dy_p-m_min_disp_y)*m_num_disp_x +
-                  (pixel_disp_bounds_p[0] - m_min_disp_x);
-        
-        for (int dx_p=pixel_disp_bounds_p[0]; dx_p<=pixel_disp_bounds_p[2]; ++dx_p) {
-        
-          // This is the costliest portion of the entire algorithm since it is executed so many times!
-        
-          // The cost to reach the disparity at the previous pixel       
-          AccumCostType prior_cost     = prior[d_p];
-          // Physical disparity distance from that disparity to this one   
-          AccumCostType disparity_diff = abs(dx_p - dx) + y_disp_diff; // TODO: Experiment with this!
-        
-          // TODO: Consider intensity diff
-          const AccumCostType P_A = 20; // TODO: This needs to be related to the local cost sizes!
-          AccumCostType penalty  = disparity_diff * P_A;
-         
-          lowest_combined_cost = std::min(lowest_combined_cost, prior_cost+penalty);
-
-          //if ((debug)){
-          //  printf("d: %d, d_p %d, curr_cost = %d, lcc = %d, prior_cost = %d, penalty = %d\n", 
-          //         d, d_p, curr_cost[d], lowest_combined_cost, prior_cost, penalty);
-          //}
-        
-          ++d_p;
-        }
-      } // End loop through other pixel disparities
+      // Compare to the eight adjacent disparities using the lookup table
+      const int LOOKUP_TABLE_WIDTH = 8;
+      int lookup_index = d*LOOKUP_TABLE_WIDTH;
+      AccumCostType lowest_adjacent_cost = prior[m_adjacent_disp_lookup[lookup_index+0]];
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+1]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+2]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+3]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+4]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+5]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+6]]);
+      lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+7]]);
+      // Now add the adjacent penalty cost
+      lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost+P_A);
+      
+      // Compare to the lowest prev disparity cost regardless of location
+      lowest_combined_cost = std::min(lowest_combined_cost, min_prev_disparity_cost+P_C);
+      
       
       // The output cost = local cost + lowest combined cost
       curr_cost[d] = local[d] + lowest_combined_cost;
@@ -231,7 +289,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   //print_disparity_vector(prior);
   //std::cout << "min_prior = " << min_prior << " output = " ;
   for (int i=0; i<m_num_disp; ++i) {
-    output[i] = curr_cost[i] - min_prior;
+    output[i] = (curr_cost[i] - min_prior);
     //std::cout << output[i] << " ";
   }
   //std::cout << "\n" ;
@@ -325,6 +383,8 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   
   m_buffer_step_size = m_num_output_cols * m_num_disp;
 
+  populate_adjacent_disp_lookup_table();
+
   // By default the search bounds are the same for each image,
   //  but set them from the zones if the user passed them in.
   populate_constant_disp_bound_image();
@@ -347,42 +407,35 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   m_cost_buffer.reset(new CostType[num_cost_elements]);
   for (size_t i=0; i<num_cost_elements; ++i)
     m_cost_buffer[i] = MAX_COST;
-
   
   std::cout << "Done filling cost matrices\n";
   
   // For each pixel, for each disparity, compute the cost of that choice.
-  // - OPT: Could use different disparity ranges for each pixel to reduce the amount of work done.
+  // - TODO: Ony compute the specified disparity costs for each pixel
+  // - TODO: Optimize this if it becames a speed concern.
   {
     Timer timer("\tCost Calculation");
 
-
-    size_t d=0;    
-    for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
-      for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
-  
-        // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-        for ( int j = m_min_row; j < m_max_row; j++ ) { // For each row in left
-          for ( int i = m_min_col; i < m_max_col; i++ ) { // For each column in left
+    // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+    for ( int j = m_min_row; j < m_max_row; j++ ) { // For each row in left
+      for ( int i = m_min_col; i < m_max_col; i++ ) { // For each column in left
           
-            // Currently this computes only the SINGLE PIXEL difference.
-            // Could improve results by converting to block matching around the center pixel.
-          
-            // TODO: Add or subtract the disparity?
+        size_t d=0;
+        //CostType min_cost = std::numeric_limits<CostType>::max();
+        for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
+          for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
+            
             bool debug = ((i == 73) && (j == 159));
             size_t cost_index = get_cost_index(i-m_min_col, j-m_min_col, d);
-            m_cost_buffer[cost_index] = get_cost(left_image, right_image, i, j, i+dx,j+dy, debug);
+            CostType cost = get_cost(left_image, right_image, i, j, i+dx,j+dy, debug);
+            m_cost_buffer[cost_index] = cost;
             
-            //if (debug) {
-            //  printf("Done with loc %d, %d -->%d\n", i, j, costs(i,j)[d]);
-            //}
-            
-          } // End x loop
-        }// End y loop
-        //printf("Done with disparity %d, %d\n", dx, dy);
-        ++d; // Disparity values are stored in a vector for convenience.
-      }    
-    } // End disparity loops
+            ++d; // Disparity values are stored in a vector for convenience.
+          }    
+        } // End disparity loops   
+
+      } // End x loop
+    }// End y loop
     
     //std::cout << "Loc 219, 173 costs --> " << costs(219,173) << std::endl;
   }
@@ -406,7 +459,8 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
 
   // ==== Accumulate the global costs across paths ====
   
-  boost::shared_array<AccumCostType> dir_accumulated_costs; // TODO: Eliminate this!
+  // TODO: Possible to remove the temporary buffer?
+  boost::shared_array<AccumCostType> dir_accumulated_costs; 
   dir_accumulated_costs.reset(new AccumCostType[num_cost_elements]);
   m_accum_buffer.reset(       new AccumCostType[num_cost_elements]);
   for (size_t i=0; i<num_cost_elements; ++i) {

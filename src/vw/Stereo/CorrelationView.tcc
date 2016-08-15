@@ -309,7 +309,8 @@ prerasterize(BBox2i const& bbox) const {
 
       // Don't use SGM for larger regions!
       //bool use_sgm_on_level = (m_use_sgm && (zones.size() == 1)); // TODO: May need to redo this check.
-      bool use_sgm_on_level = (m_use_sgm && (!on_last_level));
+      //bool use_sgm_on_level = (m_use_sgm && (!on_last_level));
+      bool use_sgm_on_level = (m_use_sgm);
       //if (use_sgm_on_level) {
       //  std::cout << "Search parameter workload = " << zones[0].search_volume() << std::endl;
       //  use_sgm_on_level =  (zones[0].search_volume() < MAX_SGM_WORKLOAD);
@@ -461,29 +462,31 @@ prerasterize(BBox2i const& bbox) const {
       const float rm_min_matches_percent = 0.5;
       const float rm_threshold = 3.0;
 
-      // TODO: What if SGM used on last level?
-      if ( !on_last_level ) {
-        disparity = disparity_mask(disparity_cleanup_using_thresh
-                                     (disparity,
-                                      rm_half_kernel, rm_half_kernel,
-                                      rm_threshold,
-                                      rm_min_matches_percent),
-                                     left_mask_pyramid[level],
-                                     right_mask_pyramid[level]);
-      } else {
-        // We don't do a single hot pixel check on the final level as it leaves a border.
-        disparity = disparity_mask(rm_outliers_using_thresh
-                                     (disparity,
-                                      rm_half_kernel, rm_half_kernel,
-                                      rm_threshold,
-                                      rm_min_matches_percent),
-                                     left_mask_pyramid[level],
-                                     right_mask_pyramid[level]);
+      // At least for debugging, skip the filtering step with SGM outputs.
+      if (!use_sgm_on_level) {
+        if ( !on_last_level ) {
+          disparity = disparity_mask(disparity_cleanup_using_thresh
+                                       (disparity,
+                                        rm_half_kernel, rm_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid[level],
+                                       right_mask_pyramid[level]);
+        } else {
+          // We don't do a single hot pixel check on the final level as it leaves a border.
+          disparity = disparity_mask(rm_outliers_using_thresh
+                                       (disparity,
+                                        rm_half_kernel, rm_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid[level],
+                                       right_mask_pyramid[level]);
+        }
+
+        // The kernel based filtering tends to leave isolated blobs behind.
+        disparity_blob_filter(disparity, level, m_blob_filter_area);        
+        
       }
-
-
-      // The kernel based filtering tends to leave isolated blobs behind.
-      disparity_blob_filter(disparity, level, m_blob_filter_area);
 
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user

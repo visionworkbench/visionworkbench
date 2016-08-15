@@ -81,8 +81,14 @@ private: // Variables
     /// - Stored as min_col, min_row, max_col, max_row.
     ImageView<Vector4i> m_disp_bound_image;
     
+    /// Lookup table of the adjacent disparities for each disparity
+    /// - Handles outer boundaries by repitition.
+    std::vector<DisparityType> m_adjacent_disp_lookup;
 
 private: // Functions
+
+  /// Populate the lookup table m_adjacent_disp_lookup
+  void populate_adjacent_disp_lookup_table();
 
   /// Fill in m_disp_bound_image using image-wide contstants
   void populate_constant_disp_bound_image();
@@ -125,13 +131,15 @@ private: // Functions
   create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs );
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
+  /// - This function is too slow to use inside the inner loop!
   void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
     dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
     dx = (disp % m_num_disp_x) + m_min_disp_x;
   }
 
-  /// Compute the physical distance between the disparity values of two adjacent pixels.
-  AccumCostType get_disparity_dist(DisparityType d1, DisparityType d2);
+  // This function is unused to allow more optimization at the inner loop.
+  ///// Compute the physical distance between the disparity values of two adjacent pixels.
+  //AccumCostType get_disparity_dist(DisparityType d1, DisparityType d2);
   
   
   
@@ -206,13 +214,13 @@ private: // Functions
   template <int DIRX, int DIRY>
   void iterate_direction( ImageView<uint8   > const& left_image,
                           boost::shared_array<AccumCostType>      & accumulated_costs ) {
-
+/*
     // Init the output costs to the max value.
     // - This means that disparity/location pairs we don't update will never be used.
     size_t num_cost_elements = m_num_output_cols*m_num_output_rows*m_num_disp;
     for (size_t i=0; i<num_cost_elements; ++i)
       accumulated_costs[i] = 0;//std::numeric_limits<AccumCostType>::max();
-    
+    */
 
     // Walk along the edges in a clockwise fashion
     if ( DIRX > 0 ) {
@@ -221,7 +229,6 @@ private: // Functions
       for ( int32 j = 0; j < m_num_output_rows; j++ ) {
         add_cost_vector(0, j, accumulated_costs);
       }
-      //std::cout << "L costs: " << costs(0,185) << std::endl;
       // Loop across to the opposite edge
       for ( int32 i = 1; i < m_num_output_cols; i++ ) {
         // Loop through the pixels in this column, limiting the range according
@@ -234,13 +241,7 @@ private: // Functions
                          get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j),
                          get_accum_vector(accumulated_costs, i,j), 
-                         pixel_diff, false );         // Current pixel
-                                                  
-          //if (j == 185) {
-          //  std::cout << "i: "<<i<< " costs: " << costs(i,j) << "\n      accum: " << accumulated_costs(i-DIRX,j-DIRY)  
-          //                                                   << "\n      accum: " << accumulated_costs(i,j) << std::endl;
-          //}
-                                                  
+                         pixel_diff, false );         // Current pixel                            
         }
       }
     } 
