@@ -52,6 +52,7 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
 
   // This can throw an exception, so be careful. If (0, 0) does not
   // succeed, keep on trying on the diagonal.
+  m_rotation_center = Vector3(); // Initialize to center of planet (for lack of anything better)
   for (int i = 0; i < 100000; i+= 10) {
     try {
       m_rotation_center = m_camera->camera_center(Vector2(i, i));
