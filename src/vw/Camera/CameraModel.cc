@@ -21,6 +21,7 @@
 #include <vw/Camera/CameraModel.h>
 
 #include <sstream>
+#include <iostream>
 
 using namespace vw;
 using namespace vw::camera;
@@ -38,6 +39,9 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
   m_translation(translation),
   m_rotation(rotation),
   m_rotation_inverse(inverse(rotation)),
+  m_pixel_offset(pixel_offset),
+  m_scale(scale) {
+
   // Set as the rotation center the old camera center for pixel (0,0).
   // It is important to note that for linescan cameras, each line has
   // its own camera center. It is not a problem that we use a single
@@ -45,9 +49,16 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
   // about. Ideally it would be the camera center for the pixel in the
   // middle of the image, if we know the image size. But the current
   // choice should be just as good.
-  m_rotation_center(m_camera->camera_center(Vector2(0, 0))),
-  m_pixel_offset(pixel_offset),
-  m_scale(scale) {}
+
+  // This can throw an exception, so be careful. If (0, 0) does not
+  // succeed, keep on trying on the diagonal.
+  for (int i = 0; i < 100000; i+= 10) {
+    try {
+      m_rotation_center = m_camera->camera_center(Vector2(i, i));
+      break; // success
+    }catch(...){}
+  }
+}
 
 AdjustedCameraModel::~AdjustedCameraModel() {}
 std::string AdjustedCameraModel::type() const { return "Adjusted"; }
