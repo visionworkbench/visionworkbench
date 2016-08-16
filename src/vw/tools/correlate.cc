@@ -146,6 +146,7 @@ int main( int argc, char *argv[] ) {
     Vector2i kernel_size(xkernel, ykernel);
     bool use_sgm = (vm.count("sgm") != 0);
     if (vm.count("pyramid")) {
+      std::cout << "Correlate max search range = " << search_range << std::endl;
       const int max_pyramid_levels = 5;
       disparity_map =
         stereo::pyramid_correlate( left, right,

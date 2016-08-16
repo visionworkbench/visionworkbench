@@ -57,7 +57,7 @@ public: // Functions
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 4);
+                             int search_buffer = 8);
 
 private: // Variables
 
@@ -99,6 +99,10 @@ private: // Functions
   /// Fill in m_disp_bound_image using a half resolution disparity image.
   void populate_disp_bound_image(DisparityImage const* prev_disparity,
                                  int search_buffer);
+
+  /// Populates m_cost_buffer with all the disparity costs 
+  void compute_disparity_costs(ImageView<uint8> const& left_image,
+                               ImageView<uint8> const& right_image);
 
   /// Return the index into one of the buffers for a given location
   /// - The data is stored row major interleaved format.
@@ -236,12 +240,15 @@ private: // Functions
         int32 jstart = std::max( 0,      0      + DIRY * i );
         int32 jstop  = std::min( m_num_output_rows, m_num_output_rows + DIRY * i );
         for ( int32 j = jstart; j < jstop; j++ ) {
+        
+          bool debug = false;//((i >= 195) && (i <= 196) && (j==203));
+        
           int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
           evaluate_path( i, j, i-DIRX,j-DIRY,
                          get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
                          get_cost_vector(i,j),
                          get_accum_vector(accumulated_costs, i,j), 
-                         pixel_diff, false );         // Current pixel                            
+                         pixel_diff, debug );         // Current pixel
         }
       }
     } 
@@ -342,15 +349,23 @@ template <class ImageT1, class ImageT2>
 
     // Rasterize input so that we can do a lot of processing on it.
     BBox2i right_region = left_region;
-    right_region.max() += search_volume - Vector2i(1,1);
+    right_region.max() += search_volume - Vector2i(1,1); // Why the -1?
+    
+    std::cout << "calc_disparity_sgm: left  region = " << left_region  << std::endl;
+    std::cout << "calc_disparity_sgm: right region = " << right_region << std::endl;
+    
     ImageView<typename ImageT1::pixel_type> left_crop ( crop(left_in.impl(),  left_region) );
     ImageView<typename ImageT2::pixel_type> right_crop( crop(right_in.impl(), right_region) );
 
     // TODO: Make scaling optional
     // Convert the input image to uint8 with 2%-98% intensity scaling.
     ImageView<PixelGray<vw::uint8> > left, right;
-    ip::percentile_scale_convert(left_crop,  left, 0.02, 0.98);
+    ip::percentile_scale_convert(left_crop,  left,  0.02, 0.98);
     ip::percentile_scale_convert(right_crop, right, 0.02, 0.98);
+    
+    //write_image("final_sgm_left.tif", left);
+    //write_image("final_sgm_right.tif", right);
+    
     
     // TODO: Support different cost types?
     SemiGlobalMatcher matcher;
