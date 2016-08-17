@@ -55,23 +55,55 @@ size_t hamming_distance(unsigned char a, unsigned char b) {
     return dist; // Return the number of differing bits
 }
 
+size_t hamming_distance(unsigned int a, unsigned int b) {
+    unsigned int dist = 0;
+    unsigned int val = a ^ b; // XOR
 
+    // Count the number of bits set
+    while (val != 0) {
+        // A bit is set, so increment the count and clear the bit
+        ++dist;
+        val &= val - 1;
+    }
+    return dist; // Return the number of differing bits
+}
+
+//=========================================================================
 
 void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
                                       int max_disp_x, int max_disp_y,
-                                      int kernel_size) {
-    m_min_disp_x  = min_disp_x;
-    m_min_disp_y  = min_disp_y;
-    m_max_disp_x  = max_disp_x;
-    m_max_disp_y  = max_disp_y;
-    m_kernel_size = kernel_size;
-    
-    m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
-    m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
-    size_t size_check = m_num_disp_x * m_num_disp_y;;
-    if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
-      vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
-    m_num_disp   = m_num_disp_x * m_num_disp_y;   
+                                      int kernel_size, int p1, int p2) {
+  m_min_disp_x  = min_disp_x;
+  m_min_disp_y  = min_disp_y;
+  m_max_disp_x  = max_disp_x;
+  m_max_disp_y  = max_disp_y;
+  m_kernel_size = kernel_size;
+  
+  m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
+  m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
+  size_t size_check = m_num_disp_x * m_num_disp_y;;
+  if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
+    vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
+  m_num_disp   = m_num_disp_x * m_num_disp_y;   
+  
+  if (p1 > 0) // User provided
+    m_p1 = p1; 
+  else { // Choose based on the kernel size
+    switch(kernel_size){
+    case 3:  m_p1 = 2;  break; // Census transform 0-8
+    case 5:  m_p1 = 7;  break; // Census transform 0-24
+    default: m_p1 = 20; break; // 0-255 scale
+    };
+  }
+  if (p2 > 0) // User provided
+    m_p2 = p2;
+  else {
+    switch(kernel_size){
+    case 3:  m_p2 = 50;  break; // Census transform 0-8
+    case 5:  m_p2 = 100; break; // Census transform 0-24
+    default: m_p2 = 250; break; // 0-255 scale
+    };
+  }
 }
 
 
@@ -84,39 +116,6 @@ void SemiGlobalMatcher::populate_constant_disp_bound_image() {
   std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector); 
 }
 
-void SemiGlobalMatcher::populate_disp_bound_image(std::vector<stereo::SearchParam> const *zones) {
-  // populate_disp_bound_image should already be allocated with constant values.
-  
-  // Loop through all vzones
-  size_t num_zones = zones->size();
-  for (size_t i=0; i<num_zones; ++i) {
-  
-    // Get disparity vector for this zone
-    stereo::SearchParam zone = zones->operator[](i);
-    Vector4i zone_disp(zone.disparity_range().min().x(),
-                       zone.disparity_range().min().y(),
-                       zone.disparity_range().max().x(),
-                       zone.disparity_range().max().y() );
-                       
-    // Copy this vector to the region specified by the zone.
-    // - Note that the zone coordinates are in original left image coordinates, and
-    //   we need to fill in the (smaller) output image region.
-    int min_col = zone.image_region().min().x() - m_min_col; 
-    int min_row = zone.image_region().min().y() - m_min_row;
-    int max_col = zone.image_region().max().x() - m_min_col;
-    int max_row = zone.image_region().max().y() - m_min_row;
-    if (min_col < 0) min_col = 0;
-    if (min_row < 0) min_row = 0;
-    if (max_col >= m_num_output_cols) max_col = m_num_output_cols-1;
-    if (max_row >= m_num_output_rows) max_row = m_num_output_rows-1;
-    for (int row=min_row; row<max_row; ++row) {
-      for (int col=min_col; col<max_col; ++col) {
-        m_disp_bound_image(col, row) = zone_disp;
-      }
-    } // End loop through zone region
-  } // End loop through zones
-}
-
 void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_disparity,
                                                   int search_buffer) {
 
@@ -124,10 +123,13 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
 
   const int SCALE_UP = 2;
 
+  // There needs to be some "room" in the disparity search space for
+  // us to discard prior results on the edge as not trustworthy predictors.
+  const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 1);
+  const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 1);
+
   double area = 0, percent_trusted = 0;
 
-  // TODO: Revisit bounds with kernel sizes!
-  // TODO: Expand the bounds when the pixel is invalid!
   int r_in, c_in;
   PixelMask<Vector2i> input_disp;
   Vector4i bounds;
@@ -142,14 +144,12 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
       input_disp = prev_disparity->operator()(c_in,r_in);
       
       // Disparity values on the edge of our 2D search range are not trustworthy!
-      // TODO: May need to relax this for the Y direction!
       int dx_scaled = input_disp[0] * SCALE_UP; 
       int dy_scaled = input_disp[1] * SCALE_UP;
-      bool on_edge = ( (dx_scaled <= m_min_disp_x) ||
-                       (dy_scaled <= m_min_disp_y) ||
-                       (dx_scaled >= m_max_disp_x) ||
-                       (dy_scaled >= m_max_disp_y)   );
-      bool good_disparity = false;//(is_valid(input_disp) && !on_edge);
+      bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
+                     || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
+
+      bool good_disparity = (is_valid(input_disp) && !on_edge);
       
       if (good_disparity) {
         // We are more confident in the prior disparity, search nearby.
@@ -186,8 +186,6 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
 
 void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
 
-  std::cout << "Generating lookup table...\n";
-  
   const int TABLE_WIDTH = 8;
   m_adjacent_disp_lookup.resize(m_num_disp*TABLE_WIDTH);
   
@@ -230,8 +228,7 @@ void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
       ++d;
     }
   }
-  std::cout << "Finished generating lookup table.\n";
-}
+} // End function populate_adjacent_disp_lookup_table
 
 void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        AccumCostType* const prior, // Accumulated costs leading up to this pixel
@@ -239,27 +236,12 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        AccumCostType*       output,
                        int path_intensity_gradient, bool debug ) {
 
-  // TODO: Numbers need to be different for the census transform!
-  
-  //// Numbers for absolute pixel diffs
-  //AccumCostType P_A = 20; // Dist = 1
-  //AccumCostType P_B = 40;
-  //AccumCostType P_C = 250; // Dist > 2
-  
-  //// Numbers for 8 bit (3x3) census transform.
-  //AccumCostType P_A = 2; // Dist = 1
-  //AccumCostType P_B = 4;
-  //AccumCostType P_C = 50; // Dist > 2
-  
-  // Numbers for 32 bit (5x5) census transform.
-  AccumCostType P_A = 7; // Dist = 1
-  AccumCostType P_B = 7;
-  AccumCostType P_C = 100; // Dist > 2
-  
+  // Decrease p2 (jump cost) with increasing disparity along the path
+  AccumCostType p2_mod = m_p2;
   if (path_intensity_gradient > 0)
-    P_C /= path_intensity_gradient;
-  if (P_C < P_B)
-    P_C = P_B;
+    p2_mod /= path_intensity_gradient;
+  if (p2_mod < m_p1)
+    p2_mod = m_p1;
 
   // Init the output costs to a large value so that we don't
   //  use disparity combinations that we don't compute.
@@ -277,11 +259,11 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       min_prior  = prior[i];
     }
   }
-  AccumCostType min_prev_disparity_cost = min_prior + P_C;
+  AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
   
   if (debug) {
-    printf("P_C = %d, min_prev cost = %d, min_prev_index = %d\n", 
-           P_C, min_prev_disparity_cost, min_prev_disparity_index);
+    printf("P2_mod = %d, min_prev cost = %d, min_prev_index = %d\n", 
+           p2_mod, min_prev_disparity_cost, min_prev_disparity_index);
   }
 
   // Loop through disparities for this pixel 
@@ -308,7 +290,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+6]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+7]]);
       // Now add the adjacent penalty cost
-      lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost+P_A);
+      lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost+m_p1);
       
       // Compare to the lowest prev disparity cost regardless of location
       lowest_combined_cost = std::min(lowest_combined_cost, min_prev_disparity_cost);
@@ -358,7 +340,7 @@ SemiGlobalMatcher::create_disparity_view( boost::shared_array<AccumCostType> con
       const AccumCostType * vec_ptr = get_accum_vector(accumulated_costs, i,j);
       DisparityType disp = find_min_index(vec_ptr);
       
-      disp_to_xy(disp, dx, dy);
+      disp_to_xy(disp, dx, dy); // TODO: Use a lookup table?
       disparity(i,j) = DisparityImage::pixel_type(dx, dy);      
       
       //if ((i >= 195) && (i <= 196) && (j==203)) {
@@ -372,15 +354,16 @@ SemiGlobalMatcher::create_disparity_view( boost::shared_array<AccumCostType> con
 }
 
 // TODO: Use our existing block matching code to do this!
-//  - Do this later, cost propagation is the real bottleneck.
-SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost(ImageView<uint8> const& left_image,
+// - Do this later, cost propagation is the real bottleneck.
+SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
                ImageView<uint8> const& right_image,
                int left_x, int left_y, int right_x, int right_y, bool debug) {
-  //// Single pixel diff
-  //CostType cost = abs( int(left_image(left_x,left_y)) - int(right_image(right_x,right_y)) );
-  //return cost;
-  
-  
+  if (m_kernel_size == 1) { // Special handling for single pixel case
+    int diff = static_cast<int>(left_image (left_x,  left_y )) - 
+               static_cast<int>(right_image(right_x, right_y));
+    return static_cast<CostType>(abs(diff));
+  }
+
   // Block mean of abs dists
   const int half_kernel_size = (m_kernel_size-1) / 2;
   int sum=0, diff=0;
@@ -396,15 +379,94 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost(ImageView<uint8> const& 
   return static_cast<CostType>(result);
 }
 
+void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
+                                         ImageView<uint8> const& right_image){
+  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
+    for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
+        
+      size_t d=0;
+      for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
+        for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
+          bool debug = false;
+          size_t cost_index = get_cost_index(c-m_min_col, r-m_min_row, d);
+          CostType cost = get_cost_block(left_image, right_image, c, r, c+dx,r+dy, debug);
+          m_cost_buffer[cost_index] = cost;
+          ++d; // Disparity values are stored in a vector for convenience.
+        }    
+      } // End disparity loops   
+    } // End x loop
+  }// End y loop
+}
+
+// TODO: Speed up the census computations!
+
+void SemiGlobalMatcher::fill_costs_census3x3   (ImageView<uint8> const& left_image,
+                                                ImageView<uint8> const& right_image){
+  // Compute the census value for each pixel.
+  ImageView<uint8> left_census (m_num_output_cols, m_num_output_rows), 
+                   right_census(m_num_output_cols, m_num_output_rows);              
+  for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
+    for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
+      left_census (c-m_min_col,r-m_min_row) = get_census_value_3x3(left_image,  c, r);
+      right_census(c-m_min_col,r-m_min_row) = get_census_value_3x3(right_image, c, r);
+    }
+  }
+  
+  // Now compute the disparity costs for each pixel.
+  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
+    for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
+      size_t d=0;
+      for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
+        for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
+          
+          size_t   cost_index = get_cost_index(c-m_min_col, r-m_min_row, d);
+          CostType cost = hamming_distance(left_census(c,r), right_census(c+dx, r+dy));
+          m_cost_buffer[cost_index] = cost;
+          ++d; // Disparity values are stored in a vector for convenience.
+        }    
+      } // End disparity loops   
+    } // End x loop
+  }// End y loop
+}
+
+void SemiGlobalMatcher::fill_costs_census5x5   (ImageView<uint8> const& left_image,
+                                                ImageView<uint8> const& right_image){
+  // Compute the census value for each pixel.
+  ImageView<uint32> left_census (m_num_output_cols, m_num_output_rows), 
+                    right_census(m_num_output_cols, m_num_output_rows);              
+  for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
+    for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
+      left_census (c-m_min_col,r-m_min_row) = get_census_value_5x5(left_image,  c, r);
+      right_census(c-m_min_col,r-m_min_row) = get_census_value_5x5(right_image, c, r);
+    }
+  }
+  
+  // Now compute the disparity costs for each pixel.
+  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
+    for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
+      size_t d=0;
+      for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
+        for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
+          
+          size_t   cost_index = get_cost_index(c-m_min_col, r-m_min_row, d);
+          CostType cost = hamming_distance(left_census(c,r), right_census(c+dx, r+dy));
+          m_cost_buffer[cost_index] = cost;
+          ++d; // Disparity values are stored in a vector for convenience.
+        }    
+      } // End disparity loops   
+    } // End x loop
+  }// End y loop
+}
 
 
-
-// ==== Compute the cost values ====
 
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {
 
-  const CostType MAX_COST = std::numeric_limits<     CostType>::max();
+  const CostType MAX_COST = std::numeric_limits<CostType>::max();
 
   // Init storage for processing all costs. W*H*D. D= NUM_DISPS
   // - Init all costs to the max possible value.
@@ -415,86 +477,15 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
   for (size_t i=0; i<num_cost_elements; ++i)
     m_cost_buffer[i] = MAX_COST;
   
-  std::cout << "Done filling cost matrices\n";
-  
-  bool use_census = true;
-  
-  if (use_census) {
-
-    Timer timer("\tCENSUS Cost Calculation");
-
-    // 3x3 case
-    // Compute the census value for each pixel.
-    ImageView<uint8> left_census (m_num_output_cols, m_num_output_rows), 
-                     right_census(m_num_output_cols, m_num_output_rows);              
-    for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
-      for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
-        left_census (c-m_min_col,r-m_min_row) = get_census_value_3x3(left_image,  c, r);
-        right_census(c-m_min_col,r-m_min_row) = get_census_value_3x3(right_image, c, r);
-      }
-    }
-    
-    /*
-    // 5x5 case
-    // Compute the census value for each pixel.
-    ImageView<uint32> left_census (m_num_output_cols, m_num_output_rows), 
-                     right_census(m_num_output_cols, m_num_output_rows);              
-    for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
-      for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
-        left_census (c-m_min_col,r-m_min_row) = get_census_value_5x5(left_image (c,r));
-        right_census(c-m_min_col,r-m_min_row) = get_census_value_5x5(right_image(c,r));
-      }
-    }
-    */
-    
-    // Now compute the disparity costs for each pixel.
-    // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-    for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
-      for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
-          
-        size_t d=0;
-        for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
-          for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
-            
-            bool     debug = ((c == 73) && (r == 159));
-            size_t   cost_index = get_cost_index(c-m_min_col, r-m_min_row, d);
-            CostType cost = hamming_distance(left_census(c,r), right_census(c+dx, r+dy));
-            m_cost_buffer[cost_index] = cost;
-
-            ++d; // Disparity values are stored in a vector for convenience.
-          }    
-        } // End disparity loops   
-
-      } // End x loop
-    }// End y loop
-    
-  
-  } else { 
-    // For each pixel, for each disparity, compute the cost of that choice.
-    // - TODO: Ony compute the specified disparity costs for each pixel
-    // - TODO: Optimize this if it becames a speed concern.
+  // Now that the buffers are initialized, choose how to fill them based on the kernel size.
+  {
     Timer timer("\tCost Calculation");
 
-    // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-    for ( int r = m_min_row; r < m_max_row; r++ ) { // For each row in left
-      for ( int c = m_min_col; c < m_max_col; c++ ) { // For each column in left
-          
-        size_t d=0;
-        for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
-          for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
-            
-            bool debug = ((c == 73) && (r == 159));
-            size_t cost_index = get_cost_index(c-m_min_col, r-m_min_row, d);
-            CostType cost = get_cost(left_image, right_image, c, r, c+dx,r+dy, debug);
-            m_cost_buffer[cost_index] = cost;
-
-            ++d; // Disparity values are stored in a vector for convenience.
-          }    
-        } // End disparity loops   
-
-      } // End x loop
-    }// End y loop
-
+    switch(m_kernel_size) {
+    case 3:  fill_costs_census3x3(left_image, right_image); break;
+    case 5:  fill_costs_census5x5(left_image, right_image); break;
+    default: fill_costs_block    (left_image, right_image); break;
+    };    
   } // End non-census case
 
   std::cout << "Done computing local costs.\n";
@@ -505,7 +496,7 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
   //  std::cout << "Local cost vector for 196, 203:\n";
   //  print_disparity_vector(get_cost_vector(196,203));
   //}
-
+/*
   int debug_row = 203;//_num_output_rows * 0.065;
   if (m_num_output_cols > debug_row) {
     std::cout << "debug row = " << debug_row << std::endl;
@@ -519,7 +510,7 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
     write_image("scanline_costs_block.tif",cost_image);
     std::cout << "Done writing line dump.\n";
   }
-  
+  */
   
 } // end compute_disparity_costs() 
 
@@ -565,15 +556,12 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   populate_adjacent_disp_lookup_table();
 
   // By default the search bounds are the same for each image,
-  //  but set them from the zones if the user passed them in.
+  //  but set them from the prior disparity image if the user passed it in.
   populate_constant_disp_bound_image();
-  //if (zones)
-  //  populate_disp_bound_image(zones);
   if (prev_disparity) {
     std::cout << "Updating bound image from previous disparity.\n";
     populate_disp_bound_image(prev_disparity, search_buffer);
   }
-
 
   // ==== Compute the cost values ====
   compute_disparity_costs(left_image, right_image);
@@ -604,7 +592,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
     {
       Timer timer("\tCost Propagation [1,0]");
       iterate_direction<1,0>( left_image, dir_accumulated_costs );
-      write_image("effect_1_0.tif", create_disparity_view( dir_accumulated_costs ) );
+      //write_image("effect_1_0.tif", create_disparity_view( dir_accumulated_costs ) );
       inplace_sum_views( m_accum_buffer, dir_accumulated_costs );
     }
     std::cout << "1, ";

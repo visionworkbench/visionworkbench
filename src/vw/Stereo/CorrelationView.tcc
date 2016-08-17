@@ -494,31 +494,27 @@ prerasterize(BBox2i const& bbox) const {
       const float rm_min_matches_percent = 0.5;
       const float rm_threshold = 3.0;
 
-      // At least for debugging, skip the filtering step with SGM outputs.
-      if (!use_sgm_on_level) {
-        if ( !on_last_level ) {
-          disparity = disparity_mask(disparity_cleanup_using_thresh
-                                       (disparity,
-                                        rm_half_kernel, rm_half_kernel,
-                                        rm_threshold,
-                                        rm_min_matches_percent),
-                                       left_mask_pyramid[level],
-                                       right_mask_pyramid[level]);
-        } else {
-          // We don't do a single hot pixel check on the final level as it leaves a border.
-          disparity = disparity_mask(rm_outliers_using_thresh
-                                       (disparity,
-                                        rm_half_kernel, rm_half_kernel,
-                                        rm_threshold,
-                                        rm_min_matches_percent),
-                                       left_mask_pyramid[level],
-                                       right_mask_pyramid[level]);
-        }
-
-        // The kernel based filtering tends to leave isolated blobs behind.
-        disparity_blob_filter(disparity, level, m_blob_filter_area);        
-        
+      if ( !on_last_level ) {
+        disparity = disparity_mask(disparity_cleanup_using_thresh
+                                     (disparity,
+                                      rm_half_kernel, rm_half_kernel,
+                                      rm_threshold,
+                                      rm_min_matches_percent),
+                                     left_mask_pyramid[level],
+                                     right_mask_pyramid[level]);
+      } else {
+        // We don't do a single hot pixel check on the final level as it leaves a border.
+        disparity = disparity_mask(rm_outliers_using_thresh
+                                     (disparity,
+                                      rm_half_kernel, rm_half_kernel,
+                                      rm_threshold,
+                                      rm_min_matches_percent),
+                                     left_mask_pyramid[level],
+                                     right_mask_pyramid[level]);
       }
+
+      // The kernel based filtering tends to leave isolated blobs behind.
+      disparity_blob_filter(disparity, level, m_blob_filter_area);        
 
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user
@@ -528,37 +524,13 @@ prerasterize(BBox2i const& bbox) const {
 
         vw_out() << "Computing new zone(s) for level " << next_level << std::endl;
         
-        /*
-        if (use_sgm_on_level) {
-          // SGM: only one zone at the moment
-          PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
-          for_each_pixel( disparity, accumulator );
-          BBox2i new_disparity_range(accumulator.minimum(),
-                                     accumulator.maximum()+Vector2i(1,1));
-          vw_out() << "Last computed disparity range: " << new_disparity_range << std::endl;
-         
-          SearchParam computed_params(bounding_box(left_mask_pyramid[next_level]),
-                                       new_disparity_range);
-
-          // Disable SGM for the next level if the workload gets too large.
-          if (computed_params.search_volume() < MAX_SGM_WORKLOAD)
-            zones.push_back( computed_params );
-          else
-            std::cout << "Disabling SGM for next level, workload is " << computed_params.search_volume() << std::endl;
-        }
-        */
-        
         if (zones.empty()) { // True if SGM not selected or workload too big for SGM
-          // Current method, multiple zones:
-          std::cout << "Breaking up zones...\n";
-
           // On the next resolution level, break up the image area into multiple
           // smaller zones with similar disparities.  This helps minimize
           // the total amount of searching done on the image.
           subdivide_regions( disparity, bounding_box(disparity),
                              zones, m_kernel_size );
         }
-        std::cout << "Created " << zones.size() << " zones.\n";
         
         scaling >>= 1;
         // Scale search range defines the maximum search range that
@@ -571,14 +543,11 @@ prerasterize(BBox2i const& bbox) const {
                                    right_pyramid[next_level].cols() - left_pyramid[next_level].cols(),
                                    right_pyramid[next_level].rows() - left_pyramid[next_level].rows() );
         BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
-        std::cout << "scale_search_region = " << scale_search_region << std::endl;
         
         BBox2i default_disparity_range = BBox2i(0,0,m_search_region.width(),
                                                     m_search_region.height());
         
         BOOST_FOREACH( SearchParam& zone, zones ) {
-        
-          SearchParam back = zone;
         
           zone.image_region() *= 2;
           zone.image_region().crop( next_zone_size );
@@ -590,8 +559,6 @@ prerasterize(BBox2i const& bbox) const {
           
           zone.disparity_range().crop( scale_search_region );
           
-          // TODO: Regions with empty ranges tend to be junk, so resetting works ok.
-          //     : What is the difference between SGM and block that makes this necessary?
           if (zone.disparity_range().empty()) {
             //std::cout << "Empty zone post: " << zone;
             //std::cout << "Back: " << back << std::endl;

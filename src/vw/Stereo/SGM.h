@@ -39,7 +39,7 @@ public: // Definitions
 
   // The types are chosen to minimize storage costs
   typedef int16 DisparityType; ///< Contains the allowable dx, dy range.
-  typedef int16 CostType;      ///< Used to describe a single disparity cost.
+  typedef uint8 CostType;      ///< Used to describe a single disparity cost.
   typedef int32 AccumCostType; ///< Used to accumulate CostType values.
 
   typedef ImageView<PixelMask<Vector2i> > DisparityImage; // The usual VW disparity type
@@ -47,9 +47,13 @@ public: // Definitions
 public: // Functions
 
   /// Set the parameters to be used for future SGM calls
+  /// - Parameters that are not provided will be set to the best known default.
+  /// - If kernel_size is 3 or 5, a census transform will be used (reccomended).
+  ///   Otherwise a simple averaging over a block method will be used.
   void set_parameters(int min_disp_x, int min_disp_y,
                      int max_disp_x, int max_disp_y,
-                     int kernel_size);
+                     int kernel_size=5,
+                     int p1=-1, int p2=-1);
 
   /// Compute SGM stereo on the images.
   /// - TODO: Make search_buffer a parameter
@@ -57,7 +61,7 @@ public: // Functions
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 8);
+                             int search_buffer = 2);
 
 private: // Variables
 
@@ -69,6 +73,10 @@ private: // Variables
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
     int m_num_output_cols, m_num_output_rows;
+    
+    // Algorithm parameters
+    int m_p1;
+    int m_p2;
     
     // Derived parameters for convenience
     int m_num_disp_x, m_num_disp_y, m_num_disp;
@@ -93,9 +101,6 @@ private: // Functions
   /// Fill in m_disp_bound_image using image-wide contstants
   void populate_constant_disp_bound_image();
 
-  /// Fill in m_disp_bound_image using a zones object.
-  void populate_disp_bound_image(std::vector<stereo::SearchParam> const *zones);
-
   /// Fill in m_disp_bound_image using a half resolution disparity image.
   void populate_disp_bound_image(DisparityImage const* prev_disparity,
                                  int search_buffer);
@@ -103,6 +108,23 @@ private: // Functions
   /// Populates m_cost_buffer with all the disparity costs 
   void compute_disparity_costs(ImageView<uint8> const& left_image,
                                ImageView<uint8> const& right_image);
+                               
+  // The following functions are called from inside compute_disparity_costs()
+  
+  /// Compute mean of differences within a block of pixels.
+  void fill_costs_block    (ImageView<uint8> const& left_image,
+                            ImageView<uint8> const& right_image);
+  // Compute a 8 bit hamming distance from a 5x5 census transform.
+  void fill_costs_census3x3(ImageView<uint8> const& left_image,
+                            ImageView<uint8> const& right_image);
+  // Compute a 24 bit hamming distance from a 5x5 census transform.
+  void fill_costs_census5x5(ImageView<uint8> const& left_image,
+                            ImageView<uint8> const& right_image);
+
+  /// Returns a block cost score at a given location
+  CostType get_cost_block(ImageView<uint8> const& left_image,
+                    ImageView<uint8> const& right_image,
+                    int left_x, int left_y, int right_x, int right_y, bool debug);
 
   /// Return the index into one of the buffers for a given location
   /// - The data is stored row major interleaved format.
@@ -134,19 +156,13 @@ private: // Functions
   DisparityImage
   create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs );
 
+  // TODO: Use a lookup table?
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
   void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
     dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
     dx = (disp % m_num_disp_x) + m_min_disp_x;
-  }
-
-  // This function is unused to allow more optimization at the inner loop.
-  ///// Compute the physical distance between the disparity values of two adjacent pixels.
-  //AccumCostType get_disparity_dist(DisparityType d1, DisparityType d2);
-  
-  
-  
+  } 
   
   /// v1 += v2.
   void inplace_sum_views( boost::shared_array<AccumCostType>       v1,
@@ -179,12 +195,6 @@ private: // Functions
     }
     return value;
   }
-
-  /// Returns a cost score at a given location
-  CostType get_cost(ImageView<uint8> const& left_image,
-                    ImageView<uint8> const& right_image,
-                    int left_x, int left_y, int right_x, int right_y, bool debug);
-
 
   // Print out a disparity vector
   template <typename T>
