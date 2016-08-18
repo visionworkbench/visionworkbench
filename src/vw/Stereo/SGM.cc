@@ -146,6 +146,7 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
       // Disparity values on the edge of our 2D search range are not trustworthy!
       int dx_scaled = input_disp[0] * SCALE_UP; 
       int dy_scaled = input_disp[1] * SCALE_UP;
+      
       bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
                      || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
 

@@ -127,6 +127,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   // - What is the last upscaling term for?
   right_global_region = left_global_region + m_search_region.min();
   right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling); 
+  // Total increase in right size = 2*region_offset + search_region_size + max_upscaling
   
   std::cout << "Left pyramid base bbox:  " << left_global_region  << std::endl;
   std::cout << "Right pyramid base bbox: " << right_global_region << std::endl;
@@ -319,24 +320,13 @@ prerasterize(BBox2i const& bbox) const {
     int    measure_spacing = 2; // seconds
     double prev_estim      = estim_elapsed;
 
-    // TODO: Update this!
-    // Don't use SGM if the workload is higher than this, otherwise it will take too long!
-    const double MAX_SGM_WORKLOAD = 20000000; // This is estimated to take one minute for a small tile.
-
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
 
       const bool on_last_level = (level == 0);
 
-      // Don't use SGM for larger regions!
-      //bool use_sgm_on_level = (m_use_sgm && (zones.size() == 1)); // TODO: May need to redo this check.
-      //bool use_sgm_on_level = (m_use_sgm && (!on_last_level));
+      // In the future we could disable SGM for larger levels.
       bool use_sgm_on_level = (m_use_sgm);
-      //if (use_sgm_on_level) {
-      //  std::cout << "Search parameter workload = " << zones[0].search_volume() << std::endl;
-      //  use_sgm_on_level =  (zones[0].search_volume() < MAX_SGM_WORKLOAD);
-      //}
-      // TODO: Compute total SGM workload!     
 
       int32 scaling = 1 << level;
       if (use_sgm_on_level)
@@ -372,7 +362,7 @@ prerasterize(BBox2i const& bbox) const {
         // We need to convert it to a bbox in the expanded base of support image at this level.
         BBox2i left_region = zone.image_region() + region_offset;
           left_region.expand(half_kernel);
-        BBox2i right_region = left_region + zone.disparity_range().min();
+        BBox2i right_region = left_region;
           right_region.max() += zone.disparity_range().size();
         
         std::cout << "SGM left  bbox: " << left_region  << std::endl;
@@ -397,9 +387,37 @@ prerasterize(BBox2i const& bbox) const {
                            m_kernel_size,
                            prev_disp_ptr);
                            
-        // TODO: right to left disparity check?
-        
-        crop(disparity, zone.image_region()) += pixel_type(zone.disparity_range().min());
+
+        // If at the last level and the user requested a left<->right consistency check,
+        //   compute right to left disparity.
+        if ( m_consistency_threshold >= 0 && level == 0 ) {
+
+          // To properly perform the reverse correlation, we need to fix the ROIs
+          //  to account for the different sizes of the left and right images
+          //  and make sure they line up with the previous disparity image
+          BBox2i right_reverse_region = zone.image_region() + region_offset - m_search_region.min();
+            right_reverse_region.expand(half_kernel);
+          BBox2i left_reverse_region = zone.image_region() + region_offset + m_search_region.min();
+            left_reverse_region.expand(half_kernel);
+            left_reverse_region.max() += m_search_region.size();
+
+          ImageView<pixel_type> rl_result;
+          rl_result = calc_disparity_sgm(
+                           crop(edge_extend(right_pyramid[level]), right_reverse_region),
+                           crop(edge_extend(left_pyramid [level]), left_reverse_region),
+                           right_reverse_region - right_reverse_region.min(),
+                           zone.disparity_range().size(), 
+                           m_kernel_size,
+                           prev_disp_ptr);
+          // Negate the disparity values to make the cross-consistency check work.
+          rl_result *= -1;
+
+          // Find pixels where the disparity distance is greater than m_consistency_threshold
+          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
+                                                rl_result,
+                                               m_consistency_threshold, false);
+        } // End of last level right to left disparity check
+
 
       } else { // Normal block matching method
       
@@ -462,9 +480,7 @@ prerasterize(BBox2i const& bbox) const {
             }else{
               estim_elapsed += next_elapsed;
             }
-            // Compute right to left disparity in this zone
-            
-            
+            // Compute right to left disparity in this zone       
             
             ImageView<pixel_type> rl_result;
             rl_result = calc_disparity(m_cost_type,
@@ -500,7 +516,7 @@ prerasterize(BBox2i const& bbox) const {
                                       rm_half_kernel, rm_half_kernel,
                                       rm_threshold,
                                       rm_min_matches_percent),
-                                     left_mask_pyramid[level],
+                                     left_mask_pyramid [level],
                                      right_mask_pyramid[level]);
       } else {
         // We don't do a single hot pixel check on the final level as it leaves a border.
@@ -509,7 +525,7 @@ prerasterize(BBox2i const& bbox) const {
                                       rm_half_kernel, rm_half_kernel,
                                       rm_threshold,
                                       rm_min_matches_percent),
-                                     left_mask_pyramid[level],
+                                     left_mask_pyramid [level],
                                      right_mask_pyramid[level]);
       }
 
@@ -518,21 +534,21 @@ prerasterize(BBox2i const& bbox) const {
 
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user
-      if ( !on_last_level ) {
+      // - SGM method does not use zones.
+      if ( !on_last_level && !use_sgm_on_level) {
         const size_t next_level = level-1;
         zones.clear();
 
         vw_out() << "Computing new zone(s) for level " << next_level << std::endl;
         
-        if (zones.empty()) { // True if SGM not selected or workload too big for SGM
-          // On the next resolution level, break up the image area into multiple
-          // smaller zones with similar disparities.  This helps minimize
-          // the total amount of searching done on the image.
-          subdivide_regions( disparity, bounding_box(disparity),
-                             zones, m_kernel_size );
-        }
-        
+        // On the next resolution level, break up the image area into multiple
+        // smaller zones with similar disparities.  This helps minimize
+        // the total amount of searching done on the image.
+        subdivide_regions( disparity, bounding_box(disparity),
+                           zones, m_kernel_size );
+      
         scaling >>= 1;
+        
         // Scale search range defines the maximum search range that
         // is possible in the next step. This (at lower levels) will
         // actually be larger than the search range that the user
@@ -566,7 +582,7 @@ prerasterize(BBox2i const& bbox) const {
           }
         } // End zone update loop
 
-      } // End not the last level case
+      } // End zone handling
       
       if (1) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
@@ -608,9 +624,8 @@ prerasterize(BBox2i const& bbox) const {
     }
 #endif
 
-    // 5.0) Reposition our result back into the global
-    // solution. Also we need to correct for the offset we applied
-    // to the search region.
+    // 5.0) Reposition our result back into the global solution. 
+    // Also we need to correct for the offset we applied to the search region.
     return prerasterize_type(disparity + pixel_type(m_search_region.min()),
                              -bbox.min().x(), -bbox.min().y(),
                              cols(), rows() );

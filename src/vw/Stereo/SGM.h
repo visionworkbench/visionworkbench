@@ -341,7 +341,7 @@ template <class ImageT1, class ImageT2>
                  BBox2i                 const& left_region,   // Valid region in the left image
                  Vector2i               const& search_volume, // Max disparity to search in right image
                  Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
-                 SemiGlobalMatcher::DisparityImage         const* prev_disparity=0){ 
+                 SemiGlobalMatcher::DisparityImage  const* prev_disparity=0){ 
 
     
     // Sanity check the input:
@@ -361,8 +361,9 @@ template <class ImageT1, class ImageT2>
     BBox2i right_region = left_region;
     right_region.max() += search_volume - Vector2i(1,1); // Why the -1?
     
-    std::cout << "calc_disparity_sgm: left  region = " << left_region  << std::endl;
-    std::cout << "calc_disparity_sgm: right region = " << right_region << std::endl;
+    std::cout << "calc_disparity_sgm: left  region  = " << left_region   << std::endl;
+    std::cout << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
+    std::cout << "calc_disparity_sgm: search_volume = " << search_volume << std::endl;
     
     ImageView<typename ImageT1::pixel_type> left_crop ( crop(left_in.impl(),  left_region) );
     ImageView<typename ImageT2::pixel_type> right_crop( crop(right_in.impl(), right_region) );
