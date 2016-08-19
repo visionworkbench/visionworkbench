@@ -72,7 +72,7 @@ size_t hamming_distance(unsigned int a, unsigned int b) {
 
 void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
                                       int max_disp_x, int max_disp_y,
-                                      int kernel_size, int p1, int p2) {
+                                      int kernel_size, uint16 p1, uint16 p2) {
   m_min_disp_x  = min_disp_x;
   m_min_disp_y  = min_disp_y;
   m_max_disp_x  = max_disp_x;
@@ -281,7 +281,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       
       // Compare to the eight adjacent disparities using the lookup table
       const int LOOKUP_TABLE_WIDTH = 8;
-      int lookup_index = d*LOOKUP_TABLE_WIDTH;
+      const int lookup_index = d*LOOKUP_TABLE_WIDTH;
       AccumCostType lowest_adjacent_cost = prior[m_adjacent_disp_lookup[lookup_index]];
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+1]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+2]]);
@@ -290,8 +290,9 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+5]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+6]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, prior[m_adjacent_disp_lookup[lookup_index+7]]);
-      // Now add the adjacent penalty cost
-      lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost+m_p1);
+      // Now add the adjacent penalty cost and compare to the local cost
+      lowest_adjacent_cost += m_p1;
+      lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost);
       
       // Compare to the lowest prev disparity cost regardless of location
       lowest_combined_cost = std::min(lowest_combined_cost, min_prev_disparity_cost);
@@ -578,11 +579,14 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   m_accum_buffer.reset(       new AccumCostType[num_cost_elements]);
   for (size_t i=0; i<num_cost_elements; ++i) {
     m_accum_buffer       [i] = 0;
-    dir_accumulated_costs[i] = MAX_ACCUM_COST;
   }
 
   {
     Timer timer_total("\tCost Propagation");
+    
+    //// This function will go through all eight accumulation paths in two passes.
+    //two_pass_path_accumulation(left_image);
+    
     
     // Accumulate costs in each of the 8 cardinal directions.
     // - For each one: Fill the storage structure with zeros.
