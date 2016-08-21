@@ -186,6 +186,14 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 
 
 
+if test "$ENABLE_SSE" = "yes"; then
+
+  echo "*** Enabling SSE support! ***"
+
+  dnl Add required flag
+  CXXFLAGS="$CXXFLAGS -msse4.1"
+fi
+
 ##################################################
 # distribution options
 ##################################################

@@ -213,197 +213,45 @@ private: // Functions
     return abs(left_image(col-m_min_col,         row-m_min_row) - 
                left_image((col-dir_x)-m_min_col, (row-dir_y)-m_min_row));
   }
-  
+
+
+  /// Just copy a cost vector to an accumulated cost vector
+  void copy_cost_vector(CostType     * const cost_ptr,
+                        AccumCostType*       accum_ptr) {
+    for (int d=0; d<m_num_disp; ++d)
+      accum_ptr[d] = cost_ptr[d];
+  }   
+
+  /// Add the contents of a row to the accumulation buffer
+  /// - Used by two_pass_path_accumulation()
+  /// - TODO: Surprisingly slow, speed this up!
+  void update_accum_buffer_row(AccumCostType* row_ptr, int row) {
+    const int NUM_PATHS_IN_PASS = 4;
+    size_t buffer_index = 0;
+    for (int col=0; col<m_num_output_cols; ++col) {
+      for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
+        size_t out_index = get_cost_index(col, row);
+        for (int d=0; d<m_num_disp; ++d) {
+          m_accum_buffer[out_index] += row_ptr[buffer_index];
+          ++out_index;
+          ++buffer_index;
+        }
+      }
+    }
+  } // End update_accu_buufer_row
 
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.
   /// - For each disparity in the current pixel, add that disparity's cost with the "cheapest"
   ///   prior pixel disparity.
+  /// - Returns the minimum disparity score
   void evaluate_path( int col, int row, int col_p, int row_p,
                       AccumCostType* const prior, // Accumulated costs leading up to this pixel
                       CostType     * const local, // The disparity costs of the current pixel
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // This variable is the magnitude of intensity change to this pixel
-/*
-  // TODO: Move to cc file!
+
   /// Perform all eight path accumulations in two passes through the image
-  void two_pass_path_accumulation(ImageView<uint8> const& left_image) {
-
-    // Instantiate two single-row buffers that will be used to temporarily store
-    //  accumulated cost info until it is no longer needed.
-    // - Within each buffer, data is indexed in order [col][pass][disparity]
-    const size_t NUM_PATHS_IN_PASS = 4;
-    const size_t buffer_pixel_size = m_num_disp*NUM_PATHS_IN_PASS;
-    const size_t buffer_size       = m_num_output_cols*buffer_pixel_size;
-    const size_t buffer_size_bytes = buffer_size*sizeof(AccumCostType);
-    
-    const int last_column = m_num_output_cols - 1;
-    const int last_row    = m_num_output_rows - 1;
-
-    // Allocate both buffers
-    boost::shared_array<AccumCostType> bufferA, bufferB;
-    bufferA.reset(new AccumCostType[buffer_size]);
-    bufferB.reset(new AccumCostType[buffer_size]);
-      
-    AccumCostType* top_buffer = bufferA.get();
-    AccumCostType* bot_buffer = bufferB.get();
-
-    // First pass, raster top left to bottom right.
-    memset(top_buffer, 0, buffer_size_bytes);
-    
-    for (int row=0; row<m_num_output_rows; ++row) {
-    
-      // Init the bottom buffer to zero
-      memset(bot_buffer, 0, buffer_size_bytes);
-    
-      for (int col=0; col<m_num_output_cols; ++col) {
-      
-        // Set some pointers for this pixel
-        CostType     * const local_cost_ptr   = get_cost_vector(col, row);
-        AccumCostType*       output_accum_ptr = bot_buffer + col*buffer_pixel_size;
-        bool debug = false;
-                
-        // Top left
-        if ((row > 0) && (col > 0) {
-          // Fill in the accumulated value in the bottom buffer
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
-          AccumCostType* const prior_accum_ptr = top_buffer + (col-1)*buffer_pixel_size;
-          evaluate_path( col, row, col-1, row-1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-        output_accum_ptr += m_num_disp; // Move to the next path accumulation location
-        
-        // Top
-        if (row > 0) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
-          AccumCostType* const prior_accum_ptr = top_buffer + col*buffer_pixel_size;
-          evaluate_path( col, row, col, row-1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }       
-        output_accum_ptr += m_num_disp;
-        
-        // Top right
-        if ((row > 0) && (col < last_column) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
-          AccumCostType* const prior_accum_ptr = top_buffer + (col+1)*buffer_pixel_size;
-          evaluate_path( col, row, col+1, row-1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-        output_accum_ptr += m_num_disp;
-        
-        // Left
-        if (col > 0) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
-          AccumCostType* const prior_accum_ptr = output_accum_ptr - buffer_pixel_size;
-          evaluate_path( col, row, col-1, row,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-      
-      } // End col loop
-      
-      // Sum up the contents of the top row of the buffer into m_accum_buffer
-      size_t buffer_index = 0;
-      for (int col=0; col<m_num_output_cols; ++col) {
-        for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
-          size_t out_index = get_cost_index(col, row);
-          for (int d=0; d<m_num_disp; ++d) {
-            m_accum_buffer[out_index] += top_buffer[buffer_index];
-            ++out_index;
-            ++buffer_index;
-          }
-        }
-      } // Done adding the temp buffer to m_accum_buffer
-      
-      std::swap(top_buffer, bot_buffer); // Swap the buffers
-      
-    } // End row loop
-    
-    std::cout << "DEBUG - first accum pass done!\n";
-    return;
-    
-    // Second pass, raster bottom left to top right.
-    // - Note that the roles of the top and bottom buffers are reversed here
-    memset(bot_buffer, 0, buffer_size_bytes);
-
-    for (int row = last_row; row >= 0; --row) {
-    
-      // Init the top buffer to zero
-      memset(top_buffer, 0, buffer_size_bytes);
-    
-      for (int col = last_column; col >= 0; --col) {
-      
-        // Set some pointers for this pixel
-        CostType     * const local_cost_ptr   = get_cost_vector(col, row);
-        AccumCostType*       output_accum_ptr = top_buffer + col*buffer_pixel_size;
-        bool debug = false;
-                
-        // Bottom right
-        if ((row < last_row) && (col < last_column) {
-          // Fill in the accumulated value in the bottom buffer
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
-          AccumCostType* const prior_accum_ptr = bot_buffer + (col+1)*buffer_pixel_size;
-          evaluate_path( col, row, col+1, row+1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-        output_accum_ptr -= m_num_disp; // Move to the next path accumulation location
-        
-        // Bottom
-        if (row < last_row) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
-          AccumCostType* const prior_accum_ptr = bot_buffer + col*buffer_pixel_size;
-          evaluate_path( col, row, col, row+1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }       
-        output_accum_ptr -= m_num_disp;
-        
-        // Bottom left
-        if ((row < last_row) && (col > 0) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
-          AccumCostType* const prior_accum_ptr = bot_buffer + (col-1)*buffer_pixel_size;
-          evaluate_path( col, row, col-1, row+1,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-        output_accum_ptr -= m_num_disp;
-        
-        // Right
-        if (col < last_column) {
-          int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
-          AccumCostType* const prior_accum_ptr = output_accum_ptr + buffer_pixel_size;
-          evaluate_path( col, row, col+1, row,
-                         prior_accum_ptr, local_cost_ptr, output_accum_ptr, 
-                         pixel_diff, debug );
-        }
-      
-      } // End col loop
-      
-      // Sum up the contents of the bottom row of the buffer into m_accum_buffer
-      size_t buffer_index = 0;
-      for (int col=0; col<m_num_output_cols; ++col) {
-        for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
-          size_t out_index = get_cost_index(col, row);
-          for (int d=0; d<m_num_disp; ++d) {
-            m_accum_buffer[out_index] += bot_buffer[buffer_index];
-            ++out_index;
-            ++buffer_index;
-          }
-        }
-      } // Done adding the temp buffer to m_accum_buffer
-      
-      std::swap(top_buffer, bot_buffer); // Swap the buffers
-      
-    } // End row loop
-
-    std::cout << "DEBUG - second accum pass done!\n";
-
-    // Done with both passes!
-  }
-*/
+  void two_pass_path_accumulation(ImageView<uint8> const& left_image);
 
   /// Compute the accumulated costs in a pixel direction from the local costs at each pixel.
   /// - TODO: This implementation seems inefficient!

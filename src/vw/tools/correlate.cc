@@ -55,6 +55,10 @@ int main( int argc, char *argv[] ) {
     int32 v_corr_min, v_corr_max;
     int32 xkernel, ykernel;
     int   lrthresh;
+    int   nThreads;
+    int   tile_size;
+    int collar_size;
+    int max_pyramid_levels;
     int   correlator_type;
     bool  found_alignment = false;
     Matrix3x3 alignment;
@@ -74,6 +78,11 @@ int main( int argc, char *argv[] ) {
       ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
+      ("threads",   po::value(&nThreads)->default_value(0),     "Manually specify the number of threads")
+      ("tile-size",   po::value(&tile_size)->default_value(0),     "Manually specify the tile size")
+      ("collar-size",   po::value(&collar_size)->default_value(0),     "Specify a collar size size")
+      ("max-pyramid-levels",   po::value(&max_pyramid_levels)->default_value(5),     
+        "Limit the maximum number of pyramid levels")
       ("pyramid", "Use the pyramid based correlator")
       ("sgm", "Use the SGM stereo algorithm.")
       ;
@@ -102,6 +111,11 @@ int main( int argc, char *argv[] ) {
       vw_out() << desc << std::endl;
       return 1;
     }
+
+    if (nThreads > 0)
+      vw::vw_settings().set_default_num_threads(nThreads);
+    if (tile_size > 0)
+      vw::vw_settings().set_default_tile_size(tile_size);
 
     // If the user provided a match file, use it to align the images.
     std::string match_filename = fs::path( left_file_name ).replace_extension().string() + "__" +
@@ -147,7 +161,6 @@ int main( int argc, char *argv[] ) {
     bool use_sgm = (vm.count("sgm") != 0);
     if (vm.count("pyramid")) {
       std::cout << "Correlate max search range = " << search_range << std::endl;
-      const int max_pyramid_levels = 5;
       disparity_map =
         stereo::pyramid_correlate( left, right,
                                    constant_view( uint8(255), left  ), // Use all-true masks
@@ -156,7 +169,7 @@ int main( int argc, char *argv[] ) {
                                    stereo::PREFILTER_NONE, log,
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
-                                   lrthresh, max_pyramid_levels, use_sgm );
+                                   lrthresh, max_pyramid_levels, use_sgm, collar_size );
     } else {
       disparity_map =
         stereo::correlate( left, right,
@@ -173,7 +186,8 @@ int main( int argc, char *argv[] ) {
     {
       vw::Timer corr_timer("Correlation Time");
       boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create("disparity.tif",result.format()));
-      r->set_block_write_size( Vector2i(1024,1024) );
+      r->set_block_write_size( Vector2i(vw::vw_settings().default_tile_size(),
+                                        vw::vw_settings().default_tile_size()) );
       block_write_image( *r, result,
                          TerminalProgressCallback( "", "Rendering: ") );
     }

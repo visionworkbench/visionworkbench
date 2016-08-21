@@ -360,7 +360,7 @@ namespace vw {
 
 } // namespace vw
 
-
+/*
 // -------------------------------------------------------------------------------
 // SSE Optimizations
 // -------------------------------------------------------------------------------
@@ -466,5 +466,5 @@ namespace vw {
 } // namespace vw
 
 #endif // VW_ENABLE_SSE
-
+*/
 #endif // __VW_IMAGE_INTERPOLATION_H__

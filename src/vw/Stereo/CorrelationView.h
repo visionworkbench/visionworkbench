@@ -129,6 +129,7 @@ namespace stereo {
                             float consistency_threshold,
                             int32 max_pyramid_levels,
                             bool  use_sgm=false,
+                            int   collar_size=0,
                             int   blob_filter_area=0) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
@@ -138,7 +139,8 @@ namespace stereo {
       m_corr_timeout(corr_timeout), m_seconds_per_op(seconds_per_op),
       m_consistency_threshold(consistency_threshold),
       m_blob_filter_area(blob_filter_area),
-      m_use_sgm(use_sgm){
+      m_use_sgm(use_sgm),
+      m_collar_size(collar_size){
       
       if (m_use_sgm)
         m_prefilter_mode = PREFILTER_NONE; // SGM works best with no prefilter
@@ -169,7 +171,14 @@ namespace stereo {
 
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
-      vw::rasterize(prerasterize(bbox), dest, bbox);
+    
+      std::cout << "Rasterize called with box: " << bbox << std::endl;
+    
+      BBox2i proc_bbox = bbox;
+      if (m_collar_size > 0)
+        proc_bbox.expand(m_collar_size);
+      //std::cout << "Collared box: " << proc_bbox << std::endl;
+      vw::rasterize(prerasterize(proc_bbox), dest, bbox);
     }
 
 
@@ -199,6 +208,7 @@ namespace stereo {
     int    m_blob_filter_area;
     
     bool m_use_sgm; ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
+    int m_collar_size;
 
   private: // Functions
 

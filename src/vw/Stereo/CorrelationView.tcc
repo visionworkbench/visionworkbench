@@ -584,7 +584,7 @@ prerasterize(BBox2i const& bbox) const {
 
       } // End zone handling
       
-      if (1) { // DEBUG
+      if (false) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
         BBox2i scaled = bbox/2;
         std::ostringstream ostr;
