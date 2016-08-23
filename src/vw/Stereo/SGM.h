@@ -38,7 +38,7 @@ class SemiGlobalMatcher {
 public: // Definitions
 
   // The types are chosen to minimize storage costs
-  typedef int16 DisparityType; ///< Contains the allowable dx, dy range.
+  typedef int   DisparityType; ///< Contains the allowable dx, dy range.
   typedef uint8 CostType;      ///< Used to describe a single disparity cost.
   
   typedef uint16 AccumCostType; ///< Used to accumulate CostType values.
@@ -82,7 +82,7 @@ private: // Variables
     // Derived parameters for convenience
     int m_num_disp_x, m_num_disp_y, m_num_disp;
     
-    size_t m_buffer_step_size;
+    //size_t m_buffer_step_size;
     boost::shared_array<CostType     > m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
     
@@ -91,8 +91,29 @@ private: // Variables
     ImageView<Vector4i> m_disp_bound_image;
     
     /// Lookup table of the adjacent disparities for each disparity
+    /// - For each disparity index, store the disparity indices of the 
+    ///   eight adjacent disparities.
     /// - Handles outer boundaries by repitition.
+    /// - This vector stores a table of size m_num_disp*8.
     std::vector<DisparityType> m_adjacent_disp_lookup;
+
+/* 
+Proposed changes for sparse accum buffer:
+- Each pixel only has space in the buffer to contain all the values 
+  specified in m_disp_bound_image.  Will be either m_num_disp or something
+  potentially much smaller.
+- Entries for each pixel are contiguous.
+- A new data structure is needed to store the starting index in m_accum_buffer
+  for each pixel.
+- Issue: The prior disparity vector may be small, and won't contain all the indices
+         specified in m_adjacent_disp_lookup.  
+       : Proposed solution = Build full size array from sparse?
+                           = Bounds checking in the function?
+       
+*/
+
+    /// For each output pixel, store the starting index in m_cost_buffer/m_accum_buffer
+    ImageView<size_t> m_buffer_starts;
 
 private: // Functions
 
@@ -105,6 +126,19 @@ private: // Functions
   /// Fill in m_disp_bound_image using a half resolution disparity image.
   void populate_disp_bound_image(DisparityImage const* prev_disparity,
                                  int search_buffer);
+
+  /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
+  void allocate_large_buffers();
+  
+  /// Return a bad accumulation value used to fill locations we don't visit
+  AccumCostType get_bad_accum_val() const { return std::numeric_limits<CostType>::max() + m_p2; }
+
+  /// Returns the number of disparities searched for a given pixel.
+  /// - This gets called a lot, may need to speed it up!
+  int get_num_disparities(int col, int row) const {
+    const Vector4i bounds = m_disp_bound_image(col,row);
+    return (bounds[2] - bounds[0] + 1) * (bounds[3] - bounds[1] + 1);
+  }
 
   /// Populates m_cost_buffer with all the disparity costs 
   void compute_disparity_costs(ImageView<uint8> const& left_image,
@@ -129,74 +163,79 @@ private: // Functions
 
   /// Return the index into one of the buffers for a given location
   /// - The data is stored row major interleaved format.
-  size_t get_cost_index(int col, int row, DisparityType disp=0) const {
-      return row*m_buffer_step_size + col*m_num_disp + disp;
-  }
+  //size_t get_cost_index(int col, int row, DisparityType disp=0) const {
+  //    return row*m_buffer_step_size + col*m_num_disp + disp;
+  //}
 
   /// Set provided buffer to the cost value at the selected pixel.
-  void set_cost_vector(int col, int row,
-                       boost::shared_array<AccumCostType> accum_vec) {
-    size_t start_index = get_cost_index(col, row, 0);
-    for (int d=0; d<m_num_disp; ++d)
-      accum_vec[start_index+d] = m_cost_buffer[start_index+d];
-  }
+  //void set_cost_vector(int col, int row,
+  //                     boost::shared_array<AccumCostType> accum_vec) {
+  //  size_t start_index = get_cost_index(col, row, 0);
+  //  for (int d=0; d<m_num_disp; ++d)
+  //    accum_vec[start_index+d] = m_cost_buffer[start_index+d];
+  //}
   
   CostType* get_cost_vector(int col, int row) {
-    size_t start_index = get_cost_index(col, row);
-    return &(m_cost_buffer[start_index]);
+    size_t start_index = m_buffer_starts(col, row);
+    return m_cost_buffer.get() + start_index;
   };
   
-  AccumCostType* get_accum_vector(boost::shared_array<AccumCostType> accum_vec,
-                                  int col, int row) {
-    size_t start_index = get_cost_index(col, row);
-    return &(accum_vec[start_index]);
+  AccumCostType* get_accum_vector(int col, int row) {
+    size_t start_index = m_buffer_starts(col, row);
+    return m_accum_buffer.get() + start_index;
   };
 
 
-  /// Goes across all the viterbi diagrams and extracts out the minimum vector.
-  DisparityImage
-  create_disparity_view( boost::shared_array<AccumCostType> const accumulated_costs );
+  /// Generate the output disparity view from the accumulated costs.
+  DisparityImage create_disparity_view();
 
+/*
   // TODO: Use a lookup table?
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
   void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
     dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
     dx = (disp % m_num_disp_x) + m_min_disp_x;
-  } 
-  
-  /// v1 += v2.
-  void inplace_sum_views( boost::shared_array<AccumCostType>       v1,
-                          boost::shared_array<AccumCostType> const v2) {
-    size_t count = m_num_output_cols * m_num_output_rows * m_num_disp;
-    for (size_t i=0; i<count; ++i)
-      v1[i] = v1[i] + v2[i];
+  }
+*/
+  /// Given the dx and dy positions of a pixel, return the 
+  ///  full size disparity index.
+  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) {
+    return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
   }
 
 
-  /// Get the index if the smallest element in a vector
-  DisparityType find_min_index( const AccumCostType* const vec ) {
-    AccumCostType value = std::numeric_limits<AccumCostType>::max();
+  
+  /// Get the value and index of the smallest element in a vector
+  AccumCostType get_accum_vector_min(int col, int row,
+                                     DisparityType &dx, DisparityType &dy){
+  
+    AccumCostType* vec = get_accum_vector(col, row);
+    //CostType* vec = get_cost_vector(col, row); // DEBUG!!!
+    const int num_disp = get_num_disparities(col, row);
+    
     int min_index = 0;
-    for (int i=0; i<m_num_disp; ++i) {
+    AccumCostType value = std::numeric_limits<AccumCostType>::max();
+    for (int i=0; i<num_disp; ++i) {
       if (vec[i] < value) {
         value = vec[i];
         min_index = i;
       }
     }
-    return min_index;
-  }
-  
-  /// Get the min disparity of an AccumCost vector
-  AccumCostType get_accum_vector_min(const AccumCostType* const vec){
-    AccumCostType value = std::numeric_limits<AccumCostType>::max();
-    for (int i=0; i<m_num_disp; ++i) {
-      if (vec[i] < value)
-        value = vec[i];
-    }
+    
+    // Convert the disparity index to dx and dy
+    const Vector4i bounds = m_disp_bound_image(col,row);
+    int d_width  = bounds[2] - bounds[0] + 1;
+    dy = (min_index / d_width);
+    dx = min_index - (dy*d_width) + bounds[0];
+    dy += bounds[1];
+    
+    //printf("%d, %d, %d -> %d, %d\n", value, min_index, d_width, dx, dy);
+    
     return value;
   }
-
+  
+/*
   // Print out a disparity vector
   template <typename T>
   void print_disparity_vector(T* const vec){
@@ -205,6 +244,7 @@ private: // Functions
       std::cout << vec[i] << " ";
     std::cout << std::endl;
   }
+*/
   
   /// Get the pixel diff along a line at a specified output location.
   int get_path_pixel_diff(ImageView<uint8> const& left_image,
@@ -214,147 +254,23 @@ private: // Functions
                left_image((col-dir_x)-m_min_col, (row-dir_y)-m_min_row));
   }
 
-
-  /// Just copy a cost vector to an accumulated cost vector
-  void copy_cost_vector(CostType     * const cost_ptr,
-                        AccumCostType*       accum_ptr) {
-    for (int d=0; d<m_num_disp; ++d)
-      accum_ptr[d] = cost_ptr[d];
-  }   
-
-  /// Add the contents of a row to the accumulation buffer
-  /// - Used by two_pass_path_accumulation()
-  /// - TODO: Surprisingly slow, speed this up!
-  void update_accum_buffer_row(AccumCostType* row_ptr, int row) {
-    const int NUM_PATHS_IN_PASS = 4;
-    size_t buffer_index = 0;
-    for (int col=0; col<m_num_output_cols; ++col) {
-      for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
-        size_t out_index = get_cost_index(col, row);
-        for (int d=0; d<m_num_disp; ++d) {
-          m_accum_buffer[out_index] += row_ptr[buffer_index];
-          ++out_index;
-          ++buffer_index;
-        }
-      }
-    }
-  } // End update_accu_buufer_row
-
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.
   /// - For each disparity in the current pixel, add that disparity's cost with the "cheapest"
   ///   prior pixel disparity.
   /// - Returns the minimum disparity score
   void evaluate_path( int col, int row, int col_p, int row_p,
-                      AccumCostType* const prior, // Accumulated costs leading up to this pixel
+                      AccumCostType* const prior,      // Accumulated costs leading up to this pixel, truncated
+                      AccumCostType*       full_prior_buffer, // Buffer to store all accumulated costs
                       CostType     * const local, // The disparity costs of the current pixel
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // This variable is the magnitude of intensity change to this pixel
 
   /// Perform all eight path accumulations in two passes through the image
-  void two_pass_path_accumulation(ImageView<uint8> const& left_image);
-
-  /// Compute the accumulated costs in a pixel direction from the local costs at each pixel.
-  /// - TODO: This implementation seems inefficient!
-  template <int DIRX, int DIRY>
-  void iterate_direction( ImageView<uint8   > const& left_image,
-                          boost::shared_array<AccumCostType>      & accumulated_costs ) {
+  void two_trip_path_accumulation(ImageView<uint8> const& left_image);
 
 
-    // Clear the accumulation values before we write to them.
-    size_t num_cost_elements = m_num_output_cols*m_num_output_rows*m_num_disp;
-    for (size_t i=0; i<num_cost_elements; ++i)
-      accumulated_costs[i] = 0;
-
-
-    // Walk along the edges in a clockwise fashion
-    if ( DIRX > 0 ) {
-      // LEFT MOST EDGE
-      // Init the edge pixels with just the cost (no accumulation yet)
-      for ( int32 j = 0; j < m_num_output_rows; j++ ) {
-        set_cost_vector(0, j, accumulated_costs);
-      }
-      // Loop across to the opposite edge
-      for ( int32 i = 1; i < m_num_output_cols; i++ ) {
-        // Loop through the pixels in this column, limiting the range according
-        //  to the iteration direction progress.
-        int32 jstart = std::max( 0,      0      + DIRY * i );
-        int32 jstop  = std::min( m_num_output_rows, m_num_output_rows + DIRY * i );
-        for ( int32 j = jstart; j < jstop; j++ ) {
-        
-          bool debug = false;//((i >= 195) && (i <= 196) && (j==203));
-        
-          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( i, j, i-DIRX,j-DIRY,
-                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
-                         get_cost_vector(i,j),
-                         get_accum_vector(accumulated_costs, i,j), 
-                         pixel_diff, debug );         // Current pixel
-        }
-      }
-    } 
-    if ( DIRY > 0 ) {
-      // TOP MOST EDGE
-      // Process every pixel along this edge only if DIRX == 0. Otherwise skip the top left most pixel
-      for ( int32 i = (DIRX <= 0 ? 0 : 1 ); i < m_num_output_cols; i++ ) {
-        set_cost_vector(i, 0, accumulated_costs);
-      }
-      for ( int32 j = 1; j < m_num_output_rows; j++ ) {
-        int32 istart = std::max( (DIRX <= 0 ? 0 : 1),
-                                 (DIRX <= 0 ? 0 : 1) + DIRX * j );
-        int32 istop  = std::min( m_num_output_cols, m_num_output_cols + DIRX * j );
-        for ( int32 i = istart; i < istop; i++ ) {
-          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( i, j, i-DIRX,j-DIRY,
-                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
-                         get_cost_vector(i,j), 
-                         get_accum_vector(accumulated_costs, i,j),
-                         pixel_diff );         // Current pixel
-        }
-      }
-    } 
-    if ( DIRX < 0 ) {
-      // RIGHT MOST EDGE
-      // Process every pixel along this edge only if DIRY == 0. Otherwise skip the top right most pixel
-      for ( int32 j = (DIRY <= 0 ? 0 : 1); j < m_num_output_rows; j++ ) {
-        set_cost_vector(m_num_output_cols-1, j, accumulated_costs);
-      }
-      for ( int32 i = m_num_output_cols-2; i >= 0; i-- ) {
-        int32 jstart = std::max( (DIRY <= 0 ? 0 : 1),
-                                 (DIRY <= 0 ? 0 : 1) - DIRY * (i - m_num_output_cols + 1) );
-        int32 jstop  = std::min( m_num_output_rows, m_num_output_rows - DIRY * (i - m_num_output_cols + 1) );
-        for ( int32 j = jstart; j < jstop; j++ ) {
-          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( i, j, i-DIRX,j-DIRY,
-                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
-                         get_cost_vector(i,j), 
-                         get_accum_vector(accumulated_costs, i,j),
-                         pixel_diff );         // Current pixel
-        }
-      }
-    } 
-    if ( DIRY < 0 ) {
-      // BOTTOM MOST EDGE
-      // Process every pixel along this edge only if DIRX == 0. Otherwise skip the bottom left and bottom right pixel
-      for ( int32 i = (DIRX <= 0 ? 0 : 1);
-            i < (DIRX >= 0 ? m_num_output_cols : m_num_output_cols-1); i++ ) {
-        set_cost_vector(i,m_num_output_rows-1, accumulated_costs);
-      }
-      for ( int32 j = m_num_output_rows-2; j >= 0; j-- ) {
-        int32 istart = std::max( (DIRX <= 0 ? 0 : 1),
-                                 (DIRX <= 0 ? 0 : 1) - DIRX * (j - m_num_output_rows + 1) );
-        int32 istop  = std::min( (DIRX >= 0 ? m_num_output_cols : m_num_output_cols - 1),
-                                 (DIRX >= 0 ? m_num_output_cols : m_num_output_cols - 1) - DIRX * (j - m_num_output_rows + 1) );
-        for ( int32 i = istart; i < istop; i++ ) {
-          int pixel_diff = get_path_pixel_diff(left_image, i, j, DIRX, DIRY);
-          evaluate_path( i, j, i-DIRX,j-DIRY,
-                         get_accum_vector(accumulated_costs, i-DIRX,j-DIRY), // Previous pixel
-                         get_cost_vector(i,j), 
-                         get_accum_vector(accumulated_costs, i,j),
-                         pixel_diff );         // Current pixel
-        }
-      }
-    }
-  } // End function iterate_direction
+  /// Allow this helper class to access private members
+  friend class MultiAccumRowBuffer;
 
 }; // end class SemiGlobalMatcher
 
@@ -387,13 +303,15 @@ template <class ImageT1, class ImageT2>
                      left_region.max().y() <= left_in.impl().rows(),
                      ArgumentErr() << "best_of_search_convolution: Region not inside left image." );
 
+    Vector2i search_volume_inclusive = search_volume - Vector2i(1,1);
+
     // Rasterize input so that we can do a lot of processing on it.
     BBox2i right_region = left_region;
-    right_region.max() += search_volume - Vector2i(1,1); // Why the -1?
+    right_region.max() += search_volume_inclusive;
     
     std::cout << "calc_disparity_sgm: left  region  = " << left_region   << std::endl;
     std::cout << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
-    std::cout << "calc_disparity_sgm: search_volume = " << search_volume << std::endl;
+    std::cout << "calc_disparity_sgm: search_volume = " << search_volume_inclusive << std::endl;
     
     ImageView<typename ImageT1::pixel_type> left_crop ( crop(left_in.impl(),  left_region) );
     ImageView<typename ImageT2::pixel_type> right_crop( crop(right_in.impl(), right_region) );
@@ -410,7 +328,7 @@ template <class ImageT1, class ImageT2>
     
     // TODO: Support different cost types?
     SemiGlobalMatcher matcher;
-    matcher.set_parameters(0, 0, search_volume[0], search_volume[1], kernel_size[0]);
+    matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
     return matcher.semi_global_matching_func(left, right, prev_disparity);
     
   } // End function calc_disparity

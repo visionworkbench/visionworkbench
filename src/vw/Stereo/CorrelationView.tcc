@@ -584,7 +584,7 @@ prerasterize(BBox2i const& bbox) const {
 
       } // End zone handling
       
-      if (false) { // DEBUG
+      if (true) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
         BBox2i scaled = bbox/2;
         std::ostringstream ostr;
@@ -605,7 +605,7 @@ prerasterize(BBox2i const& bbox) const {
       } // End DEBUG
       
       //if (level == 1)
-      //  vw_throw( NoImplErr() << "DEBUG" );
+      //vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop
 
