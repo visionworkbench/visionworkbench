@@ -89,20 +89,41 @@ namespace camera {
     std::vector<int> get_indices_of_largest_weights(double t) const;
   };
   
-  /// Performs Lagrangian interpolation between data points.
-  class LagrangianInterpolation {
+  /// Performs Lagrangian interpolation between data points with flexible times.
+  /// - If it becomes useful this can be combined with the fixed interval Lagrangian
+  ///   class using a boolean check.
+  class LagrangianInterpolationVarTime {
     std::vector<Vector3> m_samples;
     std::vector<double > m_times;
     int m_radius;
   public:
     /// Construct with a set of data samples and times.
     /// - The radius is the number of points before and after time t used for interpolation.
-    LagrangianInterpolation(std::vector<Vector3> const& samples, 
-                            std::vector<double > const& times, int radius=4);
+    LagrangianInterpolationVarTime(std::vector<Vector3> const& samples, 
+                                   std::vector<double > const& times, int radius=4);
   
     /// Compute the interpolated value at a given time t.
     Vector3 operator()(double t) const;
   };
+
+  /// Performs Lagrangian interpolation between data points with constant time intervals.
+  class LagrangianInterpolation {
+    std::vector<Vector3> m_samples;
+    double m_start_time, m_time_delta, m_last_time;
+    int m_radius;
+    std::vector<double> m_denoms;
+    mutable std::vector<double> m_times_temp;
+  public:
+    /// Construct with a set of data samples and times.
+    /// - The radius is the number of points before and after time t used for interpolation.
+    LagrangianInterpolation(std::vector<Vector3> const& samples, 
+                            double start_time, double time_delta, double last_time,
+                            int radius=4);
+  
+    /// Compute the interpolated value at a given time t.
+    Vector3 operator()(double t) const;
+  };
+
 
   /// Interpolation between a series of positions incorporating accelleration information.
   class PiecewiseAPositionInterpolation {

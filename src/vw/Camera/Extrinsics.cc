@@ -172,24 +172,19 @@ std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_we
 }
 
 //======================================================================
-// LagrangianInterpolation class
+// LagrangianInterpolationVarTime class
 
-LagrangianInterpolation::LagrangianInterpolation
+LagrangianInterpolationVarTime::LagrangianInterpolationVarTime
 (std::vector<Vector3> const& samples, std::vector<double> const& times, int radius):
   m_samples(samples), m_times(times), m_radius(radius) {
 
-  VW_ASSERT(m_samples.size() > 1,
-	    ArgumentErr() << "Expecting at least two samples.\n" );
+  VW_ASSERT(m_samples.size() > 1, ArgumentErr() << "Expecting at least two samples.\n" );
   VW_ASSERT(m_samples.size() == m_times.size(),
 	    ArgumentErr() << "The number of samples and times must be equal.\n" );
-    VW_ASSERT(m_radius > 1,
-	    ArgumentErr() << "Radius must be > 0.\n" );
+  VW_ASSERT(m_radius > 1, ArgumentErr() << "Radius must be > 0.\n" );
 }
 
-Vector3 LagrangianInterpolation::operator()( double t ) const {
-
-  // This is the number of points before and after the sample that will be used
-  //  for interpolation.
+Vector3 LagrangianInterpolationVarTime::operator()( double t ) const {
 
   // Find where t lies in our list of samples
   const int num_samples = static_cast<int>(m_times.size());
@@ -203,41 +198,101 @@ Vector3 LagrangianInterpolation::operator()( double t ) const {
   
   // Check that we have enough bordering points to interpolate
   int start = next - m_radius;
-  int end   = next + m_radius;
+  int end   = next + m_radius; // Note: The last index we use is end-1!
   VW_ASSERT((start >= 0) && (end <= num_samples),
 	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n" );
     
   // Perform the interpolation
   Vector3 ans;
-  double  num_part=0, denominator=0;
+  
   for (int j=start; j<end; ++j) {
+    double  num_part=1.0, denominator=1.0;
     // Numerator
-    bool first = true;
     for (int i=start; i<end; ++i){
       if (i == j)
         continue;
-      if (first) {
-        num_part = (t - m_times[i]);
-        first = false;
-      }
-      else  
-        num_part *= (t - m_times[i]);
+      num_part *= (t - m_times[i]);
     }
 
     // Denominator
-    first = true;
     for (int i=start; i<end; ++i){
       if (i == j)
         continue;
-      if (first) {
-        denominator = (m_times[j] - m_times[i]);
-        first = false;
-      }
-      else  
-        denominator *= (m_times[j] - m_times[i]);
+      denominator *= (m_times[j] - m_times[i]);
     }
     
     ans += m_samples[j] * (num_part/denominator);
+  }
+
+  return ans;
+}
+
+//======================================================================
+// LagrangianInterpolation class
+
+LagrangianInterpolation::LagrangianInterpolation
+(std::vector<Vector3> const& samples, double start_time, double time_delta, double last_time, int radius):
+  m_samples(samples), m_start_time(start_time), m_time_delta(time_delta), 
+  m_last_time(last_time), m_radius(radius) {
+
+  // Perform a bunch of checks on construction
+  VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n" );
+  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"             );
+  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"         );
+  VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n" );
+  
+  size_t num_times = round((m_last_time - m_start_time) / m_time_delta)+1;
+  VW_ASSERT(m_samples.size() == num_times,
+	    ArgumentErr() << "The number of samples and times must be equal.\n" );
+	
+	// We can precalculate the denominator of the equation here
+	//  since the time intervals between the data points are constant.
+	const int num_points = 2*radius; // Number of points used in each calculation
+	m_denoms.resize(num_points);
+	m_times_temp.resize(num_points);
+
+  for (int j=0; j<num_points; ++j) {
+
+    double denominator = 1.0;
+    for (int i=0; i<num_points; ++i){
+      if (i == j)
+        continue;
+      denominator *= (j-i)*m_time_delta;
+    }
+    m_denoms[j] = denominator;
+  } // End outer loop
+}
+
+Vector3 LagrangianInterpolation::operator()( double t ) const {
+
+  // Get the bounding indices
+  int    low_i    = static_cast<int>(floor( (t - m_start_time) / m_time_delta ));
+  int    high_i   = low_i + 1;
+
+  // Check that we have enough bordering points to interpolate
+  int start = low_i  - (m_radius-1);
+  int end   = high_i + (m_radius-1);
+  VW_ASSERT((start >= 0) && (end < static_cast<int>(m_samples.size())),
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n" );
+  
+  // Compute the times of the points being used for interpolation
+  m_times_temp[0] = m_start_time + start*m_time_delta;
+  for (size_t k=1; k<m_times_temp.size(); ++k)
+    m_times_temp[k] = m_times_temp[k-1] + m_time_delta;
+    
+  // Perform the interpolation
+  Vector3 ans(0,0,0);
+  for (int j=start; j<=end; ++j) {
+  
+    double numerator = 1.0;
+    for (int i=start; i<=end; ++i){
+      if (i == j)
+        continue;
+      numerator *= (t - m_times_temp[i-start]);
+    }
+
+    double denominator = m_denoms[j-start];
+    ans += m_samples[j] * (numerator/denominator);
   }
 
   return ans;

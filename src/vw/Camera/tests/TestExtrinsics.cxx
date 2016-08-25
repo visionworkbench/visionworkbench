@@ -145,6 +145,7 @@ TEST( Extrinsics, LagrangianInterpolation ) {
 
   // Create a simple set of input data
   const size_t NUM_POINTS = 20;
+  const double dt = 0.1;
   std::vector<Vector3> points(NUM_POINTS);
   std::vector<double > times (NUM_POINTS);
   for (size_t i=0; i<NUM_POINTS; ++i){
@@ -153,12 +154,18 @@ TEST( Extrinsics, LagrangianInterpolation ) {
     points[i] = test_poly(d);
   }
   
-  LagrangianInterpolation functor(points, times);
+  // Set up the constant time and variable time functors
+  LagrangianInterpolationVarTime functorA(points, times);
+  LagrangianInterpolation        functorB(points, 0, dt, dt*(NUM_POINTS-1));
 
   const double EPS = 1e-6;
-  EXPECT_VECTOR_NEAR(test_poly(9.0 ), functor(0.90), EPS);
-  EXPECT_VECTOR_NEAR(test_poly(11.5), functor(1.15), EPS);
-  EXPECT_VECTOR_NEAR(test_poly(12.2), functor(1.22), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(9.0 ), functorA(0.90), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(11.5), functorA(1.15), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(12.2), functorA(1.22), EPS);
+  
+  EXPECT_VECTOR_NEAR(test_poly(9.0 ), functorB(0.90), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(11.5), functorB(1.15), EPS);
+  EXPECT_VECTOR_NEAR(test_poly(12.2), functorB(1.22), EPS);
 }
 
 
