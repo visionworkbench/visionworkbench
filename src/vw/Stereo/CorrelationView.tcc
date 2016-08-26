@@ -385,6 +385,7 @@ prerasterize(BBox2i const& bbox) const {
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
                            m_kernel_size,
+                           &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
 
@@ -408,6 +409,7 @@ prerasterize(BBox2i const& bbox) const {
                            right_reverse_region - right_reverse_region.min(),
                            zone.disparity_range().size(), 
                            m_kernel_size,
+                           &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
           // Negate the disparity values to make the cross-consistency check work.
           rl_result *= -1;
@@ -584,7 +586,7 @@ prerasterize(BBox2i const& bbox) const {
 
       } // End zone handling
       
-      if (true) { // DEBUG
+      if (m_write_debug_images) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
         BBox2i scaled = bbox/2;
         std::ostringstream ostr;

@@ -130,7 +130,8 @@ namespace stereo {
                             int32 max_pyramid_levels,
                             bool  use_sgm=false,
                             int   collar_size=0,
-                            int   blob_filter_area=0) :
+                            int   blob_filter_area=0,
+                            bool  write_debug_images = false) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
       m_prefilter_mode(prefilter_mode), m_prefilter_width(prefilter_width),
@@ -140,7 +141,8 @@ namespace stereo {
       m_consistency_threshold(consistency_threshold),
       m_blob_filter_area(blob_filter_area),
       m_use_sgm(use_sgm),
-      m_collar_size(collar_size){
+      m_collar_size(collar_size),
+      m_write_debug_images(write_debug_images){
       
       if (m_use_sgm)
         m_prefilter_mode = PREFILTER_NONE; // SGM works best with no prefilter
@@ -177,7 +179,7 @@ namespace stereo {
       BBox2i proc_bbox = bbox;
       if (m_collar_size > 0)
         proc_bbox.expand(m_collar_size);
-      //std::cout << "Collared box: " << proc_bbox << std::endl;
+      std::cout << "Collared box: " << proc_bbox << std::endl;
       vw::rasterize(prerasterize(proc_bbox), dest, bbox);
     }
 
@@ -209,6 +211,8 @@ namespace stereo {
     
     bool m_use_sgm; ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
     int m_collar_size;
+
+    bool m_write_debug_images; ///< If true, write out a bunch of intermediate images.
 
   private: // Functions
 
@@ -278,7 +282,9 @@ namespace stereo {
                      float consistency_threshold,
                      int32 max_pyramid_levels,
                      bool  use_sgm=false,
-                     int   blob_filter_area=0) {
+                     int   collar_size=0,
+                     int   blob_filter_area=0,
+                     bool  write_debug_images=false) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;
     return result_type( left.impl(),      right.impl(), 
                         left_mask.impl(), right_mask.impl(),
@@ -287,7 +293,8 @@ namespace stereo {
                         kernel_size, cost_type,
                         corr_timeout, seconds_per_op,
                         consistency_threshold, max_pyramid_levels,
-                        use_sgm, blob_filter_area );
+                        use_sgm, collar_size, blob_filter_area,
+                        write_debug_images);
   }
 
 }} // namespace vw::stereo

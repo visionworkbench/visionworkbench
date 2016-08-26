@@ -1,13 +1,15 @@
 
 #include <vw/Stereo/SGM.h>
 #include <vw/Core/Debugging.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/PixelMask.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
-/*
+
 #if 1 //defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
 #endif
-*/
+
 namespace vw {
 
 namespace stereo {
@@ -121,10 +123,24 @@ void SemiGlobalMatcher::populate_constant_disp_bound_image() {
   std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector); 
 }
 
-void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_disparity,
+bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
+                                                  ImageView<uint8> const* right_image_mask,
+                                                  DisparityImage const* prev_disparity,
                                                   int search_buffer) {
 
   std::cout << "m_disp_bound_image" << bounding_box(m_disp_bound_image) << std::endl;
+
+  // TODO: Check or automatically compute the left valid mask size!
+  bool left_mask_valid = false;
+  if (left_image_mask) {
+    std::cout << "left mask image size:" << bounding_box(*left_image_mask) << std::endl;
+    
+    if ( (left_image_mask->cols() == m_disp_bound_image.cols()) && 
+         (left_image_mask->rows() == m_disp_bound_image.rows())   )
+      left_mask_valid = true;
+    else
+      vw_throw( LogicErr() << "Left mask size does not match the output size!\n" );
+  }
 
   const int SCALE_UP = 2;
 
@@ -133,29 +149,43 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
   const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 1);
   const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 1);
 
-  double area = 0, percent_trusted = 0;
+  double area = 0, percent_trusted = 0, percent_masked = 0;
 
   int r_in, c_in;
+  int dx_scaled, dy_scaled;
   PixelMask<Vector2i> input_disp;
   Vector4i bounds;
   for (int r=0; r<m_disp_bound_image.rows(); ++r) {
     r_in = r / SCALE_UP;
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
-      c_in = c / SCALE_UP;
-      if ( (c_in >= prev_disparity->cols()) || 
-           (r_in >= prev_disparity->rows())   ) {
-        vw_throw( LogicErr() << "Size error!\n" );
-      }
-      input_disp = prev_disparity->operator()(c_in,r_in);
-      
-      // Disparity values on the edge of our 2D search range are not trustworthy!
-      int dx_scaled = input_disp[0] * SCALE_UP; 
-      int dy_scaled = input_disp[1] * SCALE_UP;
-      
-      bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
-                     || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
 
-      bool good_disparity = (is_valid(input_disp) && !on_edge);
+      if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
+        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1);
+        ++percent_masked;
+        continue;
+      }
+
+      // If a previous disparity was provided, see if we have a valid disparity 
+      // estimate for this pixel.
+      bool good_disparity = false;
+      if (prev_disparity) {
+      
+        c_in = c / SCALE_UP;
+        if ( (c_in >= prev_disparity->cols()) || 
+             (r_in >= prev_disparity->rows())   ) {
+          vw_throw( LogicErr() << "Size error!\n" );
+        }
+        input_disp = prev_disparity->operator()(c_in,r_in);
+        
+        // Disparity values on the edge of our 2D search range are not trustworthy!
+        dx_scaled = input_disp[0] * SCALE_UP; 
+        dy_scaled = input_disp[1] * SCALE_UP;
+        
+        bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
+                       || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
+
+        good_disparity = (is_valid(input_disp) && !on_edge);
+      }
       
       if (good_disparity) {
         // We are more confident in the prior disparity, search nearby.
@@ -184,10 +214,19 @@ void SemiGlobalMatcher::populate_disp_bound_image(DisparityImage const* prev_dis
   double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
   area            /= num_pixels;
   percent_trusted /= num_pixels;
+  percent_masked  /= num_pixels;
+  
   double max_search_area = (m_max_disp_x-m_min_disp_x+1)*(m_max_disp_y-m_min_disp_y+1);
-  std::cout << "Max pixel search area = " << max_search_area << std::endl;
+  std::cout << "Max pixel search area  = " << max_search_area << std::endl;
   std::cout << "Mean pixel search area = " << area << std::endl;
-  std::cout << "Percent trusted prior disparities = " << percent_trusted << std::endl;  
+  std::cout << "Percent trusted prior disparities = " << percent_trusted << std::endl;
+  std::cout << "Percent masked pixels  = " << percent_masked << std::endl;
+  
+  // Return false if the image cannot be processed
+  if ((area <= 0) || (percent_masked >= 100))
+    return false;
+  return true;
+
 }
 
 
@@ -297,7 +336,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   if (p2_mod < m_p1)
     p2_mod = m_p1;
 
-  int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
+  //int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
   int num_disparities_p = get_num_disparities(col_p, row_p);
 
   //// Output vector must be pre-initialized to default value!
@@ -306,14 +345,9 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
   Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
 
-  // Get the lowest disparity from the prior pixel (ignoring unsearched disparities)  
-  AccumCostType min_prior = prior[0];
-  for (DisparityType i=1; i<num_disparities_p; ++i) {
-    if (prior[i] < min_prior) {
-      min_prior  = prior[i];
-    }
-  }
-  AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
+  // Init the min prior in case the previous pixel is invalid.
+  AccumCostType BAD_VAL = get_bad_accum_val();
+  AccumCostType min_prior = BAD_VAL;
 
   // Insert the valid disparity scores into full_prior buffer so they are
   //  easy to access quickly within the pixel loop below.
@@ -325,11 +359,17 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
 
     for (int dx=pixel_disp_bounds_p[0]; dx<=pixel_disp_bounds_p[2]; ++dx) {
     
+      // Get the min prior while we are at it.
+      if (prior[d] < min_prior) {
+        min_prior  = prior[d];
+      }
+    
       full_prior_buffer[full_index] = prior[d];
       ++full_index;
       ++d;
     }
   }
+  AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
 /*
   std::cout << "min_prior = " <<  min_prior << std::endl;
   
@@ -364,6 +404,32 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       const int LOOKUP_TABLE_WIDTH = 8;
       const int lookup_index = full_d*LOOKUP_TABLE_WIDTH;
 
+
+//#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if false
+
+      // TODO: This code is slower than the normal method!  Need to investigate more carefully if
+      //       it is going to be used.
+      
+      // Load the prior values to compare into a buffer
+      uint16 pre_sse_buff[8] __attribute__ ((aligned (16)));
+      
+      pre_sse_buff[0] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index  ]];
+      pre_sse_buff[1] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+1]];
+      pre_sse_buff[2] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+2]];
+      pre_sse_buff[3] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+3]];
+      pre_sse_buff[4] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+4]];
+      pre_sse_buff[5] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]];
+      pre_sse_buff[6] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]];
+      pre_sse_buff[7] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]];
+      __m128i reg_a = _mm_load_si128( (__m128i*) pre_sse_buff );
+      __m128i reg_b = _mm_minpos_epu16(reg_a);
+      
+      _mm_store_si128( (__m128i*) pre_sse_buff, reg_b );
+      AccumCostType lowest_adjacent_cost = pre_sse_buff[0];
+#else
+
+      // TODO: This is the slowest part of the algorithm!
       // Note that the lookup table indexes into a full size buffer of disparities, not the compressed
       //  buffers that are stored for each pixel.  This allows us to use a single lookup table for every pixel
       //  and avoid any bounds checking logic inside this loop.
@@ -375,7 +441,9 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]]);
-           
+
+#endif
+
       // Now add the adjacent penalty cost and compare to the local cost
       lowest_adjacent_cost += m_p1;
       lowest_combined_cost = std::min(lowest_combined_cost, lowest_adjacent_cost);
@@ -396,6 +464,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
         for (int i=0; i<8; ++i)
           std::cout << i << " = " << m_adjacent_disp_lookup[lookup_index+i]<< " = "  
                     << full_prior_buffer[m_adjacent_disp_lookup[lookup_index+i]]<< std::endl;
+        std::cout << "lowest_adjacent_cost = " << lowest_adjacent_cost << std::endl;
         std::cout << "min_prev_disparity_cost = " << min_prev_disparity_cost << std::endl;
       }
 */
@@ -411,7 +480,6 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   std::cout << std::endl;
 */
   // Remove the valid disparity scores from full_prior buffer.
-  AccumCostType BAD_VAL = get_bad_accum_val();
   for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
 
     // Get initial fill linear storage index for this dy row
@@ -439,9 +507,17 @@ SemiGlobalMatcher::create_disparity_view() {
   for ( int j = 0; j < m_num_output_rows; j++ ) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
       
-      get_accum_vector_min(i, j, dx, dy);
+      int num_disp = get_num_disparities(i, j);
+      if (num_disp > 0) {
+           
+        get_accum_vector_min(i, j, dx, dy);
+        disparity(i,j) = DisparityImage::pixel_type(dx, dy);
+        
+      } else { // Pixels with no search area were never valid.
+        disparity(i,j) = DisparityImage::pixel_type();
+        invalidate(disparity(i,j));
+      }
 
-      disparity(i,j) = DisparityImage::pixel_type(dx, dy);      
       /*
       if ((i >= 15) && (i <= 15) && (j==40)) {
         printf("ACC costs (%d,%d): %d, %d\n", i, j, dx, dy);
@@ -953,6 +1029,8 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image,
                                               ImageView<uint8> const& right_image,
+                                              ImageView<uint8> const* left_image_mask,
+                                              ImageView<uint8> const* right_image_mask,
                                               DisparityImage const* prev_disparity,
                                               int search_buffer) {
                                               
@@ -992,10 +1070,15 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   // By default the search bounds are the same for each image,
   //  but set them from the prior disparity image if the user passed it in.
   populate_constant_disp_bound_image();
-  if (prev_disparity) {
-    std::cout << "Updating bound image from previous disparity.\n";
-    populate_disp_bound_image(prev_disparity, search_buffer);
+  
+  std::cout << "Updating bound image from previous disparity.\n";
+  if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity, search_buffer)) {
+    std::cout << "No valid pixels found in SGM input!.\n";
+    // If the inputs are invalid, return a default disparity image.
+    DisparityImage disparity( m_num_output_cols, m_num_output_rows );
+    return invalidate_mask(disparity);
   }
+
 
   // ==== Allocate the large amount of memory needed  ====
   allocate_large_buffers();

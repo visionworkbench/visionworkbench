@@ -46,6 +46,7 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::stereo;
 
+
 int main( int argc, char *argv[] ) {
   //try {
 
@@ -61,6 +62,7 @@ int main( int argc, char *argv[] ) {
     int max_pyramid_levels;
     int   correlator_type;
     bool  found_alignment = false;
+    int blob_filter_area;
     Matrix3x3 alignment;
 
     po::options_description desc("Options");
@@ -78,13 +80,16 @@ int main( int argc, char *argv[] ) {
       ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
-      ("threads",   po::value(&nThreads)->default_value(0),     "Manually specify the number of threads")
-      ("tile-size",   po::value(&tile_size)->default_value(0),     "Manually specify the tile size")
-      ("collar-size",   po::value(&collar_size)->default_value(0),     "Specify a collar size size")
-      ("max-pyramid-levels",   po::value(&max_pyramid_levels)->default_value(5),     
+      ("blob-filter-area",   po::value(&blob_filter_area)->default_value(0),     "Filter blobs of this size.")
+      ("threads",            po::value(&nThreads)->default_value(0),    "Manually specify the number of threads")
+      ("tile-size",          po::value(&tile_size)->default_value(0),   "Manually specify the tile size")
+      ("collar-size",        po::value(&collar_size)->default_value(0), "Specify a collar size size")
+      ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),     
         "Limit the maximum number of pyramid levels")
       ("pyramid", "Use the pyramid based correlator")
+      ("mask-zero", "Mask out zero valued pixels")
       ("sgm", "Use the SGM stereo algorithm.")
+      ("debug", "Write out debugging images")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -138,6 +143,7 @@ int main( int argc, char *argv[] ) {
       found_alignment = true;
     }
 
+    // Load input images
     DiskImageView<PixelGray<float> > left_disk_image (left_file_name );
     DiskImageView<PixelGray<float> > right_disk_image(right_file_name );
     int cols = std::min(left_disk_image.cols(),right_disk_image.cols());
@@ -145,6 +151,15 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelGray<float> > left  = edge_extend(left_disk_image, 0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
+    // Set up masks
+    ImageView<uint8> left_mask  = constant_view( uint8(255), left );
+    ImageView<uint8> right_mask = constant_view( uint8(255), right);
+    if (vm.count("mask-zero")) {
+      left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  0)), 0);
+      right_mask = apply_mask(copy_mask(right_mask, create_mask(right, 0)), 0);
+    }
+
+    bool write_debug_images = (vm.count("debug"));
 
     stereo::CostFunctionType corr_type = ABSOLUTE_DIFFERENCE;
     if (correlator_type == 1)
@@ -162,14 +177,16 @@ int main( int argc, char *argv[] ) {
     if (vm.count("pyramid")) {
       std::cout << "Correlate max search range = " << search_range << std::endl;
       disparity_map =
-        stereo::pyramid_correlate( left, right,
-                                   constant_view( uint8(255), left  ), // Use all-true masks
-                                   constant_view( uint8(255), right ),
+        stereo::pyramid_correlate( left,      right,
+                                   left_mask, right_mask,
                                    //stereo::PREFILTER_LOG, log,
                                    stereo::PREFILTER_NONE, log,
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
-                                   lrthresh, max_pyramid_levels, use_sgm, collar_size );
+                                   lrthresh, max_pyramid_levels, 
+                                   use_sgm, collar_size,
+                                   blob_filter_area,
+                                   write_debug_images);
     } else {
       disparity_map =
         stereo::correlate( left, right,

@@ -61,6 +61,8 @@ public: // Functions
   DisparityImage
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
+                             ImageView<uint8> const* left_image_mask,
+                             ImageView<uint8> const* right_image_mask,
                              DisparityImage const* prev_disparity=0,
                              int search_buffer = 2);
 
@@ -123,8 +125,14 @@ private: // Functions
   /// Fill in m_disp_bound_image using image-wide contstants
   void populate_constant_disp_bound_image();
 
-  /// Fill in m_disp_bound_image using a half resolution disparity image.
-  void populate_disp_bound_image(DisparityImage const* prev_disparity,
+  /// Fill in m_disp_bound_image using some image information.
+  /// - Returns false if there is no valid image data.
+  /// - The left and right image masks contain a nonzero value if the pixel is valid.
+  ///   No search is performed at masked pixels.
+  /// - prev_disparity is a half resolution disparity image.
+  bool populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
+                                 ImageView<uint8> const* right_image_mask,
+                                 DisparityImage const* prev_disparity,
                                  int search_buffer);
 
   /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
@@ -279,15 +287,17 @@ private: // Functions
 /// - Merge with the function in Correlation.h!
 /// - This function only searches positive disparities. The input images need to be
 ///   already cropped so that this makes sense.
+/// - This function could be made more flexible by accepting other varieties of mask images!
 template <class ImageT1, class ImageT2>
   ImageView<PixelMask<Vector2i> >
-  calc_disparity_sgm(//CostFunctionType cost_type,
-                 ImageViewBase<ImageT1> const& left_in,
-                 ImageViewBase<ImageT2> const& right_in,
-                 BBox2i                 const& left_region,   // Valid region in the left image
-                 Vector2i               const& search_volume, // Max disparity to search in right image
-                 Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
-                 SemiGlobalMatcher::DisparityImage  const* prev_disparity=0){ 
+  calc_disparity_sgm(ImageViewBase<ImageT1> const& left_in,
+                     ImageViewBase<ImageT2> const& right_in,
+                     BBox2i                 const& left_region,   // Valid region in the left image
+                     Vector2i               const& search_volume, // Max disparity to search in right image
+                     Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                     ImageView<uint8>       const* left_mask_ptr=0,  
+                     ImageView<uint8>       const* right_mask_ptr=0,
+                     SemiGlobalMatcher::DisparityImage  const* prev_disparity=0){ 
 
     
     // Sanity check the input:
@@ -329,7 +339,7 @@ template <class ImageT1, class ImageT2>
     // TODO: Support different cost types?
     SemiGlobalMatcher matcher;
     matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right, prev_disparity);
+    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity
 
