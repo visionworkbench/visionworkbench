@@ -47,6 +47,16 @@ public: // Definitions
 
 public: // Functions
 
+  SemiGlobalMatcher() {}
+
+  /// Set set_parameters for details
+  SemiGlobalMatcher(int min_disp_x, int min_disp_y,
+                    int max_disp_x, int max_disp_y,
+                    int kernel_size=5,
+                    uint16 p1=0, uint16 p2=0) {
+    set_parameters(min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
+  }
+
   /// Set the parameters to be used for future SGM calls
   /// - Parameters that are not provided will be set to the best known default.
   /// - If kernel_size is 3 or 5, a census transform will be used (reccomended).
@@ -258,8 +268,9 @@ private: // Functions
   int get_path_pixel_diff(ImageView<uint8> const& left_image,
                           int col, int row, int dir_x, int dir_y) const {
     // Take the offset between the output location and the input pixel coordinates.
-    return abs(left_image(col-m_min_col,         row-m_min_row) - 
-               left_image((col-dir_x)-m_min_col, (row-dir_y)-m_min_row));
+    int a = left_image(col        +m_min_col, row        +m_min_row);
+    int b = left_image((col-dir_x)+m_min_col, (row-dir_y)+m_min_row);
+    return abs(a - b);
   }
 
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.

@@ -78,8 +78,8 @@ size_t hamming_distance(unsigned int a, unsigned int b) {
 //=========================================================================
 
 void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
-                                      int max_disp_x, int max_disp_y,
-                                      int kernel_size, uint16 p1, uint16 p2) {
+                                       int max_disp_x, int max_disp_y,
+                                       int kernel_size, uint16 p1, uint16 p2) {
   m_min_disp_x  = min_disp_x;
   m_min_disp_y  = min_disp_y;
   m_max_disp_x  = max_disp_x;
@@ -131,15 +131,24 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   std::cout << "m_disp_bound_image" << bounding_box(m_disp_bound_image) << std::endl;
 
   // TODO: Check or automatically compute the left valid mask size!
-  bool left_mask_valid = false;
+  bool left_mask_valid = false, right_mask_valid = false;
   if (left_image_mask) {
-    std::cout << "left mask image size:" << bounding_box(*left_image_mask) << std::endl;
+    std::cout << "left  mask image size:" << bounding_box(*left_image_mask ) << std::endl;
     
     if ( (left_image_mask->cols() == m_disp_bound_image.cols()) && 
          (left_image_mask->rows() == m_disp_bound_image.rows())   )
       left_mask_valid = true;
     else
       vw_throw( LogicErr() << "Left mask size does not match the output size!\n" );
+  }
+  if (right_image_mask) {
+    std::cout << "right mask image size:" << bounding_box(*right_image_mask) << std::endl;
+    
+    if ( (right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) && 
+         (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1)   )
+      right_mask_valid = true;
+    else
+      vw_throw( LogicErr() << "Right mask size does not match the output size!\n" );
   }
 
   const int SCALE_UP = 2;
@@ -151,6 +160,8 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   double area = 0, percent_trusted = 0, percent_masked = 0;
 
+  std::cout << "Populating per-pixel disparity search ranges...\n";
+
   int r_in, c_in;
   int dx_scaled, dy_scaled;
   PixelMask<Vector2i> input_disp;
@@ -159,10 +170,31 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     r_in = r / SCALE_UP;
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
 
+      // If the left mask is invalid here, flag the pixel as invalid.
       if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
-        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1);
+        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
         ++percent_masked;
         continue;
+      }
+      // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
+      // Verify that there is at least one valid right image pixel in the search range.
+      if (right_mask_valid) {
+        bool right_check_ok = false;
+        for (int rr=r+m_min_disp_y; rr<=r+m_max_disp_y; ++rr) {
+          for (int rc=c+m_min_disp_x; rc<=c+m_max_disp_x; ++rc) {
+            if (right_image_mask->operator()(rc,rr) > 0){
+              right_check_ok = true;
+              break;
+            }
+          }
+          if (right_check_ok) break;
+        }
+        // If none of the right mask pixels were valid, flag this pixel as invalid.
+        if (!right_check_ok) {
+          m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
+          ++percent_masked;
+          continue;
+        }
       }
 
       // If a previous disparity was provided, see if we have a valid disparity 
@@ -337,7 +369,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
     p2_mod = m_p1;
 
   //int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
-  int num_disparities_p = get_num_disparities(col_p, row_p);
+  //int num_disparities_p = get_num_disparities(col_p, row_p);
 
   //// Output vector must be pre-initialized to default value!
   //AccumCostType min_score = output[0];
