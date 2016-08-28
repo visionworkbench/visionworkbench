@@ -1,4 +1,5 @@
 
+#include <queue>
 #include <vw/Stereo/SGM.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Image/MaskViews.h>
@@ -75,6 +76,89 @@ size_t hamming_distance(unsigned int a, unsigned int b) {
     return dist; // Return the number of differing bits
 }
 
+/// Class to make counting up "on" mask pixel in a box more efficient.
+/// - By operating iteratively this class avoids a large memory buffer allocation.
+/// - It looks like we have some similar VW classes, but nothing exactly like this.
+/// TODO: Currently only works with positive position offsets!
+class IterativeMaskBoxCounter {
+public:
+  IterativeMaskBoxCounter(ImageView<uint8> const* right_image_mask,
+                          Vector2i box_size)
+    : m_right_image_mask(right_image_mask), m_box_size(box_size) {
+
+    // Set position to a flag value
+    m_curr_pos = Vector2i(-1, 0);
+    m_box_area = box_size[0]*box_size[1];
+    m_curr_sum = 0;
+  }
+  
+  /// Compute the percentage of valid pixels from the next column over.
+  double next_pixel() {
+    // Handle the first pixel in each column
+    if (m_curr_pos[0] < 0) {
+      m_curr_pos[0] = 0;
+      return recompute();
+    }
+    // Handle other pixels
+    m_curr_pos[0] += 1;
+    
+    // Account for column we are "losing"
+    m_curr_sum -= m_column_sums.front(); 
+    //std::cout << "Pop " << m_column_sums.front() << ", sum = " << m_curr_sum << std::endl;
+    m_column_sums.pop();
+    
+    // Sum values from the new column
+    int new_col_sum = 0;
+    int col = m_curr_pos[0] + m_box_size[0] - 1;
+
+    for (int row=m_curr_pos[1]; row<m_curr_pos[1]+m_box_size[1]; ++row) {
+      if (m_right_image_mask->operator()(col, row) > 0)
+        ++new_col_sum;
+    }
+    m_column_sums.push(new_col_sum);
+    m_curr_sum += new_col_sum;
+    //std::cout << "Push " << new_col_sum << ", sum = " << m_curr_sum << std::endl;
+    
+    return static_cast<double>(m_curr_sum) / m_box_area;
+  }
+  
+  /// Move to the next row of pixels.
+  void advance_row() {
+    // Update pixel position and set recompute flag
+    m_curr_pos[0]  = -1;
+    m_curr_pos[1] +=  1;
+    m_curr_sum = 0; 
+  }
+private:
+
+  ImageView<uint8> const* m_right_image_mask;
+  std::queue<int> m_column_sums;
+  int    m_curr_sum;
+  double m_box_area;
+  Vector2i m_box_size;
+  Vector2i m_curr_pos;
+  
+  double recompute() {
+    m_column_sums = std::queue<int>();
+    //std::cout << "Cleared sum\n";
+    
+    for (int col=m_curr_pos[0]; col<m_curr_pos[0]+m_box_size[0]; ++col) {
+      int col_sum = 0;
+      for (int row=m_curr_pos[1]; row<m_curr_pos[1]+m_box_size[1]; ++row) {
+        if (m_right_image_mask->operator()(col,row) > 0){
+          col_sum += 1;
+        }
+      }
+      m_column_sums.push(col_sum);
+      m_curr_sum += col_sum;
+      //std::cout << "Push " << col_sum << ", sum = " << m_curr_sum << std::endl;
+    }
+    return static_cast<double>(m_curr_sum) / m_box_area;
+  }
+  
+};
+
+
 //=========================================================================
 
 void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
@@ -128,6 +212,8 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
                                                   DisparityImage const* prev_disparity,
                                                   int search_buffer) {
 
+  Timer timer_total("Populate disparity bounds");
+
   std::cout << "m_disp_bound_image" << bounding_box(m_disp_bound_image) << std::endl;
 
   // TODO: Check or automatically compute the left valid mask size!
@@ -162,6 +248,8 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   std::cout << "Populating per-pixel disparity search ranges...\n";
 
+  IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
+
   int r_in, c_in;
   int dx_scaled, dy_scaled;
   PixelMask<Vector2i> input_disp;
@@ -170,31 +258,45 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     r_in = r / SCALE_UP;
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
 
-      // If the left mask is invalid here, flag the pixel as invalid.
-      if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
-        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
-        ++percent_masked;
-        continue;
-      }
       // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
-      // Verify that there is at least one valid right image pixel in the search range.
+      // TODO: This is a block sum operation that needs to be sped up!
+      // Verify that there is sufficient overlap with the right image mask
       if (right_mask_valid) {
-        bool right_check_ok = false;
+        const double MIN_MASK_OVERLAP = 0.9;
+        /*
+        double right_percent  = 0;
+        double right_area     = m_num_disp_x*m_num_disp_y;
         for (int rr=r+m_min_disp_y; rr<=r+m_max_disp_y; ++rr) {
           for (int rc=c+m_min_disp_x; rc<=c+m_max_disp_x; ++rc) {
             if (right_image_mask->operator()(rc,rr) > 0){
-              right_check_ok = true;
-              break;
+              right_percent += 1.0;
             }
           }
-          if (right_check_ok) break;
         }
+        right_percent /= right_area;
+*/        
+        double right_percent = right_mask_checker.next_pixel();
+/*        
+        if (right_percent != right_percent2) {
+          std::cout << "RP = " << right_percent << std::endl;
+          std::cout << "RP2 = " << right_percent2 << std::endl;
+        }
+*/        
+        bool right_check_ok = (right_percent >= MIN_MASK_OVERLAP);
         // If none of the right mask pixels were valid, flag this pixel as invalid.
         if (!right_check_ok) {
           m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
           ++percent_masked;
           continue;
         }
+      } // End right mask handling
+
+      // If the left mask is invalid here, flag the pixel as invalid.
+      // - Do this second so that our right image pixel tracker stays up to date.
+      if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
+        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
+        ++percent_masked;
+        continue;
       }
 
       // If a previous disparity was provided, see if we have a valid disparity 
@@ -240,8 +342,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       
       m_disp_bound_image(c,r) = bounds;
       area += (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
-    }
-  }
+    } // End col loop
+    right_mask_checker.advance_row();
+  } // End row loop
+  
   // Compute some statistics for help improving the speed
   double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
   area            /= num_pixels;
