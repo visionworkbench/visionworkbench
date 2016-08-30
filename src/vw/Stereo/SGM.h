@@ -8,27 +8,17 @@
 
 #include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
 
+#if 1 //defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+  #include <emmintrin.h>
+  #include <smmintrin.h> // SSE4.1
+#endif
+
 namespace vw {
 
 
   // Registering the Pixel Disparity type for FileIO
   template<> struct PixelFormatID<Vector<uint8,2>     > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
   template<> struct PixelFormatID<Vector<int16,2>     > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-
-/* TODO LIST
-  - Increase speed, it is way too slow!
-  - Clean up interfaces/ROI handling.
-  - Handle non-uint8 input images.
-  - Integrate with disparity code as an option for the low-
-    resolution disparity search.
-    
-NOTES:
-
- - Using a block size in the initial cost calculation does not seem to improve the results.
-   Instead it gives splotchy output.  No real effect on speed.
- - All the required time is in the path iteration functions!
-    
-*/
 
 
 namespace stereo {
@@ -67,14 +57,13 @@ public: // Functions
                       uint16 p1=0, uint16 p2=0);
 
   /// Compute SGM stereo on the images.
-  /// - TODO: Make search_buffer a parameter
   DisparityImage
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
                              ImageView<uint8> const* left_image_mask,
                              ImageView<uint8> const* right_image_mask,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 2);
+                             int search_buffer = 2); // This value is very important!
 
 private: // Variables
 
@@ -108,21 +97,6 @@ private: // Variables
     /// - Handles outer boundaries by repitition.
     /// - This vector stores a table of size m_num_disp*8.
     std::vector<DisparityType> m_adjacent_disp_lookup;
-
-/* 
-Proposed changes for sparse accum buffer:
-- Each pixel only has space in the buffer to contain all the values 
-  specified in m_disp_bound_image.  Will be either m_num_disp or something
-  potentially much smaller.
-- Entries for each pixel are contiguous.
-- A new data structure is needed to store the starting index in m_accum_buffer
-  for each pixel.
-- Issue: The prior disparity vector may be small, and won't contain all the indices
-         specified in m_adjacent_disp_lookup.  
-       : Proposed solution = Build full size array from sparse?
-                           = Bounds checking in the function?
-       
-*/
 
     /// For each output pixel, store the starting index in m_cost_buffer/m_accum_buffer
     ImageView<size_t> m_buffer_starts;
@@ -178,6 +152,21 @@ private: // Functions
   CostType get_cost_block(ImageView<uint8> const& left_image,
                     ImageView<uint8> const& right_image,
                     int left_x, int left_y, int right_x, int right_y, bool debug);
+
+
+  static inline AccumCostType get_min_adj_cost(AccumCostType const* vals, DisparityType const* indices) {
+  
+    AccumCostType min_index = indices[0];
+    if (vals[indices[1]] < vals[min_index]) min_index = indices[1];
+    if (vals[indices[2]] < vals[min_index]) min_index = indices[2];
+    if (vals[indices[3]] < vals[min_index]) min_index = indices[3];
+    if (vals[indices[4]] < vals[min_index]) min_index = indices[4];
+    if (vals[indices[5]] < vals[min_index]) min_index = indices[5];
+    if (vals[indices[6]] < vals[min_index]) min_index = indices[6];
+    if (vals[indices[7]] < vals[min_index]) min_index = indices[7];
+    return vals[min_index];
+  }
+
 
   /// Return the index into one of the buffers for a given location
   /// - The data is stored row major interleaved format.
@@ -284,12 +273,134 @@ private: // Functions
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // This variable is the magnitude of intensity change to this pixel
 
+  void evaluate_path_sse( int col, int row, int col_p, int row_p,
+                      AccumCostType* const prior,      // Accumulated costs leading up to this pixel, truncated
+                      AccumCostType*       full_prior_buffer, // Buffer to store all accumulated costs
+                      CostType     * const local, // The disparity costs of the current pixel
+                      AccumCostType*       output,
+                      int path_intensity_gradient, bool debug=false ); // This variable is the magnitude of intensity change to this pixel
+
   /// Perform all eight path accumulations in two passes through the image
   void two_trip_path_accumulation(ImageView<uint8> const& left_image);
 
 
   /// Allow this helper class to access private members
   friend class MultiAccumRowBuffer;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                            uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                            AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
+                            int sse_index, int &output_index,
+                            AccumCostType*       output) {
+
+  //std::cout << "dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]\n";      
+  //for (int i=0; i<sse_index; ++i) {
+  //  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+  //      dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]);
+  //}
+
+  // Operation = 
+  // min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+
+  //std::cout << "Result = ";
+  for (int i=0; i<sse_index; ++i){
+  
+    uint16 minAdj = std::min(d1[i], d2[i]);
+    minAdj = std::min(minAdj, d3[i]);
+    minAdj = std::min(minAdj, d4[i]);
+    minAdj = std::min(minAdj, d5[i]);
+    minAdj = std::min(minAdj, d6[i]);
+    minAdj = std::min(minAdj, d7[i]);
+    minAdj = std::min(minAdj, d8[i]);
+    minAdj += dp1;
+    
+    uint16 minVal = std::min(minAdj, d0[i]);
+           minVal = std::min(minVal, dJ);
+    output[output_index++] = minVal + (dL[i] - dP);
+  }
+  //std::cout << "\n\n";
+
+}
+
+void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                            uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                            __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
+                            int sse_index, int &output_index,
+                            AccumCostType*       output) {
+
+  // Load data from arrays into SSE registers
+  __m128i _dL = _mm_load_si128( (__m128i*) dL );
+  __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
+  __m128i _d1 = _mm_load_si128( (__m128i*) d1 );
+  __m128i _d2 = _mm_load_si128( (__m128i*) d2 );
+  __m128i _d3 = _mm_load_si128( (__m128i*) d3 );
+  __m128i _d4 = _mm_load_si128( (__m128i*) d4 );
+  __m128i _d5 = _mm_load_si128( (__m128i*) d5 );
+  __m128i _d6 = _mm_load_si128( (__m128i*) d6 );
+  __m128i _d7 = _mm_load_si128( (__m128i*) d7 );
+  __m128i _d8 = _mm_load_si128( (__m128i*) d8 );
+
+  //std::cout << "dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]\n";      
+  //for (int i=0; i<sse_index; ++i) {
+  //  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+  //      dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]);
+  //}
+
+  // Operation = 
+  // min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+  __m128i _min12 = _mm_min_epu16(_d1, _d2);
+  __m128i _min34 = _mm_min_epu16(_d3, _d4);
+  __m128i _min56 = _mm_min_epu16(_d5, _d6);
+  __m128i _min78 = _mm_min_epu16(_d7, _d8);
+
+  __m128i _min1234 = _mm_min_epu16(_min12, _min34);
+  __m128i _min5678 = _mm_min_epu16(_min56, _min78);
+
+  __m128i _minAdj = _mm_min_epu16(_min1234, _min5678);
+  __m128i _minO   = _mm_min_epu16(_d0, _dJ);
+
+  __m128i _result = _mm_adds_epu16(_minAdj, _dp1);
+
+  _result = _mm_min_epu16(_result, _minO);
+  _result = _mm_adds_epu16(_result, _dL);
+  _result = _mm_subs_epu16(_result, _dP);
+
+  // Fetch results from the registers
+  _mm_store_si128( (__m128i*) dRes, _result );
+
+  // Copy the valid results from the register.
+  //std::cout << "Result = ";
+  for (int i=0; i<sse_index; ++i){
+    //printf("%d, ", dRes[i]);
+    output[output_index++] = dRes[i];
+  }
+  //std::cout << "\n\n";
+
+}
+
+
+
+
+
+
+
+
 
 }; // end class SemiGlobalMatcher
 
@@ -334,20 +445,12 @@ template <class ImageT1, class ImageT2>
     std::cout << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
     std::cout << "calc_disparity_sgm: search_volume = " << search_volume_inclusive << std::endl;
     
-    ImageView<typename ImageT1::pixel_type> left_crop ( crop(left_in.impl(),  left_region) );
-    ImageView<typename ImageT2::pixel_type> right_crop( crop(right_in.impl(), right_region) );
-
     // TODO: Make scaling optional
     // Convert the input image to uint8 with 2%-98% intensity scaling.
     ImageView<PixelGray<vw::uint8> > left, right;
-    ip::percentile_scale_convert(left_crop,  left,  0.02, 0.98);
-    ip::percentile_scale_convert(right_crop, right, 0.02, 0.98);
+    ip::percentile_scale_convert(crop(left_in.impl(),  left_region),  left,  0.02, 0.98);
+    ip::percentile_scale_convert(crop(right_in.impl(), right_region), right, 0.02, 0.98);
     
-    //write_image("final_sgm_left.tif", left);
-    //write_image("final_sgm_right.tif", right);
-    
-    
-    // TODO: Support different cost types?
     SemiGlobalMatcher matcher;
     matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
     return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);

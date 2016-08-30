@@ -441,19 +441,21 @@ void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
       
       // Record the disparity indices of each of the adjacent pixels
       int table_pos = d*TABLE_WIDTH;
-      m_adjacent_disp_lookup[table_pos+0] = y_less_o*m_num_disp_x + x_less_o;
-      m_adjacent_disp_lookup[table_pos+1] = y_less_o*m_num_disp_x + x_o;
-      m_adjacent_disp_lookup[table_pos+2] = y_less_o*m_num_disp_x + x_more_o;
-      m_adjacent_disp_lookup[table_pos+3] = y_o     *m_num_disp_x + x_less_o;
-      m_adjacent_disp_lookup[table_pos+4] = y_o     *m_num_disp_x + x_more_o;
-      m_adjacent_disp_lookup[table_pos+5] = y_more_o*m_num_disp_x + x_less_o;
-      m_adjacent_disp_lookup[table_pos+6] = y_more_o*m_num_disp_x + x_o;
+      m_adjacent_disp_lookup[table_pos+0] = y_less_o*m_num_disp_x + x_o;      // The four adjacent pixels
+      m_adjacent_disp_lookup[table_pos+1] = y_o     *m_num_disp_x + x_less_o;
+      m_adjacent_disp_lookup[table_pos+2] = y_o     *m_num_disp_x + x_more_o;
+      m_adjacent_disp_lookup[table_pos+3] = y_more_o*m_num_disp_x + x_o;
+      m_adjacent_disp_lookup[table_pos+4] = y_less_o*m_num_disp_x + x_less_o; // The four diagonal pixels
+      m_adjacent_disp_lookup[table_pos+5] = y_less_o*m_num_disp_x + x_more_o;
+      m_adjacent_disp_lookup[table_pos+6] = y_more_o*m_num_disp_x + x_less_o;
       m_adjacent_disp_lookup[table_pos+7] = y_more_o*m_num_disp_x + x_more_o;
       
       ++d;
     }
   }
 } // End function populate_adjacent_disp_lookup_table
+
+
 
 // Note: local and output are the same size.
 // full_prior_buffer is always length m_num_disps and comes in initialized to a
@@ -524,6 +526,8 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
     std::cout << full_prior_buffer[i] << " ";
   std::cout << std::endl;
 */
+  const int LOOKUP_TABLE_WIDTH = 8;
+  
   // Loop through disparities for this pixel
   int packed_d = 0; // Index for cost and output vectors
   for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
@@ -537,33 +541,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       AccumCostType lowest_combined_cost = full_prior_buffer[full_d];
 
       // Compare to the eight adjacent disparities using the lookup table
-      const int LOOKUP_TABLE_WIDTH = 8;
       const int lookup_index = full_d*LOOKUP_TABLE_WIDTH;
-
-
-//#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-#if false
-
-      // TODO: This code is slower than the normal method!  Need to investigate more carefully if
-      //       it is going to be used.
-      
-      // Load the prior values to compare into a buffer
-      uint16 pre_sse_buff[8] __attribute__ ((aligned (16)));
-      
-      pre_sse_buff[0] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index  ]];
-      pre_sse_buff[1] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+1]];
-      pre_sse_buff[2] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+2]];
-      pre_sse_buff[3] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+3]];
-      pre_sse_buff[4] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+4]];
-      pre_sse_buff[5] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]];
-      pre_sse_buff[6] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]];
-      pre_sse_buff[7] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]];
-      __m128i reg_a = _mm_load_si128( (__m128i*) pre_sse_buff );
-      __m128i reg_b = _mm_minpos_epu16(reg_a);
-      
-      _mm_store_si128( (__m128i*) pre_sse_buff, reg_b );
-      AccumCostType lowest_adjacent_cost = pre_sse_buff[0];
-#else
 
       // TODO: This is the slowest part of the algorithm!
       // Note that the lookup table indexes into a full size buffer of disparities, not the compressed
@@ -577,8 +555,8 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]]);
-
-#endif
+      
+      //AccumCostType lowest_adjacent_cost = get_min_adj_cost(full_prior_buffer, &(m_adjacent_disp_lookup[lookup_index]));
 
       // Now add the adjacent penalty cost and compare to the local cost
       lowest_adjacent_cost += m_p1;
@@ -590,25 +568,14 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       // The output cost = local cost + lowest combined cost - min_prior
       // - Subtracting out min_prior avoids overflow.
       output[packed_d] = local[packed_d] + lowest_combined_cost - min_prior;
-      //if (output[d] < min_score)
-      //  min_score = output[d];
-/*
-      if ((packed_d == 16)) {
-        std::cout << "16\n";
-        std::cout << "local = " <<  int(local[packed_d]) << std::endl;
-        std::cout << "prior = " <<  prior[packed_d] << std::endl;
-        for (int i=0; i<8; ++i)
-          std::cout << i << " = " << m_adjacent_disp_lookup[lookup_index+i]<< " = "  
-                    << full_prior_buffer[m_adjacent_disp_lookup[lookup_index+i]]<< std::endl;
-        std::cout << "lowest_adjacent_cost = " << lowest_adjacent_cost << std::endl;
-        std::cout << "min_prev_disparity_cost = " << min_prev_disparity_cost << std::endl;
-      }
-*/
+
 
       ++packed_d;
       ++full_d;
     }
   } // End loop through this disparity
+  
+  
 /*
   std::cout << "Output: ";
   for (int i=0; i<num_disparities; ++i)
@@ -629,6 +596,150 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   }
 
 }
+
+
+
+
+
+void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_p,
+                       AccumCostType* const prior,
+                       AccumCostType*       full_prior_buffer,
+                       CostType     * const local,
+                       AccumCostType*       output,
+                       int path_intensity_gradient, bool debug ) {
+
+  // Decrease p2 (jump cost) with increasing disparity along the path
+  AccumCostType p2_mod = m_p2;
+  if (path_intensity_gradient > 0)
+    p2_mod /= path_intensity_gradient;
+  if (p2_mod < m_p1)
+    p2_mod = m_p1;
+
+  Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
+  Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
+
+  // Init the min prior in case the previous pixel is invalid.
+  AccumCostType BAD_VAL = get_bad_accum_val();
+  AccumCostType min_prior = BAD_VAL;
+
+  // Insert the valid disparity scores into full_prior buffer so they are
+  //  easy to access quickly within the pixel loop below.
+  int d = 0;
+  for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
+
+    // Get initial fill linear storage index for this dy row
+    int full_index = xy_to_disp(pixel_disp_bounds_p[0], dy);
+
+    for (int dx=pixel_disp_bounds_p[0]; dx<=pixel_disp_bounds_p[2]; ++dx) {
+    
+      // Get the min prior while we are at it.
+      if (prior[d] < min_prior) {
+        min_prior  = prior[d];
+      }
+    
+      full_prior_buffer[full_index] = prior[d];
+      ++full_index;
+      ++d;
+    }
+  }
+  AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
+
+  const int LOOKUP_TABLE_WIDTH = 8;
+  
+  // Allocate linear storage for data to pass to SSE instructions
+  int num_disp = get_num_disparities(col, row); // Can be input arg
+  const int SSE_BUFF_LEN = 8;
+  uint16 d_packed[SSE_BUFF_LEN*11] __attribute__ ((aligned (16))); // Could be passed in!
+  uint16* dL = &(d_packed[0*SSE_BUFF_LEN]);
+  uint16* d0 = &(d_packed[1*SSE_BUFF_LEN]);
+  uint16* d1 = &(d_packed[2*SSE_BUFF_LEN]);
+  uint16* d2 = &(d_packed[3*SSE_BUFF_LEN]);
+  uint16* d3 = &(d_packed[4*SSE_BUFF_LEN]);
+  uint16* d4 = &(d_packed[5*SSE_BUFF_LEN]);
+  uint16* d5 = &(d_packed[6*SSE_BUFF_LEN]);
+  uint16* d6 = &(d_packed[7*SSE_BUFF_LEN]);
+  uint16* d7 = &(d_packed[8*SSE_BUFF_LEN]);
+  uint16* d8 = &(d_packed[9*SSE_BUFF_LEN]);
+  uint16* dRes = &(d_packed[10*SSE_BUFF_LEN]); // The results
+  
+  // Set up constant SSE registers that never change
+  __m128i _dJ  = _mm_set1_epi16(static_cast<int16>(min_prev_disparity_cost));
+  __m128i _dP  = _mm_set1_epi16(static_cast<int16>(min_prior));
+  __m128i _dp1 = _mm_set1_epi16(static_cast<int16>(m_p1));
+  
+  //printf("dJ = %d, dP = %d, dp1 = %d\n", min_prev_disparity_cost, min_prior, m_p1);
+  //std::cout << "pixel_disp_bounds = " << pixel_disp_bounds << std::endl;
+  
+  // Loop through disparities for this pixel
+  int sse_index = 0, output_index = 0;
+  int packed_d = 0; // Index for cost and output vectors
+  for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
+
+    // Need the disparity index from all of m_num_disp for proper indexing into full_prior_buffer
+    int full_d = xy_to_disp(pixel_disp_bounds[0], dy);
+
+    for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
+
+      // Get local value and matching disparity value
+      dL[sse_index] = local[packed_d];
+      d0[sse_index] = full_prior_buffer[full_d];
+      
+      // Get the 8 surrounding values
+      const int lookup_index = full_d*LOOKUP_TABLE_WIDTH;
+      d1[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index  ]];
+      d2[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+1]];
+      d3[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+2]];
+      d4[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+3]];
+      d5[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+4]];
+      d6[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]];
+      d7[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]];
+      d8[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]];
+
+      ++packed_d;
+      ++full_d;
+      ++sse_index;
+      
+      // Keep packing the SSE buffers until they are filled up, then use SSE to operate on
+      // all of the data at once.
+      if (sse_index == SSE_BUFF_LEN){
+
+        compute_path_internals_sse(dL, d0, d1, d2, d3, d4, d5, d6, d7, d8,
+                                   _dJ, _dP, _dp1, dRes, sse_index, output_index, output);
+        //compute_path_internals(dL, d0, d1, d2, d3, d4, d5, d6, d7, d8,
+        //                   min_prev_disparity_cost, min_prior, m_p1, dRes, sse_index, output_index, output);
+      
+        sse_index = 0;
+      } // End SSE operations
+      
+    }
+  } // End loop through this disparity
+  
+  // If there is data left over in the buffer, process it now.
+  if (sse_index > 0) {
+    compute_path_internals_sse(dL, d0, d1, d2, d3, d4, d5, d6, d7, d8,
+                           _dJ, _dP, _dp1, dRes, sse_index, output_index, output);
+    //compute_path_internals(dL, d0, d1, d2, d3, d4, d5, d6, d7, d8,
+    //                       min_prev_disparity_cost, min_prior, m_p1, dRes, sse_index, output_index, output);
+  }
+  
+  // Operate on the remaining data in the SSE buffers
+  
+  
+  // Remove the valid disparity scores from full_prior buffer.
+  for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
+
+    // Get initial fill linear storage index for this dy row
+    int full_index = xy_to_disp(pixel_disp_bounds_p[0], dy);
+
+    for (int dx=pixel_disp_bounds_p[0]; dx<=pixel_disp_bounds_p[2]; ++dx) {
+    
+      full_prior_buffer[full_index] = BAD_VAL;
+      ++full_index;
+    }
+  }
+
+} // End evaluate_path_sse
+
 
 
 
@@ -890,16 +1001,15 @@ public:
   /// - The scores from each pass are added.
   void add_lead_buffer_to_accum() {
     size_t buffer_index = 0;
+    SemiGlobalMatcher::AccumCostType* out_ptr = m_parent_ptr->m_accum_buffer.get();
     for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
       int num_disps = m_parent_ptr->get_num_disparities(col, m_current_row);
       for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
         size_t out_index = m_parent_ptr->m_buffer_starts(col, m_current_row);
         for (int d=0; d<num_disps; ++d) {
-          m_parent_ptr->m_accum_buffer[out_index] += m_lead_buffer[buffer_index];
+          out_ptr[out_index++] += m_lead_buffer[buffer_index++];
           //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
           //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
-          ++out_index;
-          ++buffer_index;
         } // end disp loop
       } // end pass loop
     } // end col loop
@@ -1040,7 +1150,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
-        evaluate_path( col, row, col-1, row-1,
+        evaluate_path_sse( col, row, col-1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1052,7 +1162,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
-        evaluate_path( col, row, col, row-1,
+        evaluate_path_sse( col, row, col, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1064,7 +1174,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
-        evaluate_path( col, row, col+1, row-1,
+        evaluate_path_sse( col, row, col+1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1076,7 +1186,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
-        evaluate_path( col, row, col-1, row,
+        evaluate_path_sse( col, row, col-1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1106,7 +1216,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
-        evaluate_path( col, row, col+1, row+1,
+        evaluate_path_sse( col, row, col+1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1118,7 +1228,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row < last_row) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
-        evaluate_path( col, row, col, row+1,
+        evaluate_path_sse( col, row, col, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1130,7 +1240,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
-        evaluate_path( col, row, col-1, row+1,
+        evaluate_path_sse( col, row, col-1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1142,7 +1252,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col < last_column) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
-        evaluate_path( col, row, col+1, row,
+        evaluate_path_sse( col, row, col+1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
