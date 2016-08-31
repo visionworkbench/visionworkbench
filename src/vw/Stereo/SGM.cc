@@ -6,7 +6,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 
-#if 1 //defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
 #endif
@@ -886,8 +886,8 @@ void SemiGlobalMatcher::fill_costs_census5x5   (ImageView<uint8> const& left_ima
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint8> left_census (left_image.cols()-4,  left_image.rows()-4 ), 
-                   right_census(right_image.cols()-4, right_image.rows()-4);
+  ImageView<uint32> left_census (left_image.cols()-4,  left_image.rows()-4 ), 
+                    right_census(right_image.cols()-4, right_image.rows()-4);
                    
   for ( int r = 0; r < left_census.rows(); r++ )
     for ( int c = 0; c < left_census.cols(); c++ )
