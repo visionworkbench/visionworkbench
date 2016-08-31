@@ -528,8 +528,6 @@ prerasterize(BBox2i const& bbox) const {
       if ( !on_last_level && !use_sgm_on_level) {
         const size_t next_level = level-1;
         zones.clear();
-
-        vw_out() << "Computing new zone(s) for level " << next_level << std::endl;
         
         // On the next resolution level, break up the image area into multiple
         // smaller zones with similar disparities.  This helps minimize

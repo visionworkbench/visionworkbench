@@ -29,6 +29,7 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ThreadPool.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Filter.h>

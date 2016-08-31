@@ -21,98 +21,47 @@
 #include <vw/FileIO.h>
 #include <vw/Stereo/SGM.h>
 
-
-/*
-// These are used to read and write tif images with vector pixels
-namespace vw {
-  template<> struct PixelFormatID<Vector<uint8,  2> >  { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-}
-*/
 using namespace vw;
 using namespace vw::stereo;
 
-TEST( SGM, basic ) {
-  
-/*
+TEST( SGM, constant_offset ) {
+ 
   // For this perfect test case, the correct disparity is (2,1) for each pixel!
   int min_disp_x  = -4;
   int max_disp_x  =  4;
   int min_disp_y  =  -3;
   int max_disp_y  =   3;
-  int kernel_size = 1;
+  int kernel_size = 3;
   DiskImageView<PixelGray<uint8> > inputLeft ("left.tif");
-  DiskImageView<PixelGray<uint8> > inputRight("left_shift.tif");
+  DiskImageView<PixelGray<uint8> > inputRight("left_const_offset.tif");
   BBox2i leftRoi (0,0,400, 400);
-*/
-/*
-  DiskImageView<PixelGray<uint8> > inputLeft ("left4.tif");
-  DiskImageView<PixelGray<uint8> > inputRight("right4.tif");
-  BBox2i leftRoi (0,0,80, 80);
-*/
-/*
-  int min_disp_x  = -2;
-  int max_disp_x  = 10;
-  int min_disp_y  =  -2;
-  int max_disp_y  =  12;
-  int kernel_size = 1;
-  DiskImageView<PixelGray<uint8> > inputLeft ("left3.tif");
-  DiskImageView<PixelGray<uint8> > inputRight("right3.tif");
-  BBox2i leftRoi (0,0,200, 200);
-*/
-
-  // The results may actually be pretty good except for the border region.
-  int min_disp_x  = -5;
-  int max_disp_x  =  5;
-  int min_disp_y  =  -5;
-  int max_disp_y  =   5;
-  int kernel_size = 1;
-  DiskImageView<PixelGray<uint8> > inputLeft ("moc_left_u8.tif");
-  DiskImageView<PixelGray<uint8> > inputRight("moc_right_u8.tif");
-  BBox2i leftRoi (20,20,320, 320); // Leave room for search region in the right image
-
-/*
-  // Note that the matches have higher column values in the left image.
-  // X disparities are in the 0-140 range, y is 0 disparity.
-  // - Results are similar to the 
-  int min_disp_x  = 30;
-  int max_disp_x  = 140;
-  int min_disp_y  = 0;
-  int max_disp_y  = 0;
-  int kernel_size = 1;
-  DiskImageView<PixelGray<uint8> > inputLeft ("cones_right.pgm");
-  DiskImageView<PixelGray<uint8> > inputRight("cones_left.pgm");
-  BBox2i leftRoi (0,0,700, 200);
-*/
-
+  
   int disp_x_range = max_disp_x - min_disp_x + 1;
   int disp_y_range = max_disp_y - min_disp_y + 1;
   BBox2i rightRoi = leftRoi + Vector2i(min_disp_x, min_disp_y);
   rightRoi.max() += Vector2i(disp_x_range, disp_y_range);
 
-
   ImageView<uint8> left  = crop(inputLeft, leftRoi);
   ImageView<uint8> right = crop(inputRight, rightRoi);
-  
-  write_image("left_in.tif", left);
-  write_image("right_in.tif", right);
-  
-  
-  
-  //SemiGlobalMatcher matcher;
-  //matcher.setParameters(min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size);
-  //SemiGlobalMatcher::DisparityImage result = matcher.semi_global_matching_func(left, right);
   
   SemiGlobalMatcher::DisparityImage result = calc_disparity_sgm(left, right, 
                                                 BBox2i(0,0,left.cols(), left.rows()),
                                                 Vector2i(disp_x_range, disp_y_range),
                                                 Vector2i(kernel_size, kernel_size));
+  result = result + PixelMask<Vector2i>(min_disp_x, min_disp_y);
+  //write_image("SGM_output.tif", result);
 
-  //// Account for the disparity shift applied!
-  //result += SemiGlobalMatcher::DisparityImage::pixel_type(min_disp_x, min_disp_y);
-  
-  std::cout << "Writing output...\n";
-  write_image("SGM_output.tif", result);
-  
-  ASSERT_TRUE(false);
+  double num_pixels  = result.rows()*result.cols();
+  size_t num_correct = 0;
+  for (int row=0; row<result.rows(); ++row) {
+    for (int col=0; col<result.cols(); ++col) {
+      PixelMask<Vector2i> val = result(col,row);
+      if((val[0]==2) && (val[1]==1))
+        ++num_correct;
+    }
+  }
+  double percent_correct = static_cast<double>(num_correct) / num_pixels;
+  // TODO: Improve the algorithm so that this percentage is higher!!!
+  EXPECT_GT(percent_correct, 0.95);
 }
 
