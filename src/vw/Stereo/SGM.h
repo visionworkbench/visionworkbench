@@ -274,7 +274,7 @@ private: // Functions
                               __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
                               int sse_index, int &output_index,
                               AccumCostType*       output) {
-
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
     // Load data from arrays into SSE registers
     __m128i _dL = _mm_load_si128( (__m128i*) dL );
     __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
@@ -314,6 +314,7 @@ private: // Functions
     for (int i=0; i<sse_index; ++i){
       output[output_index++] = dRes[i];
     }
+#endif
   } // end function compute_path_internals_sse
 
   /// Non-sse backup for compute_path_internals_sse
