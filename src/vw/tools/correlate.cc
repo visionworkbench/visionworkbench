@@ -179,8 +179,7 @@ int main( int argc, char *argv[] ) {
       disparity_map =
         stereo::pyramid_correlate( left,      right,
                                    left_mask, right_mask,
-                                   //stereo::PREFILTER_LOG, log,
-                                   stereo::PREFILTER_NONE, log,
+                                   stereo::PREFILTER_LOG, log,
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
                                    lrthresh, max_pyramid_levels, 

@@ -77,9 +77,12 @@ size_t hamming_distance(unsigned int a, unsigned int b) {
 }
 
 /// Class to make counting up "on" mask pixel in a box more efficient.
+/// - This class performs a convolution of two images where it
+///   computes the a percentage of nonzero pixels in the window.
 /// - By operating iteratively this class avoids a large memory buffer allocation.
 /// - It looks like we have some similar VW classes, but nothing exactly like this.
 /// TODO: Currently only works with positive position offsets!
+/// TODO: Should this be moved to a different location?
 class IterativeMaskBoxCounter {
 public:
   IterativeMaskBoxCounter(ImageView<uint8> const* right_image_mask,
@@ -212,14 +215,14 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
                                                   DisparityImage const* prev_disparity,
                                                   int search_buffer) {
 
-  Timer timer_total("Populate disparity bounds");
+  //Timer timer_total("Populate disparity bounds");
 
-  std::cout << "m_disp_bound_image" << bounding_box(m_disp_bound_image) << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "disparity bound image size = " << bounding_box(m_disp_bound_image) << std::endl;
 
   // TODO: Check or automatically compute the left valid mask size!
   bool left_mask_valid = false, right_mask_valid = false;
   if (left_image_mask) {
-    std::cout << "left  mask image size:" << bounding_box(*left_image_mask ) << std::endl;
+    vw_out(VerboseDebugMessage, "stereo") << "Left  mask image size:" << bounding_box(*left_image_mask ) << std::endl;
     
     if ( (left_image_mask->cols() == m_disp_bound_image.cols()) && 
          (left_image_mask->rows() == m_disp_bound_image.rows())   )
@@ -228,7 +231,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       vw_throw( LogicErr() << "Left mask size does not match the output size!\n" );
   }
   if (right_image_mask) {
-    std::cout << "right mask image size:" << bounding_box(*right_image_mask) << std::endl;
+    vw_out(VerboseDebugMessage, "stereo") << "Right mask image size:" << bounding_box(*right_image_mask) << std::endl;
     
     if ( (right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) && 
          (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1)   )
@@ -237,7 +240,14 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       vw_throw( LogicErr() << "Right mask size does not match the output size!\n" );
   }
 
-  const int SCALE_UP = 2;
+  // The low-res disparity image must be half-resolution.
+  const int SCALE_UP = 2; 
+  
+  // Require that the right image mask is valid for this percentage of the
+  // search range for each pixel in the left image.
+  // - If this value is too low, many border pixels will be assigned the full
+  //   search range and significantly slow down SGM!
+  const double MIN_MASK_OVERLAP = 0.95;
 
   // There needs to be some "room" in the disparity search space for
   // us to discard prior results on the edge as not trustworthy predictors.
@@ -246,10 +256,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   double area = 0, percent_trusted = 0, percent_masked = 0;
 
-  std::cout << "Populating per-pixel disparity search ranges...\n";
-
+  // This class will check the right image mask in an efficient manner.
   IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
 
+  // Loop through the output disparity image and compute a search range for each pixel
   int r_in, c_in;
   int dx_scaled, dy_scaled;
   PixelMask<Vector2i> input_disp;
@@ -259,30 +269,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
 
       // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
-      // TODO: This is a block sum operation that needs to be sped up!
       // Verify that there is sufficient overlap with the right image mask
       if (right_mask_valid) {
-        const double MIN_MASK_OVERLAP = 0.9;
-        /*
-        double right_percent  = 0;
-        double right_area     = m_num_disp_x*m_num_disp_y;
-        for (int rr=r+m_min_disp_y; rr<=r+m_max_disp_y; ++rr) {
-          for (int rc=c+m_min_disp_x; rc<=c+m_max_disp_x; ++rc) {
-            if (right_image_mask->operator()(rc,rr) > 0){
-              right_percent += 1.0;
-            }
-          }
-        }
-        right_percent /= right_area;
-*/        
-        double right_percent = right_mask_checker.next_pixel();
-/*        
-        if (right_percent != right_percent2) {
-          std::cout << "RP = " << right_percent << std::endl;
-          std::cout << "RP2 = " << right_percent2 << std::endl;
-        }
-*/        
-        bool right_check_ok = (right_percent >= MIN_MASK_OVERLAP);
+        double right_percent  = right_mask_checker.next_pixel();
+        bool   right_check_ok = (right_percent >= MIN_MASK_OVERLAP);
         // If none of the right mask pixels were valid, flag this pixel as invalid.
         if (!right_check_ok) {
           m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
@@ -303,15 +293,14 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // estimate for this pixel.
       bool good_disparity = false;
       if (prev_disparity) {
-      
         c_in = c / SCALE_UP;
-        if ( (c_in >= prev_disparity->cols()) || 
-             (r_in >= prev_disparity->rows())   ) {
+        // Verify that the pixel we want exists
+        if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
           vw_throw( LogicErr() << "Size error!\n" );
         }
         input_disp = prev_disparity->operator()(c_in,r_in);
         
-        // Disparity values on the edge of our 2D search range are not trustworthy!
+        // Disparity values on the edge of our 2D search range are not considered trustworthy!
         dx_scaled = input_disp[0] * SCALE_UP; 
         dy_scaled = input_disp[1] * SCALE_UP;
         
@@ -352,11 +341,13 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   percent_trusted /= num_pixels;
   percent_masked  /= num_pixels;
   
-  double max_search_area = (m_max_disp_x-m_min_disp_x+1)*(m_max_disp_y-m_min_disp_y+1);
-  std::cout << "Max pixel search area  = " << max_search_area << std::endl;
-  std::cout << "Mean pixel search area = " << area << std::endl;
-  std::cout << "Percent trusted prior disparities = " << percent_trusted << std::endl;
-  std::cout << "Percent masked pixels  = " << percent_masked << std::endl;
+  double max_search_area    = (m_max_disp_x-m_min_disp_x+1)*(m_max_disp_y-m_min_disp_y+1);
+  double percent_full_range = 1.0 - (percent_trusted+percent_masked);
+  vw_out(InfoMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
+  vw_out(InfoMessage, "stereo") << "Mean pixel search area = "            << area               << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted    << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked     << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent full search range pixels  = " << percent_full_range << std::endl;
   
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))
@@ -368,43 +359,40 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
 void SemiGlobalMatcher::allocate_large_buffers() {
 
+  //Timer timer_total("Memory allocation");
+
   // Init the starts data storage
   m_buffer_starts.set_size(m_num_output_cols, m_num_output_rows);
 
-  std::cout << "Num pixels      = " << m_num_output_rows * m_num_output_cols << std::endl;
-  std::cout << "Num disparities = " << m_num_disp << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM: Num pixels = "      << m_num_output_rows * m_num_output_cols << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM: Num disparities = " << m_num_disp << std::endl;
   
   // For each pixel, record the starting offset and add the disparity search area 
   //  of this pixel to the running offset total.
   size_t total_offset = 0;
   for (int r=0; r<m_num_output_rows; ++r) {
-    for (int c=0; c<m_num_output_cols; ++c) {
-    
+    for (int c=0; c<m_num_output_cols; ++c) {   
       m_buffer_starts(c,r) = total_offset;
-
       total_offset += get_num_disparities(c, r);
     }
   }
   // Finished computing the pixel offsets.
 
-  std::cout << "Total disparity search area = " << total_offset << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << std::endl;
 
   // TODO: Check available memory first!
 
   const size_t cost_buffer_num_bytes = total_offset * sizeof(CostType);  
-  std::cout << "Allocating buffer of size: " << cost_buffer_num_bytes/(1024*1024) << " MB\n";
+  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << cost_buffer_num_bytes/(1024*1024) << " MB\n";
 
   m_cost_buffer.reset(new CostType[total_offset]);
 
   const size_t accum_buffer_num_bytes = total_offset * sizeof(AccumCostType);  
-  std::cout << "Allocating buffer of size: " << accum_buffer_num_bytes/(1024*1024) << " MB\n";
+  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << accum_buffer_num_bytes/(1024*1024) << " MB\n";
 
   // Allocate the requested memory and init all to zero
   m_accum_buffer.reset(new AccumCostType[total_offset]);
   memset(m_accum_buffer.get(), 0, accum_buffer_num_bytes);
-
-  std::cout << "Done allocating memory.\n";
-
 }
 
 
@@ -555,8 +543,6 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+5]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+6]]);
       lowest_adjacent_cost = std::min(lowest_adjacent_cost, full_prior_buffer[m_adjacent_disp_lookup[lookup_index+7]]);
-      
-      //AccumCostType lowest_adjacent_cost = get_min_adj_cost(full_prior_buffer, &(m_adjacent_disp_lookup[lookup_index]));
 
       // Now add the adjacent penalty cost and compare to the local cost
       lowest_adjacent_cost += m_p1;
@@ -573,8 +559,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       ++packed_d;
       ++full_d;
     }
-  } // End loop through this disparity
-  
+  } // End loop through this disparity  
   
 /*
   std::cout << "Output: ";
@@ -596,8 +581,6 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   }
 
 }
-
-
 
 
 
@@ -624,6 +607,8 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
 
   // Insert the valid disparity scores into full_prior buffer so they are
   //  easy to access quickly within the pixel loop below.
+  // - If we don't use a full sized buffer, our adjacent disparity lookup
+  //   table could not be used!
   int d = 0;
   for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
 
@@ -647,9 +632,8 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
   const int LOOKUP_TABLE_WIDTH = 8;
   
   // Allocate linear storage for data to pass to SSE instructions
-  int num_disp = get_num_disparities(col, row); // Can be input arg
   const int SSE_BUFF_LEN = 8;
-  uint16 d_packed[SSE_BUFF_LEN*11] __attribute__ ((aligned (16))); // Could be passed in!
+  uint16 d_packed[SSE_BUFF_LEN*11] __attribute__ ((aligned (16))); // TODO: Could be passed in!
   uint16* dL = &(d_packed[0*SSE_BUFF_LEN]);
   uint16* d0 = &(d_packed[1*SSE_BUFF_LEN]);
   uint16* d1 = &(d_packed[2*SSE_BUFF_LEN]);
@@ -684,7 +668,8 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
       dL[sse_index] = local[packed_d];
       d0[sse_index] = full_prior_buffer[full_d];
       
-      // Get the 8 surrounding values
+      // Get the 8 surrounding values.
+      // - Is there any way to speed this up?
       const int lookup_index = full_d*LOOKUP_TABLE_WIDTH;
       d1[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index  ]];
       d2[sse_index] = full_prior_buffer[m_adjacent_disp_lookup[lookup_index+1]];
@@ -722,9 +707,6 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
     //                       min_prev_disparity_cost, min_prior, m_p1, dRes, sse_index, output_index, output);
   }
   
-  // Operate on the remaining data in the SSE buffers
-  
-  
   // Remove the valid disparity scores from full_prior buffer.
   for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
 
@@ -742,6 +724,34 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
 
 
 
+SemiGlobalMatcher::AccumCostType 
+SemiGlobalMatcher::get_accum_vector_min(int col, int row,
+                                        DisparityType &dx, DisparityType &dy) {
+  // Get the array
+  AccumCostType const* vec = get_accum_vector(col, row);
+  const int num_disp = get_num_disparities(col, row);
+  
+  // Get the minimum index of the array
+  int min_index = 0;
+  AccumCostType value = std::numeric_limits<AccumCostType>::max();
+  for (int i=0; i<num_disp; ++i) {
+    if (vec[i] < value) {
+      value = vec[i];
+      min_index = i;
+    }
+  }
+  
+  // Convert the disparity index to dx and dy
+  const Vector4i bounds = m_disp_bound_image(col,row);
+  int d_width  = bounds[2] - bounds[0] + 1;
+  dy = (min_index / d_width);
+  dx = min_index - (dy*d_width) + bounds[0];
+  dy += bounds[1];
+  
+  //printf("%d, %d, %d -> %d, %d\n", value, min_index, d_width, dx, dy);
+  
+  return value;
+}
 
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::create_disparity_view() {
@@ -749,14 +759,15 @@ SemiGlobalMatcher::create_disparity_view() {
   DisparityImage disparity( m_num_output_cols, m_num_output_rows );
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
-  Timer timer("\tCalculate Disparity Minimum");
+  //Timer timer("Calculate Disparity Minimum");
   DisparityType dx, dy;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
       
       int num_disp = get_num_disparities(i, j);
       if (num_disp > 0) {
-           
+        // Valid pixel, choose the best disparity with a winner-take-all (WTA) method.
+        // - Would a fancier selection method improve our results?
         get_accum_vector_min(i, j, dx, dy);
         disparity(i,j) = DisparityImage::pixel_type(dx, dy);
         
@@ -766,7 +777,7 @@ SemiGlobalMatcher::create_disparity_view() {
       }
 
       /*
-      if ((i >= 15) && (i <= 15) && (j==40)) {
+      if ((i >= 15) && (i <= 15) && (j==40)) { // DEBUG!
         printf("ACC costs (%d,%d): %d, %d\n", i, j, dx, dy);
 
         AccumCostType* vec = get_accum_vector(i, j);
@@ -777,11 +788,10 @@ SemiGlobalMatcher::create_disparity_view() {
       */
     }
   }
-  printf("Done creating SGM result of size: %d, %d\n", disparity.cols(), disparity.rows());
   return disparity;
 }
 /*
-// TODO: Use our existing block matching code to do this!
+// TODO: Remove this code and stick to the census cost functions!
 // - Do this later, cost propagation is the real bottleneck.
 SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
                ImageView<uint8> const& right_image,
@@ -827,6 +837,11 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
   }// End y loop
 }
 */
+
+
+// Unfortunately the census code is duplicated due to the different data types required.
+// - If we add any more size options, consolidate these functions using the largest
+//   data type or template functions.
 // TODO: Speed up the census computations!
 
 void SemiGlobalMatcher::fill_costs_census3x3   (ImageView<uint8> const& left_image,
@@ -905,30 +920,29 @@ void SemiGlobalMatcher::fill_costs_census5x5   (ImageView<uint8> const& left_ima
 
 
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
-                                                ImageView<uint8> const& right_image) {
-  
-  // Now that the buffers are initialized, choose how to fill them based on the kernel size.
-  {
-    Timer timer("\tCost Calculation");
-
-    switch(m_kernel_size) {
-    case 3:  fill_costs_census3x3(left_image, right_image); break;
-    case 5:  fill_costs_census5x5(left_image, right_image); break;
-    default: vw_throw( NoImplErr() << "Only census transform currently usable!\n" );
-      //fill_costs_block    (left_image, right_image); break;
-    };    
-  } // End non-census case
-
-  std::cout << "Done computing local costs.\n";
+                                                ImageView<uint8> const& right_image) {  
+  //Timer timer("\tSGM Cost Calculation");
+  switch(m_kernel_size) {
+  case 3:  fill_costs_census3x3(left_image, right_image); break;
+  case 5:  fill_costs_census5x5(left_image, right_image); break;
+  default: vw_throw( NoImplErr() << "Only census transform currently usable!\n" );
+    //fill_costs_block    (left_image, right_image); break;
+  };    
 
 } // end compute_disparity_costs() 
 
 
 
-
-/// Helper class to manage the rolling accumulation buffer temporary memory
-///  until the results are added to the final accumulation buffer.  Used by 
-///  two_pass_path_accumulation()
+/**
+ Helper class to manage the rolling accumulation buffer temporary memory
+  until the results are added to the final accumulation buffer.  Used by 
+  two_trip_path_accumulation().
+- This class needs to temporarily store two rows of the accumulation buffer
+  with each row containing four directional pass results simultaneously.
+- A dedicated class is needed to manage the complexity of maintaining and
+  accessing this buffer when each pixel requires a different amount of
+  space in the buffer depending on its search range.
+*/
 class MultiAccumRowBuffer {
 public:
 
@@ -1094,20 +1108,22 @@ public:
 
 private:
 
-  const SemiGlobalMatcher* m_parent_ptr;
+  const SemiGlobalMatcher* m_parent_ptr; ///< Need a handle to the parent SGM object
 
   size_t m_buffer_size, m_buffer_size_bytes;
-  int m_current_col, m_current_row;
-  int m_col_advance, m_row_advance;
+  int m_current_col, m_current_row; ///< The current position as we iterate through the pixels
+  int m_col_advance, m_row_advance; ///< These are set according to the current trip
   
-  // These point to m_buffer_starts for the leading and trailing row respectively
+  // These point to m_buffer_starts for the leading and trailing row respectively.
+  // - Since there are four passes per pixel, the offsets are different than in the main class
+  //   accumulation buffer.
   boost::shared_array<size_t> m_offsetsA, m_offsetsB;
-  size_t * m_offsets_lead;
-  size_t * m_offsets_trail;
+  size_t * m_offsets_lead;  // The role of the buffers keeps swapping so these pointers are
+  size_t * m_offsets_trail; //  used to keep things consistent.
   
   // Buffers which store the accumulated cost info before it is dumped to the main accum buffer
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_bufferA, m_bufferB;
-  SemiGlobalMatcher::AccumCostType* m_trail_buffer;
+  SemiGlobalMatcher::AccumCostType* m_trail_buffer; // Another set of pointers for swapping buffers.
   SemiGlobalMatcher::AccumCostType* m_lead_buffer;
 
 }; // End class MultiAccumRowBuffer
@@ -1117,7 +1133,7 @@ private:
 
 void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_image) {
 
-  Timer timer_total("\tCost Propagation");
+  //Timer timer_total("\tSGM Cost Propagation");
 
   /// Create an object to manage the temporary accumulation buffers that need to be used here.
   MultiAccumRowBuffer buff_manager(this);
@@ -1133,9 +1149,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
   AccumCostType* output_accum_ptr;
   const int last_column = m_num_output_cols - 1;
   const int last_row    = m_num_output_rows - 1;
-  
+
+  // Loop through all pixels in the output image for the first trip, top-left to bottom-right.
   for (int row=0; row<m_num_output_rows; ++row) {
-  
     for (int col=0; col<m_num_output_cols; ++col) {
     
       //printf("Accum pass 1 col = %d, row = %d\n", col, row);
@@ -1150,7 +1166,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col-1, row-1,
+#else
+        evaluate_path( col, row, col-1, row-1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1162,7 +1182,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col, row-1,
+#else
+        evaluate_path( col, row, col, row-1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1174,7 +1198,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col+1, row-1,
+#else
+        evaluate_path( col, row, col+1, row-1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1186,7 +1214,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col-1, row,
+#else
+        evaluate_path( col, row, col-1, row,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1197,13 +1229,13 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
     } // End col loop
     
     buff_manager.next_row(row==m_num_output_rows-1);
-    
   } // End row loop
-
+  
+  // Done with the first trip!
   buff_manager.switch_trips();
 
+  // Loop through all pixels in the output image for the first trip, bottom-right to top-left.
   for (int row = last_row; row >= 0; --row) {
-  
     for (int col = last_column; col >= 0; --col) {
     
       int num_disp = get_num_disparities(col, row);
@@ -1216,7 +1248,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col+1, row+1,
+#else
+        evaluate_path( col, row, col+1, row+1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1228,7 +1264,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row < last_row) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col, row+1,
+#else
+        evaluate_path( col, row, col, row+1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1240,7 +1280,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col-1, row+1,
+#else
+        evaluate_path( col, row, col-1, row+1,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1252,7 +1296,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col < last_column) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
         evaluate_path_sse( col, row, col+1, row,
+#else
+        evaluate_path( col, row, col+1, row,
+#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1260,11 +1308,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       buff_manager.next_pixel();
-    
     } // End col loop
     
-    buff_manager.next_row(row==0);
-    
+    buff_manager.next_row(row==0);    
   } // End row loop
 
   // Done with both trips!
@@ -1303,42 +1349,34 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   m_num_output_cols  = m_max_col - m_min_col + 1;
   m_num_output_rows  = m_max_row - m_min_row + 1;
 
-  std::cout << "Computed cost bounding box: " << std::endl;
-  printf("Left image size = (%d,%d), right image size = (%d, %d)\n", 
-         left_image.cols(), left_image.rows(), right_image.cols(), right_image.rows());
-  printf("min_row = %d, min_col = %d, max_row = %d, max_col = %d, output_height = %d, output_width = %d\n", 
-          m_min_row, m_min_col, m_max_row, m_max_col, m_num_output_rows, m_num_output_cols);
-  
-  //m_buffer_step_size = m_num_output_cols * m_num_disp;
+  vw_out(DebugMessage, "stereo") << "Computed SGM cost bounding box: " << std::endl;
+  vw_out(DebugMessage, "stereo") << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
+                               <<"), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
+  vw_out(DebugMessage, "stereo") << "min_row = "<< m_min_row <<", min_col = "<< m_min_col <<
+                                  ", max_row = "<< m_max_row <<", max_col = "<< m_max_col <<
+                                  ", output_height = "<< m_num_output_rows <<
+                                  ", output_width = "<< m_num_output_cols <<"\n";
 
   populate_adjacent_disp_lookup_table();
 
-  // By default the search bounds are the same for each image,
+  // By default the search bounds are the same for each pixel,
   //  but set them from the prior disparity image if the user passed it in.
   populate_constant_disp_bound_image();
   
-  std::cout << "Updating bound image from previous disparity.\n";
   if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity, search_buffer)) {
-    std::cout << "No valid pixels found in SGM input!.\n";
+    vw_out(WarningMessage, "stereo") << "No valid pixels found in SGM input!.\n";
     // If the inputs are invalid, return a default disparity image.
     DisparityImage disparity( m_num_output_cols, m_num_output_rows );
     return invalidate_mask(disparity);
   }
 
+  // All the hard work is done in the next few function calls!
 
-  // ==== Allocate the large amount of memory needed  ====
   allocate_large_buffers();
 
-
-
-  // ==== Compute the cost values ====
   compute_disparity_costs(left_image, right_image);
 
-  // ==== Accumulate the global costs across paths ====
-
-  // This function will go through all eight accumulation paths in two trips.
   two_trip_path_accumulation(left_image);
-
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
   return create_disparity_view();

@@ -174,12 +174,12 @@ namespace stereo {
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
     
-      std::cout << "Rasterize called with box: " << bbox << std::endl;
+      vw_out(VerboseDebugMessage, "stereo") << "Rasterize called with box: " << bbox << std::endl;
     
       BBox2i proc_bbox = bbox;
       if (m_collar_size > 0)
         proc_bbox.expand(m_collar_size);
-      std::cout << "Collared box: " << proc_bbox << std::endl;
+      vw_out(VerboseDebugMessage, "stereo") << "Collared raster box: " << proc_bbox << std::endl;
       vw::rasterize(prerasterize(proc_bbox), dest, bbox);
     }
 

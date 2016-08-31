@@ -120,7 +120,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   // - Make sure that the kernel buffer size is large enough to support the kernel
   //   buffer at the lower resolution levels!
   Vector2i region_offset = half_kernel * max_upscaling;
-  std::cout << "pyramid region offset = " << region_offset << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "pyramid region offset = " << region_offset << std::endl;
   left_global_region = bbox;
   left_global_region.expand(region_offset);
   // Region in the right image is the left region plus search range offsets
@@ -129,8 +129,8 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling); 
   // Total increase in right size = 2*region_offset + search_region_size + max_upscaling
   
-  std::cout << "Left pyramid base bbox:  " << left_global_region  << std::endl;
-  std::cout << "Right pyramid base bbox: " << right_global_region << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "Left pyramid base bbox:  " << left_global_region  << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "Right pyramid base bbox: " << right_global_region << std::endl;
   
   // Extract the lowest resolution layer
   left_pyramid      [0] = crop(edge_extend(m_left_image                        ), left_global_region );
@@ -160,8 +160,8 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   left_pyramid [0] = apply_mask(copy_mask(left_pyramid [0],create_mask(left_mask_pyramid [0],0)), left_mean  );
   right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],create_mask(right_mask_pyramid[0],0)), right_mean );
 
-  std::cout << "Left  pyramid base size = " << bounding_box(left_pyramid[0]) << std::endl;
-  std::cout << "Right pyramid base size = " << bounding_box(right_pyramid[0]) << std::endl;
+  vw_out(DebugMessage, "stereo") << "Left  pyramid base size = " << bounding_box(left_pyramid[0]) << std::endl;
+  vw_out(DebugMessage, "stereo") << "Right pyramid base size = " << bounding_box(right_pyramid[0]) << std::endl;
 
   // Reduce the mask images from the expanded-size region to the actual sized region.
   // - The mask is not used in the expanded base of support region of the image, only the main region.
@@ -189,9 +189,9 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
     left_mask_pyramid [i] = subsample_mask_by_two(left_mask_pyramid [i-1]);
     right_mask_pyramid[i] = subsample_mask_by_two(right_mask_pyramid[i-1]);
     
-    std::cout << "--- Created pyramid level " << i << std::endl;    
-    std::cout << "Left  pyramid size = " << bounding_box(left_pyramid[i]) << std::endl;
-    std::cout << "Right pyramid size = " << bounding_box(right_pyramid[i]) << std::endl;
+    vw_out(DebugMessage, "stereo") << "--- Created pyramid level " << i << std::endl;    
+    vw_out(DebugMessage, "stereo") << "Left  pyramid size = " << bounding_box(left_pyramid[i]) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Right pyramid size = " << bounding_box(right_pyramid[i]) << std::endl;
   }
 
   // Apply the prefilter to each pyramid level
@@ -242,10 +242,6 @@ template <class Image1T, class Image2T, class Mask1T, class Mask2T>
 typename PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::prerasterize_type
 PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
 prerasterize(BBox2i const& bbox) const {
-
-    std::cout << "Starting prerasterize function with bbox: " << bbox << std::endl;
-
-    std::cout << "m_search_region = " << m_search_region << std::endl;
 
     time_t start, end;
     if (m_corr_timeout){
@@ -343,11 +339,8 @@ prerasterize(BBox2i const& bbox) const {
       vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
       vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
-      std::cout << "Region Offset = " << region_offset << std::endl;
-
       // SGM method
       if (use_sgm_on_level) {
-        std::cout << "Using SGM on level " << level << std::endl;
 
         // Mimic processing in normal case with a single zone
         BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling+1,
@@ -365,19 +358,14 @@ prerasterize(BBox2i const& bbox) const {
         BBox2i right_region = left_region;
           right_region.max() += zone.disparity_range().size();
         
-        std::cout << "SGM left  bbox: " << left_region  << std::endl;
-        std::cout << "SGM right bbox: " << right_region << std::endl;
-        std::cout << "SGM disp range: " << zone.disparity_range().size() << std::endl;
-        
         // TODO: Need to get the sizes lined up properly!
         ImageView<pixel_type> *prev_disp_ptr=0; // Pass in upper level disparity
         if (level != max_pyramid_levels) {
           prev_disp_ptr = &prev_disparity;
-          std::cout << "Disparity size      = " << bounding_box(disparity     ) << std::endl;
-          std::cout << "Prev Disparity size = " << bounding_box(prev_disparity) << std::endl;
+          vw_out(VerboseDebugMessage, "stereo") << "Disparity size      = " << bounding_box(disparity     ) << std::endl;
+          vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size = " << bounding_box(prev_disparity) << std::endl;
         }
         
-        std::cout << "Fetching sgm disparity image for region " << zone.image_region() << std::endl;
         crop(disparity, zone.image_region())
           = calc_disparity_sgm(
                            crop(left_pyramid [level], left_region), 
@@ -578,8 +566,6 @@ prerasterize(BBox2i const& bbox) const {
           zone.disparity_range().crop( scale_search_region );
           
           if (zone.disparity_range().empty()) {
-            //std::cout << "Empty zone post: " << zone;
-            //std::cout << "Back: " << back << std::endl;
             zone.disparity_range() = default_disparity_range; // Reset invalid disparity!
           }
         } // End zone update loop
