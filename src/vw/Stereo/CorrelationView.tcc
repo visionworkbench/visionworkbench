@@ -417,9 +417,15 @@ prerasterize(BBox2i const& bbox) const {
           //write_image("rl_result2.tif", rl_result);
 
           // Find pixels where the disparity distance is greater than m_consistency_threshold
+          const bool aligned_images = true; // The LR and RL images line up exactly
+          const bool verbose        = true;
           stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
-                                                rl_result,
-                                               m_consistency_threshold, false);
+                                               rl_result, m_consistency_threshold, 
+                                               aligned_images, verbose);
+                     
+          //rl_result *= -1;
+          //write_image("rl_result2.tif", rl_result);
+                                               
         } // End of last level right to left disparity check
 
 
@@ -497,9 +503,11 @@ prerasterize(BBox2i const& bbox) const {
 
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
+            const bool aligned_images = false; // The LR and RL images are aligned with an offset
+            const bool verbose        = false;
             stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
                                                   rl_result,
-                                                 m_consistency_threshold, false);
+                                                 m_consistency_threshold, aligned_images, verbose);
           } // End of last level right to left disparity check
 
           // Fix the offsets to account for cropping.
