@@ -182,6 +182,9 @@ private: // Functions
   // Compute a 24 bit hamming distance from a 5x5 census transform.
   void fill_costs_census5x5(ImageView<uint8> const& left_image,
                             ImageView<uint8> const& right_image);
+  // Compute a 48 bit hamming distance from a 7x7 census transform.
+  void fill_costs_census7x7(ImageView<uint8> const& left_image,
+                            ImageView<uint8> const& right_image);
 
   /// Returns a block cost score at a given location
   CostType get_cost_block(ImageView<uint8> const& left_image,
@@ -251,10 +254,10 @@ private: // Functions
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
-  //void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
-  //  dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
-  //  dx = (disp % m_num_disp_x) + m_min_disp_x;
-  //}
+  void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
+    dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
+    dx = (disp % m_num_disp_x) + m_min_disp_x;
+  }
   
 
   //// Print out a disparity vector
@@ -352,6 +355,21 @@ private: // Functions
 }; // end class SemiGlobalMatcher
 
 
+
+//TODO: Move this function!
+/// Converts a single channel image into a uint8 image with percentile based intensity scaling.
+template <class ViewT>
+void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &output_image, int num_bins=256) {
+  // First get the min and max values
+  double min_val, max_val;
+  find_image_min_max(input_image, min_val, max_val);
+
+  // Scale the image using the computed values and convert to uint8
+  output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, min_val, max_val),
+					    min_val, max_val, 0.0, 255.0 ));
+}
+
+
 /// Wrapper function for SGM that handles ROIs.
 /// - This call is set up to be easily compatible with our existing calls in the
 ///   PyramidCorrelationView class.
@@ -394,11 +412,15 @@ template <class ImageT1, class ImageT2>
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: search_volume_inclusive = " << search_volume_inclusive << std::endl;
     
-    // TODO: Make scaling optional
-    // Convert the input image to uint8 with 2%-98% intensity scaling.
+    // Convert the input image to uint8
     ImageView<PixelGray<vw::uint8> > left, right;
-    ip::percentile_scale_convert(crop(left_in.impl(),  left_region),  left,  0.02, 0.98);
-    ip::percentile_scale_convert(crop(right_in.impl(), right_region), right, 0.02, 0.98);
+    //ip::percentile_scale_convert(crop(left_in.impl(),  left_region),  left,  0.00, 1.00); // Any stretching seems to cause problems!
+    //ip::percentile_scale_convert(crop(right_in.impl(), right_region), right, 0.00, 1.00);
+    u8_convert(crop(left_in.impl(),  left_region),  left);
+    u8_convert(crop(right_in.impl(), right_region), right);    
+    
+    //write_image("final_left.tif", left);
+    //write_image("final_right.tif", right);
     
     SemiGlobalMatcher matcher;
     matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);

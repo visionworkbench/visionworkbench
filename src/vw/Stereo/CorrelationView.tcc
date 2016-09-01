@@ -383,24 +383,38 @@ prerasterize(BBox2i const& bbox) const {
 
           // To properly perform the reverse correlation, we need to fix the ROIs
           //  to account for the different sizes of the left and right images
-          //  and make sure they line up with the previous disparity image
+          //  and make sure they line up with the previous disparity image and the
+          //  input masks.
           BBox2i right_reverse_region = zone.image_region() + region_offset - m_search_region.min();
             right_reverse_region.expand(half_kernel);
-          BBox2i left_reverse_region = zone.image_region() + region_offset + m_search_region.min();
+          BBox2i left_reverse_region = zone.image_region() + region_offset - m_search_region.max();
             left_reverse_region.expand(half_kernel);
             left_reverse_region.max() += m_search_region.size();
+
+          //write_image("prev_conv1.tif", *prev_disp_ptr);
+
+          // Convert the previous image estimates to apply to the RL operation
+          *prev_disp_ptr = pixel_type((m_search_region.max()-m_search_region.min())/2) - *prev_disp_ptr;
+          
+          //write_image("prev_conv2.tif", *prev_disp_ptr);
 
           ImageView<pixel_type> rl_result;
           rl_result = calc_disparity_sgm(
                            crop(edge_extend(right_pyramid[level]), right_reverse_region),
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
-                           right_reverse_region - right_reverse_region.min(),
+                           right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
                            m_kernel_size,
-                           &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
-                           prev_disp_ptr);
-          // Negate the disparity values to make the cross-consistency check work.
-          rl_result *= -1;
+                           &(left_mask_pyramid[level]), 
+                           &(right_mask_pyramid[level]),
+                           prev_disp_ptr); // TODO: Adjust the values to the expected disparities!!!!
+
+          //write_image("lr_result.tif", crop(disparity, zone.image_region()));
+          //write_image("rl_result.tif", rl_result);
+
+          // Convert from RL to negative LR values
+          rl_result += pixel_type(m_search_region.min()- m_search_region.max());
+          //write_image("rl_result2.tif", rl_result);
 
           // Find pixels where the disparity distance is greater than m_consistency_threshold
           stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),

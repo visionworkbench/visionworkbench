@@ -29,8 +29,8 @@ TEST( SGM, constant_offset ) {
   // For this perfect test case, the correct disparity is (2,1) for each pixel!
   int min_disp_x  = -4;
   int max_disp_x  =  4;
-  int min_disp_y  =  -3;
-  int max_disp_y  =   3;
+  int min_disp_y  =  -4;
+  int max_disp_y  =   4;
   int kernel_size = 3;
   DiskImageView<PixelGray<uint8> > inputLeft ("left.tif");
   DiskImageView<PixelGray<uint8> > inputRight("left_const_offset.tif");
@@ -61,7 +61,6 @@ TEST( SGM, constant_offset ) {
     }
   }
   double percent_correct = static_cast<double>(num_correct) / num_pixels;
-  // TODO: Improve the algorithm so that this percentage is higher!!!
-  EXPECT_GT(percent_correct, 0.95);
+  EXPECT_GT(percent_correct, 0.99);
 }
 
