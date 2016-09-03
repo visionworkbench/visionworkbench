@@ -4,6 +4,7 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/CensusTransform.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
@@ -15,97 +16,6 @@ namespace vw {
 
 namespace stereo {
 
-// It is up to the user to perform bounds checking before using these functions!
-// TODO: Move them somewhere, optimize the speed.
-uint8 get_census_value_3x3(ImageView<uint8> const& image, int col, int row) {
-  // This will be an 8 bit sequence.
-  uint8 output = 0;
-  uint8 center = image(col, row);
-  if (image(col-1, row-1) > center) output += 128;
-  if (image(col  , row-1) > center) output +=  64;
-  if (image(col+1, row-1) > center) output +=  32;
-  if (image(col-1, row  ) > center) output +=  16;
-  if (image(col+1, row  ) > center) output +=   8;
-  if (image(col-1, row+1) > center) output +=   4;
-  if (image(col  , row+1) > center) output +=   2;
-  if (image(col+1, row+1) > center) output +=   1;
-  return output;
-}
-uint32 get_census_value_5x5(ImageView<uint8> const& image, int col, int row) {
-  // This will be a 24 bit sequence.
-  uint32 output = 0;
-  uint32 addend = 1;
-  uint32 center = image(col, row);
-  for (int r=row+2; r>=row-2; --r) {
-    for (int c=col+2; c>=col-2; --c) {
-      if ((r == row) && (c==col)) // Skip the central pixel
-        continue;
-      if (image(c,r) > center)
-        output += addend;
-      addend *=2;
-    }
-  }
-  return output;
-}
-
-uint64 get_census_value_7x7(ImageView<uint8> const& image, int col, int row) {
-  // This will be a 24 bit sequence.
-  uint64 output = 0;
-  uint64 addend = 1;
-  uint64 center = image(col, row);
-  for (int r=row+3; r>=row-3; --r) {
-    for (int c=col+3; c>=col-3; --c) {
-      if ((r == row) && (c==col)) // Skip the central pixel
-        continue;
-      if (image(c,r) > center)
-        output += addend;
-      addend *=2;
-    }
-  }
-  return output;
-}
-
-// TODO: Consolidate with code in Matcher.h!
-
-/// Simple, unoptimized code for computing the hamming distance of two bytes.
-size_t hamming_distance(uint8 a, uint8 b) {
-    uint8 dist = 0;
-    uint8 val = a ^ b; // XOR
-
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
-}
-
-size_t hamming_distance(uint32 a, uint32 b) {
-    uint32 dist = 0;
-    uint32 val = a ^ b; // XOR
-
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
-}
-
-size_t hamming_distance(uint64 a, uint64 b) {
-    uint64 dist = 0;
-    uint64 val = a ^ b; // XOR
-
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
-}
 
 /// Class to make counting up "on" mask pixel in a box more efficient.
 /// - This class performs a convolution of two images where it
@@ -210,6 +120,7 @@ void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
   if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
     vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
   m_num_disp   = m_num_disp_x * m_num_disp_y;   
+  /*
    //This set of variables has a little more testing
   if (p1 > 0) // User provided
     m_p1 = p1; 
@@ -231,15 +142,16 @@ void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
     default: m_p2 = 250; break; // 0-255 scale
     };
   }
-  /*
+  */
+  
   // TODO: Select the best value for these!
   if (p1 > 0) // User provided
     m_p1 = p1; 
   else { // Choose based on the kernel size
     switch(kernel_size){
-    case 3:  m_p1 = 2;  break; // Census transform 0-8
-    case 5:  m_p1 = 8;  break; // Census transform 0-24
-    case 7:  m_p1 = 16;  break; // Census transform 0-48
+    case 3:  m_p1 = 3;  break; // Census transform 0-8
+    case 5:  m_p1 = 12;  break; // Census transform 0-24
+    case 7:  m_p1 = 30;  break; // Census transform 0-48
     default: m_p1 = 22; break; // 0-255 scale
     };
   }
@@ -248,12 +160,12 @@ void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
   else {
     switch(kernel_size){
     case 3:  m_p2 = 70;  break; // Census transform 0-8
-    case 5:  m_p2 = 150; break; // Census transform 0-24
-    case 7:  m_p2 = 300; break; // Census transform 0-48
+    case 5:  m_p2 = 300; break; // Census transform 0-24
+    case 7:  m_p2 = 1000; break; // Census transform 0-48
     default: m_p2 = 250; break; // 0-255 scale
     };
   }
-  */
+  
 }
 
 
@@ -308,6 +220,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   // There needs to be some "room" in the disparity search space for
   // us to discard prior results on the edge as not trustworthy predictors.
+  // In other words, don't mark any pixels as edge if the one dimension has search space 1!
   const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 1);
   const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 1);
 
@@ -349,31 +262,96 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // If a previous disparity was provided, see if we have a valid disparity 
       // estimate for this pixel.
       bool good_disparity = false;
+      //BBox2i nearby_range;
+      int minfx, maxfx, minfy, maxfy;
       if (prev_disparity) {
         c_in = c / SCALE_UP;
         // Verify that the pixel we want exists
         if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
           vw_throw( LogicErr() << "Size error!\n" );
         }
+
+        // Search the nearby previous disparity vectors to establist the search bounds for this vector
+        // TODO: If this works well, refactor it!        
+        const int radius = 3; // TODO: Adjust this?
+        int min_search_x = c_in - radius;
+        int max_search_x = c_in + radius;
+        int min_search_y = r_in - radius;
+        int max_search_y = r_in + radius;
+        if (min_search_x < 0) min_search_x = 0;
+        if (max_search_x > prev_disparity->cols()-1) max_search_x = prev_disparity->cols()-1;
+        if (min_search_y < 0) min_search_y = 0;
+        if (max_search_y > prev_disparity->rows()-1) max_search_y = prev_disparity->rows()-1;
+        
+        int num_invalid = 0;
+        minfx = maxfx = prev_disparity->operator()(c_in,r_in)[0];
+        minfy = maxfy = prev_disparity->operator()(c_in,r_in)[1];
+        for (int pr=min_search_y; pr<=max_search_y; ++pr) {
+          for (int pc=min_search_x; pc<=max_search_x; ++pc) {
+            // TODO: Is Bbox2::grow not working properly?
+            input_disp = prev_disparity->operator()(pc, pr);
+            //if ((r==269) && (c==36))
+            //  std::cout << "Read " << input_disp << " at " << pr << ", " << pc << std::endl;
+            if (is_valid(input_disp)){
+              //nearby_range.grow(Vector2i(input_disp[0], input_disp[1]));
+              if (input_disp[0] < minfx) minfx = input_disp[0];
+              if (input_disp[0] > maxfx) maxfx = input_disp[0];
+              if (input_disp[1] < minfy) minfy = input_disp[1];
+              if (input_disp[1] > maxfy) maxfy = input_disp[1];
+              //std::cout << "nearby_range = " << nearby_range << std::endl;
+            }
+            else
+              ++num_invalid;
+          }
+        }
+        //std::cout << "nearby_range = " << nearby_range << std::endl;
+        //nearby_range *= SCALE_UP;
+        //std::cout << "nearby_range = " << nearby_range << std::endl;
+        //nearby_range.expand(1);
+        //std::cout << "nearby_range = " << nearby_range << std::endl;
+        if (num_invalid < 30)
+          good_disparity = true;
+        //std::cout << "nearby_range = " << nearby_range << std::endl;
+        //std::cout << "input_disp = " << prev_disparity->operator()(c_in,r_in) << ", num_invalid = " << num_invalid << std::endl;
+          
+          
+        /*
         input_disp = prev_disparity->operator()(c_in,r_in);
         
         // Disparity values on the edge of our 2D search range are not considered trustworthy!
         dx_scaled = input_disp[0] * SCALE_UP; 
         dy_scaled = input_disp[1] * SCALE_UP;
         
+        // TODO: Search within a 7x7 region and get the min/max disparity values?
+        
         bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
                        || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
 
         good_disparity = (is_valid(input_disp) && !on_edge);
-      }
+        */
+        
+      } // End prev disparity check
       
       if (good_disparity) {
+      /*
         // We are more confident in the prior disparity, search nearby.
         bounds[0]  = dx_scaled - search_buffer; // Min x
         bounds[2]  = dx_scaled + search_buffer; // Max X
         bounds[1]  = dy_scaled - search_buffer; // Min y
         bounds[3]  = dy_scaled + search_buffer; // Max y
-        
+      */
+
+/*      
+        bounds[0]  = nearby_range.min().x();
+        bounds[2]  = nearby_range.max().x();
+        bounds[1]  = nearby_range.min().y();
+        bounds[3]  = nearby_range.max().y();
+*/      
+        bounds[0]  = 2*minfx-1;
+        bounds[2]  = 2*maxfx+1;
+        bounds[1]  = 2*minfy-1;
+        bounds[3]  = 2*maxfy+1;
+
         // Constrain to global limits
         if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
         if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;
@@ -385,6 +363,8 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         // Not a trusted prior disparity, search the entire range!
         bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
       }
+      //if ((r==269) && (c==36))
+      //  std::cout << "Bounds = " << bounds << std::endl;
       
       m_disp_bound_image(c,r) = bounds;
       area += (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
@@ -405,6 +385,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted    << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked     << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels  = " << percent_full_range << std::endl;
+  
+  //if (prev_disparity)
+   // vw_throw( NoImplErr() << "DEBUG!\n" );
   
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))
@@ -1079,6 +1062,22 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
   default: vw_throw( NoImplErr() << "Only census transform currently usable!\n" );
     //fill_costs_block    (left_image, right_image); break;
   };    
+/*
+ int debug_row = 10;//_num_output_rows * 0.065;
+ if (m_num_output_rows > debug_row) {
+   std::cout << "debug row = " << debug_row << std::endl;
+   ImageView<uint8> cost_image( m_num_output_cols, m_num_disp ); // TODO: Change type?
+   for ( int i = 0; i < m_num_output_cols; i++ ) {
+     CostType* buff = get_cost_vector(i, debug_row);
+     for ( int d = 0; d < m_num_disp; d++ ) {
+        //std::cout << "cost = " << int(buff[d]) << std::endl;
+       cost_image(i,d) = buff[d]; // TODO: scale!
+     }
+   }
+   write_image("scanline_costs_block.tif",cost_image);
+   std::cout << "Done writing line dump.\n";
+ }
+*/
 
 } // end compute_disparity_costs() 
 

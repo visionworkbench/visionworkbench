@@ -26,6 +26,7 @@ TestAlgorithms_SOURCES            = TestAlgorithms.cxx
 TestAntiAliasing_SOURCES          = TestAntiAliasing.cxx
 TestBlobIndex_SOURCES             = TestBlobIndex.cxx
 TestBlockRasterize_SOURCES        = TestBlockRasterize.cxx
+TestCensusTransform_SOURCE        = TestCensusTransform.cxx
 TestConvolution_SOURCES           = TestConvolution.cxx
 TestEdgeExtension_SOURCES         = TestEdgeExtension.cxx
 TestErodeView_SOURCES             = TestErodeView.cxx
@@ -55,6 +56,7 @@ TESTS = \
   TestAntiAliasing \
   TestBlobIndex \
   TestBlockRasterize \
+  TestCensusTransform \
   TestConvolution \
   TestEdgeExtension \
   TestErodeView \

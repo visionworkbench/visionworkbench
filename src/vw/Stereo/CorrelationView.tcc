@@ -342,6 +342,10 @@ prerasterize(BBox2i const& bbox) const {
       // SGM method
       if (use_sgm_on_level) {
 
+        // TODO: Remove SGM search expansion code if new method works!
+        //// Important: This is the search range expansion allowed from the previous level's results.
+        //int sgm_search_expansion = 2 + level; 
+
         // Mimic processing in normal case with a single zone
         BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling+1,
                                             m_search_region.height()/scaling+1);
@@ -372,7 +376,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size,
+                           m_kernel_size, sgm_search_expansion,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
@@ -404,7 +408,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size,
+                           m_kernel_size, sgm_search_expansion,
                            &(left_mask_pyramid[level]), 
                            &(right_mask_pyramid[level]),
                            prev_disp_ptr); // TODO: Adjust the values to the expected disparities!!!!
@@ -612,8 +616,8 @@ prerasterize(BBox2i const& bbox) const {
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
-      //if (level == 1)
-      //vw_throw( NoImplErr() << "DEBUG" );
+      //if (level <= 4)
+      //  vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop
 

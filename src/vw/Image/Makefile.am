@@ -29,6 +29,7 @@ include_HEADERS = \
   BlobIndex.h \
   BlockProcessor.h \
   BlockRasterize.h \
+  CensusTransform.h \
   Convolution.h \
   EdgeExtension.h \
   ErodeView.h \

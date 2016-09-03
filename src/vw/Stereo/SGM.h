@@ -384,6 +384,7 @@ template <class ImageT1, class ImageT2>
                      BBox2i                 const& left_region,   // Valid region in the left image
                      Vector2i               const& search_volume, // Max disparity to search in right image
                      Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                     int                    const search_buffer = 2,
                      ImageView<uint8>       const* left_mask_ptr=0,  
                      ImageView<uint8>       const* right_mask_ptr=0,
                      SemiGlobalMatcher::DisparityImage  const* prev_disparity=0){ 
@@ -424,7 +425,8 @@ template <class ImageT1, class ImageT2>
     
     SemiGlobalMatcher matcher;
     matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
+    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity,
+                                             search_buffer);
     
   } // End function calc_disparity
 
