@@ -270,7 +270,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
           vw_throw( LogicErr() << "Size error!\n" );
         }
-
+/*
         // Search the nearby previous disparity vectors to establist the search bounds for this vector
         // TODO: If this works well, refactor it!        
         const int radius = 3; // TODO: Adjust this?
@@ -313,9 +313,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
           good_disparity = true;
         //std::cout << "nearby_range = " << nearby_range << std::endl;
         //std::cout << "input_disp = " << prev_disparity->operator()(c_in,r_in) << ", num_invalid = " << num_invalid << std::endl;
+          */
           
-          
-        /*
+        
         input_disp = prev_disparity->operator()(c_in,r_in);
         
         // Disparity values on the edge of our 2D search range are not considered trustworthy!
@@ -328,30 +328,30 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
                        || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
 
         good_disparity = (is_valid(input_disp) && !on_edge);
-        */
+        
         
       } // End prev disparity check
       
       if (good_disparity) {
-      /*
+      
         // We are more confident in the prior disparity, search nearby.
         bounds[0]  = dx_scaled - search_buffer; // Min x
         bounds[2]  = dx_scaled + search_buffer; // Max X
         bounds[1]  = dy_scaled - search_buffer; // Min y
         bounds[3]  = dy_scaled + search_buffer; // Max y
-      */
+      
 
 /*      
         bounds[0]  = nearby_range.min().x();
         bounds[2]  = nearby_range.max().x();
         bounds[1]  = nearby_range.min().y();
         bounds[3]  = nearby_range.max().y();
-*/      
+*/      /*
         bounds[0]  = 2*minfx-1;
         bounds[2]  = 2*maxfx+1;
         bounds[1]  = 2*minfy-1;
         bounds[3]  = 2*maxfy+1;
-
+*/
         // Constrain to global limits
         if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
         if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;

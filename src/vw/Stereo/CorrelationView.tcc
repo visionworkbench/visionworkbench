@@ -376,7 +376,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size, sgm_search_expansion,
+                           m_kernel_size,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
@@ -408,7 +408,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size, sgm_search_expansion,
+                           m_kernel_size, 
                            &(left_mask_pyramid[level]), 
                            &(right_mask_pyramid[level]),
                            prev_disp_ptr); // TODO: Adjust the values to the expected disparities!!!!
