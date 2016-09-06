@@ -16,6 +16,28 @@
 # __END_LICENSE__
 
 
+Latest instructions
+===================
+
+For many years now, Vision Workbench work has not been funded. It is
+now only used as a prerequisite for building the NASA Ames Stereo
+Pipeline (ASP), see
+
+https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/
+
+The surest and the only supported way of building VW is now by
+building ASP itself, using the BinaryBuilder Python tool. Detailed
+instructions are available at
+
+https://github.com/NeoGeographyToolkit/StereoPipeline/blob/master/INSTALLGUIDE
+
+If you want to build Vision Workbench only, the script build.py that
+you will end up using can be edited to turn off building of osg3,
+isis, glog, ceres, libnabo, libpointmatcher, gflags, imagemagic,
+theia, and stereopipeline.
+
+The instructions below are partially obsolete, and not updated.
+
 Requirements
 ============
 
