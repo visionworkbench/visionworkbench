@@ -166,7 +166,7 @@ inline bool overwrite_if_no_good(std::string const& input_file,
     // more than the input scale factor.  Also return the precise subsample
     // factor used and the region at that scale level.
     void get_image_clip(double scale_in, BBox2i region_in,
-                      ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out);
+                      ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out) const;
 
     ~DiskImagePyramid() {}
 
@@ -346,7 +346,7 @@ DiskImagePyramid<PixelT>::DiskImagePyramid(std::string const& base_file,
 
 template <class PixelT>
 void DiskImagePyramid<PixelT>::get_image_clip(double scale_in, BBox2i region_in,
-                  ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out) {
+                  ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out) const {
 
   if (m_pyramid.empty())
     vw_throw( ArgumentErr() << "Uninitialized image pyramid.\n");
