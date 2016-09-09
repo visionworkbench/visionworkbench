@@ -78,7 +78,8 @@ int main( int argc, char *argv[] ) {
       ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
       ("ykernel",    po::value(&ykernel)->default_value(15),     "Vertical correlation kernel size")
       ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
-      ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
+      ("correlator-type", po::value(&correlator_type)->default_value(0), 
+                          "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr; 3 - Census")
       //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
       ("blob-filter-area",   po::value(&blob_filter_area)->default_value(0),     "Filter blobs of this size.")
       ("threads",            po::value(&nThreads)->default_value(0),    "Manually specify the number of threads")
@@ -161,11 +162,14 @@ int main( int argc, char *argv[] ) {
 
     bool write_debug_images = (vm.count("debug"));
 
-    stereo::CostFunctionType corr_type = ABSOLUTE_DIFFERENCE;
-    if (correlator_type == 1)
-      corr_type = SQUARED_DIFFERENCE;
-    else if (correlator_type == 2)
-      corr_type = CROSS_CORRELATION;
+    stereo::CostFunctionType corr_type;
+    switch(correlator_type) {
+      case 0: corr_type = ABSOLUTE_DIFFERENCE; break;
+      case 1: corr_type = SQUARED_DIFFERENCE;  break;
+      case 2: corr_type = CROSS_CORRELATION;   break;
+      case 3: corr_type = CENSUS_TRANSFORM;    break;
+      default: vw_throw( NoImplErr() << "Invalid correlation type entered!\n" );
+    };
 
     ImageViewRef<PixelMask<Vector2i> > disparity_map;
     int corr_timeout = 0;

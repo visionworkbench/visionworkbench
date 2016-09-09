@@ -16,7 +16,6 @@ namespace vw {
 
 namespace stereo {
 
-
 /// Class to make counting up "on" mask pixel in a box more efficient.
 /// - This class performs a convolution of two images where it
 ///   computes the a percentage of nonzero pixels in the window.
@@ -105,9 +104,11 @@ private:
 
 //=========================================================================
 
-void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
+void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
+                                       int min_disp_x, int min_disp_y,
                                        int max_disp_x, int max_disp_y,
                                        int kernel_size, uint16 p1, uint16 p2) {
+  m_cost_type   = cost_type;
   m_min_disp_x  = min_disp_x;
   m_min_disp_y  = min_disp_y;
   m_max_disp_x  = max_disp_x;
@@ -152,6 +153,7 @@ void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
     case 3:  m_p1 = 3;  break; // Census transform 0-8
     case 5:  m_p1 = 12;  break; // Census transform 0-24
     case 7:  m_p1 = 30;  break; // Census transform 0-48
+    //case 7:  m_p1 = 34;  break; // Census transform 0-48
     default: m_p1 = 22; break; // 0-255 scale
     };
   }
@@ -162,6 +164,7 @@ void SemiGlobalMatcher::set_parameters(int min_disp_x, int min_disp_y,
     case 3:  m_p2 = 70;  break; // Census transform 0-8
     case 5:  m_p2 = 300; break; // Census transform 0-24
     case 7:  m_p2 = 1000; break; // Census transform 0-48
+    //case 7:  m_p2 = 2000; break; // Census transform 0-48
     default: m_p2 = 250; break; // 0-255 scale
     };
   }
@@ -175,7 +178,7 @@ void SemiGlobalMatcher::populate_constant_disp_bound_image() {
   // Fill it up with an identical vector
   Vector4i bounds_vector(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y);
   size_t buffer_size = m_num_output_cols*m_num_output_rows;
-  std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector); 
+  std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector);
 }
 
 bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
@@ -270,59 +273,12 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
           vw_throw( LogicErr() << "Size error!\n" );
         }
-/*
-        // Search the nearby previous disparity vectors to establist the search bounds for this vector
-        // TODO: If this works well, refactor it!        
-        const int radius = 3; // TODO: Adjust this?
-        int min_search_x = c_in - radius;
-        int max_search_x = c_in + radius;
-        int min_search_y = r_in - radius;
-        int max_search_y = r_in + radius;
-        if (min_search_x < 0) min_search_x = 0;
-        if (max_search_x > prev_disparity->cols()-1) max_search_x = prev_disparity->cols()-1;
-        if (min_search_y < 0) min_search_y = 0;
-        if (max_search_y > prev_disparity->rows()-1) max_search_y = prev_disparity->rows()-1;
-        
-        int num_invalid = 0;
-        minfx = maxfx = prev_disparity->operator()(c_in,r_in)[0];
-        minfy = maxfy = prev_disparity->operator()(c_in,r_in)[1];
-        for (int pr=min_search_y; pr<=max_search_y; ++pr) {
-          for (int pc=min_search_x; pc<=max_search_x; ++pc) {
-            // TODO: Is Bbox2::grow not working properly?
-            input_disp = prev_disparity->operator()(pc, pr);
-            //if ((r==269) && (c==36))
-            //  std::cout << "Read " << input_disp << " at " << pr << ", " << pc << std::endl;
-            if (is_valid(input_disp)){
-              //nearby_range.grow(Vector2i(input_disp[0], input_disp[1]));
-              if (input_disp[0] < minfx) minfx = input_disp[0];
-              if (input_disp[0] > maxfx) maxfx = input_disp[0];
-              if (input_disp[1] < minfy) minfy = input_disp[1];
-              if (input_disp[1] > maxfy) maxfy = input_disp[1];
-              //std::cout << "nearby_range = " << nearby_range << std::endl;
-            }
-            else
-              ++num_invalid;
-          }
-        }
-        //std::cout << "nearby_range = " << nearby_range << std::endl;
-        //nearby_range *= SCALE_UP;
-        //std::cout << "nearby_range = " << nearby_range << std::endl;
-        //nearby_range.expand(1);
-        //std::cout << "nearby_range = " << nearby_range << std::endl;
-        if (num_invalid < 30)
-          good_disparity = true;
-        //std::cout << "nearby_range = " << nearby_range << std::endl;
-        //std::cout << "input_disp = " << prev_disparity->operator()(c_in,r_in) << ", num_invalid = " << num_invalid << std::endl;
-          */
-          
-        
+
         input_disp = prev_disparity->operator()(c_in,r_in);
         
         // Disparity values on the edge of our 2D search range are not considered trustworthy!
         dx_scaled = input_disp[0] * SCALE_UP; 
         dy_scaled = input_disp[1] * SCALE_UP;
-        
-        // TODO: Search within a 7x7 region and get the min/max disparity values?
         
         bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
                        || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
@@ -340,18 +296,6 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         bounds[1]  = dy_scaled - search_buffer; // Min y
         bounds[3]  = dy_scaled + search_buffer; // Max y
       
-
-/*      
-        bounds[0]  = nearby_range.min().x();
-        bounds[2]  = nearby_range.max().x();
-        bounds[1]  = nearby_range.min().y();
-        bounds[3]  = nearby_range.max().y();
-*/      /*
-        bounds[0]  = 2*minfx-1;
-        bounds[2]  = 2*maxfx+1;
-        bounds[1]  = 2*minfy-1;
-        bounds[3]  = 2*maxfy+1;
-*/
         // Constrain to global limits
         if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
         if (bounds[1] < m_min_disp_y) bounds[1] = m_min_disp_y;
@@ -869,9 +813,8 @@ SemiGlobalMatcher::create_disparity_view() {
   }
   return disparity;
 }
-/*
-// TODO: Remove this code and stick to the census cost functions!
-// - Do this later, cost propagation is the real bottleneck.
+
+// TODO: Replace with ASP implementation?
 SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
                ImageView<uint8> const& right_image,
                int left_x, int left_y, int right_x, int right_y, bool debug) {
@@ -899,23 +842,33 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
 void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
                                          ImageView<uint8> const& right_image){
   // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  size_t cost_index = 0;
   for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+    int output_row = r - m_min_row;
+    int input_row  = r;
+    int census_row = r - 1;
     for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
-        
-      size_t d=0;
-      for ( int dy = m_min_disp_y; dy <= m_max_disp_y; dy++ ) { // For each disparity
-        for ( int dx = m_min_disp_x; dx <= m_max_disp_x; dx++ ) {
-          bool debug = false;
+      int output_col = c - m_min_col;
+      int input_col  = c;
+      int census_col = c-1;
+      
+      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
+
+      // Only compute costs in the search radius for this pixel    
+      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
+        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {          
           
-          CostType cost = get_cost_block(left_image, right_image, c, r, c+dx,r+dy, debug);
+          CostType cost = get_cost_block(left_image, right_image, c, r, c+dx,r+dy, false);
           m_cost_buffer[cost_index] = cost;
-          ++d; // Disparity values are stored in a vector for convenience.
+          ++cost_index;
         }    
       } // End disparity loops   
     } // End x loop
   }// End y loop
+  
+  
 }
-*/
+
 
 
 // Unfortunately the census code is duplicated due to the different data types required.
@@ -1020,10 +973,10 @@ void SemiGlobalMatcher::fill_costs_census7x7   (ImageView<uint8> const& left_ima
                    
   for ( int r = 0; r < left_census.rows(); r++ )
     for ( int c = 0; c < left_census.cols(); c++ )
-      left_census(c,r) = get_census_value_7x7(left_image, c+2, r+2);
+      left_census(c,r) = get_census_value_7x7(left_image, c+3, r+3);
   for ( int r = 0; r < right_census.rows(); r++ )
     for ( int c = 0; c < right_census.cols(); c++ )
-      right_census(c,r) = get_census_value_7x7(right_image, c+2, r+2);
+      right_census(c,r) = get_census_value_7x7(right_image, c+3, r+3);
   
   // Now compute the disparity costs for each pixel.
   // Make sure we don't go out of bounds here due to the disparity shift and kernel.
@@ -1049,29 +1002,42 @@ void SemiGlobalMatcher::fill_costs_census7x7   (ImageView<uint8> const& left_ima
         }    
       } // End disparity loops   
     } // End x loop
-  }// End y loop
+  }// End y loop 
 }
 
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {  
   //Timer timer("\tSGM Cost Calculation");
-  switch(m_kernel_size) {
-  case 3:  fill_costs_census3x3(left_image, right_image); break;
-  case 5:  fill_costs_census5x5(left_image, right_image); break;
-  case 7:  fill_costs_census7x7(left_image, right_image); break;
-  default: vw_throw( NoImplErr() << "Only census transform currently usable!\n" );
-    //fill_costs_block    (left_image, right_image); break;
-  };    
+  if (m_cost_type == CENSUS_TRANSFORM) {
+    switch(m_kernel_size) {
+    case 3:  fill_costs_census3x3(left_image, right_image); break;
+    case 5:  fill_costs_census5x5(left_image, right_image); break;
+    case 7:  fill_costs_census7x7(left_image, right_image); break;
+    default: vw_throw( NoImplErr() << "Census transform is only available in size 3, 5, and 7!\n" );
+    };
+  }
+  else { // Use the default mean of diff cost function
+    // TODO: Replace this with ASP's efficient existing cost functions!
+    fill_costs_block(left_image, right_image);
+  }
+  
 /*
- int debug_row = 10;//_num_output_rows * 0.065;
+ int debug_row = m_num_output_rows * 0.5;
  if (m_num_output_rows > debug_row) {
    std::cout << "debug row = " << debug_row << std::endl;
    ImageView<uint8> cost_image( m_num_output_cols, m_num_disp ); // TODO: Change type?
+   std::fill(cost_image.data(), cost_image.data()+m_num_output_cols*m_num_disp, 255);
    for ( int i = 0; i < m_num_output_cols; i++ ) {
      CostType* buff = get_cost_vector(i, debug_row);
-     for ( int d = 0; d < m_num_disp; d++ ) {
-        //std::cout << "cost = " << int(buff[d]) << std::endl;
-       cost_image(i,d) = buff[d]; // TODO: scale!
+     Vector4i bounds = m_disp_bound_image(i,debug_row);
+     int index = 0;
+     for ( int dy = bounds[1]; dy < bounds[3]; dy++ ) {
+       for ( int dx = bounds[0]; dx < bounds[2]; dx++ ) {
+         int d = xy_to_disp(dx, dy);
+         //std::cout << "cost = " << int(buff[d]) << std::endl;
+         cost_image(i,d) = buff[index]; // TODO: scale!
+         ++index;
+       }
      }
    }
    write_image("scanline_costs_block.tif",cost_image);

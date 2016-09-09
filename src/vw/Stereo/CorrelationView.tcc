@@ -344,7 +344,7 @@ prerasterize(BBox2i const& bbox) const {
 
         // TODO: Remove SGM search expansion code if new method works!
         //// Important: This is the search range expansion allowed from the previous level's results.
-        //int sgm_search_expansion = 2 + level; 
+        int sgm_search_expansion = 4 + level; 
 
         // Mimic processing in normal case with a single zone
         BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling+1,
@@ -371,7 +371,7 @@ prerasterize(BBox2i const& bbox) const {
         }
         
         crop(disparity, zone.image_region())
-          = calc_disparity_sgm(
+          = calc_disparity_sgm(m_cost_type,
                            crop(left_pyramid [level], left_region), 
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
@@ -403,7 +403,7 @@ prerasterize(BBox2i const& bbox) const {
           //write_image("prev_conv2.tif", *prev_disp_ptr);
 
           ImageView<pixel_type> rl_result;
-          rl_result = calc_disparity_sgm(
+          rl_result = calc_disparity_sgm(m_cost_type,
                            crop(edge_extend(right_pyramid[level]), right_reverse_region),
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
@@ -616,7 +616,7 @@ prerasterize(BBox2i const& bbox) const {
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
-      //if (level <= 4)
+      //if (level < 4)
       //  vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop

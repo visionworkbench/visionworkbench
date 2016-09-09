@@ -181,7 +181,8 @@ namespace stereo {
   enum CostFunctionType {
     ABSOLUTE_DIFFERENCE,
     SQUARED_DIFFERENCE,
-    CROSS_CORRELATION
+    CROSS_CORRELATION,
+    CENSUS_TRANSFORM
   };
 
   template <class ImageT, bool IsInteger>

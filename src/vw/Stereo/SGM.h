@@ -68,11 +68,12 @@ public: // Functions
   SemiGlobalMatcher() {} ///< Default constructor
 
   /// Set set_parameters for details
-  SemiGlobalMatcher(int min_disp_x, int min_disp_y,
+  SemiGlobalMatcher(CostFunctionType cost_type,
+                    int min_disp_x, int min_disp_y,
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
                     uint16 p1=0, uint16 p2=0) {
-    set_parameters(min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
+    set_parameters(cost_type, min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
   }
 
   /// Set the parameters to be used for future SGM calls
@@ -81,7 +82,8 @@ public: // Functions
   ///   Otherwise a simple averaging over a block method will be used.
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
   ///   If not provided, they well be set to defaults according to the kernel size.
-  void set_parameters(int min_disp_x, int min_disp_y,
+  void set_parameters(CostFunctionType cost_type,
+                      int min_disp_x, int min_disp_y,
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
                       uint16 p1=0, uint16 p2=0);
@@ -105,6 +107,7 @@ private: // Variables
     int m_min_disp_x, m_min_disp_y;
     int m_max_disp_x, m_max_disp_y;
     int m_kernel_size; ///< Must be odd. Use "1" for single pixel.
+    CostFunctionType m_cost_type;
 
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
@@ -379,7 +382,8 @@ void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw:
 /// - TODO: Merge with the function in Correlation.h?
 template <class ImageT1, class ImageT2>
   ImageView<PixelMask<Vector2i> >
-  calc_disparity_sgm(ImageViewBase<ImageT1> const& left_in,
+  calc_disparity_sgm(CostFunctionType cost_type,
+                     ImageViewBase<ImageT1> const& left_in,
                      ImageViewBase<ImageT2> const& right_in,
                      BBox2i                 const& left_region,   // Valid region in the left image
                      Vector2i               const& search_volume, // Max disparity to search in right image
@@ -422,9 +426,9 @@ template <class ImageT1, class ImageT2>
     //write_image("final_left.tif", left);
     //write_image("final_right.tif", right);
     
-    SemiGlobalMatcher matcher;
-    matcher.set_parameters(0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
+    SemiGlobalMatcher matcher(cost_type, 0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
+    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity,
+                                             search_buffer);
     
   } // End function calc_disparity
 
