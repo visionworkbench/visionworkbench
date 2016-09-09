@@ -427,8 +427,7 @@ template <class ImageT1, class ImageT2>
     //write_image("final_right.tif", right);
     
     SemiGlobalMatcher matcher(cost_type, 0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity,
-                                             search_buffer);
+    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity
 

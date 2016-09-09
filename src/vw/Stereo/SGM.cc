@@ -265,8 +265,6 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // If a previous disparity was provided, see if we have a valid disparity 
       // estimate for this pixel.
       bool good_disparity = false;
-      //BBox2i nearby_range;
-      int minfx, maxfx, minfy, maxfy;
       if (prev_disparity) {
         c_in = c / SCALE_UP;
         // Verify that the pixel we want exists
@@ -446,8 +444,8 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   if (p2_mod < m_p1)
     p2_mod = m_p1;
 
-  int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
-  int num_disparities_p = get_num_disparities(col_p, row_p);
+  //int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
+  //int num_disparities_p = get_num_disparities(col_p, row_p);
 
   Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
   Vector4i pixel_disp_bounds_p = m_disp_bound_image(col_p, row_p);
@@ -845,12 +843,10 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
   size_t cost_index = 0;
   for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
     int output_row = r - m_min_row;
-    int input_row  = r;
-    int census_row = r - 1;
+    //int input_row  = r;
     for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
       int output_col = c - m_min_col;
-      int input_col  = c;
-      int census_col = c-1;
+      //int input_col  = c;
       
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
 
@@ -897,11 +893,11 @@ void SemiGlobalMatcher::fill_costs_census3x3   (ImageView<uint8> const& left_ima
   size_t cost_index = 0;
   for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
     int output_row = r - m_min_row;
-    int input_row  = r;
+    //int input_row  = r;
     int census_row = r - 1;
     for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
       int output_col = c - m_min_col;
-      int input_col  = c;
+      //int input_col  = c;
       int census_col = c-1;
       
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
@@ -941,11 +937,11 @@ void SemiGlobalMatcher::fill_costs_census5x5   (ImageView<uint8> const& left_ima
   size_t cost_index = 0;
   for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
     int output_row = r - m_min_row;
-    int input_row  = r;
+    //int input_row  = r;
     int census_row = r - 2;
     for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
       int output_col = c - m_min_col;
-      int input_col  = c;
+      //int input_col  = c;
       int census_col = c-2;
       
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);

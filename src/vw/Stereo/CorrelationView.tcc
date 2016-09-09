@@ -342,10 +342,6 @@ prerasterize(BBox2i const& bbox) const {
       // SGM method
       if (use_sgm_on_level) {
 
-        // TODO: Remove SGM search expansion code if new method works!
-        //// Important: This is the search range expansion allowed from the previous level's results.
-        int sgm_search_expansion = 4 + level; 
-
         // Mimic processing in normal case with a single zone
         BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling+1,
                                             m_search_region.height()/scaling+1);
