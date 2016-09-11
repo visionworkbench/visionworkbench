@@ -133,10 +133,10 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   vw_out(VerboseDebugMessage, "stereo") << "Right pyramid base bbox: " << right_global_region << std::endl;
   
   // Extract the lowest resolution layer
-  left_pyramid      [0] = crop(edge_extend(m_left_image                        ), left_global_region );
-  right_pyramid     [0] = crop(edge_extend(m_right_image                       ), right_global_region);
-  left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ConstantEdgeExtension()), left_global_region );
-  right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ConstantEdgeExtension()), right_global_region);
+  left_pyramid      [0] = crop(edge_extend(m_left_image                    ), left_global_region );
+  right_pyramid     [0] = crop(edge_extend(m_right_image                   ), right_global_region);
+  left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_global_region );
+  right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ZeroEdgeExtension()), right_global_region);
 
 #if VW_DEBUG_LEVEL > 0
   VW_OUT(DebugMessage,"stereo") << " > Left ROI: "    << left_global_region
