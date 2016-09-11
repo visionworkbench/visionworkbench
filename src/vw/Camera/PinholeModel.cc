@@ -377,48 +377,6 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file.close();
 }
 
-/* Writer for the binary .pinhole file we no longer use
-void PinholeModel::write(std::string const& filename) const {
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-  std::string output_file =
-    fs::path(filename).replace_extension(".pinhole").string();
-
-  TsaiFile file;
-  file.add_focal_length( m_fu );
-  file.add_focal_length( m_fv );
-  file.add_center_point( m_cu );
-  file.add_center_point( m_cv );
-  file.set_pixel_pitch( m_pixel_pitch );
-
-  std::copy(m_u_direction.begin(), m_u_direction.end(),
-            RepeatedFieldBackInserter(file.mutable_u_direction()));
-  std::copy(m_v_direction.begin(), m_v_direction.end(),
-            RepeatedFieldBackInserter(file.mutable_v_direction()));
-  std::copy(m_w_direction.begin(), m_w_direction.end(),
-            RepeatedFieldBackInserter(file.mutable_w_direction()));
-  std::copy(m_camera_center.begin(), m_camera_center.end(),
-            RepeatedFieldBackInserter(file.mutable_camera_center()));
-
-  std::copy(m_rotation.begin(), m_rotation.end(),
-            RepeatedFieldBackInserter(file.mutable_camera_rotation()));
-
-  file.set_distortion_name( m_distortion->name() );
-  Vector<double> distort_vec = m_distortion->distortion_parameters();
-  std::copy(distort_vec.begin(),distort_vec.end(),
-            RepeatedFieldBackInserter(file.mutable_distortion_vector()));
-
-  std::ofstream output(output_file.c_str());
-  if( !output.is_open() )
-    vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
-  file.SerializeToOstream( &output );
-  output.close();
-#else
-  // If you hit this point, you need to install Google Protobuffers to
-  // be in order to write.
-  vw_throw( IOErr() << "Pinhole::write_file: Camera IO not supported without Google Protobuffers" );
-#endif
-}
-*/
 
 Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
 
@@ -630,32 +588,26 @@ void PinholeModel::rebuild_camera_matrix() {
 
 
 PinholeModel
-camera::scale_camera(PinholeModel const& camera_model,
-                     float scale) {
-  Vector2 focal = camera_model.focal_length();
+camera::scale_camera(PinholeModel const& camera_model, float scale) {
+  if (scale == 0)
+    vw_throw( ArgumentErr() << "PinholeModel::scale_camera cannot have zero scale value!" );
+  // Scaling the camera is easy, just update the pixel pitch to account for the new image size.
+  Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
-  focal *= scale;
-  offset *= scale;
   boost::shared_ptr<LensDistortion> lens = camera_model.lens_distortion()->copy();
-  lens->scale( scale );
   return PinholeModel( camera_model.camera_center(),
                        camera_model.camera_pose().rotation_matrix(),
                        focal[0], focal[1], offset[0], offset[1],
                        camera_model.coordinate_frame_u_direction(),
                        camera_model.coordinate_frame_v_direction(),
                        camera_model.coordinate_frame_w_direction(),
-                       *lens );
+                       *lens,
+                       camera_model.pixel_pitch()/scale);
 }
 
-//   /// Given two pinhole camera models, this method returns two new camera
-//   /// models that have been epipolar rectified.
-//   template <>
-//   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0,
-//                 PinholeModel<NoLensDistortion> const& src_camera1,
-//                 PinholeModel<NoLensDistortion> &dst_camera0,
-//                 PinholeModel<NoLensDistortion> &dst_camera1);
+
 PinholeModel
-camera::linearize_camera(PinholeModel const& camera_model) {
+camera::strip_lens_distortion(PinholeModel const& camera_model) {
   Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   NullLensDistortion distortion;
@@ -665,7 +617,7 @@ camera::linearize_camera(PinholeModel const& camera_model) {
                       camera_model.coordinate_frame_u_direction(),
                       camera_model.coordinate_frame_v_direction(),
                       camera_model.coordinate_frame_w_direction(),
-                      distortion);
+                      distortion, camera_model.pixel_pitch());
 }
 
 std::ostream& camera::operator<<(std::ostream& str,

@@ -137,8 +137,8 @@ TEST( PinholeModel, ScalePinhole ) {
   Vector2 o_return = pinhole4.point_to_pixel(point);
   Vector2 s_return = scaled.point_to_pixel(point);
 
-  EXPECT_NEAR(o_return[0],s_return[0]*10,5); // Lens distortion doesn't
-  EXPECT_NEAR(o_return[1],s_return[1]*10,5); // seem to be too accurate
+  EXPECT_NEAR(o_return[0],s_return[0]*10,1);
+  EXPECT_NEAR(o_return[1],s_return[1]*10,1);
 }
 
 TEST( PinholeModel, ProjectiveMatrix ) {

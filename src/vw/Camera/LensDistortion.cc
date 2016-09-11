@@ -66,9 +66,9 @@ Vector2
 LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
-  Vector2 solution =
-    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
-  VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "undistorted_coordinates: failed to converge." );
+  Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
+  //VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, 
+  //                 PixelToRayErr() << "undistorted_coordinates: failed to converge." );
   return solution;
 }
 
@@ -76,9 +76,9 @@ vw::Vector2
 LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   DistortOptimizeFunctor model(cam, *this);
   int status;
-  Vector2 solution =
-    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
-  VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "distorted_coordinates: failed to converge." );
+  Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
+  //VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, 
+  //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
   return solution;
 }
 

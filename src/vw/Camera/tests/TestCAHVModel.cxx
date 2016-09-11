@@ -42,9 +42,12 @@ TEST( CAHVModel, PinholeConversion ) {
   pose(2,1) = 0.0404825952867597;
   pose(2,2) = 0.993981165094699;
 
-  // Create fictitious Canon Rebel XT
+  // Create pinhole camera
+  double pixel_pitch = 0.1; // Make sure CAHV conversion handles pitch != 1.0
+  double f = 4210 * pixel_pitch;
+  double c = 0;
   PinholeModel pinhole( Vector3( -57.315, 13.2, -106.947 ),
-                        pose, 4210, 4210, 0, 0 );
+                        pose, f, f, c, c, pixel_pitch );
 
   CAHVModel test_a(pinhole); // One routine
   CAHVModel test_b;

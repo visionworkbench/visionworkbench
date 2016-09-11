@@ -37,7 +37,7 @@ namespace camera{
   /// linearized destination camera.
   ///
   /// NOTE: The pixel_to_vector/vector_to_pixel calling sequence only
-  /// works if both cameras have the some camera center (focal point).
+  /// works if both cameras have the same camera center (focal point).
   /// If the camera centers do not match it will vw_throw an exception.
   ///
   template <class SrcCameraT, class DstCameraT>
@@ -53,12 +53,10 @@ namespace camera{
       VW_ASSERT(m_src_camera.camera_center(p) == m_dst_camera.camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
 
-      // (1) Call src PixelToVector to find the vector emanating from
-      //     the camera center.
+      // (1) Call src PixelToVector to find the vector emanating from the camera center.
       Vector3 vec = m_dst_camera.pixel_to_vector(p);
 
-      // (2) take resulting vector and call dest camera's
-      //     VectorToPixel on it
+      // (2) take resulting vector and call dest camera's VectorToPixel on it
       return m_src_camera.point_to_pixel(vec+m_dst_camera.camera_center(p));
     }
 
@@ -68,12 +66,10 @@ namespace camera{
       VW_ASSERT(m_src_camera.camera_center(p) == m_dst_camera.camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
 
-      // (1) Call src PixelToVector to find the vector emanating from
-      //     the camera center.
+      // (1) Call src PixelToVector to find the vector emanating from the camera center.
       Vector3 vec = m_src_camera.pixel_to_vector(p);
 
-      // (2) take resulting vector and call dest camera's
-      //     VectorToPixel on it.
+      // (2) take resulting vector and call dest camera's VectorToPixel on it.
       return m_dst_camera.point_to_pixel(vec+m_src_camera.camera_center(p));
     }
 

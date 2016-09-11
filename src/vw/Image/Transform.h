@@ -946,9 +946,9 @@ namespace vw {
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT> >::type
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func,
-                    EdgeT const& edge_func,
-                    InterpT const& interp_func ) {
+                    TransformT            const& transform_func,
+                    EdgeT                 const& edge_func,
+                    InterpT               const& interp_func ) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func);
   }
@@ -958,8 +958,8 @@ namespace vw {
   template <class ImageT, class TransformT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func,
-                    EdgeT const& edge_func ) {
+                    TransformT            const& transform_func,
+                    EdgeT                 const& edge_func ) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func);
   }
@@ -969,7 +969,7 @@ namespace vw {
   template <class ImageT, class TransformT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func ) {
+                    TransformT            const& transform_func ) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func);
   }

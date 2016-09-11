@@ -70,6 +70,8 @@ namespace camera {
               Vector3 const& V_vec);
 
     /// Initialize a CAHV model from a pinhole model
+    /// - Since the CAHV model does not support lens distortion, any lens
+    ///   distortion information is simply lost.
     CAHVModel(PinholeModel const& pin_model);
 
     CAHVModel operator= (PinholeModel const& pin_model);
@@ -77,8 +79,7 @@ namespace camera {
     virtual std::string type() const;
 
     /// Initialize the CAHV vectors indirectly using pinhole camera
-    /// parameters.  In this variant, the view matrix is supplied
-    /// directly.
+    /// parameters.  In this variant, the view matrix is supplied directly.
     ///
     /// f         - focal length in world units
     /// pixel_size - (width, height) of a pixel on the image plane in world units
@@ -95,8 +96,7 @@ namespace camera {
               double xmin, double /*xmax*/, double ymin, double /*ymax*/,
               math::Matrix<double, 4, 4> const& view_matrix);
 
-    /// Initialize the CAHV vectors indirectly using pinhole camera
-    /// parameters:
+    /// Initialize the CAHV vectors indirectly using pinhole camera parameters:
     ///
     /// f         - focal length in world units
     /// pixel_size - (width, height) of a pixel on the image plane in world units
@@ -111,16 +111,16 @@ namespace camera {
     ///
     CAHVModel(double f, Vector2 const& pixel_size, double Hc, double Vc,
               Vector3 const& Cinit, Vector3 const& Ainit,
-              Vector3 const& Hvec, Vector3 const& Vvec);
+              Vector3 const& Hvec,  Vector3 const& Vvec);
 
     virtual ~CAHVModel() {}
 
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
-    virtual Vector2 point_to_pixel(Vector3 const& point) const;
-    virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Vector2 point_to_pixel (Vector3 const& point) const;
+    virtual Vector3 pixel_to_vector(Vector2 const& pix  ) const;
+    virtual Vector3 camera_center  (Vector2 const& /*pix*/ = Vector2() ) const;
 
     /// Write CAHV model to file
     void write(std::string const& filename);
@@ -140,8 +140,8 @@ namespace camera {
 
   /// Given two CAHV camera models, this method returns two new camera
   /// models that have been epipolar rectified.
-  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
-                CAHVModel &dst_camera0, CAHVModel &dst_camera1);
+  void epipolar(CAHVModel const &src_camera0, CAHVModel const &src_camera1,
+                CAHVModel       &dst_camera0, CAHVModel       &dst_camera1);
 
   std::ostream& operator<<(std::ostream& str, CAHVModel const& model);
 

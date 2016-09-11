@@ -49,6 +49,7 @@ include_HEADERS =   \
   CAHVORModel.h     \
   CameraModel.h     \
   CameraTransform.h \
+  CameraUtilities.h \
   ExifData.h        \
   Exif.h            \
   PinholeModel.h    \

@@ -42,7 +42,7 @@ namespace vw {
   /// \cond INTERNAL
   // Stub classes defining common interpolation modes.  You may define
   // your own class similar to those that appear below.  The stub class
-  // must functor must have an Interpolator type function that returns
+  // functor must have an Interpolator type function that returns
   // the type of the interpolation functor, and a static interpolator()
   // function that returns the interpolator itself.  For simple
   // functions, the stub class and the interpolation function may be

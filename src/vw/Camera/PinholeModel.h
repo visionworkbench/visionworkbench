@@ -284,23 +284,20 @@ namespace camera {
     bool construct_lens_distortion(std::string const& config_line);
   };
 
-  //   /// Given two pinhole camera models, this method returns two new camera
-  //   /// models that have been epipolar rectified.
-  //   template <>
-  //   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0,
-  //                 PinholeModel<NoLensDistortion> const& src_camera1,
-  //                 PinholeModel<NoLensDistortion> &dst_camera0,
-  //                 PinholeModel<NoLensDistortion> &dst_camera1);
+  // TODO: Any use for an epipolar alignment function that operates on pinhole cameras?
 
   /// Used to modify camera in the event to user resizes the image
-  PinholeModel scale_camera(PinholeModel const& camera_model,
-                            float scale);
-  /// ???
-  PinholeModel linearize_camera(PinholeModel const& camera_model);
+  /// - Under the hood all this does is change the pixel pitch.
+  PinholeModel scale_camera(PinholeModel const& camera_model, float scale);
+                            
+  /// Returns a copy of the camera model with no lens distortion.
+  /// - This does not account for the distortion in any way, 
+  ///   it just removes the distortion model!
+  PinholeModel strip_lens_distortion(PinholeModel const& camera_model);
 
   /// Write a description of a PinholeModel to the stream.
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);
 
 }}      // namespace vw::camera
 
-#endif  //__CAMERAMODEL_CAHV_H__
+#endif  //__CAMERAMODEL_PINHOLE_H__

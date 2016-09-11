@@ -55,33 +55,26 @@ namespace camera {
 
   /// Initialize a CAHV model from a pinhole model
   CAHVModel::CAHVModel(PinholeModel const& pin_model) {
-    //  Intrinsic parametes (in pixel units)
-    Vector2 focal = pin_model.focal_length();
-    Vector2 offset = pin_model.point_offset();
-
-    Vector3 u,v,w;
-    pin_model.coordinate_frame(u,v,w);
-
-    Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
-
-    Vector3 Hvec = R*u;
-    Vector3 Vvec = R*v;
-
-    C = pin_model.camera_center();
-    A = R*w;
-    H = focal[0]*Hvec + offset[0]*A;
-    V = focal[1]*Vvec + offset[1]*A;
+    *this = pin_model;
   }
 
   std::string
   CAHVModel::type() const { return "CAHV"; }
 
-  // FIXME -- Double check anything related to PinholeModel
   CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
 
-    //  Pinhole model parameters (in pixel units)
-    double fH, fV, Hc, Vc;
-    pin_model.intrinsic_parameters(fH, fV, Hc, Vc);
+    //  Pinhole model parameters (in nominal units)
+    double fH, fV, cH, cV;
+    pin_model.intrinsic_parameters(fH, fV, cH, cV);
+    
+    // Convert parameters to pixel units
+    double pitch = pin_model.pixel_pitch();
+    if (pitch == 0)
+      vw_throw( ArgumentErr() << "CAHVModel::operator=() input pinhole model has zero pitch!" );
+    fH /= pitch;
+    fV /= pitch;
+    cH /= pitch;
+    cV /= pitch;
 
     //  Unit vectors defining camera coordinate frame
     Vector3 u,v,w;
@@ -98,8 +91,8 @@ namespace camera {
 
     C = pin_model.camera_center();
     A = R*w;
-    H = fH*Hvec + Hc*A;
-    V = fV*Vvec + Vc*A;
+    H = fH*Hvec + cH*A;
+    V = fV*Vvec + cV*A;
 
     return *this;
   }
@@ -147,8 +140,7 @@ namespace camera {
                            H - pix.x() * A));
 
     // The vector VxH should be pointing in the same directions as A,
-    // if it isn't (because we have a left handed system), flip the
-    // vector.
+    // if it isn't (because we have a left handed system), flip the vector.
     if (dot_prod(cross_prod(V, H), A) < 0.0)
       vec *= -1.0;
     return vec;
@@ -278,20 +270,20 @@ namespace camera {
     fclose(camFP);
   }
 
-  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
-                CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
+  void epipolar(CAHVModel const &src_camera0, CAHVModel const &src_camera1,
+                CAHVModel       &dst_camera0, CAHVModel       &dst_camera1) {
 
     // Compute a common image center and scale for the two models
     double hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 +
-      dot_prod(src_camera1.H, src_camera1.A) / 2.0;
+                dot_prod(src_camera1.H, src_camera1.A) / 2.0;
     double vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 +
-      dot_prod(src_camera1.V, src_camera1.A) / 2.0;
+                dot_prod(src_camera1.V, src_camera1.A) / 2.0;
 
     double hs = norm_2(cross_prod(src_camera0.A, src_camera0.H))/2.0 +
-      norm_2(cross_prod(src_camera1.A, src_camera1.H))/2.0;
+                norm_2(cross_prod(src_camera1.A, src_camera1.H))/2.0;
 
     double vs = norm_2(cross_prod(src_camera0.A, src_camera0.V))/2.0 +
-      norm_2(cross_prod(src_camera1.A, src_camera1.V))/2.0;
+                norm_2(cross_prod(src_camera1.A, src_camera1.V))/2.0;
 
     // Use common center and scale to construct common A, H, V
     Vector3 app  = src_camera0.A + src_camera1.A;
@@ -306,8 +298,8 @@ namespace camera {
       hp = -f * hs / (norm_2(f));
 
     app *= 0.5;
-    Vector3 g = hp * dot_prod(app,hp) / (hs * hs);
-    Vector3 a = normalize(app - g);
+    Vector3 g  = hp * dot_prod(app,hp) / (hs * hs);
+    Vector3 a  = normalize(app - g);
     Vector3 vp = cross_prod(a, hp) * vs / hs;
 
     dst_camera0.C = src_camera0.C;
