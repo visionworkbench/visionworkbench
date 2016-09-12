@@ -48,7 +48,6 @@ include_HEADERS = \
   Interpolation.h \
   Manipulation.h \
   MaskViews.h \
-  Palette.h \
   PerPixelAccessorViews.h \
   PerPixelViews.h \
   PixelAccessors.h \
