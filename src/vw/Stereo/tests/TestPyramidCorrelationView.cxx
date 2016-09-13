@@ -101,7 +101,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .909, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .9895, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -114,7 +114,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .990, "Absolute Difference" );
+  check_error( disparity_map, .91, .975, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -127,7 +127,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .9985, "Squared Difference" );
+  check_error( disparity_map, .90, .99, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -140,7 +140,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Squared Difference" );
+  check_error( disparity_map, .90, .97, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -153,7 +153,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .998, "Cross Correlation" );
+  check_error( disparity_map, .90, .99, "Cross Correlation" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -166,7 +166,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Cross Correlation" );
+  check_error( disparity_map, .90, .97, "Cross Correlation" );
 }
 
 TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
@@ -181,7 +181,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .909, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .989, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -194,7 +194,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .990, "Absolute Difference" );
+  check_error( disparity_map, .91, .975, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -207,7 +207,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .9985, "Squared Difference" );
+  check_error( disparity_map, .90, .98, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -220,7 +220,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Squared Difference" );
+  check_error( disparity_map, .90, .97, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -233,7 +233,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .87, .99, "Cross Correlation" );
+  check_error( disparity_map, .87, .975, "Cross Correlation" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -246,7 +246,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .87, .99, "Cross Correlation" );
+  check_error( disparity_map, .87, .98, "Cross Correlation" );
 }
 
 TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
@@ -261,7 +261,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .909, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .989, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -274,7 +274,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .990, "Absolute Difference" );
+  check_error( disparity_map, .91, .975, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -287,7 +287,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .9985, "Squared Difference" );
+  check_error( disparity_map, .90, .99, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -300,7 +300,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Squared Difference" );
+  check_error( disparity_map, .90, .976, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -313,7 +313,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .998, "Cross Correlation" );
+  check_error( disparity_map, .90, .99, "Cross Correlation" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -326,7 +326,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Cross Correlation" );
+  check_error( disparity_map, .90, .979, "Cross Correlation" );
 }
 
 TEST_F( PyramidViewU8, NullPreprocess ) {
@@ -341,7 +341,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .909, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .989, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -354,7 +354,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .990, "Absolute Difference" );
+  check_error( disparity_map, .91, .975, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -367,7 +367,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .9985, "Squared Difference" );
+  check_error( disparity_map, .90, .99, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -380,7 +380,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Squared Difference" );
+  check_error( disparity_map, .90, .975, "Squared Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -393,7 +393,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        -1, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .998, "Cross Correlation" );
+  check_error( disparity_map, .90, .99, "Cross Correlation" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -406,5 +406,5 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        2, max_levels );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .990, "Cross Correlation" );
+  check_error( disparity_map, .90, .979, "Cross Correlation" );
 }
