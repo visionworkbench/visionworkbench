@@ -4,7 +4,6 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Image/CensusTransform.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
@@ -107,13 +106,15 @@ private:
 void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        int min_disp_x, int min_disp_y,
                                        int max_disp_x, int max_disp_y,
-                                       int kernel_size, uint16 p1, uint16 p2) {
+                                       int kernel_size, uint16 p1, uint16 p2,
+                                       int ternary_census_threshold) {
   m_cost_type   = cost_type;
   m_min_disp_x  = min_disp_x;
   m_min_disp_y  = min_disp_y;
   m_max_disp_x  = max_disp_x;
   m_max_disp_y  = max_disp_y;
   m_kernel_size = kernel_size;
+  m_ternary_census_threshold = ternary_census_threshold;
   
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -655,16 +656,16 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
   // Allocate linear storage for data to pass to SSE instructions
   const int SSE_BUFF_LEN = 8;
   uint16 d_packed[SSE_BUFF_LEN*11] __attribute__ ((aligned (16))); // TODO: Could be passed in!
-  uint16* dL = &(d_packed[0*SSE_BUFF_LEN]);
-  uint16* d0 = &(d_packed[1*SSE_BUFF_LEN]);
-  uint16* d1 = &(d_packed[2*SSE_BUFF_LEN]);
-  uint16* d2 = &(d_packed[3*SSE_BUFF_LEN]);
-  uint16* d3 = &(d_packed[4*SSE_BUFF_LEN]);
-  uint16* d4 = &(d_packed[5*SSE_BUFF_LEN]);
-  uint16* d5 = &(d_packed[6*SSE_BUFF_LEN]);
-  uint16* d6 = &(d_packed[7*SSE_BUFF_LEN]);
-  uint16* d7 = &(d_packed[8*SSE_BUFF_LEN]);
-  uint16* d8 = &(d_packed[9*SSE_BUFF_LEN]);
+  uint16* dL   = &(d_packed[0*SSE_BUFF_LEN]);
+  uint16* d0   = &(d_packed[1*SSE_BUFF_LEN]);
+  uint16* d1   = &(d_packed[2*SSE_BUFF_LEN]);
+  uint16* d2   = &(d_packed[3*SSE_BUFF_LEN]);
+  uint16* d3   = &(d_packed[4*SSE_BUFF_LEN]);
+  uint16* d4   = &(d_packed[5*SSE_BUFF_LEN]);
+  uint16* d5   = &(d_packed[6*SSE_BUFF_LEN]);
+  uint16* d6   = &(d_packed[7*SSE_BUFF_LEN]);
+  uint16* d7   = &(d_packed[8*SSE_BUFF_LEN]);
+  uint16* d8   = &(d_packed[9*SSE_BUFF_LEN]);
   uint16* dRes = &(d_packed[10*SSE_BUFF_LEN]); // The results
   
   // Set up constant SSE registers that never change
@@ -866,154 +867,126 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
 }
 
 
-
-// Unfortunately the census code is duplicated due to the different data types required.
-// - If we add any more size options, consolidate these functions using the largest
-//   data type or template functions.
-// TODO: Speed up the census computations!
-
-void SemiGlobalMatcher::fill_costs_census3x3   (ImageView<uint8> const& left_image,
-                                                ImageView<uint8> const& right_image){
+void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
+                                             ImageView<uint8> const& right_image){
+  const int half_kernel = (m_kernel_size - 1) / 2;
+  const int padding     = 2*half_kernel;
+                                                
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint8> left_census (left_image.cols()-2,  left_image.rows()-2 ), 
-                   right_census(right_image.cols()-2, right_image.rows()-2);
-                   
+  ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                   right_census(right_image.cols()-padding, right_image.rows()-padding);
+
   for ( int r = 0; r < left_census.rows(); r++ )
     for ( int c = 0; c < left_census.cols(); c++ )
-      left_census(c,r) = get_census_value_3x3(left_image, c+1, r+1);
+      left_census(c,r) = get_census_value_3x3(left_image, c+half_kernel, r+half_kernel);
   for ( int r = 0; r < right_census.rows(); r++ )
     for ( int c = 0; c < right_census.cols(); c++ )
-      right_census(c,r) = get_census_value_3x3(right_image, c+1, r+1);
+      right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
  
- 
-  // Now compute the disparity costs for each pixel.
-  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-  size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
-    int output_row = r - m_min_row;
-    //int input_row  = r;
-    int census_row = r - 1;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
-      int output_col = c - m_min_col;
-      //int input_col  = c;
-      int census_col = c-1;
-      
-      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
-
-      // Only compute costs in the search radius for this pixel    
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {          
-          
-          CostType cost = hamming_distance(left_census (census_col   , census_row   ), 
-                                           right_census(census_col+dx, census_row+dy) );          
-          m_cost_buffer[cost_index] = cost;
-          ++cost_index;
-        }    
-      } // End disparity loops   
-    } // End x loop
-  }// End y loop
-  
+  get_hamming_distance_costs(left_census, right_census);
 }
 
-void SemiGlobalMatcher::fill_costs_census5x5   (ImageView<uint8> const& left_image,
-                                                ImageView<uint8> const& right_image){
+void SemiGlobalMatcher::fill_costs_census5x5(ImageView<uint8> const& left_image,
+                                             ImageView<uint8> const& right_image){
+  const int half_kernel = (m_kernel_size - 1) / 2;
+  const int padding     = 2*half_kernel;
+  
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint32> left_census (left_image.cols()-4,  left_image.rows()-4 ), 
-                    right_census(right_image.cols()-4, right_image.rows()-4);
-                   
-  for ( int r = 0; r < left_census.rows(); r++ )
-    for ( int c = 0; c < left_census.cols(); c++ )
-      left_census(c,r) = get_census_value_5x5(left_image, c+2, r+2);
-  for ( int r = 0; r < right_census.rows(); r++ )
-    for ( int c = 0; c < right_census.cols(); c++ )
-      right_census(c,r) = get_census_value_5x5(right_image, c+2, r+2);
+  ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                    right_census(right_image.cols()-padding, right_image.rows()-padding);
+
+  if (m_cost_type == CENSUS_TRANSFORM) {
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_5x5(left_image, c+half_kernel, r+half_kernel);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_5x5(right_image, c+half_kernel, r+half_kernel);
+  } else { // TERNARY_CENSUS_TRANSFORM
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_ternary_5x5(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_ternary_5x5(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+  }
   
-  // Now compute the disparity costs for each pixel.
-  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-  size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
-    int output_row = r - m_min_row;
-    //int input_row  = r;
-    int census_row = r - 2;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
-      int output_col = c - m_min_col;
-      //int input_col  = c;
-      int census_col = c-2;
-      
-      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
-    
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
-          
-          CostType cost = hamming_distance(left_census (census_col   , census_row   ), 
-                                           right_census(census_col+dx, census_row+dy) );
-          m_cost_buffer[cost_index] = cost;
-          ++cost_index;
-        }    
-      } // End disparity loops   
-    } // End x loop
-  }// End y loop
+  get_hamming_distance_costs(left_census, right_census);
 }
 
-void SemiGlobalMatcher::fill_costs_census7x7   (ImageView<uint8> const& left_image,
-                                                ImageView<uint8> const& right_image){
+void SemiGlobalMatcher::fill_costs_census7x7(ImageView<uint8> const& left_image,
+                                             ImageView<uint8> const& right_image){
+  const int half_kernel = (m_kernel_size - 1) / 2;
+  const int padding     = 2*half_kernel;
+  
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint64> left_census (left_image.cols()-6,  left_image.rows()-6 ), 
-                    right_census(right_image.cols()-6, right_image.rows()-6);
+  ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                    right_census(right_image.cols()-padding, right_image.rows()-padding);
                    
-  for ( int r = 0; r < left_census.rows(); r++ )
-    for ( int c = 0; c < left_census.cols(); c++ )
-      left_census(c,r) = get_census_value_7x7(left_image, c+3, r+3);
-  for ( int r = 0; r < right_census.rows(); r++ )
-    for ( int c = 0; c < right_census.cols(); c++ )
-      right_census(c,r) = get_census_value_7x7(right_image, c+3, r+3);
+  if (m_cost_type == CENSUS_TRANSFORM) {
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_7x7(left_image, c+half_kernel, r+half_kernel);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_7x7(right_image, c+half_kernel, r+half_kernel);
+  } else { // TERNARY_CENSUS_TRANSFORM
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_ternary_7x7(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_ternary_7x7(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+  }
   
-  // Now compute the disparity costs for each pixel.
-  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-  size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
-    int output_row = r - m_min_row;
-    int input_row  = r;
-    int census_row = r - 3;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
-      int output_col = c - m_min_col;
-      int input_col  = c;
-      int census_col = c-3;
-      
-      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
-    
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
-          
-          CostType cost = hamming_distance(left_census (census_col   , census_row   ), 
-                                           right_census(census_col+dx, census_row+dy) );
-          m_cost_buffer[cost_index] = cost;
-          ++cost_index;
-        }    
-      } // End disparity loops   
-    } // End x loop
-  }// End y loop 
+  get_hamming_distance_costs(left_census, right_census);
+}
+
+void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
+                                             ImageView<uint8> const& right_image){
+  const int half_kernel = (m_kernel_size - 1) / 2;
+  const int padding     = 2*half_kernel;
+  
+  // Compute the census value for each pixel.
+  // - ROI handling could be fancier but this is simple and works.
+  // - The 0,0 pixels in the left and right images are assumed to be aligned.
+  ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                    right_census(right_image.cols()-padding, right_image.rows()-padding);
+                   
+  if (m_cost_type == CENSUS_TRANSFORM) {
+    vw_throw(NoImplErr() << "The Census transform not available in size 9!\n");
+  } else { // TERNARY_CENSUS_TRANSFORM
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_ternary_9x9(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_ternary_9x9(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+  }
+  
+  get_hamming_distance_costs(left_census, right_census);
 }
 
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {  
   //Timer timer("\tSGM Cost Calculation");
-  if (m_cost_type == CENSUS_TRANSFORM) {
+  if ((m_cost_type == CENSUS_TRANSFORM) || (m_cost_type == TERNARY_CENSUS_TRANSFORM)) {
     switch(m_kernel_size) {
     case 3:  fill_costs_census3x3(left_image, right_image); break;
     case 5:  fill_costs_census5x5(left_image, right_image); break;
     case 7:  fill_costs_census7x7(left_image, right_image); break;
+    case 9:  fill_costs_census9x9(left_image, right_image); break;
     default: vw_throw( NoImplErr() << "Census transform is only available in size 3, 5, and 7!\n" );
     };
   }
   else { // Use the default mean of diff cost function
-    // TODO: Replace this with ASP's efficient existing cost functions!
+    // Replace this with ASP's efficient existing cost functions?
     fill_costs_block(left_image, right_image);
   }
   

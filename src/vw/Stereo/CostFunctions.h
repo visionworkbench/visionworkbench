@@ -182,7 +182,8 @@ namespace stereo {
     ABSOLUTE_DIFFERENCE,
     SQUARED_DIFFERENCE,
     CROSS_CORRELATION,
-    CENSUS_TRANSFORM
+    CENSUS_TRANSFORM,
+    TERNARY_CENSUS_TRANSFORM
   };
 
   template <class ImageT, bool IsInteger>

@@ -5,6 +5,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlation.h>
+#include <vw/Image/CensusTransform.h>
 
 #include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
 
@@ -72,7 +73,8 @@ public: // Functions
                     int min_disp_x, int min_disp_y,
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
-                    uint16 p1=0, uint16 p2=0) {
+                    uint16 p1=0, uint16 p2=0,
+                    int ternary_census_threshold=3) {
     set_parameters(cost_type, min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
   }
 
@@ -86,7 +88,8 @@ public: // Functions
                       int min_disp_x, int min_disp_y,
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
-                      uint16 p1=0, uint16 p2=0);
+                      uint16 p1=0, uint16 p2=0,
+                      int ternary_census_threshold=3);
 
   /// Compute SGM stereo on the images.
   /// The masks and disparity inputs are used to improve the searched disparity range.
@@ -106,7 +109,8 @@ private: // Variables
     // The core parameters
     int m_min_disp_x, m_min_disp_y;
     int m_max_disp_x, m_max_disp_y;
-    int m_kernel_size; ///< Must be odd. Use "1" for single pixel.
+    int m_kernel_size;              ///< Must be odd. Use "1" for single pixel.
+    int m_ternary_census_threshold; ///< Used only with the ternary census option
     CostFunctionType m_cost_type;
 
     int m_min_row, m_max_row;
@@ -179,16 +183,17 @@ private: // Functions
   /// Compute mean of differences within a block of pixels.
   void fill_costs_block    (ImageView<uint8> const& left_image,
                             ImageView<uint8> const& right_image);
-  // Compute a 8 bit hamming distance from a 5x5 census transform.
-  void fill_costs_census3x3(ImageView<uint8> const& left_image,
-                            ImageView<uint8> const& right_image);
-  // Compute a 24 bit hamming distance from a 5x5 census transform.
-  void fill_costs_census5x5(ImageView<uint8> const& left_image,
-                            ImageView<uint8> const& right_image);
-  // Compute a 48 bit hamming distance from a 7x7 census transform.
-  void fill_costs_census7x7(ImageView<uint8> const& left_image,
-                            ImageView<uint8> const& right_image);
+  // The following functions use two census transform cost function options
+  void fill_costs_census3x3(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
+  void fill_costs_census5x5(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
+  void fill_costs_census7x7(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
+  void fill_costs_census9x9(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
 
+  /// Used to finish computing the census-based disparity costs in the above functions.
+  template <typename T>
+  void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
+                                  ImageView<T> const& right_binary_image);
+                         
   /// Returns a block cost score at a given location
   CostType get_cost_block(ImageView<uint8> const& left_image,
                     ImageView<uint8> const& right_image,
@@ -275,88 +280,155 @@ private: // Functions
   // The following functions are inlined for speed
 
   /// Use SSE instructions to simultaneousy compute the scores for up to 8 disparities in evaluate_path()
-  void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                              uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
-                              __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
-                              int sse_index, int &output_index,
-                              AccumCostType*       output) {
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-    // Load data from arrays into SSE registers
-    __m128i _dL = _mm_load_si128( (__m128i*) dL );
-    __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
-    __m128i _d1 = _mm_load_si128( (__m128i*) d1 );
-    __m128i _d2 = _mm_load_si128( (__m128i*) d2 );
-    __m128i _d3 = _mm_load_si128( (__m128i*) d3 );
-    __m128i _d4 = _mm_load_si128( (__m128i*) d4 );
-    __m128i _d5 = _mm_load_si128( (__m128i*) d5 );
-    __m128i _d6 = _mm_load_si128( (__m128i*) d6 );
-    __m128i _d7 = _mm_load_si128( (__m128i*) d7 );
-    __m128i _d8 = _mm_load_si128( (__m128i*) d8 );
-
-    // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
-    
-    // Start computing the min
-    __m128i _min12   = _mm_min_epu16(_d1, _d2);
-    __m128i _min34   = _mm_min_epu16(_d3, _d4);
-    __m128i _min56   = _mm_min_epu16(_d5, _d6);
-    __m128i _min78   = _mm_min_epu16(_d7, _d8);
-    // Keep computing the min
-    __m128i _min1234 = _mm_min_epu16(_min12, _min34);
-    __m128i _min5678 = _mm_min_epu16(_min56, _min78);
-    // Finish computing the min
-    __m128i _minAdj = _mm_min_epu16(_min1234, _min5678);
-    __m128i _minO   = _mm_min_epu16(_d0, _dJ);
-   
-    // Perform the required computations
-    __m128i _result = _mm_adds_epu16(_minAdj, _dp1);
-    _result = _mm_min_epu16(_result, _minO);
-    _result = _mm_adds_epu16(_result, _dL);
-    _result = _mm_subs_epu16(_result, _dP);
-
-    // Fetch results from the output register
-    _mm_store_si128( (__m128i*) dRes, _result );
-
-    // Copy the valid results from the register.
-    for (int i=0; i<sse_index; ++i){
-      output[output_index++] = dRes[i];
-    }
-#endif
-  } // end function compute_path_internals_sse
+  inline void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                                         uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                                         __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
+                                         int sse_index, int &output_index, AccumCostType* output);
 
   /// Non-sse backup for compute_path_internals_sse
-  void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                              uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
-                              AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
-                              int sse_index, int &output_index,
-                              AccumCostType*       output) {
-    //std::cout << "dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]\n";      
-    //for (int i=0; i<sse_index; ++i) {
-    //  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
-    //      dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]);
-    //}
-
-    // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
-
-    for (int i=0; i<sse_index; ++i){
-    
-      uint16 minAdj = std::min(d1[i], d2[i]);
-      minAdj = std::min(minAdj, d3[i]);
-      minAdj = std::min(minAdj, d4[i]);
-      minAdj = std::min(minAdj, d5[i]);
-      minAdj = std::min(minAdj, d6[i]);
-      minAdj = std::min(minAdj, d7[i]);
-      minAdj = std::min(minAdj, d8[i]);
-      minAdj += dp1;
-      
-      uint16 minVal = std::min(minAdj, d0[i]);
-             minVal = std::min(minVal, dJ);
-      output[output_index++] = minVal + (dL[i] - dP);
-    }
-  } // end function compute_path_internals
+  inline void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                                     uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                                     AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
+                                     int sse_index, int &output_index, AccumCostType* output);
 
 
 }; // end class SemiGlobalMatcher
 
+/// Wrapper function for SGM that handles ROIs.
+/// - This call is set up to be easily compatible with our existing calls in the
+///   PyramidCorrelationView class.
+/// - This function only searches positive disparities. The input images need to be
+///   already cropped so that this makes sense.
+/// - This function could be made more flexible by accepting other varieties of mask images.
+/// - TODO: Merge with the function in Correlation.h?
+template <class ImageT1, class ImageT2>
+ImageView<PixelMask<Vector2i> >
+calc_disparity_sgm(CostFunctionType cost_type,
+                   ImageViewBase<ImageT1> const& left_in,
+                   ImageViewBase<ImageT2> const& right_in,
+                   BBox2i                 const& left_region,   // Valid region in the left image
+                   Vector2i               const& search_volume, // Max disparity to search in right image
+                   Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   ImageView<uint8>       const* left_mask_ptr=0,  
+                   ImageView<uint8>       const* right_mask_ptr=0,
+                   SemiGlobalMatcher::DisparityImage  const* prev_disparity=0);
+
+
+//#################################################################################################
+// Function definitions
+
+
+void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                                                   uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                                                   __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
+                                                   int sse_index, int &output_index,
+                                                   AccumCostType*       output) {
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+  // Load data from arrays into SSE registers
+  __m128i _dL = _mm_load_si128( (__m128i*) dL );
+  __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
+  __m128i _d1 = _mm_load_si128( (__m128i*) d1 );
+  __m128i _d2 = _mm_load_si128( (__m128i*) d2 );
+  __m128i _d3 = _mm_load_si128( (__m128i*) d3 );
+  __m128i _d4 = _mm_load_si128( (__m128i*) d4 );
+  __m128i _d5 = _mm_load_si128( (__m128i*) d5 );
+  __m128i _d6 = _mm_load_si128( (__m128i*) d6 );
+  __m128i _d7 = _mm_load_si128( (__m128i*) d7 );
+  __m128i _d8 = _mm_load_si128( (__m128i*) d8 );
+
+  // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+  
+  // Start computing the min
+  __m128i _min12   = _mm_min_epu16(_d1, _d2);
+  __m128i _min34   = _mm_min_epu16(_d3, _d4);
+  __m128i _min56   = _mm_min_epu16(_d5, _d6);
+  __m128i _min78   = _mm_min_epu16(_d7, _d8);
+  // Keep computing the min
+  __m128i _min1234 = _mm_min_epu16(_min12, _min34);
+  __m128i _min5678 = _mm_min_epu16(_min56, _min78);
+  // Finish computing the min
+  __m128i _minAdj = _mm_min_epu16(_min1234, _min5678);
+  __m128i _minO   = _mm_min_epu16(_d0, _dJ);
+ 
+  // Perform the required computations
+  __m128i _result = _mm_adds_epu16(_minAdj, _dp1);
+  _result = _mm_min_epu16(_result, _minO);
+  _result = _mm_adds_epu16(_result, _dL);
+  _result = _mm_subs_epu16(_result, _dP);
+
+  // Fetch results from the output register
+  _mm_store_si128( (__m128i*) dRes, _result );
+
+  // Copy the valid results from the register.
+  for (int i=0; i<sse_index; ++i){
+    output[output_index++] = dRes[i];
+  }
+#endif
+} // end function compute_path_internals_sse
+
+void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
+                                               uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+                                               AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
+                                               int sse_index, int &output_index,
+                                               AccumCostType*       output) {
+  //std::cout << "dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]\n";      
+  //for (int i=0; i<sse_index; ++i) {
+  //  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
+  //      dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]);
+  //}
+
+  // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+
+  for (int i=0; i<sse_index; ++i){
+  
+    uint16 minAdj = std::min(d1[i], d2[i]);
+    minAdj = std::min(minAdj, d3[i]);
+    minAdj = std::min(minAdj, d4[i]);
+    minAdj = std::min(minAdj, d5[i]);
+    minAdj = std::min(minAdj, d6[i]);
+    minAdj = std::min(minAdj, d7[i]);
+    minAdj = std::min(minAdj, d8[i]);
+    minAdj += dp1;
+    
+    uint16 minVal = std::min(minAdj, d0[i]);
+           minVal = std::min(minVal, dJ);
+    output[output_index++] = minVal + (dL[i] - dP);
+  }
+} // end function compute_path_internals
+
+
+// From the census transformed input images, compute the cost of each disparity value.
+template <typename T>
+void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_binary_image,
+                                                   ImageView<T> const& right_binary_image) {
+
+  const int half_kernel = (m_kernel_size - 1) / 2;
+
+  // Now compute the disparity costs for each pixel.
+  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  size_t cost_index = 0;
+  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+    int output_row = r - m_min_row;
+    int binary_row = r - half_kernel;
+    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
+      int output_col = c - m_min_col;
+      int binary_col = c - half_kernel;
+      
+      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
+    
+      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
+        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
+          
+          CostType cost = hamming_distance(left_binary_image (binary_col   , binary_row   ), 
+                                           right_binary_image(binary_col+dx, binary_row+dy) );
+          m_cost_buffer[cost_index] = cost;
+          ++cost_index;
+        }    
+      } // End disparity loops   
+    } // End x loop
+  }// End y loop 
+                      
+}
 
 
 //TODO: Move this function!
@@ -373,24 +445,18 @@ void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw:
 }
 
 
-/// Wrapper function for SGM that handles ROIs.
-/// - This call is set up to be easily compatible with our existing calls in the
-///   PyramidCorrelationView class.
-/// - This function only searches positive disparities. The input images need to be
-///   already cropped so that this makes sense.
-/// - This function could be made more flexible by accepting other varieties of mask images.
-/// - TODO: Merge with the function in Correlation.h?
+
 template <class ImageT1, class ImageT2>
-  ImageView<PixelMask<Vector2i> >
-  calc_disparity_sgm(CostFunctionType cost_type,
-                     ImageViewBase<ImageT1> const& left_in,
-                     ImageViewBase<ImageT2> const& right_in,
-                     BBox2i                 const& left_region,   // Valid region in the left image
-                     Vector2i               const& search_volume, // Max disparity to search in right image
-                     Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
-                     ImageView<uint8>       const* left_mask_ptr=0,  
-                     ImageView<uint8>       const* right_mask_ptr=0,
-                     SemiGlobalMatcher::DisparityImage  const* prev_disparity=0){ 
+ImageView<PixelMask<Vector2i> >
+calc_disparity_sgm(CostFunctionType cost_type,
+                   ImageViewBase<ImageT1> const& left_in,
+                   ImageViewBase<ImageT2> const& right_in,
+                   BBox2i                 const& left_region,   // Valid region in the left image
+                   Vector2i               const& search_volume, // Max disparity to search in right image
+                   Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   ImageView<uint8>       const* left_mask_ptr,  
+                   ImageView<uint8>       const* right_mask_ptr,
+                   SemiGlobalMatcher::DisparityImage  const* prev_disparity){ 
 
     
     // Sanity check the input:
