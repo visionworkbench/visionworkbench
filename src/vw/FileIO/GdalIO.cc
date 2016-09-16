@@ -55,7 +55,8 @@ static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const c
 // by gdal_mutex_ptr, below) that we hold anytime we call into the
 // GDAL library itself.
 
-namespace {
+namespace { // Anonymous namespace
+
   vw::RunOnce _gdal_init_once = VW_RUNONCE_INIT;
   vw::Mutex* _gdal_mutex;
 
@@ -103,7 +104,7 @@ namespace {
       default: vw::vw_throw( vw::IOErr() << "Unsupported vw channel type (" << vw_type << ")." );
     }
   }
-}
+} // End anonymous namespace
 
 
 
@@ -112,23 +113,27 @@ namespace vw {
 namespace fileio {
 namespace detail {
 
-  // 1. This kill function is never called. The _gdal_mutex will persist
-  // until the end of the program. This is not a memory leak since
-  // only one copy of it is ever present.
-  // 2. This function is here, rather than above in the anonymous
-  // namespace, to not get compilation warnings.
-  void kill_gdal() {
-    delete _gdal_mutex;
-    GDALDumpOpenDatasets(stderr);
-    GDALDestroyDriverManager();
-    CPLDumpSharedList(0);
-    CPLCleanupTLS();
-    CPLPopErrorHandler();
-  }
+// TODO: Have this function called so valgrind does not report a leak!
 
+// 1. This kill function is never called. The _gdal_mutex will persist
+// until the end of the program. This is not a memory leak since
+// only one copy of it is ever present.
+// 2. This function is here, rather than above in the anonymous
+// namespace, to not get compilation warnings.
+void kill_gdal() {
+  delete _gdal_mutex;
+  GDALDumpOpenDatasets(stderr);
+  GDALDestroyDriverManager();
+  CPLDumpSharedList(0);
+  CPLCleanupTLS();
+  CPLPopErrorHandler();
+}
+
+
+/// Instantiate GDAL and return our GDAL mutex.
 vw::Mutex& gdal() {
-  _gdal_init_once.run( init_gdal );
-  return *_gdal_mutex;
+  _gdal_init_once.run( init_gdal ); // Only run the init function once!
+  return *_gdal_mutex;              // Always return our mutex.
 }
 
 ////////////////////////////////////////////////////////////////////////////////

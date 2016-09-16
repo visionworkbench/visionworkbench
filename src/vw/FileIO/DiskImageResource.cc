@@ -68,6 +68,8 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+// TODO: Clean up properly no valgrind does not report memory leaks!
+
 static void register_default_file_types_impl();
 namespace {
   typedef std::map<std::string,vw::DiskImageResource::construct_open_func> OpenMapType;

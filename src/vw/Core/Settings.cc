@@ -141,6 +141,7 @@ void Settings::set_rc_poll_period(float period) {
   reload_config();
 }
 
+// TODO: valgrind is complaining about memory access around here.
 namespace {
   std::string default_tmp_dir() {
     const char *dir;

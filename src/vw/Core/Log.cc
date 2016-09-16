@@ -187,6 +187,8 @@ vw::LogRuleSet& vw::LogRuleSet::operator=( LogRuleSet const& copy_log) {
 vw::LogRuleSet::LogRuleSet() { }
 vw::LogRuleSet::~LogRuleSet() { }
 
+
+// TODO: Clean up so valgrind does not report a memory leak
 void vw::LogRuleSet::add_rule(int log_level, std::string const& log_namespace) {
   ssize_t count = std::count(log_namespace.begin(), log_namespace.end(), '*');
   if (count > 1)
