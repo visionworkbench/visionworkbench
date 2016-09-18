@@ -878,13 +878,16 @@ void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
   ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
                    right_census(right_image.cols()-padding, right_image.rows()-padding);
 
-  for ( int r = 0; r < left_census.rows(); r++ )
-    for ( int c = 0; c < left_census.cols(); c++ )
-      left_census(c,r) = get_census_value_3x3(left_image, c+half_kernel, r+half_kernel);
-  for ( int r = 0; r < right_census.rows(); r++ )
-    for ( int c = 0; c < right_census.cols(); c++ )
-      right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
- 
+  if (m_cost_type == CENSUS_TRANSFORM) {
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_3x3(left_image, c+half_kernel, r+half_kernel);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
+  } else {
+    vw_throw(NoImplErr() << "The ternary sensus transform not available in size 3!\n");
+  } 
   get_hamming_distance_costs(left_census, right_census);
 }
 

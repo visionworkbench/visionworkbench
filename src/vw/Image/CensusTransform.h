@@ -126,7 +126,7 @@ uint64 get_census_value_ternary_5x5(ImageView<uint8> const& image, int col, int 
       if ((r == row) && (c==col)) // Skip the central pixel
         continue;
       int val = image(c,r);
-      if (val > low_thresh) {
+      if (val >= low_thresh) {
         output += addend;
         if (val > high_thresh) // Greater, += 11
           output += addend*2;
@@ -183,7 +183,7 @@ uint64 get_census_value_ternary_7x7(ImageView<uint8> const& image, int col, int 
   
   for (int i=0; i<NUM_POSITIONS; ++i) {
     int val = image(col+cols[i]-3,row+rows[i]-3);
-    if (val > low_thresh) {
+    if (val >= low_thresh) {
       output += addend;
       if (val > high_thresh) // Greater, += 11
         output += addend*2;
@@ -245,7 +245,7 @@ uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int 
   
   for (int i=0; i<NUM_POSITIONS; ++i) {
     int val = image(col+cols[i]-4,row+rows[i]-4);
-    if (val > low_thresh) {
+    if (val >= low_thresh) {
       output += addend;
       if (val > high_thresh) // Greater, += 11
         output += addend*2;

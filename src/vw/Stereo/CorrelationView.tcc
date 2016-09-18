@@ -133,10 +133,11 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   vw_out(VerboseDebugMessage, "stereo") << "Right pyramid base bbox: " << right_global_region << std::endl;
   
   // Extract the lowest resolution layer
-  left_pyramid      [0] = crop(edge_extend(m_left_image                    ), left_global_region );
-  right_pyramid     [0] = crop(edge_extend(m_right_image                   ), right_global_region);
-  left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_global_region );
-  right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ZeroEdgeExtension()), right_global_region);
+  // - Constant extension is used here to help the correlator make matches near the image edge.
+  left_pyramid      [0] = crop(edge_extend(m_left_image,  ConstantEdgeExtension()), left_global_region );
+  right_pyramid     [0] = crop(edge_extend(m_right_image, ConstantEdgeExtension()), right_global_region);
+  left_mask_pyramid [0] = crop(edge_extend(m_left_mask,   ConstantEdgeExtension()), left_global_region );
+  right_mask_pyramid[0] = crop(edge_extend(m_right_mask,  ConstantEdgeExtension()), right_global_region);
 
 #if VW_DEBUG_LEVEL > 0
   VW_OUT(DebugMessage,"stereo") << " > Left ROI: "    << left_global_region
@@ -145,6 +146,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
 
   // Fill in the nodata of the left and right images with a mean
   // pixel value. This helps with the edge quality of a DEM.
+  // - Note that this will not fill in the edge-extended values.
   typename Image1T::pixel_type left_mean;
   typename Image2T::pixel_type right_mean;
   try {
@@ -166,10 +168,12 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   // Reduce the mask images from the expanded-size region to the actual sized region.
   // - The mask is not used in the expanded base of support region of the image, only the main region.
   // - The larger mask size before is used to compute the mean color values.
+  // - Zero edge extension is used here so we don't treat the edge extended pixels as valid.
+  //   Currently this mainly affects the SGM algorithm which needs to know not to solve for those pixels.
   BBox2i right_mask = bbox + m_search_region.min();
   right_mask.max() += m_search_region.size();
-  left_mask_pyramid [0] = crop(left_mask_pyramid [0], bbox       - left_global_region.min());
-  right_mask_pyramid[0] = crop(right_mask_pyramid[0], right_mask - right_global_region.min());
+  left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), bbox );
+  right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ZeroEdgeExtension()), right_mask);
 
   // Build a smoothing kernel to use before downsampling.
   // Szeliski's book recommended this simple kernel. This
