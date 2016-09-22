@@ -586,6 +586,23 @@ void PinholeModel::rebuild_camera_matrix() {
   m_inv_camera_transform = inverse(uvwRotation*rotation_inverse) * inverse(m_intrinsics);
 }
 
+// Apply a given rotation + translation + scale transform to a pinhole camera
+void PinholeModel::apply_transform(vw::Matrix3x3 const & rotation,
+                                   vw::Vector3   const & translation,
+                                   double                scale) {
+
+  // Extract current parameters
+  vw::Vector3 position = this->camera_center();
+  vw::Quat    pose     = this->camera_pose();
+  
+  vw::Quat rotation_quaternion(rotation);
+  
+  // New position and rotation
+  position = scale*rotation*position + translation;
+  pose     = rotation_quaternion*pose;
+  this->set_camera_center(position);
+  this->set_camera_pose  (pose);
+}
 
 PinholeModel
 camera::scale_camera(PinholeModel const& camera_model, float scale) {
