@@ -71,13 +71,11 @@ namespace stereo {
       
       // TODO: Why is this hard-coded to a cost function that we did not use
       //       when we originally computed the integer correlation????
-      //typedef AbsoluteCost<FImage1T,boost::is_integral<typename PixelChannelType<typename FImage1T::pixel_type>::type>::value> CostType;
-      
-      typedef NCCCost<FImage1T,boost::is_integral<typename PixelChannelType<typename FImage1T::pixel_type>::type>::value> CostType;
+      typedef AbsoluteCost<FImage1T,boost::is_integral<typename PixelChannelType<typename FImage1T::pixel_type>::type>::value> CostType;
+      //typedef NCCCost<FImage1T,boost::is_integral<typename PixelChannelType<typename FImage1T::pixel_type>::type>::value> CostType;
       
       typedef typename CostType::accumulator_type                      AccumChannelT;
       typedef typename PixelChannelCast<typename FImage1T::pixel_type,AccumChannelT>::type AccumT;
-      //CostType cost_function( left_raster, right_raster, m_kernel_size );
       typedef typename ImageView<Vector<float,9> >::pixel_accessor     PatchAcc;
       typedef typename ImageView<AccumT>::pixel_accessor               MetricAcc;
       typedef typename ImageView<PixelMask<Vector2i> >::pixel_accessor IDispAcc;
@@ -142,22 +140,19 @@ namespace stereo {
 
             Vector2i disparity( dx, dy ); // Relative disparity number.
 
-            // This is the absolute disparity number, not the relative.
-            Vector2i disparity_adj = disparity + zone.disparity_range().min();
+            Vector2i disparity_abs = disparity + zone.disparity_range().min(); // Absolute disparity
 
 
             // Compute the score for this disparity at each pixel in the current zone
             ImageView<typename FImage2T::pixel_type> left_raster_crop = 
               crop(left_raster,left_zone);
             ImageView<typename FImage2T::pixel_type> right_raster_crop = 
-              crop(right_raster,left_zone+disparity_adj-search_range.min());
+              crop(right_raster,left_zone+disparity_abs-search_range.min());
         
             CostType cost_function( left_raster_crop, right_raster_crop, m_kernel_size );    
-            cost_metric =
-              fast_box_sum<AccumChannelT>(cost_function( left_raster_crop, //crop(left_raster,left_zone),
+            cost_metric = fast_box_sum<AccumChannelT>(cost_function( left_raster_crop,
                                                          right_raster_crop),
-//                                                         crop(right_raster,left_zone+disparity+zone.disparity_range().min()-search_range.min())),
-                                          m_kernel_size );
+                                                      m_kernel_size );
             //cost_function.cost_modification( cost_metric, disparity );
             cost_function.cost_modification( cost_metric, Vector2i(0,0) );
 
@@ -173,9 +168,9 @@ namespace stereo {
             // the 3x3 matrix of disparity score surrounding the best disparity score.
             
             PatchAcc  patch_row  = cost_patch.origin();
-            patch_row.advance( zone.image_region().min().x(), zone.image_region().min().y() );
             MetricAcc metric_row = cost_metric.origin();
             IDispAcc  idisp_row  = integer_disparity.origin();
+            patch_row.advance( zone.image_region().min().x(), zone.image_region().min().y() );
             idisp_row.advance( zone.image_region().min().x(), zone.image_region().min().y() );
             
             // Loop through rows of the zone
@@ -185,7 +180,7 @@ namespace stereo {
               IDispAcc  idisp_col  = idisp_row;
               // Loop through columns of the zone
               for ( int32 i = zone.image_region().width(); i; --i ) {
-                Vector2i delta = disparity_adj - (*idisp_col).child();
+                Vector2i delta = disparity_abs - (*idisp_col).child();
                 
                 // Given the current disparity and location within the zone, assign the 
                 // correlation score to the appropriate location within our storage buffer.
@@ -583,6 +578,7 @@ namespace stereo {
         }
       }
 
+      // Loop through all but final pyramid levels.
       for ( int32 i = m_max_pyramid_levels-1; i >= 0; i-- ) {
 
         switch(m_algorithm) {
@@ -610,15 +606,13 @@ namespace stereo {
 
         BBox2i crop_bbox;
         if ( i > 0 )
-          crop_bbox = BBox2i(0,0,l_patches[i-1].cols(),
-                             l_patches[i-1].rows());
+          crop_bbox = BBox2i(0,0,l_patches[i-1].cols(), l_patches[i-1].rows());
         else
-          crop_bbox = BBox2i(0,0,left_image_patch.cols(),
-                             left_image_patch.rows());
+          crop_bbox = BBox2i(0,0,left_image_patch.cols(), left_image_patch.rows());
         ImageView<pixel_type > d_subpatch_buf =
           crop(disparity_upsample(edge_extend(d_subpatch)), crop_bbox);
         d_subpatch = d_subpatch_buf;
-      }
+      } // End loop through pyramid levels
 
       disparity_map_patch = d_subpatch;
 
