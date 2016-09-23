@@ -40,7 +40,6 @@ public:
   SubPixelCorrelateTest() : IMAGE_SIZE(100), HALF_IMAGE_SIZE(50) {}
 
 protected:
-  typedef LaplacianOfGaussian PreFilter;
 
   void SetUp() {
     stretch = float32(istretch)/100;
@@ -99,7 +98,7 @@ TEST( ParabolaSubpixel, NullTest ) {
 
   ImageView<PixelMask<Vector2f> > fdisparity =
     parabola_subpixel( disparity, left, right,
-                       NullOperation(),
+                       PREFILTER_NONE, 1.4,
                        Vector2i(3,3) );
   EXPECT_EQ( fdisparity.cols(), 5 );
   EXPECT_EQ( fdisparity.rows(), 5 );
@@ -110,7 +109,7 @@ TEST( ParabolaSubpixel, NullTest ) {
 
   fdisparity =
     parabola_subpixel( disparity, left, right,
-                       LaplacianOfGaussian(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(3,3) );
   EXPECT_EQ( fdisparity.cols(), 5 );
   EXPECT_EQ( fdisparity.rows(), 5 );
@@ -128,7 +127,7 @@ typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 TEST_F( SubPixelCorrelate95Test, Parabola ) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     parabola_subpixel( starting_disp, image1, image2,
-                       PreFilter(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
 
   int32 invalid_count = 0;
@@ -144,13 +143,11 @@ TEST_F( SubPixelCorrelate95Test, BayesEM95 ) {
     bayes_em_subpixel( starting_disp,
                        channel_cast_rescale<float>(image1),
                        channel_cast_rescale<float>(image2),
-                       PreFilter(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  //EXPECT_LT(error, 0.054);      // Use for subpixel w/o pyramid
-  //EXPECT_LE(invalid_count, 0);
   EXPECT_LT(error, 0.35);
   EXPECT_LE(invalid_count, 12);
 }
@@ -160,13 +157,11 @@ TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
     bayes_em_subpixel( starting_disp,
                        channel_cast_rescale<float>(image1),
                        channel_cast_rescale<float>(image2),
-                       PreFilter(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  //EXPECT_LT(error, 0.078);     // Use for subpixel w/o pyramid
-  //EXPECT_LE(invalid_count, 3);
   EXPECT_LT(error, 0.36);
   EXPECT_LE(invalid_count, 12);
 }
@@ -176,13 +171,11 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
     bayes_em_subpixel( starting_disp,
                        channel_cast_rescale<float>(image1),
                        channel_cast_rescale<float>(image2),
-                       PreFilter(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  //EXPECT_LT(error, 0.125);     // Use for subpixel w/o pyramid
-  //EXPECT_LE(invalid_count, 3);
   EXPECT_LT(error, 0.52);
   EXPECT_LE(invalid_count, 22);
 }
@@ -192,13 +185,11 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
     bayes_em_subpixel( starting_disp,
                        channel_cast_rescale<float>(image1),
                        channel_cast_rescale<float>(image2),
-                       PreFilter(1.4),
+                       PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  //EXPECT_LT(error, 0.198);      // Use for subpixel w/o pyramid
-  //EXPECT_LE(invalid_count, 7);
   EXPECT_LT(error, 0.9);
   EXPECT_LE(invalid_count, 48);
 }

@@ -255,11 +255,6 @@ namespace stereo {
                               std::vector<ImageView<typename Mask1T::pixel_type > > & left_mask_pyramid,
                               std::vector<ImageView<typename Mask2T::pixel_type > > & right_mask_pyramid) const;
 
-    /// Applies the specified prefilter to a pair of images
-    void prefilter_images(ImageView<typename Image1T::pixel_type> &left_image,
-                          ImageView<typename Image2T::pixel_type> &right_image) const;
-
-
     /// Filter out isolated blobs of valid disparity regions which are usually wrong.
     /// - Using this can decrease run time in images with lots of little disparity islands.
     void disparity_blob_filter(ImageView<PixelMask<Vector2i> > &disparity, int level,

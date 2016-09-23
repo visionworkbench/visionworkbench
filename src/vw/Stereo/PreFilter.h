@@ -24,12 +24,13 @@
 namespace vw {
 namespace stereo {
 
-  // ImageView Functors
   enum PrefilterModeType {
     PREFILTER_NONE    = 0,
     PREFILTER_MEANSUB = 1,
     PREFILTER_LOG     = 2
   };
+
+  // TODO: Should we un-CRTP these classes?
 
   // This is a base class that is used in other code to make sure the
   // user is passing an actual pre-processing filter as opposed to say an 'int'.
@@ -68,6 +69,28 @@ namespace stereo {
       return edge_extend(image.impl(),ConstantEdgeExtension()) - gaussian_filter( image.impl(), kernel_width );
     }
   };
+
+/// Create the selected prefilter class and apply the filter to an image.
+/// - The output image is rasterized to an ImageView.
+template <class ImageT>
+ImageView<typename ImageT::pixel_type> 
+prefilter_image(ImageViewBase<ImageT> const& image,
+                PrefilterModeType prefilter_mode,
+                float             prefilter_width) {
+
+  if (prefilter_mode == PREFILTER_LOG){  // LOG
+    stereo::LaplacianOfGaussian prefilter(prefilter_width);
+    return prefilter.filter(image);
+  }
+  if (prefilter_mode == PREFILTER_MEANSUB){  // Subtracted mean
+    stereo::SubtractedMean prefilter(prefilter_width);
+    return prefilter.filter(image);
+  }
+  //Default: PREFILTER_NONE
+  stereo::NullOperation prefilter;
+  return prefilter.filter(image);
+}
+
 
 }} // end namespace vw::stereo
 

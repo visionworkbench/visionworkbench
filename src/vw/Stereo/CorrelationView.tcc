@@ -73,30 +73,6 @@ prerasterize(BBox2i const& bbox) const {
 
 
 template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-void PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
-prefilter_images(ImageView<typename Image1T::pixel_type> &left_image,
-                 ImageView<typename Image2T::pixel_type> &right_image) const {
-
-  if (m_prefilter_mode == PREFILTER_LOG){  // LOG
-      stereo::LaplacianOfGaussian prefilter(m_prefilter_width);
-      left_image  = prefilter.filter(left_image );
-      right_image = prefilter.filter(right_image);
-      return;
-  }
-  if (m_prefilter_mode == PREFILTER_MEANSUB){  // Subtracted mean
-      stereo::SubtractedMean prefilter(m_prefilter_width);
-      left_image  = prefilter.filter(left_image );
-      right_image = prefilter.filter(right_image);
-      return;
-  }
-  //Default: PREFILTER_NONE
-  stereo::NullOperation prefilter;
-  left_image  = prefilter.filter(left_image );
-  right_image = prefilter.filter(right_image);
-}
-
-
-template <class Image1T, class Image2T, class Mask1T, class Mask2T>
 bool PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
 build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
                      std::vector<ImageView<typename Image1T::pixel_type> > & left_pyramid,
@@ -199,8 +175,10 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   }
 
   // Apply the prefilter to each pyramid level
-  for ( int32 i = 0; i <= max_pyramid_levels; ++i )
-    prefilter_images(left_pyramid[i], right_pyramid[i]);
+  for ( int32 i = 0; i <= max_pyramid_levels; ++i ) {
+    left_pyramid [i] = prefilter_image(left_pyramid [i], m_prefilter_mode, m_prefilter_width);
+    right_pyramid[i] = prefilter_image(right_pyramid[i], m_prefilter_mode, m_prefilter_width);
+  }
     
   return true;
 }
