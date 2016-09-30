@@ -38,7 +38,7 @@
 namespace vw {
 namespace stereo {
 
-
+  // TODO: Maybe delete this class, it is not used or maintained.
   /// An image view for performing image correlation
   /// - For each left image pixel, compute disparity vector to matching pixel in the right image.
   template <class Image1T, class Image2T, class PreFilterT>
@@ -110,8 +110,10 @@ namespace stereo {
       public ImageViewBase<PyramidCorrelationView<Image1T,Image2T, Mask1T, Mask2T> > {
 
   public: // Definitions
-    typedef PixelMask<Vector2i> pixel_type;
-    typedef PixelMask<Vector2i> result_type;
+  typedef PixelMask<Vector2i> pixel_typeI;
+  // TODO: Can we delete result_type from all image views???
+    typedef PixelMask<Vector2f> pixel_type; // TODO: Safe to ever have differ?
+    typedef PixelMask<Vector2f> result_type;
     typedef ProceduralPixelAccessor<PyramidCorrelationView> pixel_accessor;
 
   public: // Functions
@@ -128,9 +130,9 @@ namespace stereo {
                             int   corr_timeout, double seconds_per_op,
                             float consistency_threshold,
                             int32 max_pyramid_levels,
-                            bool  use_sgm=false,
-                            int   collar_size=0,
-                            int   blob_filter_area=0,
+                            bool  use_sgm            = false,
+                            int   collar_size        = 0,
+                            int   blob_filter_area   = 0,
                             bool  write_debug_images = false) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
@@ -162,13 +164,13 @@ namespace stereo {
     inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-    inline pixel_type operator()( int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0) const {
+    inline result_type operator()( int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0) const {
       vw_throw( NoImplErr() << "NewCorrelationView::operator()(....) has not been implemented." );
-      return pixel_type();
+      return result_type();
     }
 
     /// Block rasterization section that does actual work
-    typedef CropView<ImageView<pixel_type> > prerasterize_type;
+    typedef CropView<ImageView<result_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const;
 
     template <class DestT>
@@ -209,8 +211,9 @@ namespace stereo {
     /// - Set to zero to disable blob filtering.
     int    m_blob_filter_area;
     
-    bool m_use_sgm; ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
-    int m_collar_size;
+    bool m_use_sgm;        ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
+    int m_collar_size;     ///< Expand the size of the image for each tile before correlating
+    int m_sgm_filter_size; ///< Filter SGM subpixel results with a filter of this size
 
     bool m_write_debug_images; ///< If true, write out a bunch of intermediate images.
 
@@ -257,7 +260,7 @@ namespace stereo {
 
     /// Filter out isolated blobs of valid disparity regions which are usually wrong.
     /// - Using this can decrease run time in images with lots of little disparity islands.
-    void disparity_blob_filter(ImageView<PixelMask<Vector2i> > &disparity, int level,
+    void disparity_blob_filter(ImageView<pixel_typeI > &disparity, int level,
                                int max_blob_area) const;
 
 
@@ -276,10 +279,10 @@ namespace stereo {
                      int corr_timeout, double seconds_per_op,
                      float consistency_threshold,
                      int32 max_pyramid_levels,
-                     bool  use_sgm=false,
-                     int   collar_size=0,
-                     int   blob_filter_area=0,
-                     bool  write_debug_images=false) {
+                     bool  use_sgm            = false,
+                     int   collar_size        = 0,
+                     int   blob_filter_area   = 0,
+                     bool  write_debug_images =false) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;
     return result_type( left.impl(),      right.impl(), 
                         left_mask.impl(), right_mask.impl(),

@@ -15,6 +15,148 @@ namespace vw {
 
 namespace stereo {
 
+
+/// Class to compute parabola surface sub-pixel fits
+class ParabolaFit2d {
+
+public: // Functions
+
+  /// Constructor
+  ParabolaFit2d() {
+
+    // We get a considerable speedup in our 2d subpixel correlation if
+    // we go ahead and compute the pseudoinverse of the A matrix (where
+    // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
+    // for the range of x = [-1:1] and y = [-1:1].
+/* From ASP    
+    static double pinvA_data[] =
+      { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
+        1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
+        1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
+        -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
+        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
+        -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };*/
+
+/* From paper
+    static double pinvA_data[] =
+      {  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,   1.0/6, -1.0/3,  1.0/6,  // = a
+         1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,   1.0/6,  1.0/6,  1.0/6,  // = b
+        -1.0/4,    0.0,  1.0/4,    0.0,    0.0,    0.0,   1.0/4,    0.0, -1.0/4,  // = c
+        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0,  1.0/6,  -1.0/6,    0.0,  1.0/6,  // = d
+         1.0/6,  1.0/6,  1.0/6,    0.0,    0.0,    0.0,  -1.0/6, -1.0/6, -1.0/6,  // = e
+        -1.0/9,  2.0/9, -1.0/9,  2.0/9,   5.0/9, 2.0/9,  -1.0/9,  2.0/9, -1.0/9 };// = f*/
+
+/* From MATLAB:
+"
+m = [1 1  1 -1 -1 1;   
+     0 1  0  0 -1 1;  
+     1 1 -1  1 -1 1;   
+     1 0  0 -1  0 1;   
+     0 0  0  0  0 1; 
+     1 0  0  1  0 1;
+     1 1 -1 -1  1 1;  
+     0 1  0  0  1 1;   
+     1 1  1  1  1 1];
+ 
+ pinv(m)
+"
+    0.1667   -0.3333    0.1667    0.1667   -0.3333    0.1667    0.1667   -0.3333    0.1667
+    0.1667    0.1667    0.1667   -0.3333   -0.3333   -0.3333    0.1667    0.1667    0.1667
+    0.2500    0.0000   -0.2500   -0.0000   -0.0000    0.0000   -0.2500   -0.0000    0.2500
+   -0.1667    0.0000    0.1667   -0.1667   -0.0000    0.1667   -0.1667   -0.0000    0.1667
+   -0.1667   -0.1667   -0.1667    0.0000    0.0000   -0.0000    0.1667    0.1667    0.1667
+   -0.1111    0.2222   -0.1111    0.2222    0.5556    0.2222   -0.1111    0.2222   -0.1111
+*/        
+    static double pinvA_data[] =
+      {  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,   1.0/6, -1.0/3,  1.0/6,  // = a
+         1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,   1.0/6,  1.0/6,  1.0/6,  // = b
+         1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0,  -1.0/4,    0.0,  1.0/4,  // = c
+        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0,  1.0/6,  -1.0/6,    0.0,  1.0/6,  // = d
+        -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,    0.0,   1.0/6,  1.0/6,  1.0/6,  // = e
+        -1.0/9,  2.0/9, -1.0/9,  2.0/9,   5.0/9, 2.0/9,  -1.0/9,  2.0/9, -1.0/9 };// = f
+
+    m_fit_params = Matrix<double,6,9>( pinvA_data );
+  }
+  
+  /// Find the peak of the surface fit nearby central point z5.
+  /// - dx and dy are relative to z5 at coordinate (0,0)
+  bool find_peak(double z1, double z2, double z3,
+                 double z4, double z5, double z6,
+                 double z7, double z8, double z9,
+                 double &dx, double &dy) {
+    Vector<double,9> z_vec;
+    z_vec[0] = z1;  z_vec[1] = z2;  z_vec[2] = z3;
+    z_vec[3] = z4;  z_vec[4] = z5;  z_vec[5] = z6;
+    z_vec[6] = z7;  z_vec[7] = z8;  z_vec[8] = z9;
+    Vector<double,6> vals(m_fit_params * z_vec);
+    
+    //  Max is at [x,y] where:
+    //   dz/dx = 2ax + cy + d = 0
+    //   dz/dy = 2by + cx + e = 0
+    double denom = 4.0 * vals[0] * vals[1] - ( vals[2] * vals[2] ); // = 4ab - c^2
+    if (fabs(denom) < 0.01) {
+      //std::cout << "DENOM DEBUG!!!\n";
+      //std::cout << "vals  = " << vals << std::endl;
+      //std::cout << "denom = " << denom << std::endl;
+      return false;
+    }
+    Vector2f offset( ( vals[2] * vals[4] - 2.0 * vals[1] * vals[3] ) / denom,   // ce - 2bd
+                     ( vals[2] * vals[3] - 2.0 * vals[0] * vals[4] ) / denom ); // cd - 2ae
+    /*
+    if ( norm_2(offset) > 0.99 ) {
+      //std::cout << "DEBUG!!!\n";
+      //std::cout << "offset  = " << offset << std::endl;
+      //std::cout << "vals  = " << vals << std::endl;
+      //std::cout << "denom = " << denom << std::endl;
+      //vw_throw( NoImplErr() << "DEBUG!\n" );
+      return false;
+    }
+    dx = offset[0];
+    dy = offset[1];*/
+    
+    
+    dx = offset[0];
+    dy = offset[1];
+        
+    // APPLY CORRECTION
+    double sX = 0.34574;
+    double sY = 0.38944;
+    dx = erf(dx/(sX*sqrt(2.0))) / 2.0;
+    dy = erf(dy/(sY*sqrt(2.0))) / 2.0;
+    
+    //std::cout << offset << " -F-> " << dx << ", " << dy << std::endl;
+    
+    if ( norm_2(Vector2(dx, dy)) >= 0.5 ) {
+      double scale = norm_2(Vector2(dx, dy)) / 0.5;
+      dx /= scale;
+      dy /= scale;
+    }
+    
+    
+    
+// TODO: Check afterwards.
+    //if ( norm_2(offset) > 0.99 ) {
+    if ( norm_2(Vector2(dx, dy)) >= 1.0 ) {
+      std::cout << "DEBUG!!!\n";
+      std::cout << "offset  = " << offset << std::endl;
+      std::cout << "vals  = " << vals << std::endl;
+      std::cout << "denom = " << denom << std::endl;
+      //vw_throw( NoImplErr() << "DEBUG!\n" );
+      return false;
+    }
+    
+    
+    return true;
+  } // End find_peak()
+
+private: // Variables
+
+  Matrix<float,6,9> m_fit_params;
+
+}; // End class ParabolaFit2d
+
+
+
 /// Class to make counting up "on" mask pixel in a box more efficient.
 /// - This class performs a convolution of two images where it
 ///   computes the a percentage of nonzero pixels in the window.
@@ -153,8 +295,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
     switch(kernel_size){
     case 3:  m_p1 = 3;  break; // Census transform 0-8
     case 5:  m_p1 = 12;  break; // Census transform 0-24
-    case 7:  m_p1 = 30;  break; // Census transform 0-48
-    //case 7:  m_p1 = 34;  break; // Census transform 0-48
+    case 7:  m_p1 = 40;  break; // Census transform 0-48
     default: m_p1 = 22; break; // 0-255 scale
     };
   }
@@ -164,8 +305,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
     switch(kernel_size){
     case 3:  m_p2 = 70;  break; // Census transform 0-8
     case 5:  m_p2 = 300; break; // Census transform 0-24
-    case 7:  m_p2 = 1000; break; // Census transform 0-48
-    //case 7:  m_p2 = 2000; break; // Census transform 0-48
+    case 7:  m_p2 = 2000; break; // Census transform 0-48
     default: m_p2 = 250; break; // 0-255 scale
     };
   }
@@ -605,7 +745,7 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
 }
 
 
-
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
 void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_p,
                        AccumCostType* const prior,
                        AccumCostType*       full_prior_buffer,
@@ -743,7 +883,7 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
   }
 
 } // End evaluate_path_sse
-
+#endif
 
 
 SemiGlobalMatcher::AccumCostType 
@@ -812,6 +952,131 @@ SemiGlobalMatcher::create_disparity_view() {
   }
   return disparity;
 }
+
+
+
+// TODO: Clean up and move!
+class HistClass{
+
+public: // Functions
+  HistClass(int num_bins, double min, double max): m_num_bins(num_bins), m_min(min), m_max(max) {
+    m_data.assign(num_bins, 0);
+  };
+  
+  void add(double val) {
+    int bin = static_cast<int>(round( (m_num_bins - 1) * ( (val - m_min)/(m_max - m_min) ) ));
+    if ((bin < 0) || (bin >= m_num_bins)) {
+      std::cout << "Bad bin = " << bin << ", val = " << val << std::endl;
+    }
+    else
+      m_data[bin]++;
+  }
+  
+  double bin(int i) const {return m_data[i];}
+  
+  void write(std::string const& path) const {
+    std::ofstream f(path.c_str());
+    for (int i=0; i<m_num_bins; ++i) {
+      f << m_data[i] << std::endl;
+    }
+    f.close();
+  }
+  
+private: // Functions
+
+  int    m_num_bins;
+  double m_min, m_max;
+  std::vector<uint64> m_data;
+};
+
+ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
+create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
+
+  Timer timer("Calculate Subpixel Disparity");
+
+  typedef  PixelMask<Vector2f> p_type;
+  ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
+  ParabolaFit2d fitter;
+  
+  //// DEBUG
+  //HistClass hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
+  
+  // For each element in the accumulated costs matrix, 
+  //  select the disparity with the lowest accumulated cost.
+  double percent_bad = 0;
+  double delta_x, delta_y;
+  for ( int j = 0; j < m_num_output_rows; j++ ) {
+    for ( int i = 0; i < m_num_output_cols; i++ ) {
+      
+      const Vector4i bounds = m_disp_bound_image(i,j);
+      int height   = (bounds[3] - bounds[1] + 1);
+      int width    = (bounds[2] - bounds[0] + 1);
+      
+      // Check the input image to find masked pixels
+      PixelMask<Vector2i> integer_pixel = integer_disparity(i, j);
+      if (!is_valid(integer_pixel)) {
+        disparity(i,j) = integer_pixel;
+        invalidate(disparity(i,j));
+        continue; // No need for subpixel here
+      }      
+      
+      // Get the best disparity from the integer image.
+      int dx = integer_pixel[0];
+      int dy = integer_pixel[1];
+      int min_index = (dy-bounds[1])*width + (dx-bounds[0]);
+
+      // Fetch the 8 adjacent accumulation vector values
+
+      // Don't interpolate out of bounds
+      int x_left  = -1;
+      int x_right =  1;
+      int y_up    = -width;
+      int y_down  =  width;
+      if (dx == bounds[0]) x_left  = 0;
+      if (dx == bounds[2]) x_right = 0;
+      if (dy == bounds[1]) y_up    = 0;
+      if (dy == bounds[3]) y_down  = 0;  
+
+      // Apply subpixel correction and apply
+      AccumCostType const* accum_vec = get_accum_vector(i, j);
+      bool valid = 
+        fitter.find_peak( accum_vec[min_index+x_left+y_up  ],  accum_vec[min_index+y_up  ], accum_vec[min_index+x_right+y_up  ],
+                          accum_vec[min_index+x_left       ],  accum_vec[min_index       ], accum_vec[min_index+x_right       ],
+                          accum_vec[min_index+x_left+y_down],  accum_vec[min_index+y_down], accum_vec[min_index+x_right+y_down],
+                          delta_x, delta_y);
+      if (valid) {
+        disparity(i,j) = p_type(dx+delta_x, dy+delta_y);
+        hist_dx.add(delta_x);
+        hist_dy.add(delta_y);
+      }
+      else {
+        disparity(i,j) = p_type(dx, dy);
+        percent_bad += 1.0;
+      }
+
+      /*
+      if ((i >= 15) && (i <= 15) && (j==40)) { // DEBUG!
+        printf("ACC costs (%d,%d): %d, %d\n", i, j, dx, dy);
+
+        AccumCostType* vec = get_accum_vector(i, j);
+        const int num_disp = get_num_disparities(i, j);
+        for (int k=0; k<num_disp; ++k)
+          std::cout << vec[k] << " " ;
+      }
+      */
+    }
+  }
+  percent_bad /= (double)(m_num_output_rows*m_num_output_cols);
+  //std::cout << "Percent bad = " << percent_bad << std::endl;
+  vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << std::endl;
+  //write_image( "subpixel_disp.tif", disparity );
+  //hist_dx.write("delta_x.csv");
+  //hist_dy.write("delta_y.csv");
+  
+  return disparity;
+  
+}
+
 
 // TODO: Replace with ASP implementation?
 SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
@@ -1467,6 +1732,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   two_trip_path_accumulation(left_image);
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
+  //create_disparity_view_subpixel(); // DEBUG
   return create_disparity_view();
 }
 

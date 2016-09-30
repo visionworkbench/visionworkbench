@@ -187,7 +187,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
 /// Filter out small blobs of valid pixels (they are usually bad)
 template <class Image1T, class Image2T, class Mask1T, class Mask2T>
 void PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
-disparity_blob_filter(ImageView<PixelMask<Vector2i> > &disparity, int level,
+disparity_blob_filter(ImageView<pixel_typeI> &disparity, int level,
                       int max_blob_area) const {
 
   // Throw out blobs with this many pixels or fewer
@@ -213,7 +213,7 @@ disparity_blob_filter(ImageView<PixelMask<Vector2i> > &disparity, int level,
     big_size = tile_size.height();
     
   BlobIndexThreaded smallBlobIndex(disparity, area, big_size);
-  ImageView<PixelMask<Vector2i> > filtered_image = applyErodeView(disparity, smallBlobIndex);
+  ImageView<pixel_typeI> filtered_image = applyErodeView(disparity, smallBlobIndex);
 
   disparity = filtered_image;
 }
@@ -267,7 +267,7 @@ prerasterize(BBox2i const& bbox) const {
       double elapsed = watch.elapsed_seconds();
       vw_out(DebugMessage,"stereo") << "Tile " << bbox << " has no data. Processed in " << elapsed << " s\n";
 #endif
-      return prerasterize_type(ImageView<pixel_type>(bbox.width(), bbox.height()),
+      return prerasterize_type(ImageView<result_type>(bbox.width(), bbox.height()),
                                -bbox.min().x(), -bbox.min().y(),
                                cols(), rows() );
     }
@@ -275,7 +275,7 @@ prerasterize(BBox2i const& bbox) const {
     // TODO: The ROI details are important, document them!
     
     // 3.0) Actually perform correlation now
-    ImageView<pixel_type > disparity, prev_disparity;
+    ImageView<pixel_typeI > disparity, prev_disparity;
     std::vector<stereo::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
@@ -297,6 +297,8 @@ prerasterize(BBox2i const& bbox) const {
     double estim_elapsed   = 0.0;
     int    measure_spacing = 2; // seconds
     double prev_estim      = estim_elapsed;
+
+    boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
 
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
@@ -331,7 +333,7 @@ prerasterize(BBox2i const& bbox) const {
                          disparity_range);
 
         // TODO: Why are +1's here?        
-        // The zone disparity range is not inclusize, so it is increased by one here?
+        // The zone disparity range is not inclusive, so it is increased by one here?
         
         // The input zone is in the normal pixel coordinates for this level.
         // We need to convert it to a bbox in the expanded base of support image at this level.
@@ -341,7 +343,7 @@ prerasterize(BBox2i const& bbox) const {
           right_region.max() += zone.disparity_range().size();
         
         // TODO: Need to get the sizes lined up properly!
-        ImageView<pixel_type> *prev_disp_ptr=0; // Pass in upper level disparity
+        ImageView<pixel_typeI> *prev_disp_ptr=0; // Pass in upper level disparity
         if (level != max_pyramid_levels) {
           prev_disp_ptr = &prev_disparity;
           vw_out(VerboseDebugMessage, "stereo") << "Disparity size      = " << bounding_box(disparity     ) << std::endl;
@@ -354,7 +356,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size,
+                           m_kernel_size, sgm_matcher_ptr,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
@@ -373,30 +375,23 @@ prerasterize(BBox2i const& bbox) const {
             left_reverse_region.expand(half_kernel);
             left_reverse_region.max() += m_search_region.size();
 
-          //write_image("prev_conv1.tif", *prev_disp_ptr);
-
           // Convert the previous image estimates to apply to the RL operation
-          *prev_disp_ptr = pixel_type((m_search_region.max()-m_search_region.min())/2) - *prev_disp_ptr;
-          
-          //write_image("prev_conv2.tif", *prev_disp_ptr);
+          *prev_disp_ptr = pixel_typeI((m_search_region.max()-m_search_region.min())/2) - *prev_disp_ptr;
 
-          ImageView<pixel_type> rl_result;
+          boost::shared_ptr<SemiGlobalMatcher> sgm_right_matcher_ptr;
+          ImageView<pixel_typeI> rl_result;
           rl_result = calc_disparity_sgm(m_cost_type,
                            crop(edge_extend(right_pyramid[level]), right_reverse_region),
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size, 
+                           m_kernel_size, sgm_right_matcher_ptr,
                            &(left_mask_pyramid[level]), 
                            &(right_mask_pyramid[level]),
-                           prev_disp_ptr); // TODO: Adjust the values to the expected disparities!!!!
-
-          //write_image("lr_result.tif", crop(disparity, zone.image_region()));
-          //write_image("rl_result.tif", rl_result);
+                           prev_disp_ptr); 
 
           // Convert from RL to negative LR values
-          rl_result += pixel_type(m_search_region.min()- m_search_region.max());
-          //write_image("rl_result2.tif", rl_result);
+          rl_result += pixel_typeI(m_search_region.min()- m_search_region.max());
 
           // Find pixels where the disparity distance is greater than m_consistency_threshold
           const bool aligned_images = true; // The LR and RL images line up exactly
@@ -404,9 +399,6 @@ prerasterize(BBox2i const& bbox) const {
           stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
                                                rl_result, m_consistency_threshold, 
                                                aligned_images, verbose);
-                     
-          //rl_result *= -1;
-          //write_image("rl_result2.tif", rl_result);
                                                
         } // End of last level right to left disparity check
 
@@ -474,14 +466,14 @@ prerasterize(BBox2i const& bbox) const {
             }
             // Compute right to left disparity in this zone       
             
-            ImageView<pixel_type> rl_result;
+            ImageView<pixel_typeI> rl_result;
             rl_result = calc_disparity(m_cost_type,
                              crop(edge_extend(right_pyramid[level]), right_region),
                              crop(edge_extend(left_pyramid [level]),
                                   left_region - zone.disparity_range().size()),
                              right_region - right_region.min(),
                              zone.disparity_range().size(), m_kernel_size)
-            - pixel_type(zone.disparity_range().size());
+            - pixel_typeI(zone.disparity_range().size());
 
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
@@ -493,9 +485,9 @@ prerasterize(BBox2i const& bbox) const {
           } // End of last level right to left disparity check
 
           // Fix the offsets to account for cropping.
-          crop(disparity, zone.image_region()) += pixel_type(zone.disparity_range().min());
+          crop(disparity, zone.image_region()) += pixel_typeI(zone.disparity_range().min());
         } // End of zone loop
-      } // End SGM else case
+      } // End non-SGM case
 
       // 3.2a) Filter the disparity so we are not processing more than we need to.
       //       - Inner function filtering is only to catch "speckle" type noise of individual ouliers.
@@ -513,6 +505,7 @@ prerasterize(BBox2i const& bbox) const {
                                      left_mask_pyramid [level],
                                      right_mask_pyramid[level]);
       } else {
+      
         // We don't do a single hot pixel check on the final level as it leaves a border.
         disparity = disparity_mask(rm_outliers_using_thresh
                                      (disparity,
@@ -616,9 +609,23 @@ prerasterize(BBox2i const& bbox) const {
 
     // 5.0) Reposition our result back into the global solution. 
     // Also we need to correct for the offset we applied to the search region.
-    return prerasterize_type(disparity + pixel_type(m_search_region.min()),
-                             -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
+    // - At this point we either cast to floating point or run a subpixel refinement algorithm.
+
+    if (m_use_sgm) {
+    
+      // For SGM, subpixel correlation is performed here, not in stereo_rfne.     
+      return prerasterize_type(sgm_matcher_ptr->create_disparity_view_subpixel(disparity) 
+                                 + result_type(m_search_region.min()),
+                               -bbox.min().x(), -bbox.min().y(),
+                               cols(), rows() );      
+    } else {
+      // TODO CLEANUP
+      ImageView<pixel_typeI> temp = disparity + pixel_typeI(m_search_region.min());
+      ImageView<result_type> float_type = pixel_cast<result_type, ImageView<pixel_typeI> >(temp);
+      return prerasterize_type(float_type,
+                               -bbox.min().x(), -bbox.min().y(),
+                               cols(), rows() );
+    }
   } // End function prerasterize
 
 

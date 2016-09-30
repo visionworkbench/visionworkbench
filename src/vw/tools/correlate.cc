@@ -58,12 +58,14 @@ int main( int argc, char *argv[] ) {
     int   lrthresh;
     int   nThreads;
     int   tile_size;
-    int collar_size;
-    int max_pyramid_levels;
+    int   collar_size;
+    int   sgm_filter_size;
+    int   max_pyramid_levels;
     int   correlator_type;
     bool  found_alignment = false;
     int blob_filter_area;
     Matrix3x3 alignment;
+    float mask_val;
 
     po::options_description desc("Options");
     desc.add_options()
@@ -72,7 +74,7 @@ int main( int argc, char *argv[] ) {
       ("right",      po::value(&right_file_name),                "Explicitly specify the \"right\" input file")
       ("log",        po::value(&log)->default_value(1.4),        "Apply LOG filter with the given sigma, or 0 to disable")
       ("h-corr-min", po::value(&h_corr_min)->default_value(-30), "Minimum horizontal disparity")
-      ("h-corr-max", po::value(&h_corr_max)->default_value(-30), "Maximum horizontal disparity")
+      ("h-corr-max", po::value(&h_corr_max)->default_value( 30), "Maximum horizontal disparity")
       ("v-corr-min", po::value(&v_corr_min)->default_value(-5),  "Minimum vertical disparity")
       ("v-corr-max", po::value(&v_corr_max)->default_value(5),   "Maximum vertical disparity")
       ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
@@ -85,7 +87,9 @@ int main( int argc, char *argv[] ) {
       ("threads",            po::value(&nThreads)->default_value(0),    "Manually specify the number of threads")
       ("tile-size",          po::value(&tile_size)->default_value(0),   "Manually specify the tile size")
       ("collar-size",        po::value(&collar_size)->default_value(0), "Specify a collar size size")
-      ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),     
+      ("sgm-filter-size",    po::value(&sgm_filter_size)->default_value(0), "Filter SGM subpixel results with this size")
+      ("mask-value",         po::value(&mask_val)->default_value(-32768), "Specify a mask value")
+      ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
         "Limit the maximum number of pyramid levels")
       ("pyramid", "Use the pyramid based correlator")
       ("mask-zero", "Mask out zero valued pixels")
@@ -155,9 +159,9 @@ int main( int argc, char *argv[] ) {
     // Set up masks
     ImageView<uint8> left_mask  = constant_view( uint8(255), left );
     ImageView<uint8> right_mask = constant_view( uint8(255), right);
-    if (vm.count("mask-zero")) {
-      left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  0)), 0);
-      right_mask = apply_mask(copy_mask(right_mask, create_mask(right, 0)), 0);
+    if (vm.count("mask-val")) {
+      left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  mask_val)), 0);
+      right_mask = apply_mask(copy_mask(right_mask, create_mask(right, mask_val)), 0);
     }
 
     bool write_debug_images = (vm.count("debug"));
@@ -172,7 +176,7 @@ int main( int argc, char *argv[] ) {
       default: vw_throw( NoImplErr() << "Invalid correlation type entered!\n" );
     };
 
-    ImageViewRef<PixelMask<Vector2i> > disparity_map;
+    ImageViewRef<PixelMask<Vector2f> > disparity_map;
     int corr_timeout = 0;
     double seconds_per_op = 0.0;
     BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
@@ -188,35 +192,68 @@ int main( int argc, char *argv[] ) {
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
                                    lrthresh, max_pyramid_levels, 
-                                   use_sgm, collar_size,
+                                   use_sgm, collar_size, sgm_filter_size,
                                    blob_filter_area,
                                    write_debug_images);
     } else {
-      disparity_map =
+      ImageViewRef<PixelMask<Vector2i> > disparity_mapI;
+      disparity_mapI =
         stereo::correlate( left, right,
                            stereo::LaplacianOfGaussian(log),
                            search_range, kernel_size,
                            corr_type, lrthresh);
+      disparity_map = pixel_cast<PixelMask<Vector2f> >(disparity_mapI);
     }
 
-    ImageViewRef<PixelMask<Vector2f> > result = pixel_cast<PixelMask<Vector2f> >(disparity_map);
+/*
+
+// TODO: Debug code for experimenting with disparity filtering code.
+    int texture_smooth_range = 15;
+    float texture_max_percentage = 0.85;
+    int max_kernel_size = 13;
+
+    std::cout << "Generating texture image...\n";
+    ImageView<float> texture_image;
+    ImageView<float> leftR = left;
+    float max_texture = texture_measure(leftR, texture_image, texture_smooth_range);
+    write_image( "texture_image.tif", texture_image );
+
+    std::cout << "Rasterizing disparity image...\n";
+    ImageView<PixelMask<Vector2f> > disparity_map_raster = disparity_map;
+    //disparity_map.rasterize(disparity_map_raster, bounding_box(disparity_map));
+    
+    std::cout << "Filtering disparity image...\n";
+    ImageView<PixelMask<Vector2f> > disparity_map_filtered;
+    texture_preserving_disparity_filter(disparity_map_raster, disparity_map_filtered, texture_image, 
+                                        texture_max_percentage*max_texture, max_kernel_size);
+    
+    write_image( "texture_filtered_disp.tif", disparity_map_filtered );
+    //write_image( "subpixel_disp.tif", disparity );
+    //write_image( "subpixel_deltas.tif", deltas );
+    
+    std::cout << "Done!\n";
+
+
+*/
+
+    //ImageViewRef<PixelMask<Vector2f> > result = pixel_cast<PixelMask<Vector2f> >(disparity_map);
     if ( found_alignment )
-      result = pixel_cast<PixelMask<Vector2f> >(transform_disparities(disparity_map, HomographyTransform(alignment) ) );
+      disparity_map = transform_disparities(disparity_map, HomographyTransform(alignment) );
 
     // Actually invoke the raster
     {
       vw::Timer corr_timer("Correlation Time");
-      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create("disparity.tif",result.format()));
+      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create("disparity.tif",disparity_map.format()));
       r->set_block_write_size( Vector2i(vw::vw_settings().default_tile_size(),
                                         vw::vw_settings().default_tile_size()) );
-      block_write_image( *r, result,
+      block_write_image( *r, disparity_map,
                          TerminalProgressCallback( "", "Rendering: ") );
     }
 
-    // Write disparity debug images
-    DiskImageView<PixelMask<Vector2f> > solution("disparity.tif");
-    BBox2 disp_range = get_disparity_range(solution);
-    std::cout << "Found disparity range: " << disp_range << "\n";
+    //// Write disparity debug images
+    //DiskImageView<PixelMask<Vector2i> > solution("disparity.tif");
+    //BBox2 disp_range = get_disparity_range(solution);
+    //std::cout << "Found disparity range: " << disp_range << "\n";
 
     // Are these working properly?
     //write_image( "x_disparity.tif",

@@ -58,7 +58,7 @@ namespace vw {
   ///   as Vector3.  The manual does not address why this is but it is
   ///   safe to say that using planes is not well supported.
   /// - Because of the above, image data is stored internally in 
-  ///   INTERLEAVED (BIP) format.  You should never access the data directly.
+  ///   INTERLEAVED (BIP) format.
   template <class PixelT>
   class ImageView : public ImageViewBase<ImageView<PixelT> >
   {

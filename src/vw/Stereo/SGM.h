@@ -1,13 +1,16 @@
 #ifndef __SEMI_GLOBAL_MATCHING_H__
-#define __SEMI_GLBOAL_MATCHING_H__
+#define __SEMI_GLOBAL_MATCHING_H__
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlation.h>
 #include <vw/Image/CensusTransform.h>
+#include <vw/Image/Algorithms.h>
 
-#include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
+#include <boost/smart_ptr/shared_ptr.hpp>
+
+//#include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>
@@ -67,6 +70,7 @@ public: // Definitions
 public: // Functions
 
   SemiGlobalMatcher() {} ///< Default constructor
+  ~SemiGlobalMatcher() {} ///< Destructor
 
   /// Set set_parameters for details
   SemiGlobalMatcher(CostFunctionType cost_type,
@@ -74,7 +78,7 @@ public: // Functions
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
                     uint16 p1=0, uint16 p2=0,
-                    int ternary_census_threshold=3) {
+                    int ternary_census_threshold=5) {
     set_parameters(cost_type, min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
   }
 
@@ -89,7 +93,7 @@ public: // Functions
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
                       uint16 p1=0, uint16 p2=0,
-                      int ternary_census_threshold=3);
+                      int ternary_census_threshold=5);
 
   /// Compute SGM stereo on the images.
   /// The masks and disparity inputs are used to improve the searched disparity range.
@@ -102,7 +106,10 @@ public: // Functions
                              ImageView<uint8> const* left_image_mask=0,
                              ImageView<uint8> const* right_image_mask=0,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 4);
+                             int search_buffer = 4); // TODO: Restore this?
+
+  /// Create a subpixel leves disparity image using parabola interpolation
+  ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
 
 private: // Variables
 
@@ -214,6 +221,7 @@ private: // Functions
   /// Generate the output disparity view from the accumulated costs.
   DisparityImage create_disparity_view();
 
+
   /// Given the dx and dy positions of a pixel, return the 
   ///  full size disparity index.
   DisparityType xy_to_disp(DisparityType dx, DisparityType dy) {
@@ -244,6 +252,7 @@ private: // Functions
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // The magnitude of intensity change to this pixel
 
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   /// Version of evaluate_path with SSE optimizations
   /// - Not that much faster, but maybe we can improve it in the future.
   void evaluate_path_sse( int col, int row, int col_p, int row_p,
@@ -252,6 +261,7 @@ private: // Functions
                       CostType     * const local,
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false );
+#endif
 
   /// Perform all eight path accumulations in two passes through the image
   void two_trip_path_accumulation(ImageView<uint8> const& left_image);
@@ -278,12 +288,13 @@ private: // Functions
   //}
 
   // The following functions are inlined for speed
-
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   /// Use SSE instructions to simultaneousy compute the scores for up to 8 disparities in evaluate_path()
   inline void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
                                          uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
                                          __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
                                          int sse_index, int &output_index, AccumCostType* output);
+#endif
 
   /// Non-sse backup for compute_path_internals_sse
   inline void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
@@ -309,6 +320,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    BBox2i                 const& left_region,   // Valid region in the left image
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr=0,  
                    ImageView<uint8>       const* right_mask_ptr=0,
                    SemiGlobalMatcher::DisparityImage  const* prev_disparity=0);
@@ -317,13 +329,12 @@ calc_disparity_sgm(CostFunctionType cost_type,
 //#################################################################################################
 // Function definitions
 
-
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
 void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
                                                    uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
                                                    __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
                                                    int sse_index, int &output_index,
                                                    AccumCostType*       output) {
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   // Load data from arrays into SSE registers
   __m128i _dL = _mm_load_si128( (__m128i*) dL );
   __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
@@ -363,8 +374,8 @@ void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint1
   for (int i=0; i<sse_index; ++i){
     output[output_index++] = dRes[i];
   }
-#endif
 } // end function compute_path_internals_sse
+#endif
 
 void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
                                                uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
@@ -454,6 +465,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    BBox2i                 const& left_region,   // Valid region in the left image
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
                    SemiGlobalMatcher::DisparityImage  const* prev_disparity){ 
@@ -482,6 +494,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: search_volume_inclusive = " << search_volume_inclusive << std::endl;
     
+    // TODO: Ignore masked values when computing this!
     // Convert the input image to uint8
     ImageView<PixelGray<vw::uint8> > left, right;
     //ip::percentile_scale_convert(crop(left_in.impl(),  left_region),  left,  0.00, 1.00); // Any stretching seems to cause problems!
@@ -492,8 +505,8 @@ calc_disparity_sgm(CostFunctionType cost_type,
     //write_image("final_left.tif", left);
     //write_image("final_right.tif", right);
     
-    SemiGlobalMatcher matcher(cost_type, 0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]);
-    return matcher.semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
+    matcher_ptr.reset(new SemiGlobalMatcher(cost_type, 0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]));
+    return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity
 
