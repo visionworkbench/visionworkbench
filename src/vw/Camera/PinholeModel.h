@@ -213,6 +213,9 @@ namespace camera {
     //  image plane.  Returns a pixel location (col, row) where the
     //  point appears in the image.
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
+    
+    /// As point_to_pixel, but ignoring any lens distortion.
+    Vector2 point_to_pixel_no_distortion(Vector3 const& point) const;
 
     // Is a valid projection of point is possible?
     // This is equal to: Is the point in front of the camera (z > 0)

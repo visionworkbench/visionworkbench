@@ -343,6 +343,8 @@ inline void texture_preserving_disparity_filter(ImageView<PixelMask<Vector<T, 2>
   
   // Pixels are unchanged by default
   disparity_out = disparity_in;
+  if ((max_kernel_size < 3) || (texture_max <= 0))
+    return; // Quit here if no smoothing is needed.
 
   //std::cout << "Filter output size: " << bounding_box(disparity_in) << std::endl;
   //std::cout << "Texture_scale: " << texture_scale << std::endl;

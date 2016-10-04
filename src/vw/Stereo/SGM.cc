@@ -1046,8 +1046,8 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
                           delta_x, delta_y);
       if (valid) {
         disparity(i,j) = p_type(dx+delta_x, dy+delta_y);
-        hist_dx.add(delta_x);
-        hist_dy.add(delta_y);
+        //hist_dx.add(delta_x);
+        //hist_dy.add(delta_y);
       }
       else {
         disparity(i,j) = p_type(dx, dy);
