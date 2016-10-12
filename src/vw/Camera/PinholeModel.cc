@@ -666,7 +666,7 @@ std::ostream& camera::operator<<(std::ostream& str,
   str << "\tv direction: " << model.coordinate_frame_v_direction() << "\n";
   str << "\tw direction: " << model.coordinate_frame_w_direction() << "\n";
   str << "\tDistortion Model: " << model.lens_distortion()->name() << "\n";
-  str << "\t  " << *(model.lens_distortion()) << "\n";
+  str << *(model.lens_distortion()); // this will be multiple lines
 
   return str;
 }
