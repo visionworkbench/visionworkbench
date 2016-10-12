@@ -134,7 +134,10 @@ struct TsaiLensOptimizeFunctor :  public math::LeastSquaresModelBase<TsaiLensOpt
 /// If necessary, replace the lens distortion model in the pinhole camera model
 ///  with an approximated model that has a fast distortion function needed for
 ///  quick computation of the point_to_pixel function.
-void update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
+/// - Does not replace the camera if the approximation error is too high.
+/// - Returns the approximation error.
+inline
+double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
                                          int sample_spacing=50) {
 
   // Get info on existing distortion model
@@ -144,7 +147,7 @@ void update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
   if ((lens_name == "NULL") || (lens_name == "TSAI") || (lens_name == "AdjustableTSAI"))
-    return;
+    return 0;
 
   // Otherwise we will try to approximate the input lens with a TSAI lens model.
   
@@ -208,7 +211,7 @@ void update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image
     vw_out() << "Warning: Failed to approximate reverse pinhole lens distortion, using the original (slow) model.\n";
   else
     pin_model.set_lens_distortion(new_tsai);
-  return;
+  return diff;
 } // End function update_pinhole_for_fast_point2pixel
 
 

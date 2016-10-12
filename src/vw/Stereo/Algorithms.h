@@ -176,6 +176,9 @@ inline void disparity_median_filter(ImageView<PixelMask<Vector<T, 2> > > const& 
   int num_vals = kernel_size*kernel_size;
   disparity_out = disparity_in;
 
+  if (kernel_size < 3) // No smoothing called for
+    return;
+    
   // Output pixel loop
   for (int row=half_kernel; row<disparity_in.rows()-half_kernel; ++row) {
     for (int col=half_kernel; col<disparity_in.cols()-half_kernel; ++col) {

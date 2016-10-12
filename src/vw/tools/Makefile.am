@@ -34,7 +34,7 @@ noinst_LIBRARIES =
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
-camera_progs = print_exif bayer undistort_image
+camera_progs = print_exif bayer undistort_image convert_pinhole_model
 
 # Prints out an image's EXIF headers
 print_exif_SOURCES = print_exif.cc
@@ -47,6 +47,10 @@ bayer_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 # Correct pinhole camera lens distortion
 undistort_image_SOURCES = undistort_image.cc
 undistort_image_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+
+# Convert a pinhole model to a different type
+convert_pinhole_model_SOURCES = convert_pinhole_model.cc
+convert_pinhole_model_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 endif
 
 # Command-line tools based on the Cartography module
@@ -95,7 +99,7 @@ ipfind_SOURCES = ipfind.cc
 ipfind_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 #
 ipalign_SOURCES = ipalign.cc
-ipalign_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+ipalign_LDADD = @PKG_INTERESTPOINT_LIBS@ @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 #
 ipmatch_SOURCES = ipmatch.cc
 ipmatch_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)

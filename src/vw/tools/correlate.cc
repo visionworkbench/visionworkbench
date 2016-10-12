@@ -192,7 +192,7 @@ int main( int argc, char *argv[] ) {
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
                                    lrthresh, max_pyramid_levels, 
-                                   use_sgm, collar_size, sgm_filter_size,
+                                   use_sgm, collar_size,
                                    blob_filter_area,
                                    write_debug_images);
     } else {
@@ -204,6 +204,8 @@ int main( int argc, char *argv[] ) {
                            corr_type, lrthresh);
       disparity_map = pixel_cast<PixelMask<Vector2f> >(disparity_mapI);
     }
+
+    // TODO: Call the code used in stereo_fltr!
 
 /*
 

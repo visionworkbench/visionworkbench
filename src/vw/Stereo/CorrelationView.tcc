@@ -195,7 +195,7 @@ disparity_blob_filter(ImageView<pixel_typeI> &disparity, int level,
   int area    = max_blob_area / scaling;
   if (area < 1)
     return; // Skip if erode turned off
-  vw_out() << "Removing blobs smaller than: " << area << std::endl;
+  //vw_out() << "Removing blobs smaller than: " << area << std::endl;
 
 
   if (0) { // DEBUG
