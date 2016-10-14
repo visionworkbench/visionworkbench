@@ -104,6 +104,12 @@ namespace stereo {
 //=================================================================================
 
 
+  enum CorrelationAlgorithm {
+    CORRELATION_WINDOW = 0, ///< Use a local sliding search window.
+    CORRELATION_SGM    = 1, ///< Use a Semi-Global Matching algorithm.
+    CORRELATION_MGM    = 2  ///< Use the More-Global Matching algorithm.
+  };
+
   /// An image view for performing pyramid image correlation (Faster than CorrelationView).
   template <class Image1T, class Image2T, class Mask1T, class Mask2T>
   class PyramidCorrelationView : 
@@ -130,7 +136,7 @@ namespace stereo {
                             int   corr_timeout, double seconds_per_op,
                             float consistency_threshold,
                             int32 max_pyramid_levels,
-                            bool  use_sgm            = false,
+                            CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                             int   collar_size        = 0,
                             int   blob_filter_area   = 0,
                             bool  write_debug_images = false) :
@@ -142,12 +148,12 @@ namespace stereo {
       m_corr_timeout(corr_timeout), m_seconds_per_op(seconds_per_op),
       m_consistency_threshold(consistency_threshold),
       m_blob_filter_area(blob_filter_area),
-      m_use_sgm(use_sgm),
+      m_algorithm(algorithm),
       m_collar_size(collar_size),
       m_write_debug_images(write_debug_images){
       
-      if (m_use_sgm)
-        m_prefilter_mode = PREFILTER_NONE; // SGM works best with no prefilter
+      if (algorithm != CORRELATION_WINDOW)
+        m_prefilter_mode = PREFILTER_NONE; // SGM/MGM works best with no prefilter
       
       // Calculating max pyramid levels according to the supplied search region.
       int32 largest_search = max( search_region.size() );
@@ -211,7 +217,7 @@ namespace stereo {
     /// - Set to zero to disable blob filtering.
     int    m_blob_filter_area;
     
-    bool m_use_sgm;        ///< If true, use SGM algorithms to improve accuracy at the cost of speed.
+    CorrelationAlgorithm m_algorithm; ///< Store the algorithm choice
     int m_collar_size;     ///< Expand the size of the image for each tile before correlating
     int m_sgm_filter_size; ///< Filter SGM subpixel results with a filter of this size
 
@@ -279,7 +285,7 @@ namespace stereo {
                      int corr_timeout, double seconds_per_op,
                      float consistency_threshold,
                      int32 max_pyramid_levels,
-                     bool  use_sgm            = false,
+                     CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                      int   collar_size        = 0,
                      int   blob_filter_area   = 0,
                      bool  write_debug_images =false) {
@@ -291,7 +297,7 @@ namespace stereo {
                         kernel_size, cost_type,
                         corr_timeout, seconds_per_op,
                         consistency_threshold, max_pyramid_levels,
-                        use_sgm, collar_size, blob_filter_area,
+                        algorithm, collar_size, blob_filter_area,
                         write_debug_images);
   }
 

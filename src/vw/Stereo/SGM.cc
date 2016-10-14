@@ -246,11 +246,13 @@ private:
 //=========================================================================
 
 void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
+                                       bool use_mgm,
                                        int min_disp_x, int min_disp_y,
                                        int max_disp_x, int max_disp_y,
                                        int kernel_size, uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
+  m_use_mgm     = use_mgm;
   m_min_disp_x  = min_disp_x;
   m_min_disp_y  = min_disp_y;
   m_max_disp_x  = max_disp_x;
@@ -264,53 +266,60 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
     vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
   m_num_disp   = m_num_disp_x * m_num_disp_y;   
-  /*
-   //This set of variables has a little more testing
+
   if (p1 > 0) // User provided
     m_p1 = p1; 
-  else { // Choose based on the kernel size
-    switch(kernel_size){
-    case 3:  m_p1 = 2;  break; // Census transform 0-8
-    case 5:  m_p1 = 7;  break; // Census transform 0-24
-    case 7:  m_p1 = 14;  break; // Census transform 0-48
-    default: m_p1 = 20; break; // 0-255 scale
+  else { // Choose based on the kernel size and cost type
+    switch(cost_type) {
+    case CENSUS_TRANSFORM:
+      switch(kernel_size){
+      case 3:  m_p1 = 3;  break; // 0 - 8
+      case 5:  m_p1 = 15; break; // 0 - 24
+      case 7:  m_p1 = 30; break; // 0 - 48
+      default: m_p1 = 3; break; // Unsupported!
+      };
+      break;
+    case TERNARY_CENSUS_TRANSFORM:
+      switch(kernel_size){
+      case 5:  m_p1 = 30; break; // 0 - 48
+      case 7:  m_p1 = 40; break; // 0 - 64
+      case 9:  m_p1 = 40; break; // 0 - 64
+      default: m_p1 = 30; break; // Unsupported!
+      };
+      break;
+    default: // MAD
+      m_p1 = 3; // 0 - 255 range
+      break;
     };
-  }
+  } // End p1 cases
+  
   if (p2 > 0) // User provided
     m_p2 = p2;
-  else {
-    switch(kernel_size){
-    case 3:  m_p2 = 50;  break; // Census transform 0-8
-    case 5:  m_p2 = 100; break; // Census transform 0-24
-    case 7:  m_p2 = 200; break; // Census transform 0-48
-    default: m_p2 = 250; break; // 0-255 scale
+  else { 
+    switch(cost_type) {
+    case CENSUS_TRANSFORM:
+      switch(kernel_size){
+      case 3:  m_p2 = 70;   break; // 0 - 8
+      case 5:  m_p2 = 750;  break; // 0 - 24
+      case 7:  m_p2 = 1500; break; // 0 - 48
+      default: m_p2 = 22;   break; // Unsupported!
+      };
+      break;
+    case TERNARY_CENSUS_TRANSFORM:
+      switch(kernel_size){
+      case 5:  m_p2 = 1500; break; // 0 - 48
+      case 7:  m_p2 = 2000; break; // 0 - 64
+      case 9:  m_p2 = 2000; break; // 0 - 64
+      default: m_p2 = 30;   break; // Unsupported!
+      };
+      break;
+    default: // MAD
+      m_p1 = 250; // 0 - 255 range
+      break;
     };
-  }
-  */
+  } // End p2 cases
   
-  // TODO: Select the best value for these!
-  if (p1 > 0) // User provided
-    m_p1 = p1; 
-  else { // Choose based on the kernel size
-    switch(kernel_size){
-    case 3:  m_p1 = 3;  break; // Census transform 0-8
-    case 5:  m_p1 = 12;  break; // Census transform 0-24
-    case 7:  m_p1 = 40;  break; // Census transform 0-48
-    default: m_p1 = 22; break; // 0-255 scale
-    };
-  }
-  if (p2 > 0) // User provided
-    m_p2 = p2;
-  else {
-    switch(kernel_size){
-    case 3:  m_p2 = 70;  break; // Census transform 0-8
-    case 5:  m_p2 = 300; break; // Census transform 0-24
-    case 7:  m_p2 = 2000; break; // Census transform 0-48
-    default: m_p2 = 250; break; // 0-255 scale
-    };
-  }
-  
-}
+} // End set_parameters
 
 
 void SemiGlobalMatcher::populate_constant_disp_bound_image() {
@@ -424,7 +433,6 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
         good_disparity = (is_valid(input_disp) && !on_edge);
         
-        
       } // End prev disparity check
       
       if (good_disparity) {
@@ -446,8 +454,6 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         // Not a trusted prior disparity, search the entire range!
         bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
       }
-      //if ((r==269) && (c==36))
-      //  std::cout << "Bounds = " << bounds << std::endl;
       
       m_disp_bound_image(c,r) = bounds;
       area += (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
@@ -469,15 +475,12 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked     << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels  = " << percent_full_range << std::endl;
   
-  //if (prev_disparity)
-   // vw_throw( NoImplErr() << "DEBUG!\n" );
-  
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))
     return false;
   return true;
 
-}
+} // End populate_disp_bound_image
 
 
 void SemiGlobalMatcher::allocate_large_buffers() {
@@ -567,7 +570,7 @@ void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
 } // End function populate_adjacent_disp_lookup_table
 
 
-
+#if not defined(VW_ENABLE_SSE) || (VW_ENABLE_SSE==0)
 // Note: local and output are the same size.
 // full_prior_buffer is always length m_num_disps and comes in initialized to a
 //  large flag value.  When the function quits the buffer must be returned to this state.
@@ -743,10 +746,10 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   }
 
 }
-
+#endif
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_p,
+void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
                        AccumCostType* const prior,
                        AccumCostType*       full_prior_buffer,
                        CostType     * const local,
@@ -882,7 +885,7 @@ void SemiGlobalMatcher::evaluate_path_sse( int col, int row, int col_p, int row_
     }
   }
 
-} // End evaluate_path_sse
+} // End evaluate_path SSE
 #endif
 
 
@@ -992,7 +995,7 @@ private: // Functions
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
-  Timer timer("Calculate Subpixel Disparity");
+  //Timer timer("Calculate Subpixel Disparity");
 
   typedef  PixelMask<Vector2f> p_type;
   ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
@@ -1299,7 +1302,7 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
 class MultiAccumRowBuffer {
 public:
 
-  /// Four directions, or "passes", are processed at a time and are 
+  /// Four or eight directions, or "passes", are processed at a time and are 
   ///  stored according to their index number here.
   enum PassIndex { TOP_LEFT  = 0,
                    TOP       = 1,
@@ -1308,25 +1311,38 @@ public:
                    BOT_RIGHT = 0,
                    BOT       = 1,
                    BOT_LEFT  = 2,
-                   RIGHT     = 3 };
-
-  enum Constants {NUM_PATHS_IN_PASS = 4};
+                   RIGHT     = 3,
+                   PASS_ONE  = 0,
+                   PASS_TWO  = 1 };
 
   /// Construct the buffers.
-  MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr) {
-    m_parent_ptr = parent_ptr;  
+  /// - num_paths_in_pass must be four (8 directions) or eight (16 directions)
+  MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
+                      const int  num_paths_in_pass=4,
+                      const bool vertical=false) {
+    m_parent_ptr        = parent_ptr;  
+    m_num_paths_in_pass = num_paths_in_pass;
+    m_vertical          = vertical;
     
     const int num_cols = m_parent_ptr->m_num_output_cols;
+    const int num_rows = m_parent_ptr->m_num_output_rows;
+    
+    m_line_size = num_cols;
+    if (vertical)
+      m_line_size = num_rows;
+
+    //std::cout << "m_line_size = " << m_line_size << std::endl;
 
     // Instantiate two single-row buffers that will be used to temporarily store
     //  accumulated cost info until it is no longer needed.
     // - Within each buffer, data is indexed in order [col][pass][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
-    const size_t NUM_PATHS_IN_PASS = 4;
-    const size_t buffer_pixel_size = NUM_PATHS_IN_PASS*m_parent_ptr->m_num_disp;
-    m_buffer_size       = num_cols*buffer_pixel_size;
+    const size_t buffer_pixel_size = m_num_paths_in_pass*m_parent_ptr->m_num_disp;
+    m_buffer_size       = m_line_size*buffer_pixel_size;
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
+   
+    //std::cout << "Allocating buffer: " << m_buffer_size_bytes << std::endl;
    
     // Allocate buffers that store accumulation scores
     m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
@@ -1335,16 +1351,24 @@ public:
     m_lead_buffer  = m_bufferB.get();
 
     // Allocate buffers that store pixel offsets into the buffers we just allocated
-    m_offsetsA.reset(new size_t[num_cols]);
-    m_offsetsB.reset(new size_t[num_cols]);   
+    m_offsetsA.reset(new size_t[m_line_size]);
+    m_offsetsB.reset(new size_t[m_line_size]);   
     m_offsets_lead  = m_offsetsA.get();
     m_offsets_trail = m_offsetsB.get();
 
-    // The first trip rasterizes top-left to bottom-right
-    m_current_col = 0;
-    m_current_row = 0;
-    m_col_advance = 1; 
-    m_row_advance = 1;   
+    if (!vertical) { // horizontal
+      // The first trip rasterizes top-left to bottom-right
+      m_current_col = 0;
+      m_current_row = 0;
+      m_col_advance = 1;
+      m_row_advance = 1;
+    } else { // vertical
+      // The first trip rasterizes bottom-left to top-right
+      m_current_col = 0;
+      m_current_row = num_rows-1;
+      m_col_advance = 1;
+      m_row_advance = -1;
+    }
 
     // Set up lead buffers, trailing buffer is not used until the next row.
     memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
@@ -1354,14 +1378,26 @@ public:
 
   /// Load buffer offsets into the lead buffer for the current row.
   void fill_lead_offset_buffer() {
-    //  Convert offsets to be relative to the start of our row instead of
-    //  from pixel (0,0).  Remember to multiply by the number of paths stored.
+    //  Convert offsets to be relative to the start of our row/col instead of
+    //  from pixel (0,0).  This allows us easy access into our line buffers.
+    //  Remember to multiply by the number of paths stored.
     // - Pixel info is always stored left to right, even on the second trip through the image
-    size_t new_lead_index = m_current_row*m_parent_ptr->m_num_output_cols;
-    const size_t* raw_offsets = m_parent_ptr->m_buffer_starts.data();
-    size_t start_offset   = raw_offsets[new_lead_index]; // Offset of the first column
-    for (int i=0; i<m_parent_ptr->m_num_output_cols; ++i)
-      m_offsets_lead[i] = (raw_offsets[new_lead_index+i] - start_offset) * NUM_PATHS_IN_PASS;
+    const size_t* raw_offsets    = m_parent_ptr->m_buffer_starts.data();
+    if (!m_vertical) { // horizontal
+      size_t  new_lead_index = m_current_row*m_parent_ptr->m_num_output_cols;
+      size_t  start_offset   = raw_offsets[new_lead_index]; // Offset of the first column
+      for (int i=0; i<m_line_size; ++i)
+        m_offsets_lead[i] = (raw_offsets[new_lead_index+i] - start_offset) * m_num_paths_in_pass;
+    } else { // vertical
+      // In the vertical case we need to rebuild a set of offsets to describe the column.
+      size_t position = 0;
+      for (int i=0; i<m_line_size; ++i) {
+        m_offsets_lead[i] = position;
+        size_t size = m_parent_ptr->get_num_disparities(m_current_col, i) * m_num_paths_in_pass;
+        position += size;
+        //std::cout << "offset lead " << i << " = " << position << std::endl;
+      }
+    }
   }
 
   /// Add the results in the leading buffer to the main class accumulation buffer.
@@ -1369,22 +1405,39 @@ public:
   void add_lead_buffer_to_accum() {
     size_t buffer_index = 0;
     SemiGlobalMatcher::AccumCostType* out_ptr = m_parent_ptr->m_accum_buffer.get();
-    for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
-      int num_disps = m_parent_ptr->get_num_disparities(col, m_current_row);
-      for (int pass=0; pass<NUM_PATHS_IN_PASS; ++pass) {
-        size_t out_index = m_parent_ptr->m_buffer_starts(col, m_current_row);
-        for (int d=0; d<num_disps; ++d) {
-          out_ptr[out_index++] += m_lead_buffer[buffer_index++];
-          //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
-          //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
-        } // end disp loop
-      } // end pass loop
-    } // end col loop
+    if (!m_vertical) { // horizontal
+      for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
+        int num_disps = m_parent_ptr->get_num_disparities(col, m_current_row);
+        for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
+          size_t out_index = m_parent_ptr->m_buffer_starts(col, m_current_row);
+          for (int d=0; d<num_disps; ++d) {
+            out_ptr[out_index++] += m_lead_buffer[buffer_index++];
+            //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
+            //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
+          } // end disp loop
+        } // end pass loop
+      } // end col loop
+    } else { // vertical
+      for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
+        int num_disps = m_parent_ptr->get_num_disparities(m_current_col, row);
+        for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
+          size_t out_index = m_parent_ptr->m_buffer_starts(m_current_col, row);
+          for (int d=0; d<num_disps; ++d) {
+            out_ptr[out_index++] += m_lead_buffer[buffer_index++];
+            //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
+            //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
+          } // end disp loop
+        } // end pass loop
+      } // end col loop
+    }
   } // end add_trail_buffer_to_accum
 
   /// Call when moving to the next pixel in a column
   void next_pixel() {
-    m_current_col += m_col_advance;
+    if (!m_vertical) // horizontal
+      m_current_col += m_col_advance;
+    else // vertical
+      m_current_row += m_row_advance;
   }
 
   /// Call when finished processing a column.
@@ -1396,12 +1449,21 @@ public:
     if (trip_finished) // Quit early if the current trip is finished
       return;
 
-    // Update the position in the image
-    m_current_row += m_row_advance;
-    if (m_row_advance > 0)
-      m_current_col = 0;
-    else
-      m_current_col = m_parent_ptr->m_num_output_cols - 1;
+    if (!m_vertical) { // horizontal
+      // Update the position in the image
+      m_current_row += m_row_advance;
+      if (m_row_advance > 0) // First pass
+        m_current_col = 0;
+      else // Second pass
+        m_current_col = m_parent_ptr->m_num_output_cols - 1;
+    } else { // vertical
+      // Update the position in the image
+      m_current_col += m_col_advance;
+      if (m_col_advance > 0) // First pass
+        m_current_row = m_parent_ptr->m_num_output_rows - 1;
+      else // Second pass
+        m_current_row = 0;
+    }
 
     // Swap accum buffer pointers and init the lead buffer
     std::swap(m_trail_buffer, m_lead_buffer);
@@ -1416,11 +1478,19 @@ public:
   /// Call after the first trip is finished before the second pass.
   void switch_trips() {
     
-    // Second trip is from bottom right to top left
-    m_current_col = m_parent_ptr->m_num_output_cols - 1;
-    m_current_row = m_parent_ptr->m_num_output_rows - 1;
-    m_col_advance = -1; 
-    m_row_advance = -1;
+    if (!m_vertical) { // horizontal
+      // Second trip is from bottom right to top left
+      m_current_col = m_parent_ptr->m_num_output_cols - 1;
+      m_current_row = m_parent_ptr->m_num_output_rows - 1;
+      m_col_advance = -1; 
+      m_row_advance = -1;
+    } else { // vertical
+      // Second trip is from top right to bottom left
+      m_current_col = m_parent_ptr->m_num_output_cols - 1;
+      m_current_row = 0;
+      m_col_advance = -1; 
+      m_row_advance = 1;
+    }
 
     // Set up lead buffers, trailing buffer is not used until the next row.
     memset(m_lead_buffer, 0, m_buffer_size_bytes);    
@@ -1431,9 +1501,12 @@ public:
   SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
     int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
     size_t pass_offset = num_disps*pass;
-    //std::cout << "output accum offset = " << m_offsets_lead[m_current_col] 
-    //          << " + pass " << pass_offset << std::endl;
-    return m_lead_buffer + (m_offsets_lead[m_current_col] + pass_offset);
+    size_t offset      = (m_offsets_lead[m_current_col] + pass_offset);
+    if (m_vertical)
+      offset = (m_offsets_lead[m_current_row] + pass_offset);
+    //std::cout << "output accum offset = " <<offset-pass_offset
+    //          << " + pass " << pass_offset <<", num_disps = " << num_disps << std::endl;
+    return m_lead_buffer + offset;
   }
   
   /// Gets the pointer to the accumulation buffer for the indicated pixel/pass
@@ -1446,29 +1519,41 @@ public:
 
     // Just get the index of the column in the correct buffer, then add an offset for the selected pass.
     
-    if (row_offset == 0) { 
-      // Same row, must be the in the leading buffer
-      //std::cout << "input lead offset = " << m_offsets_lead[col] 
-      //        << " + pass " << pass_offset << std::endl;
-      return m_lead_buffer + (m_offsets_lead[col] + pass_offset);
-    } else { 
-      //std::cout << "input trail offset = " << m_offsets_trail[col] 
-      //        << " + pass " << pass_offset << std::endl;
-      // Different row, must be in the trailing buffer
-      return m_trail_buffer + (m_offsets_trail[col] + pass_offset);
+    if (!m_vertical) { // horizontal
+      if (row_offset == 0) { 
+        // Same row, must be the in the leading buffer
+        return m_lead_buffer + (m_offsets_lead[col] + pass_offset);
+      } else { 
+        // Different row, must be in the trailing buffer
+        return m_trail_buffer + (m_offsets_trail[col] + pass_offset);
+      }
+    } else { // vertical
+      if (col_offset == 0) { 
+        // Same row, must be the in the leading buffer
+        //std::cout << "offset = " << pass_offset << ", lead loc = " << m_offsets_lead[row] << std::endl;
+        return m_lead_buffer + (m_offsets_lead[row] + pass_offset);
+      } else { 
+        // Different row, must be in the trailing buffer
+        //std::cout << "offset = " << pass_offset << ", trail loc = " << m_offsets_trail[row] << std::endl;
+        return m_trail_buffer + (m_offsets_trail[row] + pass_offset);
+      }
     }
-  }
+  } // End function get_trailing_pixel_accum_ptr
 
 private:
 
   const SemiGlobalMatcher* m_parent_ptr; ///< Need a handle to the parent SGM object
 
+  bool m_vertical; ///< Raster orientation
+  int  m_num_paths_in_pass; ///< Must be 4 or 8
+
+  int    m_line_size; ///< Length of a column(horizontal) or a row(vertical) in pixels.
   size_t m_buffer_size, m_buffer_size_bytes;
-  int m_current_col, m_current_row; ///< The current position as we iterate through the pixels
-  int m_col_advance, m_row_advance; ///< These are set according to the current trip
+  int    m_current_col, m_current_row; ///< The current position as we iterate through the pixels
+  int    m_col_advance, m_row_advance; ///< These are set according to the current trip
   
   // These point to m_buffer_starts for the leading and trailing row respectively.
-  // - Since there are four passes per pixel, the offsets are different than in the main class
+  // - Since there are N passes per pixel, the offsets are different than in the main class
   //   accumulation buffer.
   boost::shared_array<size_t> m_offsetsA, m_offsetsB;
   size_t * m_offsets_lead;  // The role of the buffers keeps swapping so these pointers are
@@ -1519,11 +1604,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col-1, row-1,
-#else
         evaluate_path( col, row, col-1, row-1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1535,11 +1616,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col, row-1,
-#else
         evaluate_path( col, row, col, row-1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1551,11 +1628,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col+1, row-1,
-#else
         evaluate_path( col, row, col+1, row-1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1567,11 +1640,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col-1, row,
-#else
         evaluate_path( col, row, col-1, row,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1601,11 +1670,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col+1, row+1,
-#else
         evaluate_path( col, row, col+1, row+1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1617,11 +1682,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row < last_row) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col, row+1,
-#else
         evaluate_path( col, row, col, row+1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1633,11 +1694,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col-1, row+1,
-#else
         evaluate_path( col, row, col-1, row+1,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1649,11 +1706,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col < last_column) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-        evaluate_path_sse( col, row, col+1, row,
-#else
         evaluate_path( col, row, col+1, row,
-#endif
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
       }
@@ -1668,6 +1721,306 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
 
   // Done with both trips!
 }
+
+
+
+
+
+// This version of the function requires four passes and is based on the paper:
+// MGM: A Significantly More Global Matching for Stereovision
+void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_image) {
+
+  //Timer timer_total("\tSGM Cost Propagation");
+
+  int paths_per_pass = 2;
+
+  // Create objects to manage the temporary accumulation buffers that need to be used here.
+  // - Two copies are needed here, one for the two horizontal passes and one for the two vertical passes
+  MultiAccumRowBuffer buff_manager_horizontal(this, paths_per_pass, false);
+  MultiAccumRowBuffer buff_manager_vertical  (this, paths_per_pass, true);
+  
+  // Init this buffer to bad scores representing disparities that were
+  //  not in the search range for the given pixel.
+  boost::shared_array<AccumCostType> full_prior_buffer;
+  full_prior_buffer.reset(new AccumCostType[m_num_disp]);
+  for (int i=0; i<m_num_disp; ++i)
+    full_prior_buffer[i] = get_bad_accum_val();  
+
+  AccumCostType* full_prior_ptr = full_prior_buffer.get();
+  AccumCostType* output_accum_ptr;
+  const int last_column = m_num_output_cols - 1;
+  const int last_row    = m_num_output_rows - 1;
+
+  std::cout << "Starting first trip...\n";
+
+  // Loop through all pixels in the output image for the first trip, top-left to bottom-right.
+  for (int row=0; row<m_num_output_rows; ++row) {
+    for (int col=0; col<m_num_output_cols; ++col) {
+    
+      //printf("Accum pass 1 col = %d, row = %d\n", col, row);
+    
+      int num_disp = get_num_disparities(col, row);
+      if (num_disp == 0) {
+        buff_manager_horizontal.next_pixel();
+        continue;
+      }
+      CostType * const local_cost_ptr = get_cost_vector(col, row);
+      bool debug = false;//((row == 244) && (col == 341));
+      
+      boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
+
+      // Left
+      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      if ((row > 0) && (col > 0)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
+        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col-1, row,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col, row-1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      
+      // Top left
+      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      if ((row > 0) && (col > 0) && (col < last_column)) {
+
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
+        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col-1, row-1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col+1, row-1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+                      
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+
+      buff_manager_horizontal.next_pixel();
+    } // End col loop
+    
+    buff_manager_horizontal.next_row(row==last_row);
+  } // End row loop
+
+  
+  // Done with the first trip!
+  buff_manager_horizontal.switch_trips();  
+
+
+  std::cout << "Starting second trip...\n";
+
+  // Loop through all pixels in the output image for the first trip, bottom-right to top-left.
+  for (int row = last_row; row >= 0; --row) {
+    for (int col = last_column; col >= 0; --col) {
+    
+      int num_disp = get_num_disparities(col, row);
+      if (num_disp == 0) {
+        buff_manager_horizontal.next_pixel();
+        continue;
+      }
+      CostType * const local_cost_ptr = get_cost_vector(col, row);
+      bool debug = false;//((row == 244) && (col == 341));
+      
+      boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
+
+      // Right
+      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      if ((row < last_row) && (col < last_column)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
+        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col+1, row,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col, row+1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;                      
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+
+      
+      // Bottom right
+      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      if ((row < last_row) && (col > 0) && (col < last_column)) {
+
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
+        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col+1, row+1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+
+        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col-1, row+1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+        for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+
+
+      buff_manager_horizontal.next_pixel();
+    } // End col loop
+    
+    buff_manager_horizontal.next_row(row==0);    
+  } // End row loop
+
+  // -- Done with the horizontal passes, switch to vertical passes.
+
+  std::cout << "Starting third trip...\n";
+
+  // Loop through all pixels in the output image for the first trip, bottom-left to top-right.
+  for (int col = 0; col < m_num_output_cols; ++col) {
+    for (int row = last_row; row >= 0; --row) {
+    
+      int num_disp = get_num_disparities(col, row);
+      //printf("Accum pass 3 col = %d, row = %d, num_disp = %d\n", col, row, num_disp);
+      if (num_disp == 0) {
+        buff_manager_vertical.next_pixel();
+        continue;
+      }
+      CostType * const local_cost_ptr = get_cost_vector(col, row);
+      bool debug = false;//((row == 244) && (col == 341));
+     
+      boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
+      
+      // Bottom
+      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      if ((row < last_row) && (col > 0)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
+        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col, row+1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col-1, row,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+                       
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+      
+      // Bottom left
+      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      if ((row > 0) && (row < last_row) && (col > 0)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
+        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col-1, row+1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col-1, row-1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+        for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+      
+
+      buff_manager_vertical.next_pixel();
+    } // End col loop
+    
+    buff_manager_vertical.next_row(col==last_column);    
+  } // End row loop
+
+  // Done with the first trip!
+  buff_manager_vertical.switch_trips();
+
+  std::cout << "Starting fourth trip...\n";
+
+  // Loop through all pixels in the output image top-right to bottom-left.
+  for (int col=last_column; col>=0; --col) {
+    for (int row=0; row<m_num_output_rows; ++row) {
+    
+      //printf("Accum pass 1 col = %d, row = %d\n", col, row);
+    
+      int num_disp = get_num_disparities(col, row);
+      if (num_disp == 0) {
+        buff_manager_vertical.next_pixel();
+        continue;
+      }
+      CostType * const local_cost_ptr = get_cost_vector(col, row);
+      bool debug = false;//((row == 244) && (col == 341));
+      
+      boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
+      
+      // Top
+      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      if ((row > 0) && (col < last_column)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
+        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col, row-1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
+        evaluate_path( col, row, col+1, row,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+      
+      // Top right
+      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      if ((row > 0) && (row < last_row) && (col < last_column)) {
+        int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
+        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col+1, row-1,
+                       prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                       pixel_diff, debug );
+                       
+        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
+        evaluate_path( col, row, col+1, row+1,
+                       prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
+                       pixel_diff, debug );
+       for (int d=0; d<num_disp; ++d)
+          output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
+      }
+      else // Just init to the local cost
+        for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
+      
+
+      buff_manager_vertical.next_pixel();
+    } // End col loop
+    
+    buff_manager_vertical.next_row(col==0);
+  } // End row loop
+  
+
+  // Done with all trips!
+} // End function smooth_path_accumulation
+
+
+
+
 
 
 
@@ -1729,7 +2082,10 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
 
   compute_disparity_costs(left_image, right_image);
 
-  two_trip_path_accumulation(left_image);
+  if (m_use_mgm)
+    smooth_path_accumulation(left_image);
+  else
+    two_trip_path_accumulation(left_image);
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
   //create_disparity_view_subpixel(); // DEBUG

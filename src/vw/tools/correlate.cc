@@ -91,10 +91,11 @@ int main( int argc, char *argv[] ) {
       ("mask-value",         po::value(&mask_val)->default_value(-32768), "Specify a mask value")
       ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
         "Limit the maximum number of pyramid levels")
-      ("pyramid", "Use the pyramid based correlator")
-      ("mask-zero", "Mask out zero valued pixels")
-      ("sgm", "Use the SGM stereo algorithm.")
-      ("debug", "Write out debugging images")
+      ("pyramid",    "Use the pyramid based correlator")
+      ("mask-zero",  "Mask out zero valued pixels")
+      ("sgm",        "Use the SGM stereo algorithm.")
+      ("sgm-smooth", "Use the smoothed version of the SGM stereo algorithm.")
+      ("debug",      "Write out debugging images")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -176,13 +177,18 @@ int main( int argc, char *argv[] ) {
       default: vw_throw( NoImplErr() << "Invalid correlation type entered!\n" );
     };
 
+    CorrelationAlgorithm stereo_algorithm = CORRELATION_WINDOW;
+    if (vm.count("sgm") != 0)
+      stereo_algorithm = CORRELATION_SGM;
+    if (vm.count("sgm-smooth") != 0)
+      stereo_algorithm = CORRELATION_MGM;
+
     ImageViewRef<PixelMask<Vector2f> > disparity_map;
     int corr_timeout = 0;
     double seconds_per_op = 0.0;
     BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
                         Vector2i(h_corr_max, v_corr_max));
     Vector2i kernel_size(xkernel, ykernel);
-    bool use_sgm = (vm.count("sgm") != 0);
     if (vm.count("pyramid")) {
       std::cout << "Correlate max search range = " << search_range << std::endl;
       disparity_map =
@@ -192,7 +198,7 @@ int main( int argc, char *argv[] ) {
                                    search_range, kernel_size,
                                    corr_type, corr_timeout, seconds_per_op,
                                    lrthresh, max_pyramid_levels, 
-                                   use_sgm, collar_size,
+                                   stereo_algorithm, collar_size,
                                    blob_filter_area,
                                    write_debug_images);
     } else {

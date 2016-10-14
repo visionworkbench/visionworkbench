@@ -74,12 +74,14 @@ public: // Functions
 
   /// Set set_parameters for details
   SemiGlobalMatcher(CostFunctionType cost_type,
+                    bool use_mgm,
                     int min_disp_x, int min_disp_y,
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
-    set_parameters(cost_type, min_disp_x, min_disp_y, max_disp_x, max_disp_y, kernel_size, p1, p2);
+    set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
+                   kernel_size, p1, p2);
   }
 
   /// Set the parameters to be used for future SGM calls
@@ -89,6 +91,7 @@ public: // Functions
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
   ///   If not provided, they well be set to defaults according to the kernel size.
   void set_parameters(CostFunctionType cost_type,
+                      bool use_mgm,
                       int min_disp_x, int min_disp_y,
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
@@ -114,10 +117,11 @@ public: // Functions
 private: // Variables
 
     // The core parameters
-    int m_min_disp_x, m_min_disp_y;
-    int m_max_disp_x, m_max_disp_y;
-    int m_kernel_size;              ///< Must be odd. Use "1" for single pixel.
-    int m_ternary_census_threshold; ///< Used only with the ternary census option
+    int  m_min_disp_x, m_min_disp_y;
+    int  m_max_disp_x, m_max_disp_y;
+    int  m_kernel_size;              ///< Must be odd. Use "1" for single pixel.
+    int  m_ternary_census_threshold; ///< Used only with the ternary census option
+    bool m_use_mgm;
     CostFunctionType m_cost_type;
 
     int m_min_row, m_max_row;
@@ -252,19 +256,12 @@ private: // Functions
                       AccumCostType*       output,
                       int path_intensity_gradient, bool debug=false ); // The magnitude of intensity change to this pixel
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-  /// Version of evaluate_path with SSE optimizations
-  /// - Not that much faster, but maybe we can improve it in the future.
-  void evaluate_path_sse( int col, int row, int col_p, int row_p,
-                      AccumCostType* const prior,
-                      AccumCostType*       full_prior_buffer,
-                      CostType     * const local,
-                      AccumCostType*       output,
-                      int path_intensity_gradient, bool debug=false );
-#endif
-
   /// Perform all eight path accumulations in two passes through the image
   void two_trip_path_accumulation(ImageView<uint8> const& left_image);
+  
+  /// Perform a smoother path accumulation using the MGM algorithm.
+  /// - This method requires four passes and takes longer.
+  void smooth_path_accumulation(ImageView<uint8> const& left_image);
 
   /// Allow this helper class to access private members.
   /// - This class can be found in SGM.cc.
@@ -320,6 +317,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    BBox2i                 const& left_region,   // Valid region in the left image
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   bool                   const  use_mgm,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr=0,  
                    ImageView<uint8>       const* right_mask_ptr=0,
@@ -465,6 +463,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    BBox2i                 const& left_region,   // Valid region in the left image
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
+                   bool                   const  use_mgm,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
@@ -505,7 +504,8 @@ calc_disparity_sgm(CostFunctionType cost_type,
     //write_image("final_left.tif", left);
     //write_image("final_right.tif", right);
     
-    matcher_ptr.reset(new SemiGlobalMatcher(cost_type, 0, 0, search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]));
+    matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
+                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]));
     return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity

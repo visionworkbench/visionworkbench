@@ -44,13 +44,14 @@ TEST( SGM, constant_offset ) {
   ImageView<uint8> left  = crop(inputLeft, leftRoi);
   ImageView<uint8> right = crop(inputRight, rightRoi);
   
+  bool use_mgm = false;
   boost::shared_ptr<SemiGlobalMatcher> matcher_ptr;
   CostFunctionType cost_type = CENSUS_TRANSFORM;
   SemiGlobalMatcher::DisparityImage result = calc_disparity_sgm(cost_type, left, right, 
                                                 BBox2i(0,0,left.cols(), left.rows()),
                                                 Vector2i(disp_x_range, disp_y_range),
                                                 Vector2i(kernel_size, kernel_size),
-                                                matcher_ptr);
+                                                use_mgm, matcher_ptr);
   result = result + PixelMask<Vector2i>(min_disp_x, min_disp_y);
   //write_image("SGM_output.tif", result);
 

@@ -299,6 +299,7 @@ prerasterize(BBox2i const& bbox) const {
     double prev_estim      = estim_elapsed;
 
     boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
+    const bool use_mgm = (m_algorithm == CORRELATION_MGM);
 
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
@@ -306,7 +307,7 @@ prerasterize(BBox2i const& bbox) const {
       const bool on_last_level = (level == 0);
 
       // In the future we could disable SGM for larger levels.
-      bool use_sgm_on_level = (m_use_sgm);
+      bool use_sgm_on_level = (m_algorithm != CORRELATION_WINDOW);
 
       int32 scaling = 1 << level;
       if (use_sgm_on_level)
@@ -356,7 +357,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size, sgm_matcher_ptr,
+                           m_kernel_size, use_mgm, sgm_matcher_ptr,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
@@ -385,7 +386,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size, sgm_right_matcher_ptr,
+                           m_kernel_size, use_mgm, sgm_right_matcher_ptr,
                            &(left_mask_pyramid[level]), 
                            &(right_mask_pyramid[level]),
                            prev_disp_ptr); 
@@ -478,7 +479,7 @@ prerasterize(BBox2i const& bbox) const {
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
             const bool aligned_images = false; // The LR and RL images are aligned with an offset
-            const bool verbose        = false;
+            const bool verbose        = true;
             stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
                                                   rl_result,
                                                  m_consistency_threshold, aligned_images, verbose);
@@ -611,7 +612,7 @@ prerasterize(BBox2i const& bbox) const {
     // Also we need to correct for the offset we applied to the search region.
     // - At this point we either cast to floating point or run a subpixel refinement algorithm.
 
-    if (m_use_sgm) {
+    if (m_algorithm != CORRELATION_WINDOW) {
     
       // For SGM, subpixel correlation is performed here, not in stereo_rfne.     
       return prerasterize_type(sgm_matcher_ptr->create_disparity_view_subpixel(disparity) 
