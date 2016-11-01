@@ -68,6 +68,16 @@ namespace vw {
     int32 cols = src.impl().cols(), rows = src.impl().rows();
     dst.set_size( cols, rows );
 
+    // Bug fix: This code crashes if images are too small
+    if (cols <= 1 || rows <= 1) {
+      for (int col = 0; col < cols; col++) {
+	for (int row = 0; row < rows; row++) {
+	  dst(col, row) = 0;
+	}
+      }
+      return;
+    }
+    
     typedef typename SourceT::pixel_accessor src_accessor;
     typedef typename ImageView<OutputT>::pixel_accessor dst_accessor;
 
