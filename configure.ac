@@ -317,12 +317,6 @@ PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
   ], [HAVE_PKG_CAIROMM="no:$CAIROMM_PKG_ERRORS"])
 AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 
-AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
-AC_PATH_TOOL( PROTOC, [protoc], [no], [$PKG_PATHS_PROTOBUF/bin$PATH_SEPARATOR$PATH])
-if test x"$PROTOC" = "xno" && test x"$HAVE_PKG_PROTOBUF" = "xyes"; then
-  AC_MSG_ERROR([cannot find protoc used by protobuf])
-fi
-
 #Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <relative lib path>, <required-functions>, <optional-deps>])
 AX_PKG(LIBKML,   [BOOST_THREAD BOOST Z], [-lkmlengine -lkmldom -lkmlbase -lminizip], [kml/engine/kmz_file.h])
 # We don't build all the components in BinaryBuilder, so only include certain headers.
@@ -339,7 +333,6 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR,    [test "$HAVE_PKG_OPENEXR"    = "yes"])
 AM_CONDITIONAL(HAVE_PKG_HDF,        [test "$HAVE_PKG_HDF"        = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL,       [test "$HAVE_PKG_GDAL"       = "yes"])
 AM_CONDITIONAL(HAVE_PKG_CAIROMM,    [test "$HAVE_PKG_CAIROMM"    = "yes"])
-AM_CONDITIONAL(HAVE_PKG_PROTOBUF,   [test "$HAVE_PKG_PROTOBUF"   = "yes"])
 AM_CONDITIONAL(HAVE_PKG_LIBKML,     [test "$HAVE_PKG_LIBKML"     = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENCV,     [test "$HAVE_PKG_OPENCV"     = "yes"])
 AM_CONDITIONAL(HAVE_PKG_FLANN,      [test "$HAVE_PKG_FLANN"      = "yes"])
@@ -371,7 +364,7 @@ for i in $PKG_VW_LIBS; do
 done
 PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
-AX_MODULE(CAMERA,           [src/vw/Camera],           [libvwCamera.la],           yes, [VW],               [],                      [BOOST_IOSTREAMS PROTOBUF])
+AX_MODULE(CAMERA,           [src/vw/Camera],           [libvwCamera.la],           yes, [VW],               [],                      [BOOST_IOSTREAMS])
 AX_MODULE(INTERESTPOINT,    [src/vw/InterestPoint],    [libvwInterestPoint.la],    yes, [VW])
 AX_MODULE(CARTOGRAPHY,      [src/vw/Cartography],      [libvwCartography.la],      yes, [VW],        [PROJ4],            [GDAL])
 AX_MODULE(MOSAIC,           [src/vw/Mosaic],           [libvwMosaic.la],           yes, [CARTOGRAPHY VW])

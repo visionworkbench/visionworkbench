@@ -22,11 +22,6 @@
 
 if MAKE_MODULE_CAMERA
 
-if HAVE_PKG_PROTOBUF
-protocol_headers = TsaiFile.pb.h
-protocol_sources = TsaiFile.pb.cc
-endif
-
 if HAVE_PKG_LAPACK
 lapack_headers = \
 	CameraGeometry.h \
@@ -66,8 +61,6 @@ libvwCamera_la_SOURCES = \
   PinholeModel.cc   \
   $(lapack_sources)
 
-nodist_libvwCamera_la_SOURCES = $(protocol_sources)
-
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
 lib_LTLIBRARIES = libvwCamera.la
@@ -78,19 +71,12 @@ endif
 # general
 ########################################################################
 
-BUILT_SOURCES = $(protocol_sources)
-
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 SUBDIRS = . tests
-CLEANFILES = $(protocol_headers) $(protocol_sources)
-EXTRA_DIST = TsaiFile.proto $(protobuf_sources) $(protobuf_headers)
 
 includedir = $(prefix)/include/vw/Camera
 
 include $(top_srcdir)/config/rules.mak
-if HAVE_PKG_PROTOBUF
-include $(top_srcdir)/thirdparty/protobuf.mak
-endif
 

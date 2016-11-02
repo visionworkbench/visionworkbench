@@ -200,11 +200,6 @@ namespace camera {
     void read (std::string const& filename);
     void write(std::string const& filename) const;
 
-    // Always sets pixel pitch = 1.0, so the distortion and focal length should be in pixel units! 
-    
-    /// Reads a deprecated .pinhole protobuf file
-    void read_protobuf_file(std::string const& filename); 
-
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------

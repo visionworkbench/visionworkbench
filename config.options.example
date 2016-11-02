@@ -168,7 +168,6 @@ QT_ARBITRARY_MODULES="QtCore QtGui QtNetwork QtSql QtSvg QtXml QtXmlPatterns"
 PKG_ARBITRARY_QT_LIBS="-L$BASE/lib -lQtCore -lQtGui -lQtNetwork -lQtSql -lQtSvg -lQtXml -lQtXmlPatterns"
 PKG_ARBITRARY_QT_MORE_LIBS="-lpng -lz"
 MOC=$BASE/bin/moc
-PROTOC=$BASE/bin/protoc
 
 CPPFLAGS="-I$BASE/include -I$BASE/include/QtCore -I$BASE/include/QtGui -I$BASE/include/QtNetwork -I$BASE/include/QtSql -I$BASE/include/QtSvg -I$BASE/include/QtXml -I$BASE/include/QtXmlPatterns"
 

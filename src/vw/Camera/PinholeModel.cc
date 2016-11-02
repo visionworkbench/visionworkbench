@@ -32,12 +32,6 @@
 #include <iomanip>
 #include <string>
 
-// TODO: One day remove this protobuf dependency.
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-#include <vw/Camera/TsaiFile.pb.h>
-using google::protobuf::RepeatedFieldBackInserter;
-#endif
-
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
@@ -109,11 +103,6 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
 
 
 void PinholeModel::read(std::string const& filename) {
-
-  // Handle deprecated .pinhole protobuf files
-  fs::path filename_path( filename );
-  if ( filename_path.extension() == ".pinhole" )
-    return read_protobuf_file(filename);
 
   // Open the input file
   std::ifstream cam_file;
@@ -271,76 +260,6 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return false;
 }
 
-
-// This file type is DEPRECATED!
-void PinholeModel::read_protobuf_file(std::string const& filename) {
-
-  fs::path filename_path( filename );
-  if ( filename_path.extension() != ".pinhole" )
-    vw_throw( IOErr() << "Not a protobuf file extension: " << filename_path.extension() );
-  
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-  std::fstream input( filename.c_str(), std::ios::in | std::ios::binary );
-  if ( !input )
-    vw_throw( IOErr() << "Pinhole::read_file: Could not open " << filename << "\n" );
-  TsaiFile file;
-  if ( !file.ParseFromIstream( &input ) )
-    vw_throw( IOErr() << "Pinhole::read_file: Protocol buffer failed to parse \"" << filename << "\"\n" );
-  input.close();
-
-  // Making sure protobuf seems correct
-  VW_ASSERT( file.focal_length_size() == 2,
-             IOErr() << "Pinhole::read_file: Unexpected amount of focal lengths." );
-  VW_ASSERT( file.center_point_size() == 2,
-             IOErr() << "Pinhole::read_file: Unexpected amount of center points." );
-  VW_ASSERT( file.u_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of u vector." );
-  VW_ASSERT( file.v_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of v vector." );
-  VW_ASSERT( file.w_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of w vector." );
-  VW_ASSERT( file.camera_center_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of camera vector." );
-  VW_ASSERT( file.camera_rotation_size() == 9,
-             IOErr() << "Pinhole::read_file: Unexpected size of rotation matrix." );
-
-  typedef VectorProxy<double,3> Vector3P;
-  m_u_direction = Vector3P(file.mutable_u_direction()->mutable_data());
-  m_v_direction = Vector3P(file.mutable_v_direction()->mutable_data());
-  m_w_direction = Vector3P(file.mutable_w_direction()->mutable_data());
-  m_camera_center = Vector3P(file.mutable_camera_center()->mutable_data());
-  m_fu = file.focal_length(0);
-  m_fv = file.focal_length(1);
-  m_cu = file.center_point(0);
-  m_cv = file.center_point(1);
-  m_rotation = MatrixProxy<double,3,3>(file.mutable_camera_rotation()->mutable_data());
-  m_pixel_pitch = file.pixel_pitch();
-
-  this->rebuild_camera_matrix();
-
-  if ( file.distortion_name() == "NULL" ) {
-    VW_ASSERT( file.distortion_vector_size() == 0,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new NullLensDistortion());
-  } else if ( file.distortion_name() == "TSAI" ) {
-    VW_ASSERT( file.distortion_vector_size() == 4,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new TsaiLensDistortion(VectorProxy<double,4>(file.mutable_distortion_vector()->mutable_data())));
-  } else if ( file.distortion_name() == "BROWNCONRADY" ) {
-    VW_ASSERT( file.distortion_vector_size() == 8,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new BrownConradyDistortion(VectorProxy<double,8>(file.mutable_distortion_vector()->mutable_data())));
-  } else if ( file.distortion_name() == "AdjustableTSAI" ) {
-    VW_ASSERT( file.distortion_vector_size() > 3,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new AdjustableTsaiLensDistortion(VectorProxy<double>(file.distortion_vector_size(),file.mutable_distortion_vector()->mutable_data())));
-  }
-#else
-  // If you hit this point, you need to install Google Protobuffers to to read this file type.
-  vw_throw( IOErr() << "Pinhole::write_file: Camera IO not supported without Google Protobuffers" );
-#endif
-
-}
 
 void PinholeModel::write(std::string const& filename) const {
 
