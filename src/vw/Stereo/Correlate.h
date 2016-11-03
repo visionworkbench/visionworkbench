@@ -61,7 +61,7 @@ namespace stereo {
     size_t count = 0, match_count = 0;
 
     if (verbose)
-      vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: "
+      vw_out(DebugMessage, "stereo") << "\tCrosscorr threshold: "
                                     << cross_corr_threshold << "\n";
     VW_DEBUG_ASSERT( cross_corr_threshold >= 0,
                      ArgumentErr() << "cross_corr_consistency_check: the threshold is less than 0." );
@@ -108,9 +108,9 @@ namespace stereo {
     }
 
     if (verbose)
-      vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count
-                                    << " / " << match_count << " matches ("
-                                    << ((float)count/match_count*100) << " percent).\n";
+      vw_out(DebugMessage, "stereo") << "\tCross-correlation retained " << count
+                                     << " / " << match_count << " matches ("
+                                     << ((float)count/match_count*100) << " percent).\n";
   }
 
 #include <vw/Stereo/Correlate.tcc>
