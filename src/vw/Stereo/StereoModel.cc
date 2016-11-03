@@ -52,22 +52,24 @@ namespace vw { namespace stereo { namespace detail {
   
 // Constructor with n cameras
 StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
-                         bool least_squares_refine ) :
+                         bool least_squares_refine, double angle_tol ) :
   m_cameras(cameras),
-  m_least_squares(least_squares_refine) {}
+  m_least_squares(least_squares_refine), m_angle_tol(angle_tol) {}
   
 // Constructor with two cameras
 StereoModel::StereoModel(camera::CameraModel const* camera_model1,
                          camera::CameraModel const* camera_model2,
-                         bool least_squares_refine ){
+                         bool least_squares_refine, double angle_tol ){
   m_cameras.clear();
   m_cameras.push_back(camera_model1);
   m_cameras.push_back(camera_model2);
   m_least_squares = least_squares_refine;
+  m_angle_tol = angle_tol;
 }
   
-  bool StereoModel::are_nearly_parallel(bool least_squares,
-                                        std::vector<Vector3> const& camDirs){
+bool StereoModel::are_nearly_parallel(bool least_squares,
+                                      double angle_tol,
+                                      std::vector<Vector3> const& camDirs){
 
   // If the camera directions are nearly parallel, there will be very
   // large numerical uncertainty about where to place the point.  We
@@ -83,6 +85,8 @@ StereoModel::StereoModel(camera::CameraModel const* camera_model1,
   if (least_squares) tol = 1e-5;
   else               tol = 1e-4;
 
+  if (angle_tol > 0) tol = angle_tol; // can be over-ridden from the outside
+  
   bool are_par = true;
   for (int p = 0; p < int(camDirs.size()) - 1; p++){
     if ( 1 - dot_prod(camDirs[p], camDirs[p+1]) >= tol )
@@ -125,12 +129,11 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     if (camDirs.size() < 2) 
       return Vector3();
 
-    if (are_nearly_parallel(m_least_squares, camDirs)) 
+    if (are_nearly_parallel(m_least_squares, m_angle_tol, camDirs)) 
       return Vector3();
 
     // Determine range by triangulation
     Vector3 result = triangulate_point(camDirs, camCtrs, errorVec);
-    
     if ( m_least_squares ){
       if (num_cams == 2)
         refine_point(pixVec[0], pixVec[1], result);

@@ -43,11 +43,12 @@ namespace stereo {
     //------------------------------------------------------------------
     // Constructor with n cameras
     StereoModel(std::vector<const camera::CameraModel *> const& cameras,
-                bool least_squares_refine = false);
+                bool least_squares_refine = false, double angle_tol = 0.0);
     // Constructor with two cameras
     StereoModel(camera::CameraModel const* camera_model1,
                 camera::CameraModel const* camera_model2,
-                bool least_squares_refine = false);
+                bool least_squares_refine = false,
+                double angle_tol = 0.0);
 
     // This class does not modify the input models.
     virtual ~StereoModel() {}
@@ -85,6 +86,7 @@ namespace stereo {
 
     std::vector<const camera::CameraModel *> m_cameras;
     bool m_least_squares;
+    double m_angle_tol;
 
     //------------------------------------------------------------------
     // Protected Methods
@@ -97,7 +99,7 @@ namespace stereo {
                                      std::vector<Vector3> const& camCtrs,
                                      Vector3& errorVec);
     
-    static bool are_nearly_parallel(bool least_squares,
+    static bool are_nearly_parallel(bool least_squares, double angle_tol,
                                     std::vector<Vector3> const& camDirs);
 
     void refine_point( Vector2 const& pix1,
