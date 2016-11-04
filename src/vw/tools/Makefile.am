@@ -182,10 +182,16 @@ doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 endif
 
+if MAKE_MODULE_FLOOD_DETECT
+detect_water_progs = detect_water
+detect_water_SOURCES = detect_water.cc modis_utilities.h modis_water_detection.h
+detect_water_LDADD   = @PKG_VW_LIBS@ @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+endif
+
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(interestpoint_progs) $(mosaic_progs)            \
                $(cart_mos_progs) $(stereo_progs)     \
-               $(contourgen_progs)
+               $(contourgen_progs) $(detect_water_progs)
 
 noinst_PROGRAMS      = $(doc_generate_progs)
 

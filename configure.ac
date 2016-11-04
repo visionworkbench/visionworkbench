@@ -379,6 +379,8 @@ AX_MODULE(TOOLS,   [src/vw/tools],  [],     yes, [VW], [BOOST_FILESYSTEM BOOST_P
 #  all the time, but don't delete it until the googlenasa stuff dies.
 AX_MODULE_PYTHON(  [src/vw/Python], [no])
 
+AX_MODULE(FLOOD_DETECT,   [src/vw/tools],  [],     yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
+
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -397,6 +399,7 @@ AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY"      
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS"  = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_FLOOD_DETECT,     [test "$MAKE_MODULE_FLOOD_DETECT" = "yes"])
 
 
 ##################################################

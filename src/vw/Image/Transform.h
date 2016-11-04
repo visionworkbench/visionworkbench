@@ -1083,8 +1083,7 @@ namespace vw {
   // Resample
   // -------------------------------------------------------------------------------
 
-  // Resample the image.  The user specifies the scaling factor in x
-  // and y.
+  // Resample the image.  The user specifies the scaling factor in x and y.
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
@@ -1097,8 +1096,7 @@ namespace vw {
                      edge_func, interp_func);
   }
 
-  // Resample the image.  The user specifies the scaling factor in x
-  // and y.
+  // Resample the image.  The user specifies the scaling factor in x and y.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform>
   inline resample( ImageViewBase<ImageT> const& v,
@@ -1110,8 +1108,7 @@ namespace vw {
                      edge_func, vw::BilinearInterpolation());
   }
 
-  // Resample the image.  The user specifies the scaling factor in x
-  // and y.
+  // Resample the image.  The user specifies the scaling factor in x and y.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform>
   inline resample( ImageViewBase<ImageT> const& v,
