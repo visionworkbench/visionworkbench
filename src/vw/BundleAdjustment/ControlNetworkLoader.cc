@@ -241,3 +241,119 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
   }
   return success;
 }
+
+void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
+				       std::vector<std::string> const& image_files,
+				       std::vector<std::string> const& gcp_files,
+				       cartography::Datum const& datum){
+  
+  namespace fs = boost::filesystem;
+
+  // Creating a version of image_files that doesn't contain the path
+  typedef std::map<std::string,size_t> LookupType;
+  LookupType image_lookup;
+  for (size_t i = 0; i < image_files.size(); i++ ) {
+    image_lookup[image_files[i]] = i;
+    image_lookup[fs::path(image_files[i]).filename().string()] = i;
+  }
+
+  std::vector<std::string>::const_iterator gcp_iter = gcp_files.begin();
+  std::vector<std::string>::const_iterator gcp_end  = gcp_files.end();
+
+  while ( gcp_iter != gcp_end ) {
+
+    if ( !fs::exists( *gcp_iter ) ) {
+      gcp_iter++;
+      continue;
+    }
+
+    vw_out() << "Loading: " << *gcp_iter << std::endl;
+
+    std::ifstream ifile( (*gcp_iter).c_str() );
+    std::string line;
+    while ( getline(ifile, line, '\n') ){
+
+      // Skip empty lines or lines starting with comments
+      if (line.size() == 0) continue;
+      if (line.size() > 0 && line[0] == '#') continue;
+
+      boost::replace_all(line, ",", " ");
+
+      // Data to be loaded
+      std::vector<Vector4> measure_locations;
+      std::vector<std::string> measure_cameras;
+      int point_id;
+      Vector3 world_location, world_sigma;
+
+      std::istringstream is(line);
+
+      // First elements in the line are the point id, location in
+      // the world, and its sigmas
+      if (!(is >> point_id >> world_location[0] >> world_location[1]
+	    >> world_location[2] >> world_sigma[0]
+	    >> world_sigma[1] >> world_sigma[2])){
+	vw_out(WarningMessage) << "Could not parse a ground control point "
+			       << "from line: " << line << std::endl;
+	continue;
+      }
+
+      // Other elements in the line define the position in images
+      while(1){
+	std::string temp_name;
+	Vector4 temp_loc;
+	if (is >> temp_name >> temp_loc[0] >> temp_loc[1]
+	    >> temp_loc[2] >> temp_loc[3]){
+	  if (temp_loc[2] <= 0 || temp_loc[3] <= 0)
+	    vw_throw( ArgumentErr()
+		      << "Standard deviations must be positive "
+		      << "when loading ground control points." );
+	  measure_locations.push_back( temp_loc );
+	  measure_cameras.push_back( temp_name );
+	}else
+	  break;
+      }
+
+      if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
+	vw_throw( ArgumentErr()
+		  << "Standard deviations must be positive "
+		  << "when loading ground control points." );
+
+      // Make lat,lon into lon,lat
+      std::swap(world_location[0], world_location[1]);
+
+      // Building Control Point
+      Vector3 xyz = datum.geodetic_to_cartesian(world_location);
+
+      vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
+				       << xyz << std::endl;
+      ControlPoint cpoint(ControlPoint::GroundControlPoint);
+      cpoint.set_position(xyz[0],xyz[1],xyz[2]);
+      cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
+
+      // Adding measures
+      std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
+      std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
+      while ( m_iter_loc != measure_locations.end() ) {
+	LookupType::iterator it = image_lookup.find(*m_iter_name);
+	if ( it != image_lookup.end() ) {
+	  vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
+				    << " #" << it->second << std::endl;
+	  ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
+			     (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
+	  cpoint.add_measure( cm );
+	} else {
+	  vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+				      << *m_iter_name << std::endl;
+	}
+	m_iter_loc++;
+	m_iter_name++;
+      }
+
+      // Appended GCP
+      cnet.add_control_point(cpoint);
+    }
+    ifile.close();
+
+    gcp_iter++;
+  }
+}
