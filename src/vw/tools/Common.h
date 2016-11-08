@@ -35,8 +35,6 @@ namespace tools {
 
   VW_DEFINE_EXCEPTION(Usage, Exception);
 
-  ImageFormat image_format(const std::string& filename);
-
 namespace detail {
 
 template <typename T>

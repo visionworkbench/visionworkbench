@@ -661,7 +661,7 @@ int main( int argc, char *argv[] ) {
     }
 
     // Get the right pixel/channel type.
-    ImageFormat fmt = tools::image_format(opt.input_file_name);
+    ImageFormat fmt = vw::image_format(opt.input_file_name);
 
     switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:

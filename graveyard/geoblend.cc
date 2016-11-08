@@ -136,7 +136,7 @@ int main( int argc, char *argv[] ) {
 
     if(vm.count("nodata-value")) has_nodata_value = true;
 
-    ImageFormat fmt = tools::image_format(image_files[0]);
+    ImageFormat fmt = vw::image_format(image_files[0]);
 
     if (vm.count("channel-type")) {
       fmt.channel_type = channel_name_to_enum(channel_type_str);

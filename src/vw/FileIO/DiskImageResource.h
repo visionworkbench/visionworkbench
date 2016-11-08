@@ -209,6 +209,7 @@ namespace vw {
     return false;
   }
 
+  ImageFormat image_format(const std::string& filename);
 
 } // namespace vw
 

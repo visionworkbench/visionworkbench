@@ -111,7 +111,7 @@ namespace vw{
                               double azimuth, double elevation, double scale,
                               double nodata_value, double blur_sigma) {
 
-    ImageFormat fmt = tools::image_format(input_file);
+    ImageFormat fmt = vw::image_format(input_file);
 
     switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:

@@ -267,3 +267,8 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
   vw_throw( NoImplErr() << "Unsupported file format: " << filename );
   return 0; // never reached
 }
+
+vw::ImageFormat vw::image_format(const std::string& filename) {
+  boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
+  return src->format();
+}

@@ -1012,7 +1012,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
       
       const Vector4i bounds = m_disp_bound_image(i,j);
-      int height   = (bounds[3] - bounds[1] + 1);
+      //int height   = (bounds[3] - bounds[1] + 1);
       int width    = (bounds[2] - bounds[0] + 1);
       
       // Check the input image to find masked pixels

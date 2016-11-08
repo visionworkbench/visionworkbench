@@ -31,6 +31,8 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/LensDistortion.h>
+#include <vw/FileIO/FileUtils.h>
+#include <vw/tools/Common.h>
 
 #include <iostream>
 
@@ -41,17 +43,35 @@ using namespace vw;
 using vw::camera::PinholeModel;
 using vw::camera::LensDistortion;
 
+// Global variables, to make it easier to invoke the function do_work
+// with many channels and channel types.
+std::string input_file_name, output_file_name, camera_file_name;
 
 /// Generates an undistorted view of an input image.
 /// - This should be moved somewhere else.
 /// - Could easily add the option to keep the image the same size.
-template <class ImageT>
-void undistort_image(const PinholeModel                           &camera_model,
-                     const ImageT                                 &image_in,
-                           ImageView<typename ImageT::pixel_type> &image_out) {
+template <class PixelT>
+void do_work() {
 
-  const int width_in  = image_in.cols();
-  const int height_in = image_in.rows();
+  // Load the input image
+  printf("Loading input image: %s\n", input_file_name.c_str());
+  ImageView<PixelT> image_in;
+  read_image(image_in, input_file_name);
+
+  // Interpolate the input image
+  InterpolationView<EdgeExtensionView<ImageView<PixelT>, ZeroEdgeExtension>, BilinearInterpolation> interp_image_in = interpolate(image_in, BilinearInterpolation(), ZeroEdgeExtension());
+  
+  // Output image
+  ImageView<PixelT> image_out;
+
+  // Load the camera
+  printf("Loading camera model file: %s\n", camera_file_name.c_str());
+  PinholeModel camera_model(camera_file_name);
+  
+  printf("Undistorting the image...\n");
+
+  const int width_in  = interp_image_in.cols();
+  const int height_in = interp_image_in.rows();
   const LensDistortion* lens_ptr = camera_model.lens_distortion();
   const double pitch = camera_model.pixel_pitch();
 
@@ -94,17 +114,66 @@ void undistort_image(const PinholeModel                           &camera_model,
       //std::cout << lens_loc << std::endl;
       out_loc  = lens_ptr->distorted_coordinates(camera_model, lens_loc);
       Vector2 in_loc = elem_quot(out_loc, pitch);
-      image_out(c,r) = image_in(in_loc[0], in_loc[1]);
+      image_out(c,r) = interp_image_in(in_loc[0], in_loc[1]);
     }
   } // End double loop through output image
 
-} // End function undistort_image
+  printf("Writing output image: %s\n", output_file_name.c_str());
+  write_image(output_file_name, image_out);
+  
+  printf("Finished!\n");
+  
+} // End function do_work
 
+// Magic to make do_work() work with many number of channels and channel types
+#define DO_WORK(PIXELTYPEMACRO, CHANNELTYPE) DO_WORK_(PIXELTYPEMACRO, CHANNELTYPE)
+#define DO_WORK_(PIXELTYPEMACRO, CHANNELTYPE) DO_WORK__(PIXELTYPEMACRO, CHANNELTYPE, PIXELTYPEMACRO ## _ ## CHANNELTYPE)
+#define DO_WORK__(PIXELTYPEMACRO, CHANNELTYPE, FUNCSUFFIX) \
+  void do_work_##FUNCSUFFIX(void) {                                    \
+    do_work<PIXELTYPEMACRO<CHANNELTYPE > >();                          \
+  }
 
+// The channel type can be integer or float
+#define DO_WORK_ALL_CHANNELS( PIXELTYPE )  \
+  DO_WORK( PIXELTYPE, uint8 );             \
+  DO_WORK( PIXELTYPE, int8 );              \
+  DO_WORK( PIXELTYPE, uint16 );            \
+  DO_WORK( PIXELTYPE, int16 );             \
+  DO_WORK( PIXELTYPE, float32 );           \
+  DO_WORK( PIXELTYPE, float64 ); 
 
+// Support 1 or 3 channel images, perhaps with an alpha channel
+DO_WORK_ALL_CHANNELS(PixelGray)
+DO_WORK_ALL_CHANNELS(PixelGrayA)
+DO_WORK_ALL_CHANNELS(PixelRGB)
+DO_WORK_ALL_CHANNELS(PixelRGBA)
+
+#define SWITCH_ON_CHANNEL_TYPE( PIXELTYPE )                            \
+  switch (fmt.channel_type) {                                          \
+  case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_uint8();   break;     \
+  case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_int8();    break;     \
+  case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_uint16();  break;     \
+  case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_int16();   break;     \
+  case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;     \
+  default:                 do_work_##PIXELTYPE##_float64(); break;     \
+  }
+
+void do_work_all_channels(std::string const& input_file_name){
+
+  ImageFormat fmt = vw::image_format(input_file_name);
+  try {
+    switch (fmt.pixel_format) {
+    case VW_PIXEL_GRAY:  SWITCH_ON_CHANNEL_TYPE(PixelGray);  break; // 1 channel
+    case VW_PIXEL_GRAYA: SWITCH_ON_CHANNEL_TYPE(PixelGrayA); break; // 1 channel  + alpha channel
+    case VW_PIXEL_RGB:   SWITCH_ON_CHANNEL_TYPE(PixelRGB);   break; // 3 channels 
+    default:             SWITCH_ON_CHANNEL_TYPE(PixelRGBA);  break; // 3 channels + alpha channel
+    }
+  }catch (const Exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+  }
+}
+    
 int main( int argc, char *argv[] ) {
-
-  std::string input_file_name, output_file_name, camera_file_name;
 
   po::options_description desc("Usage: undistort_image [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
@@ -139,30 +208,9 @@ int main( int argc, char *argv[] ) {
     std::cout << desc << std::endl;
     return 1;
   }
+
+  vw::create_out_dir(output_file_name);
+  do_work_all_channels(input_file_name);
   
-
-  try {
-    // Load the image and convert to RGB8
-    printf("Loading input image: %s\n", input_file_name.c_str());
-    ImageView<PixelRGB<unsigned char> > input_image, output_image;
-    read_image( input_image, input_file_name );
-
-    printf("Loading camera model file: %s\n", camera_file_name.c_str());
-    PinholeModel camera_model(camera_file_name);
-
-    // Wrap interpolator around the input image to smoothly interp RGB values
-    printf("Undistorting the image...\n");
-    undistort_image(camera_model, interpolate(input_image, BilinearInterpolation(), ZeroEdgeExtension()),
-                                  output_image);
-
-    printf("Writing output image: %s\n", output_file_name.c_str());
-    write_image( output_file_name, output_image );
-  }
-  catch (const Exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-  }
-
-  printf("Finished!\n");
-
   return 0;
 }
