@@ -302,7 +302,7 @@ void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
     int im[4] = {0,1,1,0}, jm[4] = {0,0,1,1};
     int castab[3][3][3] =
         { { {0,0,8},{0,2,5},{7,6,9} },
-          { {0,3,4},{1,3,1},{4,3.0} },
+          { {0,3,4},{1,3,1},{4,3,0} },
           { {9,6,7},{5,2,0},{8,0,0} } };
     ContourSegment seg;
 

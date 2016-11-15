@@ -184,7 +184,7 @@ endif
 
 if MAKE_MODULE_FLOOD_DETECT
 detect_water_progs = detect_water
-detect_water_SOURCES = detect_water.cc modis_utilities.h modis_water_detection.h
+detect_water_SOURCES = detect_water.cc modis_utilities.h modis_water_detection.h radar.h
 detect_water_LDADD   = @PKG_VW_LIBS@ @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 endif
 

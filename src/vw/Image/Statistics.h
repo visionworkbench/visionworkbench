@@ -400,7 +400,8 @@ namespace vw {
     double max_val = -std::numeric_limits<double>::max(), min_val = -max_val;
     for (int row = 0; row < view.impl().rows(); row++){
       for (int col = 0; col < view.impl().cols(); col++){
-        if ( !is_valid(view.impl()(col, row)) ) continue;
+        if ( !is_valid(view.impl()(col, row)) )
+          continue;
         double val = view.impl()(col, row);
         if (val < min_val) min_val = val;
         if (val > max_val) max_val = val;
@@ -411,7 +412,8 @@ namespace vw {
     hist.assign(num_bins, 0.0);
     for (int row = 0; row < view.impl().rows(); row++){
       for (int col = 0; col < view.impl().cols(); col++){
-        if ( !is_valid(view.impl()(col, row)) ) continue;
+        if ( !is_valid(view.impl()(col, row)) )
+          continue;
         double val = view.impl()(col, row);
         int bin = (int)round( (num_bins - 1) * ( (val - min_val)/(max_val - min_val) ) );
         hist[bin]++;
@@ -447,12 +449,14 @@ namespace vw {
     
     VW_ASSERT(num_bins > 0, ArgumentErr() << "histogram: number of input bins must be positive");
     
-    if (max_val == min_val) max_val = min_val + 1.0;
+    if (max_val == min_val) 
+      max_val = min_val + 1.0;
       
     hist.assign(num_bins, 0.0);
     for (int row = 0; row < view.impl().rows(); row++){
       for (int col = 0; col < view.impl().cols(); col++){
-        if ( !is_valid(view.impl()(col, row)) ) continue;
+        if ( !is_valid(view.impl()(col, row)) )
+          continue;
         double val = view.impl()(col, row);
         int bin = (int)round( (num_bins - 1) * ( (val - min_val)/(max_val - min_val) ) );
         hist[bin]++;

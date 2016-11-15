@@ -22,6 +22,7 @@
 #include <vw/Image/ImageIO.h>
 #include <vw/tools/modis_utilities.h>
 #include <vw/tools/modis_water_detection.h>
+#include <vw/tools/radar.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -35,11 +36,19 @@ int main(int argc, char **argv) {
   std::string output_path;
   float manual_threshold;
 
+  // TODO: Auto-compute the default value.
+  int tile_size=512;
+  cartography::GdalWriteOptions write_options;
 
   po::options_description general_options("Runs VW's water detection tools.\n\nGeneral Options");
   general_options.add_options()
     ("output-path,o",    po::value<std::string>(&output_path    ), "The output file path")
     ("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
+    ("num-threads",      po::value<int>(&write_options.num_threads)->default_value(2), 
+                         "Number of threads to use for writing")
+    ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
+                         "Tile size used for parallel processing")
+    ("radar-mode",       "Use radar mode TODO handle all modes!")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -72,6 +81,9 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  bool radar_mode = vm.count("radar-mode");
+  write_options.raster_tile_size = Vector2i(tile_size, tile_size);
+
   // Handle user threshold
   float threshold = 100;
   if( vm.count("manual-threshold") )
@@ -82,6 +94,14 @@ int main(int argc, char **argv) {
     std::cout << usage.str();
     return 1;
   }
+  
+  if (radar_mode) {
+    std::cout << "Processing sentinel-1 image!\n";
+    // TODO: What exactly should the input format be???
+    radar::sar_martinis(input_file_names[0], write_options);
+    return 0;
+  }
+  
 
   std::cout << "Loading MODIS image...\n";
   modis::ModisImage modis_image;
