@@ -250,6 +250,7 @@ namespace vw {
     }
   };
 
+  /// This class wraps another accumulator functor to add pixel mask handling.
   template <class AccumT>
   class PixelAccumulator : public AccumT {
   public:
@@ -451,7 +452,7 @@ namespace vw {
     
     if (max_val == min_val) 
       max_val = min_val + 1.0;
-      
+    
     hist.assign(num_bins, 0.0);
     for (int row = 0; row < view.impl().rows(); row++){
       for (int col = 0; col < view.impl().cols(); col++){
@@ -459,10 +460,16 @@ namespace vw {
           continue;
         double val = view.impl()(col, row);
         int bin = (int)round( (num_bins - 1) * ( (val - min_val)/(max_val - min_val) ) );
+        
+        // Saturate the bin assignment to prevent a memory exception.
+        if (bin < 0)
+          bin = 0;
+        if (bin > num_bins-1)
+          bin = num_bins-1;
+          
         hist[bin]++;
       }
     }
-
     return;
   }
 
