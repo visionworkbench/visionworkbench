@@ -20,7 +20,9 @@
 #define __VW_RADAR_H__
 
 #include <stdlib.h>
+#include <vw/Core/Functors.h>
 //#include <vw/Math/Statistics.h>
+#include <vw/Image/BlobIndex.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Manipulation.h>
@@ -272,6 +274,19 @@ double computeKIJT(std::vector<double> const& histogram,
 double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
                                      int num_bins, double min_val, double max_val) {
 
+  // DEBUG: Write out the histogram
+  double bin_width = (max_val - min_val) / num_bins;
+  std::cout << std::endl;
+  for (int i=0; i<num_bins; ++i) {
+    std::cout << min_val + bin_width*i<< " ";
+  }
+  std::cout << std::endl;
+  for (int i=0; i<num_bins; ++i) {
+    std::cout << histogram[i] << " ";
+  }
+  std::cout << std::endl;
+
+
   // Normalize the histogram (each bin is now a percentage)
   std::vector<double> histogram_percentages(num_bins);
   double sum = 0;
@@ -301,7 +316,6 @@ double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
     }
   }
   // Compute the final threshold which is below the current bin value
-  double bin_width = (max_val - min_val) / num_bins;
   double threshold = min_val + bin_width*(static_cast<double>(min_index) - 0.5);
   
   return threshold;
@@ -314,15 +328,76 @@ double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
 //=========================================================================================
 
 // TODO: What data type to use?
-typedef uint16 SarType;
-typedef PixelMask<SarType> SarTypeM;
+typedef uint16 Sentinel1Type;
+typedef float  RadarType;
+typedef PixelMask<RadarType> RadarTypeM;
+
+
+// TODO: MOVE THIS FUNCTION
+
+/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
+template <typename T>
+struct RescaleFunctor : public ReturnFixedType<T> {
+private:
+  double m_gain, m_offset;
+public:
+  RescaleFunctor(double gain,  double offset) : m_gain(gain), m_offset(offset) {}
+  RescaleFunctor(double input_min,  double input_max, 
+                 double output_min, double output_max){
+    double input_range  = input_max  - input_min;
+    double output_range = output_max - output_min;
+    m_gain   = output_range / input_range;
+    m_offset = output_min - input_min*m_gain;
+  }
+  float operator()( T value ) const {
+    return value*m_gain + m_offset;
+  }
+}; // End class RescaleFunctor
+
+/// Rescale an image
+template <class ImageT>
+UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
+inline rescale( ImageViewBase<ImageT> const& image, double input_min,  double input_max, 
+                                                    double output_min, double output_max) {
+  return UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
+    ( image.impl(), RescaleFunctor<typename ImageT::pixel_type>(input_min, input_max, output_min, output_max) );
+}
+
+/// Rescale an image
+template <class ImageT>
+UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
+inline rescale( ImageViewBase<ImageT> const& image, double gain,  double offset) {
+  return UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
+    ( image.impl(), RescaleFunctor<typename ImageT::pixel_type>(gain, offset) );
+}
+
+
+
+
+/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
+struct Sentinel1DnToDb : public ReturnFixedType<float> {
+  Sentinel1DnToDb(){}
+  float operator()( RadarType value ) const {
+    if (value == 0)
+      return 0; // These pixels are invalid, don't return inf for them!
+    return 10*log10(value);
+  }
+};
+
+/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
+template <class ImageT>
+UnaryPerPixelView<ImageT,Sentinel1DnToDb>
+inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
+  return UnaryPerPixelView<ImageT,Sentinel1DnToDb>( image.impl(), Sentinel1DnToDb() );
+}
+
 
 /// Crop and preprocess the input image in preparation for the sar_martinis algorithm.
-void preprocess_sentinel1_image(ImageView<SarType> const& input_image, 
+void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, 
                                 double nodata_value, BBox2i const& roi,
-                                SarType global_min, SarType global_max,
+                                RadarType &global_min, RadarType &global_max,
                                 cartography::GdalWriteOptions const& write_options,
-                                ImageViewRef<SarTypeM>      & processed_image) {
+                                ImageViewRef<RadarTypeM>      & processed_image) {
 
   // Currently we write the preprocessed image to disk, but maybe in the future
   // we should not.
@@ -335,32 +410,47 @@ void preprocess_sentinel1_image(ImageView<SarType> const& input_image,
 
   // TODO: Detect if image already exists, don't reprocess!
   std::cout << "Skipping preprocess already on disk!!!!\n";
-/*
 
-  TODO: Handle the mask in the filter!
+  global_min = 0.0;  // This can be kept constant
+  global_max = 35.0; // TODO: Is it worth computing the exact value?
+
+  const double PROC_MIN = 0;
+  const double PROC_MAX = 400;
+
+  // TODO: Record this gain/offset so we can undo this scaling later on!
+  double input_range  = global_max - global_min;
+  double output_range = PROC_MAX - PROC_MIN;
+  double gain         = output_range / input_range;
+  double offset       = PROC_MIN - global_min*gain;
+  printf("Computed gain = %lf, offset = %lf\n", gain, offset);
+
+  //std::cout << "minmax...\n";
+  //min_max_channel_values(DiskImageView<RadarType>("preprocessed_image.tif"), global_min, global_max);
+  //printf("Computed min = %f, max = %f\n", global_min, global_max);
+
+  //TODO: Handle the mask in the filter!
   // Perform median filter to correct speckles (see section 2.1.4)
   int kernel_size = 3;
   std::string temp_image_path = "preprocessed_image.tif";
   cartography::block_write_gdal_image(temp_image_path,
-                                      median_view(crop(input_image, roi), 
-                                                  Vector2i(kernel_size, kernel_size),
-                                                  ConstantEdgeExtension()),
+                                      rescale(sentinel1_dn_to_db(median_view(crop(input_image, roi), 
+                                                                             Vector2i(kernel_size, kernel_size),
+                                                                             ConstantEdgeExtension())
+                                                                ),
+                                              gain, offset
+                                             ),
                                       write_options,
                                       TerminalProgressCallback("vw", "\t--> Preprocessing:"));
-*/
-  // Return a view of the image on disk for easy access
-  processed_image = create_mask(DiskImageView<SarType>("preprocessed_image.tif"), nodata_value);
 
-/*  
-  // EE does most of the same preprocessing as the paper but we still need to
-  //  duplicate the 0 to 400 scale they used.
-  PROC_global_min =   0.0
-  PROC_global_max = 400.0
-  minmax = rawImage.reduceRegion(ee.Reducer.minMax(), domain.bounds, scale=BASE_RES).getInfo();
-  minVal = [value for key, value in minmax.items() if 'min' in key.lower()][0]
-  maxVal = [value for key, value in minmax.items() if 'max' in key.lower()][0]
-  radarImage = rawImage.unitScale(minVal, maxVal).multiply(PROC_global_max)
-*/
+  // Return a view of the image on disk for easy access
+  processed_image = create_mask(DiskImageView<RadarType>("preprocessed_image.tif"), nodata_value);
+
+  // Update these to reflect the scaled values
+  global_min = PROC_MIN;
+  global_max = PROC_MAX; 
+
+ 
+
 } // End preprocess_sentinel1_image
 
 /// Splits up one large BBox into a grid of smaller BBoxes.
@@ -457,7 +547,7 @@ public: // Definitions
 private: // Variables
 
   ImageT const& m_input_image;
-  mutable ImageView<SarTypeM> m_tile_means, m_tile_stddevs;
+  mutable ImageView<RadarTypeM> m_tile_means, m_tile_stddevs;
   int m_tile_size;
 
 public: // Functions
@@ -478,12 +568,29 @@ public: // Functions
   { return 0; } // NOT IMPLEMENTED!
 
   // Accessors to grab the results
-  ImageView<SarTypeM> const& tile_means  () const {return m_tile_means;}
-  ImageView<SarTypeM> const& tile_stddevs() const {return m_tile_stddevs;}
+  ImageView<RadarTypeM> const& tile_means  () const {return m_tile_means;}
+  ImageView<RadarTypeM> const& tile_stddevs() const {return m_tile_stddevs;}
  
   typedef ProceduralPixelAccessor<ImageTileMeansView<ImageT> > pixel_accessor;
   inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
+  /// Compute the mean and percentage of valid pixels in an image
+  double mean_and_validity(CropView<ImageView<RadarTypeM> > const& image, double &mean) const {
+    mean = 0;
+    double count = 0, sum = 0;
+    for (int r=0; r<image.rows(); ++r) {
+      for (int c=0; c<image.cols(); ++c) {
+        if (is_valid(image(c,r))) {
+          sum   += image(c,r);
+          count += 1.0;
+        }
+      }
+    }
+    if (count > 0)
+      mean = sum / count;
+    return count / static_cast<double>(image.rows() * image.cols());
+  }
+                           
 
   typedef CropView<ImageView<result_type> > prerasterize_type;
   inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
@@ -498,14 +605,8 @@ public: // Functions
       const int NUM_SUB_ROIS = 4;
       int hw = bbox.width() /2;
       int hh = bbox.height()/2;
-      std::vector<BBox2i> sub_rois(NUM_SUB_ROIS);
+      std::vector<BBox2i> sub_rois(NUM_SUB_ROIS); // ROIs relative to the whole tile
       std::vector<PixelMask<double> > means   (NUM_SUB_ROIS);
-      /*
-      sub_rois[0] = BBox2i(bbox.min()[0],    bbox.min()[1],    hw, hh); // Top left
-      sub_rois[1] = BBox2i(bbox.min()[0]+hw, bbox.min()[1],    hw, hh); // Top right
-      sub_rois[2] = BBox2i(bbox.min()[0]+hw, bbox.min()[1]+hh, hw, hh); // Bottom right
-      sub_rois[3] = BBox2i(bbox.min()[0],    bbox.min()[1]+hh, hw, hh); // Bottom left
-      */
       sub_rois[0] = BBox2i(0,  0,  hw, hh); // Top left
       sub_rois[1] = BBox2i(hw, 0,  hw, hh); // Top right
       sub_rois[2] = BBox2i(hw, hh, hw, hh); // Bottom right
@@ -513,15 +614,19 @@ public: // Functions
       
       //printf("Means for tile: %d, %d\n", this_col, this_row);
       
-      ImageView<SarTypeM> section = crop(m_input_image, bbox);
+      ImageView<RadarTypeM> section = crop(m_input_image, bbox);
+
+      // Don't compute statistics from regions with a lot of bad pixels
+      const double MIN_PERCENT_VALID = 0.9;
       
       // Compute the mean in each of the four sub-rois
+      double percent_valid;
       for (int i=0; i<NUM_SUB_ROIS; ++i) {
-        try {
-          means[i] = mean_channel_value(crop(section, sub_rois[i]));
-        } catch(ArgumentErr) {
-          invalidate(means[i]); // No valid pixels in this region.
-        }
+        double mean;
+        percent_valid = mean_and_validity(crop(section, sub_rois[i]), mean);
+        means[i] = mean;
+        if (percent_valid < MIN_PERCENT_VALID)
+          invalidate(means[i]);
         //std::cout << "Mean for sub-roi " << sub_rois[i] << " = " << means[i] << std::endl;
       }
 
@@ -532,13 +637,14 @@ public: // Functions
       double stddev_of_means = 0;
       if (is_valid) {
         stddev_of_means = standard_deviation(means, mean_of_means);
-        //printf("Mean, stddev for tile (%d, %d) = %lf, %lf\n", this_col, this_row, mean_of_means, stddev_of_means);
+        //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
+        //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
       }
 
       // Assign the REAL outputs
       if (is_valid) {
-        m_tile_means  (this_col, this_row) = SarTypeM(mean_of_means);
-        m_tile_stddevs(this_col, this_row) = SarTypeM(stddev_of_means);
+        m_tile_means  (this_col, this_row) = RadarTypeM(mean_of_means);
+        m_tile_stddevs(this_col, this_row) = RadarTypeM(stddev_of_means);
       } else {
         invalidate(m_tile_means  (this_col, this_row));
         invalidate(m_tile_stddevs(this_col, this_row));
@@ -566,7 +672,7 @@ public: // Functions
 
 template <class ImageT>
 void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int num_boxes_y,
-                         ImageView<SarTypeM> &tile_means, ImageView<SarTypeM> &tile_stddevs) {
+                         ImageView<RadarTypeM> &tile_means, ImageView<RadarTypeM> &tile_stddevs) {
 
   // These tiles must be written at this exact size to get the correct results!
   //Vector2i block_size(tile_size, tile_size);
@@ -601,55 +707,90 @@ void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int
 
 
 
-/* TODO: Convert this for local use!
 
-// Erode blobs from given image by iterating through tiles, biasing
-// each tile by a factor of blob size, removing blobs in the tile,
-// then shrinking the tile back. The bias is necessary to help avoid
-// fragmenting (and then unnecessarily removing) blobs.
+/// From a binary image, generate an image where each pixel has a value
+/// equal to the size of the blob that contains it (up to a size limit).
 template <class ImageT>
-class PerTileErode: public ImageViewBase<PerTileErode<ImageT> >{
-  ImageT m_img;
+class LimitedBlobSizes: public ImageViewBase<LimitedBlobSizes<ImageT> >{
+  ImageT m_input_image;
+  int    m_expand_size; ///< Tile expansion used to more accurately size blobs.
+  uint32 m_size_limit;  ///< Cap the size value written in output pixels.
 public:
-  PerTileErode( ImageViewBase<ImageT>   const& img):
-    m_img(img.impl()){}
+  LimitedBlobSizes( ImageViewBase<ImageT> const& img, int expand_size, 
+                    uint32 size_limit = std::numeric_limits<uint32>::max()):
+    m_input_image(img.impl()), m_expand_size(expand_size), m_size_limit(size_limit){}
 
   // Image View interface
-  typedef typename ImageT::pixel_type pixel_type;
-  typedef pixel_type                  result_type;
-  typedef ProceduralPixelAccessor<PerTileErode> pixel_accessor;
+  typedef uint32 pixel_type;
+  typedef pixel_type      result_type;
+  typedef ProceduralPixelAccessor<LimitedBlobSizes> pixel_accessor;
 
-  inline int32 cols  () const { return m_img.cols(); }
-  inline int32 rows  () const { return m_img.rows(); }
+  inline int32 cols  () const { return m_input_image.cols(); }
+  inline int32 rows  () const { return m_input_image.rows(); }
   inline int32 planes() const { return 1; }
 
   inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
   inline pixel_type operator()( double i, double j, int32 p = 0 ) const {
-    vw_throw(NoImplErr() << "PerTileErode::operator()(...) is not implemented");
+    vw_throw(NoImplErr() << "operator()(...) is not implemented");
     return pixel_type();
   }
 
   typedef CropView<ImageView<pixel_type> > prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
-    int area = stereo_settings().erode_max_size;
+    ImageView<pixel_type> output_tile(bbox.width(), bbox.height());
 
-    // We look a beyond the current tile, to avoid cutting blobs
-    // if possible. Skinny blobs will be cut though.
-    int bias = 2*int(ceil(sqrt(double(area))));
+    // Rasterize the region with an expanded tile size so that we can count
+    //  blob sizes that extend some distance outside the tile borders.
+    BBox2i big_bbox = bbox;
+    big_bbox.expand(m_expand_size);
+    big_bbox.crop(bounding_box(m_input_image));
+    ImageView<typename ImageT::pixel_type> input_tile = crop(m_input_image, big_bbox);
+    //std::cout << "Searching for blobs in " << big_bbox << std::endl;
 
-    BBox2i bbox2 = bbox;
-    bbox2.expand(bias);
-    bbox2.crop(bounding_box(m_img));
-    ImageView<pixel_type> tile_img = crop(m_img, bbox2);
+    // Use a single thread to search for blobs in this image
+    int tile_size = std::max(big_bbox.width(), big_bbox.height());
+    BlobIndexThreaded blob_index(input_tile, 0, tile_size);
+    
+    // Loop through all the blobs and assign pixel scores
+    BlobIndexThreaded::const_blob_iterator blob_iter = blob_index.begin();
+    //std::cout << "Found " << blob_index.num_blobs() << " blobs.\n";
+    while (blob_iter != blob_index.end()) { // Loop through blobs
+      uint32 blob_size = blob_iter->size();
+      //std::cout << "Blob size =  " << blob_size << "\n";
+      if (blob_size > m_size_limit)
+        blob_size = m_size_limit;
+      int num_rows = blob_iter->num_rows();
+      //std::cout << "num_rows = " << num_rows << std::endl;
+      std::list<int32>::const_iterator start_iter, stop_iter;
+      for (int r=0; r<num_rows; ++r) { // Loop through rows in blobs
+        int row = r + blob_iter->min()[1] + big_bbox.min()[1]; // Absolute row
+        start_iter = blob_iter->start(r).begin();
+        stop_iter  = blob_iter->end(r).begin();
+        while (start_iter != blob_iter->start(r).end()) { // Loop through sections in row
+          //std::cout << "start = " << *start_iter << ", stop = " << *stop_iter << std::endl;
+          for (int c=*start_iter; c<*stop_iter; ++c) { // Loop through pixels in section
+            int col = c + blob_iter->min()[0] + big_bbox.min()[0]; // Absolute col
+            Vector2i pixel(col,row);
+            //std::cout << "Searching for blobs in " << big_bbox << std::endl;
+            //std::cout << "Pixel = " << pixel << ", raw = " << Vector2i(c,r) << std::endl;
+            if (!bbox.contains(pixel))
+              continue; // Skip blob pixels outside the current tile
+            Vector2i tile_pixel = pixel - bbox.min();
+            //std::cout << "Pixel = " << pixel << ", tile_pixel = " << tile_pixel << ", raw = " << Vector2i(c,r) << std::endl;
+            output_tile(tile_pixel[0], tile_pixel[1]) = blob_size; // Set the size of the pixel!
+          } // End loop through pixels
+          ++start_iter;
+          ++stop_iter;
+        } // End loop through sections
+      } // End loop through rows
+      ++blob_iter;
+    } // End loop through blobs
 
-    int tile_size = max(bbox2.width(), bbox2.height()); // don't subsplit
-    BlobIndexThreaded smallBlobIndex(tile_img, area, tile_size);
-    ImageView<pixel_type> clean_tile_img = applyErodeView(tile_img,
-                                                          smallBlobIndex);
-    return prerasterize_type(clean_tile_img,
-                             -bbox2.min().x(), -bbox2.min().y(),
+    // Perform tile size faking trick to make small tile look the size of the entire image
+    return prerasterize_type(output_tile,
+                             -bbox.min().x(), -bbox.min().y(),
                              cols(), rows() );
   }
 
@@ -660,14 +801,10 @@ public:
 };
 
 template <class ImageT>
-PerTileErode<ImageT>
-per_tile_erode( ImageViewBase<ImageT> const& img) {
-  typedef PerTileErode<ImageT> return_type;
-  return return_type( img.impl() );
+LimitedBlobSizes<ImageT>
+get_blob_sizes(ImageViewBase<ImageT> const& image, int expand_size, uint32 size_limit) {
+  return LimitedBlobSizes<ImageT>(image.impl(), expand_size, size_limit);
 }
-*/
-
-
 
 
 /** Main function of algorithm from:
@@ -680,9 +817,10 @@ void sar_martinis(std::string const& input_image_path,
 
   // TODO: How to specify the ROI?
   
-  BBox2i roi = bounding_box(DiskImageView<SarType>(input_image_path));
+  BBox2i roi = bounding_box(DiskImageView<Sentinel1Type>(input_image_path));
  
   // Load the georeference from the input image
+  // - The input image won't be georeferenced unless it goes through gdalwarp.
   cartography::GeoReference georef;
   bool have_georef = cartography::read_georeference(georef, input_image_path);
   if (have_georef) {
@@ -691,6 +829,7 @@ void sar_martinis(std::string const& input_image_path,
   }
   else
     std::cout << "FAILED to read georeference!\n";
+
   
   // Read nodata value
   const double DEFAULT_NODATA = 0; // TODO!!!!
@@ -703,20 +842,14 @@ void sar_martinis(std::string const& input_image_path,
   else
     std::cout << "Failed to read nodata value, using default value of 0.\n";
   const bool have_nodata = true;
-  
-  //std::cout << "MinMax...\n";
-  
+   
   // Compute the min and max values of the image
-  // TODO: How to handle the preprocessing?  Inputs are 16 bit but almost everything is < 1000.
-  //       actually computing the real max seems worthless.
-  SarType global_min=0, global_max=1000;
-  //min_max_channel_values(crop(DiskImageView<SarType>(input_image_path), roi), global_min, global_max);
-
   std::cout << "Preprocessing...\n";
 
   // Apply any needed preprocessing to the image TODO
-  ImageViewRef <SarTypeM> preprocessed_image;
-  preprocess_sentinel1_image(DiskImageView<SarType>(input_image_path), nodata_value, roi, 
+  ImageViewRef <RadarTypeM> preprocessed_image;
+  RadarType global_min, global_max;
+  preprocess_sentinel1_image(DiskImageView<Sentinel1Type>(input_image_path), nodata_value, roi, 
                              global_min, global_max, write_options, preprocessed_image);
 
   int tile_size = 512; // TODO
@@ -730,7 +863,7 @@ void sar_martinis(std::string const& input_image_path,
   std::cout << "Computing tile means...\n";
 
   // For each tile compute the mean value and the standard deviation of the four sub-tiles.
-  ImageView<SarTypeM> tile_means, tile_stddevs; // These are much smaller than the input image
+  ImageView<RadarTypeM> tile_means, tile_stddevs; // These are much smaller than the input image
   generate_tile_means(preprocessed_image, tile_size, num_boxes_x, num_boxes_y,
                       tile_means, tile_stddevs);
 
@@ -816,10 +949,10 @@ void sar_martinis(std::string const& input_image_path,
 
   // If the standard deviation of the local thresholds in DB are greater than this,
   //  the result is probably bad (number from the paper)
-  double MAX_STD_DB = 5.0;
+  //double MAX_STD_DB = 5.0;
 
   // The maximum allowed value, from the paper.
-  double MAX_THRESHOLD_DB = 10.0;
+  //double MAX_THRESHOLD_DB = 10.0;
 
   double threshold_stddev = standard_deviation(optimal_tile_thresholds, threshold_mean);
   
@@ -845,25 +978,29 @@ void sar_martinis(std::string const& input_image_path,
   
   
   // This will mask the water pixels
-  ImageViewRef<SarTypeM> raw_water = create_mask_less_or_equal(preprocessed_image, threshold_mean);
+  //ImageViewRef<RadarTypeM> raw_water = create_mask_less_or_equal(preprocessed_image, threshold_mean);
+  ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, 255, 1);
 
   // DEBUG: Apply the initial threshold to the image and save it to disk!
-  block_write_gdal_image("initial_water_detect.tif",
-                         apply_mask(copy_mask(constant_view(uint8(0), preprocessed_image), 
-                                              raw_water),
-                                    uint8(255)),
+  std::string initial_water_detect_path = "initial_water_detect.tif";
+  const uint8 CLASSIFICATION_NODATA = 0;
+  block_write_gdal_image(initial_water_detect_path,
+                         //apply_mask(copy_mask(constant_view(uint8(1), preprocessed_image), 
+                         //                     raw_water),
+                         //           uint8(255)),
+                         pixel_cast<uint8>(apply_mask(raw_water, CLASSIFICATION_NODATA)),
                          have_georef, georef,
-                         have_nodata, nodata_value,
+                         true, CLASSIFICATION_NODATA, // Choose the nodata value
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Applying initial threshold:"));
 
   // Get information needed for fuzzy logic results filtering
-return;
+
   std::cout << "Computing mean of flooded regions...\n";
 
   // Compute mean value of pixels under initial water threshold
-  // - TODO: Is this in parallel?
-  double mean_raw_water_value = mean_channel_value(raw_water);
+  // - TODO: Need to speed this up!
+  double mean_raw_water_value = 0;//mean_channel_value(raw_water);
 
   std::cout << "Mean value of flooded regions = " << mean_raw_water_value << std::endl;
 
@@ -871,13 +1008,23 @@ return;
 
   // No point going through the fuzzy logic stuff when most of the inputs are missing!
 
-/*
-  // TODO: Form image blobs. --> This is complicated for large images so come back later!
-LOCAL HOPEFULLY - Local blobs plus a blob consolidation step???
-  // TODO: Compute the number of pixels in each blob, up to the maximum we care about (1000m*m)
-  maxBlobSize = 1000/BASE_RES
-  blobSizes   = rawWater.mask(rawWater).connectedPixelCount(maxBlobSize)
-*/
+
+  // Write out an image containing the water blob size at each pixel
+  // - In order to parallelize this step, blob computations are approximated.
+  const uint32 MAX_BLOB_SIZE = 1000;
+  const int    TILE_EXPAND   = 256; // The larger this number, the better the approximation.
+
+  std::string blobs_path = "blob_sizes.tif";
+  const uint32 BLOBS_NODATA = 0;
+  block_write_gdal_image(blobs_path,
+                         get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), 254),
+                                        TILE_EXPAND, MAX_BLOB_SIZE),
+                         have_georef, georef,
+                         true, BLOBS_NODATA,
+                         write_options,
+                         TerminalProgressCallback("vw", "\t--> Counting blob sizes:"));
+
+
 
 /*
 LOCAL
