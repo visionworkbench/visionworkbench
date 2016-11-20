@@ -985,9 +985,6 @@ void sar_martinis(std::string const& input_image_path,
   std::string initial_water_detect_path = "initial_water_detect.tif";
   const uint8 CLASSIFICATION_NODATA = 0;
   block_write_gdal_image(initial_water_detect_path,
-                         //apply_mask(copy_mask(constant_view(uint8(1), preprocessed_image), 
-                         //                     raw_water),
-                         //           uint8(255)),
                          pixel_cast<uint8>(apply_mask(raw_water, CLASSIFICATION_NODATA)),
                          have_georef, georef,
                          true, CLASSIFICATION_NODATA, // Choose the nodata value

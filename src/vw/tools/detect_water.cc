@@ -23,6 +23,7 @@
 #include <vw/tools/modis_utilities.h>
 #include <vw/tools/modis_water_detection.h>
 #include <vw/tools/radar.h>
+#include <vw/tools/landsat.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -49,6 +50,7 @@ int main(int argc, char **argv) {
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
     ("radar-mode",       "Use radar mode TODO handle all modes!")
+    ("landsat-mode",     "Use landsat mode TODO handle all modes!")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -81,7 +83,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  bool radar_mode = vm.count("radar-mode");
+  bool radar_mode   = vm.count("radar-mode");
+  bool landsat_mode = vm.count("landsat-mode");
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
 
   // Handle user threshold
@@ -97,11 +100,15 @@ int main(int argc, char **argv) {
   
   if (radar_mode) {
     std::cout << "Processing sentinel-1 image!\n";
-    // TODO: What exactly should the input format be???
     radar::sar_martinis(input_file_names[0], write_options);
     return 0;
   }
   
+  if (landsat_mode) {
+    std::cout << "Processing Landsat image!\n";
+    landsat::detect_water(input_file_names, write_options);
+    return 0;
+  }
 
   std::cout << "Loading MODIS image...\n";
   modis::ModisImage modis_image;
