@@ -54,6 +54,40 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptim
   }
 };
 
+
+// Pull all lines from the stream. Search for "name = val". Store the
+// values in the order given in "names". Complain if some fields were
+// not populated. This has the advantage that the order of lines in
+// the stream is not important, and it won't complain if there are
+// extraneous fields.
+template<class VectorT>
+void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals, std::istream & is){
+
+  std::map<std::string, double> name2val;
+  std::string line;
+  char name[1024];
+  double val;
+  while (is.good()){
+    std::getline(is, line);
+    if ( sscanf(line.c_str(),"%s = %lf", name, &val) != 2 )
+      continue;
+    
+    name2val[name] = val;
+  }
+
+  // Populate the output
+  for (size_t i = 0; i < names.size(); i++) {
+    if (i >= vals.size())
+      vw_throw( IOErr() << "Not enough room allocated for output.\n" );
+
+    std::map<std::string, double>::iterator it = name2val.find(names[i]);
+    if (it == name2val.end()) 
+      vw_throw( IOErr() << "Could not read a value for " << names[i] << ".\n" );
+    
+    vals[i] = it->second;
+  }
+}
+
 // Default implemenations for Lens Distortion -------------------
 
 
@@ -98,20 +132,37 @@ boost::shared_ptr<LensDistortion> NullLensDistortion::copy() const {
 }
 
 void NullLensDistortion::write(std::ostream & os) const {
-  os << "NULL\n";
+  // Nothing to write. The "NULL" string is already
+  // written before this, when we saved the distortion type.
+  // os << "NULL\n";
 }
 
 void NullLensDistortion::read(std::istream & is) {
+  // Nothing to read
 }
 
 void NullLensDistortion::scale(float scale) { }
 
 // ======== TsaiLensDistortion ========
 
-TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(params) {}
+TsaiLensDistortion::TsaiLensDistortion(){
+  TsaiLensDistortion::init_distortion_param_names();
+}
+
+TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(params) {
+  TsaiLensDistortion::init_distortion_param_names();
+}
 
 Vector<double>
 TsaiLensDistortion::distortion_parameters() const { return m_distortion; }
+
+void TsaiLensDistortion::init_distortion_param_names(){
+  std::string names[] = {"k1", "k2", "p1", "p2"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++) 
+    m_distortion_param_names[p] = names[p];
+}
 
 void TsaiLensDistortion::set_distortion_parameters(Vector<double> const& params) {
   m_distortion = params;
@@ -161,26 +212,12 @@ TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vecto
 }
 
 void TsaiLensDistortion::write(std::ostream & os) const {
-  os << "k1 = " << m_distortion[0] << "\n";
-  os << "k2 = " << m_distortion[1] << "\n";
-  os << "p1 = " << m_distortion[2] << "\n";
-  os << "p2 = " << m_distortion[3] << "\n";
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++) 
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
 }
 
 void TsaiLensDistortion::read(std::istream & is) {
-  std::string line;
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k1 = %lf", &m_distortion[0]) != 1)
-    vw_throw( IOErr() << "TsaiLensDistortion::read(): Could not read k1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k2 = %lf", &m_distortion[1]) != 1)
-    vw_throw( IOErr() << "TsaiLensDistortion::read(): Could not read k2\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p1 = %lf", &m_distortion[2]) != 1)
-    vw_throw( IOErr() << "TsaiLensDistortion::read(): Could not read p1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p2 = %lf", &m_distortion[3]) != 1)
-    vw_throw( IOErr() << "TsaiLensDistortion::read(): Could not read p2\n" );
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
 void TsaiLensDistortion::scale( float scale ) {
@@ -189,6 +226,18 @@ void TsaiLensDistortion::scale( float scale ) {
 
 // ======== BrownConradyDistortion ========
 
+BrownConradyDistortion::BrownConradyDistortion() {
+  BrownConradyDistortion::init_distortion_param_names();
+}
+
+void BrownConradyDistortion::init_distortion_param_names(){
+  std::string names[] = {"xp", "yp", "k1", "k2", "k3", "p1", "p2", "phi"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++) 
+    m_distortion_param_names[p] = names[p];
+}
+
 BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& params ) {
   VW_ASSERT( params.size() == 8,
              ArgumentErr() << "BrownConradyDistortion: requires constructor input of size 8.");
@@ -196,6 +245,7 @@ BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& params ) {
   m_radial_distortion = subvector(params,2,3);
   m_centering_distortion = subvector(params,5,2);
   m_centering_angle = params[7];
+  BrownConradyDistortion::init_distortion_param_names();
 }
 
 BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& principal,
@@ -241,42 +291,29 @@ BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam,
 }
 
 void BrownConradyDistortion::write(std::ostream& os) const {
-  os << "xp  = " << m_principal_point[0]      << "\n";
-  os << "yp  = " << m_principal_point[1]      << "\n";
-  os << "k1  = " << m_radial_distortion[0]    << "\n";
-  os << "k2  = " << m_radial_distortion[1]    << "\n";
-  os << "k3  = " << m_radial_distortion[2]    << "\n";
-  os << "p1  = " << m_centering_distortion[0] << "\n";
-  os << "p2  = " << m_centering_distortion[1] << "\n";
-  os << "phi = " << m_centering_angle         << "\n";
+  int p = 0;
+  os << m_distortion_param_names[p] << "  = " << m_principal_point[0]      << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_principal_point[1]      << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_radial_distortion[0]    << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_radial_distortion[1]    << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_radial_distortion[2]    << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_centering_distortion[0] << "\n"; p++;
+  os << m_distortion_param_names[p] << "  = " << m_centering_distortion[1] << "\n"; p++;
+  os << m_distortion_param_names[p] << " = "  << m_centering_angle         << "\n"; p++; // phi
 }
 
 void BrownConradyDistortion::read(std::istream & is) {
-  std::string line;
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"xp = %lf", &m_principal_point[0]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read xp\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"yp = %lf", &m_principal_point[1]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read yp\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k1 = %lf", &m_radial_distortion[0]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read k1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k2 = %lf", &m_radial_distortion[1]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read k2\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k3 = %lf", &m_radial_distortion[2]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read k3\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p1 = %lf", &m_centering_distortion[0]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read p1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p2 = %lf", &m_centering_distortion[1]) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read p2\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"phi = %lf", &m_centering_angle) != 1)
-    vw_throw( IOErr() << "BrownConradyDistortion::read(): Could not read phi\n" );
+  Vector<double, 8> distortion;
+  read_fields_in_vec(m_distortion_param_names, distortion, is);
+  int p = 0;
+  m_principal_point[0]      = distortion[p]; p++;
+  m_principal_point[1]      = distortion[p]; p++;
+  m_radial_distortion[0]    = distortion[p]; p++;
+  m_radial_distortion[1]    = distortion[p]; p++;
+  m_radial_distortion[2]    = distortion[p]; p++;
+  m_centering_distortion[0] = distortion[p]; p++;
+  m_centering_distortion[1] = distortion[p]; p++;
+  m_centering_angle         = distortion[p]; p++;
 }
 
 
@@ -378,8 +415,21 @@ void AdjustableTsaiLensDistortion::scale( float /*scale*/ ) {
 
 // ======== PhotometrixLensDistortion ========
 
+PhotometrixLensDistortion::PhotometrixLensDistortion(){
+  PhotometrixLensDistortion::init_distortion_param_names();
+}
+
 PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<float64,9> const& params) 
   : m_distortion(params) {
+  PhotometrixLensDistortion::init_distortion_param_names();
+}
+
+void PhotometrixLensDistortion::init_distortion_param_names(){
+  std::string names[] = {"xp", "yp", "k1", "k2", "k3", "p1", "p2", "b1", "b2"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++) 
+    m_distortion_param_names[p] = names[p];
 }
 
 Vector<double>
@@ -444,47 +494,12 @@ PhotometrixLensDistortion::undistorted_coordinates(const camera::PinholeModel& c
 }
 
 void PhotometrixLensDistortion::write(std::ostream & os) const {
-  os << "xp = " << m_distortion[0] << "\n";
-  os << "yp = " << m_distortion[1] << "\n";
-  os << "k1 = " << m_distortion[2] << "\n";
-  os << "k2 = " << m_distortion[3] << "\n";
-  os << "k3 = " << m_distortion[4] << "\n";
-  os << "p1 = " << m_distortion[5] << "\n";
-  os << "p2 = " << m_distortion[6] << "\n";
-  os << "b1 = " << m_distortion[7] << "\n";
-  os << "b2 = " << m_distortion[8] << "\n";
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++) 
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
 }
 
 void PhotometrixLensDistortion::read(std::istream & is) {
-  std::string line;
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"xp = %lf", &m_distortion[0]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read xp\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"yp = %lf", &m_distortion[1]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read yp\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k1 = %lf", &m_distortion[2]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read k1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k2 = %lf", &m_distortion[3]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read k2\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"k3 = %lf", &m_distortion[4]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read k3\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p1 = %lf", &m_distortion[5]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read p1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"p2 = %lf", &m_distortion[6]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read p2\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"b1 = %lf", &m_distortion[7]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read b1\n" );
-  std::getline(is, line);
-  if (!is.good() || sscanf(line.c_str(),"b2 = %lf", &m_distortion[8]) != 1)
-    vw_throw( IOErr() << "PhotometrixLensDistortion::read(): Could not read b2\n" );
-    
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
 void PhotometrixLensDistortion::scale( float scale ) {

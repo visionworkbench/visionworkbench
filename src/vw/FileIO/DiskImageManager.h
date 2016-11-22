@@ -187,6 +187,13 @@ namespace vw {
 
       return *m_fileHandles[index].get();
     }
+
+    std::string get_file_name(int index){
+      if (index < 0 || index >= (int)m_fileNames.size()) {
+	vw_throw(ArgumentErr() << "Could not find file with index " << index << "\n");
+      }
+      return m_fileNames[index];
+    }
     
     // Declare a given handle as unused
     void release(int index){
@@ -197,7 +204,7 @@ namespace vw {
       if (m_used[index] > 0) 
 	m_used[index]--; // one less used
     }
-    
+
   }; // End class DiskImageManager
   
 

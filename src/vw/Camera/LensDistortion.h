@@ -39,6 +39,8 @@ namespace camera {
   /// Base class which all distortion models inherit from.
   /// - Trivia: Back in 2009 this was implemented using CRTP.  See commit e2749b36d3db37f3176acd8907434dbf4ab29096.
   class LensDistortion {
+  protected:
+    std::vector<std::string> m_distortion_param_names;
   public:
     LensDistortion() {}
 
@@ -76,7 +78,11 @@ namespace camera {
     virtual std::string name() const = 0;
     
     /// Used to scale distortion w/ image size
-    virtual void scale(float scale) = 0; 
+    virtual void scale(float scale) = 0;
+    
+    /// Used to scale distortion w/ image size
+    std::vector<std::string> distortion_param_names() const { return m_distortion_param_names; }
+    
   }; // End class LensDistortion
 
   /// Write any derived lens distortion class to the stream.
@@ -128,7 +134,7 @@ namespace camera {
   class TsaiLensDistortion : public LensDistortion {
     Vector4 m_distortion;
   public:
-    TsaiLensDistortion() {}
+    TsaiLensDistortion();
     TsaiLensDistortion(Vector4 const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
@@ -142,6 +148,7 @@ namespace camera {
     static  std::string class_name()       { return "TSAI";       }
     virtual std::string name      () const { return class_name(); }
     virtual void        scale( float scale );
+    void init_distortion_param_names();
   };
 
   /// Brown Conrady Distortion
@@ -160,7 +167,7 @@ namespace camera {
     Vector2 m_centering_distortion; // P1, P2
     double  m_centering_angle;      // phi
   public:
-    BrownConradyDistortion() {}
+    BrownConradyDistortion();
     BrownConradyDistortion( Vector<double> const& params );
     BrownConradyDistortion( Vector<double> const& principal,
                             Vector<double> const& radial,
@@ -178,6 +185,7 @@ namespace camera {
     static  std::string class_name()       { return "BrownConrady"; }
     virtual std::string name      () const { return class_name();   }
     virtual void        scale( float /*scale*/ );
+    void init_distortion_param_names();
   };
 
   /// Adjustable Tsai Distortion
@@ -241,7 +249,7 @@ namespace camera {
   class PhotometrixLensDistortion : public LensDistortion {
     Vector<float64,9> m_distortion;
   public:
-    PhotometrixLensDistortion() {}
+    PhotometrixLensDistortion();
     PhotometrixLensDistortion(Vector<float64,9> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
@@ -256,6 +264,7 @@ namespace camera {
     virtual std::string name      () const { return class_name();  }
 
     virtual void scale( float scale );
+    void init_distortion_param_names();
   };
   
   

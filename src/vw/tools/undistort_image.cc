@@ -104,6 +104,10 @@ void do_work() {
   image_out.set_size(floor(output_area.width()), floor(output_area.height()));
   Vector2 offset = output_area.min();
 
+  vw::TerminalProgressCallback tpc("asp", "\t--> ");
+  double inc_amount = 1.0 / double(image_out.rows());
+  tpc.report_progress(0);
+  
   // Fill in the undistorted image
   for (int r=0; r<image_out.rows(); ++r) {
     for (int c=0; c<image_out.cols(); ++c) {
@@ -116,7 +120,9 @@ void do_work() {
       Vector2 in_loc = elem_quot(out_loc, pitch);
       image_out(c,r) = interp_image_in(in_loc[0], in_loc[1]);
     }
+    tpc.report_incremental_progress( inc_amount );
   } // End double loop through output image
+  tpc.report_finished();
 
   printf("Writing output image: %s\n", output_file_name.c_str());
   write_image(output_file_name, image_out);
