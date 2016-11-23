@@ -234,17 +234,17 @@ void BrownConradyDistortion::init_distortion_param_names(){
   std::string names[] = {"xp", "yp", "k1", "k2", "k3", "p1", "p2", "phi"};
   size_t num_names = sizeof(names)/sizeof(std::string);
   m_distortion_param_names.resize(num_names);
-  for (size_t p = 0; p < num_names; p++) 
+  for (size_t p = 0; p < num_names; p++)
     m_distortion_param_names[p] = names[p];
 }
 
 BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& params ) {
   VW_ASSERT( params.size() == 8,
              ArgumentErr() << "BrownConradyDistortion: requires constructor input of size 8.");
-  m_principal_point = subvector(params,0,2);
-  m_radial_distortion = subvector(params,2,3);
+  m_principal_point      = subvector(params,0,2);
+  m_radial_distortion    = subvector(params,2,3);
   m_centering_distortion = subvector(params,5,2);
-  m_centering_angle = params[7];
+  m_centering_angle      = params[7];
   BrownConradyDistortion::init_distortion_param_names();
 }
 
@@ -253,7 +253,9 @@ BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& principal,
                                                 Vector<double> const& centering,
                                                 double const& angle ) :
   m_principal_point(principal), m_radial_distortion(radial),
-  m_centering_distortion(centering), m_centering_angle( angle ) {}
+  m_centering_distortion(centering), m_centering_angle( angle ) {
+  BrownConradyDistortion::init_distortion_param_names();
+}
 
 boost::shared_ptr<LensDistortion>
 BrownConradyDistortion::copy() const {
