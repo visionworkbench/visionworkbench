@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
-    ("radar-mode",       "Use radar mode TODO handle all modes!")
-    ("landsat-mode",     "Use landsat mode TODO handle all modes!")
+    ("radar",       "Use radar mode TODO handle all modes!")
+    ("landsat",     "Use landsat mode TODO handle all modes!")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -83,8 +83,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  bool radar_mode   = vm.count("radar-mode");
-  bool landsat_mode = vm.count("landsat-mode");
+  bool radar_mode   = vm.count("radar");
+  bool landsat_mode = vm.count("landsat");
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
 
   // Handle user threshold

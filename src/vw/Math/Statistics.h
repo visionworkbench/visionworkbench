@@ -29,6 +29,36 @@
 namespace vw {
 namespace math {
 
+//---------------------------------------------------------------------------------
+
+/// Compute the mean of a vector.
+/// - It us up to the user to verify values.size() > 0
+template <typename T>
+double mean(std::vector<T> const& values) {
+
+  double result = 0;
+  for (size_t i = 0; i < values.size(); ++i)
+    result += static_cast<double>(values[i]);
+
+  return result / static_cast<double>(values.size());
+}
+
+/// Compute the standard deviation of a vector given the mean.
+template <typename T>
+double standard_deviation(std::vector<T> const& values, double mean_value) {
+
+  double result = 0, diff = 0;
+  for (size_t i = 0; i < values.size(); ++i) {
+    diff = static_cast<double>(values[i]) - mean_value;
+    result += diff * diff;
+  }
+
+  // No error checking done here as 
+  return sqrt(result / static_cast<double>(values.size()));
+}
+
+//---------------------------------------------------------------------------------
+
 // The two functors in this class should not be confused with the similar
 // classes in Functors.h.  These two are only used in the Geometry.h file.
 
@@ -134,13 +164,12 @@ namespace math {
   };
 
 
+  /// Using the quartile range, determine the values b and e so that
+  /// all elements in p outsize of [b, e] are outliers.
   template<class T>
   void find_outlier_brackets(std::vector<T> const& p,
                              double pct, double outlier_factor,
                              double & b, double & e){
-  
-    // Using the quartile range, determine the values b and e so that
-    // all elements in p outsize of [b, e] are outliers.
 
     // If Q1 and Q3 are the percentiles for pct and 1-pct,
     // the outlier brackets are

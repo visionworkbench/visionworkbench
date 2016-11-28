@@ -72,7 +72,7 @@ namespace vw {
   /// different behavior.
   struct NoEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       return view(i,j,p);
     }
     template <class ViewT>
@@ -85,7 +85,7 @@ namespace vw {
   /// all directions.
   struct ZeroEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
@@ -107,7 +107,7 @@ namespace vw {
     ValueEdgeExtension(PixelT pix) : m_pix(pix) {}
 
     template <class ViewT>
-    inline PixelT operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline PixelT operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
@@ -127,7 +127,7 @@ namespace vw {
   /// nearest valid pixel.
   struct ConstantEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       return view((i<0) ? 0 : (i>=view.cols()) ? (view.cols()-1) : i,
                   (j<0) ? 0 : (j>=view.rows()) ? (view.rows()-1) : j, p);
     }
@@ -149,7 +149,7 @@ namespace vw {
   /// A periodic edge extension type.
   struct PeriodicEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       int32 d_i=i, d_j=j;
       d_i %= int(view.cols());
       if( d_i < 0 ) d_i += view.cols();
@@ -191,7 +191,7 @@ namespace vw {
   /// A cylindrical edge extension type: periodic in the x axis, constant in the y axis.
   struct CylindricalEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       int32 d_i=i;
       d_i %= int(view.cols());
       if( d_i < 0 ) d_i += view.cols();
@@ -226,7 +226,7 @@ namespace vw {
   /// A reflection edge extension type.
   struct ReflectEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       int32 d_i=i, d_j=j;
       if( d_i < 0 ) d_i = -d_i;
       int32 vcm1 = view.cols() - 1;
@@ -290,7 +290,7 @@ namespace vw {
   /// A linear extrapolation edge extension type.
   struct LinearEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p=0) const {
       int32 vcm1 = view.cols() - 1;
       int32 vrm1 = view.rows() - 1;
       if( i < 0 ) {
@@ -353,26 +353,32 @@ namespace vw {
     typedef ProceduralPixelAccessor<EdgeExtensionView<ImageT, ExtensionT> > pixel_accessor;
 
     EdgeExtensionView( ImageT const& image )
-      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func() {}
+      : m_image(image), m_xoffset(0), m_yoffset(0), 
+        m_cols(image.cols()), m_rows(image.rows()), m_extension_func() {}
 
     EdgeExtensionView( ImageT const& image, ExtensionT const& extension )
-      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func(extension) {}
+      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), 
+        m_rows(image.rows()), m_extension_func(extension) {}
 
     EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows )
-      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func() {}
+      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), 
+        m_cols(cols), m_rows(rows), m_extension_func() {}
 
     EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows, ExtensionT const& extension )
-      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func(extension) {}
+      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), 
+        m_cols(cols), m_rows(rows), m_extension_func(extension) {}
 
-    inline int32 cols() const { return m_cols; }
-    inline int32 rows() const { return m_rows; }
+    inline int32 cols  () const { return m_cols;           }
+    inline int32 rows  () const { return m_rows;           }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
-    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const { return m_extension_func(m_image,i+m_xoffset,j+m_yoffset,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const { 
+      return m_extension_func(m_image,i+m_xoffset,j+m_yoffset,p); 
+    }
 
-    ImageT const& child() const { return m_image; }
-    ExtensionT const& func() const { return m_extension_func; }
+    ImageT     const& child() const { return m_image;          }
+    ExtensionT const& func () const { return m_extension_func; }
     BBox2i source_bbox( BBox2i const& bbox ) const {
       return m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
     }

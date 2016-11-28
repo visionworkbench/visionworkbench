@@ -21,7 +21,7 @@
 
 #include <stdlib.h>
 #include <vw/Core/Functors.h>
-//#include <vw/Math/Statistics.h>
+#include <vw/Math/Statistics.h>
 #include <vw/Image/BlobIndex.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelMask.h>
@@ -36,9 +36,7 @@
 
 /**
   Tools for processing radar data.
-  Add more files as needed.
-  
-  TODO: Break this file up?
+
 */
 
 namespace vw {
@@ -97,6 +95,8 @@ public:
   }
 
   // Edge extension is done in the prerasterize function so the returned type does not need edge extension
+  // - Currently the class does the hard work in the () function but it would probably be more efficient to
+  //   do the computation on a per-tile basis.
   typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type> >, 
                              FuncT, NoEdgeExtension> prerasterize_type;
   inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
@@ -174,49 +174,140 @@ median_view(ImageT const& image, Vector2i window_size, EdgeT edge) {
   return return_type(image, window_size, functor, edge);
 }
 
+//=========================================================================================
 
-/*
+// TODO MOVE
+
+
+
+/// Wrapper around a DEM or image that computes the slope.
+/// - Could add some other computation options
+template <class ImageT>
+class SlopeView : public ImageViewBase<SlopeView<ImageT> >
+{
+private:
+  ImageT   m_image;
+
+public:
+  typedef PixelMask<float> pixel_type;  ///< The pixel type of the image view.
+  typedef pixel_type                  result_type; 
+  typedef ProceduralPixelAccessor<SlopeView<ImageT> > 
+                                      pixel_accessor; ///< The view's pixel_accessor type.
+
+  /// Constructor
+  SlopeView( ImageT const& image) : m_image(image){}
+
+  inline int32 cols  () const { return m_image.cols  (); }
+  inline int32 rows  () const { return m_image.rows  (); }
+  inline int32 planes() const { return m_image.planes(); }
+
+  /// Returns a pixel_accessor pointing to the origin.
+  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+
+  // This can be implemented if we need it.
+  inline pixel_type operator()(double /*i*/, double /*j*/, int32 /*p*/ = 0) const {
+    vw_throw(NoImplErr() << "SlopeView::operator()(...) is not implemented");
+    return pixel_type();
+  }
+
+  /// Given the dX and dY values for a pixel, compute a slope in degrees.
+  /// - Could probably get better results using the ComputeNormalsFunc functor from /vw/Image/Algorithms.h
+  struct SlopeAngleDegreesFunctor {
+    pixel_type operator()( pixel_type const& p1, pixel_type const& p2) const {
+      if (!is_valid(p1)){ // Skip invalid pixels
+        pixel_type result;
+        invalidate(result);
+        return result;
+      }
+      const float RAD2DEG = 180.0 / 3.14159; // TODO: Where do we keep our constants?
+      float value   = sqrt(p1*p1 + p2*p2);
+      float degrees = atan(value)*RAD2DEG;
+      return pixel_type(degrees);
+    }
+  };
+
+  // Edge extension is done in the prerasterize function so the returned type does not need edge extension
+  typedef BinaryPerPixelView<ImageView<pixel_type>, ImageView<pixel_type>, SlopeAngleDegreesFunctor> prerasterize_type;
+  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+
+    // Compute edge in dx and dy for this tile, then use functor to combine them.  
+    ImageView<pixel_type> dx = sobel_filter(crop(m_image, bbox), true );
+    ImageView<pixel_type> dy = sobel_filter(crop(m_image, bbox), false);
+    return prerasterize_type(dx, dy, SlopeAngleDegreesFunctor());
+  }
+
+  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    vw::rasterize( prerasterize(bbox), dest, bbox );
+  }
+}; // End class SlopeView
+
+/// Generate slope view of an image
+template <class ImageT>
+SlopeView<ImageT> slope_view(ImageT const& image) {
+  return SlopeView<ImageT>(image);
+}
+
+
+
+
+//=========================================================================================
+
+
+
 
 /// Standard Z shaped fuzzy math membership function between a and b
-double fuzzMemZ(double x, double a, double b) {
+template <typename PixelT>
+class FuzzyMembershipZFunctor {
+  float m_a, m_b, m_c, m_dba; ///< Constants
+public:
+  /// Constructor
+  FuzzyMembershipZFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
+
+  /// Returns the median pixel of the provided input image.
+  /// - Generally the input image will be a cropped view of a whole image.
+  PixelT operator()(PixelT const& pixel) const {
+    if (!is_valid(pixel))
+      return pixel;
     
-    double c = (a+b)/2.0;
-    
-    if (x < a)
-        return 1.0;
-    if (x < c)
-        return 1.0 - 2*pow(((x-a)/(b-a)), 2.0);
-    if (x < b)
-        return 2*pow(((x-b)/(b-a)), 2.0);
-    return 0.0;
-}
+    if (pixel < m_a)
+      return PixelT(1.0);
+    if (pixel < m_c)
+      return PixelT(1.0 - 2.0*pow(((pixel-m_a)/m_dba), 2.0));
+    if (pixel < m_b)
+      return PixelT(2.0*pow(((pixel-m_b)/m_dba), 2.0));
+    return PixelT(0.0);
+  }
+}; // End class FuzzyMembershipZFunctor
+
 
 /// Standard S shaped fuzzy math membership function between a and b
-double fuzzMemS(double x, double a, double b) {
+template <typename PixelT>
+class FuzzyMembershipSFunctor {
+  float m_a, m_b, m_c, m_dba; ///< Constants
+public:
+  /// Constructor
+  FuzzyMembershipSFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
 
-    double c = (a+b)/2.0;
-
-    if (x < a)
-        return 0.0;
-    if (x < c)
-        return 2*pow(((x-a)/(b-a)), 2.0);
-    if (x < b)
-        return 1.0 - 2*pow(((x-b)/(b-a)), 2.0);
-    return 1.0;
-}
-
-
-/// Changes the scaling of a number from one range to a new one.
-double rescaleNumber(double num, double currMin, double currMax, double newMin, double newMax) {
+  /// Returns the median pixel of the provided input image.
+  /// - Generally the input image will be a cropped view of a whole image.
+  PixelT operator()(PixelT const& pixel) const {
+    if (!is_valid(pixel))
+      return pixel;
     
-    double currRange = currMax - currMin;
-    double newRange  = newMax - newMin;
-    double scaled    = (num - currMin) / currRange;
-    double output    = scaled*newRange + newMin;
-    return output;
-}
+    if (pixel < m_a)
+        return PixelT(0.0);
+    if (pixel < m_c)
+        return PixelT(2*pow(((pixel-m_a)/m_dba), 2.0));
+    if (pixel < m_b)
+        return PixelT(1.0 - 2*pow(((pixel-m_b)/m_dba), 2.0));
+    return PixelT(1.0);
+  }
+}; // End class FuzzyMembershipSFunctor
 
-*/
+
+
+//=========================================================================================
+
 // TODO: Consolidate these functions in vw/math/statistics
 // TODO: Really need a histogram class!
 
@@ -333,47 +424,6 @@ typedef float  RadarType;
 typedef PixelMask<RadarType> RadarTypeM;
 
 
-// TODO: MOVE THIS FUNCTION
-
-/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
-template <typename T>
-struct RescaleFunctor : public ReturnFixedType<T> {
-private:
-  double m_gain, m_offset;
-public:
-  RescaleFunctor(double gain,  double offset) : m_gain(gain), m_offset(offset) {}
-  RescaleFunctor(double input_min,  double input_max, 
-                 double output_min, double output_max){
-    double input_range  = input_max  - input_min;
-    double output_range = output_max - output_min;
-    m_gain   = output_range / input_range;
-    m_offset = output_min - input_min*m_gain;
-  }
-  float operator()( T value ) const {
-    return value*m_gain + m_offset;
-  }
-}; // End class RescaleFunctor
-
-/// Rescale an image
-template <class ImageT>
-UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
-inline rescale( ImageViewBase<ImageT> const& image, double input_min,  double input_max, 
-                                                    double output_min, double output_max) {
-  return UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
-    ( image.impl(), RescaleFunctor<typename ImageT::pixel_type>(input_min, input_max, output_min, output_max) );
-}
-
-/// Rescale an image
-template <class ImageT>
-UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
-inline rescale( ImageViewBase<ImageT> const& image, double gain,  double offset) {
-  return UnaryPerPixelView<ImageT,RescaleFunctor<typename ImageT::pixel_type> >
-    ( image.impl(), RescaleFunctor<typename ImageT::pixel_type>(gain, offset) );
-}
-
-
-
-
 /// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
 struct Sentinel1DnToDb : public ReturnFixedType<float> {
   Sentinel1DnToDb(){}
@@ -411,18 +461,21 @@ void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image,
   // TODO: Detect if image already exists, don't reprocess!
   std::cout << "Skipping preprocess already on disk!!!!\n";
 
+  // TODO: Need these four values to rescale later!
+
   global_min = 0.0;  // This can be kept constant
   global_max = 35.0; // TODO: Is it worth computing the exact value?
 
   const double PROC_MIN = 0;
   const double PROC_MAX = 400;
-
+/*
   // TODO: Record this gain/offset so we can undo this scaling later on!
   double input_range  = global_max - global_min;
   double output_range = PROC_MAX - PROC_MIN;
   double gain         = output_range / input_range;
   double offset       = PROC_MIN - global_min*gain;
   printf("Computed gain = %lf, offset = %lf\n", gain, offset);
+*/
 
   //std::cout << "minmax...\n";
   //min_max_channel_values(DiskImageView<RadarType>("preprocessed_image.tif"), global_min, global_max);
@@ -433,11 +486,11 @@ void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image,
   int kernel_size = 3;
   std::string temp_image_path = "preprocessed_image.tif";
   cartography::block_write_gdal_image(temp_image_path,
-                                      rescale(sentinel1_dn_to_db(median_view(crop(input_image, roi), 
+                                      normalize(sentinel1_dn_to_db(median_view(crop(input_image, roi), 
                                                                              Vector2i(kernel_size, kernel_size),
                                                                              ConstantEdgeExtension())
                                                                 ),
-                                              gain, offset
+                                              global_min, global_max, PROC_MIN, PROC_MAX
                                              ),
                                       write_options,
                                       TerminalProgressCallback("vw", "\t--> Preprocessing:"));
@@ -495,43 +548,6 @@ int divide_roi(BBox2i const& full_roi, int size,
   return num_boxes;
 }
 
-
-
-// TODO: MOVE THESE
-
-/// Compute the mean of a vector.
-template <typename T>
-double mean(std::vector<T> const& values) {
-
-  double count = 0;
-  double result = 0;
-  for (size_t i = 0; i < values.size(); ++i) {
-    if (is_valid(values[i])) {
-      result += values[i];
-      count  += 1.0;
-    }
-  }
-  if (count < 0) // TODO: Exception?
-    return 0;
-
-  return result / count;
-}
-
-/// Compute the standard deviation of a vector.
-template <typename T>
-double standard_deviation(std::vector<T> const& values, double mean_value) {
-
-  double result = 0, temp = 0, count = 0;
-  for (size_t i = 0; i < values.size(); ++i) {
-    if (is_valid(values[i])) {
-      temp = values[i] - mean_value;
-      result += temp * temp;
-      count += 1.0;
-    }
-  }
-
-  return sqrt(result / count);
-}
 
 
 // TODO: Replace with a simpler multi-threaded processing method to get the means!
@@ -606,7 +622,8 @@ public: // Functions
       int hw = bbox.width() /2;
       int hh = bbox.height()/2;
       std::vector<BBox2i> sub_rois(NUM_SUB_ROIS); // ROIs relative to the whole tile
-      std::vector<PixelMask<double> > means   (NUM_SUB_ROIS);
+      std::vector<double> means;
+      means.reserve(NUM_SUB_ROIS);
       sub_rois[0] = BBox2i(0,  0,  hw, hh); // Top left
       sub_rois[1] = BBox2i(hw, 0,  hw, hh); // Top right
       sub_rois[2] = BBox2i(hw, hh, hw, hh); // Bottom right
@@ -624,22 +641,24 @@ public: // Functions
       for (int i=0; i<NUM_SUB_ROIS; ++i) {
         double mean;
         percent_valid = mean_and_validity(crop(section, sub_rois[i]), mean);
-        means[i] = mean;
-        if (percent_valid < MIN_PERCENT_VALID)
-          invalidate(means[i]);
+        if (percent_valid >= MIN_PERCENT_VALID)
+          means.push_back(mean);
         //std::cout << "Mean for sub-roi " << sub_rois[i] << " = " << means[i] << std::endl;
       }
-
-      // Compute the standard deviation of the means
-      // - Currently both are set to zero if all pixels are invalid.
-      double mean_of_means   = mean(means);
-      bool is_valid = (mean_of_means > 0);
+      bool is_valid = false;
+      double mean_of_means = 0;
       double stddev_of_means = 0;
-      if (is_valid) {
-        stddev_of_means = standard_deviation(means, mean_of_means);
-        //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
-        //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
-      }
+      if (means.size() > 0) {
+        // Compute the standard deviation of the means
+        // - Currently both are set to zero if all pixels are invalid.
+        mean_of_means = math::mean(means);
+        is_valid = (mean_of_means > 0);
+        if (is_valid) {
+          stddev_of_means = math::standard_deviation(means, mean_of_means);
+          //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
+          //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
+        }
+}
 
       // Assign the REAL outputs
       if (is_valid) {
@@ -712,7 +731,7 @@ void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int
 /// equal to the size of the blob that contains it (up to a size limit).
 template <class ImageT>
 class LimitedBlobSizes: public ImageViewBase<LimitedBlobSizes<ImageT> >{
-  ImageT m_input_image;
+  ImageT const& m_input_image;
   int    m_expand_size; ///< Tile expansion used to more accurately size blobs.
   uint32 m_size_limit;  ///< Cap the size value written in output pixels.
 public:
@@ -806,6 +825,63 @@ get_blob_sizes(ImageViewBase<ImageT> const& image, int expand_size, uint32 size_
   return LimitedBlobSizes<ImageT>(image.impl(), expand_size, size_limit);
 }
 
+/// Combine the four fuzzy scores into one final score
+/// - Inputs are expected to be in the range 0-1
+template <class PixelT1, class PixelT2, class PixelT3, class PixelT4>
+struct DefuzzFunctor {
+
+  float operator()(PixelT1 const& p1, PixelT2 const& p2, PixelT3 const& p3, PixelT4 const& p4) const {
+    // If any input score is zero, the output score is zero.
+    if ((p1 == 0) || (p2 == 0) || (p3 == 0) || (p4 == 0))
+      return 0.0;
+
+    float mean = (p1 + p2 + p3 + p4) / 4.0;
+    return mean;
+  }
+}; // End class DefuzzFunctor
+
+
+//============================================================================
+
+// TODO: Move these
+
+
+/// Loads the nodata value from the file and returns true if successful.
+/// - If nodata cannot be read from file, leaves the input value unchanged.
+bool load_nodata(std::string const& path, double& nodata) {
+  boost::scoped_ptr<SrcImageResource> rsrc(DiskImageResource::open(path));
+  if (rsrc->has_nodata_read()) {
+    nodata = rsrc->nodata_read();
+    std::cout << "Read nodata: " << nodata << std::endl;
+    return true;
+  }
+  std::cout << "Failed to read nodata value, using default value of 0.\n";
+  return false;
+}
+
+/// Wrapper functor to call a child functor only on valid input pixels.
+/// - Maybe for_each_pixel should do this work instead?
+template <class F, class PixelT>
+class FunctorMaskWrapper {
+  F m_functor;
+public:
+  /// Constructor, makes a copy of the input functor.
+  FunctorMaskWrapper(F& functor) : m_functor(functor){}
+  
+  /// Call the child functor only if the input pixel is valid.
+  void operator()(PixelT const& pixel) {
+    if (is_valid(pixel))
+      m_functor(pixel);
+  }
+  
+  /// Grant access to the child so that the user can retrieve the results.
+  F const& child() const {return m_functor;}
+}; // End class FunctorMaskWrapper
+
+
+//============================================================================
+
+
 
 /** Main function of algorithm from:
       Martinis, Sandro, Jens Kersten, and Andre Twele. 
@@ -823,31 +899,22 @@ void sar_martinis(std::string const& input_image_path,
   // - The input image won't be georeferenced unless it goes through gdalwarp.
   cartography::GeoReference georef;
   bool have_georef = cartography::read_georeference(georef, input_image_path);
-  if (have_georef) {
-    georef = crop(georef, roi); // Account for the input ROI
-    std::cout << "Read georeference: " << georef << std::endl;
-  }
-  else
-    std::cout << "FAILED to read georeference!\n";
+  if (!have_georef)
+    vw_throw(ArgumentErr() << "Failed to read image georeference!");
+  georef = crop(georef, roi); // Account for the input ROI
+  std::cout << "Read georeference: " << georef << std::endl;
 
   
   // Read nodata value
   const double DEFAULT_NODATA = 0; // TODO!!!!
-  boost::scoped_ptr<SrcImageResource> rsrc(DiskImageResource::open(input_image_path));
   double nodata_value = DEFAULT_NODATA;
-  if (rsrc->has_nodata_read()) {
-    nodata_value = rsrc->nodata_read();
-    std::cout << "Read nodata: " << nodata_value << std::endl;
-  }
-  else
-    std::cout << "Failed to read nodata value, using default value of 0.\n";
-  const bool have_nodata = true;
+  load_nodata(input_image_path, nodata_value);
    
   // Compute the min and max values of the image
   std::cout << "Preprocessing...\n";
 
   // Apply any needed preprocessing to the image TODO
-  ImageViewRef <RadarTypeM> preprocessed_image;
+  ImageViewRef<RadarTypeM> preprocessed_image;
   RadarType global_min, global_max;
   preprocess_sentinel1_image(DiskImageView<Sentinel1Type>(input_image_path), nodata_value, roi, 
                              global_min, global_max, write_options, preprocessed_image);
@@ -954,7 +1021,7 @@ void sar_martinis(std::string const& input_image_path,
   // The maximum allowed value, from the paper.
   //double MAX_THRESHOLD_DB = 10.0;
 
-  double threshold_stddev = standard_deviation(optimal_tile_thresholds, threshold_mean);
+  double threshold_stddev = math::standard_deviation(optimal_tile_thresholds, threshold_mean);
   
   // TODO // Recompute these values in the original DB units.
   //tileThresholdsDb = [rescaleNumber(x, PROC_global_min, PROC_global_max, minVal, maxVal) for x in tileThresholds]
@@ -977,9 +1044,11 @@ void sar_martinis(std::string const& input_image_path,
   //    print 'Saturating the computed threshold at 10 DB!'
   
   
-  // This will mask the water pixels
+  // This will mask the water pixels, setting water pixels to 255, land pixels to 1, and invalid pixels to 0.
   //ImageViewRef<RadarTypeM> raw_water = create_mask_less_or_equal(preprocessed_image, threshold_mean);
-  ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, 255, 1);
+  const uint8 WATER_CLASS = 255;
+  const uint8 LAND_CLASS  = 1;
+  ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, WATER_CLASS, LAND_CLASS);
 
   // DEBUG: Apply the initial threshold to the image and save it to disk!
   std::string initial_water_detect_path = "initial_water_detect.tif";
@@ -992,101 +1061,135 @@ void sar_martinis(std::string const& input_image_path,
                          TerminalProgressCallback("vw", "\t--> Applying initial threshold:"));
 
   // Get information needed for fuzzy logic results filtering
+ 
 
-  std::cout << "Computing mean of flooded regions...\n";
-
-  // Compute mean value of pixels under initial water threshold
-  // - TODO: Need to speed this up!
-  double mean_raw_water_value = 0;//mean_channel_value(raw_water);
-
-  std::cout << "Mean value of flooded regions = " << mean_raw_water_value << std::endl;
-
-  std::cout << "TODO: Implement DEM, blobs, fuzzy logic, expansion!\n";
-
-  // No point going through the fuzzy logic stuff when most of the inputs are missing!
-
-
-  // Write out an image containing the water blob size at each pixel
+  // Write out an image containing the water blob size at each pixel, then read it back in
+  // as needed to avoid recomputing the expensive blob computations.
   // - In order to parallelize this step, blob computations are approximated.
+  const uint32 MIN_BLOB_SIZE = 250; // TODO: Convert the sizes from meters to pixels based on image resolution!
   const uint32 MAX_BLOB_SIZE = 1000;
   const int    TILE_EXPAND   = 256; // The larger this number, the better the approximation.
 
   std::string blobs_path = "blob_sizes.tif";
   const uint32 BLOBS_NODATA = 0;
   block_write_gdal_image(blobs_path,
-                         get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), 254),
+                         get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), LAND_CLASS),
                                         TILE_EXPAND, MAX_BLOB_SIZE),
                          have_georef, georef,
                          true, BLOBS_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Counting blob sizes:"));
+                         
+  // TODO: Fill invalid pixels!
+  DiskImageView<uint32> blob_sizes(blobs_path);
 
 
 
 /*
-LOCAL
-  // TODO: Get a DEM to go with the image!!!  --> Come back to this later!!!!!
-  // TODO: Fill in DEM holes with zero elevation
-  // TODO: Compute slope at each DEM pixel!
-  slopeImage = ee.Terrain.slope(dem)
+  // TODO: Load and pass in the DEM!  Use zero slope for masked pixels.
 
-GLOBAL
-  // TODO: Compute mean and std of the elevations of the pixels we marked as water
-  waterHeights = dem.mask(rawWater)
-  meanWaterHeight = waterHeights.reduceRegion(ee.Reducer.mean(),   domain.bounds, scale=BASE_RES).getInfo()['elevation']
-  stdWaterHeight  = waterHeights.reduceRegion(ee.Reducer.stdDev(), domain.bounds, scale=BASE_RES).getInfo()['elevation']
+  typedef PixelMask<float> DemPixelType;
+
+  double dem_nodata_value = DEFAULT_NODATA;
+  load_nodata(dem_path, dem_nodata_value);
+
+  DiskImageView<float> dem(dem_path);
+
+  cartography::GeoReference dem_georef;
+  if (!cartography::read_georeference(dem_georef, dem_path))
+    vw_throw(ArgumentErr() << "Failed to read DEM georeference!");
+  //georef = crop(georef, roi); // Account for the input ROI
+
+  // Generate a low-resolution DEM masked by the initial flood detection
+  // - This is used to compute image-wide statistics in a more reasonable amount of time
+  // - TODO: Fill in holes in the masked DEM
+  int DEM_STATS_SUBSAMPLE_FACTOR = 10;
+  // TODO: Use the full res dem on disk since we are accessing it at low res?
+  ImageView<DemPixelType> low_res_dem = subsample(dem, subsample_factor);
+  GeoReference low_res_dem_georef = resample(dem_georef, 1.0/subsample_factor);
+  
+  ImageViewRef<PixelMask<uint8> > low_res_raw_water = resample(create_mask_less_or_equal(
+                                      DiskImageView<uint8>(initial_water_detect_path), LAND_CLASS), subsample_factor);
+  GeoReference low_res_georef = resample(georef, 1.0/subsample_factor);
+
+
+  std::cout << "Computing mean of flooded regions...\n";
+
+  // Compute mean radar value of pixels under initial water threshold
+  // - This is also computed at a lower resolution to increase speed.
+  // - Could do full res with a multi-threaded implementation.
+  double mean_raw_water_value = mean_channel_value(low_res_raw_water);
+
+  std::cout << "Mean value of flooded regions = " << mean_raw_water_value << std::endl;
+
+  // Now go through and compute statistics across the water covered locations of the DEM
+  FunctorMaskWrapper dem_stats_functor(StdDevAccumulator());
+  for_each_pixel(copy_mask(geo_transform(low_res_dem, low_res_georef, low_res_dem_georef, ConstantEdgeExtension(), 
+                                         low_res_raw_water.cols(), low_res_raw_water.rows()),
+                           low_res_water),
+                 dem_stats_functor);
+  float mean_water_height   = dem_stats_functor.child().value();
+  float stddev_water_height = dem_stats_functor.child().mean();
 */
 
-
   /*
-  TODO: Come back to these later!
 
   // For each pixel: 
     
-  // TODO: Compute fuzzy classifications on four categories:
+  // Compute fuzzy classifications on four categories
+  typedef float FuzzyPixelType;
+  typedef FuzzyMembershipSFunctor<RadarTypeM> FuzzyFunctorS;
+  typedef FuzzyMembershipZFunctor<RadarTypeM> FuzzyFunctorZ;
   
   // SAR
-  sarFuzz = fuzzMemZ(radarImage, mean_raw_water_value,  threshold_mean)
+  ImageViewRef<FuzzyPixelType> radar_fuzz = per_pixel_view(preprocessed_image, FuzzyFunctorS(mean_raw_water_value, threshold_mean));
      
   // Elevation
   // TODO: The max value seems a little strange.
   heightFuzz = fuzzMemZ(dem, meanWaterHeight, meanWaterHeight + stdWaterHeight*(stdWaterHeight + 3.5))
+  const double high_height = meanWaterHeight + stdWaterHeight*(stdWaterHeight + 3.5);
+  ImageViewRef<FuzzyPixelType> height_fuzz = per_pixel_view(dem, FuzzyFunctorZ(meanWaterHeight, high_height));
   
   // Slope
-  slopeFuzz = fuzzMemZ(slopeImage, 0, 15) // Values in degrees
-  
+  const double degrees_low  = 0;
+  const double degrees_high = 15
+  ImageViewRef<FuzzyPixelType> slope_fuzz = per_pixel_view(slope_view(dem), FuzzyFunctorZ(degrees_low, degrees_high));
   
   // Body size
-  minBlobSize = 250/BASE_RES
-  blobFuzz = fuzzMemS(blobSizes, minBlobSize, maxBlobSize).mask(blobSizes)
-
-
-  // Combine fuzzy classification into a single fuzzy classification
-  zeroes    = sarFuzz.Not().Or(heightFuzz.Not().Or(slopeFuzz.Not().Or(blobFuzz.Not())))
-  meanFuzz  = sarFuzz.add(heightFuzz).add(slopeFuzz).add(blobFuzz).divide(ee.Image(4.0))
-  finalFuzz = meanFuzz.And(zeroes.Not())
-
-
-  double final_flood_threshold = 0.6;
-  double water_grow_threshold  = 0.45;
   
-  // Apply fixed threshold to get updated flooded pixels
-  defuzz = finalFuzz.gt(ee.Image(final_flood_threshold))
-  
-  // TODO: Region growing on water-classified pixels using a lower threshold.
-  
-  // Expand water classification outwards using a lower fuzzy threshold.
-  // - This step is a little tough for EE so we approximate using a dilation step.
-  dilatedWater = defuzz.focal_max(radius=1000, units='meters')
-  finalWater   = dilatedWater.And(finalFuzz.gt(ee.Image(water_grow_threshold)))
+  blobFuzz = fuzzMemS(blob_sizes, minBlobSize, maxBlobSize).mask(blobSizes)
+  // TODO: Convert blob sizes from meters to pixels!
+  ImageViewRef<FuzzyPixelType> blob_fuzz = per_pixel_view(blob_sizes, FuzzyFunctorS(MIN_BLOB_SIZE, MAX_BLOB_SIZE));
+
+
+  // TODO: Just apply the mask at the end of these operations!
+  //       Treat all masked pixels as land.
+
+  // Defuzz the four fuzzy classifiers and compare to a fixed threshold in the 0-1 range.
+  typdef DefuzzFunctor<FuzzyPixelType, FuzzyPixelType, FuzzyPixelType, FuzzyPixelType> DefuzzFunctorType;
+  ImageViewRef<FuzzyPixelType> defuzzed = per_pixel_view(radar_fuzz, height_fuzz, slope_fuzz, DefuzzFunctorType());
+                                                 
+  // Perform two-level flood fill of the defuzzed image and write it to disk.
+  // - The mask is added back in at this point.
+  const double final_flood_threshold = 0.6;
+  const double water_grow_threshold  = 0.45;
+  std::string output_path = "radar_final_output.tif"
+  block_write_gdal_image(output_path,
+                         apply_mask(
+                           copy_mask(
+                             two_threshold_fill(defuzzed, TILE_EXPAND, final_flood_threshold, 
+                                                water_grow_threshold, WATER_CLASS, LAND_CLASS),
+                             create_mask(DiskImageView<uint8>(initial_water_detect_path))
+                           )
+                           CLASSIFICATION_NODATA,
+                         ),      
+                         true, georef,
+                         true, ,
+                         write_options,
+                         TerminalProgressCallback("vw", "\t--> Generating final output:"));
   
 */
 } // End function sar_martinis
-
-
-
-
-
 
 
 

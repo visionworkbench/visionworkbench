@@ -27,19 +27,18 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 
-// TODO: Used for functions which will be moved!
-#include <vw/tools/radar.h>
-
 /**
   Tools for processing LANDSAT data.
   Landsat images are split into multiple geotif files and are medium sized.
 */
 
 namespace vw {
+
+  // Used to save the landsat image as stored in memory
+  template<> struct PixelFormatID<PixelMask<Vector<float, 7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+
 namespace landsat {
 
-
-  //template<> struct PixelFormatID<float> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_1_CHANNEL; };
 
 //----------------------------------------------------
 // Landsat types
@@ -83,7 +82,7 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   // TODO: Verify always have the same nodata value!          
   const double DEFAULT_NODATA = -9999;
   double nodata_value = DEFAULT_NODATA;
-  const bool have_nodata = true;
+  //const bool have_nodata = true;
   
   // Check that all the required bands are present
   for (int chan=0; chan<NUM_BANDS_OF_INTEREST; ++chan) {
@@ -122,9 +121,12 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
           else
             std::cout << "Failed to read nodata value, using default value of -9999.\n";
           
+          // TODO: Verify all masks are the same
+          // Copy the mask
+          image = copy_mask(image, create_mask(input_image, nodata_value));
         }
         // Load this file
-        select_channel(image, chan) = pixel_cast<float>(create_mask(input_image, nodata_value));
+        select_channel(image, chan) = pixel_cast<float>(input_image);
         break;
       }
     }
@@ -261,6 +263,8 @@ T clamp01(T value) {
 /// Classifies one pixel as water or not.
 bool detect_water(LandsatPixelType const& pixel, float sun_elevation_degrees=45) {
 
+    return false; // DEBUG
+
     // Check this first!
     if (detect_clouds(pixel))
       return false;
@@ -282,8 +286,8 @@ bool detect_water(LandsatPixelType const& pixel, float sun_elevation_degrees=45)
     dark_values[2] = pixel[NIR];
     dark_values[3] = pixel[SWIR2];
     dark_values[4] = pixel[SWIR1];
-    float mean  = radar::mean(dark_values); // TODO: Check calls and divide-by-zero
-    float std   = radar::standard_deviation(dark_values, mean);
+    float mean  = math::mean(dark_values); // TODO: Check calls and divide-by-zero
+    float std   = math::standard_deviation(dark_values, mean);
     float z;
     if (mean == 0)
       z = 0; // TODO: 0 or 1?
@@ -344,7 +348,15 @@ void detect_water(std::vector<std::string> const& image_files,
 
   const uint8 nodata_out = 0;
 
-
+/*
+  typedef UnaryPerPixelView<LandsatImage, DetectWaterLandsatFunctor> LandsatWaterDetectView;
+  block_write_gdal_image("landsat_input.tif",
+                         ls_image,
+                         true, georef,
+                         true, -9999.0,
+                         write_options,
+                         TerminalProgressCallback("vw", "\t--> DEBUG write input image"));
+*/
 
   // TODO: Setting!
   std::string output_path = "landsat_output.tif";
@@ -354,7 +366,7 @@ void detect_water(std::vector<std::string> const& image_files,
                          true, georef,
                          true, nodata_out,
                          write_options,
-                         TerminalProgressCallback("vw", "\t--> Counting blob sizes:"));
+                         TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
 
 }
 

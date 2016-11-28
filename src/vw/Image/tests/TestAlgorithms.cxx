@@ -267,3 +267,36 @@ TEST( Algorithms, MeanFillTransparent ) {
     EXPECT_VW_EQ( NoP(0.7), r(1,1) );
   }
 }
+
+TEST( Algorithms, TwoThresholdFill ) {
+
+  const float low_thresh  = 4.0;
+  const float high_thresh = 8.0;
+
+  // Create a test image
+  ImageView<float> image(6, 6);
+  image(0,0) = 10.0;  image(1,0) = 10.0;  image(2,0) = 10.0;  image(3,0) =  3.0;  image(4,0) =  2.0;  image(5,0) = 10.0;
+  image(0,1) = 10.0;  image(1,1) =  3.0;  image(2,1) = 10.0;  image(3,1) = 10.0;  image(4,1) = 10.0;  image(5,1) = 10.0;
+  image(0,2) = 10.0;  image(1,2) =  2.0;  image(2,2) = 10.0;  image(3,2) = 10.0;  image(4,2) =  7.0;  image(5,2) =  5.0;
+  image(0,3) =  5.0;  image(1,3) =  6.0;  image(2,3) = 10.0;  image(3,3) = 10.0;  image(4,3) = 10.0;  image(5,3) =  8.0;
+  image(0,4) =  7.0;  image(1,4) = 10.0;  image(2,4) =  5.0;  image(3,4) = 10.0;  image(4,4) = 10.0;  image(5,4) = 10.0;
+  image(0,5) = 10.0;  image(1,5) =  7.0;  image(2,5) = 10.0;  image(3,5) = 10.0;  image(4,5) = 10.0;  image(5,5) = 10.0;
+
+  // Run the algorithm
+  ImageView<uint8> output = two_threshold_fill(image, 256, low_thresh, high_thresh);
+
+  // Check results
+  const uint8 ON  = 1;
+  const uint8 OFF = 0;
+  EXPECT_EQ(ON,  output(1,1));
+  EXPECT_EQ(ON,  output(0,4));
+  EXPECT_EQ(ON,  output(1,5));
+  EXPECT_EQ(ON,  output(4,0));
+  EXPECT_EQ(ON,  output(2,4));
+  EXPECT_EQ(OFF, output(0,0));
+  EXPECT_EQ(OFF, output(4,2));
+  EXPECT_EQ(OFF, output(5,3));
+  EXPECT_EQ(OFF, output(1,4));
+  EXPECT_EQ(OFF, output(4,1));
+}
+

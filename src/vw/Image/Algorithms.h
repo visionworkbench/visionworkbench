@@ -699,13 +699,16 @@ namespace vw {
       // Return the vector normal to the local plane.
       return normalize(cross_prod(n1,n2));
     }
-  };
+  }; // End class ComputeNormalsFunc
 
   template <class ViewT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> compute_normals(ImageViewBase<ViewT> const& image, float u_scale, float v_scale) {
-    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>(edge_extend(image.impl(), ConstantEdgeExtension()), ComputeNormalsFunc (u_scale, v_scale));
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> 
+  compute_normals(ImageViewBase<ViewT> const& image, float u_scale, float v_scale) {
+    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>
+                (edge_extend(image.impl(), ConstantEdgeExtension()), ComputeNormalsFunc (u_scale, v_scale));
   }
   
+  /// Perform the dot product between each pixel and a constant vector.
   class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
     Vector3f m_vec;
   public:
@@ -722,7 +725,111 @@ namespace vw {
   UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3f const& vec) {
     return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
   }
-  
+
+
+
+/// Apply a double threshold to an image.
+/// - Pixels are set if they are below the low threshold.  In addition, a flood-fill is performed
+///   from the low threshold pixels using pixels below the high threshold.
+/// - No built-in masked pixel handling.
+template <class ImageT>
+class TwoThresholdFill: public ImageViewBase<TwoThresholdFill<ImageT> >{
+
+  ImageT const& m_image;
+  int    m_expand_size; ///< Tile expansion used to more accurately size flood.
+  double m_low_threshold;   ///< Fill pixels under this threshold
+  double m_high_threshold;  ///
+public:
+  TwoThresholdFill(ImageViewBase<ImageT> const& image, int expand_size, double low_threshold, double high_threshold):
+    m_image(image.impl()), m_expand_size(expand_size), m_low_threshold(low_threshold), m_high_threshold(high_threshold) {}
+
+  // Image View interface
+  typedef uint8      pixel_type;
+  typedef pixel_type result_type;
+  typedef ProceduralPixelAccessor<TwoThresholdFill> pixel_accessor;
+
+  inline int32 cols  () const { return m_image.cols(); }
+  inline int32 rows  () const { return m_image.rows(); }
+  inline int32 planes() const { return 1; }
+
+  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+
+  inline pixel_type operator()( double i, double j, int32 p = 0 ) const {
+    vw_throw(NoImplErr() << "operator()(...) is not implemented");
+    return pixel_type();
+  }
+
+  typedef CropView<ImageView<pixel_type> > prerasterize_type;
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+
+    // Rasterize the region with an expanded tile size so that we can count
+    //  flood fill some distance outside the tile borders.
+    BBox2i big_bbox = bbox;
+    big_bbox.expand(m_expand_size);
+    big_bbox.crop(bounding_box(m_image));
+    
+    ImageView<pixel_type> output_tile(big_bbox.width(), big_bbox.height());
+    ValueEdgeExtension<pixel_type> edge_wrapper(pixel_type(0)); // Edge handling for the output image
+    
+    ImageView<typename ImageT::pixel_type> input_tile = crop(m_image, big_bbox);   
+    
+
+    // Doing the flood fill is basically a blob labeling problem and can be done in two passes through the tile.
+    // First pass is top-left to bottom-right.
+    for (int r=0; r<output_tile.rows(); ++r) {
+      for (int c=0; c<output_tile.cols(); ++c) {
+        if ((input_tile(c,r) < m_low_threshold) || // Check the lower threshold
+            ((input_tile(c,r) < m_high_threshold) && // Check neighboring inputs if below the higher threshold
+             ((edge_wrapper(output_tile, c-1,r-1) > 0) || // Check top left
+              (edge_wrapper(output_tile, c,  r-1) > 0) || // Check top
+              (edge_wrapper(output_tile, c+1,r-1) > 0) || // Check top right
+              (edge_wrapper(output_tile, c-1,r  ) > 0)    // Check left
+             )
+            )
+           )
+          output_tile(c,r) = 1;
+      }
+    } // Done with first pass through the tile
+    
+    // Second pass is bottom_right to top_left
+    for (int r=output_tile.rows()-1; r>=0; --r) {
+      for (int c=output_tile.cols()-1; c>=0; --c) {
+        if (output_tile(c,r) > 0) // Skip set pixels
+          continue;
+        // No need to check the lower threshold on the second pass.
+        if ((input_tile(c,r) < m_high_threshold) && // Check neighboring inputs only if this pixel is low enough
+            ((edge_wrapper(output_tile, c+1,r+1) > 0) || // Check bottom right
+             (edge_wrapper(output_tile, c,  r+1) > 0) || // Check bottom
+             (edge_wrapper(output_tile, c-1,r+1) > 0) || // Check bottom left
+             (edge_wrapper(output_tile, c+1,r  ) > 0)    // Check right
+            )
+           )
+          output_tile(c,r) = 1;
+      }
+    } // Done with second pass through the tile    
+
+    // Perform tile size faking trick to make small tile look the size of the entire image
+    return prerasterize_type(output_tile,
+                             -big_bbox.min().x(), -big_bbox.min().y(),
+                             cols(), rows() );
+  }
+
+  template <class DestT>
+  inline void rasterize(DestT const& dest, BBox2i bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
+  }
+}; // End class FloodFill
+
+/// Applies a flood fill from the non-zero pixels in the seed image to connected pixels in image which are below the threshold.
+template <class ImageT>
+TwoThresholdFill<ImageT>
+two_threshold_fill(ImageViewBase<ImageT> const& image, int expand_size, double low_threshold, double high_threshold) {
+  return TwoThresholdFill<ImageT>(image.impl(), expand_size, low_threshold, high_threshold);
+}
+
+
+
+
 } // namespace vw
 
 #endif // __VW_IMAGE_ALGORITHMS_H__
