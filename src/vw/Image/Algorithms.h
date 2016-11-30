@@ -726,22 +726,28 @@ namespace vw {
     return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
   }
 
-
-
 /// Apply a double threshold to an image.
-/// - Pixels are set if they are below the low threshold.  In addition, a flood-fill is performed
-///   from the low threshold pixels using pixels below the high threshold.
+/// - Pixels are set if they are above the high threshold.  In addition, a flood-fill is performed
+///   from the high threshold pixels using pixels above the low threshold.
 /// - No built-in masked pixel handling.
 template <class ImageT>
 class TwoThresholdFill: public ImageViewBase<TwoThresholdFill<ImageT> >{
 
   ImageT const& m_image;
   int    m_expand_size; ///< Tile expansion used to more accurately size flood.
-  double m_low_threshold;   ///< Fill pixels under this threshold
+  double m_low_threshold;   ///
   double m_high_threshold;  ///
+  uint8  m_output_false;    /// Above thresholds
+  uint8  m_output_true;     /// Below thresholds
 public:
-  TwoThresholdFill(ImageViewBase<ImageT> const& image, int expand_size, double low_threshold, double high_threshold):
-    m_image(image.impl()), m_expand_size(expand_size), m_low_threshold(low_threshold), m_high_threshold(high_threshold) {}
+  /// Constructor
+  /// - Pixels below thresholds will be set to output_true, others to output_false.
+  TwoThresholdFill(ImageViewBase<ImageT> const& image, int expand_size, 
+                   double low_threshold, double high_threshold,
+                   uint8 output_false = 0, uint8 output_true = 1):
+    m_image(image.impl()), m_expand_size(expand_size), 
+    m_low_threshold(low_threshold), m_high_threshold(high_threshold),
+    m_output_false(output_false), m_output_true(output_true) {}
 
   // Image View interface
   typedef uint8      pixel_type;
@@ -778,8 +784,8 @@ public:
     // First pass is top-left to bottom-right.
     for (int r=0; r<output_tile.rows(); ++r) {
       for (int c=0; c<output_tile.cols(); ++c) {
-        if ((input_tile(c,r) < m_low_threshold) || // Check the lower threshold
-            ((input_tile(c,r) < m_high_threshold) && // Check neighboring inputs if below the higher threshold
+        if ((input_tile(c,r) > m_high_threshold) || // Check the lower threshold
+            ((input_tile(c,r) > m_low_threshold) && // Check neighboring inputs if below the higher threshold
              ((edge_wrapper(output_tile, c-1,r-1) > 0) || // Check top left
               (edge_wrapper(output_tile, c,  r-1) > 0) || // Check top
               (edge_wrapper(output_tile, c+1,r-1) > 0) || // Check top right
@@ -787,24 +793,26 @@ public:
              )
             )
            )
-          output_tile(c,r) = 1;
+          output_tile(c,r) = m_output_true;
+        else
+          output_tile(c,r) = m_output_false;
       }
     } // Done with first pass through the tile
     
     // Second pass is bottom_right to top_left
     for (int r=output_tile.rows()-1; r>=0; --r) {
       for (int c=output_tile.cols()-1; c>=0; --c) {
-        if (output_tile(c,r) > 0) // Skip set pixels
+        if (output_tile(c,r) == m_output_true) // Skip set pixels
           continue;
         // No need to check the lower threshold on the second pass.
-        if ((input_tile(c,r) < m_high_threshold) && // Check neighboring inputs only if this pixel is low enough
+        if ((input_tile(c,r) > m_low_threshold) && // Check neighboring inputs only if this pixel is low enough
             ((edge_wrapper(output_tile, c+1,r+1) > 0) || // Check bottom right
              (edge_wrapper(output_tile, c,  r+1) > 0) || // Check bottom
              (edge_wrapper(output_tile, c-1,r+1) > 0) || // Check bottom left
              (edge_wrapper(output_tile, c+1,r  ) > 0)    // Check right
             )
            )
-          output_tile(c,r) = 1;
+          output_tile(c,r) = m_output_true;
       }
     } // Done with second pass through the tile    
 
@@ -820,11 +828,12 @@ public:
   }
 }; // End class FloodFill
 
-/// Applies a flood fill from the non-zero pixels in the seed image to connected pixels in image which are below the threshold.
+/// Applies a flood fill from pixels which are above the high threshold through pixels above the low threshold.
 template <class ImageT>
 TwoThresholdFill<ImageT>
-two_threshold_fill(ImageViewBase<ImageT> const& image, int expand_size, double low_threshold, double high_threshold) {
-  return TwoThresholdFill<ImageT>(image.impl(), expand_size, low_threshold, high_threshold);
+two_threshold_fill(ImageViewBase<ImageT> const& image, int expand_size, double low_threshold, double high_threshold,
+                   uint8 output_false = 0, uint8 output_true = 1) {
+  return TwoThresholdFill<ImageT>(image.impl(), expand_size, low_threshold, high_threshold, output_false, output_true);
 }
 
 

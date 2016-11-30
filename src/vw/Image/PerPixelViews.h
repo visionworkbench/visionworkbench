@@ -461,7 +461,7 @@ namespace vw {
 
   template <class Image1T, class Functor>
   UnaryPerPixelView<Image1T, Functor>
-  per_pixel_view(Image1T const& image1, Functor & func) {
+  per_pixel_view(Image1T const& image1, Functor const& func) {
     typedef UnaryPerPixelView<Image1T, Functor> result_type;
     return result_type(image1, func);
   }
@@ -469,7 +469,7 @@ namespace vw {
 
   template <class Image1T, class Image2T, class Functor>
   BinaryPerPixelView<Image1T, Image2T, Functor>
-  per_pixel_view(Image1T const& image1, Image2T const& image2, Functor & func) {
+  per_pixel_view(Image1T const& image1, Image2T const& image2, Functor const& func) {
     typedef BinaryPerPixelView<Image1T, Image2T, Functor> result_type;
     return result_type(image1, image2, func);
   }
@@ -478,7 +478,7 @@ namespace vw {
   template <class Image1T, class Image2T, class Image3T, class Functor>
   TrinaryPerPixelView<Image1T, Image2T, Image3T, Functor>
   per_pixel_view(Image1T const& image1, Image2T const& image2, 
-                 Image3T const& image3, Functor & func) {
+                 Image3T const& image3, Functor const& func) {
     typedef TrinaryPerPixelView<Image1T, Image2T, Image3T, Functor> result_type;
     return result_type(image1, image2, image3, func);
   }
@@ -486,7 +486,7 @@ namespace vw {
   template <class Image1T, class Image2T, class Image3T, class Image4T, class Functor>
   QuaternaryPerPixelView<Image1T, Image2T, Image3T, Image4T, Functor>
   per_pixel_view(Image1T const& image1, Image2T const& image2, 
-                 Image3T const& image3, Image4T const& image4, Functor & func) {
+                 Image3T const& image3, Image4T const& image4, Functor const& func) {
     typedef QuaternaryPerPixelView<Image1T, Image2T, Image3T, Image4T, Functor> result_type;
     return result_type(image1, image2, image3, image4, func);
   }
