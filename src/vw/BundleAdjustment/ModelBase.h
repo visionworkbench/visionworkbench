@@ -45,8 +45,11 @@ namespace ba {
   template <class ImplT, size_t CameraParamsN, size_t PointParamsN>
   class ModelBase {
   public:
-    static const size_t camera_params_n = CameraParamsN;
-    static const size_t point_params_n  = PointParamsN;
+    static const size_t camera_params_n         = CameraParamsN;
+    static const size_t point_params_n          = PointParamsN;
+    static const size_t focal_length_params_n   = 1;
+    static const size_t optical_center_params_n = 2;
+    static const size_t nonlens_intrinsics_n    = focal_length_params_n + optical_center_params_n;
 
     /// \cond INTERNAL
     // Methods to access the derived type

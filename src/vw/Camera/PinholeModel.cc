@@ -32,8 +32,10 @@
 #include <iomanip>
 #include <string>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
+namespace ba = boost::algorithm;
 
 using namespace vw;
 using namespace camera;
@@ -233,19 +235,23 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
 
   // Check if the passed in string contains the string for any of the
   //  recognized lens distortion models.
-  if (config_line.find(NullLensDistortion::class_name()) != std::string::npos) {
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(NullLensDistortion::class_name()))
+      != std::string::npos) {
     m_distortion.reset(new NullLensDistortion());
     return true;
   }
-  if (config_line.find(BrownConradyDistortion::class_name()) != std::string::npos) {
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(BrownConradyDistortion::class_name()))
+      != std::string::npos) {
     m_distortion.reset(new BrownConradyDistortion());
     return true;
   }
-  if (config_line.find(AdjustableTsaiLensDistortion::class_name()) != std::string::npos) {
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(AdjustableTsaiLensDistortion::class_name()))
+      != std::string::npos) {
     m_distortion.reset(new AdjustableTsaiLensDistortion());
     return true;
   }
-  if (config_line.find(PhotometrixLensDistortion::class_name()) != std::string::npos) {
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(PhotometrixLensDistortion::class_name()))
+      != std::string::npos) {
     m_distortion.reset(new PhotometrixLensDistortion());
     return true;
   }
@@ -254,7 +260,8 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
   //  contain TSAI parameters.
   m_distortion.reset(new TsaiLensDistortion());
   
-  if (config_line.find(TsaiLensDistortion::class_name()) != std::string::npos)
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(TsaiLensDistortion::class_name()))
+      != std::string::npos)
     return true;
   else
     return false;
