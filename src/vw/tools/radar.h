@@ -500,24 +500,20 @@ void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int
   std::string dummy_path = "dummy.tif";
   
   // TODO: Using this View object is a hack to get multi-threaded processing
-  //       and it should be replaced with a simpler implementation!!!
-  
-  //DiskImageResourceGDAL mean_resource(dummy_path, input_image.format(), block_size);
+  //       and it should be replaced with a simpler implementation!!! 
   
   // Write dummy image to force multi-threaded processing
-  //block_write_image(mean_resource, tile_mean_generator, 
-  //                  TerminalProgressCallback("vw", "\t--> Computing tile means:"));
-
-  // TODO: Load input options!
   cartography::GdalWriteOptions write_options;
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
   block_write_gdal_image(dummy_path, tile_mean_generator, write_options,
                          TerminalProgressCallback("vw", "\t--> Computing tile means:"));
 
-
   // Grab results from the view object
   tile_means   = tile_mean_generator.tile_means();
   tile_stddevs = tile_mean_generator.tile_stddevs();
+  
+  // Clean up the dummy file we wrote
+  std::remove(dummy_path.c_str());
 
 } // End function generate_tile_means
 
@@ -775,7 +771,6 @@ size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarType
   
   block_write_gdal_image("initial_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
 
-  // TODO: When this happens, repeat the earlier steps with the tile size cut in half.
   if (n_prime_tiles.empty())
     vw_throw(LogicErr() << "No tiles left after std_dev filtering!");
 
@@ -956,10 +951,10 @@ void sar_martinis(std::string const& input_image_path,
   double threshold_mean;
   if (!compute_global_threshold(preprocessed_image, kept_tile_indices, large_tile_boxes,
                                 global_min, global_max, threshold_mean)) {
-    // TODO: If we get this warning, rerun the computations with smaller tiles!
     std::cout << "WARNING: Computed threshold may be inaccurate!\n";
   }
  
+  // TODO: When either of the previous steps fail, repeat the earlier steps with the tile size cut in half.
   
   // This will mask the water pixels, setting water pixels to 255, land pixels to 1, and invalid pixels to 0.
   const uint8 WATER_CLASS  = 255;
@@ -1034,8 +1029,8 @@ void sar_martinis(std::string const& input_image_path,
 
   typedef PixelMask<float> DemPixelType;
 
-  // TODO: What to do if no nodata?
-  double dem_nodata_value = 0;
+  // Should be safe to use this as a DEM nodata value!
+  double dem_nodata_value = -3.4028234663852886e+38;
   bool have_dem_nodata = load_nodata(dem_path, dem_nodata_value);
 
   DiskImageView<float> dem(dem_path);
@@ -1096,7 +1091,7 @@ void sar_martinis(std::string const& input_image_path,
   ImageViewRef<FuzzyPixelType> radar_fuzz = per_pixel_view(preprocessed_image, radar_fuzz_functor);
 
   // Elevation
-  // TODO: The max value seems a little strange.
+  // - The max value looks a little weird but it comes straight from the paper.
   const double high_height = mean_water_height + stddev_water_height*(stddev_water_height + 3.5);
   FuzzyFunctorZ height_fuzz_functor(mean_water_height, high_height);
   ImageViewRef<FuzzyPixelType> height_fuzz = per_pixel_view(dem_in_image_coords, height_fuzz_functor);

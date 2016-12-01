@@ -26,17 +26,22 @@ Pipeline (ASP), see
 https://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/
 
 The surest and the only supported way of building VW is now by
-building ASP itself, using the BinaryBuilder Python tool. Detailed
-instructions are available at
+using the BinaryBuilder Python tool originally intended to build ASP. 
+If you also want to build ASP, detailed instructions are available at
 
 https://github.com/NeoGeographyToolkit/StereoPipeline/blob/master/INSTALLGUIDE
 
-If you want to build Vision Workbench only, the script build.py that
-you will end up using can be edited to turn off building of osg3,
-isis, glog, ceres, libnabo, libpointmatcher, gflags, imagemagic,
-theia, and stereopipeline.
+BinaryBuilder does includes an option to build only Vision Workbench if desired.
+Doing this will reduce the build time since you will skip building several
+large ASP dependencies that VW does not require.
+Look in the BinaryBuilder README file for details on how to do this:
 
+https://github.com/NeoGeographyToolkit/BinaryBuilder/blob/master/README
+
+
+----------------------------------------------------------------------
 The instructions below are partially obsolete, and not updated.
+----------------------------------------------------------------------
 
 Requirements
 ============
