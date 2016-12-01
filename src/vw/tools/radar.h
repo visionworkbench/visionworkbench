@@ -53,213 +53,8 @@ namespace radar {
 
 
 
-// TODO: Move all of this!
-
-
-/// Generic class for implementing a function that generates a pixel value based
-///  on a window around a pixel.
-/// - TODO: Could ConvolutionView use this class?
-template <class ImageT, class FuncT, class EdgeT>
-class WindowFunctionView : public ImageViewBase<WindowFunctionView<ImageT,FuncT,EdgeT> >
-{
-private:
-  ImageT   m_image;
-  EdgeT    m_edge;     ///< Edge extension type
-  FuncT    m_functor;  ///< Functor that operates on each window.
-  Vector2i m_window_size;
-  int      m_half_width;
-  int      m_half_height;
-
-public:
-  typedef typename ImageT::pixel_type pixel_type;  ///< The pixel type of the image view.
-  typedef pixel_type                  result_type; ///< We compute the result, so we return by value.
-  typedef ProceduralPixelAccessor<WindowFunctionView<ImageT, FuncT, EdgeT> > 
-                                      pixel_accessor; ///< The view's pixel_accessor type.
-
-  /// Constructs a ConvolutionView with the given image and kernel and 
-  /// with the origin of the kernel located at the point (ci,cj).
-  WindowFunctionView( ImageT const& image, Vector2i window_size,
-                      FuncT  const& functor, 
-                      EdgeT  const& edge = EdgeT() )
-    : m_image(image), m_edge(edge), m_functor(functor), m_window_size(window_size) {
-    m_half_width  = m_window_size[0]/2;
-    m_half_height = m_window_size[1]/2;
-  }
-
-  inline int32 cols  () const { return m_image.cols  (); }
-  inline int32 rows  () const { return m_image.rows  (); }
-  inline int32 planes() const { return m_image.planes(); }
-
-  /// Returns a pixel_accessor pointing to the origin.
-  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
-
-  /// Returns the pixel at the given position in the given plane.
-  inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
-    BBox2i roi(x-m_half_width, y-m_half_height, m_window_size[0], m_window_size[1]);
-    return m_functor(edge_extend(m_image, roi, m_edge));
-  }
-
-  // Edge extension is done in the prerasterize function so the returned type does not need edge extension
-  // - Currently the class does the hard work in the () function but it would probably be more efficient to
-  //   do the computation on a per-tile basis.
-  typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type> >, 
-                             FuncT, NoEdgeExtension> prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-    // Compute the required base of support for the input bounding box
-    BBox2i src_bbox( bbox.min().x() - m_half_width, 
-                     bbox.min().y() - m_half_height,
-                     bbox.width () + m_window_size[0]-1, 
-                     bbox.height() + m_window_size[1]-1 );
-    // Take an edge extended image view of the input support region
-    ImageView<typename ImageT::pixel_type> src = edge_extend(m_image, src_bbox, m_edge);
-    // Use the crop trick to fake that the support region is the same size as the entire image.
-    return prerasterize_type( crop(src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows()),
-                              m_window_size, m_functor, NoEdgeExtension() );
-  }
-
-  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-    vw::rasterize( prerasterize(bbox), dest, bbox );
-  }
-}; // End class WindowFunctionView
-
-/// Functor to find the median of an input image.
-/// - Usually used with WindowFunctionView.
-template <typename ImageT>
-struct WindowMedianFunctor {
-
-  mutable std::vector<double> m_values; ///< Persistent storage location
-
-  /// Constructor
-  WindowMedianFunctor(Vector2i window_size) {
-    m_values.resize(window_size[0]*window_size[1]);
-  }
-
-  /// Returns the median pixel of the provided input image.
-  /// - Generally the input image will be a cropped view of a whole image.
-  template <class T>
-  typename ImageT::pixel_type operator()(ImageViewBase<T> const& image) const {
-
-    // Loop through the kernel and collect the values
-    int index = 0;
-    for (int r=0; r<image.impl().rows(); ++r) {
-      for (int c=0; c<image.impl().cols(); ++c) {
-        if (is_valid(image.impl()(c,r))) {
-          m_values[index] = image.impl()(c,r);
-          ++index;
-        }
-      }
-    }
-    if (index == 0) { // All pixels invalid!
-      typename ImageT::pixel_type result(0);
-      invalidate(result);
-      return result;
-    }
-
-    // Now that we have all the values, compute the median.
-    double median;
-    if (index == static_cast<int>(m_values.size())-1) // No invalid pixels
-      median = math::destructive_median(m_values);
-    else { // Invalid pixels
-      // Resize the vector twice so we can call the median function
-      size_t full_size = m_values.size();
-      m_values.resize(index + 1);
-      median = math::destructive_median(m_values);
-      m_values.resize(full_size);
-    }
-    return typename ImageT::pixel_type(median);
-  }
-};
-
-/// Apply a median filter to an input image
-template <class ImageT, class EdgeT>
-WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, EdgeT> 
-median_view(ImageT const& image, Vector2i window_size, EdgeT edge) {
-  typedef WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, EdgeT> return_type;
-  WindowMedianFunctor<ImageT> functor(window_size);
-  return return_type(image, window_size, functor, edge);
-}
 
 //=========================================================================================
-
-// TODO MOVE
-
-/*
-/// Wrapper around a DEM or image that computes the slope.
-/// - Could add some other computation options
-template <class ImageT>
-class SlopeView : public ImageViewBase<SlopeView<ImageT> >
-{
-private:
-  ImageT   m_image;
-
-public:
-  typedef PixelMask<float> pixel_type;  ///< The pixel type of the image view.
-  typedef pixel_type                  result_type; 
-  typedef ProceduralPixelAccessor<SlopeView<ImageT> > 
-                                      pixel_accessor; ///< The view's pixel_accessor type.
-
-  /// Constructor
-  SlopeView( ImageT const& image) : m_image(image){}
-
-  inline int32 cols  () const { return m_image.cols  (); }
-  inline int32 rows  () const { return m_image.rows  (); }
-  inline int32 planes() const { return m_image.planes(); }
-
-  /// Returns a pixel_accessor pointing to the origin.
-  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
-
-  // This can be implemented if we need it.
-  inline pixel_type operator()(double /*i, double /*j, int32 /*p = 0) const {
-    vw_throw(NoImplErr() << "SlopeView::operator()(...) is not implemented");
-    return pixel_type();
-  }
-
-  /// Given the dX and dY values for a pixel, compute a slope in degrees.
-  /// - Could probably get better results using the ComputeNormalsFunc functor from /vw/Image/Algorithms.h
-  struct SlopeAngleDegreesFunctor : ReturnFixedType<pixel_type> {
-    pixel_type operator()( pixel_type const& p1, pixel_type const& p2) const {
-      if (!is_valid(p1)){ // Skip invalid pixels
-        pixel_type result;
-        invalidate(result);
-        return result;
-      }
-      const float RAD2DEG = 180.0 / 3.14159; // TODO: Where do we keep our constants?
-      //float value   = sqrt(p1*p1 + p2*p2);
-      //float degrees = atan(value)*RAD2DEG;
-      //return pixel_type(degrees);
-      return pixel_type(123);
-    }
-  };
-
-  // Edge extension is done in the prerasterize function so the returned type does not need edge extension
-  typedef BinaryPerPixelView<ImageView<pixel_type>, ImageView<pixel_type>, SlopeAngleDegreesFunctor> prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-
-    std::cout << "Raster BBox: " << bbox << std::endl;
-
-    // Compute edge in dx and dy for this tile, then use functor to combine them.  
-    ImageView<pixel_type> dx = sobel_filter(crop(m_image, bbox), true );
-    ImageView<pixel_type> dy = sobel_filter(crop(m_image, bbox), false);
-    write_image("dx.tif", dx);
-    write_image("dy.tif", dy);
-    return prerasterize_type(dx, dy, SlopeAngleDegreesFunctor());
-  }
-
-  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-    vw::rasterize( prerasterize(bbox), dest, bbox );
-  }
-}; // End class SlopeView
-
-/// Generate slope view of an image
-template <class ImageT>
-SlopeView<ImageT> slope_view(ImageT const& image) {
-  return SlopeView<ImageT>(image);
-}
-*/
-
-
-//=========================================================================================
-
 
 
 
@@ -271,8 +66,7 @@ public:
   /// Constructor
   FuzzyMembershipZFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
 
-  /// Returns the median pixel of the provided input image.
-  /// - Generally the input image will be a cropped view of a whole image.
+  /// Apply Z function
   PixelT operator()(PixelT const& pixel) const {
     if (!is_valid(pixel))
       return pixel;
@@ -296,8 +90,7 @@ public:
   /// Constructor
   FuzzyMembershipSFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
 
-  /// Returns the median pixel of the provided input image.
-  /// - Generally the input image will be a cropped view of a whole image.
+  /// Apply S function
   PixelT operator()(PixelT const& pixel) const {
     if (!is_valid(pixel))
       return pixel;
@@ -423,97 +216,6 @@ double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
 
 
 
-
-//=========================================================================================
-
-// TODO: What data type to use?
-typedef uint16 Sentinel1Type;
-typedef float  RadarType;
-typedef PixelMask<RadarType> RadarTypeM;
-
-
-/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
-struct Sentinel1DnToDb : public ReturnFixedType<float> {
-  Sentinel1DnToDb(){}
-  float operator()( RadarType value ) const {
-    if (value == 0)
-      return 0; // These pixels are invalid, don't return inf for them!
-    return 10*log10(value);
-  }
-};
-
-/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
-template <class ImageT>
-UnaryPerPixelView<ImageT,Sentinel1DnToDb>
-inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
-  return UnaryPerPixelView<ImageT,Sentinel1DnToDb>( image.impl(), Sentinel1DnToDb() );
-}
-
-
-/// Crop and preprocess the input image in preparation for the sar_martinis algorithm.
-void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, 
-                                double nodata_value, BBox2i const& roi,
-                                RadarType &global_min, RadarType &global_max,
-                                cartography::GdalWriteOptions const& write_options,
-                                ImageViewRef<RadarTypeM>      & processed_image) {
-
-  // Currently we write the preprocessed image to disk, but maybe in the future
-  // we should not.
-
-  // TODO: Apply processing!
-  // TODO: If we use a disk image, need to clean it up later!
-
-  // --> For now, leave the image as-is knowing that most pixels fall in the 0-1000 range.
-  //  ---> Later, apply a log scale or something.
-
-  // TODO: Detect if image already exists, don't reprocess!
-  std::cout << "Skipping preprocess already on disk!!!!\n";
-
-  // TODO: Need these four values to rescale later!
-
-  global_min = 0.0;  // This can be kept constant
-  global_max = 35.0; // TODO: Is it worth computing the exact value?
-
-  const double PROC_MIN = 0;
-  const double PROC_MAX = 400;
-/*
-  // TODO: Record this gain/offset so we can undo this scaling later on!
-  double input_range  = global_max - global_min;
-  double output_range = PROC_MAX - PROC_MIN;
-  double gain         = output_range / input_range;
-  double offset       = PROC_MIN - global_min*gain;
-  printf("Computed gain = %lf, offset = %lf\n", gain, offset);
-*/
-
-  //std::cout << "minmax...\n";
-  //min_max_channel_values(DiskImageView<RadarType>("preprocessed_image.tif"), global_min, global_max);
-  //printf("Computed min = %f, max = %f\n", global_min, global_max);
-
-  //TODO: Handle the mask in the filter!
-  // Perform median filter to correct speckles (see section 2.1.4)
-  int kernel_size = 3;
-  std::string temp_image_path = "preprocessed_image.tif";
-  cartography::block_write_gdal_image(temp_image_path,
-                                      normalize(sentinel1_dn_to_db(median_view(crop(input_image, roi), 
-                                                                             Vector2i(kernel_size, kernel_size),
-                                                                             ConstantEdgeExtension())
-                                                                ),
-                                              global_min, global_max, PROC_MIN, PROC_MAX
-                                             ),
-                                      write_options,
-                                      TerminalProgressCallback("vw", "\t--> Preprocessing:"));
-
-  // Return a view of the image on disk for easy access
-  processed_image = create_mask(DiskImageView<RadarType>("preprocessed_image.tif"), nodata_value);
-
-  // Update these to reflect the scaled values
-  global_min = PROC_MIN;
-  global_max = PROC_MAX; 
-
- 
-
-} // End preprocess_sentinel1_image
-
 /// Splits up one large BBox into a grid of smaller BBoxes.
 /// - Returns the number of BBoxes created.
 /// - If include_partials is set to false, incomplete BBoxes will be discarded.
@@ -555,6 +257,95 @@ int divide_roi(BBox2i const& full_roi, int size,
   }
   return num_boxes;
 }
+
+
+
+
+
+//=========================================================================================
+
+// TODO: What data type to use?
+typedef uint16 Sentinel1Type;
+typedef float  RadarType;
+typedef PixelMask<RadarType> RadarTypeM;
+
+
+/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
+struct Sentinel1DnToDb : public ReturnFixedType<float> {
+  Sentinel1DnToDb(){}
+  float operator()( RadarType value ) const {
+    if (value == 0)
+      return 0; // These pixels are invalid, don't return inf for them!
+    return 10*log10(value);
+  }
+};
+
+/// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
+template <class ImageT>
+UnaryPerPixelView<ImageT,Sentinel1DnToDb>
+inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
+  return UnaryPerPixelView<ImageT,Sentinel1DnToDb>( image.impl(), Sentinel1DnToDb() );
+}
+
+
+/// Crop and preprocess the input image in preparation for the sar_martinis algorithm.
+void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, BBox2i const& roi,
+                                RadarType &global_min, RadarType &global_max,
+                                cartography::GdalWriteOptions const& write_options,
+                                std::string const& temporary_path,
+                                ImageViewRef<RadarTypeM>      & processed_image) {
+
+  // Currently we write the preprocessed image to disk, but maybe in the future
+  // we should not.
+
+  // TODO: Apply processing!
+
+  // --> For now, leave the image as-is knowing that most pixels fall in the 0-1000 range.
+  //  ---> Later, apply a log scale or something.
+
+  // TODO: Need these four values to rescale later!
+
+  global_min = 0.0;  // This can be kept constant
+  global_max = 35.0; // TODO: Is it worth computing the exact value?
+
+  const double PROC_MIN = 0;
+  const double PROC_MAX = 400;
+/*
+  // TODO: Record this gain/offset so we can undo this scaling later on!
+  double input_range  = global_max - global_min;
+  double output_range = PROC_MAX - PROC_MIN;
+  double gain         = output_range / input_range;
+  double offset       = PROC_MIN - global_min*gain;
+  printf("Computed gain = %lf, offset = %lf\n", gain, offset);
+*/
+
+  //std::cout << "minmax...\n";
+  //min_max_channel_values(DiskImageView<RadarType>("preprocessed_image.tif"), global_min, global_max);
+  //printf("Computed min = %f, max = %f\n", global_min, global_max);
+
+  //TODO: Handle the mask in the filter!
+  // Perform median filter to correct speckles (see section 2.1.4)
+  int kernel_size = 3;
+  cartography::block_write_gdal_image(temporary_path,
+                                      normalize(sentinel1_dn_to_db(median_filter_view(crop(input_image, roi), 
+                                                                                      Vector2i(kernel_size, kernel_size))
+                                                                ),
+                                              global_min, global_max, PROC_MIN, PROC_MAX
+                                             ),
+                                      write_options,
+                                      TerminalProgressCallback("vw", "\t--> Preprocessing:"));
+
+  //TODO: How to handle input NODATA!
+  // Return a view of the image on disk for easy access
+  processed_image = create_mask(DiskImageView<RadarType>("preprocessed_image.tif"), 0);
+
+  // Update these to reflect the scaled values
+  global_min = PROC_MIN;
+  global_max = PROC_MAX; 
+
+ 
+
+} // End preprocess_sentinel1_image
 
 
 
@@ -733,7 +524,7 @@ void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int
 
 
 
-
+// TODO: Move this out:
 
 /// From a binary image, generate an image where each pixel has a value
 /// equal to the size of the blob that contains it (up to a size limit).
@@ -856,6 +647,33 @@ struct DefuzzFunctor : public ReturnFixedType<float> {
 // TODO: Move these
 
 
+// Define comparison function (just compare the first elements)
+template <typename T>
+bool less_than_function_pair_first( const T& a, const T& b) { 
+  return a.first < b.first; 
+}
+
+
+/// Generate a sorted list of indices into an input vector.
+/// - Intended for simple vectors of ints or floats.
+template <typename T>
+void sort_vector_indices(std::vector<T> const& v, std::vector<size_t> &indices) {
+
+  // Copy data into a new vector with indices
+  typedef std::pair<T, size_t> PairV;
+  std::vector<PairV> v_new(v.size());
+  for (size_t i=0; i<v.size(); ++i) {
+    v_new[i].first  = v[i];
+    v_new[i].second = i;
+  }
+
+  // Run sort and store the sorted indices
+  std::sort(v_new.begin(), v_new.end(), less_than_function_pair_first<PairV>);
+  indices.resize(v.size());
+  for (size_t i=0; i<v.size(); ++i)
+    indices[i] = v_new[i].second;
+}
+
 /// Loads the nodata value from the file and returns true if successful.
 /// - If nodata cannot be read from file, leaves the input value unchanged.
 bool load_nodata(std::string const& path, double& nodata) {
@@ -889,9 +707,6 @@ public:
 }; // End class FunctorMaskWrapper
 
 
-//============================================================================
-
-
 /// Converts a normal vector into a slope angle in degrees.
 struct GetAngleFunc : public ReturnFixedType<PixelMask<float> > {
   PixelMask<float> operator() (PixelMask<Vector3f> const& pix) const {
@@ -907,13 +722,178 @@ UnaryPerPixelView<ViewT, GetAngleFunc> get_angle(ImageViewBase<ViewT> const& vie
 }
 
 
+
+/// Select the best N tiles to use for computing the global water threshold
+size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarTypeM> & tile_stddevs,
+                         std::vector<Vector2i> & kept_tile_indices,
+                         cartography::GdalWriteOptions const& write_options) {
+
+  std::cout << "Computing global tile statistics...\n";
+
+  // Compute the global mean
+  double global_mean = mean_channel_value(tile_means);
+
+  std::cout << "Computing global mean = " << global_mean << "\n";
+
+  // Compute 95% quantile standard deviation
+  double stddev_min, stddev_max;
+  find_image_min_max(tile_stddevs, stddev_min, stddev_max);
+  
+  int    num_bins = 255;
+  std::vector<double> hist;
+  histogram(tile_stddevs, num_bins, stddev_min, stddev_max, hist);
+  const double TILE_STDDEV_PERCENTILE_CUTOFF = 0.95;
+  int    bin = get_histogram_percentile(hist, TILE_STDDEV_PERCENTILE_CUTOFF);
+  double bin_width      = (stddev_max - stddev_min)/static_cast<double>(num_bins);
+  double std_dev_cutoff = stddev_min + bin_width*bin;
+  std::cout << "std_dev_cutoff " << std_dev_cutoff << "\n";
+
+  // Select the tiles with the highest STD values (N')
+  ImageView<uint8> kept_tile_display;
+  kept_tile_display.set_size(tile_means.cols(), tile_means.rows());
+  std::vector<Vector2i> n_prime_tiles;
+  std::vector<double  > n_prime_std_dev, n_prime_mean;
+  double mean_of_selected = 0;
+  for (int r=0; r<tile_stddevs.rows(); ++r) {
+    for (int c=0; c<tile_stddevs.cols(); ++c) {
+      // The tile must have a high stddev and also be below the global mean
+      //  since water tends to be darker than land.
+      if ( (tile_stddevs(c,r) > std_dev_cutoff) &&
+           (tile_means  (c,r) < global_mean   )   ) {
+        n_prime_tiles.push_back(Vector2i(c,r));
+        n_prime_std_dev.push_back(tile_stddevs(c,r));
+        n_prime_mean.push_back   (tile_means  (c,r));
+        mean_of_selected += tile_means(c,r);
+        std::cout << "Keeping tile " << Vector2i(c,r) << std::endl;
+        kept_tile_display(c,r) = 255;
+      }
+    }
+  }
+
+  size_t num_tiles_kept = n_prime_tiles.size();
+  std::cout << "Selected " << num_tiles_kept << " initial tiles.\n";
+  
+  block_write_gdal_image("initial_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
+
+  // TODO: When this happens, repeat the earlier steps with the tile size cut in half.
+  if (n_prime_tiles.empty())
+    vw_throw(LogicErr() << "No tiles left after std_dev filtering!");
+
+  // Cap the number of selected tiles
+  const size_t MAX_NUM_TILES = 5; // From the paper  
+  
+  // If already at/below the cap we are finished.
+  if (num_tiles_kept <= MAX_NUM_TILES) {
+    kept_tile_indices = n_prime_tiles;
+    return n_prime_tiles.size();
+  }
+  // Reset this image DEBUG
+  fill(kept_tile_display, 0);
+  
+  // The original paper restricted kept tiles to tiles below the tile mean,
+  // so go back and add this if it seems to be needed.
+  
+  // Keep the N tiles with the highest standard deviation
+  std::vector<size_t> indices;
+  sort_vector_indices(n_prime_std_dev, indices); // Sorts by STD low to high
+  
+  kept_tile_indices.resize(MAX_NUM_TILES);
+  size_t max_index = num_tiles_kept - 1;
+  size_t index_out=0;
+  for (size_t i=max_index; i>max_index-MAX_NUM_TILES; --i) {
+    kept_tile_indices[index_out] = n_prime_tiles[i];
+    kept_tile_display(n_prime_tiles[i][0],n_prime_tiles[i][1]) = 255;
+    std::cout << "Keeping tile " << n_prime_tiles[i] << std::endl;
+    ++index_out;
+  }
+
+  block_write_gdal_image("final_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
+  
+  std::cout << "Reduced to " << MAX_NUM_TILES << " kept tiles.\n";
+  
+  return MAX_NUM_TILES;
+} // End function select_best_tiles
+
+
+
+bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image, 
+                              std::vector<Vector2i> const& kept_tile_indices,
+                              std::vector<std::vector<BBox2i> > const& large_tile_boxes,
+                              float global_min, float global_max,
+                              double &threshold_mean) {
+
+  // For each selected tile, find optimal threshold using Kittler-Illingworth method.
+  // - TODO: Does any rescaling need to be applied to these thresholds values?
+  //         splitValDb = rescaleNumber(splitVal, PROC_global_min, PROC_global_max, minVal, maxVal)        
+  // - TODO: Compute this in parallel!
+  int num_bins = 255;
+  const size_t num_tiles = kept_tile_indices.size();
+  std::vector<double> optimal_tile_thresholds(num_tiles);
+  double dmin = static_cast<double>(global_min);
+  double dmax = static_cast<double>(global_max);
+  threshold_mean = 0;
+  for (size_t i=0; i<num_tiles; ++i) {
+  
+    // Compute tile histogram     
+    Vector2i tile_index = kept_tile_indices[i];
+    BBox2i   roi = large_tile_boxes[tile_index[1]][tile_index[0]]; // The ROIs are stored row-first.
+    std::vector<double> hist;
+    histogram(crop(preprocessed_image, roi), num_bins, dmin, dmax, hist);
+    
+    // Compute optimal split
+    optimal_tile_thresholds[i] = splitHistogramKittlerIllingworth(hist, num_bins, global_min, global_max);
+    std::cout << "For ROI " << roi << ", computed threshold " << optimal_tile_thresholds[i] << std::endl;
+    threshold_mean += optimal_tile_thresholds[i];
+  }
+  threshold_mean /= static_cast<double>(num_tiles);
+
+  // TODO: Check statistics of the computed tile thresholds
+  // TODO: Some method to discard outliers
+
+  // If the standard deviation of the local thresholds in DB are greater than this,
+  //  the result is probably bad (number from the paper)
+  //double MAX_STD_DB = 5.0;
+
+  // The maximum allowed value, from the paper.
+  //double MAX_THRESHOLD_DB = 10.0;
+
+  double threshold_stddev = math::standard_deviation(optimal_tile_thresholds, threshold_mean);
+  
+  // TODO // Recompute these values in the original DB units.
+  //tileThresholdsDb = [rescaleNumber(x, PROC_global_min, PROC_global_max, minVal, maxVal) for x in tileThresholds]
+  //threshMeanDb = numpy.mean(tileThresholdsDb)
+  //threshStdDb  = numpy.std(tileThresholdsDb, ddof=1)
+
+  std::cout << "Mean of tile thresholds: " << threshold_mean   << std::endl;
+  std::cout << "STD  of tile thresholds: " << threshold_stddev << std::endl;
+  //print 'Mean of tile thresholds (DB): ' + str(threshMeanDb)
+  //print 'STD  of tile thresholds (DB): ' + str(threshStdDb)
+
+  // TODO: Verify that the computed threshold looks reasonable!
+  return true;
+
+  //// TODO: Use an alternate method of computing the threshold like they do in the paper!
+  //if threshStdDb > MAX_STD_DB:
+  //    raise Exception('Failed to compute a good threshold! STD = ' + str(threshStdDb))
+  // TODO
+  //if threshMeanDb > MAX_THRESHOLD_DB:
+  //    threshMean = rescaleNumber(MAX_THRESHOLD_DB, minVal, maxVal, PROC_global_min, PROC_global_max)
+  //    print 'Saturating the computed threshold at 10 DB!'
+
+} // End compute_global_threshold
+
+//============================================================================
+
+
+
 /** Main function of algorithm from:
       Martinis, Sandro, Jens Kersten, and Andre Twele. 
       "A fully automated TerraSAR-X based flood service." 
       ISPRS Journal of Photogrammetry and Remote Sensing 104 (2015): 203-212.
 */
 void sar_martinis(std::string const& input_image_path, 
-                  cartography::GdalWriteOptions const& write_options) {
+                  cartography::GdalWriteOptions const& write_options,
+                  int tile_size = 512) {
 
   // TODO: How to specify the ROI?
   
@@ -927,23 +907,28 @@ void sar_martinis(std::string const& input_image_path,
     vw_throw(ArgumentErr() << "Failed to read image georeference!");
   georef = crop(georef, roi); // Account for the input ROI
   std::cout << "Read georeference: " << georef << std::endl;
-
+  
+  double input_meters_per_pixel = cartography::get_image_meters_per_pixel(roi.width(), roi.height(), georef);
+  std::cout << "Computed image pixel resolution in meters: " << input_meters_per_pixel << std::endl;
   
   // Read nodata value
-  const double DEFAULT_NODATA = 0; // TODO!!!!
-  double nodata_value = DEFAULT_NODATA;
-  load_nodata(input_image_path, nodata_value);
+  double nodata_value     = 0;
+  bool   has_input_nodata = load_nodata(input_image_path, nodata_value);
    
   // Compute the min and max values of the image
   std::cout << "Preprocessing...\n";
 
-  // Apply any needed preprocessing to the image TODO
+  std::string preprocessed_image_path = "preprocessed_image.tif";
+
+  // Apply any needed preprocessing to the image
   ImageViewRef<RadarTypeM> preprocessed_image;
   RadarType global_min, global_max;
-  preprocess_sentinel1_image(DiskImageView<Sentinel1Type>(input_image_path), nodata_value, roi, 
-                             global_min, global_max, write_options, preprocessed_image);
-
-  int tile_size = 512; // TODO
+  if (has_input_nodata)
+    preprocess_sentinel1_image(DiskImageView<Sentinel1Type>(input_image_path), roi, 
+                               global_min, global_max, write_options, preprocessed_image_path, preprocessed_image);
+  else
+    preprocess_sentinel1_image(create_mask(DiskImageView<Sentinel1Type>(input_image_path), nodata_value), roi, 
+                               global_min, global_max, write_options, preprocessed_image_path, preprocessed_image);
   
   // Generate vector of BBoxes for each tile in the input image (S+)
   std::vector<std::vector<BBox2i> > large_tile_boxes;
@@ -963,125 +948,31 @@ void sar_martinis(std::string const& input_image_path,
   block_write_gdal_image("tile_stddevs.tif", tile_stddevs, write_options);
 
 
-  std::cout << "Computing global tile statistics...\n";
+  // Select the tiles that we will use to compute the optimal global threshold.
+  std::vector<Vector2i> kept_tile_indices;
+  select_best_tiles(tile_means, tile_stddevs, kept_tile_indices, write_options);
 
-  // Compute the global mean
-  double global_mean = mean_channel_value(tile_means);
-
-  std::cout << "Computing global mean = " << global_mean << "\n";
-
-  // Compute 95% quantile standard deviation
-  double stddev_min, stddev_max;
-  find_image_min_max(tile_stddevs, stddev_min, stddev_max);
-  int num_bins = 255;
-  std::vector<double> hist;
-  histogram(tile_stddevs, num_bins, stddev_min, stddev_max, hist);
-  const double TILE_STDDEV_PERCENTILE_CUTOFF = 0.95;
-  int bin = get_histogram_percentile(hist, TILE_STDDEV_PERCENTILE_CUTOFF);
-  double bin_width      = (stddev_max - stddev_min)/static_cast<double>(num_bins);
-  double std_dev_cutoff = stddev_min + bin_width*bin;
-  std::cout << "std_dev_cutoff " << std_dev_cutoff << "\n";
-
-  // Select the tiles with the highest STD values (N')
-  ImageView<uint8> kept_tile_display;
-  kept_tile_display.set_size(tile_means.cols(), tile_means.rows());
-  std::vector<Vector2i> n_prime_tiles;
-  std::vector<double  > n_prime_std_dev;
-  for (int r=0; r<tile_stddevs.rows(); ++r) {
-    for (int c=0; c<tile_stddevs.cols(); ++c) {
-      // The tile must have a high stddev and also be below the global mean
-      //  since water tends to be darker than land.
-      if ( (tile_stddevs(c,r) > std_dev_cutoff) &&
-           (tile_means  (c,r) < global_mean   )   ) {
-        n_prime_tiles.push_back(Vector2i(c,r));
-        n_prime_std_dev.push_back(tile_stddevs(c,r));
-        std::cout << "Keeping tile " << Vector2i(c,r) << std::endl;
-        kept_tile_display(c,r) = 255;
-      }
-    }
+  // Use the selected tiles to compute the optimal image threshold.
+  double threshold_mean;
+  if (!compute_global_threshold(preprocessed_image, kept_tile_indices, large_tile_boxes,
+                                global_min, global_max, threshold_mean)) {
+    // TODO: If we get this warning, rerun the computations with smaller tiles!
+    std::cout << "WARNING: Computed threshold may be inaccurate!\n";
   }
-  block_write_gdal_image("kept_tiles.tif", kept_tile_display, write_options); // DEBUG
-  
-  int num_tiles_kept = static_cast<int>(n_prime_tiles.size());
-  std::cout << "Selected " << num_tiles_kept << " tiles.\n";
-  
-  // TODO: When this happens, repeat the earlier steps with the tile size cut in half.
-  if (n_prime_tiles.empty())
-    vw_throw(LogicErr() << "No tiles left after std_dev filtering!");
-
-  // TODO: Cap the number of selected tiles!!!!!!!!!
-
-/*
-  // For each selected tile, find optimal threshold using Kittler-Illingworth method.
-  // - TODO: Does any rescaling need to be applied to these thresholds values?
-  //         splitValDb = rescaleNumber(splitVal, PROC_global_min, PROC_global_max, minVal, maxVal)        
-  // - TODO: Compute this in parallel!
-  std::vector<double> optimal_tile_thresholds(num_tiles_kept);
-  double dmin = static_cast<double>(global_min);
-  double dmax = static_cast<double>(global_max);
-  double threshold_mean = 0;
-  for (int i=0; i<num_tiles_kept; ++i) {
-  
-    // Compute tile histogram     
-    Vector2i tile_index = n_prime_tiles[i];
-    BBox2i roi = large_tile_boxes[tile_index[1]][tile_index[0]]; // The ROIs are stored row-first.
-    std::vector<double> hist;
-    histogram(crop(preprocessed_image, roi), num_bins, dmin, dmax, hist);
-    
-    // Compute optimal split
-    optimal_tile_thresholds[i] = splitHistogramKittlerIllingworth(hist, num_bins, global_min, global_max);
-    std::cout << "For ROI " << roi << ", computed threshold " << optimal_tile_thresholds[i] << std::endl;
-    threshold_mean += optimal_tile_thresholds[i];
-  }
-  threshold_mean /= static_cast<double>(num_tiles_kept);
-
-  // TODO: Check statistics of the computed tile thresholds
-  // TODO: Some method to discard outliers
-
-  // If the standard deviation of the local thresholds in DB are greater than this,
-  //  the result is probably bad (number from the paper)
-  //double MAX_STD_DB = 5.0;
-
-  // The maximum allowed value, from the paper.
-  //double MAX_THRESHOLD_DB = 10.0;
-
-  double threshold_stddev = math::standard_deviation(optimal_tile_thresholds, threshold_mean);
-  */
-  double threshold_mean = 133, threshold_stddev = 4.45;
-  // TODO // Recompute these values in the original DB units.
-  //tileThresholdsDb = [rescaleNumber(x, PROC_global_min, PROC_global_max, minVal, maxVal) for x in tileThresholds]
-  //threshMeanDb = numpy.mean(tileThresholdsDb)
-  //threshStdDb  = numpy.std(tileThresholdsDb, ddof=1)
-
-  std::cout << "Mean of tile thresholds: " << threshold_mean   << std::endl;
-  std::cout << "STD  of tile thresholds: " << threshold_stddev << std::endl;
-  //print 'Mean of tile thresholds (DB): ' + str(threshMeanDb)
-  //print 'STD  of tile thresholds (DB): ' + str(threshStdDb)
-
-  // TODO: Verify that the computed threshold looks reasonable!
-
-  //// TODO: Use an alternate method of computing the threshold like they do in the paper!
-  //if threshStdDb > MAX_STD_DB:
-  //    raise Exception('Failed to compute a good threshold! STD = ' + str(threshStdDb))
-  // TODO
-  //if threshMeanDb > MAX_THRESHOLD_DB:
-  //    threshMean = rescaleNumber(MAX_THRESHOLD_DB, minVal, maxVal, PROC_global_min, PROC_global_max)
-  //    print 'Saturating the computed threshold at 10 DB!'
-  
+ 
   
   // This will mask the water pixels, setting water pixels to 255, land pixels to 1, and invalid pixels to 0.
-  //ImageViewRef<RadarTypeM> raw_water = create_mask_less_or_equal(preprocessed_image, threshold_mean);
-  const uint8 WATER_CLASS = 255;
-  const uint8 LAND_CLASS  = 1;
+  const uint8 WATER_CLASS  = 255;
+  const uint8 LAND_CLASS   = 1;
+  const uint8 NODATA_CLASS = 0;
   ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, WATER_CLASS, LAND_CLASS);
 
   // DEBUG: Apply the initial threshold to the image and save it to disk!
   std::string initial_water_detect_path = "initial_water_detect.tif";
-  const uint8 CLASSIFICATION_NODATA = 0;
   block_write_gdal_image(initial_water_detect_path,
-                         pixel_cast<uint8>(apply_mask(raw_water, CLASSIFICATION_NODATA)),
+                         pixel_cast<uint8>(apply_mask(raw_water, NODATA_CLASS)),
                          have_georef, georef,
-                         true, CLASSIFICATION_NODATA, // Choose the nodata value
+                         true, NODATA_CLASS, // Choose the nodata value
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Applying initial threshold:"));
 
@@ -1090,20 +981,23 @@ void sar_martinis(std::string const& input_image_path,
   // Write out an image containing the water blob size at each pixel, then read it back in
   // as needed to avoid recomputing the expensive blob computations.
   // - In order to parallelize this step, blob computations are approximated.
-  const uint32 MIN_BLOB_SIZE = 250; // TODO: Convert the sizes from meters to pixels based on image resolution!
-  const uint32 MAX_BLOB_SIZE = 1000;
+  
+  const double MIN_BLOB_SIZE_METERS = 250.0; 
+  const double MAX_BLOB_SIZE_METERS = 1000.0;
   const int    TILE_EXPAND   = 256; // The larger this number, the better the approximation.
+  
+  uint32 min_blob_size = MIN_BLOB_SIZE_METERS / input_meters_per_pixel;
+  uint32 max_blob_size = MAX_BLOB_SIZE_METERS / input_meters_per_pixel;
 
-  std::string blobs_path = "blob_sizes.tif";/*
+  std::string blobs_path = "blob_sizes.tif";
   const uint32 BLOBS_NODATA = 0;
   block_write_gdal_image(blobs_path,
                          get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), LAND_CLASS),
-                                        TILE_EXPAND, MAX_BLOB_SIZE),
+                                        TILE_EXPAND, max_blob_size),
                          have_georef, georef,
                          true, BLOBS_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Counting blob sizes:"));
-                         */
   // TODO: Fill invalid pixels!
   DiskImageView<uint32> blob_sizes(blobs_path);
 
@@ -1141,7 +1035,7 @@ void sar_martinis(std::string const& input_image_path,
   typedef PixelMask<float> DemPixelType;
 
   // TODO: What to do if no nodata?
-  double dem_nodata_value = DEFAULT_NODATA;
+  double dem_nodata_value = 0;
   bool have_dem_nodata = load_nodata(dem_path, dem_nodata_value);
 
   DiskImageView<float> dem(dem_path);
@@ -1196,8 +1090,7 @@ void sar_martinis(std::string const& input_image_path,
   typedef FuzzyMembershipSFunctor<RadarTypeM> FuzzyFunctorS;
   typedef FuzzyMembershipZFunctor<RadarTypeM> FuzzyFunctorZ;
 
-  // TODO: Is water the same in all of these?
-  
+ 
   // SAR
   FuzzyFunctorZ radar_fuzz_functor(mean_raw_water_value, threshold_mean);
   ImageViewRef<FuzzyPixelType> radar_fuzz = per_pixel_view(preprocessed_image, radar_fuzz_functor);
@@ -1216,8 +1109,7 @@ void sar_martinis(std::string const& input_image_path,
   
   // Body size
   
-  // TODO: Convert blob sizes from meters to pixels!
-  FuzzyFunctorS blob_fuzz_functor(MIN_BLOB_SIZE, MAX_BLOB_SIZE);
+  FuzzyFunctorS blob_fuzz_functor(min_blob_size, max_blob_size);
   ImageViewRef<FuzzyPixelType> blob_fuzz = per_pixel_view(blob_sizes, blob_fuzz_functor);
 
 /*
@@ -1239,43 +1131,45 @@ void sar_martinis(std::string const& input_image_path,
   typedef DefuzzFunctor<FuzzyPixelType, FuzzyPixelType, FuzzyPixelType, FuzzyPixelType> DefuzzFunctorType;
   ImageViewRef<FuzzyPixelType> defuzzed = per_pixel_view(radar_fuzz, height_fuzz, slope_fuzz, blob_fuzz, DefuzzFunctorType());
 
-                         
+/*                         
   block_write_gdal_image("defuzzed.tif", apply_mask(defuzzed, dem_nodata_value),
                          have_georef, georef, true, dem_nodata_value,
                          write_options, TerminalProgressCallback("vw", "\t--> Defuzz:"));
-
-
-                         
+*/
 
   // Perform two-level flood fill of the defuzzed image and write it to disk.
   // - The mask is added back in at this point.
   const double final_flood_threshold = 0.6;
   const double water_grow_threshold  = 0.45;
   std::string output_path = "radar_final_output.tif";
-  ImageViewRef<uint8> fillResult = two_threshold_fill(defuzzed, TILE_EXPAND, final_flood_threshold, 
-                                                water_grow_threshold, LAND_CLASS, WATER_CLASS);
   block_write_gdal_image(output_path,
                          apply_mask(
                            copy_mask(
-                             //two_threshold_fill(defuzzed, TILE_EXPAND, final_flood_threshold, 
-                             //                   water_grow_threshold, LAND_CLASS, WATER_CLASS),
-                             fillResult,
-                             create_mask(DiskImageView<uint8>(initial_water_detect_path, CLASSIFICATION_NODATA))
+                             two_threshold_fill(defuzzed, TILE_EXPAND, final_flood_threshold, 
+                                                water_grow_threshold, LAND_CLASS, WATER_CLASS),
+                             create_mask(DiskImageView<uint8>(initial_water_detect_path, NODATA_CLASS))
                            ),
-                           CLASSIFICATION_NODATA
+                           NODATA_CLASS
                          ),      
                          true, georef,
-                         true, CLASSIFICATION_NODATA,
+                         true, NODATA_CLASS,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Generating final output:"));
 
+
+  // Clean up temporary image files
+  std::remove(preprocessed_image_path.c_str());
 
 } // End function sar_martinis
 
 
 
 /*
-  // TODO: Load and pass in the DEM!  Use zero slope for masked pixels.
+
+  Stopwatch timer;
+  timer.start();
+  timer.stop();
+  std::cout << "TT time = " << timer.elapsed_seconds() << std::endl;
 
 Test region:
 Upper Left  ( -95.5011734,  30.5498188) 

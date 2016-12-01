@@ -838,6 +838,140 @@ two_threshold_fill(ImageViewBase<ImageT> const& image, int expand_size, double l
 
 
 
+//===================================================================
+// TODO: Move WindowFunction code to a new file!
+
+
+/// Generic class for implementing a function that generates a pixel value based
+///  on a window around a pixel.
+/// - TODO: Could ConvolutionView use this class?
+template <class ImageT, class FuncT, class EdgeT>
+class WindowFunctionView : public ImageViewBase<WindowFunctionView<ImageT,FuncT,EdgeT> >
+{
+private:
+  ImageT   m_image;
+  EdgeT    m_edge;     ///< Edge extension type
+  FuncT    m_functor;  ///< Functor that operates on each window.
+  Vector2i m_window_size;
+  int      m_half_width;
+  int      m_half_height;
+
+public:
+  typedef typename ImageT::pixel_type pixel_type;  ///< The pixel type of the image view.
+  typedef pixel_type                  result_type; ///< We compute the result, so we return by value.
+  typedef ProceduralPixelAccessor<WindowFunctionView<ImageT, FuncT, EdgeT> > 
+                                      pixel_accessor; ///< The view's pixel_accessor type.
+
+  /// Constructs a ConvolutionView with the given image and kernel and 
+  /// with the origin of the kernel located at the point (ci,cj).
+  WindowFunctionView( ImageT const& image, Vector2i window_size,
+                      FuncT  const& functor, 
+                      EdgeT  const& edge = EdgeT() )
+    : m_image(image), m_edge(edge), m_functor(functor), m_window_size(window_size) {
+    m_half_width  = m_window_size[0]/2;
+    m_half_height = m_window_size[1]/2;
+  }
+
+  inline int32 cols  () const { return m_image.cols  (); }
+  inline int32 rows  () const { return m_image.rows  (); }
+  inline int32 planes() const { return m_image.planes(); }
+
+  /// Returns a pixel_accessor pointing to the origin.
+  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+
+  /// Returns the pixel at the given position in the given plane.
+  inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+    BBox2i roi(x-m_half_width, y-m_half_height, m_window_size[0], m_window_size[1]);
+    return m_functor(edge_extend(m_image, roi, m_edge));
+  }
+
+  // Edge extension is done in the prerasterize function so the returned type does not need edge extension
+  // - Currently the class does the hard work in the () function but it would probably be more efficient to
+  //   do the computation on a per-tile basis.
+  typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type> >, 
+                             FuncT, NoEdgeExtension> prerasterize_type;
+  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    // Compute the required base of support for the input bounding box
+    BBox2i src_bbox( bbox.min().x() - m_half_width, 
+                     bbox.min().y() - m_half_height,
+                     bbox.width () + m_window_size[0]-1, 
+                     bbox.height() + m_window_size[1]-1 );
+    // Take an edge extended image view of the input support region
+    ImageView<typename ImageT::pixel_type> src = edge_extend(m_image, src_bbox, m_edge);
+    // Use the crop trick to fake that the support region is the same size as the entire image.
+    return prerasterize_type( crop(src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows()),
+                              m_window_size, m_functor, NoEdgeExtension() );
+  }
+
+  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    vw::rasterize( prerasterize(bbox), dest, bbox );
+  }
+}; // End class WindowFunctionView
+
+/// Functor to find the median of an input image.
+/// - Usually used with WindowFunctionView.
+template <typename ImageT>
+struct WindowMedianFunctor {
+
+  mutable std::vector<double> m_values; ///< Persistent storage location
+
+  /// Constructor
+  WindowMedianFunctor(Vector2i window_size) {
+    m_values.resize(window_size[0]*window_size[1]);
+  }
+
+  /// Returns the median pixel of the provided input image.
+  /// - Generally the input image will be a cropped view of a whole image.
+  template <class T>
+  typename ImageT::pixel_type operator()(ImageViewBase<T> const& image) const {
+
+    // Loop through the kernel and collect the values
+    int index = 0;
+    for (int r=0; r<image.impl().rows(); ++r) {
+      for (int c=0; c<image.impl().cols(); ++c) {
+        if (is_valid(image.impl()(c,r))) {
+          m_values[index] = image.impl()(c,r);
+          ++index;
+        }
+      }
+    }
+    if (index == 0) { // All pixels invalid!
+      typename ImageT::pixel_type result(0);
+      invalidate(result);
+      return result;
+    }
+
+    // Now that we have all the values, compute the median.
+    double median;
+    if (index == static_cast<int>(m_values.size())) // No invalid pixels
+      median = math::destructive_median(m_values);
+    else { // Invalid pixels
+      // Resize the vector twice so we can call the median function
+      size_t full_size = m_values.size();
+      m_values.resize(index);
+      median = math::destructive_median(m_values);
+      m_values.resize(full_size);
+    }
+    return typename ImageT::pixel_type(median);
+  }
+}; // End class WindowMedianFunctor
+
+/// Apply a median filter to an input image
+template <class ImageT, class EdgeT>
+WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, EdgeT> 
+median_filter_view(ImageT const& image, Vector2i window_size, EdgeT edge) {
+  typedef WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, EdgeT> return_type;
+  WindowMedianFunctor<ImageT> functor(window_size);
+  return return_type(image, window_size, functor, edge);
+}
+/// Overload to set default edge extension.
+template <class ImageT>
+WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, ConstantEdgeExtension> 
+median_filter_view(ImageT const& image, Vector2i window_size) {
+  typedef WindowFunctionView<ImageT, WindowMedianFunctor<ImageT>, ConstantEdgeExtension> return_type;
+  WindowMedianFunctor<ImageT> functor(window_size);
+  return return_type(image, window_size, functor, ConstantEdgeExtension());
+}
 
 } // namespace vw
 

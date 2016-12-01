@@ -24,19 +24,13 @@
 #include <vw/Cartography/Datum.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Exception.h>
-/*
-// Boost
-#include <boost/algorithm/string.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
-*/
 
 #include <boost/program_options.hpp>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 
 #include <vw/Cartography/GeoReference.h>
 
-/// \file GeoReferenceUtils.h Tools for working with GeoReferenc objects
+/// \file GeoReferenceUtils.h Tools for working with GeoReference objects
 
 namespace vw {
 namespace cartography {
@@ -54,6 +48,14 @@ namespace cartography {
   /// - A larger scale increases the number of pixels.
   GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
   GeoReference resample( GeoReference const& input, double scale );
+
+  /// Returns the distance along the Earth's surface in meters between two points.
+  /// - The distance is returned in meters.
+  /// - Accuracy is not perfect but should be pretty good.
+  inline double haversine_circle_distance(Vector2 a, Vector2 b);
+
+  /// Estimates meters per pixel for an image.
+  inline double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
   /// Standard options for multi-threaded GDAL (tif) image writing.
   struct GdalWriteOptions {
@@ -170,6 +172,10 @@ namespace cartography {
                         std::map<std::string, std::string> const& keywords
                         = std::map<std::string, std::string>() );
 
+
+//=============================================================================
+//=============================================================================
+// Function definitions
 
   // Multi-threaded block write image with, if available, nodata, georef, and
   // keywords to geoheader.

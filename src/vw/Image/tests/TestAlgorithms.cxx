@@ -270,17 +270,17 @@ TEST( Algorithms, MeanFillTransparent ) {
 
 TEST( Algorithms, TwoThresholdFill ) {
 
-  const float low_thresh  = 4.0;
-  const float high_thresh = 8.0;
+  const float low_thresh  = 2.0;
+  const float high_thresh = 6.0;
 
   // Create a test image
   ImageView<float> image(6, 6);
-  image(0,0) = 10.0;  image(1,0) = 10.0;  image(2,0) = 10.0;  image(3,0) =  3.0;  image(4,0) =  2.0;  image(5,0) = 10.0;
-  image(0,1) = 10.0;  image(1,1) =  3.0;  image(2,1) = 10.0;  image(3,1) = 10.0;  image(4,1) = 10.0;  image(5,1) = 10.0;
-  image(0,2) = 10.0;  image(1,2) =  2.0;  image(2,2) = 10.0;  image(3,2) = 10.0;  image(4,2) =  7.0;  image(5,2) =  5.0;
-  image(0,3) =  5.0;  image(1,3) =  6.0;  image(2,3) = 10.0;  image(3,3) = 10.0;  image(4,3) = 10.0;  image(5,3) =  8.0;
-  image(0,4) =  7.0;  image(1,4) = 10.0;  image(2,4) =  5.0;  image(3,4) = 10.0;  image(4,4) = 10.0;  image(5,4) = 10.0;
-  image(0,5) = 10.0;  image(1,5) =  7.0;  image(2,5) = 10.0;  image(3,5) = 10.0;  image(4,5) = 10.0;  image(5,5) = 10.0;
+  image(0,0) = 0.0;  image(1,0) = 0.0;  image(2,0) = 0.0;  image(3,0) = 7.0;  image(4,0) = 8.0;  image(5,0) = 0.0;
+  image(0,1) = 0.0;  image(1,1) = 7.0;  image(2,1) = 0.0;  image(3,1) = 0.0;  image(4,1) = 0.0;  image(5,1) = 0.0;
+  image(0,2) = 0.0;  image(1,2) = 8.0;  image(2,2) = 0.0;  image(3,2) = 0.0;  image(4,2) = 3.0;  image(5,2) = 5.0;
+  image(0,3) = 5.0;  image(1,3) = 4.0;  image(2,3) = 0.0;  image(3,3) = 0.0;  image(4,3) = 0.0;  image(5,3) = 2.0;
+  image(0,4) = 3.0;  image(1,4) = 0.0;  image(2,4) = 5.0;  image(3,4) = 0.0;  image(4,4) = 0.0;  image(5,4) = 0.0;
+  image(0,5) = 0.0;  image(1,5) = 3.0;  image(2,5) = 0.0;  image(3,5) = 0.0;  image(4,5) = 0.0;  image(5,5) = 0.0;
 
   // Run the algorithm
   ImageView<uint8> output = two_threshold_fill(image, 256, low_thresh, high_thresh);
@@ -299,4 +299,28 @@ TEST( Algorithms, TwoThresholdFill ) {
   EXPECT_EQ(OFF, output(1,4));
   EXPECT_EQ(OFF, output(4,1));
 }
+
+TEST( Algorithms, MedianFilter ) {
+
+  // Create a test image
+  ImageView<float> image(6, 6);
+  image(0,0) = 10.0;  image(1,0) = 10.0;  image(2,0) = 10.0;  image(3,0) =  3.0;  image(4,0) =  2.0;  image(5,0) = 10.0;
+  image(0,1) = 10.0;  image(1,1) =  3.0;  image(2,1) = 10.0;  image(3,1) = 10.0;  image(4,1) = 10.0;  image(5,1) = 10.0;
+  image(0,2) = 10.0;  image(1,2) =  2.0;  image(2,2) = 10.0;  image(3,2) = 10.0;  image(4,2) =  7.0;  image(5,2) =  5.0;
+  image(0,3) =  5.0;  image(1,3) =  6.0;  image(2,3) = 10.0;  image(3,3) = 10.0;  image(4,3) = 10.0;  image(5,3) =  8.0;
+  image(0,4) =  7.0;  image(1,4) = 10.0;  image(2,4) =  5.0;  image(3,4) = 10.0;  image(4,4) = 10.0;  image(5,4) = 10.0;
+  image(0,5) = 10.0;  image(1,5) =  7.0;  image(2,5) = 10.0;  image(3,5) = 10.0;  image(4,5) = 10.0;  image(5,5) = 10.0;
+
+  // Run the algorithm
+  ImageView<float> output = median_filter_view(image, Vector2i(3,3));
+
+  // Check results
+  EXPECT_EQ(10, output(1,1));
+  EXPECT_EQ( 6, output(0,2));
+  EXPECT_EQ( 8, output(5,2));
+  EXPECT_EQ(10, output(2,4));
+  EXPECT_EQ( 7, output(1,4));
+}
+
+
 
