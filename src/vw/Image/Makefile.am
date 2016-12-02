@@ -24,6 +24,7 @@ if MAKE_MODULE_IMAGE
 
 include_HEADERS = \
   AlgorithmFunctions.h \
+  AlgorithmFunctions.tcc \
   Algorithms.h \
   Algorithms.tcc \
   AntiAliasing.h \
@@ -33,6 +34,7 @@ include_HEADERS = \
   CensusTransform.h \
   Convolution.h \
   EdgeExtension.h \
+  EdgeExtension.tcc \
   ErodeView.h \
   Filter.h \
   Filter.tcc \
@@ -50,8 +52,10 @@ include_HEADERS = \
   Manipulation.h \
   Manipulation.tcc \
   MaskViews.h \
+  MaskViews.tcc \
   PerPixelAccessorViews.h \
   PerPixelViews.h \
+  PerPixelViews.tcc \
   PixelAccessors.h \
   PixelIterator.h \
   PixelMask.h \
