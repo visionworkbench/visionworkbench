@@ -43,8 +43,8 @@ namespace landsat {
 //----------------------------------------------------
 // Landsat types
 
-typedef PixelMask<Vector<float, 7> > LandsatPixelType;
-typedef ImageView<LandsatPixelType> LandsatImage;
+typedef PixelMask<Vector<uint16, 7> > LandsatPixelType;
+typedef ImageViewRef<LandsatPixelType> LandsatImage;
 
 // These are the Landsat channels we use, available on both 7 and 8.
 enum LANDSAT_CHANNEL_INDICES { BLUE  = 0, 
@@ -55,16 +55,85 @@ enum LANDSAT_CHANNEL_INDICES { BLUE  = 0,
                                TEMP  = 5, // = Temperature
                                SWIR2 = 6};
                                
-/*
-// Types to conveniently package MODIS derived products
-typedef PixelMask<Vector<float, 7> > LandsatPixelType;
-typedef ImageView<LandsatPixelType> ModisProductImage;
-enum MODIS_PRODUCT_NAME { NDVI=0, NDWI=1, EVI=2, LSWI=3 };
-*/
 //----------------------------------------------------
 
+/// View for treating multiple single channel images on disk as one multi-channel image.
+/// - T is the data type, N is the number of channels.
+template <typename T, int N>
+class SplitChannelFileView : public ImageViewBase<SplitChannelFileView<T, N> > {
+
+public: // Definitions
+
+  typedef Vector<T, N> pixel_type;
+  typedef pixel_type   result_type;
+
+private: // Variables
+
+  std::vector<std::string> const m_input_files;
+  int m_cols, m_rows;
+
+public: // Functions
+
+  // Constructor
+  SplitChannelFileView( std::vector<std::string> const& input_files)
+                  : m_input_files(input_files){
+    // Verify that the correct number of input files were passed in.
+    if (input_files.size() != N)
+      vw_throw( ArgumentErr() << "SplitChannelFileView created with incorrect number of input files!\n");
+      
+    // Record the image size to save time later
+    boost::scoped_ptr<SrcImageResource> resource1(DiskImageResource::open(input_files[0]));
+    m_cols = resource1->format().cols;
+    m_rows = resource1->format().rows;
+    
+    // Make sure all images are the same size
+    for (size_t i=0; i<input_files.size(); ++i) {
+      boost::scoped_ptr<SrcImageResource> resource2(DiskImageResource::open(input_files[i]));
+      if ((m_cols != static_cast<int>(resource2->format().cols)) || 
+          (m_rows != static_cast<int>(resource2->format().rows))   )
+        vw_throw( ArgumentErr() << "SplitChannelFileView: Input files must all be the same size!\n");
+    }
+  }
+
+  inline int32 cols  () const { return m_cols; }
+  inline int32 rows  () const { return m_rows; }
+  inline int32 planes() const { return 1; }
+
+  inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { 
+    vw_throw( NoImplErr() << "SplitChannelFileView: () function not implemented!\n");
+    return result_type();
+  }
+
+ 
+  typedef ProceduralPixelAccessor<SplitChannelFileView<T, N> > pixel_accessor;
+  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+
+  typedef CropView<ImageView<result_type> > prerasterize_type;
+  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    // Init the tile
+    ImageView<result_type> tile(bbox.width(), bbox.height());
+    
+    // Load info into the file one file at a time
+    for (size_t channel=0; channel<m_input_files.size(); ++channel) {
+      ImageView<T> temp = crop(DiskImageView<T>(m_input_files[channel]), bbox);
+      select_channel(tile, channel) = temp;
+    }
+
+    // Return the tile we created with fake borders to make it look the size of the entire output image
+    return prerasterize_type(tile,
+                             -bbox.min().x(), -bbox.min().y(),
+                             cols(), rows() );
+
+  } // End prerasterize function
+
+ template <class DestT>
+ inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+   vw::rasterize( prerasterize(bbox), dest, bbox );
+ }
+}; // End class SplitChannelFileView
 
 
+/*  This function is for the wrong file format??
 /// Process MODIS input files into a single image object
 void load_landsat_image(LandsatImage &image, std::vector<std::string> const& image_files,
                         int landsat_type, float &sun_elevation) {
@@ -160,6 +229,88 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   // TODO: Set the image mask!
 
 } // End function load_landsat_image
+*/
+
+
+/// Process MODIS input files into a single image object
+void load_landsat_image(LandsatImage &image, std::vector<std::string> const& image_files,
+                        int landsat_type, float &sun_elevation) {
+
+  // The bands we want are: BLUE, GREEN, RED, NIR, SWIR1, TEMP, SWIR2
+  const int NUM_BANDS_OF_INTEREST = 7;
+  const std::string LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"1", "2", "3", "4", "5", "6", "7"};
+  const std::string LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"1", "2", "3", "4", "5", "6", "8"};
+  const std::string LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"2", "3", "4", "5", "6", "10", "7"};
+
+  const std::string BAND_PREFIX = "_B";
+  
+  sun_elevation = 45; // The default sun elevation angle
+  
+  std::vector<std::string> sorted_input_files(NUM_BANDS_OF_INTEREST);
+  
+  // Check that all the required bands are present
+  for (int chan=0; chan<NUM_BANDS_OF_INTEREST; ++chan) {
+  
+    // For the given output channel, determine the input channel containing it
+    std::string text;
+    switch(landsat_type) {
+      case 8:  text = LS8_BAND_LOCATIONS[chan]; break;
+      case 7:  text = LS7_BAND_LOCATIONS[chan]; break;
+      default: text = LS5_BAND_LOCATIONS[chan]; break;
+    };
+    if (text.size() == 1)
+      text = "0" + text;
+    text = BAND_PREFIX + text + ".TIF";
+
+    //printf("Looking for data %d in channel %d\n", chan, input_channel);
+    std::cout << "Looking for text: " << text << std::endl;
+    
+    // Look for the string in the input file names
+    bool found = false;
+    for (size_t f=0; f<image_files.size(); ++f) {
+      if (image_files[f].find(text) != std::string::npos) {
+        found = true;
+        sorted_input_files[chan] = image_files[f];
+        break;
+      }
+    }
+    if (!found)
+      vw_throw( ArgumentErr() << "Error: No input file contained landsat channel " << chan+1<< "\n");
+  } // End loop for finding input channels
+
+  // Set up image view object which reads from the input files
+  // - Currently we assume that the pixel is invalid when all values are zero!
+  image.reset(create_mask(SplitChannelFileView<uint16, NUM_BANDS_OF_INTEREST>(sorted_input_files),
+                          Vector<uint16, NUM_BANDS_OF_INTEREST>()));
+
+  // At this point we should have loaded all the required channels.
+/*
+  // Try to load any useful metadata
+  // - Find the metadata file
+  for (size_t f=0; f<image_files.size(); ++f) {
+    if (image_files[f].find(".txt") != std::string::npos) {
+      // Search the file for the metadata
+      std::ifstream handle(image_files[f].c_str());
+      std::string line;
+      while (std::getline(handle, line)) {
+        if (line.find("SUN_ELEVATION") == std::string::npos)
+          continue;
+        // Parse the line containing the info
+        size_t eqpos = line.find("=");
+        std::string num = line.substr(eqpos+1);
+        sun_elevation = atof(num.c_str());
+        break; // Done searching for info
+      }
+      handle.close();
+      break;
+    }
+  }
+*/
+  // TODO: Set the image mask!
+
+} // End function load_landsat_image
+
+
 
 
 /// Loads the georeference for a Landsat file
@@ -261,9 +412,13 @@ T clamp01(T value) {
 
 
 /// Classifies one pixel as water or not.
-bool detect_water(LandsatPixelType const& pixel, float sun_elevation_degrees=45) {
+bool detect_water(LandsatPixelType const& pixel_in, float sun_elevation_degrees=45) {
 
     return false; // DEBUG
+
+    // Cast the input pixel to float
+    const int NUM_USED_BANDS = 7;
+    Vector<float, NUM_USED_BANDS> pixel = remove_mask(pixel_in);
 
     // Check this first!
     if (detect_clouds(pixel))
@@ -325,7 +480,7 @@ public:
   
   uint8 operator()( LandsatPixelType const& pixel) const {
     if (is_valid(pixel)){
-      if (detect_water(pixel, m_sun_elevation_degrees))
+      //if (detect_water(pixel, m_sun_elevation_degrees))
         return 255;
       return 1;
     }
@@ -338,7 +493,7 @@ void detect_water(std::vector<std::string> const& image_files,
                   cartography::GdalWriteOptions const& write_options) {
 
   LandsatImage ls_image;
-  int landsat_type= 8; // TODO
+  int landsat_type= 8; // TODO: Where to get this!
   float sun_elevation_degrees;
   load_landsat_image(ls_image, image_files, landsat_type, sun_elevation_degrees);
 
@@ -346,7 +501,7 @@ void detect_water(std::vector<std::string> const& image_files,
   cartography::GeoReference georef;
   load_landsat_georef(image_files, georef);
 
-  const uint8 nodata_out = 0;
+  const uint8 nodata_out = 0; // TODO: Put all of these constants somewhere
 
 /*
   typedef UnaryPerPixelView<LandsatImage, DetectWaterLandsatFunctor> LandsatWaterDetectView;
@@ -358,15 +513,22 @@ void detect_water(std::vector<std::string> const& image_files,
                          TerminalProgressCallback("vw", "\t--> DEBUG write input image"));
 */
 
+  Stopwatch timer;
+  timer.start();
+
   // TODO: Setting!
   std::string output_path = "landsat_output.tif";
   typedef UnaryPerPixelView<LandsatImage, DetectWaterLandsatFunctor> LandsatWaterDetectView;
   block_write_gdal_image(output_path,
-                         LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
+                         crop(LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
+                         BBox2(3496, 6010, 335, 464)),
                          true, georef,
                          true, nodata_out,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
+
+  timer.stop();
+  std::cout << "TT time = " << timer.elapsed_seconds() << std::endl;
 
 }
 

@@ -154,8 +154,8 @@ double compute_kittler_illingworth_jt(std::vector<double> const& histogram,
 double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
                                      int num_bins, double min_val, double max_val) {
   double bin_width = (max_val - min_val) / num_bins;
-/*
-  // DEBUG: Write out the histogram
+
+  /*// DEBUG: Write out the histogram
   std::cout << std::endl;
   for (int i=0; i<num_bins; ++i) {
     std::cout << min_val + bin_width*i<< " ";
@@ -165,7 +165,7 @@ double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
     std::cout << histogram[i] << " ";
   }
   std::cout << std::endl;
-*/
+  */
 
   // Normalize the histogram (each bin is now a percentage)
   std::vector<double> histogram_percentages(num_bins);
