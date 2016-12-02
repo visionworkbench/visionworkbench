@@ -25,6 +25,7 @@ if MAKE_MODULE_IMAGE
 include_HEADERS = \
   AlgorithmFunctions.h \
   Algorithms.h \
+  Algorithms.tcc \
   AntiAliasing.h \
   BlobIndex.h \
   BlockProcessor.h \
@@ -47,6 +48,7 @@ include_HEADERS = \
   InpaintView.h \
   Interpolation.h \
   Manipulation.h \
+  Manipulation.tcc \
   MaskViews.h \
   PerPixelAccessorViews.h \
   PerPixelViews.h \

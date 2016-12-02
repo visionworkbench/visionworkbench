@@ -166,8 +166,8 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
 void load_landsat_georef(std::vector<std::string> const& image_files,
                          cartography::GeoReference &georef) {
 
-/// Each channel should contain the same georeference so
-///  we probably won't need to run more iterations of this loop.
+  /// Each channel should contain the same georeference so
+  ///  we probably won't need to run more iterations of this loop.
   size_t num_images = image_files.size();
   for (size_t i=0; i<num_images; ++i) {
     std::string path = image_files[i];

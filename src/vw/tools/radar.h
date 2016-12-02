@@ -48,60 +48,48 @@ namespace vw {
 namespace radar {
 
 
-
-
-
-
-
-
 //=========================================================================================
 
-
+// TODO: Move these
 
 /// Standard Z shaped fuzzy math membership function between a and b
-template <typename PixelT>
-class FuzzyMembershipZFunctor : public ReturnFixedType<PixelT> {
+template <typename T>
+class FuzzyMembershipZFunctor : public ReturnFixedType<T> {
   float m_a, m_b, m_c, m_dba; ///< Constants
 public:
   /// Constructor
   FuzzyMembershipZFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
 
   /// Apply Z function
-  PixelT operator()(PixelT const& pixel) const {
-    if (!is_valid(pixel))
-      return pixel;
-    
-    if (pixel < m_a)
-      return PixelT(1.0);
-    if (pixel < m_c)
-      return PixelT(1.0 - 2.0*pow(((pixel-m_a)/m_dba), 2.0));
-    if (pixel < m_b)
-      return PixelT(2.0*pow(((pixel-m_b)/m_dba), 2.0));
-    return PixelT(0.0);
+  T operator()(T const& v) const {
+    if (v < m_a)
+      return T(1.0);
+    if (v < m_c)
+      return T(1.0 - 2.0*pow(((v-m_a)/m_dba), 2.0));
+    if (v < m_b)
+      return T(2.0*pow(((v-m_b)/m_dba), 2.0));
+    return T(0.0);
   }
 }; // End class FuzzyMembershipZFunctor
 
 
 /// Standard S shaped fuzzy math membership function between a and b
-template <typename PixelT>
-class FuzzyMembershipSFunctor : public ReturnFixedType<PixelT> {
+template <typename T>
+class FuzzyMembershipSFunctor : public ReturnFixedType<T> {
   float m_a, m_b, m_c, m_dba; ///< Constants
 public:
   /// Constructor
   FuzzyMembershipSFunctor(float a, float b) : m_a(a), m_b(b), m_c((a+b)/2.0), m_dba(b-a) {}
 
   /// Apply S function
-  PixelT operator()(PixelT const& pixel) const {
-    if (!is_valid(pixel))
-      return pixel;
-    
-    if (pixel < m_a)
-        return PixelT(0.0);
-    if (pixel < m_c)
-        return PixelT(2*pow(((pixel-m_a)/m_dba), 2.0));
-    if (pixel < m_b)
-        return PixelT(1.0 - 2*pow(((pixel-m_b)/m_dba), 2.0));
-    return PixelT(1.0);
+  T operator()(T const& v) const {
+    if (v < m_a)
+        return T(0.0);
+    if (v < m_c)
+        return T(2*pow(((v-m_a)/m_dba), 2.0));
+    if (v < m_b)
+        return T(1.0 - 2*pow(((v-m_b)/m_dba), 2.0));
+    return T(1.0);
   }
 }; // End class FuzzyMembershipSFunctor
 
@@ -114,7 +102,7 @@ public:
 
 /// As part of the Kittler/Illingworth method, compute J(T) for a given T
 /// - Input should be a percentage histogram
-double computeKIJT(std::vector<double> const& histogram,
+double compute_kittler_illingworth_jt(std::vector<double> const& histogram,
                    int num_bins, double min_val, double max_val, int bin) {
 
     double FAIL_VAL = 999999.0; // Just returning a high error should work fine
@@ -160,10 +148,10 @@ double computeKIJT(std::vector<double> const& histogram,
     double J = 1.0 + 2.0*(P1*log(sigma1) + P2*log(sigma2)) 
                    - 2.0*(P1*log(P1    ) + P2*log(P2    ));
     return J;
-} // End function computeKIJT
+} // End function compute_kittler_illingworth_jt
 
 /// Tries to compute an optimal histogram threshold using the Kittler/Illingworth method
-double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
+double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
                                      int num_bins, double min_val, double max_val) {
   double bin_width = (max_val - min_val) / num_bins;
 /*
@@ -196,7 +184,7 @@ double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
   // Compute score for each possible answer.
   std::vector<double> scores(num_bins-1);
   for (int i=0; i<num_bins-1; ++i)
-    scores[i] = computeKIJT(histogram_percentages, num_bins, min_val, max_val, i+1);
+    scores[i] = compute_kittler_illingworth_jt(histogram_percentages, num_bins, min_val, max_val, i+1);
 
   // Find the lowest score      
   double min_score = scores[0];
@@ -211,10 +199,10 @@ double splitHistogramKittlerIllingworth(std::vector<double> const& histogram,
   double threshold = min_val + bin_width*(static_cast<double>(min_index) - 0.5);
   
   return threshold;
-} // End function splitHistogramKittlerIllingworth
+} // End function split_histogram_kittler_illingworth
 
 
-
+// TODO: Move this
 
 /// Splits up one large BBox into a grid of smaller BBoxes.
 /// - Returns the number of BBoxes created.
@@ -520,106 +508,6 @@ void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int
 
 
 
-// TODO: Move this out:
-
-/// From a binary image, generate an image where each pixel has a value
-/// equal to the size of the blob that contains it (up to a size limit).
-template <class ImageT>
-class LimitedBlobSizes: public ImageViewBase<LimitedBlobSizes<ImageT> >{
-  ImageT const& m_input_image;
-  int    m_expand_size; ///< Tile expansion used to more accurately size blobs.
-  uint32 m_size_limit;  ///< Cap the size value written in output pixels.
-public:
-  LimitedBlobSizes( ImageViewBase<ImageT> const& img, int expand_size, 
-                    uint32 size_limit = std::numeric_limits<uint32>::max()):
-    m_input_image(img.impl()), m_expand_size(expand_size), m_size_limit(size_limit){}
-
-  // Image View interface
-  typedef uint32 pixel_type;
-  typedef pixel_type      result_type;
-  typedef ProceduralPixelAccessor<LimitedBlobSizes> pixel_accessor;
-
-  inline int32 cols  () const { return m_input_image.cols(); }
-  inline int32 rows  () const { return m_input_image.rows(); }
-  inline int32 planes() const { return 1; }
-
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-
-  inline pixel_type operator()( double i, double j, int32 p = 0 ) const {
-    vw_throw(NoImplErr() << "operator()(...) is not implemented");
-    return pixel_type();
-  }
-
-  typedef CropView<ImageView<pixel_type> > prerasterize_type;
-  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
-
-    ImageView<pixel_type> output_tile(bbox.width(), bbox.height());
-
-    // Rasterize the region with an expanded tile size so that we can count
-    //  blob sizes that extend some distance outside the tile borders.
-    BBox2i big_bbox = bbox;
-    big_bbox.expand(m_expand_size);
-    big_bbox.crop(bounding_box(m_input_image));
-    ImageView<typename ImageT::pixel_type> input_tile = crop(m_input_image, big_bbox);
-    //std::cout << "Searching for blobs in " << big_bbox << std::endl;
-
-    // Use a single thread to search for blobs in this image
-    int tile_size = std::max(big_bbox.width(), big_bbox.height());
-    BlobIndexThreaded blob_index(input_tile, 0, tile_size);
-    
-    // Loop through all the blobs and assign pixel scores
-    BlobIndexThreaded::const_blob_iterator blob_iter = blob_index.begin();
-    //std::cout << "Found " << blob_index.num_blobs() << " blobs.\n";
-    while (blob_iter != blob_index.end()) { // Loop through blobs
-      uint32 blob_size = blob_iter->size();
-      //std::cout << "Blob size =  " << blob_size << "\n";
-      if (blob_size > m_size_limit)
-        blob_size = m_size_limit;
-      int num_rows = blob_iter->num_rows();
-      //std::cout << "num_rows = " << num_rows << std::endl;
-      std::list<int32>::const_iterator start_iter, stop_iter;
-      for (int r=0; r<num_rows; ++r) { // Loop through rows in blobs
-        int row = r + blob_iter->min()[1] + big_bbox.min()[1]; // Absolute row
-        start_iter = blob_iter->start(r).begin();
-        stop_iter  = blob_iter->end(r).begin();
-        while (start_iter != blob_iter->start(r).end()) { // Loop through sections in row
-          //std::cout << "start = " << *start_iter << ", stop = " << *stop_iter << std::endl;
-          for (int c=*start_iter; c<*stop_iter; ++c) { // Loop through pixels in section
-            int col = c + blob_iter->min()[0] + big_bbox.min()[0]; // Absolute col
-            Vector2i pixel(col,row);
-            //std::cout << "Searching for blobs in " << big_bbox << std::endl;
-            //std::cout << "Pixel = " << pixel << ", raw = " << Vector2i(c,r) << std::endl;
-            if (!bbox.contains(pixel))
-              continue; // Skip blob pixels outside the current tile
-            Vector2i tile_pixel = pixel - bbox.min();
-            //std::cout << "Pixel = " << pixel << ", tile_pixel = " << tile_pixel << ", raw = " << Vector2i(c,r) << std::endl;
-            output_tile(tile_pixel[0], tile_pixel[1]) = blob_size; // Set the size of the pixel!
-          } // End loop through pixels
-          ++start_iter;
-          ++stop_iter;
-        } // End loop through sections
-      } // End loop through rows
-      ++blob_iter;
-    } // End loop through blobs
-
-    // Perform tile size faking trick to make small tile look the size of the entire image
-    return prerasterize_type(output_tile,
-                             -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
-  }
-
-  template <class DestT>
-  inline void rasterize(DestT const& dest, BBox2i bbox) const {
-    vw::rasterize(prerasterize(bbox), dest, bbox);
-  }
-};
-
-template <class ImageT>
-LimitedBlobSizes<ImageT>
-get_blob_sizes(ImageViewBase<ImageT> const& image, int expand_size, uint32 size_limit) {
-  return LimitedBlobSizes<ImageT>(image.impl(), expand_size, size_limit);
-}
-
 /// Combine the four fuzzy scores into one final score
 /// - Inputs are expected to be in the range 0-1
 template <class PixelT1, class PixelT2, class PixelT3, class PixelT4>
@@ -669,38 +557,6 @@ void sort_vector_indices(std::vector<T> const& v, std::vector<size_t> &indices) 
   for (size_t i=0; i<v.size(); ++i)
     indices[i] = v_new[i].second;
 }
-
-/// Loads the nodata value from the file and returns true if successful.
-/// - If nodata cannot be read from file, leaves the input value unchanged.
-bool load_nodata(std::string const& path, double& nodata) {
-  boost::scoped_ptr<SrcImageResource> rsrc(DiskImageResource::open(path));
-  if (rsrc->has_nodata_read()) {
-    nodata = rsrc->nodata_read();
-    std::cout << "Read nodata: " << nodata << std::endl;
-    return true;
-  }
-  std::cout << "Failed to read nodata value, using default value of 0.\n";
-  return false;
-}
-
-/// Wrapper functor to call a child functor only on valid input pixels.
-/// - Maybe for_each_pixel should do this work instead?
-template <class F, class PixelT>
-class FunctorMaskWrapper {
-  F m_functor;
-public:
-  /// Constructor, makes a copy of the input functor.
-  FunctorMaskWrapper(F const& functor) : m_functor(functor){}
-  
-  /// Call the child functor only if the input pixel is valid.
-  void operator()(PixelT const& pixel) {
-    if (is_valid(pixel))
-      m_functor(pixel.child()); // Call functor on non-masked pixel
-  }
-  
-  /// Grant access to the child so that the user can retrieve the results.
-  F const& child() const {return m_functor;}
-}; // End class FunctorMaskWrapper
 
 
 /// Converts a normal vector into a slope angle in degrees.
@@ -836,7 +692,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
     histogram(crop(preprocessed_image, roi), num_bins, dmin, dmax, hist);
     
     // Compute optimal split
-    optimal_tile_thresholds[i] = splitHistogramKittlerIllingworth(hist, num_bins, global_min, global_max);
+    optimal_tile_thresholds[i] = split_histogram_kittler_illingworth(hist, num_bins, global_min, global_max);
     std::cout << "For ROI " << roi << ", computed threshold " << optimal_tile_thresholds[i] << std::endl;
     threshold_mean += optimal_tile_thresholds[i];
   }
@@ -908,7 +764,7 @@ void sar_martinis(std::string const& input_image_path,
   
   // Read nodata value
   double nodata_value     = 0;
-  bool   has_input_nodata = load_nodata(input_image_path, nodata_value);
+  bool   has_input_nodata = read_nodata_val(input_image_path, nodata_value);
    
   // Compute the min and max values of the image
   std::cout << "Preprocessing...\n";
@@ -1031,7 +887,7 @@ void sar_martinis(std::string const& input_image_path,
 
   // Should be safe to use this as a DEM nodata value!
   double dem_nodata_value = -3.4028234663852886e+38;
-  bool have_dem_nodata = load_nodata(dem_path, dem_nodata_value);
+  bool have_dem_nodata = read_nodata_val(dem_path, dem_nodata_value);
 
   DiskImageView<float> dem(dem_path);
 
@@ -1075,10 +931,9 @@ void sar_martinis(std::string const& input_image_path,
   float mean_water_height   = dem_stats_functor.child().value();
   float stddev_water_height = dem_stats_functor.child().mean();
 
-  std::cout << "Mean height of flooded regions = " << mean_water_height << ", and stddev = " << stddev_water_height << std::endl;
+  std::cout << "Mean height of flooded regions = " << mean_water_height 
+            << ", and stddev = " << stddev_water_height << std::endl;
 
-
-  // For each pixel: 
     
   // Compute fuzzy classifications on four categories
   typedef PixelMask<float> FuzzyPixelType;

@@ -81,7 +81,7 @@ TEST(BlobIndexThreaded, TestImage3) {
 */
 
 
-TEST(BlobIndexThreaded, BlobCompressedIntersect) {
+TEST(BlobIndex, BlobCompressedIntersect) {
   std::vector<std::list<int32> > starts, ends;
   starts += list_of(0), list_of(0), list_of(0), list_of(0), list_of(0);
   ends += list_of(5), list_of(1), list_of(1), list_of(1), list_of(1);
@@ -97,3 +97,29 @@ TEST(BlobIndexThreaded, BlobCompressedIntersect) {
   EXPECT_TRUE( test_blob.intersects( BBox2i(3,4,6,2) ) );
   EXPECT_TRUE( test_blob.intersects( BBox2i(4,7,2,2) ) );
 }
+
+
+TEST( BlobIndex, BlobSizesView ) {
+
+  // Create a test image (zero pixels will be masked)
+  ImageView<float> image(6, 6);
+  image(0,0) = 0.0;  image(1,0) = 0.0;  image(2,0) = 0.0;  image(3,0) = 1.0;  image(4,0) = 8.0;  image(5,0) = 0.0;
+  image(0,1) = 0.0;  image(1,1) = 1.0;  image(2,1) = 0.0;  image(3,1) = 0.0;  image(4,1) = 0.0;  image(5,1) = 0.0;
+  image(0,2) = 0.0;  image(1,2) = 1.0;  image(2,2) = 0.0;  image(3,2) = 0.0;  image(4,2) = 1.0;  image(5,2) = 1.0;
+  image(0,3) = 1.0;  image(1,3) = 1.0;  image(2,3) = 0.0;  image(3,3) = 0.0;  image(4,3) = 0.0;  image(5,3) = 1.0;
+  image(0,4) = 1.0;  image(1,4) = 0.0;  image(2,4) = 1.0;  image(3,4) = 0.0;  image(4,4) = 0.0;  image(5,4) = 0.0;
+  image(0,5) = 0.0;  image(1,5) = 1.0;  image(2,5) = 0.0;  image(3,5) = 0.0;  image(4,5) = 0.0;  image(5,5) = 0.0;
+
+  // Run the algorithm
+  ImageView<uint32> output = get_blob_sizes(create_mask(image), 256, 256); // Tile sizes don't matter for tiny image
+
+  // Check results
+  EXPECT_EQ(0,  output(3,3));
+  EXPECT_EQ(7,  output(0,3));
+  EXPECT_EQ(2,  output(3,0));
+  EXPECT_EQ(3,  output(5,3));
+  EXPECT_EQ(0,  output(2,1));
+}
+
+
+

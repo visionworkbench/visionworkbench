@@ -25,6 +25,7 @@
 #include <vw/tools/radar.h>
 #include <vw/tools/landsat.h>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -34,7 +35,7 @@ using namespace vw;
 int main(int argc, char **argv) {
 
   std::vector<std::string> input_file_names;
-  std::string output_path;
+  std::string output_path, mode;
   float manual_threshold;
 
   // TODO: Auto-compute the default value.
@@ -43,14 +44,13 @@ int main(int argc, char **argv) {
 
   po::options_description general_options("Runs VW's water detection tools.\n\nGeneral Options");
   general_options.add_options()
-    ("output-path,o",    po::value<std::string>(&output_path    ), "The output file path")
+    ("output-path,o",    po::value<std::string>(&output_path), "The output file path")
     ("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
     ("num-threads",      po::value<int>(&write_options.num_threads)->default_value(2), 
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
-    ("radar",       "Use radar mode TODO handle all modes!")
-    ("landsat",     "Use landsat mode TODO handle all modes!")
+    ("mode,m",           po::value<std::string>(&mode), "The processing mode. Required.  Optons: [sentinel1, landsat]")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -82,9 +82,21 @@ int main(int argc, char **argv) {
     std::cout << usage.str();
     return 0;
   }
+  
+  if (!vm.count("mode")) {
+    std::cout << "Error: The 'mode' option must be specified.\n";
+    return 0;
+  }
 
-  bool radar_mode   = vm.count("radar");
-  bool landsat_mode = vm.count("landsat");
+  // Check the input mode
+  boost::algorithm::to_lower(mode);
+  bool radar_mode   = (mode.find("sentinel1") != std::string::npos);
+  bool landsat_mode = (mode.find("landsat"  ) != std::string::npos); 
+  if (!radar_mode && !landsat_mode) {
+    std::cout << "Error: Unrecognized 'mode' option!  Choices are 'sentinel1' and 'landsat'.\n";
+    return 0;
+  }
+  
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
 
   // Handle user threshold

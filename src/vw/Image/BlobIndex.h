@@ -28,8 +28,10 @@
 #include <vw/Core/ThreadPool.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelAccessors.h>
+#include <vw/Image/PixelMask.h>
 
 // Standard
 #include <vector>
@@ -149,7 +151,7 @@ namespace blob {
         d_acc.next_col();
         for ( int32 i = 1; i < dst.cols(); i++ ) {
           if ( is_valid(*s_acc) ) {
-            if ( is_valid(*p_s_acc) ) { // Last pixel and this pixel valud
+            if ( is_valid(*p_s_acc) ) { // Last pixel and this pixel valid
               *d_acc = *p_d_acc; // Extend the current blob label.
             } else { // Start of a new blob
               *d_acc = m_blob_count;
@@ -395,7 +397,10 @@ class BlobIndexThreaded {
                     Vector2i const& proc_block_size );
 
  public:
-  // Constructor does most of the processing work
+ 
+  /// Constructor does most of the processing work
+  /// - This is the function to call to detect blobs!
+  /// - Blobs larger than max_area (if > zero) are discarded.
   template <class SourceT>
   BlobIndexThreaded( ImageViewBase<SourceT> const& src,
                      int32 const& max_area    = 0,
@@ -495,6 +500,123 @@ class BlobIndexThreaded {
         bbox_iterator bbox_end();
   const_bbox_iterator bbox_end() const;
 };
+
+
+
+/// From a masked image, generate an image where each pixel has a value
+/// equal to the size of the blob that contains it (up to a size limit).
+template <class ImageT>
+class BlobSizesView: public ImageViewBase<BlobSizesView<ImageT> >{
+  ImageT const& m_input_image;
+  int    m_expand_size; ///< Tile expansion used to more accurately size blobs.
+  uint32 m_size_limit;  ///< Cap the size value written in output pixels.
+public:
+  /// Constructor
+  /// - "expand_size" is the distance searched out from each tile.  A larger value
+  ///   will increase the run time but will improve accuracy long, narrow blobs
+  ///   near tile borders.
+  /// - "size_limit" is the maximum size score that can be assigned to a blob.
+  BlobSizesView( ImageViewBase<ImageT> const& img, int expand_size, 
+                 uint32 size_limit = std::numeric_limits<uint32>::max()):
+    m_input_image(img.impl()), m_expand_size(expand_size), m_size_limit(size_limit){}
+
+  // Image View interface
+  typedef uint32 pixel_type;
+  typedef pixel_type      result_type;
+  typedef ProceduralPixelAccessor<BlobSizesView> pixel_accessor;
+
+  inline int32 cols  () const { return m_input_image.cols(); }
+  inline int32 rows  () const { return m_input_image.rows(); }
+  inline int32 planes() const { return 1; }
+
+  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+
+  inline pixel_type operator()( double i, double j, int32 p = 0 ) const {
+    vw_throw(NoImplErr() << "operator()(...) is not implemented");
+    return pixel_type();
+  }
+
+  typedef CropView<ImageView<pixel_type> > prerasterize_type;
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+
+    ImageView<pixel_type> output_tile(bbox.width(), bbox.height());
+
+    // Rasterize the region with an expanded tile size so that we can count
+    //  blob sizes that extend some distance outside the tile borders.
+    BBox2i big_bbox = bbox;
+    big_bbox.expand(m_expand_size);
+    big_bbox.crop(bounding_box(m_input_image));
+    ImageView<typename ImageT::pixel_type> input_tile = crop(m_input_image, big_bbox);
+    //std::cout << "Searching for blobs in " << big_bbox << std::endl;
+
+    // Use a single thread to search for blobs in this image with no max blob size.
+    int tile_size = std::max(big_bbox.width(), big_bbox.height());
+    BlobIndexThreaded blob_index(input_tile, 0, tile_size, 1);
+    
+    // Loop through all the blobs and assign pixel scores
+    BlobIndexThreaded::const_blob_iterator blob_iter = blob_index.begin();
+    //std::cout << "Found " << blob_index.num_blobs() << " blobs.\n";
+    while (blob_iter != blob_index.end()) { // Loop through blobs
+      uint32 blob_size = blob_iter->size();
+      //std::cout << "Blob size =  " << blob_size << "\n";
+      if (blob_size > m_size_limit)
+        blob_size = m_size_limit;
+        
+      // Loop through rows in blobs
+      int num_rows = blob_iter->num_rows();
+      //std::cout << "num_rows = " << num_rows << std::endl;
+      std::list<int32>::const_iterator start_iter, stop_iter;
+      for (int r=0; r<num_rows; ++r) {
+      
+        // Loop through sections in row
+        int row = r + blob_iter->min()[1] + big_bbox.min()[1]; // Absolute row
+        start_iter = blob_iter->start(r).begin();
+        stop_iter  = blob_iter->end(r).begin();
+        while (start_iter != blob_iter->start(r).end()) { 
+          //std::cout << "start = " << *start_iter << ", stop = " << *stop_iter << std::endl;
+          
+          // Loop through pixels in section
+          for (int c=*start_iter; c<*stop_iter; ++c) { 
+            int col = c + blob_iter->min()[0] + big_bbox.min()[0]; // Absolute col
+            Vector2i pixel(col,row);
+            //std::cout << "Searching for blobs in " << big_bbox << std::endl;
+            //std::cout << "Pixel = " << pixel << ", raw = " << Vector2i(c,r) << std::endl;
+            if (!bbox.contains(pixel))
+              continue; // Skip blob pixels outside the current tile
+            Vector2i tile_pixel = pixel - bbox.min();
+            //std::cout << "Pixel = " << pixel << ", tile_pixel = " << tile_pixel << ", raw = " << Vector2i(c,r) << std::endl;
+            output_tile(tile_pixel[0], tile_pixel[1]) = blob_size; // Set the size of the pixel!
+          } // End loop through pixels
+          
+          ++start_iter;
+          ++stop_iter;
+        } // End loop through sections
+        
+      } // End loop through rows
+      
+      ++blob_iter;
+    } // End loop through blobs
+
+    // Perform tile size faking trick to make small tile look the size of the entire image
+    return prerasterize_type(output_tile,
+                             -bbox.min().x(), -bbox.min().y(),
+                             cols(), rows() );
+  }
+
+  template <class DestT>
+  inline void rasterize(DestT const& dest, BBox2i bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
+  }
+}; // End class BlobSizesView
+
+template <class ImageT>
+BlobSizesView<ImageT>
+get_blob_sizes(ImageViewBase<ImageT> const& image, int expand_size, uint32 size_limit) {
+  return BlobSizesView<ImageT>(image.impl(), expand_size, size_limit);
+}
+
+
+
 
 } // end namespace vw
 

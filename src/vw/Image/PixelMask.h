@@ -286,6 +286,27 @@ namespace vw {
   template <class ChildT>
   struct UnmaskedPixelType<PixelMask<ChildT> > { typedef ChildT type; };
 
+
+  /// Wrapper functor to call a child functor only on valid input pixels.
+  /// - Use this to augment an existing functor with PixelMask functionality.
+  template <class F, class PixelT>
+  class FunctorMaskWrapper {
+    F m_functor;
+  public:
+    /// Constructor, makes a copy of the input functor.
+    FunctorMaskWrapper(F const& functor) : m_functor(functor){}
+    
+    /// Call the child functor only if the input pixel is valid.
+    void operator()(PixelT const& pixel) {
+      if (is_valid(pixel))
+        m_functor(pixel.child()); // Call functor on non-masked pixel
+    }
+    
+    /// Grant access to the child so that the user can retrieve the results.
+    F const& child() const {return m_functor;}
+  }; // End class FunctorMaskWrapper
+
+
   //=========================================================================================
   // The next several classes are overloads of the CompoundFunctor classes in Core/CompoundTypes.h.
   //  These versions of the classes correctly propagate pixel mask validity.
