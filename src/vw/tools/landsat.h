@@ -64,6 +64,7 @@ enum LANDSAT_CHANNEL_INDICES { BLUE  = 0,
 
 // The bands we want are: BLUE, GREEN, RED, NIR, SWIR1, TEMP, SWIR2
 // - These are the bands where this data is located in each Landsat sensor
+// - Note that these are zero-based indices.
 const int LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 6};
 const int LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 7};
 const int LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {1, 2, 3, 4, 5, 9, 6};
@@ -206,7 +207,7 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
     text = BAND_PREFIX + text + ".TIF";
 
     //printf("Looking for data %d in channel %d\n", chan, input_channel);
-    std::cout << "Looking for text: " << text << std::endl;
+    //std::cout << "Looking for text: " << text << std::endl;
     
     // Look for the string in the input file names
     bool found = false;
@@ -245,7 +246,7 @@ int get_band_number_from_line(std::string const& line) {
   size_t uspos   = line.rfind("_")+1;
   size_t stoppos = line.rfind("=")-1;
   std::string num = line.substr(uspos, stoppos-uspos);
-  return atoi(num.c_str());
+  return atoi(num.c_str()) - 1;
 }
 
 template<size_t N>
@@ -334,12 +335,12 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
   } // End of search through metadata lines.
   handle.close();
 
-  std::cout << "Read params:\n";
-  std::cout << metadata.rad_mult << std::endl;
-  std::cout << metadata.rad_add << std::endl;
-  std::cout << metadata.toa_mult << std::endl;
-  std::cout << metadata.toa_add << std::endl;
-  std::cout << metadata.k_constants << std::endl;
+  //std::cout << "Read params:\n";
+  //std::cout << metadata.rad_mult << std::endl;
+  //std::cout << metadata.rad_add << std::endl;
+  //std::cout << metadata.toa_mult << std::endl;
+  //std::cout << metadata.toa_add << std::endl;
+  //std::cout << metadata.k_constants << std::endl;
 
   if ((metadata.sun_elevation_degrees == 0) || (metadata.toa_mult[0] == 0))
     vw_throw( ArgumentErr() << "Error: Failed to read in required metadata!\n");
@@ -374,7 +375,7 @@ void load_landsat_georef(std::vector<std::string> const& image_files,
 LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
                                    LandsatMetadataContainer const& metadata)
 {             
-  std::cout << "IN " << pixel_in << std::endl;
+  //std::cout << "IN " << pixel_in << std::endl;
   // This will convert the non-temperature bands to TOA
   LandsatToaPixelType pixel_f = pixel_cast<LandsatToaPixelType>(pixel_in);
   LandsatToaPixelType pixel   = pixel_f;
@@ -383,10 +384,10 @@ LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
   
   // Now convert the temperature band
   // - TODO: This is hard coded to use the K constants from LS8 Band 10!
-  double temp_rad = pixel_f[TEMP]*metadata.rad_mult[TEMP] + metadata.rad_add[TEMP];
-  pixel[TEMP] = metadata.k_constants[0] / log(metadata.k_constants[2]/temp_rad + 1.0);
+  float temp_rad = pixel_f[TEMP]*metadata.rad_mult[TEMP] + metadata.rad_add[TEMP];
+  pixel[TEMP] = metadata.k_constants[2] / log(metadata.k_constants[0]/temp_rad + 1.0);
   
-  std::cout << "OUT " << pixel << " >> " << temp_rad << std::endl;
+  //std::cout << "OUT " << pixel << " >> " << temp_rad << std::endl;
   return pixel;
 }
 
@@ -488,7 +489,7 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
     // Check this first!
     if (detect_clouds(pixel))
       return false;
-    
+  
     // Compute several indicators of water and take the minimum of them.
     float score = 1.0;
 
@@ -529,8 +530,6 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
 
     // Select water pixels from the raw score
     float water_thresh = compute_water_threshold(sun_elevation_degrees);
-    
-    // TODO: Detect snow also
 
     return (score > water_thresh);
 }
@@ -579,8 +578,8 @@ void detect_water(std::vector<std::string> const& image_files,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> DEBUG write input image"));
 */
-  Stopwatch timer;
-  timer.start();
+  //Stopwatch timer;
+  //timer.start();
 
   // TODO: Setting!
   std::string output_path = "landsat_output.tif";
@@ -588,23 +587,21 @@ void detect_water(std::vector<std::string> const& image_files,
                          apply_mask(
                            per_pixel_view(
                               per_pixel_view(
-                                crop(ls_image, BBox2(3496, 6010, 335, 464)),
+                                //crop(ls_image, BBox2(3496, 6010, 335, 464)), // DEBUG
+                                ls_image,
                                 LandsatToaFunctor(metadata)
                               ),
                               DetectWaterLandsatFunctor(metadata.sun_elevation_degrees)
                            ),
                            nodata_out
                          ),
-                         //crop(LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
-                         //BBox2(3496, 6010, 335, 464)),
-                         //LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
                          true, georef,
                          true, nodata_out,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
 
-  timer.stop();
-  std::cout << "TT time = " << timer.elapsed_seconds() << std::endl;
+  //timer.stop();
+  //std::cout << "TT time = " << timer.elapsed_seconds() << std::endl;
 
 }
 
