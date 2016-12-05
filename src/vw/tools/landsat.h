@@ -35,7 +35,11 @@
 namespace vw {
 
   // Used to save the landsat image as stored in memory
-  template<> struct PixelFormatID<PixelMask<Vector<float, 7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float,  7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 7> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+
+
 
 namespace landsat {
 
@@ -43,7 +47,9 @@ namespace landsat {
 //----------------------------------------------------
 // Landsat types
 
-typedef PixelMask<Vector<uint16, 7> > LandsatPixelType;
+const int NUM_BANDS_OF_INTEREST = 7;
+typedef PixelMask<Vector<uint16, NUM_BANDS_OF_INTEREST> > LandsatPixelType;
+typedef PixelMask<Vector<float,  NUM_BANDS_OF_INTEREST> > LandsatToaPixelType;
 typedef ImageViewRef<LandsatPixelType> LandsatImage;
 
 // These are the Landsat channels we use, available on both 7 and 8.
@@ -54,7 +60,44 @@ enum LANDSAT_CHANNEL_INDICES { BLUE  = 0,
                                SWIR1 = 4, 
                                TEMP  = 5, // = Temperature
                                SWIR2 = 6};
-                               
+
+
+// The bands we want are: BLUE, GREEN, RED, NIR, SWIR1, TEMP, SWIR2
+// - These are the bands where this data is located in each Landsat sensor
+const int LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 6};
+const int LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 7};
+const int LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {1, 2, 3, 4, 5, 9, 6};
+
+const double DEG_TO_RAD = 3.14159/180; // TODO: Where do we store this?!
+
+/// Given an input channel, see what the matching output channel is.
+/// - Returns -1 if it does not have an output channel.
+int get_output_channel(int input_channel, int landsat_type) {
+
+  // Load the corrrect list of input channels
+  const int* list = 0;
+  switch(landsat_type) {
+    case 8:  list = LS8_BAND_LOCATIONS; break;
+    case 7:  list = LS7_BAND_LOCATIONS; break;
+    default: list = LS5_BAND_LOCATIONS; break;
+  };
+  
+  // Iterate through the input channels
+  for (int i=0; i<NUM_BANDS_OF_INTEREST; ++i) {
+    if (list[i] == input_channel)
+      return i; // Found channel in the output list
+  }
+  return -1; // Not in the output list!
+}
+
+// TODO: MOVE!!
+std::string num2str(int n) {
+  std::stringstream s;
+  s << n;
+  return s.str();
+}
+
+   
 //----------------------------------------------------
 
 /// View for treating multiple single channel images on disk as one multi-channel image.
@@ -115,8 +158,14 @@ public: // Functions
     
     // Load info into the file one file at a time
     for (size_t channel=0; channel<m_input_files.size(); ++channel) {
+      //Stopwatch timer1, timer2;
+      //timer1.start();
       ImageView<T> temp = crop(DiskImageView<T>(m_input_files[channel]), bbox);
+      //timer1.stop();
+      //timer2.start();
       select_channel(tile, channel) = temp;
+      //timer2.stop();
+      //std::cout << "T1 time = " << timer1.elapsed_seconds() << "T2 time = " << timer2.elapsed_seconds() << std::endl;
     }
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
@@ -133,118 +182,11 @@ public: // Functions
 }; // End class SplitChannelFileView
 
 
-/*  This function is for the wrong file format??
 /// Process MODIS input files into a single image object
 void load_landsat_image(LandsatImage &image, std::vector<std::string> const& image_files,
-                        int landsat_type, float &sun_elevation) {
-
-  // TODO: Are all bands available?
-  const int NUM_BANDS_OF_INTEREST = 7;
-  const std::string LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"0", "1", "2", "3", "4", "5", "6"};
-  const std::string LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"0", "1", "2", "3", "4", "5", "7"};
-  const std::string LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"1", "2", "3", "4", "5", "cloud", "6"};
-
-  const std::string BAND_PREFIX = "sr_band";
-  
-  sun_elevation = 45; // The default sun elevation angle
-
-  // TODO: Verify always have the same nodata value!          
-  const double DEFAULT_NODATA = -9999;
-  double nodata_value = DEFAULT_NODATA;
-  //const bool have_nodata = true;
-  
-  // Check that all the required bands are present
-  for (int chan=0; chan<NUM_BANDS_OF_INTEREST; ++chan) {
-  
-    // For the given output channel, determine the input channel containing it
-    std::string text;
-    switch(landsat_type) {
-      case 8:  text = LS8_BAND_LOCATIONS[chan]; break;
-      case 7:  text = LS7_BAND_LOCATIONS[chan]; break;
-      default: text = LS5_BAND_LOCATIONS[chan]; break;
-    };
-    if (text.size() == 1)
-      text = "band" + text;
-    text = "_sr_" + text;
-
-    //printf("Looking for data %d in channel %d\n", chan, input_channel);
-    std::cout << "Looking for text: " << text << std::endl;
-    
-    // Look for the string in the input file names
-    bool found = false;
-    for (size_t f=0; f<image_files.size(); ++f) {
-      if (image_files[f].find(text) != std::string::npos) {
-        found = true;
-        DiskImageView<int16> input_image(image_files[f]);
-        // Init the output image
-        if (image.rows() == 0) {
-          image.set_size(input_image.cols(), input_image.rows());
-
-
-          // Read nodata value
-          boost::scoped_ptr<SrcImageResource> rsrc(DiskImageResource::open(image_files[f]));
-          if (rsrc->has_nodata_read()) {
-            nodata_value = rsrc->nodata_read();
-            std::cout << "Read nodata: " << nodata_value << std::endl;
-          }
-          else
-            std::cout << "Failed to read nodata value, using default value of -9999.\n";
-          
-          // TODO: Verify all masks are the same
-          // Copy the mask
-          image = copy_mask(image, create_mask(input_image, nodata_value));
-        }
-        // Load this file
-        select_channel(image, chan) = pixel_cast<float>(input_image);
-        break;
-      }
-    }
-    if (!found)
-      vw_throw( ArgumentErr() << "Error: No input file contained landsat channel " << chan+1<< "\n");   
-  } // End loop for loading input channels
-
-  // At this point we should have loaded all the required channels.
-
-  // Try to load any useful metadata
-  // - Find the metadata file
-  for (size_t f=0; f<image_files.size(); ++f) {
-    if (image_files[f].find("_MTL.txt") != std::string::npos) {
-      // Search the file for the metadata
-      std::ifstream handle(image_files[f].c_str());
-      std::string line;
-      while (std::getline(handle, line)) {
-        if (line.find("SUN_ELEVATION") == std::string::npos)
-          continue;
-        // Parse the line containing the info
-        size_t eqpos = line.find("=");
-        std::string num = line.substr(eqpos+1);
-        sun_elevation = atof(num.c_str());
-        break; // Done searching for info
-      }
-      handle.close();
-      break;
-    }
-  }
-
-  // TODO: Set the image mask!
-
-} // End function load_landsat_image
-*/
-
-
-/// Process MODIS input files into a single image object
-void load_landsat_image(LandsatImage &image, std::vector<std::string> const& image_files,
-                        int landsat_type, float &sun_elevation) {
-
-  // The bands we want are: BLUE, GREEN, RED, NIR, SWIR1, TEMP, SWIR2
-  const int NUM_BANDS_OF_INTEREST = 7;
-  const std::string LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"1", "2", "3", "4", "5", "6", "7"};
-  const std::string LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"1", "2", "3", "4", "5", "6", "8"};
-  const std::string LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {"2", "3", "4", "5", "6", "10", "7"};
+                        int landsat_type) {
 
   const std::string BAND_PREFIX = "_B";
-  
-  sun_elevation = 45; // The default sun elevation angle
   
   std::vector<std::string> sorted_input_files(NUM_BANDS_OF_INTEREST);
   
@@ -252,11 +194,12 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   for (int chan=0; chan<NUM_BANDS_OF_INTEREST; ++chan) {
   
     // For the given output channel, determine the input channel containing it
+    // - Convert index to 1-based string.
     std::string text;
     switch(landsat_type) {
-      case 8:  text = LS8_BAND_LOCATIONS[chan]; break;
-      case 7:  text = LS7_BAND_LOCATIONS[chan]; break;
-      default: text = LS5_BAND_LOCATIONS[chan]; break;
+      case 8:  text = num2str(LS8_BAND_LOCATIONS[chan]+1); break;
+      case 7:  text = num2str(LS7_BAND_LOCATIONS[chan]+1); break;
+      default: text = num2str(LS5_BAND_LOCATIONS[chan]+1); break;
     };
     if (text.size() == 1)
       text = "0" + text;
@@ -283,34 +226,129 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   image.reset(create_mask(SplitChannelFileView<uint16, NUM_BANDS_OF_INTEREST>(sorted_input_files),
                           Vector<uint16, NUM_BANDS_OF_INTEREST>()));
 
-  // At this point we should have loaded all the required channels.
-/*
-  // Try to load any useful metadata
-  // - Find the metadata file
-  for (size_t f=0; f<image_files.size(); ++f) {
-    if (image_files[f].find(".txt") != std::string::npos) {
-      // Search the file for the metadata
-      std::ifstream handle(image_files[f].c_str());
-      std::string line;
-      while (std::getline(handle, line)) {
-        if (line.find("SUN_ELEVATION") == std::string::npos)
-          continue;
-        // Parse the line containing the info
-        size_t eqpos = line.find("=");
-        std::string num = line.substr(eqpos+1);
-        sun_elevation = atof(num.c_str());
-        break; // Done searching for info
-      }
-      handle.close();
-      break;
-    }
-  }
-*/
   // TODO: Set the image mask!
 
 } // End function load_landsat_image
 
+// TODO: Error handling!
+/// Extract numeric the value from one line of the metadata file.
+float parse_metadata_line(std::string const& line) {
+  // Parse the line containing the info
+  size_t eqpos = line.find("=");
+  std::string num = line.substr(eqpos+1);
+  return atof(num.c_str());
+}
 
+/// Extract numeric the value from one line of the metadata file.
+int get_band_number_from_line(std::string const& line) {
+  // Parse the line containing the info
+  size_t uspos   = line.rfind("_")+1;
+  size_t stoppos = line.rfind("=")-1;
+  std::string num = line.substr(uspos, stoppos-uspos);
+  return atoi(num.c_str());
+}
+
+template<size_t N>
+bool update_vector_from_line(std::string const& line, 
+                             std::string const& prefix, int landsat_type,
+                             Vector<float, N> &vec) {
+  // See if line contains the desired prefix
+  if (line.find(prefix) == std::string::npos)
+    return false;
+  
+  // Check if we are using this band and if so in which output channel.
+  int band = get_band_number_from_line(line);
+  int output_band = get_output_channel(band, landsat_type);
+  if (output_band >= 0) {
+    float value = parse_metadata_line(line);
+    vec[output_band] = value; // Store result
+  }
+  return true;
+}
+
+/// Convenience structure for storing Landsat metadata information
+struct LandsatMetadataContainer {
+
+  typedef Vector<float, NUM_BANDS_OF_INTEREST> CoefficientVector;
+  
+  CoefficientVector rad_mult;
+  CoefficientVector rad_add;
+  CoefficientVector toa_mult;
+  CoefficientVector toa_add;
+  Vector<float, 4>  k_constants;
+  float sun_elevation_degrees;
+};
+
+/// Loads miscellaneous information from the metadata file
+/// - Tuned for USGS format Landsat 8 metadata file
+void load_landsat_metadata(std::vector<std::string> const& image_files,
+                           int landsat_type,
+                           LandsatMetadataContainer & metadata) {
+
+  // Try to load any useful metadata
+  // - Find the metadata file
+  std::string metadata_path = "";
+  for (size_t f=0; f<image_files.size(); ++f) {
+    if (image_files[f].find(".txt") != std::string::npos) {
+      metadata_path = image_files[f];
+      continue;
+    }
+  }
+  if (metadata_path.empty())
+    vw_throw( ArgumentErr() << "Error: Landsat metadata file not found!\n");
+
+  metadata.sun_elevation_degrees = 0; // Init to flag value
+
+  // Search the file for the metadata
+  std::ifstream handle(metadata_path.c_str());
+  std::string line;
+  while (std::getline(handle, line)) {
+    // Check line for elevation angle
+    if (line.find("SUN_ELEVATION") != std::string::npos) {
+      metadata.sun_elevation_degrees = parse_metadata_line(line);
+      continue;
+    }
+
+    // Check line for the radiance conversion constants
+    if (update_vector_from_line(line, "RADIANCE_MULT_BAND_", landsat_type, metadata.rad_mult))
+      continue;
+    if (update_vector_from_line(line, "RADIANCE_ADD_BAND_", landsat_type, metadata.rad_add))
+      continue;
+
+    // Chek line for TOA conversion constants
+    if (update_vector_from_line(line, "REFLECTANCE_MULT_BAND_", landsat_type, metadata.toa_mult))
+      continue;
+    if (update_vector_from_line(line, "REFLECTANCE_ADD_BAND_", landsat_type, metadata.toa_add))
+      continue;
+
+    // Read in the four TIR temperature constants
+    if (line.find("K1_CONSTANT_BAND_10") != std::string::npos)
+      metadata.k_constants[0] = parse_metadata_line(line);
+    if (line.find("K1_CONSTANT_BAND_11") != std::string::npos)
+      metadata.k_constants[1] = parse_metadata_line(line);
+    if (line.find("K2_CONSTANT_BAND_10") != std::string::npos)
+      metadata.k_constants[2] = parse_metadata_line(line);
+    if (line.find("K2_CONSTANT_BAND_11") != std::string::npos)
+      metadata.k_constants[3] = parse_metadata_line(line);
+
+  } // End of search through metadata lines.
+  handle.close();
+
+  std::cout << "Read params:\n";
+  std::cout << metadata.rad_mult << std::endl;
+  std::cout << metadata.rad_add << std::endl;
+  std::cout << metadata.toa_mult << std::endl;
+  std::cout << metadata.toa_add << std::endl;
+  std::cout << metadata.k_constants << std::endl;
+
+  if ((metadata.sun_elevation_degrees == 0) || (metadata.toa_mult[0] == 0))
+    vw_throw( ArgumentErr() << "Error: Failed to read in required metadata!\n");
+    
+  // Correct the TOA conversions to account for sun elevation angle
+  double sun_elevation_radians = DEG_TO_RAD*metadata.sun_elevation_degrees;
+  metadata.toa_mult /= sin(sun_elevation_radians);
+  metadata.toa_add  /= sin(sun_elevation_radians);
+}
 
 
 /// Loads the georeference for a Landsat file
@@ -331,17 +369,51 @@ void load_landsat_georef(std::vector<std::string> const& image_files,
   vw_throw( ArgumentErr() << "Failed to load georef from any input Landsat channel!\n");
 }
 
+/// Convert an input landsat pixel to top-of-atmosphere.
+/// - Currently only works for Landsat 8
+LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
+                                   LandsatMetadataContainer const& metadata)
+{             
+  std::cout << "IN " << pixel_in << std::endl;
+  // This will convert the non-temperature bands to TOA
+  LandsatToaPixelType pixel_f = pixel_cast<LandsatToaPixelType>(pixel_in);
+  LandsatToaPixelType pixel   = pixel_f;
+  for (int i=0; i<NUM_BANDS_OF_INTEREST; ++i)
+    pixel[i] = pixel_f[i]*metadata.toa_mult[i] + metadata.toa_add[i];
+  
+  // Now convert the temperature band
+  // - TODO: This is hard coded to use the K constants from LS8 Band 10!
+  double temp_rad = pixel_f[TEMP]*metadata.rad_mult[TEMP] + metadata.rad_add[TEMP];
+  pixel[TEMP] = metadata.k_constants[0] / log(metadata.k_constants[2]/temp_rad + 1.0);
+  
+  std::cout << "OUT " << pixel << " >> " << temp_rad << std::endl;
+  return pixel;
+}
+
+/// Use this to call detect_water on each pixel like this:
+/// --> = UnaryPerPixelView(landsat_image, landsat::DetectWaterLandsatFunctor());
+class LandsatToaFunctor  : public ReturnFixedType<LandsatToaPixelType > {
+  LandsatMetadataContainer m_metadata;
+public:
+  LandsatToaFunctor(LandsatMetadataContainer const& metadata)
+   : m_metadata(metadata) {}
+  
+  LandsatToaPixelType operator()( LandsatPixelType const& pixel) const {
+    return convert_to_toa(pixel, m_metadata);
+  }
+};
+
 
 /// Compute the Floating Algae Index
 struct detect_water_fai_functor {
-  bool operator()( LandsatPixelType const& pixel) const {
+  bool operator()( LandsatToaPixelType const& pixel) const {
     return pixel[NIR] + (pixel[RED] + (pixel[SWIR1] - pixel[RED])*(170/990));
   }
 };
 
 /// Compute NDTI (Turbidity) index
 struct detect_water_ndti_functor {
-  bool operator()( LandsatPixelType const& pixel) const {
+  bool operator()( LandsatToaPixelType const& pixel) const {
     if (pixel[RED] + pixel[GREEN] == 0)
       return 0; // Avoid divide-by-zero
     return (pixel[RED] - pixel[GREEN]) / (pixel[RED] + pixel[GREEN]);
@@ -350,7 +422,7 @@ struct detect_water_ndti_functor {
 
 /// Compute NDSI index
 struct detect_water_ndsi_functor {
-  bool operator()( LandsatPixelType const& pixel) const {
+  bool operator()( LandsatToaPixelType const& pixel) const {
     if (pixel[GREEN] + pixel[SWIR1] == 0)
       return 0; // Avoid divide-by-zero
     return (pixel[GREEN] - pixel[SWIR1]) / (pixel[GREEN] + pixel[SWIR1]);
@@ -364,7 +436,7 @@ float rescale_to_01(float value, float min, float max) {
 }
 
 /// Guess if a pixel shows a cloud or not.
-bool detect_clouds(LandsatPixelType const& pixel) {
+bool detect_clouds(LandsatToaPixelType const& pixel) {
  
   // Compute several indicators of cloudiness and take the minimum of them.
   
@@ -410,15 +482,8 @@ T clamp01(T value) {
   return clamp<T>(value, 0, 1);
 }
 
-
 /// Classifies one pixel as water or not.
-bool detect_water(LandsatPixelType const& pixel_in, float sun_elevation_degrees=45) {
-
-    return false; // DEBUG
-
-    // Cast the input pixel to float
-    const int NUM_USED_BANDS = 7;
-    Vector<float, NUM_USED_BANDS> pixel = remove_mask(pixel_in);
+bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=45) {
 
     // Check this first!
     if (detect_clouds(pixel))
@@ -478,9 +543,9 @@ public:
   DetectWaterLandsatFunctor(float sun_elevation_degrees=45)
    : m_sun_elevation_degrees(sun_elevation_degrees) {}
   
-  uint8 operator()( LandsatPixelType const& pixel) const {
+  uint8 operator()( LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
-      //if (detect_water(pixel, m_sun_elevation_degrees))
+      if (detect_water(pixel, m_sun_elevation_degrees))
         return 255;
       return 1;
     }
@@ -494,34 +559,45 @@ void detect_water(std::vector<std::string> const& image_files,
 
   LandsatImage ls_image;
   int landsat_type= 8; // TODO: Where to get this!
-  float sun_elevation_degrees;
-  load_landsat_image(ls_image, image_files, landsat_type, sun_elevation_degrees);
+  load_landsat_image(ls_image, image_files, landsat_type);
 
-  // Throws on failure
   cartography::GeoReference georef;
   load_landsat_georef(image_files, georef);
 
-  const uint8 nodata_out = 0; // TODO: Put all of these constants somewhere
+  
+  LandsatMetadataContainer metadata;
+  load_landsat_metadata(image_files, landsat_type, metadata);
 
+
+  const uint8 nodata_out = 0; // TODO: Put all of these constants somewhere
 /*
-  typedef UnaryPerPixelView<LandsatImage, DetectWaterLandsatFunctor> LandsatWaterDetectView;
   block_write_gdal_image("landsat_input.tif",
+                         crop(ls_image, BBox2(3496, 6010, 335, 464)),
                          ls_image,
                          true, georef,
-                         true, -9999.0,
+                         false, 0,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> DEBUG write input image"));
 */
-
   Stopwatch timer;
   timer.start();
 
   // TODO: Setting!
   std::string output_path = "landsat_output.tif";
-  typedef UnaryPerPixelView<LandsatImage, DetectWaterLandsatFunctor> LandsatWaterDetectView;
   block_write_gdal_image(output_path,
-                         crop(LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
-                         BBox2(3496, 6010, 335, 464)),
+                         apply_mask(
+                           per_pixel_view(
+                              per_pixel_view(
+                                crop(ls_image, BBox2(3496, 6010, 335, 464)),
+                                LandsatToaFunctor(metadata)
+                              ),
+                              DetectWaterLandsatFunctor(metadata.sun_elevation_degrees)
+                           ),
+                           nodata_out
+                         ),
+                         //crop(LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
+                         //BBox2(3496, 6010, 335, 464)),
+                         //LandsatWaterDetectView(ls_image, DetectWaterLandsatFunctor(sun_elevation_degrees)),
                          true, georef,
                          true, nodata_out,
                          write_options,
