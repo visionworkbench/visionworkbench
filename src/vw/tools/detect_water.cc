@@ -24,6 +24,7 @@
 #include <vw/tools/modis_water_detection.h>
 #include <vw/tools/radar.h>
 #include <vw/tools/landsat.h>
+#include <vw/tools/multispectral.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -90,9 +91,10 @@ int main(int argc, char **argv) {
 
   // Check the input mode
   boost::algorithm::to_lower(mode);
-  bool radar_mode   = (mode.find("sentinel1") != std::string::npos);
-  bool landsat_mode = (mode.find("landsat"  ) != std::string::npos); 
-  if (!radar_mode && !landsat_mode) {
+  bool radar_mode     = (mode.find("sentinel1") != std::string::npos);
+  bool landsat_mode   = (mode.find("landsat"  ) != std::string::npos);
+  bool worldview_mode = (mode.find("worldview") != std::string::npos);
+  if (!radar_mode && !landsat_mode && !worldview_mode) {
     std::cout << "Error: Unrecognized 'mode' option!  Choices are 'sentinel1' and 'landsat'.\n";
     return 0;
   }
@@ -119,6 +121,12 @@ int main(int argc, char **argv) {
   if (landsat_mode) {
     std::cout << "Processing Landsat image!\n";
     landsat::detect_water(input_file_names, write_options);
+    return 0;
+  }
+
+  if (worldview_mode) {
+    std::cout << "Processing WorldView image!\n";
+    multispectral::detect_water_worldview3(input_file_names, write_options);
     return 0;
   }
 

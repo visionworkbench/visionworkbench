@@ -285,9 +285,7 @@ struct LandsatMetadataContainer {
 void load_landsat_metadata(std::vector<std::string> const& image_files,
                            int landsat_type,
                            LandsatMetadataContainer & metadata) {
-
-  // Try to load any useful metadata
-  // - Find the metadata file
+  // Find the metadata file
   std::string metadata_path = "";
   for (size_t f=0; f<image_files.size(); ++f) {
     if (image_files[f].find(".txt") != std::string::npos) {
@@ -391,8 +389,7 @@ LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
   return pixel;
 }
 
-/// Use this to call detect_water on each pixel like this:
-/// --> = UnaryPerPixelView(landsat_image, landsat::DetectWaterLandsatFunctor());
+/// Functor wrapper for TOA conversion function
 class LandsatToaFunctor  : public ReturnFixedType<LandsatToaPixelType > {
   LandsatMetadataContainer m_metadata;
 public:
@@ -535,7 +532,7 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
 }
 
 /// Use this to call detect_water on each pixel like this:
-/// --> = UnaryPerPixelView(landsat_image, landsat::DetectWaterLandsatFunctor());
+/// --> = per_pixel_view(landsat_image, landsat::DetectWaterLandsatFunctor());
 class DetectWaterLandsatFunctor  : public ReturnFixedType<uint8> {
   float m_sun_elevation_degrees;
 public:
