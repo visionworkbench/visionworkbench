@@ -26,6 +26,7 @@
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/tools/flood_common.h>
 
 /**
   Tools for processing LANDSAT data.
@@ -90,14 +91,6 @@ int get_output_channel(int input_channel, int landsat_type) {
   }
   return -1; // Not in the output list!
 }
-
-// TODO: MOVE!!
-std::string num2str(int n) {
-  std::stringstream s;
-  s << n;
-  return s.str();
-}
-
    
 //----------------------------------------------------
 
@@ -231,14 +224,6 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
 
 } // End function load_landsat_image
 
-// TODO: Error handling!
-/// Extract numeric the value from one line of the metadata file.
-float parse_metadata_line(std::string const& line) {
-  // Parse the line containing the info
-  size_t eqpos = line.find("=");
-  std::string num = line.substr(eqpos+1);
-  return atof(num.c_str());
-}
 
 /// Extract numeric the value from one line of the metadata file.
 int get_band_number_from_line(std::string const& line) {
@@ -286,13 +271,7 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
                            int landsat_type,
                            LandsatMetadataContainer & metadata) {
   // Find the metadata file
-  std::string metadata_path = "";
-  for (size_t f=0; f<image_files.size(); ++f) {
-    if (image_files[f].find(".txt") != std::string::npos) {
-      metadata_path = image_files[f];
-      continue;
-    }
-  }
+  std::string metadata_path = find_string_in_list(image_files,".txt");
   if (metadata_path.empty())
     vw_throw( ArgumentErr() << "Error: Landsat metadata file not found!\n");
 
@@ -427,12 +406,6 @@ struct detect_water_ndsi_functor {
   }
 };
 
-/// Scale the given input range to the 0 to 1 range.
-float rescale_to_01(float value, float min, float max) {
-  float rng = max - min;
-  return ((value - min) / rng);
-}
-
 /// Guess if a pixel shows a cloud or not.
 bool detect_clouds(LandsatToaPixelType const& pixel) {
  
@@ -465,20 +438,6 @@ float compute_water_threshold(float sun_angle_degrees) {
   return ((0.6 / 54.0) * (62.0 - sun_angle_degrees)) + .05;
 }
 
-
-// TODO: MOVE THIS
-template <typename T>
-T clamp(T value, T min, T max) {
-  if (value > max) return max;
-  if (value < min) return min;
-  return value;
-}
-
-/// Shortcut to clamp between 0 and 1
-template <typename T>
-T clamp01(T value) {
-  return clamp<T>(value, 0, 1);
-}
 
 /// Classifies one pixel as water or not.
 bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=45) {
@@ -542,15 +501,15 @@ public:
   uint8 operator()( LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
       if (detect_water(pixel, m_sun_elevation_degrees))
-        return 255;
-      return 1;
+        return FLOOD_DETECT_WATER;
+      return FLOOD_DETECT_LAND;
     }
     else
-      return 0; // Nodata value
+      return FLOOD_DETECT_NODATA;
   }
 };
 
-void detect_water(std::vector<std::string> const& image_files, 
+void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options) {
 
   LandsatImage ls_image;
@@ -564,8 +523,6 @@ void detect_water(std::vector<std::string> const& image_files,
   LandsatMetadataContainer metadata;
   load_landsat_metadata(image_files, landsat_type, metadata);
 
-
-  const uint8 nodata_out = 0; // TODO: Put all of these constants somewhere
 /*
   block_write_gdal_image("landsat_input.tif",
                          crop(ls_image, BBox2(3496, 6010, 335, 464)),
@@ -578,8 +535,6 @@ void detect_water(std::vector<std::string> const& image_files,
   //Stopwatch timer;
   //timer.start();
 
-  // TODO: Setting!
-  std::string output_path = "landsat_output.tif";
   block_write_gdal_image(output_path,
                          apply_mask(
                            per_pixel_view(
@@ -590,10 +545,10 @@ void detect_water(std::vector<std::string> const& image_files,
                               ),
                               DetectWaterLandsatFunctor(metadata.sun_elevation_degrees)
                            ),
-                           nodata_out
+                           FLOOD_DETECT_NODATA
                          ),
                          true, georef,
-                         true, nodata_out,
+                         true, FLOOD_DETECT_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
 

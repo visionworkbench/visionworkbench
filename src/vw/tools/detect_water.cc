@@ -114,19 +114,19 @@ int main(int argc, char **argv) {
   
   if (radar_mode) {
     std::cout << "Processing sentinel-1 image!\n";
-    radar::sar_martinis(input_file_names[0], write_options);
+    radar::sar_martinis(input_file_names[0], output_path, write_options);
     return 0;
   }
   
   if (landsat_mode) {
     std::cout << "Processing Landsat image!\n";
-    landsat::detect_water(input_file_names, write_options);
+    landsat::detect_water(input_file_names, output_path, write_options);
     return 0;
   }
 
   if (worldview_mode) {
     std::cout << "Processing WorldView image!\n";
-    multispectral::detect_water_worldview3(input_file_names, write_options);
+    multispectral::detect_water_worldview3(input_file_names, output_path, write_options);
     return 0;
   }
 

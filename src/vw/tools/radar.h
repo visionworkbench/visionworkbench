@@ -38,6 +38,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Cartography/GeoTransform.h>
+#include <vw/tools/flood_common.h>
 
 /**
   Tools for processing radar data.
@@ -564,8 +565,7 @@ struct GetAngleFunc : public ReturnFixedType<PixelMask<float> > {
   PixelMask<float> operator() (PixelMask<Vector3f> const& pix) const {
     if (is_transparent(pix))
       return PixelMask<float>();
-    const float RAD2DEG = 180.0 / 3.14159; // TODO: Where do we keep our constants?
-    return PixelMask<float>(RAD2DEG*acos(fabs(dot_prod(pix.child(),Vector3(0,0,1)))));
+    return PixelMask<float>(RAD_TO_DEG*acos(fabs(dot_prod(pix.child(),Vector3(0,0,1)))));
   }
 };
 template <class ViewT>
@@ -742,7 +742,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
       "A fully automated TerraSAR-X based flood service." 
       ISPRS Journal of Photogrammetry and Remote Sensing 104 (2015): 203-212.
 */
-void sar_martinis(std::string const& input_image_path, 
+void sar_martinis(std::string const& input_image_path, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options,
                   int tile_size = 512) {
 
@@ -813,17 +813,15 @@ void sar_martinis(std::string const& input_image_path,
   // TODO: When either of the previous steps fail, repeat the earlier steps with the tile size cut in half.
   
   // This will mask the water pixels, setting water pixels to 255, land pixels to 1, and invalid pixels to 0.
-  const uint8 WATER_CLASS  = 255;
-  const uint8 LAND_CLASS   = 1;
-  const uint8 NODATA_CLASS = 0;
-  ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, WATER_CLASS, LAND_CLASS);
+  ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, 
+                                                 FLOOD_DETECT_WATER, FLOOD_DETECT_LAND);
 
   // DEBUG: Apply the initial threshold to the image and save it to disk!
   std::string initial_water_detect_path = "initial_water_detect.tif";
   block_write_gdal_image(initial_water_detect_path,
-                         pixel_cast<uint8>(apply_mask(raw_water, NODATA_CLASS)),
+                         pixel_cast<uint8>(apply_mask(raw_water, FLOOD_DETECT_NODATA)),
                          have_georef, georef,
-                         true, NODATA_CLASS, // Choose the nodata value
+                         true, FLOOD_DETECT_NODATA, // Choose the nodata value
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Applying initial threshold:"));
 
@@ -843,7 +841,7 @@ void sar_martinis(std::string const& input_image_path,
   std::string blobs_path = "blob_sizes.tif";
   const uint32 BLOBS_NODATA = 0;
   block_write_gdal_image(blobs_path,
-                         get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), LAND_CLASS),
+                         get_blob_sizes(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), FLOOD_DETECT_LAND),
                                         TILE_EXPAND, max_blob_size),
                          have_georef, georef,
                          true, BLOBS_NODATA,
@@ -861,7 +859,7 @@ void sar_martinis(std::string const& input_image_path,
   ImageViewRef<RadarTypeM> low_res_raw_water =  
           copy_mask(subsample(preprocessed_image, DEM_STATS_SUBSAMPLE_FACTOR),
                     subsample(create_mask_less_or_equal(DiskImageView<uint8>(initial_water_detect_path), 
-                                                                                           LAND_CLASS), 
+                                                                                     FLOOD_DETECT_LAND), 
                                                                  DEM_STATS_SUBSAMPLE_FACTOR)
                    );
   cartography::GeoReference low_res_georef = resample(georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
@@ -991,18 +989,17 @@ void sar_martinis(std::string const& input_image_path,
   // - The mask is added back in at this point.
   const double final_flood_threshold = 0.6;
   const double water_grow_threshold  = 0.45;
-  std::string output_path = "radar_final_output.tif";
   block_write_gdal_image(output_path,
                          apply_mask(
                            copy_mask(
                              two_threshold_fill(defuzzed, TILE_EXPAND, final_flood_threshold, 
-                                                water_grow_threshold, LAND_CLASS, WATER_CLASS),
-                             create_mask(DiskImageView<uint8>(initial_water_detect_path, NODATA_CLASS))
+                                                water_grow_threshold, FLOOD_DETECT_LAND, FLOOD_DETECT_WATER),
+                             create_mask(DiskImageView<uint8>(initial_water_detect_path, FLOOD_DETECT_NODATA))
                            ),
-                           NODATA_CLASS
+                           FLOOD_DETECT_NODATA
                          ),      
                          true, georef,
-                         true, NODATA_CLASS,
+                         true, FLOOD_DETECT_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Generating final output:"));
 
