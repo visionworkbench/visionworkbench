@@ -70,8 +70,6 @@ const int LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 6};
 const int LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 7};
 const int LS8_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {1, 2, 3, 4, 5, 9, 6};
 
-const double DEG_TO_RAD = 3.14159/180; // TODO: Where do we store this?!
-
 /// Given an input channel, see what the matching output channel is.
 /// - Returns -1 if it does not have an output channel.
 int get_output_channel(int input_channel, int landsat_type) {
@@ -463,11 +461,11 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
     dark_values[2] = pixel[NIR];
     dark_values[3] = pixel[SWIR2];
     dark_values[4] = pixel[SWIR1];
-    float mean  = math::mean(dark_values); // TODO: Check calls and divide-by-zero
+    float mean  = math::mean(dark_values);
     float std   = math::standard_deviation(dark_values, mean);
     float z;
     if (mean == 0)
-      z = 0; // TODO: 0 or 1?
+      z = 1.0;
     else {
       z = (pixel[BLUE] - std) / mean;
       z = rescale_to_01(z, 0.0, 1.0);

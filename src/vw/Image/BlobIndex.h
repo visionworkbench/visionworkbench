@@ -409,8 +409,7 @@ class BlobIndexThreaded {
                      )
     : m_max_area(max_area), m_tile_size(tile_size) {
     
-    std::vector<BBox2i> bboxes =
-      image_blocks( src.impl(), m_tile_size, m_tile_size );
+    std::vector<BBox2i> bboxes = subdivide_bbox( src.impl(), m_tile_size, m_tile_size );
     // User needs to remember to give a pixel mask'd input
     typedef blob::BlobIndexTask<SourceT> task_type;
     if (bboxes.size() > 1){

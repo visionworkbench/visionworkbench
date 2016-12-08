@@ -128,7 +128,7 @@ namespace vw {
   }
 
   // *******************************************************************
-  // image_blocks()
+  // subdivide_bbox()
   // *******************************************************************
 
   /// A utility routine that, given an image, returns a vector of
@@ -139,13 +139,18 @@ namespace vw {
   /// box width and height, respectively. This routine is useful if you
   /// want to apply an operation to a large image one region at a time.
   /// It will operate on any object that has cols() and rows() methods.
+  /// - If include_partials is set to false, only full size boxes will be 
+  ///   included in the output.
+  /// - Output tiles are in raster order, top left to bottom right.
   inline std::vector<BBox2i>
-  image_blocks(BBox2i const& object, int32 block_width, int32 block_height);
+  subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
+                 bool include_partials = true);
 
   template <class T>
   inline std::vector<BBox2i>
-  image_blocks(ImageViewBase<T> const& view, int32 block_width, int32 block_height ) {
-    return image_blocks( bounding_box(view.impl()), block_width, block_height );
+  subdivide_bbox(ImageViewBase<T> const& view, int32 block_width, int32 block_height,
+                 bool include_partials = true) {
+    return subdivide_bbox( bounding_box(view.impl()), block_width, block_height, include_partials );
   }
   
   

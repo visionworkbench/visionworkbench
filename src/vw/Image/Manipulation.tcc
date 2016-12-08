@@ -640,7 +640,7 @@ public:
     ImageView<pixel_type> buffer( bbox.width(), bbox.height() );
 
     // The size of the chunks that we will be rastering one at a time.
-    Vector2i sub_region_size( bbox.width() / m_xdelta,
+    Vector2i sub_region_size( bbox.width () / m_xdelta,
                               bbox.height() / m_ydelta );
     if ( sub_region_size.x() < 2 )
       sub_region_size.x() = 2;
@@ -648,32 +648,27 @@ public:
       sub_region_size.y() = 2;
 
     typedef std::vector<BBox2i> ContainerT;
-    ContainerT bboxes =
-      image_blocks( bbox, sub_region_size.x(),
-                    sub_region_size.y() );
+    ContainerT bboxes = subdivide_bbox( bbox, sub_region_size.x(), sub_region_size.y() );
 
     typedef SubsampleView<typename ImageT::prerasterize_type> input_pre_type;
 
-    for ( ContainerT::const_iterator b = bboxes.begin();
-          b != bboxes.end(); ++b ) {
+    for ( ContainerT::const_iterator b = bboxes.begin(); b != bboxes.end(); ++b ) {
       // The math for the bbox may seem weird. It's not just the
       // size of the bbox scaled up. It's the minimum width we need
       // to achieve the output samples we want. I used this method
       // to avoid having to put conditionals in the math .. as
-      // otherwise this code would need a BBox crop to the input's
-      // size.
+      // otherwise this code would need a BBox crop to the input's size.
       vw::rasterize(
         input_pre_type(
           m_child.prerasterize( BBox2i(m_xdelta*(*b).min().x(),
                                        m_ydelta*(*b).min().y(),
-                                       m_xdelta*((*b).width() - 1) + 1,
+                                       m_xdelta*((*b).width () - 1) + 1,
                                        m_xdelta*((*b).height() - 1) + 1 ) ),
           m_xdelta, m_ydelta ),
         crop(buffer, *b - bbox.min()), *b );
     }
 
-    return crop( buffer, -bbox.min().x(), -bbox.min().y(),
-                 cols(), rows() );
+    return crop( buffer, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
   }
   template <class DestT>
   inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {

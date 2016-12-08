@@ -58,8 +58,7 @@ namespace vw {
       using namespace vw;
 
       // Fancy rasterize in section of m_tile_size
-      std::vector<BBox2i> subregions =
-        image_blocks( bbox, m_tile_size.x(), m_tile_size.y() );
+      std::vector<BBox2i> subregions = subdivide_bbox( bbox, m_tile_size.x(), m_tile_size.y() );
       ImageView<pixel_type> output( bbox.width(), bbox.height() );
       BOOST_FOREACH( BBox2i const& sub, subregions ) {
         crop( output, sub - bbox.min() ) = crop( m_child, sub );

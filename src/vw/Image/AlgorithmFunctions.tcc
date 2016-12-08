@@ -170,7 +170,7 @@ namespace vw {
 
 
   // *******************************************************************
-  // image_blocks()
+  // subdivide_bbox()
   // *******************************************************************
 
   /// A utility routine that, given an image, returns a vector of
@@ -182,21 +182,32 @@ namespace vw {
   /// want to apply an operation to a large image one region at a time.
   /// It will operate on any object that has cols() and rows() methods.
   inline std::vector<BBox2i>
-  image_blocks(BBox2i const& object, int32 block_width, int32 block_height) {
+  subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
+                 bool include_partials) {
     std::vector<BBox2i> bboxes;
 
-    int32 j_offset = 0;
-    while ( j_offset < object.height() ) {
-      int32 j_dim = (object.height() - j_offset) < block_height ? (object.height() - j_offset) : block_height;
-      int32 i_offset = 0;
-      while ( i_offset < object.width() ) {
-        int32 i_dim = (object.width() - i_offset) < block_width ? (object.width() - i_offset) : block_width;
+    for (int j_offset = 0; j_offset < object.height(); j_offset += block_height) {
+      int32 j_dim = block_height;
+      if ((object.height() - j_offset) < block_height) {
+        if (!include_partials)
+          continue; // Skip row of non-full size boxes.
+        else
+          j_dim = object.height() - j_offset;
+      }
+      
+      for (int i_offset = 0; i_offset < object.width(); i_offset += block_width) {
+        int32 i_dim = block_width;
+        if ((object.width() - i_offset) < block_width) {
+          if (!include_partials)
+            continue; // Skip non-full size boxes.
+          else
+            i_dim = object.width() - i_offset;
+        }
+        
         bboxes.push_back(BBox2i(i_offset + object.min().x(),
                                 j_offset + object.min().y(),
                                 i_dim,j_dim));
-        i_offset += i_dim;
       }
-      j_offset += j_dim;
     }
     return bboxes;
   }

@@ -203,54 +203,6 @@ double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
 } // End function split_histogram_kittler_illingworth
 
 
-// TODO: Move this
-
-/// Splits up one large BBox into a grid of smaller BBoxes.
-/// - Returns the number of BBoxes created.
-/// - If include_partials is set to false, incomplete BBoxes will be discarded.
-int divide_roi(BBox2i const& full_roi, int size,
-               std::vector<std::vector<BBox2i> > &new_rois, bool include_partials = true) {
-               
-  // Compute the number of boxes
-  double dsize = static_cast<double>(size);
-  int num_boxes_x, num_boxes_y;
-  if (include_partials) {
-    num_boxes_x = ceil(static_cast<double>(full_roi.width())  / dsize);
-    num_boxes_y = ceil(static_cast<double>(full_roi.height()) / dsize);
-  } else { // Discard partial boxes
-    num_boxes_x = floor(static_cast<double>(full_roi.width())  / dsize);
-    num_boxes_y = floor(static_cast<double>(full_roi.height()) / dsize);
-  }
-
-  std::cout << "Dividing up ROI " << full_roi << std::endl;
-  printf("Num boxes: %d, %d\n", num_boxes_x, num_boxes_y);
-
-  // Generate all of the boxes
-  int max_x = full_roi.max()[0];
-  int max_y = full_roi.max()[1];
-  int num_boxes = num_boxes_y*num_boxes_x;
-  new_rois.resize(num_boxes_y);
-  for (int r=0; r<num_boxes_y; ++r) {
-    new_rois[r].resize(num_boxes_x);
-    for (int c=0; c<num_boxes_x; ++c) {
-      // Set up each box being mindful of partial boxes at the edges
-      int x      = c*size;
-      int y      = r*size;
-      int height = size;
-      int width  = size;
-      if (y+height > max_y) height = max_y - y;
-      if (x+width  > max_x) width  = max_x - x;
-      new_rois[r][c] = BBox2i(x, y, width, height);
-      //std::cout << "--> New ROI: " << new_rois[r][c] << std::endl;
-    }
-  }
-  return num_boxes;
-}
-
-
-
-
-
 //=========================================================================================
 
 // TODO: What data type to use?
@@ -336,44 +288,35 @@ void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, BBo
 
 } // End preprocess_sentinel1_image
 
-
-
-// TODO: Replace with a simpler multi-threaded processing method to get the means!
 template <class ImageT>
 class ImageTileMeansView : public ImageViewBase<ImageTileMeansView<ImageT> > {
 
 public: // Definitions
 
   // This only controls junk written to disk so use a small type.
-  typedef uint8      pixel_type;
-  typedef pixel_type result_type;
+  typedef PixelMask<Vector2f> pixel_type;
+  typedef pixel_type          result_type;
 
 private: // Variables
 
   ImageT const& m_input_image;
-  mutable ImageView<RadarTypeM> m_tile_means, m_tile_stddevs;
-  int m_tile_size;
+  int m_width, m_height, m_tile_size;
 
 public: // Functions
 
   // Constructor
-  ImageTileMeansView( ImageT  const& input_image, int num_boxes_x, int num_boxes_y, int tile_size)
-                  : m_input_image(input_image), m_tile_size(tile_size){
-    // Init the true output objects
-    m_tile_means.set_size(num_boxes_x,   num_boxes_y);
-    m_tile_stddevs.set_size(num_boxes_x, num_boxes_y);
-  }
+  ImageTileMeansView( ImageT  const& input_image, int tile_size)
+                  : m_input_image(input_image), 
+                    m_width (input_image.cols()/tile_size), 
+                    m_height(input_image.rows()/tile_size), 
+                    m_tile_size(tile_size){}
 
-  inline int32 cols  () const { return m_input_image.cols(); }
-  inline int32 rows  () const { return m_input_image.rows(); }
+  inline int32 cols  () const { return m_width;  }
+  inline int32 rows  () const { return m_height; }
   inline int32 planes() const { return 1; }
 
   inline result_type operator()( int32 i, int32 j, int32 p=0 ) const
   { return 0; } // NOT IMPLEMENTED!
-
-  // Accessors to grab the results
-  ImageView<RadarTypeM> const& tile_means  () const {return m_tile_means;}
-  ImageView<RadarTypeM> const& tile_stddevs() const {return m_tile_stddevs;}
  
   typedef ProceduralPixelAccessor<ImageTileMeansView<ImageT> > pixel_accessor;
   inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -398,68 +341,66 @@ public: // Functions
 
   typedef CropView<ImageView<result_type> > prerasterize_type;
   inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    
+    // This function is only set up for 1x1 output tiles.
+    if ((bbox.width() != 1) || (bbox.height() != 1))
+      vw_throw(LogicErr() << "ImageTileMeansView only works with 1x1 output tiles!");
+    
+    // Compute the bbox in the input image
+    BBox2i input_bbox = bbox;
+    input_bbox *= m_tile_size;
 
-    // Figure out which tile this is
-    int this_col = bbox.min()[0] / m_tile_size;
-    int this_row = bbox.min()[1] / m_tile_size;
+    //std::cout << "Input bbox = " << input_bbox << ", output bbox = " << bbox << std::endl;
 
-    // Skip processing for this tile if it falls out of bounds (can happen on borders)
-    if ( (this_col < m_tile_means.cols()) && (this_row < m_tile_means.rows())) {
-      // Compute the four sub-ROIs
-      const int NUM_SUB_ROIS = 4;
-      int hw = bbox.width() /2;
-      int hh = bbox.height()/2;
-      std::vector<BBox2i> sub_rois(NUM_SUB_ROIS); // ROIs relative to the whole tile
-      std::vector<double> means;
-      means.reserve(NUM_SUB_ROIS);
-      sub_rois[0] = BBox2i(0,  0,  hw, hh); // Top left
-      sub_rois[1] = BBox2i(hw, 0,  hw, hh); // Top right
-      sub_rois[2] = BBox2i(hw, hh, hw, hh); // Bottom right
-      sub_rois[3] = BBox2i(0,  hh, hw, hh); // Bottom left
-      
-      //printf("Means for tile: %d, %d\n", this_col, this_row);
-      
-      ImageView<RadarTypeM> section = crop(m_input_image, bbox);
+    // Compute the four sub-ROIs
+    const int NUM_SUB_ROIS = 4;
+    int hw = input_bbox.width() /2;
+    int hh = input_bbox.height()/2;
+    std::vector<BBox2i> sub_rois(NUM_SUB_ROIS); // ROIs relative to the whole tile
+    std::vector<double> means;
+    means.reserve(NUM_SUB_ROIS);
+    sub_rois[0] = BBox2i(0,  0,  hw, hh); // Top left
+    sub_rois[1] = BBox2i(hw, 0,  hw, hh); // Top right
+    sub_rois[2] = BBox2i(hw, hh, hw, hh); // Bottom right
+    sub_rois[3] = BBox2i(0,  hh, hw, hh); // Bottom left
+    
+    ImageView<RadarTypeM> section = crop(m_input_image, input_bbox);
 
-      // Don't compute statistics from regions with a lot of bad pixels
-      const double MIN_PERCENT_VALID = 0.9;
-      
-      // Compute the mean in each of the four sub-rois
-      double percent_valid;
-      for (int i=0; i<NUM_SUB_ROIS; ++i) {
-        double mean;
-        percent_valid = mean_and_validity(crop(section, sub_rois[i]), mean);
-        if (percent_valid >= MIN_PERCENT_VALID)
-          means.push_back(mean);
-        //std::cout << "Mean for sub-roi " << sub_rois[i] << " = " << means[i] << std::endl;
-      }
-      bool is_valid = false;
-      double mean_of_means = 0;
-      double stddev_of_means = 0;
-      if (means.size() > 0) {
-        // Compute the standard deviation of the means
-        // - Currently both are set to zero if all pixels are invalid.
-        mean_of_means = math::mean(means);
-        is_valid = (mean_of_means > 0);
-        if (is_valid) {
-          stddev_of_means = math::standard_deviation(means, mean_of_means);
-          //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
-          //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
-        }
-}
-
-      // Assign the REAL outputs
+    // Don't compute statistics from regions with a lot of bad pixels
+    const double MIN_PERCENT_VALID = 0.9;
+    
+    // Compute the mean in each of the four sub-rois
+    double percent_valid;
+    for (int i=0; i<NUM_SUB_ROIS; ++i) {
+      double mean;
+      percent_valid = mean_and_validity(crop(section, sub_rois[i]), mean);
+      if (percent_valid >= MIN_PERCENT_VALID)
+        means.push_back(mean);
+      //std::cout << "Mean for sub-roi " << sub_rois[i] << " = " << means[i] << std::endl;
+    }
+    bool is_valid = false;
+    double mean_of_means   = 0;
+    double stddev_of_means = 0;
+    if (means.size() > 0) {
+      // Compute the standard deviation of the means
+      // - Currently both are set to zero if all pixels are invalid.
+      mean_of_means = math::mean(means);
+      is_valid = (mean_of_means > 0);
       if (is_valid) {
-        m_tile_means  (this_col, this_row) = RadarTypeM(mean_of_means);
-        m_tile_stddevs(this_col, this_row) = RadarTypeM(stddev_of_means);
-      } else {
-        invalidate(m_tile_means  (this_col, this_row));
-        invalidate(m_tile_stddevs(this_col, this_row));
+        stddev_of_means = math::standard_deviation(means, mean_of_means);
+        //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
+        //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
       }
-    } // End mean/stddev calculation
+    }
 
-    // Set up the output image tile - This is junk we don't care about!
-    ImageView<result_type> tile(bbox.width(), bbox.height());
+    // Set up the output image tile - only 1 by 1 pixel!
+    ImageView<result_type> tile(1, 1);
+    tile(0, 0)[0] = mean_of_means;
+    tile(0, 0)[1] = stddev_of_means;
+    if (!is_valid)
+      invalidate(tile(0, 0));
+    else
+      validate(tile(0, 0));
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
     return prerasterize_type(tile,
@@ -478,31 +419,15 @@ public: // Functions
 
 
 template <class ImageT>
-void generate_tile_means(ImageT input_image, int tile_size, int num_boxes_x, int num_boxes_y,
-                         ImageView<RadarTypeM> &tile_means, ImageView<RadarTypeM> &tile_stddevs) {
+void generate_tile_means(ImageT input_image, int tile_size,
+                         ImageView<PixelMask<Vector2f> > &tile_means_stddevs) {
 
-  // These tiles must be written at this exact size to get the correct results!
-  //Vector2i block_size(tile_size, tile_size);
-  
-  ImageTileMeansView<ImageT> tile_mean_generator(input_image, num_boxes_x, num_boxes_y, tile_size);
-  
-  std::string dummy_path = "dummy.tif";
-  
-  // TODO: Using this View object is a hack to get multi-threaded processing
-  //       and it should be replaced with a simpler implementation!!! 
-  
-  // Write dummy image to force multi-threaded processing
-  cartography::GdalWriteOptions write_options;
-  write_options.raster_tile_size = Vector2i(tile_size, tile_size);
-  block_write_gdal_image(dummy_path, tile_mean_generator, write_options,
-                         TerminalProgressCallback("vw", "\t--> Computing tile means:"));
-
-  // Grab results from the view object
-  tile_means   = tile_mean_generator.tile_means();
-  tile_stddevs = tile_mean_generator.tile_stddevs();
-  
-  // Clean up the dummy file we wrote
-  std::remove(dummy_path.c_str());
+  // Set up computation object 
+  ImageTileMeansView<ImageT> tile_mean_generator(input_image, tile_size);
+ 
+  // Use multiple threads to process the image.
+  // - Each block generates one output pixel frome tile_sizeXtile_size input pixels.
+  tile_means_stddevs = block_rasterize(tile_mean_generator, Vector2i(1,1));
 
 } // End function generate_tile_means
 
@@ -576,11 +501,15 @@ UnaryPerPixelView<ViewT, GetAngleFunc> get_angle(ImageViewBase<ViewT> const& vie
 
 
 /// Select the best N tiles to use for computing the global water threshold
-size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarTypeM> & tile_stddevs,
-                         std::vector<Vector2i> & kept_tile_indices,
+size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
+                         std::vector<int> & kept_tile_indices,
                          cartography::GdalWriteOptions const& write_options) {
 
   std::cout << "Computing global tile statistics...\n";
+
+  // For convenient reference of the two input channels
+  ImageViewRef<RadarTypeM> tile_means   = copy_mask(select_channel(tile_means_stddevs, 0), tile_means_stddevs);
+  ImageViewRef<RadarTypeM> tile_stddevs = copy_mask(select_channel(tile_means_stddevs, 1), tile_means_stddevs);
 
   // Compute the global mean
   double global_mean = mean_channel_value(tile_means);
@@ -635,7 +564,10 @@ size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarType
   
   // If already at/below the cap we are finished.
   if (num_tiles_kept <= MAX_NUM_TILES) {
-    kept_tile_indices = n_prime_tiles;
+    // Copy linear indices of kept tiles
+    kept_tile_indices.resize(n_prime_tiles.size());
+    for (size_t i=0; i<n_prime_tiles.size(); ++i)
+      kept_tile_indices[i] = n_prime_tiles[i][1]*tile_stddevs.cols() + n_prime_tiles[i][0];
     return n_prime_tiles.size();
   }
   // Reset this image DEBUG
@@ -652,9 +584,11 @@ size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarType
   size_t max_index = num_tiles_kept - 1;
   size_t index_out=0;
   for (size_t i=max_index; i>max_index-MAX_NUM_TILES; --i) {
-    kept_tile_indices[index_out] = n_prime_tiles[i];
-    kept_tile_display(n_prime_tiles[i][0],n_prime_tiles[i][1]) = 255;
-    std::cout << "Keeping tile " << n_prime_tiles[i] << std::endl;
+    size_t index_to_keep = indices[i];
+    Vector2i index_2d = n_prime_tiles[index_to_keep];
+    kept_tile_indices[index_out] = index_2d[1]*tile_stddevs.cols() + index_2d[0]; // Get linear index
+    kept_tile_display(index_2d[0], index_2d[1]) = 255;
+    std::cout << "Keeping tile " << n_prime_tiles[index_to_keep] << std::endl;
     ++index_out;
   }
 
@@ -668,8 +602,8 @@ size_t select_best_tiles(ImageView<RadarTypeM> & tile_means, ImageView<RadarType
 
 
 bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image, 
-                              std::vector<Vector2i> const& kept_tile_indices,
-                              std::vector<std::vector<BBox2i> > const& large_tile_boxes,
+                              std::vector<int> const& kept_tile_indices,
+                              std::vector<BBox2i> const& large_tile_boxes,
                               float global_min, float global_max,
                               double &threshold_mean) {
 
@@ -686,8 +620,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
   for (size_t i=0; i<num_tiles; ++i) {
   
     // Compute tile histogram     
-    Vector2i tile_index = kept_tile_indices[i];
-    BBox2i   roi = large_tile_boxes[tile_index[1]][tile_index[0]]; // The ROIs are stored row-first.
+    BBox2i   roi = large_tile_boxes[kept_tile_indices[i]]; // The ROIs are stored row-first.
     std::vector<double> hist;
     histogram(crop(preprocessed_image, roi), num_bins, dmin, dmax, hist);
     
@@ -782,26 +715,24 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
                                global_min, global_max, write_options, preprocessed_image_path, preprocessed_image);
   
   // Generate vector of BBoxes for each tile in the input image (S+)
-  std::vector<std::vector<BBox2i> > large_tile_boxes;
-  divide_roi(bounding_box(preprocessed_image), tile_size, large_tile_boxes, false);
-  int num_boxes_y = large_tile_boxes.size();
-  int num_boxes_x = large_tile_boxes[0].size();
-  //printf("Num boxes: %d, %d\n", num_boxes_x, num_boxes_y);
+  std::vector<BBox2i> large_tile_boxes = subdivide_bbox(bounding_box(preprocessed_image), 
+                                                        tile_size, tile_size, false);
+  
+  
   std::cout << "Computing tile means...\n";
 
   // For each tile compute the mean value and the standard deviation of the four sub-tiles.
-  ImageView<RadarTypeM> tile_means, tile_stddevs; // These are much smaller than the input image
-  generate_tile_means(preprocessed_image, tile_size, num_boxes_x, num_boxes_y,
-                      tile_means, tile_stddevs);
+  ImageView<PixelMask<Vector2f> > tile_means_stddevs; // These are much smaller than the input image
+  generate_tile_means(preprocessed_image, tile_size, tile_means_stddevs);
 
   std::cout << "Writing DEBUG images...\n";
-  block_write_gdal_image("tile_means.tif",   tile_means,   write_options);
-  block_write_gdal_image("tile_stddevs.tif", tile_stddevs, write_options);
+  block_write_gdal_image("tile_means.tif",   select_channel(tile_means_stddevs, 0), write_options);
+  block_write_gdal_image("tile_stddevs.tif", select_channel(tile_means_stddevs, 1), write_options);
 
 
   // Select the tiles that we will use to compute the optimal global threshold.
-  std::vector<Vector2i> kept_tile_indices;
-  select_best_tiles(tile_means, tile_stddevs, kept_tile_indices, write_options);
+  std::vector<int> kept_tile_indices;
+  select_best_tiles(tile_means_stddevs, kept_tile_indices, write_options);
 
   // Use the selected tiles to compute the optimal image threshold.
   double threshold_mean;
