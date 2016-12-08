@@ -131,6 +131,8 @@ namespace vw {
   // subdivide_bbox()
   // *******************************************************************
 
+  // TODO: Move this to BBox.h!
+
   /// A utility routine that, given an image, returns a vector of
   /// bounding boxes for sub-regions of the image of the specified
   /// size.  Note that bounding boxes along the right and bottom edges
