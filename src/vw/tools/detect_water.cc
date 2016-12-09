@@ -36,22 +36,24 @@ using namespace vw;
 int main(int argc, char **argv) {
 
   std::vector<std::string> input_file_names;
-  std::string output_path, mode;
+  std::string output_path, mode, dem_path;
   float manual_threshold;
 
-  // TODO: Auto-compute the default value.
   int tile_size=512;
   cartography::GdalWriteOptions write_options;
 
   po::options_description general_options("Runs VW's water detection tools.\n\nGeneral Options");
   general_options.add_options()
     ("output-path,o",    po::value<std::string>(&output_path), "The output file path")
+    ("dem-path,d",       po::value<std::string>(&dem_path), "Path to a DEM file to be used with processing.")
     ("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
     ("num-threads",      po::value<int>(&write_options.num_threads)->default_value(2), 
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
-    ("mode,m",           po::value<std::string>(&mode), "The processing mode. Required.  Optons: [sentinel1, landsat]")
+    ("mode,m",           po::value<std::string>(&mode), 
+        "The processing mode. Required.  Optons: [sentinel1, landsat, worldview]")
+    ("debug",  "Record debugging information.")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -88,15 +90,26 @@ int main(int argc, char **argv) {
     std::cout << "Error: The 'mode' option must be specified.\n";
     return 0;
   }
+  bool debug = vm.count("debug");
 
   // Check the input mode
   boost::algorithm::to_lower(mode);
   bool radar_mode     = (mode.find("sentinel1") != std::string::npos);
   bool landsat_mode   = (mode.find("landsat"  ) != std::string::npos);
   bool worldview_mode = (mode.find("worldview") != std::string::npos);
+  bool spot_mode      = (mode.find("spot"     ) != std::string::npos);
   if (!radar_mode && !landsat_mode && !worldview_mode) {
     std::cout << "Error: Unrecognized 'mode' option!  Choices are 'sentinel1' and 'landsat'.\n";
-    return 0;
+    return -1;
+  }
+  
+  if ((dem_path != "") && (!radar_mode))
+    std::cout << "Warning: DEM file is only used when mode is 'sentinel1'\n";
+  
+  // Make sure a prodived DEM file exists before we start doing any processing.
+  if ((dem_path != "") && !boost::filesystem::exists(dem_path)) {
+    std::cout << "Error: Provided DEM file not found!\n";
+    return -2;
   }
   
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
@@ -113,32 +126,43 @@ int main(int argc, char **argv) {
   }
   
   if (radar_mode) {
+    //dem_path = "/home/smcmich1/data/usgs_floods/dem/imgn30w095_13.tif"; // DEBUG
     std::cout << "Processing sentinel-1 image!\n";
-    radar::sar_martinis(input_file_names[0], output_path, write_options);
+    radar::sar_martinis(input_file_names[0], output_path, write_options, dem_path, debug);
     return 0;
   }
   
   if (landsat_mode) {
     std::cout << "Processing Landsat image!\n";
-    landsat::detect_water(input_file_names, output_path, write_options);
+    landsat::detect_water(input_file_names, output_path, write_options, debug);
     return 0;
   }
 
   if (worldview_mode) {
     std::cout << "Processing WorldView image!\n";
-    multispectral::detect_water_worldview3(input_file_names, output_path, write_options);
+    multispectral::detect_water_worldview3(input_file_names, output_path, write_options, debug);
     return 0;
   }
+/*
+  if (spot_mode) {
+    std::cout << "Processing SPOT image!\n";
+    multispectral::detect_water_spot(input_file_names, output_path, write_options, debug);
+    return 0;
+  }
+*/
+  
+
+/*
 
   std::cout << "Loading MODIS image...\n";
   modis::ModisImage modis_image;
   modis::load_modis_image(modis_image, input_file_names);
-/*
+
   write_image("b1.tif", select_channel(modis_image, modis::B1));
   write_image("b2.tif", select_channel(modis_image, modis::B2));
   write_image("b3.tif", select_channel(modis_image, modis::B3));
   write_image("b4.tif", select_channel(modis_image, modis::B4));
-*/
+
   cartography::GeoReference georef;
   modis::load_modis_georef(input_file_names, georef);
   std::cout << "Read georef: \n" << georef << std::endl;
@@ -177,4 +201,5 @@ int main(int argc, char **argv) {
 
 
   return 0;
+  */
 }

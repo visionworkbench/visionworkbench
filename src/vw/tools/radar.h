@@ -278,7 +278,7 @@ void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, BBo
 
   //TODO: How to handle input NODATA!
   // Return a view of the image on disk for easy access
-  processed_image = create_mask(DiskImageView<RadarType>("preprocessed_image.tif"), 0);
+  processed_image = create_mask(DiskImageView<RadarType>(temporary_path), 0);
 
   // Update these to reflect the scaled values
   global_min = PROC_MIN;
@@ -403,9 +403,7 @@ public: // Functions
       validate(tile(0, 0));
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
-    return prerasterize_type(tile,
-                             -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
+    return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
 
   } // End prerasterize function
 
@@ -437,7 +435,7 @@ void generate_tile_means(ImageT input_image, int tile_size,
 /// Combine the four fuzzy scores into one final score
 /// - Inputs are expected to be in the range 0-1
 template <class PixelT1, class PixelT2, class PixelT3, class PixelT4>
-struct DefuzzFunctor : public ReturnFixedType<float> {
+struct DefuzzFourFunctor : public ReturnFixedType<float> {
 
   typedef PixelMask<float> result_type;
 
@@ -449,8 +447,24 @@ struct DefuzzFunctor : public ReturnFixedType<float> {
     float mean = (p1 + p2 + p3 + p4) / 4.0;
     return result_type(mean);
   }
-}; // End class DefuzzFunctor
+}; // End class DefuzzFourFunctor
 
+/// Combine only two fuzzy scores into one final score
+/// - Inputs are expected to be in the range 0-1
+template <class PixelT1, class PixelT2>
+struct DefuzzTwoFunctor : public ReturnFixedType<float> {
+
+  typedef PixelMask<float> result_type;
+
+  result_type operator()(PixelT1 const& p1, PixelT2 const& p2) const {
+    // If any input score is zero, the output score is zero.
+    if ((p1 == 0) || (p2 == 0))
+      return result_type(0.0);
+
+    float mean = (p1 + p2) / 2.0;
+    return result_type(mean);
+  }
+}; // End class DefuzzTwoFunctor
 
 //============================================================================
 
@@ -503,7 +517,8 @@ UnaryPerPixelView<ViewT, GetAngleFunc> get_angle(ImageViewBase<ViewT> const& vie
 /// Select the best N tiles to use for computing the global water threshold
 size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
                          std::vector<int> & kept_tile_indices,
-                         cartography::GdalWriteOptions const& write_options) {
+                         cartography::GdalWriteOptions const& write_options,
+                         bool debug) {
 
   std::cout << "Computing global tile statistics...\n";
 
@@ -545,7 +560,7 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
         n_prime_std_dev.push_back(tile_stddevs(c,r));
         n_prime_mean.push_back   (tile_means  (c,r));
         mean_of_selected += tile_means(c,r);
-        std::cout << "Keeping tile " << Vector2i(c,r) << std::endl;
+        //std::cout << "Keeping tile " << Vector2i(c,r) << std::endl;
         kept_tile_display(c,r) = 255;
       }
     }
@@ -554,7 +569,8 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   size_t num_tiles_kept = n_prime_tiles.size();
   std::cout << "Selected " << num_tiles_kept << " initial tiles.\n";
   
-  block_write_gdal_image("initial_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
+  if (debug)
+    block_write_gdal_image("initial_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
 
   if (n_prime_tiles.empty())
     vw_throw(LogicErr() << "No tiles left after std_dev filtering!");
@@ -588,11 +604,12 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
     Vector2i index_2d = n_prime_tiles[index_to_keep];
     kept_tile_indices[index_out] = index_2d[1]*tile_stddevs.cols() + index_2d[0]; // Get linear index
     kept_tile_display(index_2d[0], index_2d[1]) = 255;
-    std::cout << "Keeping tile " << n_prime_tiles[index_to_keep] << std::endl;
+    //std::cout << "Keeping tile " << n_prime_tiles[index_to_keep] << std::endl;
     ++index_out;
   }
 
-  block_write_gdal_image("final_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
+  if (debug)
+    block_write_gdal_image("final_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
   
   std::cout << "Reduced to " << MAX_NUM_TILES << " kept tiles.\n";
   
@@ -677,7 +694,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
 */
 void sar_martinis(std::string const& input_image_path, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options,
-                  int tile_size = 512) {
+                  std::string dem_path="", bool debug=false, int tile_size = 512) {
 
   // TODO: How to specify the ROI?
   
@@ -690,7 +707,8 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   if (!have_georef)
     vw_throw(ArgumentErr() << "Failed to read image georeference!");
   georef = crop(georef, roi); // Account for the input ROI
-  std::cout << "Read georeference: " << georef << std::endl;
+  if (debug)
+    std::cout << "Read georeference: " << georef << std::endl;
   
   double input_meters_per_pixel = cartography::get_image_meters_per_pixel(roi.width(), roi.height(), georef);
   std::cout << "Computed image pixel resolution in meters: " << input_meters_per_pixel << std::endl;
@@ -725,14 +743,16 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   ImageView<PixelMask<Vector2f> > tile_means_stddevs; // These are much smaller than the input image
   generate_tile_means(preprocessed_image, tile_size, tile_means_stddevs);
 
-  std::cout << "Writing DEBUG images...\n";
-  block_write_gdal_image("tile_means.tif",   select_channel(tile_means_stddevs, 0), write_options);
-  block_write_gdal_image("tile_stddevs.tif", select_channel(tile_means_stddevs, 1), write_options);
+  if (debug) {
+    std::cout << "Writing DEBUG images...\n";
+    block_write_gdal_image("tile_means.tif",   select_channel(tile_means_stddevs, 0), write_options);
+    block_write_gdal_image("tile_stddevs.tif", select_channel(tile_means_stddevs, 1), write_options);
+  }
 
 
   // Select the tiles that we will use to compute the optimal global threshold.
   std::vector<int> kept_tile_indices;
-  select_best_tiles(tile_means_stddevs, kept_tile_indices, write_options);
+  select_best_tiles(tile_means_stddevs, kept_tile_indices, write_options, debug);
 
   // Use the selected tiles to compute the optimal image threshold.
   double threshold_mean;
@@ -747,7 +767,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, 
                                                  FLOOD_DETECT_WATER, FLOOD_DETECT_LAND);
 
-  // DEBUG: Apply the initial threshold to the image and save it to disk!
+  // Apply the initial threshold to the image and save it to disk!
   std::string initial_water_detect_path = "initial_water_detect.tif";
   block_write_gdal_image(initial_water_detect_path,
                          pixel_cast<uint8>(apply_mask(raw_water, FLOOD_DETECT_NODATA)),
@@ -755,6 +775,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
                          true, FLOOD_DETECT_NODATA, // Choose the nodata value
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Applying initial threshold:"));
+
 
   // Get information needed for fuzzy logic results filtering
 
@@ -807,87 +828,19 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   //                       have_georef, low_res_georef, true, -9999,
   //                       write_options, TerminalProgressCallback("vw", "\t--> DEBUG:"));
 
+  // Go ahead and set up the fuzzy logic results that can be done without a DEM
 
-  // TODO: Work out how to load DEM information!
-  std::string dem_path = "/home/smcmich1/data/usgs_floods/dem/imgn30w095_13.tif";
-
-
-  typedef PixelMask<float> DemPixelType;
-
-  // Should be safe to use this as a DEM nodata value!
-  double dem_nodata_value = -3.4028234663852886e+38;
-  bool have_dem_nodata = read_nodata_val(dem_path, dem_nodata_value);
-
-  DiskImageView<float> dem(dem_path);
-
-  cartography::GeoReference dem_georef;
-  if (!cartography::read_georeference(dem_georef, dem_path))
-    vw_throw(ArgumentErr() << "Failed to read DEM georeference!");
-
-  // Generate a low-resolution DEM masked by the initial flood detection
-  // - This is used to compute image-wide statistics in a more reasonable amount of time
-  // - TODO: Fill in holes in the masked DEM
-  // TODO: Use the full res dem on disk since we are accessing it at low res?
-  ImageView<DemPixelType> low_res_dem = subsample(create_mask(dem, dem_nodata_value), DEM_STATS_SUBSAMPLE_FACTOR);
-  cartography::GeoReference low_res_dem_georef = resample(dem_georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
-
-
-  block_write_gdal_image("low_res_dem.tif",   apply_mask(low_res_dem, dem_nodata_value),
-                         have_georef, low_res_dem_georef, have_dem_nodata, dem_nodata_value,
-                         write_options, TerminalProgressCallback("vw", "\t--> dem:"));
-
-  std::cout << "low georef = " << low_res_georef << std::endl;
-  std::cout << "DEM georef = " << low_res_dem_georef << std::endl;
-
-  ImageViewRef<PixelMask<float> > low_res_dem_in_image_coords = 
-    cartography::geo_transform(low_res_dem, low_res_dem_georef, low_res_georef,
-                               low_res_raw_water.cols(), low_res_raw_water.rows(), ConstantEdgeExtension());
-  ImageViewRef<PixelMask<float> > dem_in_image_coords = 
-    cartography::geo_transform(create_mask(dem, dem_nodata_value), dem_georef, georef,
-                               preprocessed_image.cols(), preprocessed_image.rows(), ConstantEdgeExtension());
-
-//  block_write_gdal_image("geotrans_dem.tif",
-//                          apply_mask(dem_in_image_coords, dem_nodata_value),
-//                         have_georef, low_res_georef, true, dem_nodata_value,
-//                         write_options, TerminalProgressCallback("vw", "\t--> geotrans:"));
-
-  // Now go through and compute statistics across the water covered locations of the DEM
-  //typedef FunctorMaskWrapper<StdDevAccumulator<float>, PixelMask<float> > MaskedStdDevFunctor;
-  StdDevAccumulator<float> stddev_functor;
-  FunctorMaskWrapper<StdDevAccumulator<float>, PixelMask<float> > dem_stats_functor(stddev_functor);
-  for_each_pixel(copy_mask(low_res_dem_in_image_coords, low_res_raw_water), dem_stats_functor);
-  
-  float mean_water_height   = dem_stats_functor.child().value();
-  float stddev_water_height = dem_stats_functor.child().mean();
-
-  std::cout << "Mean height of flooded regions = " << mean_water_height 
-            << ", and stddev = " << stddev_water_height << std::endl;
-
-    
   // Compute fuzzy classifications on four categories
   typedef PixelMask<float> FuzzyPixelType;
   typedef FuzzyMembershipSFunctor<RadarTypeM> FuzzyFunctorS;
   typedef FuzzyMembershipZFunctor<RadarTypeM> FuzzyFunctorZ;
-
+  ImageViewRef<FuzzyPixelType> defuzzed;
  
   // SAR
   FuzzyFunctorZ radar_fuzz_functor(mean_raw_water_value, threshold_mean);
   ImageViewRef<FuzzyPixelType> radar_fuzz = per_pixel_view(preprocessed_image, radar_fuzz_functor);
 
-  // Elevation
-  // - The max value looks a little weird but it comes straight from the paper.
-  const double high_height = mean_water_height + stddev_water_height*(stddev_water_height + 3.5);
-  FuzzyFunctorZ height_fuzz_functor(mean_water_height, high_height);
-  ImageViewRef<FuzzyPixelType> height_fuzz = per_pixel_view(dem_in_image_coords, height_fuzz_functor);
-  
-  // Slope
-  const double degrees_low  = 0;
-  const double degrees_high = 15;
-  FuzzyFunctorZ slope_fuzz_functor(degrees_low, degrees_high);
-  ImageViewRef<FuzzyPixelType> slope_fuzz = per_pixel_view(get_angle(compute_normals(dem_in_image_coords, 1.0, 1.0)), slope_fuzz_functor);
-  
-  // Body size
-  
+  // Body size 
   FuzzyFunctorS blob_fuzz_functor(min_blob_size, max_blob_size);
   ImageViewRef<FuzzyPixelType> blob_fuzz = per_pixel_view(blob_sizes, blob_fuzz_functor);
 
@@ -895,26 +848,106 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   block_write_gdal_image("radar_fuzz.tif", apply_mask(radar_fuzz, dem_nodata_value),
                          have_georef, georef, true, dem_nodata_value,
                          write_options, TerminalProgressCallback("vw", "\t--> radar_fuzz:"));
-  block_write_gdal_image("height_fuzz.tif", apply_mask(height_fuzz, dem_nodata_value),
-                         have_georef, georef, true, dem_nodata_value,
-                         write_options, TerminalProgressCallback("vw", "\t--> height_fuzz:"));
-  block_write_gdal_image("slope_fuzz.tif", apply_mask(slope_fuzz, dem_nodata_value),
-                         have_georef, georef, true, dem_nodata_value,
-                         write_options, TerminalProgressCallback("vw", "\t--> slope_fuzz:"));
   block_write_gdal_image("blob_fuzz.tif", apply_mask(blob_fuzz, dem_nodata_value),
                          have_georef, georef, true, dem_nodata_value,
                          write_options, TerminalProgressCallback("vw", "\t--> blob_fuzz:"));
 */
-                         
-  // Defuzz the four fuzzy classifiers and compare to a fixed threshold in the 0-1 range.
-  typedef DefuzzFunctor<FuzzyPixelType, FuzzyPixelType, FuzzyPixelType, FuzzyPixelType> DefuzzFunctorType;
-  ImageViewRef<FuzzyPixelType> defuzzed = per_pixel_view(radar_fuzz, height_fuzz, slope_fuzz, blob_fuzz, DefuzzFunctorType());
 
-/*                         
-  block_write_gdal_image("defuzzed.tif", apply_mask(defuzzed, dem_nodata_value),
-                         have_georef, georef, true, dem_nodata_value,
-                         write_options, TerminalProgressCallback("vw", "\t--> Defuzz:"));
-*/
+  if (dem_path == "") {
+    // Handle the case where a DEM was not provided
+  
+    std::cout << "No input DEM file provided, finishing calculations without one.\n";
+  
+    // Defuzz only two fuzzy classifiers and compare to a fixed threshold in the 0-1 range.
+    typedef DefuzzTwoFunctor<FuzzyPixelType, FuzzyPixelType> DefuzzFunctorType;
+    defuzzed = per_pixel_view(radar_fuzz, blob_fuzz, DefuzzFunctorType());
+  
+  } else {
+    // Handle the case where a DEM was provided
+
+    typedef PixelMask<float> DemPixelType;
+
+    // Should be safe to use this as a DEM nodata value!
+    double dem_nodata_value = -3.4028234663852886e+38;
+    bool have_dem_nodata = read_nodata_val(dem_path, dem_nodata_value);
+
+    DiskImageView<float> dem(dem_path);
+
+    cartography::GeoReference dem_georef;
+    if (!cartography::read_georeference(dem_georef, dem_path))
+      vw_throw(ArgumentErr() << "Failed to read DEM georeference!");
+
+    std::cout << "Input DEM file found, using it to complete the calculations.\n";
+
+    // Generate a low-resolution DEM masked by the initial flood detection
+    // - This is used to compute image-wide statistics in a more reasonable amount of time
+    // - TODO: Fill in holes in the masked DEM
+    // TODO: Use the full res dem on disk since we are accessing it at low res?
+    ImageView<DemPixelType> low_res_dem = subsample(create_mask(dem, dem_nodata_value), DEM_STATS_SUBSAMPLE_FACTOR);
+    cartography::GeoReference low_res_dem_georef = resample(dem_georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
+
+    //block_write_gdal_image("low_res_dem.tif",   apply_mask(low_res_dem, dem_nodata_value),
+    //                       have_georef, low_res_dem_georef, have_dem_nodata, dem_nodata_value,
+    //                       write_options, TerminalProgressCallback("vw", "\t--> dem:"));
+    //std::cout << "low georef = " << low_res_georef << std::endl;
+    //std::cout << "DEM georef = " << low_res_dem_georef << std::endl;
+
+    ImageViewRef<PixelMask<float> > low_res_dem_in_image_coords = 
+      cartography::geo_transform(low_res_dem, low_res_dem_georef, low_res_georef,
+                                 low_res_raw_water.cols(), low_res_raw_water.rows(), ConstantEdgeExtension());
+    ImageViewRef<PixelMask<float> > dem_in_image_coords = 
+      cartography::geo_transform(create_mask(dem, dem_nodata_value), dem_georef, georef,
+                                 preprocessed_image.cols(), preprocessed_image.rows(), ConstantEdgeExtension());
+
+  //  block_write_gdal_image("geotrans_dem.tif",
+  //                          apply_mask(dem_in_image_coords, dem_nodata_value),
+  //                         have_georef, low_res_georef, true, dem_nodata_value,
+  //                         write_options, TerminalProgressCallback("vw", "\t--> geotrans:"));
+
+    // Now go through and compute statistics across the water covered locations of the DEM
+    //typedef FunctorMaskWrapper<StdDevAccumulator<float>, PixelMask<float> > MaskedStdDevFunctor;
+    StdDevAccumulator<float> stddev_functor;
+    FunctorMaskWrapper<StdDevAccumulator<float>, PixelMask<float> > dem_stats_functor(stddev_functor);
+    for_each_pixel(copy_mask(low_res_dem_in_image_coords, low_res_raw_water), dem_stats_functor);
+    
+    float mean_water_height   = dem_stats_functor.child().value();
+    float stddev_water_height = dem_stats_functor.child().mean();
+
+    std::cout << "Mean height of flooded regions = " << mean_water_height 
+              << ", and stddev = " << stddev_water_height << std::endl;
+
+    // Elevation
+    // - The max value looks a little weird but it comes straight from the paper.
+    const double high_height = mean_water_height + stddev_water_height*(stddev_water_height + 3.5);
+    FuzzyFunctorZ height_fuzz_functor(mean_water_height, high_height);
+    ImageViewRef<FuzzyPixelType> height_fuzz = per_pixel_view(dem_in_image_coords, height_fuzz_functor);
+    
+    // Slope
+    const double degrees_low  = 0;
+    const double degrees_high = 15;
+    FuzzyFunctorZ slope_fuzz_functor(degrees_low, degrees_high);
+    ImageViewRef<FuzzyPixelType> slope_fuzz = per_pixel_view(get_angle(compute_normals(dem_in_image_coords, 1.0, 1.0)), slope_fuzz_functor);
+
+  /*
+    block_write_gdal_image("height_fuzz.tif", apply_mask(height_fuzz, dem_nodata_value),
+                           have_georef, georef, true, dem_nodata_value,
+                           write_options, TerminalProgressCallback("vw", "\t--> height_fuzz:"));
+    block_write_gdal_image("slope_fuzz.tif", apply_mask(slope_fuzz, dem_nodata_value),
+                           have_georef, georef, true, dem_nodata_value,
+                           write_options, TerminalProgressCallback("vw", "\t--> slope_fuzz:"));
+  */
+                           
+    // Defuzz all four fuzzy classifiers and compare to a fixed threshold in the 0-1 range.
+    typedef DefuzzFourFunctor<FuzzyPixelType, FuzzyPixelType, FuzzyPixelType, FuzzyPixelType> DefuzzFunctorType;
+    defuzzed = per_pixel_view(radar_fuzz, height_fuzz, slope_fuzz, blob_fuzz, DefuzzFunctorType());
+    
+  } // End of case where a DEM was provided
+
+  if (debug) {                         
+    block_write_gdal_image("defuzzed.tif", apply_mask(defuzzed, -999),
+                           have_georef, georef, false, 999,
+                           write_options, TerminalProgressCallback("vw", "\t--> Defuzz:"));
+  }
 
   // Perform two-level flood fill of the defuzzed image and write it to disk.
   // - The mask is added back in at this point.
@@ -934,9 +967,12 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Generating final output:"));
 
-
-  // Clean up temporary image files
-  std::remove(preprocessed_image_path.c_str());
+  if (debug == false) {
+    // Clean up temporary image files
+    std::remove(initial_water_detect_path.c_str());
+    std::remove(preprocessed_image_path.c_str());
+    std::remove(blobs_path.c_str());
+  }
 
 } // End function sar_martinis
 

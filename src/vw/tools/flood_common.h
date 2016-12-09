@@ -107,8 +107,8 @@ double compute_earth_sun_distance(int year, int month, int day, int hour, int mi
   double d = julian_day - 2451545.0;
   double g = 357.529 + 0.98560028*d;
   double earth_sun_distance = 1.00014 - 0.01671*cos(g) - 0.00014*cos(2*g);
-  std::cout << "julian_day = " << julian_day << std::endl;
-  std::cout << "earth_sun_distance = " << earth_sun_distance << std::endl;
+  //std::cout << "julian_day = " << julian_day << std::endl;
+  //std::cout << "earth_sun_distance = " << earth_sun_distance << std::endl;
   return earth_sun_distance;
 }
 

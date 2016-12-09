@@ -310,13 +310,6 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
   } // End of search through metadata lines.
   handle.close();
 
-  //std::cout << "Read params:\n";
-  //std::cout << metadata.rad_mult << std::endl;
-  //std::cout << metadata.rad_add << std::endl;
-  //std::cout << metadata.toa_mult << std::endl;
-  //std::cout << metadata.toa_add << std::endl;
-  //std::cout << metadata.k_constants << std::endl;
-
   if ((metadata.sun_elevation_degrees == 0) || (metadata.toa_mult[0] == 0))
     vw_throw( ArgumentErr() << "Error: Failed to read in required metadata!\n");
     
@@ -508,7 +501,7 @@ public:
 };
 
 void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
-                  cartography::GdalWriteOptions const& write_options) {
+                  cartography::GdalWriteOptions const& write_options, bool debug=false) {
 
   LandsatImage ls_image;
   int landsat_type= 8; // TODO: Where to get this!
@@ -520,6 +513,15 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
   
   LandsatMetadataContainer metadata;
   load_landsat_metadata(image_files, landsat_type, metadata);
+
+  if (debug) {
+    std::cout << "Read metadata:\n";
+    std::cout << "rad_mult "    << metadata.rad_mult    << std::endl;
+    std::cout << "rad_add "     << metadata.rad_add     << std::endl;
+    std::cout << "toa_mult "    << metadata.toa_mult    << std::endl;
+    std::cout << "toa_add "     << metadata.toa_add     << std::endl;
+    std::cout << "k_constants " << metadata.k_constants << std::endl;
+  }
 
 /*
   block_write_gdal_image("landsat_input.tif",
