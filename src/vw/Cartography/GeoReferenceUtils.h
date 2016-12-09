@@ -55,9 +55,6 @@ namespace cartography {
   GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
   GeoReference resample( GeoReference const& input, double scale );
 
-
-
-
   /// Standard options for multi-threaded GDAL (tif) image writing.
   struct GdalWriteOptions {
     DiskImageResourceGDAL::Options gdal_options;
@@ -172,17 +169,6 @@ namespace cartography {
                         = ProgressCallback::dummy_instance(),
                         std::map<std::string, std::string> const& keywords
                         = std::map<std::string, std::string>() );
-
-
-
-
-
-
-
-
-
-
-
 
 
   // Multi-threaded block write image with, if available, nodata, georef, and
@@ -329,36 +315,6 @@ namespace cartography {
                      has_nodata, nodata, opt, progress_callback,
                      keywords);
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// The following namespace contains functions that return GeoReferences
   /// for certain well-known output styles, such as KML (and related
