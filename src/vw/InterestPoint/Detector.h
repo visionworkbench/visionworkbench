@@ -494,7 +494,7 @@ InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
      m_view(view.impl()), m_detector(detector),
      m_write_queue(write_queue), m_ip_list(ip_list),
      m_index(0) {
-  m_bboxes = image_blocks( m_view, tile_size, tile_size );
+  m_bboxes = subdivide_bbox( m_view, tile_size, tile_size );
   this->notify();
 }
 

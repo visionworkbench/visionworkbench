@@ -432,7 +432,7 @@ void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& de
   int tile_size = vw_settings().default_tile_size();
   if (tile_size < 1024)
     tile_size = 1024;
-  std::vector<BBox2i> bboxes = image_blocks(view.impl(), tile_size, tile_size);
+  std::vector<BBox2i> bboxes = subdivide_bbox(view.impl(), tile_size, tile_size);
   std::vector<typename InterestPointList::iterator> section_start, section_stop;
   typename InterestPointList::iterator sstop = list.begin();
   for ( size_t i = 0; i < bboxes.size(); ++i ) {
