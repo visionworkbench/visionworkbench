@@ -116,7 +116,6 @@ double get_image_meters_per_pixel(int width, int height, GeoReference const& geo
   return (d1 + d2) / 2.0;
 }
 
-
 }} // vw::cartography
 
 #undef CHECK_PROJ_ERROR

@@ -126,7 +126,16 @@ TEST( GeoReferenceUtils, gdal_read_checks) {
 }
 
 
+TEST( GeoReferenceUtils, haversine_distance) {
+  // Simple check like what we use to compute image meters per pixel
+  
+  double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823), Vector2(-79.8817279, 37.8158211));
+  double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211), Vector2(-79.8817279, 39.7140823));
+  double denom = sqrt(30977*30977 + 18229*18229);
 
+  EXPECT_NEAR(9.74744, d1/denom, 0.0001);
+  EXPECT_NEAR(9.74744, d2/denom, 0.0001);
+}
 
 
 

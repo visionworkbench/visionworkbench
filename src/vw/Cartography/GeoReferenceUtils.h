@@ -52,10 +52,11 @@ namespace cartography {
   /// Returns the distance along the Earth's surface in meters between two points.
   /// - The distance is returned in meters.
   /// - Accuracy is not perfect but should be pretty good.
-  inline double haversine_circle_distance(Vector2 a, Vector2 b);
+  /// - Inputs should be in lon/lat degrees.
+  double haversine_circle_distance(Vector2 a, Vector2 b);
 
   /// Estimates meters per pixel for an image.
-  inline double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
+  double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
   /// Standard options for multi-threaded GDAL (tif) image writing.
   struct GdalWriteOptions {

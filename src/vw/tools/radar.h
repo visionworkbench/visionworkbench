@@ -212,12 +212,13 @@ typedef PixelMask<RadarType> RadarTypeM;
 
 
 /// Convert a sentinel1 image from digital numbers (DN) to decibels (DB)
-struct Sentinel1DnToDb : public ReturnFixedType<float> {
+struct Sentinel1DnToDb : public ReturnFixedType<PixelMask<float> > {
   Sentinel1DnToDb(){}
-  float operator()( RadarType value ) const {
-    if (value == 0)
-      return 0; // These pixels are invalid, don't return inf for them!
-    return 10*log10(value);
+  PixelMask<float> operator()( PixelMask<Sentinel1Type> p ) const {
+    PixelMask<float> output = PixelMask<float>(10*log10(p.child()));
+    if (!is_valid(p))
+      invalidate(output);
+    return output;
   }
 };
 
@@ -230,7 +231,8 @@ inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
 
 
 /// Crop and preprocess the input image in preparation for the sar_martinis algorithm.
-void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, BBox2i const& roi,
+template <class ImageT>
+void preprocess_sentinel1_image(ImageT const& input_image, BBox2i const& roi,
                                 RadarType &global_min, RadarType &global_max,
                                 cartography::GdalWriteOptions const& write_options,
                                 std::string const& temporary_path,
@@ -267,18 +269,35 @@ void preprocess_sentinel1_image(ImageView<Sentinel1Type> const& input_image, BBo
   //TODO: Handle the mask in the filter!
   // Perform median filter to correct speckles (see section 2.1.4)
   int kernel_size = 3;
+  double nodata_value = -32767.0; // This is for our use, so it can be fixed.
+
   cartography::block_write_gdal_image(temporary_path,
-                                      normalize(sentinel1_dn_to_db(median_filter_view(crop(input_image, roi), 
-                                                                                      Vector2i(kernel_size, kernel_size))
-                                                                ),
-                                              global_min, global_max, PROC_MIN, PROC_MAX
-                                             ),
+                                      apply_mask(normalize(median_filter_view(sentinel1_dn_to_db(crop(input_image, roi)), 
+                                                                              Vector2i(kernel_size, kernel_size)
+                                                                             ),
+                                                 global_min, global_max, PROC_MIN, PROC_MAX),
+                                                 nodata_value
+                                                ),
+                                      nodata_value,
                                       write_options,
                                       TerminalProgressCallback("vw", "\t--> Preprocessing:"));
 
-  //TODO: How to handle input NODATA!
+/*
+  cartography::block_write_gdal_image(temporary_path,
+                                      apply_mask(copy_mask(normalize(sentinel1_dn_to_db(median_filter_view(crop(input_image, roi), 
+                                                                                                           Vector2i(kernel_size, kernel_size))
+                                                                                        ),
+                                                                     global_min, global_max, PROC_MIN, PROC_MAX
+                                                                    ),
+                                                           input_image),
+                                                 nodata_value
+                                                ),
+                                      nodata_value,
+                                      write_options,
+                                      TerminalProgressCallback("vw", "\t--> Preprocessing:"));
+*/
   // Return a view of the image on disk for easy access
-  processed_image = create_mask(DiskImageView<RadarType>(temporary_path), 0);
+  processed_image = create_mask(DiskImageView<RadarType>(temporary_path), nodata_value);
 
   // Update these to reflect the scaled values
   global_min = PROC_MIN;
@@ -367,7 +386,7 @@ public: // Functions
     ImageView<RadarTypeM> section = crop(m_input_image, input_bbox);
 
     // Don't compute statistics from regions with a lot of bad pixels
-    const double MIN_PERCENT_VALID = 0.9;
+    const double MIN_PERCENT_VALID = 0.95;
     
     // Compute the mean in each of the four sub-rois
     double percent_valid;
@@ -579,7 +598,7 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   const size_t MAX_NUM_TILES = 5; // From the paper  
   
   // If already at/below the cap we are finished.
-  if (num_tiles_kept <= MAX_NUM_TILES) {
+  if (true) {//(num_tiles_kept <= MAX_NUM_TILES) {
     // Copy linear indices of kept tiles
     kept_tile_indices.resize(n_prime_tiles.size());
     for (size_t i=0; i<n_prime_tiles.size(); ++i)
@@ -725,12 +744,9 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   // Apply any needed preprocessing to the image
   ImageViewRef<RadarTypeM> preprocessed_image;
   RadarType global_min, global_max;
-  if (has_input_nodata)
-    preprocess_sentinel1_image(DiskImageView<Sentinel1Type>(input_image_path), roi, 
-                               global_min, global_max, write_options, preprocessed_image_path, preprocessed_image);
-  else
-    preprocess_sentinel1_image(create_mask(DiskImageView<Sentinel1Type>(input_image_path), nodata_value), roi, 
-                               global_min, global_max, write_options, preprocessed_image_path, preprocessed_image);
+  preprocess_sentinel1_image(create_mask(DiskImageView<Sentinel1Type>(input_image_path), nodata_value), 
+                             roi, global_min, global_max, 
+                             write_options, preprocessed_image_path, preprocessed_image);
   
   // Generate vector of BBoxes for each tile in the input image (S+)
   std::vector<BBox2i> large_tile_boxes = subdivide_bbox(bounding_box(preprocessed_image), 
@@ -745,8 +761,11 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
   if (debug) {
     std::cout << "Writing DEBUG images...\n";
-    block_write_gdal_image("tile_means.tif",   select_channel(tile_means_stddevs, 0), write_options);
-    block_write_gdal_image("tile_stddevs.tif", select_channel(tile_means_stddevs, 1), write_options);
+    float debug_nodata = -32768.0;
+    block_write_gdal_image("tile_means.tif", 
+      apply_mask(select_channel(tile_means_stddevs, 0), debug_nodata), debug_nodata, write_options);
+    block_write_gdal_image("tile_stddevs.tif", 
+      apply_mask(select_channel(tile_means_stddevs, 1), debug_nodata), debug_nodata, write_options);
   }
 
 
@@ -783,12 +802,16 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   // as needed to avoid recomputing the expensive blob computations.
   // - In order to parallelize this step, blob computations are approximated.
   
-  const double MIN_BLOB_SIZE_METERS = 250.0; 
-  const double MAX_BLOB_SIZE_METERS = 1000.0;
+  const double MIN_BLOB_SIZE_METERS = 1000;//250.0; 
+  const double MAX_BLOB_SIZE_METERS = 5000;//1000.0;
   const int    TILE_EXPAND   = 256; // The larger this number, the better the approximation.
   
   uint32 min_blob_size = MIN_BLOB_SIZE_METERS / input_meters_per_pixel;
   uint32 max_blob_size = MAX_BLOB_SIZE_METERS / input_meters_per_pixel;
+
+  std::cout << "input_meters_per_pixel = " << input_meters_per_pixel << std::endl;
+  std::cout << "Min blob size pixels = " << min_blob_size << std::endl;
+  std::cout << "Max blob size pixels = " << max_blob_size << std::endl;
 
   std::string blobs_path = "blob_sizes.tif";
   const uint32 BLOBS_NODATA = 0;
@@ -848,10 +871,10 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   block_write_gdal_image("radar_fuzz.tif", apply_mask(radar_fuzz, dem_nodata_value),
                          have_georef, georef, true, dem_nodata_value,
                          write_options, TerminalProgressCallback("vw", "\t--> radar_fuzz:"));
-  block_write_gdal_image("blob_fuzz.tif", apply_mask(blob_fuzz, dem_nodata_value),
-                         have_georef, georef, true, dem_nodata_value,
+*/  block_write_gdal_image("blob_fuzz.tif", apply_mask(blob_fuzz, -1),
+                         have_georef, georef, true, -1,
                          write_options, TerminalProgressCallback("vw", "\t--> blob_fuzz:"));
-*/
+
 
   if (dem_path == "") {
     // Handle the case where a DEM was not provided

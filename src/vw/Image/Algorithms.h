@@ -386,7 +386,11 @@ struct WindowMedianFunctor {
         }
       }
     }
-    if (index == 0) { // All pixels invalid!
+    
+    // Require a certain percentage of input pixels for a valid output result.
+    const double VALID_PERCENTAGE = 0.9;
+    int min_valid_values = static_cast<double>(image.impl().rows()*image.impl().cols()) * VALID_PERCENTAGE;
+    if (index < min_valid_values) {
       typename ImageT::pixel_type result(0);
       invalidate(result);
       return result;
