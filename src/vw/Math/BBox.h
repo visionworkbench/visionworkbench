@@ -174,7 +174,7 @@ struct Int2Type
     /// Grows a bounding box to include the given bounding box.
     template <class RealT1, size_t DimN1>
     inline void grow( BBox<RealT1, DimN1> const& bbox ){
-      if (bbox.empty()) return; // this is a bugfix
+      //if (bbox.empty()) return; // this is a bugfix
       grow(bbox.min()); grow(bbox.max());
     }
 
