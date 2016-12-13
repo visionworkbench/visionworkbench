@@ -268,7 +268,7 @@ public:
 float compute_ndvi( WorldView3ToaPixelType const& pixel) {
   float denom = pixel[RED] + pixel[NIR2];
   if (denom == 0)
-    return 0; // Avoid divide-by-zero
+    return 10; // Avoid divide-by-zero
   return (pixel[RED] - pixel[NIR2]) / denom;
 }
 
@@ -276,7 +276,7 @@ float compute_ndvi( WorldView3ToaPixelType const& pixel) {
 float compute_ndwi( WorldView3ToaPixelType const& pixel) {
   float denom = pixel[BLUE] + pixel[NIR1];
   if (denom == 0)
-    return 0; // Avoid divide-by-zero
+    return 10; // Avoid divide-by-zero
   return (pixel[BLUE] - pixel[NIR1]) / denom;
 }
 
@@ -285,25 +285,76 @@ float compute_ndwi( WorldView3ToaPixelType const& pixel) {
 float compute_ndwi2( WorldView3ToaPixelType const& pixel) {
   float denom = pixel[COASTAL] + pixel[NIR2];
   if (denom == 0)
-    return 0; // Avoid divide-by-zero
+    return 10; // Avoid divide-by-zero
   return (pixel[COASTAL] - pixel[NIR2]) / denom;
 }
 
+/// Compute SDI index
+float compute_sdi( WorldView3ToaPixelType const& pixel) {
+  float denom = pixel[NIR2] + pixel[BLUE];
+  if (denom == 0)
+    return 10; // Avoid divide-by-zero
+  return ((pixel[NIR2] - pixel[BLUE]) / denom) - pixel[NIR1];
+}
+
+
+class NdviFunctor  : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+    PixelMask<float> output(compute_ndvi(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+class NdwiFunctor  : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+    PixelMask<float> output(compute_ndwi(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+class Ndwi2Functor  : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+    PixelMask<float> output(compute_ndwi2(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+class SdiFunctor  : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+    PixelMask<float> output(compute_sdi(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+
+
 /// Use this to call detect_water on each pixel like this:
-/// --> = per_pixel_view(landsat_image, landsat::DetectWaterLandsatFunctor());
+/// --> = per_pixel_view(landsat_image, landsat::DetectWaterWorldView3Functor());
+/// - This seems to work fairly well except that it can confuse cloud shadows with water.
+///   The NDVI index seems like the best way to discriminate between them but it is still
+///   not very good.  To actually do a good job, would probably need to do something with
+///   cloud detection (easier) and sun geometry.
 class DetectWaterWorldView3Functor  : public ReturnFixedType<uint8> {
 public:
   DetectWaterWorldView3Functor() {}
   
   uint8 operator()( WorldView3ToaPixelType const& pixel) const {
     if (is_valid(pixel)){
-      // Extremely simple way to look for water!
-      // TODO: It does not work well!  Need to test a better method on more images.
-      float ndvi = compute_ndvi(pixel);
-      float ndwi = compute_ndwi(pixel);
+      // Very simple way to look for water!  Test on more images!
+      float ndvi  = compute_ndvi(pixel);
+      float ndwi2 = compute_ndwi2(pixel);
       //std::cout << "ndvi " << ndvi << ", ndwi " << ndwi <<std::endl;
-      //if ((ndwi > 0.0) && (ndvi < 0.0))
-      if (ndwi > 0.1)
+      if ((ndvi < 0.1) || (ndwi2 < 0.3))
+        return FLOOD_DETECT_LAND;
+      if ((ndvi > 0.5) || (ndwi2 > 0.5))
         return FLOOD_DETECT_WATER;
       return FLOOD_DETECT_LAND;
     }
@@ -361,6 +412,52 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
     std::cout << "mean_sun_elevation "  << metadata.mean_sun_elevation  << std::endl;
     std::cout << "earth_sun_distance "  << metadata.earth_sun_distance  << std::endl;
     std::cout << "datetime "            << metadata.datetime            << std::endl;
+    
+
+    block_write_gdal_image("ndvi.tif",
+                           apply_mask(
+                             per_pixel_view(
+                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                NdviFunctor()
+                             ),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> NDVI"));
+/*
+    block_write_gdal_image("ndwi.tif",
+                           apply_mask(
+                             per_pixel_view(
+                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                NdwiFunctor()
+                             ),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> NDWI"));
+*/
+    block_write_gdal_image("ndwi2.tif",
+                           apply_mask(
+                             per_pixel_view(
+                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                Ndwi2Functor()
+                             ),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> NDWI2"));    
+
+    block_write_gdal_image("sdi.tif",
+                           apply_mask(
+                             per_pixel_view(
+                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                SdiFunctor()
+                             ),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> SDI"));
+    
   }
 
   block_write_gdal_image(output_path,

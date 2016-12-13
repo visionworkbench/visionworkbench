@@ -586,7 +586,9 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   }
 
   size_t num_tiles_kept = n_prime_tiles.size();
-  std::cout << "Selected " << num_tiles_kept << " initial tiles.\n";
+  mean_of_selected /= static_cast<double>(num_tiles_kept);
+  std::cout << "Selected " << num_tiles_kept << " initial tiles with mean value "
+            << mean_of_selected << std::endl;
   
   if (debug)
     block_write_gdal_image("initial_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
@@ -598,7 +600,7 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   const size_t MAX_NUM_TILES = 5; // From the paper  
   
   // If already at/below the cap we are finished.
-  if (true) {//(num_tiles_kept <= MAX_NUM_TILES) {
+  if (num_tiles_kept <= MAX_NUM_TILES) {
     // Copy linear indices of kept tiles
     kept_tile_indices.resize(n_prime_tiles.size());
     for (size_t i=0; i<n_prime_tiles.size(); ++i)
@@ -608,9 +610,6 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   // Reset this image DEBUG
   fill(kept_tile_display, 0);
   
-  // The original paper restricted kept tiles to tiles below the tile mean,
-  // so go back and add this if it seems to be needed.
-  
   // Keep the N tiles with the highest standard deviation
   std::vector<size_t> indices;
   sort_vector_indices(n_prime_std_dev, indices); // Sorts by STD low to high
@@ -618,21 +617,31 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> > & tile_means_stddevs,
   kept_tile_indices.resize(MAX_NUM_TILES);
   size_t max_index = num_tiles_kept - 1;
   size_t index_out=0;
-  for (size_t i=max_index; i>max_index-MAX_NUM_TILES; --i) {
+  for (size_t i=max_index; i>0; --i) {
     size_t index_to_keep = indices[i];
+    
+    //// Don't keep tiles above the mean of the initial set of kept tiles.
+    //double this_mean = n_prime_mean[index_to_keep];
+    //if (this_mean > mean_of_selected)
+    //  continue;
+      
     Vector2i index_2d = n_prime_tiles[index_to_keep];
     kept_tile_indices[index_out] = index_2d[1]*tile_stddevs.cols() + index_2d[0]; // Get linear index
     kept_tile_display(index_2d[0], index_2d[1]) = 255;
     //std::cout << "Keeping tile " << n_prime_tiles[index_to_keep] << std::endl;
+    
+    // Quit when we have kept the desired number of tiles.
     ++index_out;
+    if (index_out >= MAX_NUM_TILES)
+      break;
   }
 
   if (debug)
     block_write_gdal_image("final_kept_tiles.tif", kept_tile_display, write_options); // DEBUG
   
-  std::cout << "Reduced to " << MAX_NUM_TILES << " kept tiles.\n";
+  std::cout << "Reduced to " << kept_tile_indices.size() << " kept tiles.\n";
   
-  return MAX_NUM_TILES;
+  return kept_tile_indices.size();
 } // End function select_best_tiles
 
 
@@ -662,43 +671,30 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
     
     // Compute optimal split
     optimal_tile_thresholds[i] = split_histogram_kittler_illingworth(hist, num_bins, global_min, global_max);
-    std::cout << "For ROI " << roi << ", computed threshold " << optimal_tile_thresholds[i] << std::endl;
+    //std::cout << "For ROI " << roi << ", computed threshold " << optimal_tile_thresholds[i] << std::endl;
     threshold_mean += optimal_tile_thresholds[i];
   }
   threshold_mean /= static_cast<double>(num_tiles);
 
-  // TODO: Check statistics of the computed tile thresholds
-  // TODO: Some method to discard outliers
-
-  // If the standard deviation of the local thresholds in DB are greater than this,
-  //  the result is probably bad (number from the paper)
-  //double MAX_STD_DB = 5.0;
-
-  // The maximum allowed value, from the paper.
-  //double MAX_THRESHOLD_DB = 10.0;
-
+  // TODO: Find a good number to use with Sentinel-1 inputs!
+  // This number is in the rescaled units of the preprocessed image.
+  const double MAX_THRESHOLD_STDDEV = 10.0;
+  
   double threshold_stddev = math::standard_deviation(optimal_tile_thresholds, threshold_mean);
   
-  // TODO // Recompute these values in the original DB units.
-  //tileThresholdsDb = [rescaleNumber(x, PROC_global_min, PROC_global_max, minVal, maxVal) for x in tileThresholds]
-  //threshMeanDb = numpy.mean(tileThresholdsDb)
-  //threshStdDb  = numpy.std(tileThresholdsDb, ddof=1)
-
   std::cout << "Mean of tile thresholds: " << threshold_mean   << std::endl;
   std::cout << "STD  of tile thresholds: " << threshold_stddev << std::endl;
-  //print 'Mean of tile thresholds (DB): ' + str(threshMeanDb)
-  //print 'STD  of tile thresholds (DB): ' + str(threshStdDb)
 
-  // TODO: Verify that the computed threshold looks reasonable!
-  return true;
+  // If our selected tiles are too dissimilar our final answer is probably not trustworthy.
+  if (threshold_stddev > MAX_THRESHOLD_STDDEV) {
+    std::cout << "WARNING: Standard deviation of computed thresholds exceeds maximum value of "
+              << MAX_THRESHOLD_STDDEV << std::endl;
+    return false;
+  }
+  // The paper has some backup methods of computing the threshold but it is probably safer just
+  //  to declare failure in those instances.
 
-  //// TODO: Use an alternate method of computing the threshold like they do in the paper!
-  //if threshStdDb > MAX_STD_DB:
-  //    raise Exception('Failed to compute a good threshold! STD = ' + str(threshStdDb))
-  // TODO
-  //if threshMeanDb > MAX_THRESHOLD_DB:
-  //    threshMean = rescaleNumber(MAX_THRESHOLD_DB, minVal, maxVal, PROC_global_min, PROC_global_max)
-  //    print 'Saturating the computed threshold at 10 DB!'
+  return true;  
 
 } // End compute_global_threshold
 
@@ -748,39 +744,55 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
                              roi, global_min, global_max, 
                              write_options, preprocessed_image_path, preprocessed_image);
   
-  // Generate vector of BBoxes for each tile in the input image (S+)
-  std::vector<BBox2i> large_tile_boxes = subdivide_bbox(bounding_box(preprocessed_image), 
-                                                        tile_size, tile_size, false);
-  
-  
-  std::cout << "Computing tile means...\n";
-
-  // For each tile compute the mean value and the standard deviation of the four sub-tiles.
-  ImageView<PixelMask<Vector2f> > tile_means_stddevs; // These are much smaller than the input image
-  generate_tile_means(preprocessed_image, tile_size, tile_means_stddevs);
-
-  if (debug) {
-    std::cout << "Writing DEBUG images...\n";
-    float debug_nodata = -32768.0;
-    block_write_gdal_image("tile_means.tif", 
-      apply_mask(select_channel(tile_means_stddevs, 0), debug_nodata), debug_nodata, write_options);
-    block_write_gdal_image("tile_stddevs.tif", 
-      apply_mask(select_channel(tile_means_stddevs, 1), debug_nodata), debug_nodata, write_options);
-  }
-
-
-  // Select the tiles that we will use to compute the optimal global threshold.
-  std::vector<int> kept_tile_indices;
-  select_best_tiles(tile_means_stddevs, kept_tile_indices, write_options, debug);
-
-  // Use the selected tiles to compute the optimal image threshold.
+  const int MAX_TILE_ATTEMPTS = 2;
+  bool   tile_thresh_success = false;
   double threshold_mean;
-  if (!compute_global_threshold(preprocessed_image, kept_tile_indices, large_tile_boxes,
-                                global_min, global_max, threshold_mean)) {
-    std::cout << "WARNING: Computed threshold may be inaccurate!\n";
+  for (int num_tile_attempts = 0; num_tile_attempts < MAX_TILE_ATTEMPTS; ++num_tile_attempts) {
+    
+    // Generate vector of BBoxes for each tile in the input image (S+)
+    std::vector<BBox2i> large_tile_boxes = subdivide_bbox(bounding_box(preprocessed_image), 
+                                                          tile_size, tile_size, false);
+    
+    
+    std::cout << "Computing tile means...\n";
+
+    // For each tile compute the mean value and the standard deviation of the four sub-tiles.
+    ImageView<PixelMask<Vector2f> > tile_means_stddevs; // These are much smaller than the input image
+    const float MIN_VALID = 150;  
+    generate_tile_means(create_mask_less_or_equal(preprocessed_image, MIN_VALID), tile_size, tile_means_stddevs);
+
+    if (debug) {
+      std::cout << "Writing DEBUG images...\n";
+      float debug_nodata = -32768.0;
+      block_write_gdal_image("tile_means.tif", 
+        apply_mask(select_channel(tile_means_stddevs, 0), debug_nodata), debug_nodata, write_options);
+      block_write_gdal_image("tile_stddevs.tif", 
+        apply_mask(select_channel(tile_means_stddevs, 1), debug_nodata), debug_nodata, write_options);
+    }
+
+
+    // Select the tiles that we will use to compute the optimal global threshold.
+    std::vector<int> kept_tile_indices;
+    size_t num_tiles_kept = select_best_tiles(tile_means_stddevs, kept_tile_indices, write_options, debug);
+
+    if (num_tiles_kept > 0) {
+      // Use the selected tiles to compute the optimal image threshold.
+      tile_thresh_success = compute_global_threshold(preprocessed_image, kept_tile_indices, large_tile_boxes,
+                                                     global_min, global_max, threshold_mean);
+    }
+    
+    // Exit the loop if we succeeded, otherwise try one more time with half the tile size.
+    if (tile_thresh_success)
+      break;
+    tile_size /= 2;
+    if (num_tile_attempts == 0)
+      std::cout << "Making one more attempt to auto-compute the threshold using smaller image tiles...\n";
+  } // End of loop to attemp to automaticall compute threshold.
+  
+  // Quit if we did not compute a good threshold.
+  if (!tile_thresh_success) {
+    vw_throw(ArgumentErr() << "Unable to compute a good water threshold for this image!");
   }
- 
-  // TODO: When either of the previous steps fail, repeat the earlier steps with the tile size cut in half.
   
   // This will mask the water pixels, setting water pixels to 255, land pixels to 1, and invalid pixels to 0.
   ImageViewRef<RadarTypeM> raw_water = threshold(preprocessed_image, threshold_mean, 
