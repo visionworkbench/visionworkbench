@@ -106,6 +106,21 @@ void BBox<RealT, DimN>::grow( VectorBase<VectorT> const& point ) {
   }
 }
 
+/// Grows a bounding box to include the given bounding box.
+template <class RealT, size_t DimN>
+template <class RealT1, size_t DimN1>
+void BBox<RealT, DimN>::grow( BBox<RealT1, DimN1> const& bbox ){
+  if (bbox.empty()) return; // this is a bugfix
+  grow(bbox.min()); grow(bbox.max());
+}
+  
+/// Grows a bounding box to include the given bounding box.
+template <class RealT, size_t DimN>
+template <class RealT1, size_t DimN1>
+void BBox<RealT, DimN>::grow_bad( BBox<RealT1, DimN1> const& bbox ){
+  grow(bbox.min()); grow(bbox.max());
+}
+
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
 void BBox<RealT, DimN>::crop( BBox<RealT1, DimN1> const& bbox ) {
@@ -378,6 +393,9 @@ grow_bbox_to_int( math::BBox<RealT1, DimN1> const& bbox ) {
       return  BBox<int32,DimN1>();
     }
 
+    // Note: This is not quite correct, as we grow the box
+    // even when it is already integer, but exiting
+    // behavior again depends on this.
     result.min()[i] = (int32)floor(bbox.min()[i]);
     result.max()[i] = (int32)floor(bbox.max()[i])+1;
   }

@@ -110,16 +110,21 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
       current_search_region = q1_search;
     if ( q2_search != BBox2i() && current_search_region == BBox2i() )
       current_search_region = q2_search;
-    else
-      current_search_region.grow(q2_search);
+    else{
+      current_search_region.grow_bad(q2_search);
+    }
     if ( q3_search != BBox2i() && current_search_region == BBox2i() )
       current_search_region = q3_search;
-    else
-      current_search_region.grow(q3_search);
-    if ( q4_search != BBox2i() && current_search_region == BBox2i() )
+    else{
+      current_search_region.grow_bad(q3_search);
+    }
+    if ( q4_search != BBox2i() && current_search_region == BBox2i() ){
       current_search_region = q4_search;
-    else
-      current_search_region.grow(q4_search);
+    }
+    else{
+      current_search_region.grow_bad(q4_search);
+    }
+    
     int32 current_search = current_search_region.area() * prod(current_bbox.size()+kernel_size);
 
     if (current_search_region.empty())
@@ -170,7 +175,7 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          merge.grow(it2->first);
+          merge.grow_bad(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( *++it2 );
           return true;
@@ -180,7 +185,7 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          merge.grow(it2->first);
+          merge.grow_bad(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( failed.front() );
           return true;
@@ -190,7 +195,7 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
-          merge.grow(it2->first);
+          merge.grow_bad(it2->first);
           list.push_back( SearchParam( merge, it1->second ) );
           list.push_back( *++it1 );
           return true;
@@ -206,7 +211,7 @@ bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                failed.front().first.min().y() == failed.back().first.min().y() ) &&
              failed.front().second == failed.back().second ) {
           BBox2i merge = failed.front().first;
-          merge.grow(failed.back().first);
+          merge.grow_bad(failed.back().first);
           list.push_back( SearchParam( merge, failed.front().second ) );
           return true;
         }

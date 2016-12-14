@@ -173,10 +173,11 @@ struct Int2Type
 
     /// Grows a bounding box to include the given bounding box.
     template <class RealT1, size_t DimN1>
-    inline void grow( BBox<RealT1, DimN1> const& bbox ){
-      //if (bbox.empty()) return; // this is a bugfix
-      grow(bbox.min()); grow(bbox.max());
-    }
+    inline void grow( BBox<RealT1, DimN1> const& bbox );
+
+    /// Grows a bounding box to include the given bounding box.
+    template <class RealT1, size_t DimN1>
+    inline void grow_bad( BBox<RealT1, DimN1> const& bbox );
 
     /// Crops (intersects) this bounding box to the given bounding box.
     template <class RealT1, size_t DimN1>
