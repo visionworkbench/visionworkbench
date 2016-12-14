@@ -438,6 +438,7 @@ float compute_water_threshold(float sun_angle_degrees) {
   const float MIN_THRESH = 0.05;
   if (thresh < MIN_THRESH)
     return MIN_THRESH;
+  return thresh;
 }
 
 

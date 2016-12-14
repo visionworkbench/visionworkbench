@@ -98,8 +98,9 @@ int main(int argc, char **argv) {
   bool landsat_mode   = (mode.find("landsat"  ) != std::string::npos);
   bool worldview_mode = (mode.find("worldview") != std::string::npos);
   bool spot_mode      = (mode.find("spot"     ) != std::string::npos);
-  if (!radar_mode && !landsat_mode && !worldview_mode) {
-    std::cout << "Error: Unrecognized 'mode' option!  Choices are 'sentinel1' and 'landsat'.\n";
+  if (!radar_mode && !landsat_mode && !worldview_mode && !spot_mode) {
+    std::cout << "Error: Unrecognized 'mode' option!  Choices are " 
+              << "'sentinel1' , 'landsat', 'worldview', and 'spot'.\n";
     return -1;
   }
   
@@ -140,16 +141,16 @@ int main(int argc, char **argv) {
 
   if (worldview_mode) {
     std::cout << "Processing WorldView image!\n";
-    multispectral::detect_water_worldview3(input_file_names, output_path, write_options, debug);
+    multispectral::detect_water_worldview23(input_file_names, output_path, write_options, debug);
     return 0;
   }
-/*
+
   if (spot_mode) {
     std::cout << "Processing SPOT image!\n";
-    multispectral::detect_water_spot(input_file_names, output_path, write_options, debug);
+    multispectral::detect_water_spot67(input_file_names, output_path, write_options, debug);
     return 0;
   }
-*/
+
   
 
 /*

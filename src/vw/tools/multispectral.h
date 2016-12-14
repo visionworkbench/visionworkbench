@@ -39,8 +39,6 @@ namespace multispectral {
 
 // Multispectral image types
 
-// TODO: Operate on WV2 images also!
-
 const int NUM_SPOT67_BANDS    = 5;
 const int NUM_WORLDVIEW_BANDS = 8;
 
@@ -58,30 +56,38 @@ const float WORLDVIEW_ESUN[NUM_WORLDVIEW_BANDS] = {
   861.2866   // NIR 2
 };
 
+/*  This is nominally the correct order, but the HDDS files seem to have a
+     different configuration!
 enum SPOT67_CHANNEL_INDICES { SPOT_PAN   = 0, 
                               SPOT_BLUE  = 1, 
                               SPOT_GREEN = 2, 
                               SPOT_RED   = 3, 
                               SPOT_NIR   = 4};
+*/
 
-enum WORLDVIEW3_CHANNEL_INDICES { COASTAL  = 0, 
-                                  BLUE     = 1, 
-                                  GREEN    = 2, 
-                                  YELLOW   = 3, 
-                                  RED      = 4, 
-                                  RED_EDGE = 5,
-                                  NIR1     = 6,
-                                  NIR2     = 7};
+enum SPOT67_CHANNEL_INDICES { SPOT_BLUE  = 0, 
+                              SPOT_GREEN = 1, 
+                              SPOT_RED   = 2, 
+                              SPOT_NIR   = 3};
+
+enum WORLDVIEW23_CHANNEL_INDICES { COASTAL  = 0, 
+                                   BLUE     = 1, 
+                                   GREEN    = 2, 
+                                   YELLOW   = 3, 
+                                   RED      = 4, 
+                                   RED_EDGE = 5,
+                                   NIR1     = 6,
+                                   NIR2     = 7};
 
 // 
 typedef PixelMask<Vector<uint8,  NUM_SPOT67_BANDS   > > Spot67PixelType;
-typedef PixelMask<Vector<uint16, NUM_WORLDVIEW_BANDS> > WorldView3PixelType;
+typedef PixelMask<Vector<uint16, NUM_WORLDVIEW_BANDS> > WorldView23PixelType;
 typedef PixelMask<Vector<float,  NUM_SPOT67_BANDS   > > Spot67ToaPixelType;
-typedef PixelMask<Vector<float,  NUM_WORLDVIEW_BANDS> > WorldView3ToaPixelType;
+typedef PixelMask<Vector<float,  NUM_WORLDVIEW_BANDS> > WorldView23ToaPixelType;
 
 // We use Refs for these types in case the images are very large.
 typedef ImageViewRef<Spot67PixelType> Spot67Image;
-typedef ImageViewRef<WorldView3PixelType> WorldView3Image;
+typedef ImageViewRef<WorldView23PixelType> WorldView23Image;
 
 /// Loads an image from either Spot6 or Spot7 (they are the same format)
 void load_spot67_image(std::vector<std::string> const& input_paths,
@@ -93,7 +99,8 @@ void load_spot67_image(std::vector<std::string> const& input_paths,
     vw_throw( ArgumentErr() << "Error: SPOT image file not found!\n");
     
   // TODO: Is zero always the nodata value?
-  image = create_mask(DiskImageView<Vector<uint8, NUM_SPOT67_BANDS> >(image_path));
+  image = create_mask(
+            planes_to_channels<Vector<uint8, NUM_SPOT67_BANDS> >(DiskImageView<uint8>(image_path)));
   
   DiskImageResourceGDAL disk_resource(image_path);
   if (!read_georeference(georef, disk_resource)) 
@@ -101,10 +108,10 @@ void load_spot67_image(std::vector<std::string> const& input_paths,
 }
 
 
-/// Load a Worldview 3 multispectral image
-void load_worldview3_image(std::vector<std::string> const& input_paths,
-                           WorldView3Image & image,
-                           cartography::GeoReference &georef) {
+/// Load a Worldview 2 or 3 multispectral image
+void load_worldview23_image(std::vector<std::string> const& input_paths,
+                            WorldView23Image & image,
+                            cartography::GeoReference &georef) {
 
   // Find the image file
   std::string image_path = find_string_in_list(input_paths, ".tif");
@@ -113,6 +120,9 @@ void load_worldview3_image(std::vector<std::string> const& input_paths,
 
   // Load 8 bands from one image
   // - The band order is Coastal, Blue, Green, Yellow, Red, Red-Edge, Near-IR1, Near-IR2
+
+  // WorldView 3 can take some additional bands but that does not affect the
+  //  multispectral file format.
 
   // TODO: Is zero the standard nodata value?
   // - The image is uint16 but only 11 bits are used (max value 2047)
@@ -157,8 +167,8 @@ struct WorldViewMetadataContainer {
 };
 
 
-void load_worldview3_metadata(std::vector<std::string> const& input_paths,
-                              WorldViewMetadataContainer &metadata) {
+void load_worldview23_metadata(std::vector<std::string> const& input_paths,
+                               WorldViewMetadataContainer &metadata) {
   // Find the metadata file
   std::string metadata_path = find_string_in_list(input_paths, ".IMD");
   if (metadata_path.empty())
@@ -227,19 +237,19 @@ void load_worldview3_metadata(std::vector<std::string> const& input_paths,
 
 
 /// Convert an input WorldView pixel to top-of-atmosphere.
-WorldView3ToaPixelType convert_to_toa(WorldView3PixelType const& pixel_in,
-                                      WorldViewMetadataContainer const& metadata)
+WorldView23ToaPixelType convert_to_toa(WorldView23PixelType const& pixel_in,
+                                       WorldViewMetadataContainer const& metadata)
 {             
   //std::cout << "IN " << pixel_in << std::endl;
   // First convert to radiance values
-  WorldView3ToaPixelType rad_pixel = pixel_cast<WorldView3ToaPixelType>(pixel_in);
+  WorldView23ToaPixelType rad_pixel = pixel_cast<WorldView23ToaPixelType>(pixel_in);
   for (int i=0; i<NUM_WORLDVIEW_BANDS; ++i)
     rad_pixel[i] = rad_pixel[i]*(metadata.abs_cal_factor[i]/metadata.effective_bandwidth[i]);
 
   // Now convert to reflectance values
   float scale_factor = metadata.earth_sun_distance*metadata.earth_sun_distance*M_PI /
                        cos(DEG_TO_RAD*(90.0 - metadata.mean_sun_elevation));
-  WorldView3ToaPixelType pixel = rad_pixel;
+  WorldView23ToaPixelType pixel = rad_pixel;
   for (int i=0; i<NUM_WORLDVIEW_BANDS; ++i)
     pixel[i] = rad_pixel[i] * scale_factor / WORLDVIEW_ESUN[i];
 
@@ -248,87 +258,111 @@ WorldView3ToaPixelType convert_to_toa(WorldView3PixelType const& pixel_in,
 }
 
 /// Functor wrapper for TOA conversion function
-class WorldView3ToaFunctor : public ReturnFixedType<WorldView3ToaPixelType > {
+class WorldView23ToaFunctor : public ReturnFixedType<WorldView23ToaPixelType > {
   WorldViewMetadataContainer m_metadata;
 public:
-  WorldView3ToaFunctor(WorldViewMetadataContainer const& metadata)
+  WorldView23ToaFunctor(WorldViewMetadataContainer const& metadata)
    : m_metadata(metadata) {}
   
-  WorldView3ToaPixelType operator()( WorldView3PixelType const& pixel) const {
+  WorldView23ToaPixelType operator()( WorldView23PixelType const& pixel) const {
     return convert_to_toa(pixel, m_metadata);
   }
 };
 
 
-//TODO: Come up with detection algorithms for these two sensors!
-//TODO: Verify TOA correction works!
-
+float compute_index( float a, float b) {
+  float denom = a + b;
+  if (denom == 0)
+    return 100; // Avoid divide-by-zero
+  return (a - b) / denom;
+}
 
 /// Compute NDVI index
-float compute_ndvi( WorldView3ToaPixelType const& pixel) {
-  float denom = pixel[RED] + pixel[NIR2];
-  if (denom == 0)
-    return 10; // Avoid divide-by-zero
-  return (pixel[RED] - pixel[NIR2]) / denom;
+float compute_ndvi( WorldView23ToaPixelType const& pixel) {
+  return compute_index(pixel[RED], pixel[NIR2]);
 }
 
 /// Compute NDWI index
-float compute_ndwi( WorldView3ToaPixelType const& pixel) {
-  float denom = pixel[BLUE] + pixel[NIR1];
-  if (denom == 0)
-    return 10; // Avoid divide-by-zero
-  return (pixel[BLUE] - pixel[NIR1]) / denom;
+float compute_ndwi( WorldView23ToaPixelType const& pixel) {
+  return compute_index(pixel[BLUE], pixel[NIR1]);
 }
 
 /// Compute NDWI2 index
 /// - Both of these calculations are sometimes listed as "NDWI"
-float compute_ndwi2( WorldView3ToaPixelType const& pixel) {
-  float denom = pixel[COASTAL] + pixel[NIR2];
-  if (denom == 0)
-    return 10; // Avoid divide-by-zero
-  return (pixel[COASTAL] - pixel[NIR2]) / denom;
+float compute_ndwi2( WorldView23ToaPixelType const& pixel) {
+  return compute_index(pixel[COASTAL], pixel[NIR2]);
 }
 
 /// Compute SDI index
-float compute_sdi( WorldView3ToaPixelType const& pixel) {
+float compute_sdi( WorldView23ToaPixelType const& pixel) {
   float denom = pixel[NIR2] + pixel[BLUE];
   if (denom == 0)
     return 10; // Avoid divide-by-zero
   return ((pixel[NIR2] - pixel[BLUE]) / denom) - pixel[NIR1];
 }
 
+// SPOT functions - note that TOA is not available!
+
+/// Compute NDVI index - SPOT
+float compute_ndvi_spot( Spot67PixelType const& pixel) {
+  return compute_index(pixel[SPOT_RED], pixel[SPOT_NIR]);
+}
+
+/// Compute NDWI index - SPOT
+float compute_ndwi_spot( Spot67PixelType const& pixel) {
+  return compute_index(pixel[SPOT_BLUE], pixel[SPOT_NIR]);
+}
 
 class NdviFunctor  : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndvi(pixel));
     if (!is_valid(pixel))
       invalidate(output);
     return output;
   }
 };
-class NdwiFunctor  : public ReturnFixedType<PixelMask<float> > {
+class NdwiFunctor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndwi(pixel));
     if (!is_valid(pixel))
       invalidate(output);
     return output;
   }
 };
-class Ndwi2Functor  : public ReturnFixedType<PixelMask<float> > {
+class Ndwi2Functor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndwi2(pixel));
     if (!is_valid(pixel))
       invalidate(output);
     return output;
   }
 };
-class SdiFunctor  : public ReturnFixedType<PixelMask<float> > {
+class SdiFunctor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView3ToaPixelType const& pixel) const {
+  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_sdi(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+
+class NdviFunctorSpot67 : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( Spot67PixelType const& pixel) const {
+    PixelMask<float> output(compute_ndvi_spot(pixel));
+    if (!is_valid(pixel))
+      invalidate(output);
+    return output;
+  }
+};
+class NdwiFunctorSpot67 : public ReturnFixedType<PixelMask<float> > {
+public:
+  PixelMask<float> operator()( Spot67PixelType const& pixel) const {
+    PixelMask<float> output(compute_ndwi_spot(pixel));
     if (!is_valid(pixel))
       invalidate(output);
     return output;
@@ -337,16 +371,16 @@ public:
 
 
 /// Use this to call detect_water on each pixel like this:
-/// --> = per_pixel_view(landsat_image, landsat::DetectWaterWorldView3Functor());
+/// --> = per_pixel_view(landsat_image, landsat::DetectWaterWorldView23Functor());
 /// - This seems to work fairly well except that it can confuse cloud shadows with water.
 ///   The NDVI index seems like the best way to discriminate between them but it is still
 ///   not very good.  To actually do a good job, would probably need to do something with
 ///   cloud detection (easier) and sun geometry.
-class DetectWaterWorldView3Functor  : public ReturnFixedType<uint8> {
+class DetectWaterWorldView23Functor  : public ReturnFixedType<uint8> {
 public:
-  DetectWaterWorldView3Functor() {}
+  DetectWaterWorldView23Functor() {}
   
-  uint8 operator()( WorldView3ToaPixelType const& pixel) const {
+  uint8 operator()( WorldView23ToaPixelType const& pixel) const {
     if (is_valid(pixel)){
       // Very simple way to look for water!  Test on more images!
       float ndvi  = compute_ndvi(pixel);
@@ -363,47 +397,38 @@ public:
   }
 };
 
-/*
-void detect_water_spot67(std::vector<std::string> const& image_files, 
-                         std::string const& output_path,
-                         cartography::GdalWriteOptions const& write_options) {
+/// Very ad-hoc detector for SPOT67.  TOA pixel conversion is not available,
+///  and only BGR + NIR bands are available.
+class DetectWaterSpot67Functor  : public ReturnFixedType<uint8> {
+public:
+  DetectWaterSpot67Functor() {}
+  
+  uint8 operator()( Spot67PixelType const& pixel) const {
+    if (is_valid(pixel)){
+      // Very simple way to look for water!  Test on more images!
+      float ndvi  = compute_ndvi_spot(pixel);
+      float ndwi = compute_ndwi_spot(pixel);
+      //std::cout << "ndvi " << ndvi << ", ndwi " << ndwi <<std::endl;
+      if ((ndwi > 0.3) || ((ndvi+ndwi) > 0.6))
+        return FLOOD_DETECT_WATER;
+      return FLOOD_DETECT_LAND;
+    }
+    else
+      return FLOOD_DETECT_NODATA;
+  }
+};
 
-  Spot67Image spot_image;
+void detect_water_worldview23(std::vector<std::string> const& image_files, 
+                              std::string const& output_path,
+                              cartography::GdalWriteOptions const& write_options,
+                              bool debug = false) {
+
+  WorldView23Image wv_image;
   cartography::GeoReference georef;
-  load_spot67_image(image_files, spot_image, georef);
+  load_worldview23_image(image_files, wv_image, georef);
  
   WorldViewMetadataContainer metadata;
-  load_spot67_metadata(image_files, metadata);
-
-  block_write_gdal_image(output_path,
-                         apply_mask(
-                           per_pixel_view(
-                              per_pixel_view(
-                                //crop(spot_image, BBox2(110, 2533, 1182, 1005)), // DEBUG
-                                spot_image,
-                                Spot67ToaFunctor(metadata)
-                              ),
-                              DetectWaterSpot67Functor()
-                           ),
-                           FLOOD_DETECT_NODATA
-                         ),
-                         true, georef,
-                         true, nodata_out,
-                         write_options,
-                         TerminalProgressCallback("vw", "\t--> Classifying Spot:"));
-}
-*/
-void detect_water_worldview3(std::vector<std::string> const& image_files, 
-                             std::string const& output_path,
-                             cartography::GdalWriteOptions const& write_options,
-                             bool debug = false) {
-
-  WorldView3Image wv_image;
-  cartography::GeoReference georef;
-  load_worldview3_image(image_files, wv_image, georef);
- 
-  WorldViewMetadataContainer metadata;
-  load_worldview3_metadata(image_files, metadata);
+  load_worldview23_metadata(image_files, metadata);
 
   if (debug) {
     std::cout << "Loaded metadata: \n";
@@ -417,7 +442,7 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
     block_write_gdal_image("ndvi.tif",
                            apply_mask(
                              per_pixel_view(
-                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                per_pixel_view(wv_image, WorldView23ToaFunctor(metadata)),
                                 NdviFunctor()
                              ),
                              -999
@@ -439,7 +464,7 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
     block_write_gdal_image("ndwi2.tif",
                            apply_mask(
                              per_pixel_view(
-                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                per_pixel_view(wv_image, WorldView23ToaFunctor(metadata)),
                                 Ndwi2Functor()
                              ),
                              -999
@@ -450,7 +475,7 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
     block_write_gdal_image("sdi.tif",
                            apply_mask(
                              per_pixel_view(
-                                per_pixel_view(wv_image, WorldView3ToaFunctor(metadata)),
+                                per_pixel_view(wv_image, WorldView23ToaFunctor(metadata)),
                                 SdiFunctor()
                              ),
                              -999
@@ -467,9 +492,9 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
                                 //crop(wv_image, BBox2(110, 2533, 1182, 1005)), // DEBUG
                                 //crop(wv_image, BBox2(896, 2905, 5, 5)), // DEBUG
                                 wv_image,
-                                WorldView3ToaFunctor(metadata)
+                                WorldView23ToaFunctor(metadata)
                               ),
-                              DetectWaterWorldView3Functor()
+                              DetectWaterWorldView23Functor()
                            ),
                            FLOOD_DETECT_NODATA
                          ),
@@ -478,6 +503,52 @@ void detect_water_worldview3(std::vector<std::string> const& image_files,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying WorldView:"));
 }
+
+
+
+
+void detect_water_spot67(std::vector<std::string> const& image_files, 
+                         std::string const& output_path,
+                         cartography::GdalWriteOptions const& write_options,
+                         bool debug = false) {
+
+  Spot67Image spot_image;
+  cartography::GeoReference georef;
+  load_spot67_image(image_files, spot_image, georef);
+
+  if (debug) {
+    block_write_gdal_image("ndvi.tif",
+                           apply_mask(
+                             per_pixel_view(spot_image, NdviFunctorSpot67()),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> NDVI"));
+
+    block_write_gdal_image("ndwi.tif",
+                           apply_mask(
+                             per_pixel_view(spot_image, NdwiFunctorSpot67()),
+                             -999
+                           ),
+                           true, georef, true, -999, write_options,
+                           TerminalProgressCallback("vw", "\t--> NDWI"));
+  }
+
+  block_write_gdal_image(output_path,
+                         apply_mask(
+                           per_pixel_view(
+                             //crop(spot_image, BBox2(110, 2533, 1182, 1005)), // DEBUG
+                             spot_image,
+                             DetectWaterSpot67Functor()
+                           ),
+                           FLOOD_DETECT_NODATA
+                         ),
+                         true, georef,
+                         true, FLOOD_DETECT_NODATA,
+                         write_options,
+                         TerminalProgressCallback("vw", "\t--> Classifying Spot:"));
+}
+
 
 
 
