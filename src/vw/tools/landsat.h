@@ -39,6 +39,7 @@ namespace vw {
   template<> struct PixelFormatID<PixelMask<Vector<float,  7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
   template<> struct PixelFormatID<PixelMask<Vector<uint16, 7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
   template<> struct PixelFormatID<Vector<uint16, 7> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 7> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
 
 
 
@@ -121,9 +122,13 @@ public: // Functions
     m_cols = resource1->format().cols;
     m_rows = resource1->format().rows;
     
+    printf("Output size = %d, %d\n", m_cols, m_rows);
     // Make sure all images are the same size
     for (size_t i=0; i<input_files.size(); ++i) {
       boost::scoped_ptr<SrcImageResource> resource2(DiskImageResource::open(input_files[i]));
+      
+      printf("%s size = %d, %d\n", input_files[i].c_str(), resource2->format().cols, resource2->format().rows);
+      
       if ((m_cols != static_cast<int>(resource2->format().cols)) || 
           (m_rows != static_cast<int>(resource2->format().rows))   )
         vw_throw( ArgumentErr() << "SplitChannelFileView: Input files must all be the same size!\n");
@@ -419,19 +424,25 @@ bool detect_clouds(LandsatToaPixelType const& pixel) {
   // However, clouds are not snow.
   detect_water_ndsi_functor f;
   score = std::min(score, rescale_to_01(f(pixel), 0.8, 0.6)); // TODO: Is this correct?
-
+  //std::cout << "Cloud score = " << score << std::endl;
   const float CLOUD_THRESHOLD = 0.35;
   return (score > CLOUD_THRESHOLD);
 }
 
 /// Function to scale water detection sensitivity based on sun angle.
 float compute_water_threshold(float sun_angle_degrees) {
-  return ((0.6 / 54.0) * (62.0 - sun_angle_degrees)) + .05;
+  float thresh = ((0.6 / 54.0) * (62.0 - sun_angle_degrees));
+  
+  // Unfortunately the computation above can return a negative value!
+  // - For now just set a lower bound on the threshold to avoid this problem.
+  const float MIN_THRESH = 0.05;
+  if (thresh < MIN_THRESH)
+    return MIN_THRESH;
 }
 
 
 /// Classifies one pixel as water or not.
-bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=45) {
+float detect_water(LandsatToaPixelType const& pixel) {
 
     // Check this first!
     if (detect_clouds(pixel))
@@ -446,6 +457,7 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
     float shadow_sum = pixel[NIR] + pixel[SWIR1] + pixel[SWIR2];
     shadow_sum = clamp01(rescale_to_01(shadow_sum, 0.35, 0.2));
     score      = std::min(score, shadow_sum);
+    //std::cout << "shadow score = " << shadow_sum << std::endl;
 
     // It also tends to be relatively bright in the blue band
     std::vector<float> dark_values(5);
@@ -465,6 +477,7 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
       z = clamp01(z);
     }
     score = std::min(score, z);
+    //std::cout << "z = " << z << std::endl;
 
     // Water is at or above freezing
     score = std::min(score, rescale_to_01(pixel[TEMP], 273, 275));
@@ -474,24 +487,26 @@ bool detect_water(LandsatToaPixelType const& pixel, float sun_elevation_degrees=
     if (pixel[GREEN] + pixel[SWIR1] != 0)
       mndwi = (pixel[GREEN] - pixel[SWIR1]) / (pixel[GREEN] + pixel[SWIR1]);
     score = clamp01(std::min(score, rescale_to_01(mndwi, 0.3, 0.8)));
+    //std::cout << "mndwi = " << rescale_to_01(mndwi, 0.3, 0.8) << std::endl;
 
-    // Select water pixels from the raw score
-    float water_thresh = compute_water_threshold(sun_elevation_degrees);
+    //std::cout << "final score = " << score << std::endl;
 
-    return (score > water_thresh);
+    return score;
 }
 
 /// Use this to call detect_water on each pixel like this:
 /// --> = per_pixel_view(landsat_image, landsat::DetectWaterLandsatFunctor());
 class DetectWaterLandsatFunctor  : public ReturnFixedType<uint8> {
-  float m_sun_elevation_degrees;
+  float m_water_thresh;
 public:
   DetectWaterLandsatFunctor(float sun_elevation_degrees=45)
-   : m_sun_elevation_degrees(sun_elevation_degrees) {}
+   : m_water_thresh(compute_water_threshold(sun_elevation_degrees)) {
+     std::cout << "m_water_thresh = " << m_water_thresh << std::endl;
+   }
   
   uint8 operator()( LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
-      if (detect_water(pixel, m_sun_elevation_degrees))
+      if (detect_water(pixel) > m_water_thresh)
         return FLOOD_DETECT_WATER;
       return FLOOD_DETECT_LAND;
     }
@@ -499,6 +514,19 @@ public:
       return FLOOD_DETECT_NODATA;
   }
 };
+
+
+/// DEBUG class to output the raw water detection score.
+class DetectWaterLandsatFunctorScore  : public ReturnFixedType<float> {
+public: 
+  float operator()( LandsatToaPixelType const& pixel) const {
+    if (is_valid(pixel))
+      return detect_water(pixel);
+    else
+      return -1.0;
+  }
+};
+
 
 void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options, bool debug=false) {
@@ -521,25 +549,39 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
     std::cout << "toa_mult "    << metadata.toa_mult    << std::endl;
     std::cout << "toa_add "     << metadata.toa_add     << std::endl;
     std::cout << "k_constants " << metadata.k_constants << std::endl;
+    std::cout << "sun_elevation " <<  metadata.sun_elevation_degrees << std::endl;
+
+    block_write_gdal_image("landsat_toa_input.tif",
+                           apply_mask(per_pixel_view(ls_image, LandsatToaFunctor(metadata)), 
+                                      Vector<float,  NUM_BANDS_OF_INTEREST>()),
+                           true, georef,
+                           false, 0,
+                           write_options,
+                           TerminalProgressCallback("vw", "\t--> Writing TOA input:"));
+                             
+    block_write_gdal_image("landsat_raw_output.tif",
+                           apply_mask(
+                             per_pixel_view(
+                                per_pixel_view(
+                                  ls_image,
+                                  LandsatToaFunctor(metadata)
+                                ),
+                                DetectWaterLandsatFunctorScore()
+                             ),
+                             -1.0
+                           ),
+                           true, georef,
+                           true, -1.0,
+                           write_options,
+                           TerminalProgressCallback("vw", "\t--> Writing raw output:"));
   }
 
-/*
-  block_write_gdal_image("landsat_input.tif",
-                         crop(ls_image, BBox2(3496, 6010, 335, 464)),
-                         ls_image,
-                         true, georef,
-                         false, 0,
-                         write_options,
-                         TerminalProgressCallback("vw", "\t--> DEBUG write input image"));
-*/
-  //Stopwatch timer;
-  //timer.start();
 
   block_write_gdal_image(output_path,
                          apply_mask(
                            per_pixel_view(
                               per_pixel_view(
-                                //crop(ls_image, BBox2(3496, 6010, 335, 464)), // DEBUG
+                                //crop(ls_image, BBox2(6072, 5472, 10, 8)), // DEBUG
                                 ls_image,
                                 LandsatToaFunctor(metadata)
                               ),
@@ -551,9 +593,6 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
                          true, FLOOD_DETECT_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
-
-  //timer.stop();
-  //std::cout << "TT time = " << timer.elapsed_seconds() << std::endl;
 
 }
 
