@@ -387,18 +387,14 @@ struct detect_water_fai_functor {
 /// Compute NDTI (Turbidity) index
 struct detect_water_ndti_functor {
   bool operator()( LandsatToaPixelType const& pixel) const {
-    if (pixel[RED] + pixel[GREEN] == 0)
-      return 0; // Avoid divide-by-zero
-    return (pixel[RED] - pixel[GREEN]) / (pixel[RED] + pixel[GREEN]);
+    return compute_index(pixel[RED], pixel[GREEN]);
   }
 };
 
 /// Compute NDSI index
 struct detect_water_ndsi_functor {
   bool operator()( LandsatToaPixelType const& pixel) const {
-    if (pixel[GREEN] + pixel[SWIR1] == 0)
-      return 0; // Avoid divide-by-zero
-    return (pixel[GREEN] - pixel[SWIR1]) / (pixel[GREEN] + pixel[SWIR1]);
+    return compute_index(pixel[GREEN], pixel[SWIR1]);
   }
 };
 

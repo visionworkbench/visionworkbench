@@ -71,6 +71,14 @@ std::string num2str(int n) {
   return s.str();
 }
 
+/// Helper function to compute one of the many band derived indices.
+float compute_index( float a, float b) {
+  float denom = a + b;
+  if (denom == 0)
+    return 100; // Avoid divide-by-zero
+  return (a - b) / denom;
+}
+
 
 // TODO: MOVE THIS
 template <typename T>

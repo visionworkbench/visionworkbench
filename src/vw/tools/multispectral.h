@@ -269,14 +269,6 @@ public:
   }
 };
 
-
-float compute_index( float a, float b) {
-  float denom = a + b;
-  if (denom == 0)
-    return 100; // Avoid divide-by-zero
-  return (a - b) / denom;
-}
-
 /// Compute NDVI index
 float compute_ndvi( WorldView23ToaPixelType const& pixel) {
   return compute_index(pixel[RED], pixel[NIR2]);
