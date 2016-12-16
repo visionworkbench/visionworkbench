@@ -175,10 +175,6 @@ struct Int2Type
     template <class RealT1, size_t DimN1>
     inline void grow( BBox<RealT1, DimN1> const& bbox );
 
-    /// Grows a bounding box to include the given bounding box.
-    template <class RealT1, size_t DimN1>
-    inline void grow_bad( BBox<RealT1, DimN1> const& bbox );
-
     /// Crops (intersects) this bounding box to the given bounding box.
     template <class RealT1, size_t DimN1>
     inline void crop( BBox<RealT1, DimN1> const& bbox );
@@ -194,7 +190,6 @@ struct Int2Type
     /// Returns true if the given bounding box intersects this bounding box.
     template <class RealT1, size_t DimN1>
     inline bool intersects( const BBox<RealT1, DimN1>& bbox ) const;
-
 
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>

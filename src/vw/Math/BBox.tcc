@@ -113,13 +113,6 @@ void BBox<RealT, DimN>::grow( BBox<RealT1, DimN1> const& bbox ){
   if (bbox.empty()) return; // this is a bugfix
   grow(bbox.min()); grow(bbox.max());
 }
-  
-/// Grows a bounding box to include the given bounding box.
-template <class RealT, size_t DimN>
-template <class RealT1, size_t DimN1>
-void BBox<RealT, DimN>::grow_bad( BBox<RealT1, DimN1> const& bbox ){
-  grow(bbox.min()); grow(bbox.max());
-}
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
@@ -127,22 +120,13 @@ void BBox<RealT, DimN>::crop( BBox<RealT1, DimN1> const& bbox ) {
   VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
             ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
   for( size_t i=0; i<m_min.size(); ++i ) {
-    if( m_min[i] < bbox.min()[i] ) {
-      //if( m_max[i] < bbox.min()[i] )
-      //  m_min[i] = m_max[i];
-      //else
+    if( m_min[i] < bbox.min()[i] ) 
       m_min[i] = bbox.min()[i];
-    }
 
-    if( m_max[i] > bbox.max()[i] ) {
-      //if ( m_min[i] > bbox.max()[i] )
-      //  m_max[i] = m_min[i];
-      //else
+    if( m_max[i] > bbox.max()[i] ) 
       m_max[i] = bbox.max()[i];
-    }
   }
 }
-
 
 template <class RealT, size_t DimN>
 template <class VectorT>
@@ -221,8 +205,6 @@ RealT BBox<RealT, DimN>::volume() const {
          (this->max()[1] - this->min()[1]) *
          (this->max()[2] - this->min()[2]);
 }
-
-
 
 template <class RealT, size_t DimN>
 Vector<RealT, DimN> BBox<RealT, DimN>::size() const {
