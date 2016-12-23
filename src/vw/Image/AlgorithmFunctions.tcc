@@ -123,6 +123,141 @@ namespace vw {
   }
 
 
+  // *******************************************************************
+  // centerline_weights()
+  // *******************************************************************
+
+
+/// A weight at a given pixel, based on an image row. Return
+/// zero where image values are not valid, and positive where valid.
+/// - hCenterLine contains the center column at each row/col
+/// - hMaxDistArray contains the width of the column at each row/col
+inline double compute_line_weights(Vector2 const& pix, bool horizontal,
+                                   std::vector<double> const& centers,
+                                   std::vector<double> const& widths){
+  
+  int primary_axis = 0, secondary_axis = 1; // Vertical
+  if (horizontal) {
+    primary_axis   = 1;
+    secondary_axis = 0;
+  }
+  
+  // We round below, to avoid issues when we are within numerical value
+  // to an integer value for row/col.
+  // To do: Need to do interpolation here.
+
+  int pos = (int)round(pix[primary_axis]); // The row or column
+  if (pos < 0                          ||
+      pos >= (int)widths.size() ||
+      pos >= (int)centers.size() )
+    return 0;
+  
+  double max_dist = widths[pos]/2.0; // Half column width
+  double center   = centers[pos];
+  double dist     = fabs(pix[secondary_axis]-center); // Pixel distance from center column
+
+  if (max_dist <= 0 || dist < 0)
+    return 0;
+
+  // We want to make sure the weight is positive (even if small) at
+  // the first/last valid pixel.
+  double tol = 1e-8*max_dist;
+  
+  // The weight is just a fraction of the distance from the centerline.
+  double weight = std::max(double(0.0), (max_dist - dist + tol)/max_dist);
+
+  return weight;
+}
+
+// A function that compute weights (positive in the image and zero
+// outside) based on finding where each image line data values start
+// and end and the centerline. The same thing is repeated for columns.
+// Then two such functions are multiplied. This works better than
+// grassfire for images with simple boundary and without holes.
+template<class ImageT>
+void centerline_weights(ImageT const& img, ImageView<double> & weights,
+                        BBox2i roi){
+
+  int numRows = img.rows();
+  int numCols = img.cols();
+
+  // Arrays to be returned out of this function
+  std::vector<double> hCenterLine  (numRows, 0);
+  std::vector<double> hMaxDistArray(numRows, 0);
+  std::vector<double> vCenterLine  (numCols, 0);
+  std::vector<double> vMaxDistArray(numCols, 0);
+
+  std::vector<int> minValInRow(numRows, 0);
+  std::vector<int> maxValInRow(numRows, 0);
+  std::vector<int> minValInCol(numCols, 0);
+  std::vector<int> maxValInCol(numCols, 0);
+
+  for (int k = 0; k < numRows; k++){
+    minValInRow[k] = numCols;
+    maxValInRow[k] = 0;
+  }
+  for (int col = 0; col < numCols; col++){
+    minValInCol[col] = numRows;
+    maxValInCol[col] = 0;
+  }
+
+  // Note that we do just a single pass through the image to compute
+  // both the horizontal and vertical min/max values.
+  for (int row = 0 ; row < numRows; row++) {
+    for (int col = 0; col < numCols; col++) {
+
+      if ( !is_valid(img(col,row)) ) continue;
+      
+      // Record the first and last valid column in each row
+      if (col < minValInRow[row]) minValInRow[row] = col;
+      if (col > maxValInRow[row]) maxValInRow[row] = col;
+      
+      // Record the first and last valid row in each column
+      if (row < minValInCol[col]) minValInCol[col] = row;
+      if (row > maxValInCol[col]) maxValInCol[col] = row;   
+    }
+  }
+  
+  // For each row, record central column and the column width
+  for (int row = 0; row < numRows; row++) {
+    hCenterLine   [row] = (minValInRow[row] + maxValInRow[row])/2.0;
+    hMaxDistArray [row] =  maxValInRow[row] - minValInRow[row];
+    if (hMaxDistArray[row] < 0){
+      hMaxDistArray[row]=0;
+    }
+  }
+
+  // For each row, record central column and the column width
+  for (int col = 0 ; col < numCols; col++) {
+    vCenterLine   [col] = (minValInCol[col] + maxValInCol[col])/2.0;
+    vMaxDistArray [col] =  maxValInCol[col] - minValInCol[col];
+    if (vMaxDistArray[col] < 0){
+      vMaxDistArray[col]=0;
+    }
+  }
+
+  BBox2i output_bbox = roi;
+  if (roi.empty())
+    output_bbox = bounding_box(img);
+
+  // Compute the weighting for each pixel in the image
+  weights.set_size(output_bbox.width(), output_bbox.height());
+  fill(weights, 0);
+  
+  for (int row = output_bbox.min().y(); row < output_bbox.max().y(); row++){
+    for (int col = output_bbox.min().x(); col < output_bbox.max().x(); col++){
+      Vector2 pix(col, row);
+      //double weightH = ComputeLineWeightsH(pix, hCenterLine, hMaxDistArray);
+      //double weightV = ComputeLineWeightsV(pix, vCenterLine, vMaxDistArray);
+      double weight_h = compute_line_weights(pix, true,  hCenterLine, hMaxDistArray);
+      double weight_v = compute_line_weights(pix, false, vCenterLine, vMaxDistArray);
+      weights(col-output_bbox.min().x(), row-output_bbox.min().y()) = weight_h*weight_v;
+    }
+  }
+
+} // End function weights_from_centerline
+
+
 
   // *******************************************************************
   // nonzero_data_bounding_box()

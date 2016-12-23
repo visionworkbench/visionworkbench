@@ -160,6 +160,8 @@ struct Int2Type
     inline RealT area  () const; ///< Returns width*height, min zero.
     inline RealT volume() const; ///< Returns width*height*depth, min zero
 
+    inline void set_size(Vector<RealT, DimN> size); ///< Set the size to the new value with the origin kept constant.
+
     inline void expand  ( RealT offset ); ///< Expands   this bounding box by the given offset in every direction.
     inline void contract( RealT offset ); ///< Contracts this bounding box by the given offset in every direction.
 

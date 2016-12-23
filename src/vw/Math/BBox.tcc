@@ -221,6 +221,11 @@ Vector<RealT, DimN> BBox<RealT, DimN>::center() const {
 }
 
 template <class RealT, size_t DimN>
+void BBox<RealT, DimN>::set_size(Vector<RealT, DimN> size) {
+  m_max = m_min + size;
+}
+
+template <class RealT, size_t DimN>
 void BBox<RealT, DimN>::expand( RealT offset ) {
   if (empty()) return; // Bug fix for underflow/overflow
   for( size_t i=0; i<m_min.size(); ++i ) {

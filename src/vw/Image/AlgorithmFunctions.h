@@ -24,6 +24,7 @@
 #define __VW_IMAGE_ALGORITHM_FUNCTIONS_H__
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/MaskViews.h>
 
 /// Used in blobindex
 #include <boost/graph/adjacency_list.hpp>
@@ -58,6 +59,18 @@ namespace vw {
     grassfire( src, result );
     return result;
   }
+
+  // *******************************************************************
+  // centerline_weights()
+  // *******************************************************************
+
+  /// Computes a weighting measure based on the distance from the vertical
+  ///  and horizontal centerlines of and image.
+  /// - For images which are regular with no large holes this can work
+  ///   better than using grassfire weights.
+  template <class ImageT>
+  void centerline_weights( ImageT const& src, ImageView<double>& weights,
+                           BBox2i roi=BBox2i() );
 
   // *******************************************************************
   // bounding_box()

@@ -148,6 +148,21 @@ TEST( Algorithms, Grassfirealpha ) {
   EXPECT_EQ( 1, g(1,2) );
 }
 
+TEST( Algorithms, CenterlineWeights ) {
+  ImageView<uint8> image(5,5);
+  fill(crop(image,1,1,3,3), 255);
+  ImageView<double> weights;
+  centerline_weights(image, weights);
+  
+  const double EPS = 1e-7;
+  EXPECT_NEAR(1e-16, weights(0,0), EPS);
+  EXPECT_NEAR(0.25,  weights(1,1), EPS);
+  EXPECT_NEAR(1,     weights(2,2), EPS);
+  EXPECT_NEAR(0.25,  weights(3,3), EPS);
+  EXPECT_NEAR(1e-16, weights(4,4), EPS);
+  EXPECT_NEAR(0.5,   weights(1,2), EPS);
+}
+
 TEST( Algorithms, BoundingBox ) {
   ImageView<PixelT> im(2,5);
   BBox2i b1 = bounding_box(im);
