@@ -15,9 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
+#include <test/Helpers.h>
 #include <gtest/gtest_VW.h>
 #include <vw/Math/Functions.h>
+
+// This is tested here to consolidate otherwise tiny files
+#include <vw/Math/BresenhamLine.h>
 
 using namespace vw;
 
@@ -50,3 +53,33 @@ TEST(Functions, ERFC) {
   EXPECT_NEAR( 0.1572992070502851,     vw::math::impl::erfc(1e0)   , DELTA);
   EXPECT_NEAR( 0.00002209049699858544, vw::math::impl::erfc(3.0)   , DELTA);
 }
+
+TEST(BresenhamLine, BresenhamLine) {
+
+  vw::math::BresenhamLine lineA(0,0,  5,10);
+  vw::math::BresenhamLine lineB(0,0, 10, 5);
+
+  // Check steep line
+  EXPECT_VECTOR_EQ(Vector2i(0,0), *lineA); lineA++;
+  EXPECT_VECTOR_EQ(Vector2i(0,1), *lineA); lineA++;
+  EXPECT_VECTOR_EQ(Vector2i(1,2), *lineA); lineA++;
+  EXPECT_VECTOR_EQ(Vector2i(1,3), *lineA); lineA++;
+
+  // Check shallow line
+  EXPECT_VECTOR_EQ(Vector2i(0,0), *lineB); lineB++;
+  EXPECT_VECTOR_EQ(Vector2i(1,0), *lineB); lineB++;
+  EXPECT_VECTOR_EQ(Vector2i(2,1), *lineB); lineB++;
+  EXPECT_VECTOR_EQ(Vector2i(3,1), *lineB); lineB++;
+  
+  // Check that the line ends where we expect
+  lineB++;
+  lineB++;
+  lineB++;
+  lineB++;
+  lineB++;
+  EXPECT_VECTOR_EQ(Vector2i(9,4), *lineB);
+  lineB++;
+  EXPECT_FALSE(lineB.is_good());
+  
+}
+

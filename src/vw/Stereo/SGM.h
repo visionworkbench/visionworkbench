@@ -211,7 +211,7 @@ private: // Functions
                     int left_x, int left_y, int right_x, int right_y, bool debug);
   
   /// Get a pointer to a cost vector
-  CostType* get_cost_vector(int col, int row) {
+  CostType * get_cost_vector(int col, int row) {
     size_t start_index = m_buffer_starts(col, row);
     return m_cost_buffer.get() + start_index;
   };
@@ -263,9 +263,15 @@ private: // Functions
   /// - This method requires four passes and takes longer.
   void smooth_path_accumulation(ImageView<uint8> const& left_image);
 
+  /// Multi-threaded version of the normal SGM accumulation method;
+  void multi_thread_accumulation(ImageView<uint8> const& left_image);
+
   /// Allow this helper class to access private members.
-  /// - This class can be found in SGM.cc.
+  /// - This class can be found in SGMAssist.h.
   friend class MultiAccumRowBuffer;
+  friend class SingleAccumRowBuffer;
+  friend class OneLineBuffer;
+  friend class PixelPassTask;
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!

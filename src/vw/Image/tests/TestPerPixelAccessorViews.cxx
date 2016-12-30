@@ -18,9 +18,11 @@
 
 // TestPerPixelAccessorView.h
 #include <gtest/gtest_VW.h>
+#include <test/Helpers.h>
 
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/PixelIterator.h>
 #include <vw/Core/Functors.h>
 
 using namespace vw;
@@ -101,3 +103,24 @@ TEST( PerPixelAccessorViews, Unary ) {
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>(ppv) );
   ASSERT_TRUE( bool_trait<IsImageView>(ppv) );
 }
+
+TEST(PixelIterator, PixelLineIterator) {
+
+  // Create a line iterator from the middle left to the middle top
+  PixelLineIterator line(Vector2i(0,10), PixelLineIterator::TR, Vector2i(20,20));
+  
+  EXPECT_VECTOR_EQ(Vector2i(0,10), *line); line++;
+  EXPECT_VECTOR_EQ(Vector2i(1, 9), *line); line++;
+  EXPECT_VECTOR_EQ(Vector2i(2, 8), *line); line++;
+  EXPECT_VECTOR_EQ(Vector2i(3, 7), *line); line++;
+  line++;
+  line++;
+  line++;
+  line++;
+  line++;
+  line++;
+  EXPECT_VECTOR_EQ(Vector2i(10, 0), *line); line++;
+  EXPECT_FALSE(line.is_good());
+}
+
+

@@ -26,15 +26,25 @@
 namespace vw {
 namespace math {
 
+
   /// Class implementing Bresenham line tracing algorithm
   /// - See http://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
-  /// - This class works somewhat like an iterator down the pixels of the line.
-  class BresenhamLine {
+  /// - This class is an iterator down the pixels of the line.
+  /// - Unit tests for this class are in the underused TestFunctions.cxx file.
+  class BresenhamLine : public boost::iterator_facade<BresenhamLine,
+                                                      Vector2i,
+                                                      boost::forward_traversal_tag,
+                                                      Vector2i,
+                                                      int64> {
+  private: // Variables
+  
     vw::int32 x0, y0, x1, y1; ///< Starting and stopping points of the line
     vw::int32 x, y; ///< Current location of the line
     bool steep;
     vw::int32 deltax, deltay, error, ystep;
 
+  private: // Functions
+  
     /// Perform precomputations to let us draw the line quickly later
     void setup() {
       steep = std::abs(y1-y0) > std::abs(x1-x0);
@@ -48,12 +58,14 @@ namespace math {
       }
       deltax = x1 - x0;
       deltay = std::abs(y1-y0);
-      error = deltax / 2;
-      ystep = y0 < y1 ? 1 : -1;
-      x = x0; y = y0;
+      error  = deltax / 2;
+      ystep  = y0 < y1 ? 1 : -1;
+      x = x0; 
+      y = y0;
     }
 
-  public:
+  public: // Functions
+  
     /// Construct with two points
     /// - The stop point is the point AFTER the last pixel on the line
     BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
@@ -88,6 +100,23 @@ namespace math {
 
     /// Return true if we have not gone past the end of the line
     bool is_good() const { return x < x1; }
+    
+    
+    // The following functions implement the iterator interface
+
+    // Testing equality and distance
+    bool equal        (BresenhamLine const& iter) const { return (x == iter.x); }
+    int64 distance_to (BresenhamLine const &iter) const { return iter.x - x;    }
+
+    // Forward and random access movement
+    void increment()      {  this->operator++();    }
+    void advance(int64 n) {  for (int64 i=0; i<n; ++i) this->operator++(); }
+
+    // Dereferencing
+    vw::Vector2i dereference() const {
+      return this->operator*();
+    }    
+    
   };
 
 } // end namespace math

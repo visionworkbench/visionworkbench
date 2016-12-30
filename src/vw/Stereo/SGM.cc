@@ -1,7 +1,9 @@
 
 #include <queue>
 #include <vw/Stereo/SGM.h>
+#include <vw/Stereo/SGMAssist.h>
 #include <vw/Core/Debugging.h>
+#include <vw/Core/ThreadPool.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
@@ -15,232 +17,6 @@ namespace vw {
 
 namespace stereo {
 
-
-/// Class to compute parabola surface sub-pixel fits
-class ParabolaFit2d {
-
-public: // Functions
-
-  /// Constructor
-  ParabolaFit2d() {
-
-    // We get a considerable speedup in our 2d subpixel correlation if
-    // we go ahead and compute the pseudoinverse of the A matrix (where
-    // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
-    // for the range of x = [-1:1] and y = [-1:1].
-/* From ASP    
-    static double pinvA_data[] =
-      { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-        1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-        1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-        -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-        -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };*/
-
-/* From paper
-    static double pinvA_data[] =
-      {  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,   1.0/6, -1.0/3,  1.0/6,  // = a
-         1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,   1.0/6,  1.0/6,  1.0/6,  // = b
-        -1.0/4,    0.0,  1.0/4,    0.0,    0.0,    0.0,   1.0/4,    0.0, -1.0/4,  // = c
-        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0,  1.0/6,  -1.0/6,    0.0,  1.0/6,  // = d
-         1.0/6,  1.0/6,  1.0/6,    0.0,    0.0,    0.0,  -1.0/6, -1.0/6, -1.0/6,  // = e
-        -1.0/9,  2.0/9, -1.0/9,  2.0/9,   5.0/9, 2.0/9,  -1.0/9,  2.0/9, -1.0/9 };// = f*/
-
-/* From MATLAB:
-"
-m = [1 1  1 -1 -1 1;   
-     0 1  0  0 -1 1;  
-     1 1 -1  1 -1 1;   
-     1 0  0 -1  0 1;   
-     0 0  0  0  0 1; 
-     1 0  0  1  0 1;
-     1 1 -1 -1  1 1;  
-     0 1  0  0  1 1;   
-     1 1  1  1  1 1];
- 
- pinv(m)
-"
-    0.1667   -0.3333    0.1667    0.1667   -0.3333    0.1667    0.1667   -0.3333    0.1667
-    0.1667    0.1667    0.1667   -0.3333   -0.3333   -0.3333    0.1667    0.1667    0.1667
-    0.2500    0.0000   -0.2500   -0.0000   -0.0000    0.0000   -0.2500   -0.0000    0.2500
-   -0.1667    0.0000    0.1667   -0.1667   -0.0000    0.1667   -0.1667   -0.0000    0.1667
-   -0.1667   -0.1667   -0.1667    0.0000    0.0000   -0.0000    0.1667    0.1667    0.1667
-   -0.1111    0.2222   -0.1111    0.2222    0.5556    0.2222   -0.1111    0.2222   -0.1111
-*/        
-    static double pinvA_data[] =
-      {  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,   1.0/6, -1.0/3,  1.0/6,  // = a
-         1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,   1.0/6,  1.0/6,  1.0/6,  // = b
-         1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0,  -1.0/4,    0.0,  1.0/4,  // = c
-        -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0,  1.0/6,  -1.0/6,    0.0,  1.0/6,  // = d
-        -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,    0.0,   1.0/6,  1.0/6,  1.0/6,  // = e
-        -1.0/9,  2.0/9, -1.0/9,  2.0/9,   5.0/9, 2.0/9,  -1.0/9,  2.0/9, -1.0/9 };// = f
-
-    m_fit_params = Matrix<double,6,9>( pinvA_data );
-  }
-  
-  /// Find the peak of the surface fit nearby central point z5.
-  /// - dx and dy are relative to z5 at coordinate (0,0)
-  bool find_peak(double z1, double z2, double z3,
-                 double z4, double z5, double z6,
-                 double z7, double z8, double z9,
-                 double &dx, double &dy) {
-    Vector<double,9> z_vec;
-    z_vec[0] = z1;  z_vec[1] = z2;  z_vec[2] = z3;
-    z_vec[3] = z4;  z_vec[4] = z5;  z_vec[5] = z6;
-    z_vec[6] = z7;  z_vec[7] = z8;  z_vec[8] = z9;
-    Vector<double,6> vals(m_fit_params * z_vec);
-    
-    //  Max is at [x,y] where:
-    //   dz/dx = 2ax + cy + d = 0
-    //   dz/dy = 2by + cx + e = 0
-    double denom = 4.0 * vals[0] * vals[1] - ( vals[2] * vals[2] ); // = 4ab - c^2
-    if (fabs(denom) < 0.01) {
-      //std::cout << "DENOM DEBUG!!!\n";
-      //std::cout << "vals  = " << vals << std::endl;
-      //std::cout << "denom = " << denom << std::endl;
-      return false;
-    }
-    Vector2f offset( ( vals[2] * vals[4] - 2.0 * vals[1] * vals[3] ) / denom,   // ce - 2bd
-                     ( vals[2] * vals[3] - 2.0 * vals[0] * vals[4] ) / denom ); // cd - 2ae
-    /*
-    if ( norm_2(offset) > 0.99 ) {
-      //std::cout << "DEBUG!!!\n";
-      //std::cout << "offset  = " << offset << std::endl;
-      //std::cout << "vals  = " << vals << std::endl;
-      //std::cout << "denom = " << denom << std::endl;
-      //vw_throw( NoImplErr() << "DEBUG!\n" );
-      return false;
-    }
-    dx = offset[0];
-    dy = offset[1];*/
-    
-    
-    dx = offset[0];
-    dy = offset[1];
-        
-    // APPLY CORRECTION
-    double sX = 0.34574;
-    double sY = 0.38944;
-    dx = erf(dx/(sX*sqrt(2.0))) / 2.0;
-    dy = erf(dy/(sY*sqrt(2.0))) / 2.0;
-    
-    //std::cout << offset << " -F-> " << dx << ", " << dy << std::endl;
-    
-    if ( norm_2(Vector2(dx, dy)) >= 0.5 ) {
-      double scale = norm_2(Vector2(dx, dy)) / 0.5;
-      dx /= scale;
-      dy /= scale;
-    }
-    
-    
-    
-// TODO: Check afterwards.
-    //if ( norm_2(offset) > 0.99 ) {
-    if ( norm_2(Vector2(dx, dy)) >= 1.0 ) {
-      std::cout << "DEBUG!!!\n";
-      std::cout << "offset  = " << offset << std::endl;
-      std::cout << "vals  = " << vals << std::endl;
-      std::cout << "denom = " << denom << std::endl;
-      //vw_throw( NoImplErr() << "DEBUG!\n" );
-      return false;
-    }
-    
-    
-    return true;
-  } // End find_peak()
-
-private: // Variables
-
-  Matrix<float,6,9> m_fit_params;
-
-}; // End class ParabolaFit2d
-
-
-
-/// Class to make counting up "on" mask pixel in a box more efficient.
-/// - This class performs a convolution of two images where it
-///   computes the a percentage of nonzero pixels in the window.
-/// - By operating iteratively this class avoids a large memory buffer allocation.
-/// - It looks like we have some similar VW classes, but nothing exactly like this.
-/// TODO: Currently only works with positive position offsets!
-/// TODO: Should this be moved to a different location?
-class IterativeMaskBoxCounter {
-public:
-  IterativeMaskBoxCounter(ImageView<uint8> const* right_image_mask,
-                          Vector2i box_size)
-    : m_right_image_mask(right_image_mask), m_box_size(box_size) {
-
-    // Set position to a flag value
-    m_curr_pos = Vector2i(-1, 0);
-    m_box_area = box_size[0]*box_size[1];
-    m_curr_sum = 0;
-  }
-  
-  /// Compute the percentage of valid pixels from the next column over.
-  double next_pixel() {
-    // Handle the first pixel in each column
-    if (m_curr_pos[0] < 0) {
-      m_curr_pos[0] = 0;
-      return recompute();
-    }
-    // Handle other pixels
-    m_curr_pos[0] += 1;
-    
-    // Account for column we are "losing"
-    m_curr_sum -= m_column_sums.front(); 
-    //std::cout << "Pop " << m_column_sums.front() << ", sum = " << m_curr_sum << std::endl;
-    m_column_sums.pop();
-    
-    // Sum values from the new column
-    int new_col_sum = 0;
-    int col = m_curr_pos[0] + m_box_size[0] - 1;
-
-    for (int row=m_curr_pos[1]; row<m_curr_pos[1]+m_box_size[1]; ++row) {
-      if (m_right_image_mask->operator()(col, row) > 0)
-        ++new_col_sum;
-    }
-    m_column_sums.push(new_col_sum);
-    m_curr_sum += new_col_sum;
-    //std::cout << "Push " << new_col_sum << ", sum = " << m_curr_sum << std::endl;
-    
-    return static_cast<double>(m_curr_sum) / m_box_area;
-  }
-  
-  /// Move to the next row of pixels.
-  void advance_row() {
-    // Update pixel position and set recompute flag
-    m_curr_pos[0]  = -1;
-    m_curr_pos[1] +=  1;
-    m_curr_sum = 0; 
-  }
-private:
-
-  ImageView<uint8> const* m_right_image_mask;
-  std::queue<int> m_column_sums;
-  int    m_curr_sum;
-  double m_box_area;
-  Vector2i m_box_size;
-  Vector2i m_curr_pos;
-  
-  double recompute() {
-    m_column_sums = std::queue<int>();
-    //std::cout << "Cleared sum\n";
-    
-    for (int col=m_curr_pos[0]; col<m_curr_pos[0]+m_box_size[0]; ++col) {
-      int col_sum = 0;
-      for (int row=m_curr_pos[1]; row<m_curr_pos[1]+m_box_size[1]; ++row) {
-        if (m_right_image_mask->operator()(col,row) > 0){
-          col_sum += 1;
-        }
-      }
-      m_column_sums.push(col_sum);
-      m_curr_sum += col_sum;
-      //std::cout << "Push " << col_sum << ", sum = " << m_curr_sum << std::endl;
-    }
-    return static_cast<double>(m_curr_sum) / m_box_area;
-  }
-  
-};
 
 
 //=========================================================================
@@ -328,6 +104,7 @@ void SemiGlobalMatcher::populate_constant_disp_bound_image() {
   // Fill it up with an identical vector
   Vector4i bounds_vector(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y);
   size_t buffer_size = m_num_output_cols*m_num_output_rows;
+  std::cout << "Init disparity image to size " << m_num_output_cols << ", " << m_num_output_rows << std::endl;
   std::fill(m_disp_bound_image.data(), m_disp_bound_image.data()+buffer_size, bounds_vector);
 }
 
@@ -456,7 +233,8 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       }
       
       m_disp_bound_image(c,r) = bounds;
-      area += (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
+      int this_area = (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
+      area += this_area;
     } // End col loop
     right_mask_checker.advance_row();
   } // End row loop
@@ -1289,285 +1067,6 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
 
 
 
-/**
- Helper class to manage the rolling accumulation buffer temporary memory
-  until the results are added to the final accumulation buffer.  Used by 
-  two_trip_path_accumulation().
-- This class needs to temporarily store two rows of the accumulation buffer
-  with each row containing four directional pass results simultaneously.
-- A dedicated class is needed to manage the complexity of maintaining and
-  accessing this buffer when each pixel requires a different amount of
-  space in the buffer depending on its search range.
-*/
-class MultiAccumRowBuffer {
-public:
-
-  /// Four or eight directions, or "passes", are processed at a time and are 
-  ///  stored according to their index number here.
-  enum PassIndex { TOP_LEFT  = 0,
-                   TOP       = 1,
-                   TOP_RIGHT = 2,
-                   LEFT      = 3,
-                   BOT_RIGHT = 0,
-                   BOT       = 1,
-                   BOT_LEFT  = 2,
-                   RIGHT     = 3,
-                   PASS_ONE  = 0,
-                   PASS_TWO  = 1 };
-
-  /// Construct the buffers.
-  /// - num_paths_in_pass must be four (8 directions) or eight (16 directions)
-  MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
-                      const int  num_paths_in_pass=4,
-                      const bool vertical=false) {
-    m_parent_ptr        = parent_ptr;  
-    m_num_paths_in_pass = num_paths_in_pass;
-    m_vertical          = vertical;
-    
-    const int num_cols = m_parent_ptr->m_num_output_cols;
-    const int num_rows = m_parent_ptr->m_num_output_rows;
-    
-    m_line_size = num_cols;
-    if (vertical)
-      m_line_size = num_rows;
-
-    //std::cout << "m_line_size = " << m_line_size << std::endl;
-
-    // Instantiate two single-row buffers that will be used to temporarily store
-    //  accumulated cost info until it is no longer needed.
-    // - Within each buffer, data is indexed in order [col][pass][disparity]
-    // - The actual data size in the buffer will vary each line, so it is 
-    //    initialized to be the maximum possible size.
-    const size_t buffer_pixel_size = m_num_paths_in_pass*m_parent_ptr->m_num_disp;
-    m_buffer_size       = m_line_size*buffer_pixel_size;
-    m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
-   
-    //std::cout << "Allocating buffer: " << m_buffer_size_bytes << std::endl;
-   
-    // Allocate buffers that store accumulation scores
-    m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
-    m_bufferB.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
-    m_trail_buffer = m_bufferA.get();
-    m_lead_buffer  = m_bufferB.get();
-
-    // Allocate buffers that store pixel offsets into the buffers we just allocated
-    m_offsetsA.reset(new size_t[m_line_size]);
-    m_offsetsB.reset(new size_t[m_line_size]);   
-    m_offsets_lead  = m_offsetsA.get();
-    m_offsets_trail = m_offsetsB.get();
-
-    if (!vertical) { // horizontal
-      // The first trip rasterizes top-left to bottom-right
-      m_current_col = 0;
-      m_current_row = 0;
-      m_col_advance = 1;
-      m_row_advance = 1;
-    } else { // vertical
-      // The first trip rasterizes bottom-left to top-right
-      m_current_col = 0;
-      m_current_row = num_rows-1;
-      m_col_advance = 1;
-      m_row_advance = -1;
-    }
-
-    // Set up lead buffers, trailing buffer is not used until the next row.
-    memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
-    //std::fill(m_lead_buffer, m_lead_buffer+m_buffer_size, m_parent_ptr->get_bad_accum_val());
-    fill_lead_offset_buffer();
-  }
-
-  /// Load buffer offsets into the lead buffer for the current row.
-  void fill_lead_offset_buffer() {
-    //  Convert offsets to be relative to the start of our row/col instead of
-    //  from pixel (0,0).  This allows us easy access into our line buffers.
-    //  Remember to multiply by the number of paths stored.
-    // - Pixel info is always stored left to right, even on the second trip through the image
-    const size_t* raw_offsets    = m_parent_ptr->m_buffer_starts.data();
-    if (!m_vertical) { // horizontal
-      size_t  new_lead_index = m_current_row*m_parent_ptr->m_num_output_cols;
-      size_t  start_offset   = raw_offsets[new_lead_index]; // Offset of the first column
-      for (int i=0; i<m_line_size; ++i)
-        m_offsets_lead[i] = (raw_offsets[new_lead_index+i] - start_offset) * m_num_paths_in_pass;
-    } else { // vertical
-      // In the vertical case we need to rebuild a set of offsets to describe the column.
-      size_t position = 0;
-      for (int i=0; i<m_line_size; ++i) {
-        m_offsets_lead[i] = position;
-        size_t size = m_parent_ptr->get_num_disparities(m_current_col, i) * m_num_paths_in_pass;
-        position += size;
-        //std::cout << "offset lead " << i << " = " << position << std::endl;
-      }
-    }
-  }
-
-  /// Add the results in the leading buffer to the main class accumulation buffer.
-  /// - The scores from each pass are added.
-  void add_lead_buffer_to_accum() {
-    size_t buffer_index = 0;
-    SemiGlobalMatcher::AccumCostType* out_ptr = m_parent_ptr->m_accum_buffer.get();
-    if (!m_vertical) { // horizontal
-      for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
-        int num_disps = m_parent_ptr->get_num_disparities(col, m_current_row);
-        for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
-          size_t out_index = m_parent_ptr->m_buffer_starts(col, m_current_row);
-          for (int d=0; d<num_disps; ++d) {
-            out_ptr[out_index++] += m_lead_buffer[buffer_index++];
-            //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
-            //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
-          } // end disp loop
-        } // end pass loop
-      } // end col loop
-    } else { // vertical
-      for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
-        int num_disps = m_parent_ptr->get_num_disparities(m_current_col, row);
-        for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
-          size_t out_index = m_parent_ptr->m_buffer_starts(m_current_col, row);
-          for (int d=0; d<num_disps; ++d) {
-            out_ptr[out_index++] += m_lead_buffer[buffer_index++];
-            //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
-            //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
-          } // end disp loop
-        } // end pass loop
-      } // end col loop
-    }
-  } // end add_trail_buffer_to_accum
-
-  /// Call when moving to the next pixel in a column
-  void next_pixel() {
-    if (!m_vertical) // horizontal
-      m_current_col += m_col_advance;
-    else // vertical
-      m_current_row += m_row_advance;
-  }
-
-  /// Call when finished processing a column.
-  void next_row(bool trip_finished) {
-
-    // The first thing to do is to record the results from the last row
-    add_lead_buffer_to_accum();
-  
-    if (trip_finished) // Quit early if the current trip is finished
-      return;
-
-    if (!m_vertical) { // horizontal
-      // Update the position in the image
-      m_current_row += m_row_advance;
-      if (m_row_advance > 0) // First pass
-        m_current_col = 0;
-      else // Second pass
-        m_current_col = m_parent_ptr->m_num_output_cols - 1;
-    } else { // vertical
-      // Update the position in the image
-      m_current_col += m_col_advance;
-      if (m_col_advance > 0) // First pass
-        m_current_row = m_parent_ptr->m_num_output_rows - 1;
-      else // Second pass
-        m_current_row = 0;
-    }
-
-    // Swap accum buffer pointers and init the lead buffer
-    std::swap(m_trail_buffer, m_lead_buffer);
-    //std::fill(m_lead_buffer, m_lead_buffer+m_buffer_size, m_parent_ptr->get_bad_accum_val());
-    memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
-    
-    // Swap offset buffer pointers and init the lead buffer
-    std::swap(m_offsets_trail, m_offsets_lead);
-    fill_lead_offset_buffer();
-  }
-
-  /// Call after the first trip is finished before the second pass.
-  void switch_trips() {
-    
-    if (!m_vertical) { // horizontal
-      // Second trip is from bottom right to top left
-      m_current_col = m_parent_ptr->m_num_output_cols - 1;
-      m_current_row = m_parent_ptr->m_num_output_rows - 1;
-      m_col_advance = -1; 
-      m_row_advance = -1;
-    } else { // vertical
-      // Second trip is from top right to bottom left
-      m_current_col = m_parent_ptr->m_num_output_cols - 1;
-      m_current_row = 0;
-      m_col_advance = -1; 
-      m_row_advance = 1;
-    }
-
-    // Set up lead buffers, trailing buffer is not used until the next row.
-    memset(m_lead_buffer, 0, m_buffer_size_bytes);    
-    fill_lead_offset_buffer();
-  }
-  
-  /// Get the pointer to write the output of the current pass to
-  SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
-    int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
-    size_t pass_offset = num_disps*pass;
-    size_t offset      = (m_offsets_lead[m_current_col] + pass_offset);
-    if (m_vertical)
-      offset = (m_offsets_lead[m_current_row] + pass_offset);
-    //std::cout << "output accum offset = " <<offset-pass_offset
-    //          << " + pass " << pass_offset <<", num_disps = " << num_disps << std::endl;
-    return m_lead_buffer + offset;
-  }
-  
-  /// Gets the pointer to the accumulation buffer for the indicated pixel/pass
-  SemiGlobalMatcher::AccumCostType * get_trailing_pixel_accum_ptr(int col_offset, int row_offset, PassIndex pass) {
- 
-    int    col         = m_current_col + col_offset;
-    int    row         = m_current_row + row_offset;
-    int    num_disps   = m_parent_ptr->get_num_disparities(col, row);
-    size_t pass_offset = num_disps*pass;
-
-    // Just get the index of the column in the correct buffer, then add an offset for the selected pass.
-    
-    if (!m_vertical) { // horizontal
-      if (row_offset == 0) { 
-        // Same row, must be the in the leading buffer
-        return m_lead_buffer + (m_offsets_lead[col] + pass_offset);
-      } else { 
-        // Different row, must be in the trailing buffer
-        return m_trail_buffer + (m_offsets_trail[col] + pass_offset);
-      }
-    } else { // vertical
-      if (col_offset == 0) { 
-        // Same row, must be the in the leading buffer
-        //std::cout << "offset = " << pass_offset << ", lead loc = " << m_offsets_lead[row] << std::endl;
-        return m_lead_buffer + (m_offsets_lead[row] + pass_offset);
-      } else { 
-        // Different row, must be in the trailing buffer
-        //std::cout << "offset = " << pass_offset << ", trail loc = " << m_offsets_trail[row] << std::endl;
-        return m_trail_buffer + (m_offsets_trail[row] + pass_offset);
-      }
-    }
-  } // End function get_trailing_pixel_accum_ptr
-
-private:
-
-  const SemiGlobalMatcher* m_parent_ptr; ///< Need a handle to the parent SGM object
-
-  bool m_vertical; ///< Raster orientation
-  int  m_num_paths_in_pass; ///< Must be 4 or 8
-
-  int    m_line_size; ///< Length of a column(horizontal) or a row(vertical) in pixels.
-  size_t m_buffer_size, m_buffer_size_bytes;
-  int    m_current_col, m_current_row; ///< The current position as we iterate through the pixels
-  int    m_col_advance, m_row_advance; ///< These are set according to the current trip
-  
-  // These point to m_buffer_starts for the leading and trailing row respectively.
-  // - Since there are N passes per pixel, the offsets are different than in the main class
-  //   accumulation buffer.
-  boost::shared_array<size_t> m_offsetsA, m_offsetsB;
-  size_t * m_offsets_lead;  // The role of the buffers keeps swapping so these pointers are
-  size_t * m_offsets_trail; //  used to keep things consistent.
-  
-  // Buffers which store the accumulated cost info before it is dumped to the main accum buffer
-  boost::shared_array<SemiGlobalMatcher::AccumCostType> m_bufferA, m_bufferB;
-  SemiGlobalMatcher::AccumCostType* m_trail_buffer; // Another set of pointers for swapping buffers.
-  SemiGlobalMatcher::AccumCostType* m_lead_buffer;
-
-}; // End class MultiAccumRowBuffer
-
-
-
 
 void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_image) {
 
@@ -2083,14 +1582,177 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   compute_disparity_costs(left_image, right_image);
 
   if (m_use_mgm)
-    smooth_path_accumulation(left_image);
+    //smooth_path_accumulation(left_image);
+    multi_thread_accumulation(left_image);
   else
     two_trip_path_accumulation(left_image);
+    
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
   //create_disparity_view_subpixel(); // DEBUG
   return create_disparity_view();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Perform standard SGM path accumulation using N threads.
+void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_image) {
+
+  // TODO: Any need for a dedicated thread count input?
+  int num_threads = vw_settings().default_num_threads();
+  int height = m_num_output_rows;
+  int width  = m_num_output_cols;
+
+  ImageView<uint8> const* image_ptr = &left_image;
+  Vector2i image_size(width, height);
+
+  // Start up the thread pool
+  FifoWorkQueue thread_pool(num_threads);
+  std::cout << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+  
+  // Initialize a number of line buffers equal to the number of threads
+  OneLineBufferManager mem_buff_manager(num_threads, this);
+  
+  // Each direction of lines is handled seperately.  This adds some additional wait time
+  //  as each direction finishes up but it allows the threads to simultaneously read/write
+  //  the main accumulation buffer without any collisions.
+  
+  typedef boost::shared_ptr<PixelPassTask> TaskPtrType;
+  
+  // Add lines going down
+  for (int i=0; i<width; ++i) { 
+    Vector2i top_pixel(i, 0);
+    PixelLineIterator line_from_top(top_pixel, PixelLineIterator::B, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top));
+    thread_pool.add_task(task);
+  }
+  std::cout << "Done adding " << width << " tasks to the queue.\n";
+  std::cout << "Waiting on " << thread_pool.size() << " tasks to complete.\n";
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with first job batch.\n";
+
+  // Add lines going up
+  for (int i=0; i<width; ++i) { 
+    Vector2i bottom_pixel(i, height-1);
+    PixelLineIterator line_from_bottom(bottom_pixel, PixelLineIterator::T, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bottom));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with second job batch.\n";
+
+  // Add lines from the left
+  for (int i=0; i<height; ++i) { 
+    Vector2i left_pixel(0, i);
+    PixelLineIterator line_from_left (left_pixel,  PixelLineIterator::R, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";
+
+  // Add lines from the right
+  for (int i=0; i<height; ++i) {
+    Vector2i right_pixel(width-1, i);
+    PixelLineIterator line_from_right(right_pixel, PixelLineIterator::L, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";
+
+
+  // Add lines from the top left
+  for (int i=0; i<width; ++i) {
+    Vector2i top_pixel(i, 0);
+    PixelLineIterator line_from_top_br   (top_pixel,    PixelLineIterator::BR, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_br));
+    thread_pool.add_task(task);
+  }
+  for (int i=1; i<height; ++i) {
+    Vector2i left_pixel(0, i);
+    PixelLineIterator line_from_left_br   (left_pixel,    PixelLineIterator::BR, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_br));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";
+
+  // Add lines from the top right
+  for (int i=0; i<width; ++i) {
+    Vector2i top_pixel(i, 0);
+    PixelLineIterator line_from_top_bl   (top_pixel,    PixelLineIterator::BL, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_bl));
+    thread_pool.add_task(task);
+  }
+  for (int i=1; i<height; ++i) {
+    Vector2i right_pixel(width-1, i);
+    PixelLineIterator line_from_right_bl   (right_pixel,    PixelLineIterator::BL, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_bl));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";
+
+  // Add lines from the bottom left
+  for (int i=0; i<width; ++i) {
+    Vector2i bot_pixel(i, height-1);
+    PixelLineIterator line_from_bot_tr   (bot_pixel,    PixelLineIterator::TR, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tr));
+    thread_pool.add_task(task);
+  }
+  for (int i=0; i<height-1; ++i) {
+    Vector2i left_pixel(0, i);
+    PixelLineIterator line_from_left_tr   (left_pixel,    PixelLineIterator::TR, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_tr));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";
+  
+  // Add lines from the bottom right
+  for (int i=0; i<width; ++i) {
+    Vector2i bot_pixel(i, height-1);
+    PixelLineIterator line_from_bot_tl   (bot_pixel,    PixelLineIterator::TL, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tl));
+    thread_pool.add_task(task);
+  }
+  for (int i=0; i<height-1; ++i) {
+    Vector2i right_pixel(width-1, i);
+    PixelLineIterator line_from_right_tl   (right_pixel,    PixelLineIterator::TL, image_size);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_tl));
+    thread_pool.add_task(task);
+  }
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with job batch.\n";  
+
+  // Finished!
+  std::cout << "Finished multi-threaded accumulation!\n";
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 

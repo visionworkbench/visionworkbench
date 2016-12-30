@@ -29,7 +29,7 @@ include_HEADERS = AffineMixtureComponent.h Algorithms.h Correlate.h	\
         EMSubpixelCorrelatorView.hpp GammaMixtureComponent.h		\
         GaussianMixtureComponent.h MixtureComponent.h PreFilter.h	\
         StereoModel.h StereoView.h SubpixelView.h			\
-        UniformMixtureComponent.h SGM.h
+        UniformMixtureComponent.h SGM.h SGMAssist.h
 
 libvwStereo_la_SOURCES = StereoModel.cc Correlate.cc Correlation.cc	\
         DisparityMap.cc EMSubpixelCorrelatorView.cc CorrelateResearch.cc SGM.cc

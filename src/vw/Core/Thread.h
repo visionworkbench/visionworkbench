@@ -180,8 +180,8 @@ namespace vw {
     template<class TaskT>
     inline Thread( TaskT task ) : m_thread( task ) {}
 
-    /// This variant of the constructor takes a shared point to a task.
-    /// The thread made a copy of the shared pointer task, allowing
+    /// This variant of the constructor takes a shared pointer to a task.
+    /// The thread makes a copy of the shared pointer task, allowing
     /// the parent to still access the task instance that is running in the thread.
     template<class TaskT>
     inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
@@ -228,7 +228,7 @@ namespace vw {
       xt.nsec += static_cast<uint32>(1e6) * milliseconds;
       boost::thread::sleep(xt);
     }
-  };
+  }; // End class Thread
 
 
 } // namespace vw

@@ -53,7 +53,7 @@ TEST( SGM, constant_offset ) {
                                                 Vector2i(kernel_size, kernel_size),
                                                 use_mgm, matcher_ptr);
   result = result + PixelMask<Vector2i>(min_disp_x, min_disp_y);
-  //write_image("SGM_output.tif", result);
+  write_image("SGM_output.tif", result);
 
   double num_pixels  = result.rows()*result.cols();
   size_t num_correct = 0;

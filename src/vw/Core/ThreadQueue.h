@@ -18,8 +18,6 @@
 
 /// \file vw/Core/ThreadQueue.h
 ///
-/// A thread-safe queue. Uses a condition variable to avoid busy-waiting.
-///
 
 #ifndef __VW_CORE_QUEUE_H__
 #define __VW_CORE_QUEUE_H__
@@ -33,6 +31,8 @@
 
 namespace vw {
 
+/// A thread-safe queue. Uses a condition variable to avoid busy-waiting.
+/// - Use this class to safely pass messages and data between threads.
 template<typename T>
 class ThreadQueue : private boost::noncopyable {
   private:
@@ -40,6 +40,8 @@ class ThreadQueue : private boost::noncopyable {
     mutable Mutex m_mutex;
     Condition m_cond;
   public:
+    
+    /// Push an object on to the queue.
     void push(T const& data) {
       {
         Mutex::Lock lock(m_mutex);
@@ -51,12 +53,14 @@ class ThreadQueue : private boost::noncopyable {
       m_cond.notify_one();
     }
 
+    /// Returns true if the queue is empty.
     bool empty() const {
       Mutex::Lock lock(m_mutex);
       return m_queue.empty();
     }
 
-    // Try to pop something off, return indicates success
+    /// Try to pop something off, return indicates success.
+    /// - Failure indicates that the queue is empty.
     bool try_pop(T& data) {
       Mutex::Lock lock(m_mutex);
       if(m_queue.empty()) {
@@ -68,14 +72,14 @@ class ThreadQueue : private boost::noncopyable {
       return true;
     }
 
-    // Returns the number of messages waiting in the queue.
+    /// Returns the number of messages waiting in the queue.
     size_t size() const {
       Mutex::Lock lock(m_mutex);
       return m_queue.size();
     }
 
 
-    // Wait for data forever
+    /// Wait forever until data is available, then get it.
     void wait_pop(T& data) {
       Mutex::Lock lock(m_mutex);
       while(m_queue.empty()) {
@@ -86,7 +90,7 @@ class ThreadQueue : private boost::noncopyable {
       m_queue.pop();
     }
 
-    // Wait for data with a timeout (in ms)
+    /// Wait for data with a timeout (in ms).
     bool timed_wait_pop(T& data, unsigned long duration) {
       Mutex::Lock lock(m_mutex);
 
@@ -99,13 +103,14 @@ class ThreadQueue : private boost::noncopyable {
       return true;
     }
 
+    /// Clear the contents of the queue.
     void flush() {
       Mutex::Lock lock(m_mutex);
       while (!m_queue.empty()) {
         m_queue.pop();
       }
     }
-};
+}; // End class ThreadQueue
 
 } // namespace vw
 

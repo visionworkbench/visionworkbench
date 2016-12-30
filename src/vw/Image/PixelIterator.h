@@ -26,6 +26,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
 
@@ -131,6 +132,84 @@ namespace vw {
     }
 
   };
+
+  // TODO: Should probably consolidate with the BresenhamLine class.
+  /// Iterates through positions in an image in an orthogonal or diagonal line.
+  /// - This is a simplified version of the BresenhamLine class.
+  /// - Tests for this class are located in TestPerPixelAccessorViews.cxx
+  class PixelLineIterator  : public boost::iterator_facade<PixelLineIterator,
+                                                      Vector2i,
+                                                      boost::random_access_traversal_tag,
+                                                      Vector2i,
+                                                      int64> {
+  public: // Definitions
+  
+    /// Specifies one of the eight cardinal directions
+    enum Direction {TL, T, TR, L, R, BL, B, BR};
+  
+  public: // Functions
+  
+    PixelLineIterator(Vector2i start, Direction dir, Vector2i size)
+      : m_col(start[0]), m_row(start[1]), m_width(size[0]), m_height(size[1]) {
+      switch(dir) {
+        case TL: m_dcol = -1; m_drow = -1; break;
+        case T : m_dcol =  0; m_drow = -1; break;
+        case TR: m_dcol =  1; m_drow = -1; break;
+        case L : m_dcol = -1; m_drow =  0; break;
+        case R : m_dcol =  1; m_drow =  0; break;
+        case BL: m_dcol = -1; m_drow =  1; break;
+        case B : m_dcol =  0; m_drow =  1; break;
+        default: m_dcol =  1; m_drow =  1; break; // BR
+      };
+    }
+
+    /// Return the current location along the line
+    Vector2i operator*() const { return dereference();}
+
+    int col() const {return dereference()[0];}
+    int row() const {return dereference()[1];}
+
+    /// Advance to the next pixel along the line
+    void operator++() {increment();}
+
+    /// Returns true if the iterator is still in the image bounds
+    bool is_good() {
+      return ((m_col >= 0) && (m_row >= 0) && (m_col < m_width) && (m_row < m_height));
+    }
+
+    /// Equality operator
+    bool equal(PixelLineIterator const& iter) const { 
+      return ((m_col == iter.m_col) && (m_row == iter.m_row)); 
+    }
+    
+    /// Distance operator assumes the other iterator is on the same line.
+    int64 distance_to(PixelLineIterator const &iter) const {
+      if (m_dcol != 0)
+        return (iter.m_col - m_col) / m_dcol;
+      else
+        return (iter.m_row - m_row) / m_drow;
+    }
+
+    // Forward, backward, and random access movement
+    void increment()      { m_col +=   m_dcol;  m_row +=   m_drow; }
+    void decrement()      { m_col -=   m_dcol;  m_row -=   m_drow; }
+    void advance(int64 n) { m_col += n*m_dcol;  m_row += n*m_drow; }
+
+    // Dereferencing
+    Vector2i dereference() const { return Vector2f(m_col, m_row); }
+
+    std::string to_string() const {
+      std::stringstream s;
+      s << "Position("<<m_col<<", "<<m_row<<"), Direction("<<m_dcol<<", "<<m_drow<<")";
+      return s.str();
+    }
+
+  private: // Variables
+    int m_col,   m_row;
+    int m_width, m_height;
+    int m_dcol,  m_drow;
+    
+  }; // End class PixelLineIterator
 
 } // namespace vw
 
