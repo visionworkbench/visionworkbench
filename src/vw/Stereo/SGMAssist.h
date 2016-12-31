@@ -552,36 +552,38 @@ public:
   /// Initialize the buffer.
   /// - All this really does is allocate a memory buffer of the maximum possible required size.
   void initialize(const SemiGlobalMatcher* parent_ptr) {
-    m_parent_ptr = parent_ptr;  
 
     // Figure out the max possible line length (diagonal line down the center)    
-    const int num_cols = m_parent_ptr->m_num_output_cols;
-    const int num_rows = m_parent_ptr->m_num_output_rows;
-    m_line_size = sqrt(num_cols*num_cols + num_rows*num_rows) + 1;
-    std::cout << "m_line_size = " << m_line_size << std::endl;
+    const int num_cols = parent_ptr->m_num_output_cols;
+    const int num_rows = parent_ptr->m_num_output_rows;
+    int line_size = sqrt(num_cols*num_cols + num_rows*num_rows) + 1;
+    //std::cout << "m_line_size = " << m_line_size << std::endl;
 
     // Instantiate single-row buffer that will be used to temporarily store
     //  accumulated cost info until it can be addded to the main SGM class buffer.
     // - Within each buffer, data is indexed in order [pixel][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
-    const size_t buffer_pixel_size = m_parent_ptr->m_num_disp;
-    m_buffer_size       = m_line_size*buffer_pixel_size;
+    m_num_disp          = parent_ptr->m_num_disp;
+    m_buffer_size       = line_size*m_num_disp;
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
    
     std::cout << "OneLineBuffer - allocating buffer size: " << m_buffer_size_bytes << std::endl;
    
-    // Allocate buffers that store accumulation scores
+    // Allocate the accumulation buffer
     m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
-
-
-    // TODO: This needs to happen each time the buffer is used!
-    // Init the output accumulation buffer to zero
-    memset(m_buffer.get(), 0, m_buffer_size_bytes);
     
     // Set up the small buffer
-    m_full_prior_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_parent_ptr->m_num_disp]);
+    m_bad_disp_value = parent_ptr->get_bad_accum_val();
+    m_full_prior_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_num_disp]);
+  }
+
+  /// Clear both buffers
+  void clear_buffers() {
+    memset(m_buffer.get(), 0, m_buffer_size_bytes);
     
+    for (size_t i=0; i<m_num_disp; ++i)
+      m_full_prior_buffer[i] = m_bad_disp_value;
   }
 
   /// Get the pointer to the start of the output accumulation buffer
@@ -594,18 +596,17 @@ public:
     return m_full_prior_buffer.get();
   }
   
-private:
+private: // Variables
 
-  const SemiGlobalMatcher* m_parent_ptr; ///< Need a handle to the parent SGM object
-
-  int    m_line_size; ///< Length of a column(horizontal) or a row(vertical) in pixels.
-  size_t m_buffer_size, m_buffer_size_bytes;
+  SemiGlobalMatcher::AccumCostType m_bad_disp_value;
+  size_t m_buffer_size, m_buffer_size_bytes, m_num_disp;
   
   /// Buffer which store the accumulated cost info before it is dumped to the main accum buffer
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_buffer;
   
   /// Much smaller buffer needed by the pixel evaluation function
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_full_prior_buffer;
+  
 }; // End class OneLineBuffer
 
 
@@ -619,11 +620,11 @@ public:
   
     // Initialize a number of line buffers equal to the number of threads
     m_buffer_vec.resize(num_threads);
-    m_busy_vec.resize (num_threads);
+    m_busy_vec.resize  (num_threads);
     for (int i=0; i<num_threads; ++i) {
       // Init all buffers and mark as unused.
       m_buffer_vec[i].initialize(parent_ptr);
-      m_busy_vec[i] = false;
+      m_busy_vec  [i] = false;
     }
   }
  
@@ -634,7 +635,7 @@ public:
     // Find the next free buffer
     for (size_t i=0; i<m_busy_vec.size(); ++i) {
       if (m_busy_vec[i] == false) {
-        m_busy_vec[i] = true; // Mark the buffer as in used and return the index 
+        m_busy_vec[i] = true; // Mark the buffer as in use and return the index 
         return i;
       }
     }
@@ -643,6 +644,8 @@ public:
   
   /// Once we have an ID, get the actual buffer
   OneLineBuffer* get_line_buffer(size_t id) {
+    // Clear the buffers before we hand it off
+    m_buffer_vec[id].clear_buffers();
     return &(m_buffer_vec[id]);
   }
   
@@ -653,9 +656,9 @@ public:
   }
   
 private:
-  Mutex m_main_mutex;
+  Mutex m_main_mutex; ///< Control access to this class
   std::vector<OneLineBuffer> m_buffer_vec; ///< Available pre-allocated memory buffers.
-  std::vector<bool        > m_busy_vec;  ///< A mutex to lock each of the buffers.
+  std::vector<bool         > m_busy_vec;   ///< A mutex to lock each of the buffers.
 }; // End class OneLineBufferManager
 
 
@@ -669,9 +672,9 @@ public:
   /// Constructor, pass in all the needed links.
   PixelPassTask(ImageView<uint8>  const* image_ptr,
                 SemiGlobalMatcher      * parent_ptr,
-                OneLineBufferManager   * buffer_ptr,
+                OneLineBufferManager   * buffer_manager_ptr,
                 PixelLineIterator pixel_loc_iter)
-    : m_image_ptr(image_ptr), m_parent_ptr(parent_ptr), m_buffer_ptr(buffer_ptr),
+    : m_image_ptr(image_ptr), m_parent_ptr(parent_ptr), m_buffer_manager_ptr(buffer_manager_ptr),
       m_pixel_loc_iter(pixel_loc_iter) {
   }
 
@@ -679,8 +682,9 @@ public:
   virtual void operator()() {
 
     // Retrive a memory buffer to work with
-    size_t buffer_id = m_buffer_ptr->get_free_buffer_id();
-    OneLineBuffer* buff_ptr =  m_buffer_ptr->get_line_buffer(buffer_id);
+    size_t buffer_id = m_buffer_manager_ptr->get_free_buffer_id();
+    OneLineBuffer                   * buff_ptr       = m_buffer_manager_ptr->get_line_buffer(buffer_id);
+    SemiGlobalMatcher::AccumCostType* full_prior_ptr = buff_ptr->get_full_prior_ptr();
 
     // Make a copy of the pixel iterator so we can re-use it for accum buffer addition
     PixelLineIterator pixel_loc_iter_copy(m_pixel_loc_iter);
@@ -688,20 +692,14 @@ public:
     //std::cout << "Starting task with buffer id " << buffer_id 
     //          << " and location " << pixel_loc_iter_copy.to_string() << std::endl;
 
-    // Initialize full prior buffer
-    SemiGlobalMatcher::AccumCostType* full_prior_ptr = buff_ptr->get_full_prior_ptr();
-    for (int i=0; i<m_parent_ptr->m_num_disp; ++i)
-      full_prior_ptr[i] = m_parent_ptr->get_bad_accum_val();
-  
     //const bool debug = false;
     int last_pixel_val = -1;
     int col_prev = -1, row_prev = -1; // Previous row and column
-
-    SemiGlobalMatcher::AccumCostType* prior_accum_ptr=0;
     
     // Get the start of the output accumulation buffer
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
-    SemiGlobalMatcher::AccumCostType* output_accum_ptr = buff_ptr->get_output_accum_ptr();
+    SemiGlobalMatcher::AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr();
+    SemiGlobalMatcher::AccumCostType* prior_accum_ptr    = 0;
 
     while (pixel_loc_iter_copy.is_good()) {
 
@@ -717,27 +715,27 @@ public:
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(col, row));
-      int pixel_diff     = curr_pixel_val - last_pixel_val;
+      int pixel_diff     = abs(curr_pixel_val - last_pixel_val);
       
       //printf("Loc %d, %d, diff = %d, num_disp = %d\n", col, row, pixel_diff, num_disp);
       //std::cout << "DEBUG " << m_parent_ptr->m_disp_bound_image(col,row) << std::endl;
       
-      if (last_pixel_val >= 0) {
+      if (last_pixel_val >= 0) { // All pixels after the first
         m_parent_ptr->evaluate_path( col, row, col_prev, row_prev,
-                                    prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
+                                    prior_accum_ptr, full_prior_ptr, local_cost_ptr, computed_accum_ptr, 
                                     pixel_diff, debug );
-      } else {
+      } else { // First pixel only, nothing to accumulate.
         for (int d=0; d<num_disp; ++d) 
-          output_accum_ptr[d] = local_cost_ptr[d];
+          computed_accum_ptr[d] = local_cost_ptr[d];
       }
 
       // Advance the position
-      prior_accum_ptr = output_accum_ptr; // Retain the current accumulation buffer location
-      output_accum_ptr += num_disp;       // Advance to the next accumulation buffer location
-      last_pixel_val  = curr_pixel_val;   // Retain the current pixel value
-      col_prev = col;                     // Retain the current pixel location
-      row_prev = row;
-      pixel_loc_iter_copy++;                 // Update the pixel location
+      prior_accum_ptr = computed_accum_ptr; // Retain the current accumulation buffer location
+      computed_accum_ptr += num_disp;       // Advance to the next accumulation buffer location
+      last_pixel_val  = curr_pixel_val;     // Retain the current pixel value
+      col_prev        = col;                // Retain the current pixel location
+      row_prev        = row;
+      pixel_loc_iter_copy++;                // Update the pixel location
     } // End loop through pixels
 
   // Now that we computed all the results, add them to the main buffer 
@@ -745,7 +743,7 @@ public:
 
   // Notify the buffer manager that we are finished with the buffer
   //std::cout << "Releasing buffer " << buffer_id << std::endl;
-  m_buffer_ptr->release_buffer(buffer_id);
+  m_buffer_manager_ptr->release_buffer(buffer_id);
 
   } // End operator() function
 
@@ -784,7 +782,7 @@ private:
 
   ImageView<uint8>  const* m_image_ptr;
   SemiGlobalMatcher      * m_parent_ptr;
-  OneLineBufferManager   * m_buffer_ptr;
+  OneLineBufferManager   * m_buffer_manager_ptr;
   PixelLineIterator m_pixel_loc_iter; ///< Keeps track of the pixel position
 
 }; // End class OneLineBuffer
