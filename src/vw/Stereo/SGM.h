@@ -263,15 +263,18 @@ private: // Functions
   /// - This method requires four passes and takes longer.
   void smooth_path_accumulation(ImageView<uint8> const& left_image);
 
+  void smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image);
+
   /// Multi-threaded version of the normal SGM accumulation method;
   void multi_thread_accumulation(ImageView<uint8> const& left_image);
 
   /// Allow this helper class to access private members.
-  /// - This class can be found in SGMAssist.h.
+  /// - Some of these classes can be found in SGMAssist.h.
   friend class MultiAccumRowBuffer;
   friend class SingleAccumRowBuffer;
   friend class OneLineBuffer;
   friend class PixelPassTask;
+  friend class SmoothPathAccumTask;
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!

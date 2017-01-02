@@ -1324,7 +1324,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   std::cout << "Starting second trip...\n";
 
-  // Loop through all pixels in the output image for the first trip, bottom-right to top-left.
+  // Loop through all pixels in the output image for the second trip, bottom-right to top-left.
   for (int row = last_row; row >= 0; --row) {
     for (int col = last_column; col >= 0; --col) {
     
@@ -1389,7 +1389,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   std::cout << "Starting third trip...\n";
 
-  // Loop through all pixels in the output image for the first trip, bottom-left to top-right.
+  // Loop through all pixels in the output image for the third trip, bottom-left to top-right.
   for (int col = 0; col < m_num_output_cols; ++col) {
     for (int row = last_row; row >= 0; --row) {
     
@@ -1453,7 +1453,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   std::cout << "Starting fourth trip...\n";
 
-  // Loop through all pixels in the output image top-right to bottom-left.
+  // Loop through all pixels in the output image for the fourth trip, top-right to bottom-left.
   for (int col=last_column; col>=0; --col) {
     for (int row=0; row<m_num_output_rows; ++row) {
     
@@ -1583,10 +1583,11 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   compute_disparity_costs(left_image, right_image);
 
   if (m_use_mgm)
-    smooth_path_accumulation(left_image);
-    //multi_thread_accumulation(left_image);
+    //smooth_path_accumulation(left_image);
+    smooth_path_accumulation_multithreaded(left_image);
   else
     two_trip_path_accumulation(left_image);
+    //multi_thread_accumulation(left_image);
     
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
@@ -1740,15 +1741,67 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   // Finished!
   std::cout << "Finished multi-threaded accumulation!\n";
-}
+} // End function multi_thread_accumulation
 
 
 
+// This version of the function requires four passes and is based on the paper:
+// MGM: A Significantly More Global Matching for Stereovision
+void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image) {
 
+  //Timer timer_total("\tSGM Cost Propagation");
 
+  const int paths_per_pass = 1;
 
+  // TODO: Any need for a dedicated thread count input?
+  int num_threads = vw_settings().default_num_threads();
 
+  // Create objects to manage the temporary accumulation buffers that need to be used here.
+  // - A separate copy instance is used for each direction to allow multithreading
+  MultiAccumRowBuffer buff_manager_horizontal_left    (this, paths_per_pass, false);
+  MultiAccumRowBuffer buff_manager_horizontal_right   (this, paths_per_pass, false);
+  MultiAccumRowBuffer buff_manager_horizontal_topleft (this, paths_per_pass, false);
+  MultiAccumRowBuffer buff_manager_horizontal_botright(this, paths_per_pass, false);
+  
+  MultiAccumRowBuffer buff_manager_vertical_top     (this, paths_per_pass, true);
+  MultiAccumRowBuffer buff_manager_vertical_bot     (this, paths_per_pass, true);
+  MultiAccumRowBuffer buff_manager_vertical_topright(this, paths_per_pass, true);
+  MultiAccumRowBuffer buff_manager_vertical_botleft (this, paths_per_pass, true);
+  
+  // Set some of the buffers to the reverse direction
+  buff_manager_horizontal_right.switch_trips();
+  buff_manager_horizontal_botright.switch_trips();
+  buff_manager_vertical_top.switch_trips();
+  buff_manager_vertical_topright.switch_trips();
 
+  // Start up thread pool
+  FifoWorkQueue thread_pool(num_threads);
+  std::cout << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+
+  // Load all eight required passes as task in to the thread pool   
+  typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
+  TaskPtrType task_L (new SmoothPathAccumTask(&buff_manager_horizontal_left,     this, &left_image, SmoothPathAccumTask::L ));
+  TaskPtrType task_R (new SmoothPathAccumTask(&buff_manager_horizontal_right,    this, &left_image, SmoothPathAccumTask::R ));
+  TaskPtrType task_TL(new SmoothPathAccumTask(&buff_manager_horizontal_topleft,  this, &left_image, SmoothPathAccumTask::TL));
+  TaskPtrType task_BR(new SmoothPathAccumTask(&buff_manager_horizontal_botright, this, &left_image, SmoothPathAccumTask::BR));
+  TaskPtrType task_T (new SmoothPathAccumTask(&buff_manager_vertical_top,        this, &left_image, SmoothPathAccumTask::T ));
+  TaskPtrType task_B (new SmoothPathAccumTask(&buff_manager_vertical_bot,        this, &left_image, SmoothPathAccumTask::B ));
+  TaskPtrType task_TR(new SmoothPathAccumTask(&buff_manager_vertical_topright,   this, &left_image, SmoothPathAccumTask::TR));
+  TaskPtrType task_BL(new SmoothPathAccumTask(&buff_manager_vertical_botleft,    this, &left_image, SmoothPathAccumTask::BL));
+  
+  thread_pool.add_task(task_L );
+  thread_pool.add_task(task_R );
+  thread_pool.add_task(task_TL);
+  thread_pool.add_task(task_BR);
+  thread_pool.add_task(task_T );
+  thread_pool.add_task(task_B );
+  thread_pool.add_task(task_TR);
+  thread_pool.add_task(task_BL);
+  
+  thread_pool.join_all(); // Wait for all tasks to complete
+  std::cout << "Done with multi threaded smooth accumulation.\n";  
+
+} // End function smooth_path_accumulation_multithreaded
 
 
 
