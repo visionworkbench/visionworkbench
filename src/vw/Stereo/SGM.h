@@ -109,7 +109,7 @@ public: // Functions
                              ImageView<uint8> const* left_image_mask=0,
                              ImageView<uint8> const* right_image_mask=0,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 4); // TODO: Restore this?
+                             int search_buffer = 4);
 
   /// Create a subpixel leves disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);

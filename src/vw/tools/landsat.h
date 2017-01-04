@@ -192,24 +192,33 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   
     // For the given output channel, determine the input channel containing it
     // - Convert index to 1-based string.
-    std::string text;
+    std::string text1, text2;
     switch(landsat_type) {
-      case 8:  text = num2str(LS8_BAND_LOCATIONS[chan]+1); break;
-      case 7:  text = num2str(LS7_BAND_LOCATIONS[chan]+1); break;
-      default: text = num2str(LS5_BAND_LOCATIONS[chan]+1); break;
+      case 8:  text1 = num2str(LS8_BAND_LOCATIONS[chan]+1); break;
+      case 7:  text1 = num2str(LS7_BAND_LOCATIONS[chan]+1); break;
+      default: text1 = num2str(LS5_BAND_LOCATIONS[chan]+1); break;
     };
-    if (text.size() == 1)
-      text = "0" + text;
-    text = BAND_PREFIX + text + ".TIF";
+    // Complete the search pattern, and if needed add an alternate search pattern with a zero padding.
+    text2 = "";
+    if (text1.size() == 1) {
+      text2 = "0" + text1;
+      text2 = BAND_PREFIX + text2 + ".TIF";
+    }
+    text1 = BAND_PREFIX + text1 + ".TIF";
+    
 
     //printf("Looking for data %d in channel %d\n", chan, input_channel);
-    //std::cout << "Looking for text: " << text << std::endl;
     
     // Look for the string in the input file names
     bool found = false;
     for (size_t f=0; f<image_files.size(); ++f) {
-      if (image_files[f].find(text) != std::string::npos) {
-        found = true;
+      // Look for all applicable search strings
+      found = (image_files[f].find(text1) != std::string::npos);
+      if (!found && !text2.empty())
+        found = (image_files[f].find(text2) != std::string::npos);
+
+      // If we got a match, this is the channel we need!
+      if (found) {
         sorted_input_files[chan] = image_files[f];
         break;
       }
