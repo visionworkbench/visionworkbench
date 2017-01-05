@@ -166,8 +166,8 @@ namespace vw {
     /// Return the current location along the line
     Vector2i operator*() const { return dereference();}
 
-    int col() const {return dereference()[0];}
-    int row() const {return dereference()[1];}
+    int col() const {return m_col;}
+    int row() const {return m_row;}
 
     /// Advance to the next pixel along the line
     void operator++() {increment();}

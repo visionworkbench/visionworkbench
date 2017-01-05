@@ -579,7 +579,8 @@ public:
     m_buffer_size       = line_size*m_num_disp;
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
    
-    std::cout << "OneLineBuffer - allocating buffer size: " << m_buffer_size_bytes << std::endl;
+    //std::cout << "OneLineBuffer - allocating buffer size: " << m_buffer_size_bytes << std::endl;
+    //std::cout << "OneLineBuffer - m_num_disp = " << m_num_disp << std::endl;
    
     // Allocate the accumulation buffer
     m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
@@ -714,18 +715,22 @@ public:
 
     while (pixel_loc_iter_copy.is_good()) {
 
-      // Get current location
+      // Get current location in output image
       const int col = pixel_loc_iter_copy.col();
       const int row = pixel_loc_iter_copy.row();
+      
+      // Get corresponding location in the input image
+      const int input_col = col + m_parent_ptr->m_min_col;
+      const int input_row = row + m_parent_ptr->m_min_row;
 
-      bool debug = false;//col==0;
+      bool debug = false;//(col==152) && (row ==12);
 
       // Get information about the current pixel location from the parent
       int num_disp = m_parent_ptr->get_num_disparities(col, row);
       CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
 
       // Fill in the accumulated value in the bottom buffer
-      int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(col, row));
+      int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
       int pixel_diff     = abs(curr_pixel_val - last_pixel_val);
       
       //printf("Loc %d, %d, diff = %d, num_disp = %d\n", col, row, pixel_diff, num_disp);

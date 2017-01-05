@@ -90,10 +90,14 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
       };
       break;
     default: // MAD
-      m_p1 = 250; // 0 - 255 range
+      m_p2 = 250; // 0 - 255 range
       break;
     };
   } // End p2 cases
+
+  vw_out(InfoMessage, "stereo") << "SGM m_p1 = " << m_p1 << std::endl;
+  vw_out(InfoMessage, "stereo") << "SGM m_p2 = " << m_p2 << std::endl;
+
   
 } // End set_parameters
 
@@ -399,10 +403,14 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
   if (debug) {
     std::cout << "Prior pixel = ("<<col_p<<","<<row_p<<")\n";
+    std::cout << "m_p2  : " << m_p2 << std::endl;
+    std::cout << "path_intensity_gradient  : " << path_intensity_gradient << std::endl;
+    std::cout << "p2_mod  : " << p2_mod << std::endl;
     std::cout << "Bounds  : " << pixel_disp_bounds << std::endl;
     std::cout << "Bounds_P: " << pixel_disp_bounds_p << std::endl;
   
     std::cout << "min_prior = " <<  min_prior << std::endl;
+    std::cout << "min_prev_disparity_cost = " <<  min_prev_disparity_cost << std::endl;
     
     std::cout << "Priors: \n";
     int i=0;    
@@ -473,10 +481,15 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
       
       // Compare to the lowest prev disparity cost regardless of location
       lowest_combined_cost = std::min(lowest_combined_cost, min_prev_disparity_cost);
-      
+           
       // The output cost = local cost + lowest combined cost - min_prior
       // - Subtracting out min_prior avoids overflow.
       output[packed_d] = local[packed_d] + lowest_combined_cost - min_prior;
+
+      //if (debug) {
+      //  printf("Details %d: local = %d, lowest_adjacent_cost = %d, prev_cost = %d, lowest_combined_cost = %d, output = %d\n", 
+      //        packed_d, local[packed_d], lowest_adjacent_cost, full_prior_buffer[full_d], lowest_combined_cost, output[packed_d]);
+      //}
 
 
       ++packed_d;
@@ -1095,7 +1108,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
     
       int num_disp = get_num_disparities(col, row);
       CostType * const local_cost_ptr = get_cost_vector(col, row);
-      bool debug = false;//((row == 244) && (col == 341));
+      bool debug = false;//(col==152) && (row == 12);
       
       // Top left
       output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::TOP_LEFT);
@@ -1162,7 +1175,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       int num_disp = get_num_disparities(col, row);
       CostType * const local_cost_ptr = get_cost_vector(col, row);
       bool debug = false;//((row == 244) && (col == 341));
-              
+
       // Bottom right
       output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::BOT_RIGHT);
       if ((row < last_row) && (col < last_column)) {
@@ -1187,7 +1200,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
-      
+
       // Bottom left
       output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::BOT_LEFT);
       if ((row < last_row) && (col > 0)) {
@@ -1199,7 +1212,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
-      
+
       // Right
       output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::RIGHT);
       if (col < last_column) {
@@ -1521,9 +1534,6 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
 
 
-
-
-
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image,
                                               ImageView<uint8> const& right_image,
@@ -1586,26 +1596,14 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
     //smooth_path_accumulation(left_image);
     smooth_path_accumulation_multithreaded(left_image);
   else
-    two_trip_path_accumulation(left_image);
-    //multi_thread_accumulation(left_image);
+    //two_trip_path_accumulation(left_image);
+    multi_thread_accumulation(left_image);
     
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
   //create_disparity_view_subpixel(); // DEBUG
   return create_disparity_view();
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1657,7 +1655,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Add lines from the left
   for (int i=0; i<height; ++i) { 
     Vector2i left_pixel(0, i);
-    PixelLineIterator line_from_left (left_pixel,  PixelLineIterator::R, image_size);
+    PixelLineIterator line_from_left (left_pixel, PixelLineIterator::R, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left));
     thread_pool.add_task(task);
   }
@@ -1678,13 +1676,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Add lines from the top left
   for (int i=0; i<width; ++i) {
     Vector2i top_pixel(i, 0);
-    PixelLineIterator line_from_top_br   (top_pixel,    PixelLineIterator::BR, image_size);
+    PixelLineIterator line_from_top_br(top_pixel, PixelLineIterator::BR, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_br));
     thread_pool.add_task(task);
   }
   for (int i=1; i<height; ++i) {
     Vector2i left_pixel(0, i);
-    PixelLineIterator line_from_left_br   (left_pixel,    PixelLineIterator::BR, image_size);
+    PixelLineIterator line_from_left_br(left_pixel, PixelLineIterator::BR, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_br));
     thread_pool.add_task(task);
   }
@@ -1694,13 +1692,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Add lines from the top right
   for (int i=0; i<width; ++i) {
     Vector2i top_pixel(i, 0);
-    PixelLineIterator line_from_top_bl   (top_pixel,    PixelLineIterator::BL, image_size);
+    PixelLineIterator line_from_top_bl(top_pixel, PixelLineIterator::BL, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_bl));
     thread_pool.add_task(task);
   }
   for (int i=1; i<height; ++i) {
     Vector2i right_pixel(width-1, i);
-    PixelLineIterator line_from_right_bl   (right_pixel,    PixelLineIterator::BL, image_size);
+    PixelLineIterator line_from_right_bl(right_pixel, PixelLineIterator::BL, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_bl));
     thread_pool.add_task(task);
   }
@@ -1710,13 +1708,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Add lines from the bottom left
   for (int i=0; i<width; ++i) {
     Vector2i bot_pixel(i, height-1);
-    PixelLineIterator line_from_bot_tr   (bot_pixel,    PixelLineIterator::TR, image_size);
+    PixelLineIterator line_from_bot_tr(bot_pixel, PixelLineIterator::TR, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tr));
     thread_pool.add_task(task);
   }
   for (int i=0; i<height-1; ++i) {
     Vector2i left_pixel(0, i);
-    PixelLineIterator line_from_left_tr   (left_pixel,    PixelLineIterator::TR, image_size);
+    PixelLineIterator line_from_left_tr(left_pixel, PixelLineIterator::TR, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_tr));
     thread_pool.add_task(task);
   }
@@ -1726,13 +1724,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Add lines from the bottom right
   for (int i=0; i<width; ++i) {
     Vector2i bot_pixel(i, height-1);
-    PixelLineIterator line_from_bot_tl   (bot_pixel,    PixelLineIterator::TL, image_size);
+    PixelLineIterator line_from_bot_tl(bot_pixel, PixelLineIterator::TL, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tl));
     thread_pool.add_task(task);
   }
   for (int i=0; i<height-1; ++i) {
     Vector2i right_pixel(width-1, i);
-    PixelLineIterator line_from_right_tl   (right_pixel,    PixelLineIterator::TL, image_size);
+    PixelLineIterator line_from_right_tl(right_pixel, PixelLineIterator::TL, image_size);
     TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_tl));
     thread_pool.add_task(task);
   }
@@ -1802,9 +1800,6 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
   std::cout << "Done with multi threaded smooth accumulation.\n";  
 
 } // End function smooth_path_accumulation_multithreaded
-
-
-
 
 
 
