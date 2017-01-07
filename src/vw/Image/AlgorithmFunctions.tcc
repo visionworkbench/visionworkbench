@@ -247,11 +247,14 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
   for (int row = output_bbox.min().y(); row < output_bbox.max().y(); row++){
     for (int col = output_bbox.min().x(); col < output_bbox.max().x(); col++){
       Vector2 pix(col, row);
-      //double weightH = ComputeLineWeightsH(pix, hCenterLine, hMaxDistArray);
-      //double weightV = ComputeLineWeightsV(pix, vCenterLine, vMaxDistArray);
-      double weight_h = compute_line_weights(pix, true,  hCenterLine, hMaxDistArray);
-      double weight_v = compute_line_weights(pix, false, vCenterLine, vMaxDistArray);
-      weights(col-output_bbox.min().x(), row-output_bbox.min().y()) = weight_h*weight_v;
+      double new_weight = 0; // Invalid pixels always get zero weight
+      if (is_valid(img(col,row))) {
+        double weight_h = compute_line_weights(pix, true,  hCenterLine, hMaxDistArray);
+        double weight_v = compute_line_weights(pix, false, vCenterLine, vMaxDistArray);
+        new_weight = weight_h*weight_v;
+      }
+      weights(col-output_bbox.min().x(), row-output_bbox.min().y()) = new_weight;
+      
     }
   }
 
