@@ -24,13 +24,14 @@ namespace cartography {
 
 GdalWriteOptions::GdalWriteOptions() {
 #if defined(VW_HAS_BIGTIFF) && VW_HAS_BIGTIFF == 1
-  gdal_options["COMPRESS"] = "LZW";
+  gdal_options["BIGTIFF"]  = "YES";
 #else
-  gdal_options["COMPRESS"] = "NONE";
   gdal_options["BIGTIFF"] = "NO";
 #endif
+  gdal_options["COMPRESS"] = "LZW";
   raster_tile_size = Vector2i(vw_settings().default_tile_size(),
                               vw_settings().default_tile_size());
+  num_threads = vw_settings().default_num_threads();
 }
 
 GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt ) {
@@ -38,10 +39,11 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt 
   (*this).add_options()
     ("threads",      po::value(&opt.num_threads)->default_value(0),
         "Select the number of processors (threads) to use.")
-    ("tile_size",  po::value(&opt.raster_tile_size)->default_value(Vector2i(vw_settings().default_tile_size(),
-                                                                            vw_settings().default_tile_size()),"256, 256"),
+    ("tile_size",  po::value(&opt.raster_tile_size)->default_value
+     (Vector2i(vw_settings().default_tile_size(),
+               vw_settings().default_tile_size()),"256, 256"),
         "Image tile size used for multi-threaded processing.")
-    ("no-bigtiff",   "Tell GDAL to not create bigtiffs.")
+    ("no-bigtiff",   "Tell GDAL to not create bigtiffs.")  // gets stored in vm.count("no-bigtiff")
     ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
         "TIFF Compression method. [None, LZW, Deflate, Packbits]")
     ("version,v",    "Display the version of software.")

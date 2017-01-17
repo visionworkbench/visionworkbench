@@ -59,6 +59,9 @@ namespace cartography {
   double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
   /// Standard options for multi-threaded GDAL (tif) image writing.
+  // TODO: This is the wrong place, as it has nothing to do with cartography.
+  // Move to DiskImageResourceGDAL.h.
+  // This will be an immense change. 
   struct GdalWriteOptions {
     DiskImageResourceGDAL::Options gdal_options;
     Vector2i     raster_tile_size;
