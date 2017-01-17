@@ -46,7 +46,7 @@ bayer_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 
 # Correct pinhole camera lens distortion
 undistort_image_SOURCES = undistort_image.cc
-undistort_image_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+undistort_image_LDADD = @PKG_VW_LIBS@ @PKG_CARTOGRAPHY_LIBS@ @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 
 # Convert a pinhole model to a different type
 convert_pinhole_model_SOURCES = convert_pinhole_model.cc
