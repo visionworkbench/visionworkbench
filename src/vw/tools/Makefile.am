@@ -183,9 +183,11 @@ doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 endif
 
 if MAKE_MODULE_FLOOD_DETECT
-detect_water_progs = detect_water
-detect_water_SOURCES = detect_water.cc modis_utilities.h modis_water_detection.h radar.h
+detect_water_progs = detect_water clean_sentinel1_borders
+detect_water_SOURCES = detect_water.cc multispectral.h radar.h flood_common.h
 detect_water_LDADD   = @PKG_VW_LIBS@ @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+clean_sentinel1_borders_SOURCES = clean_sentinel1_borders.cc flood_common.h
+clean_sentinel1_borders_LDADD   = @PKG_VW_LIBS@ @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 endif
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \

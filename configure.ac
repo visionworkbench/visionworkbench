@@ -146,7 +146,7 @@ AC_CHECK_PROGS(GENHTML, genhtml, false)
 
 # For the moment this is just a manual switch, defaulting to off.
 # Someday this should be sensibly autodetected.
-# AX_ARG_ENABLE(sse,           no,  [am-yes cpp-bool], [enable SSE optimizations in some places (development)])
+AX_ARG_ENABLE(sse,           no,  [am-yes cpp-bool], [enable SSE optimizations in some places])
 AX_ARG_ENABLE(bounds-check,  no,  [am-yes cpp-bool], [enable image bounds checking (SLOW!)])
 AX_ARG_ENABLE(test-coverage, no,  [am-yes],          [turn on code coverage analysis tools])
 AX_ARG_ENABLE(config-file,   yes, [cpp-bool],        [~/.vwrc support])

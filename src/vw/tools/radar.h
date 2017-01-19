@@ -20,6 +20,7 @@
 #define __VW_RADAR_H__
 
 #include <stdlib.h>
+#include <boost/filesystem.hpp>
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 #include <vw/Math/Statistics.h>
@@ -236,6 +237,7 @@ void preprocess_sentinel1_image(ImageT const& input_image, BBox2i const& roi,
                                 RadarType &global_min, RadarType &global_max,
                                 cartography::GdalWriteOptions const& write_options,
                                 std::string const& temporary_path,
+                                double nodata_value,
                                 ImageViewRef<RadarTypeM>      & processed_image) {
 
   // Currently we write the preprocessed image to disk, but maybe in the future
@@ -269,8 +271,6 @@ void preprocess_sentinel1_image(ImageT const& input_image, BBox2i const& roi,
   //TODO: Handle the mask in the filter!
   // Perform median filter to correct speckles (see section 2.1.4)
   int kernel_size = 3;
-  double nodata_value = -32767.0; // This is for our use, so it can be fixed.
-
   cartography::block_write_gdal_image(temporary_path,
                                       apply_mask(normalize(median_filter_view(sentinel1_dn_to_db(crop(input_image, roi)), 
                                                                               Vector2i(kernel_size, kernel_size)
@@ -346,10 +346,10 @@ public: // Functions
     double count = 0, sum = 0;
     for (int r=0; r<image.rows(); ++r) {
       for (int c=0; c<image.cols(); ++c) {
-        if (is_valid(image(c,r))) {
-          sum   += image(c,r);
-          count += 1.0;
-        }
+        if (!is_valid(image(c,r)))
+          continue;
+        sum   += image(c,r);
+        count += 1.0;
       }
     }
     if (count > 0)
@@ -407,8 +407,8 @@ public: // Functions
       is_valid = (mean_of_means > 0);
       if (is_valid) {
         stddev_of_means = math::standard_deviation(means, mean_of_means);
-        //printf("PV, mean, stddev for tile (%d, %d) = %lf, %lf, %lf\n", 
-        //      this_col, this_row, percent_valid, mean_of_means, stddev_of_means);
+        //printf("PV, mean, stddev for tile  = %lf, %lf, %lf\n", 
+        //       percent_valid, mean_of_means, stddev_of_means);
       }
     }
 
@@ -713,6 +713,12 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
   // TODO: How to specify the ROI?
   
+  // Set up paths to temporary files in the output folder.
+  boost::filesystem::path fs_path(output_path); 
+  fs_path = fs_path.parent_path().parent_path();
+  fs_path /= "preprocessed_image.tif";
+  std::string preprocessed_image_path = fs_path.string();
+  
   BBox2i roi = bounding_box(DiskImageView<Sentinel1Type>(input_image_path));
  
   // Load the georeference from the input image
@@ -729,20 +735,19 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   std::cout << "Computed image pixel resolution in meters: " << input_meters_per_pixel << std::endl;
   
   // Read nodata value
-  double nodata_value     = 0;
-  bool   has_input_nodata = read_nodata_val(input_image_path, nodata_value);
+  double input_nodata_value     = 0;
+  bool   has_input_nodata = read_nodata_val(input_image_path, input_nodata_value);
    
   // Compute the min and max values of the image
   std::cout << "Preprocessing...\n";
 
-  std::string preprocessed_image_path = "preprocessed_image.tif";
-
   // Apply any needed preprocessing to the image
-  ImageViewRef<RadarTypeM> preprocessed_image;
+  double internal_nodata_value = -32767.0; // For use with our temporary files.
+  ImageViewRef<RadarTypeM> preprocessed_image; // This is a view of the image on disk.
   RadarType global_min, global_max;
-  preprocess_sentinel1_image(create_mask(DiskImageView<Sentinel1Type>(input_image_path), nodata_value), 
+  preprocess_sentinel1_image(create_mask(DiskImageView<Sentinel1Type>(input_image_path), input_nodata_value), 
                              roi, global_min, global_max, 
-                             write_options, preprocessed_image_path, preprocessed_image);
+                             write_options, preprocessed_image_path, internal_nodata_value, preprocessed_image);
   
   const int MAX_TILE_ATTEMPTS = 2;
   bool   tile_thresh_success = false;
@@ -758,8 +763,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
     // For each tile compute the mean value and the standard deviation of the four sub-tiles.
     ImageView<PixelMask<Vector2f> > tile_means_stddevs; // These are much smaller than the input image
-    const float MIN_VALID = 150;  
-    generate_tile_means(create_mask_less_or_equal(preprocessed_image, MIN_VALID), tile_size, tile_means_stddevs);
+    generate_tile_means(preprocessed_image, tile_size, tile_means_stddevs);
 
     if (debug) {
       std::cout << "Writing DEBUG images...\n";

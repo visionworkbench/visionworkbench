@@ -31,31 +31,57 @@ namespace math {
 
 //---------------------------------------------------------------------------------
 
-/// Compute the mean of a vector.
+/// Compute the mean of an std container.
 /// - It us up to the user to verify values.size() > 0
 template <typename T>
-double mean(std::vector<T> const& values) {
+double mean(T const& values) {
 
   double result = 0;
-  for (size_t i = 0; i < values.size(); ++i)
-    result += static_cast<double>(values[i]);
+  typename T::const_iterator iter;
+  for (iter = values.begin(); iter != values.end(); ++iter)
+    result += static_cast<double>(*iter);
 
   return result / static_cast<double>(values.size());
 }
 
-/// Compute the standard deviation of a vector given the mean.
+/// Compute the standard deviation of an std container given the mean.
 template <typename T>
-double standard_deviation(std::vector<T> const& values, double mean_value) {
+double standard_deviation(T const& values, double mean_value) {
 
   double result = 0, diff = 0;
-  for (size_t i = 0; i < values.size(); ++i) {
-    diff = static_cast<double>(values[i]) - mean_value;
+  typename T::const_iterator iter;
+  for (iter = values.begin(); iter != values.end(); ++iter) {
+    diff = static_cast<double>(*iter) - mean_value;
     result += diff * diff;
   }
 
   // No error checking done here as 
   return sqrt(result / static_cast<double>(values.size()));
 }
+
+/// Find the median of an std container
+template <typename T>
+double median(T const& values) {
+  
+  // Copy the input list to a vector
+  const size_t num_elements = values.size();
+  std::vector<double> v(num_elements);
+  typename T::const_iterator iter = values.begin();
+  for (size_t i=0; i<num_elements; ++i) {
+    v[i] = *iter;
+    ++iter;
+  }
+
+  // A copy is needed so we can preserve the order of the input list.  
+  std::sort(v.begin(), v.end());
+  size_t center = num_elements/2;
+  if (num_elements % 2 == 1) // Odd length case
+    return v[center];
+  else  // Even length case
+    return (v[center] + v[center-1]) / 2.0;
+}
+
+
 
 //---------------------------------------------------------------------------------
 

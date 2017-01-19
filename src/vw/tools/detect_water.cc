@@ -37,17 +37,18 @@ int main(int argc, char **argv) {
 
   std::vector<std::string> input_file_names;
   std::string output_path, mode, dem_path;
-  float manual_threshold;
-
+  int num_threads=0;
   int tile_size=512;
+  //float manual_threshold;
+
   cartography::GdalWriteOptions write_options;
 
   po::options_description general_options("Runs VW's water detection tools.\n\nGeneral Options");
   general_options.add_options()
     ("output-path,o",    po::value<std::string>(&output_path), "The output file path")
     ("dem-path,d",       po::value<std::string>(&dem_path), "Path to a DEM file to be used with processing.")
-    ("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
-    ("num-threads",      po::value<int>(&write_options.num_threads)->default_value(2), 
+    //("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
+    ("num-threads",      po::value<int>(&num_threads)->default_value(0), 
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
@@ -113,12 +114,18 @@ int main(int argc, char **argv) {
     return -2;
   }
   
+  // TODO: Clean up settings usage!
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
+  vw_settings().set_default_tile_size(tile_size);
+  if (num_threads > 0) {
+    write_options.num_threads = num_threads;
+    vw_settings().set_default_num_threads(write_options.num_threads);
+  }
 
-  // Handle user threshold
-  float threshold = 100;
-  if( vm.count("manual-threshold") )
-    threshold = manual_threshold;
+  //// Handle user threshold
+  //float threshold = 100;
+  //if( vm.count("manual-threshold") )
+  //  threshold = manual_threshold;
 
   if( vm.count("output-path") < 1 ) {
     std::cerr << "Error: must specify the output file!" << std::endl << std::endl;

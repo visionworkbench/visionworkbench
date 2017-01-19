@@ -715,7 +715,7 @@ SemiGlobalMatcher::create_disparity_view() {
   DisparityImage disparity( m_num_output_cols, m_num_output_rows );
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
-  //Timer timer("Calculate Disparity Minimum");
+  Timer timer("Calculate Disparity Minimum");
   DisparityType dx, dy;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
@@ -744,6 +744,7 @@ SemiGlobalMatcher::create_disparity_view() {
       */
     }
   }
+  vw_out(DebugMessage, "stereo") << "Finished creating integer disparity image.\n";
   return disparity;
 }
 
@@ -791,6 +792,8 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
   typedef  PixelMask<Vector2f> p_type;
   ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
   ParabolaFit2d fitter;
+
+  vw_out(DebugMessage, "stereo") << "Creating subpixel disparity image...\n";
   
   //// DEBUG
   //HistClass hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
@@ -1035,6 +1038,7 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
   get_hamming_distance_costs(left_census, right_census);
 }
 
+// TODO: Add multithreading capability to this function!
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {  
   //Timer timer("\tSGM Cost Calculation");
@@ -1599,9 +1603,10 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
     //two_trip_path_accumulation(left_image);
     multi_thread_accumulation(left_image);
     
+  vw_out(DebugMessage, "stereo") << "Accumulation finished, creating integer disparity image...\n";
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
-  //create_disparity_view_subpixel(); // DEBUG
+  // - This computes integer disparities.  Subpixel disparities are computed in CorrelationView.tcc
   return create_disparity_view();
 }
 
@@ -1640,7 +1645,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with first job batch.\n";
+  std::cout << "."; // TODO: Use a proper processing time bar!
 
   // Add lines going up
   for (int i=0; i<width; ++i) { 
@@ -1650,7 +1655,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with second job batch.\n";
+  std::cout << ".";
 
   // Add lines from the left
   for (int i=0; i<height; ++i) { 
@@ -1660,7 +1665,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";
+  std::cout << ".";
 
   // Add lines from the right
   for (int i=0; i<height; ++i) {
@@ -1670,8 +1675,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";
-
+  std::cout << ".";
 
   // Add lines from the top left
   for (int i=0; i<width; ++i) {
@@ -1687,7 +1691,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";
+  std::cout << ".";
 
   // Add lines from the top right
   for (int i=0; i<width; ++i) {
@@ -1703,7 +1707,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";
+  std::cout << ".";
 
   // Add lines from the bottom left
   for (int i=0; i<width; ++i) {
@@ -1719,7 +1723,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";
+  std::cout << ".";
   
   // Add lines from the bottom right
   for (int i=0; i<width; ++i) {
@@ -1735,7 +1739,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with job batch.\n";  
+  std::cout << "Done with job batch.\n";
 
   // Finished!
   std::cout << "Finished multi-threaded accumulation!\n";
