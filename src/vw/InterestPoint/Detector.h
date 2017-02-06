@@ -42,10 +42,9 @@
 #include <vw/InterestPoint/ImageOctaveHistory.h>
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-#include "opencv2/core/core.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/nonfree/features2d.hpp"
-#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/features2d.hpp"
+#include "opencv2/xfeatures2d.hpp"
 #endif
 
 namespace vw {
@@ -304,10 +303,10 @@ namespace ip {
     OpenCvIpDetectorType m_detector_type;
     bool                 m_add_descriptions;
     bool                 m_normalize;
-    cv::Ptr<cv::BRISK> m_detector_brisk;
+    cv::Ptr<cv::BRISK> m_detector_brisk; // TODO: Can these be consolidated with OCV3?
     cv::Ptr<cv::ORB  > m_detector_orb;
-    cv::Ptr<cv::SIFT > m_detector_sift;
-    cv::Ptr<cv::SURF > m_detector_surf;
+    cv::Ptr<cv::xfeatures2d::SIFT > m_detector_sift;
+    cv::Ptr<cv::xfeatures2d::SURF > m_detector_surf;
 
   }; // End class OpenCvInterestPointDetector
 #else
@@ -1012,20 +1011,22 @@ OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType de
 			    bool add_descriptions, int max_points)
   : m_detector_type(detector_type), m_add_descriptions(add_descriptions), m_normalize(normalize) {
 
-  cv::initModule_nonfree();
   // Instantiate the feature detector
   switch (detector_type)
   {
-    //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
-    //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector = cv::ORB::create();    break;
     case OPENCV_IP_DETECTOR_TYPE_BRISK:
       vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
-      m_detector_brisk = cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
-    case OPENCV_IP_DETECTOR_TYPE_ORB:    m_detector_orb   = cv::Ptr<cv::ORB  >(new cv::ORB(max_points) );  break;
-    case OPENCV_IP_DETECTOR_TYPE_SIFT:   m_detector_sift  = cv::Ptr<cv::SIFT >(new cv::SIFT(max_points));  break;
+      //m_detector_brisk = cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
+    case OPENCV_IP_DETECTOR_TYPE_ORB:
+      m_detector_orb = cv::ORB::create();
+      m_detector_orb->setMaxFeatures(max_points);
+      break;
+    case OPENCV_IP_DETECTOR_TYPE_SIFT:
+      m_detector_sift = cv::xfeatures2d::SIFT::create(max_points);
+      break;
     case OPENCV_IP_DETECTOR_TYPE_SURF:
       vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
-      m_detector_surf  = cv::Ptr<cv::SURF >(new cv::SURF());  break;
+      //m_detector_surf  = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
     default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
   };
   //if (!m_detector) vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector failed to initialize!\n");
@@ -1054,19 +1055,19 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
   if (m_add_descriptions) {
     switch (m_detector_type)
     {
-      case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->operator()(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->operator()  (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+      //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->operator()(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detectAndCompute (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+      case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->detectAndCompute(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+      //case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
       default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
     };
   } else { // Don't add descriptions
     switch (m_detector_type)
     {
-      case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->detect(cv_image, keypoints); break;
-      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detect(cv_image, keypoints);   break;
+      //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->detect(cv_image, keypoints); break;
+      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detect (cv_image, keypoints);   break;
       case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->detect(cv_image, keypoints);  break;
-      case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->detect(cv_image, keypoints);  break;
+      //case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->detect(cv_image, keypoints);  break;
       default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
     };
   }
