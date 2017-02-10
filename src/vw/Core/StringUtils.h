@@ -46,9 +46,9 @@ namespace vw{
 
     std::ostringstream oss;
     oss.precision(16);
-    for (int i = 0; i < (int)vec.size(); i++)
-      oss << vec[i] << " ";
-
+    for (int i = 0; i < (int)vec.size()-1; i++) oss << vec[i] << " ";
+    if (vec.size() > 0) oss << vec[vec.size()-1];
+    
     return oss.str();
   }
 
