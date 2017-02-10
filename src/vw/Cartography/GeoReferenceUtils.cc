@@ -39,7 +39,7 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt 
   (*this).add_options()
     ("threads",      po::value(&opt.num_threads)->default_value(0),
         "Select the number of processors (threads) to use.")
-    ("tile_size",  po::value(&opt.raster_tile_size)->default_value
+    ("tile-size",  po::value(&opt.raster_tile_size)->default_value
      (Vector2i(vw_settings().default_tile_size(),
                vw_settings().default_tile_size()),"256, 256"),
         "Image tile size used for multi-threaded processing.")
