@@ -772,7 +772,26 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return Vector2(projected.u, projected.v);
   }
 
+  /// Convert lon/lat/alt to projected x/y/alt 
+  Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 
+    if ( boost::math::isnan(llh[2]) )
+      return llh;
+    
+    Vector2 xy = lonlat_to_point( vw::math::subvector(llh, 0, 2) );
+    return Vector3( xy[0], xy[1], llh[2] );
+  }
+  
+  /// Convert projected x/y/alt lon/lat/alt
+  Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
+
+    if ( boost::math::isnan(point[2]) )
+      return point;
+    
+    Vector2 ll = point_to_lonlat( vw::math::subvector( point, 0, 2 ) );
+    return Vector3( ll[0], ll[1], point[2] );
+  }
+  
   //*****************************************************************
   //************** Functions for class ProjContext ******************
 

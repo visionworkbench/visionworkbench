@@ -285,6 +285,12 @@ namespace cartography {
     /// the location in the projected coordinate system.
     Vector2 lonlat_to_point(Vector2 lon_lat) const;
 
+    /// Convert lon/lat/alt to projected x/y/alt 
+    Vector3 geodetic_to_point(Vector3 llh) const;
+
+    /// Convert projected x/y/alt lon/lat/alt
+    Vector3 point_to_geodetic(Vector3 point) const;
+
     /// For a bbox in pixel coordinates, find what that bbox covers in lonlat
     BBox2 pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const;
 
