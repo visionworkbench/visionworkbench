@@ -299,7 +299,6 @@ void do_work() {
     }
   }
 
-  
   std::string out_mat_path = fs::path(output_file_name).replace_extension(".txt").string();
   vw_out() << "Writing: " << out_mat_path << std::endl;
   std::ofstream mh (out_mat_path.c_str());
