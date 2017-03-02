@@ -63,9 +63,10 @@ int main( int argc, char *argv[] ) {
     int   max_pyramid_levels;
     int   correlator_type;
     bool  found_alignment = false;
-    int blob_filter_area;
+    int   blob_filter_area;
     Matrix3x3 alignment;
     float mask_val;
+    int   filter_radius;
 
     po::options_description desc("Options");
     desc.add_options()
@@ -80,6 +81,7 @@ int main( int argc, char *argv[] ) {
       ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
       ("ykernel",    po::value(&ykernel)->default_value(15),     "Vertical correlation kernel size")
       ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
+      ("filter-radius",   po::value(&filter_radius)->default_value(5), "Disp filtering radius")
       ("correlator-type", po::value(&correlator_type)->default_value(0), 
                           "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr; 3 - Census; 4 - Ternary Census")
       //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
@@ -91,7 +93,6 @@ int main( int argc, char *argv[] ) {
       ("mask-value",         po::value(&mask_val)->default_value(-32768), "Specify a mask value")
       ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
         "Limit the maximum number of pyramid levels")
-      ("pyramid",    "Use the pyramid based correlator")
       ("mask-zero",  "Mask out zero valued pixels")
       ("sgm",        "Use the SGM stereo algorithm.")
       ("sgm-smooth", "Use the smoothed version of the SGM stereo algorithm.")
@@ -189,27 +190,17 @@ int main( int argc, char *argv[] ) {
     BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
                         Vector2i(h_corr_max, v_corr_max));
     Vector2i kernel_size(xkernel, ykernel);
-    if (vm.count("pyramid")) {
-      std::cout << "Correlate max search range = " << search_range << std::endl;
-      disparity_map =
-        stereo::pyramid_correlate( left,      right,
-                                   left_mask, right_mask,
-                                   stereo::PREFILTER_LOG, log,
-                                   search_range, kernel_size,
-                                   corr_type, corr_timeout, seconds_per_op,
-                                   lrthresh, max_pyramid_levels, 
-                                   stereo_algorithm, collar_size,
-                                   blob_filter_area,
-                                   write_debug_images);
-    } else {
-      ImageViewRef<PixelMask<Vector2i> > disparity_mapI;
-      disparity_mapI =
-        stereo::correlate( left, right,
-                           stereo::LaplacianOfGaussian(log),
-                           search_range, kernel_size,
-                           corr_type, lrthresh);
-      disparity_map = pixel_cast<PixelMask<Vector2f> >(disparity_mapI);
-    }
+    std::cout << "Correlate max search range = " << search_range << std::endl;
+    disparity_map =
+      stereo::pyramid_correlate( left,      right,
+                                 left_mask, right_mask,
+                                 stereo::PREFILTER_LOG, log,
+                                 search_range, kernel_size,
+                                 corr_type, corr_timeout, seconds_per_op,
+                                 lrthresh, filter_radius, max_pyramid_levels, 
+                                 stereo_algorithm, collar_size,
+                                 blob_filter_area,
+                                 write_debug_images);
 
     // TODO: Call the code used in stereo_fltr!
 

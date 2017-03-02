@@ -135,6 +135,7 @@ namespace stereo {
                             stereo::CostFunctionType cost_type,
                             int   corr_timeout, double seconds_per_op,
                             float consistency_threshold,
+                            int filter_half_kernel,
                             int32 max_pyramid_levels,
                             CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                             int   collar_size        = 0,
@@ -147,6 +148,7 @@ namespace stereo {
       m_cost_type(cost_type),
       m_corr_timeout(corr_timeout), m_seconds_per_op(seconds_per_op),
       m_consistency_threshold(consistency_threshold),
+      m_filter_half_kernel(filter_half_kernel), 
       m_blob_filter_area(blob_filter_area),
       m_algorithm(algorithm),
       m_collar_size(collar_size),
@@ -211,6 +213,7 @@ namespace stereo {
     // How long it takes to do one corr op with given kernel and cost function
     double m_seconds_per_op;
     float  m_consistency_threshold; // < 0 = means don't do a consistency check
+    int    m_filter_half_kernel; // Require half of pixels in this radius to be within 3 dist
     int32  m_max_level_by_search;
     
     /// Remove disparity blobs this size or less at the top level.
@@ -284,6 +287,7 @@ namespace stereo {
                      stereo::CostFunctionType cost_type,
                      int corr_timeout, double seconds_per_op,
                      float consistency_threshold,
+                     int filter_half_kernel,
                      int32 max_pyramid_levels,
                      CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                      int   collar_size        = 0,
@@ -296,7 +300,7 @@ namespace stereo {
                         search_region,
                         kernel_size, cost_type,
                         corr_timeout, seconds_per_op,
-                        consistency_threshold, max_pyramid_levels,
+                        consistency_threshold, filter_half_kernel, max_pyramid_levels,
                         algorithm, collar_size, blob_filter_area,
                         write_debug_images);
   }

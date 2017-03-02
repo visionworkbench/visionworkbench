@@ -493,29 +493,31 @@ prerasterize(BBox2i const& bbox) const {
       // 3.2a) Filter the disparity so we are not processing more than we need to.
       //       - Inner function filtering is only to catch "speckle" type noise of individual ouliers.
       //       - Outer function just merges the masks over the filtered disparity image.
-      const int32 rm_half_kernel = 5;
+      //const int32 rm_half_kernel = 5;
       const float rm_min_matches_percent = 0.5;
       const float rm_threshold = 3.0;
 
-      if ( !on_last_level ) {
-        disparity = disparity_mask(disparity_cleanup_using_thresh
-                                     (disparity,
-                                      rm_half_kernel, rm_half_kernel,
-                                      rm_threshold,
-                                      rm_min_matches_percent),
-                                     left_mask_pyramid [level],
-                                     right_mask_pyramid[level]);
-      } else {
-      
-        // We don't do a single hot pixel check on the final level as it leaves a border.
-        disparity = disparity_mask(rm_outliers_using_thresh
-                                     (disparity,
-                                      rm_half_kernel, rm_half_kernel,
-                                      rm_threshold,
-                                      rm_min_matches_percent),
-                                     left_mask_pyramid [level],
-                                     right_mask_pyramid[level]);
-      }
+      if (m_filter_half_kernel > 0) { // Skip filtering if zero radius passed in
+        if ( !on_last_level ) {
+          disparity = disparity_mask(disparity_cleanup_using_thresh
+                                       (disparity,
+                                        m_filter_half_kernel, m_filter_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid [level],
+                                       right_mask_pyramid[level]);
+        } else {
+        
+          // We don't do a single hot pixel check on the final level as it leaves a border.
+          disparity = disparity_mask(rm_outliers_using_thresh
+                                       (disparity,
+                                        m_filter_half_kernel, m_filter_half_kernel,
+                                        rm_threshold,
+                                        rm_min_matches_percent),
+                                       left_mask_pyramid [level],
+                                       right_mask_pyramid[level]);
+        }
+      } // End of 
 
       // The kernel based filtering tends to leave isolated blobs behind.
       disparity_blob_filter(disparity, level, m_blob_filter_area);        

@@ -10,8 +10,6 @@
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 
-//#include <vw/InterestPoint/Detector.h> // TODO: REMOVE THIS!
-
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
@@ -53,7 +51,8 @@ Future improvements:
 - Try to find algorithmic improvements.
 - Try to further optimize the speed of the expensive accumulation step.
 - Generate a confidence score for each pixel's disparity result.
-- Make sure everything works with negative disparity search ranges.
+- Make sure everything works with negative disparity search ranges.  This never
+  comes up when called from CorrelationView, but would make the class more flexible.
 */
 
 class SemiGlobalMatcher {
@@ -86,10 +85,8 @@ public: // Functions
 
   /// Set the parameters to be used for future SGM calls
   /// - Parameters that are not provided will be set to the best known default.
-  /// - If kernel_size is 3 or 5, a census transform will be used (reccomended).
-  ///   Otherwise a simple averaging over a block method will be used.
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
-  ///   If not provided, they well be set to defaults according to the kernel size.
+  ///   If not provided, they well be set to defaults according to the kernel size and cost type.
   void set_parameters(CostFunctionType cost_type,
                       bool use_mgm,
                       int min_disp_x, int min_disp_y,
@@ -166,7 +163,11 @@ private: // Functions
   /// - Returns false if there is no valid image data.
   /// - The left and right image masks contain a nonzero value if the pixel is valid.
   ///   No search is performed at masked pixels.
-  /// - prev_disparity is a half resolution disparity image.
+  /// - prev_disparity is a half resolution disparity image.  This input is optional,
+  ///   pass in a null pointer to ignore it.  If provided, it will be used to limit 
+  ///   the disparity range searched at each pixel.
+  /// - The range of disparities searched controls the run time and memory usage of the
+  ///   algorithm so this is an important function!
   bool populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
                                  ImageView<uint8> const* right_image_mask,
                                  DisparityImage   const* prev_disparity,

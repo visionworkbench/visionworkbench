@@ -163,6 +163,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   // This class will check the right image mask in an efficient manner.
   IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
 
+  const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
+
+  ImageView<uint8> full_search_image(m_disp_bound_image.cols(), m_disp_bound_image.rows());
+
   // Loop through the output disparity image and compute a search range for each pixel
   int r_in, c_in;
   int dx_scaled, dy_scaled;
@@ -179,7 +183,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         bool   right_check_ok = (right_percent >= MIN_MASK_OVERLAP);
         // If none of the right mask pixels were valid, flag this pixel as invalid.
         if (!right_check_ok) {
-          m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
+          m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
           ++percent_masked;
           continue;
         }
@@ -188,7 +192,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // If the left mask is invalid here, flag the pixel as invalid.
       // - Do this second so that our right image pixel tracker stays up to date.
       if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
-        m_disp_bound_image(c,r) = Vector4i(0,0,-1,-1); // Zero search area.
+        m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
         ++percent_masked;
         continue;
       }
@@ -196,8 +200,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // If a previous disparity was provided, see if we have a valid disparity 
       // estimate for this pixel.
       bool good_disparity = false;
+      c_in = c / SCALE_UP; // Pixel location in prior disparity map if it exists
+      
       if (prev_disparity) {
-        c_in = c / SCALE_UP;
         // Verify that the pixel we want exists
         if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
           vw_throw( LogicErr() << "Size error!\n" );
@@ -233,7 +238,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         percent_trusted += 1.0;
       } else {
         // Not a trusted prior disparity, search the entire range!
-        bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG
+        // - This takes a long time.
+        bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG       
+        full_search_image(c,r) = 255;
       }
       
       m_disp_bound_image(c,r) = bounds;
@@ -242,20 +249,86 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     } // End col loop
     right_mask_checker.advance_row();
   } // End row loop
+ 
+
+  const BBox2i max_range_bbox(Vector2i(m_min_disp_x, m_min_disp_y), Vector2i(m_max_disp_x, m_max_disp_y));
+  const double max_search_area = max_range_bbox.area();
+  
+  // Shrink the search range of full range pixels based on neighbors
+  
+  const int NEARBY_DISP_SEARCH_RANGE = 5; // Look this many pixels in each direction
+  const int NEARBY_DISP_EXPANSION    = 3; // Grow search range from what nearby pixels have
+  double percent_shrunk = 0, shrunk_area = area;
+  if (prev_disparity) { // No point doing this if a previous disparity image was not provided
+  
+    // DEBUG
+    //std::stringstream s;
+    //s << m_disp_bound_image.cols();
+    //write_image("full_search_image"+s.str()+".tif", full_search_image);
+  
+    for (int r=0; r<m_disp_bound_image.rows(); ++r) {
+      // Get vertical search range
+      int min_search_r = r - NEARBY_DISP_SEARCH_RANGE;
+      int max_search_r = r + NEARBY_DISP_SEARCH_RANGE;
+      if (min_search_r <  0                        ) min_search_r = 0;
+      if (max_search_r >= m_disp_bound_image.rows()) max_search_r = m_disp_bound_image.rows()-1;
+      
+      for (int c=0; c<m_disp_bound_image.cols(); ++c) {
+        // Skip pixels without a full search range
+        if (!full_search_image(c,r))
+          continue;
+
+        // Get horizontal search range
+        int min_search_c = c - NEARBY_DISP_SEARCH_RANGE;
+        int max_search_c = c + NEARBY_DISP_SEARCH_RANGE;
+        if (min_search_c <  0                        ) min_search_c = 0;
+        if (max_search_c >= m_disp_bound_image.cols()) max_search_c = m_disp_bound_image.cols()-1;
+        
+        // Look through the search range
+        BBox2i new_range;
+        for (int rs=min_search_r; rs<=max_search_r; ++rs) {
+          for (int cs=min_search_c; cs<=max_search_c; ++cs) {
+            if (full_search_image(cs,rs)) // Don't look at other uncertain pixels
+              continue;
+            // Expand bounding box
+            Vector4i vec = m_disp_bound_image(cs,rs);
+            new_range.grow(Vector2i(vec[0], vec[1]));
+            new_range.grow(Vector2i(vec[2], vec[3]));
+          }
+        }
+        // Grow the bounding box a bit and then record it
+        if (new_range.empty())
+          continue;       
+        new_range.expand(NEARBY_DISP_EXPANSION);
+        new_range.crop(max_range_bbox); // Constrain to global limits
+        m_disp_bound_image(c,r) = Vector4i(new_range.min().x(),   new_range.min().y(),
+                                           new_range.max().x(),   new_range.max().y());
+        percent_shrunk += 1.0;
+        shrunk_area -= (max_search_area - new_range.area());
+      }
+    }
+    //std::cout << "max_range_bbox = " << max_range_bbox << std::endl;
+  } // End of search range shrinking code
   
   // Compute some statistics for help improving the speed
   double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
   area            /= num_pixels;
+  shrunk_area     /= num_pixels;
   percent_trusted /= num_pixels;
   percent_masked  /= num_pixels;
+  percent_shrunk  /= num_pixels;
   
-  double max_search_area    = (m_max_disp_x-m_min_disp_x+1)*(m_max_disp_y-m_min_disp_y+1);
-  double percent_full_range = 1.0 - (percent_trusted+percent_masked);
+  
+  double initial_percent_full_range = 1.0 - (percent_trusted+percent_masked);
+  double final_percent_full_range   = initial_percent_full_range - percent_shrunk;
   vw_out(InfoMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
-  vw_out(InfoMessage, "stereo") << "Mean pixel search area = "            << area               << std::endl;
+  vw_out(InfoMessage, "stereo") << "Mean pixel search area (initial) = "  << area               << std::endl;
+  vw_out(InfoMessage, "stereo") << "Mean pixel search area (final  ) = "  << shrunk_area        << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted    << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked     << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent full search range pixels  = " << percent_full_range << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
   
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))
@@ -715,7 +788,7 @@ SemiGlobalMatcher::create_disparity_view() {
   DisparityImage disparity( m_num_output_cols, m_num_output_rows );
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
-  Timer timer("Calculate Disparity Minimum");
+  //Timer timer("Calculate Disparity Minimum");
   DisparityType dx, dy;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
@@ -787,7 +860,7 @@ private: // Functions
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
-  //Timer timer("Calculate Subpixel Disparity");
+  Timer timer("Calculate Subpixel Disparity");
 
   typedef  PixelMask<Vector2f> p_type;
   ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
@@ -1041,7 +1114,7 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
 // TODO: Add multithreading capability to this function!
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {  
-  //Timer timer("\tSGM Cost Calculation");
+  Timer timer("\tSGM Cost Calculation");
   if ((m_cost_type == CENSUS_TRANSFORM) || (m_cost_type == TERNARY_CENSUS_TRANSFORM)) {
     switch(m_kernel_size) {
     case 3:  fill_costs_census3x3(left_image, right_image); break;
@@ -1616,6 +1689,8 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
 // Perform standard SGM path accumulation using N threads.
 void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_image) {
 
+  //Timer timer_total("\tSGM Multi-Threaded Accumulation");
+
   // TODO: Any need for a dedicated thread count input?
   int num_threads = vw_settings().default_num_threads();
   int height = m_num_output_rows;
@@ -1750,8 +1825,6 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 // This version of the function requires four passes and is based on the paper:
 // MGM: A Significantly More Global Matching for Stereovision
 void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image) {
-
-  //Timer timer_total("\tSGM Cost Propagation");
 
   const int paths_per_pass = 1;
 
