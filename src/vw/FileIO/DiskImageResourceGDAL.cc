@@ -223,6 +223,17 @@ namespace vw {
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     int success;
     value = dataset->GetRasterBand(1)->GetNoDataValue(&success);
+
+    ImageFormat image_fmt = this->format();
+
+    // This is a bugfix. If the image has float values,
+    // must cast the nodata value to float before exporting
+    // it as double. Sometimes it is a float with extra noise
+    // which needs to be cleaned up.
+    if (image_fmt.channel_type == VW_CHANNEL_FLOAT32) {
+      value = std::max(float32(value), -std::numeric_limits<float32>::max()); // if -Inf
+    }
+
     return success;
   }
 
