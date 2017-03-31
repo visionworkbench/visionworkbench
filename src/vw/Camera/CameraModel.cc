@@ -82,9 +82,14 @@ Vector2 AdjustedCameraModel::pixel_offset() const { return m_pixel_offset; }
 
 double AdjustedCameraModel::scale() const { return m_scale; }
 
-Vector2 AdjustedCameraModel::point_to_pixel (Vector3 const& point) const {
+Vector3 AdjustedCameraModel::adjusted_point(Vector3 const& point) const {
   Vector3 offset_pt = point-m_rotation_center-m_translation;
   Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_rotation_center;
+  return new_pt;
+}
+
+Vector2 AdjustedCameraModel::point_to_pixel (Vector3 const& point) const {
+  Vector3 new_pt = this->adjusted_point(point);
   return (m_camera->point_to_pixel(new_pt) - m_pixel_offset)/m_scale;
 }
 
@@ -101,6 +106,30 @@ Vector3 AdjustedCameraModel::camera_center(Vector2 const& pix) const {
 
 Quat AdjustedCameraModel::camera_pose(Vector2 const& pix) const {
   return m_rotation*m_camera->camera_pose(m_scale*pix + m_pixel_offset);
+}
+
+// Modify the adjustments by applying on top of them a rotation + translation
+// transform with the origin at the center of the planet (such as output
+// by pc_align's forward or inverse computed alignment transform). 
+void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
+
+  Matrix3x3 R = submatrix(M, 0, 0, 3, 3);
+  Vector3   T;
+  for (int r = 0; r < 3; r++) 
+    T[r] = M(r, 3);
+
+  // The logic is the following. A point on the camera body gets transformed
+  // by the given adjustments as:
+  // x -> m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation.
+  // If on top of that we apply the current R and T,
+  // that would be R*(m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation)
+  //               + T
+  // which is same as
+  // (R*m_rotation).rotate(x-m_rotation_center) + m_rotation_center +
+  // R*(m_rotation_center + m_translation) + T - m_rotation_center.
+
+  m_rotation    = Quat(R)*m_rotation;
+  m_translation = R*(m_rotation_center + m_translation) + T - m_rotation_center;
 }
 
 void AdjustedCameraModel::write(std::string const& filename) {

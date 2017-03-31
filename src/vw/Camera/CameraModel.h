@@ -185,6 +185,8 @@ namespace camera {
     virtual Vector3 camera_center  (Vector2 const&) const;
     virtual Quat    camera_pose    (Vector2 const&) const;
 
+    Vector3 adjusted_point(Vector3 const& point) const;
+    
     boost::shared_ptr<CameraModel> unadjusted_model(){
       return m_camera;
     }
@@ -193,6 +195,12 @@ namespace camera {
       return m_camera;
     }
 
+    /// Modify the adjustments by applying on top of them a rotation + translation
+    /// transform with the origin at the center of the planet (such as
+    /// output by pc_align's forward or inverse computed alignment
+    /// transform).
+    void apply_transform(vw::Matrix4x4 const& M);
+    
     void write(std::string const&);
     void read (std::string const&);
 
