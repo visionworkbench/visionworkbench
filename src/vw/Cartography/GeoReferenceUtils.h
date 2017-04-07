@@ -59,13 +59,16 @@ namespace cartography {
   double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
   /// Standard options for multi-threaded GDAL (tif) image writing.
+  /// - num_threads sets the number of parallel block-writing threads when calling one
+  ///   of the block write functions in this file.  By default it is set to
+  ///   vw_settings().default_num_threads().
   // TODO: This is the wrong place, as it has nothing to do with cartography.
   // Move to DiskImageResourceGDAL.h.
   // This will be an immense change. 
   struct GdalWriteOptions {
     DiskImageResourceGDAL::Options gdal_options;
     Vector2i     raster_tile_size;
-    int32        num_threads;
+    int32        num_threads;  
     std::string  tif_compress;
 
     GdalWriteOptions();
@@ -206,7 +209,7 @@ namespace cartography {
     if (has_georef)
       cartography::write_georeference(*rsrc, georef);
 
-    block_write_image( *rsrc, image.impl(), progress_callback );
+    block_write_image( *rsrc, image.impl(), progress_callback , opt.num_threads);
   }
 
   // Block write image without georef and nodata.

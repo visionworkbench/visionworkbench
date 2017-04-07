@@ -223,8 +223,14 @@ namespace vw {
     void add_rasterize_task(boost::shared_ptr<Task> task) { m_rasterize_work_queue->add_task(task); }
 
   public:
-    ThreadedBlockWriter() : m_write_queue_limit(vw_settings().write_pool_size()) {
-      m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
+    /// Constructor
+    /// - Leave num_threads as zero to get the default thread count from the settings.
+    ThreadedBlockWriter(int num_threads=0) : m_write_queue_limit(vw_settings().write_pool_size()) {
+      if (num_threads < 1)
+        num_threads = vw_settings().default_num_threads();
+      // The work queue uses the specified (or default) number of threads, but the write queue
+      //  is always limited to a single thread.
+      m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue(num_threads) );
       m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
     }
 
@@ -246,9 +252,11 @@ namespace vw {
 
 
   /// Write an image to disk using multiple threads operating on tiles in parallel.
+  /// - Leave num_threads=0 to use the default number of threads from the settings.
   template <class ImageT>
   void block_write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
-                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
+                          int num_threads=0) {
 
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );
@@ -278,7 +286,7 @@ namespace vw {
     } else {
       // Set up the threaded block writer object, which will manage rasterizing
       // and writing images to disk one block (and one thread) at a time.
-      ThreadedBlockWriter block_writer;
+      ThreadedBlockWriter block_writer(num_threads);
 
       for (int32 j = 0; j < rows; j+= block_size.y()) {
         for (int32 i = 0; i < cols; i+= block_size.x()) {
@@ -290,10 +298,10 @@ namespace vw {
                                        std::min<int32>(j+block_size.y(),rows)));
 
           // Rasterize this image block by scheduling it with the block_writer.
-          int col_blocks = int( ceil(float(cols)/float(block_size.x())) );
+          int col_blocks    = int( ceil(float(cols)/float(block_size.x())) );
           int i_block_index = int(i/block_size.x());
           int j_block_index = int(j/block_size.y());
-          int index = j_block_index*col_blocks+i_block_index;
+          int index         = j_block_index*col_blocks+i_block_index;
 
           block_writer.add_block(resource, image, current_bbox, index, total_num_blocks, progress_callback );
         }
@@ -307,7 +315,7 @@ namespace vw {
 
   template <class ImageT>
   void write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
-                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) {
 
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );

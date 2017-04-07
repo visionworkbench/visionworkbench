@@ -860,7 +860,7 @@ private: // Functions
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
-  Timer timer("Calculate Subpixel Disparity");
+  //Timer timer("Calculate Subpixel Disparity");
 
   typedef  PixelMask<Vector2f> p_type;
   ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
@@ -1114,7 +1114,7 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
 // TODO: Add multithreading capability to this function!
 void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_image,
                                                 ImageView<uint8> const& right_image) {  
-  Timer timer("\tSGM Cost Calculation");
+  //Timer timer("\tSGM Cost Calculation");
   if ((m_cost_type == CENSUS_TRANSFORM) || (m_cost_type == TERNARY_CENSUS_TRANSFORM)) {
     switch(m_kernel_size) {
     case 3:  fill_costs_census3x3(left_image, right_image); break;
@@ -1321,12 +1321,12 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   //Timer timer_total("\tSGM Cost Propagation");
 
-  int paths_per_pass = 2;
+  const int PATHS_PER_PASS = 2;
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - Two copies are needed here, one for the two horizontal passes and one for the two vertical passes
-  MultiAccumRowBuffer buff_manager_horizontal(this, paths_per_pass, false);
-  MultiAccumRowBuffer buff_manager_vertical  (this, paths_per_pass, true);
+  MultiAccumRowBuffer buff_manager_horizontal(this, PATHS_PER_PASS, false);
+  MultiAccumRowBuffer buff_manager_vertical  (this, PATHS_PER_PASS, true);
   
   // Init this buffer to bad scores representing disparities that were
   //  not in the search range for the given pixel.
@@ -1691,7 +1691,6 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   //Timer timer_total("\tSGM Multi-Threaded Accumulation");
 
-  // TODO: Any need for a dedicated thread count input?
   int num_threads = vw_settings().default_num_threads();
   int height = m_num_output_rows;
   int width  = m_num_output_cols;
@@ -1701,7 +1700,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   // Start up the thread pool
   FifoWorkQueue thread_pool(num_threads);
-  std::cout << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+  vw_out() << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
   
   // Initialize a number of line buffers equal to the number of threads
   OneLineBufferManager mem_buff_manager(num_threads, this);
@@ -1826,22 +1825,29 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 // MGM: A Significantly More Global Matching for Stereovision
 void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image) {
 
-  const int paths_per_pass = 1;
+  const int PATHS_PER_PASS = 1;
+  const int MAX_USABLE_THREADS = 8;
 
-  // TODO: Any need for a dedicated thread count input?
   int num_threads = vw_settings().default_num_threads();
+
+  // In order to use more than 8 threads at a time we need a more complicated MGM
+  // implementation.  Currently each of the directions gets its own thread.
+  if (num_threads > MAX_USABLE_THREADS) {
+    num_threads = MAX_USABLE_THREADS;
+    vw_out(WarningMessage) << "MGM stereo processing is currently limited to 8 parallel threads." << std::endl;
+  }
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - A separate copy instance is used for each direction to allow multithreading
-  MultiAccumRowBuffer buff_manager_horizontal_left    (this, paths_per_pass, false);
-  MultiAccumRowBuffer buff_manager_horizontal_right   (this, paths_per_pass, false);
-  MultiAccumRowBuffer buff_manager_horizontal_topleft (this, paths_per_pass, false);
-  MultiAccumRowBuffer buff_manager_horizontal_botright(this, paths_per_pass, false);
+  MultiAccumRowBuffer buff_manager_horizontal_left    (this, PATHS_PER_PASS, false);
+  MultiAccumRowBuffer buff_manager_horizontal_right   (this, PATHS_PER_PASS, false);
+  MultiAccumRowBuffer buff_manager_horizontal_topleft (this, PATHS_PER_PASS, false);
+  MultiAccumRowBuffer buff_manager_horizontal_botright(this, PATHS_PER_PASS, false);
   
-  MultiAccumRowBuffer buff_manager_vertical_top     (this, paths_per_pass, true);
-  MultiAccumRowBuffer buff_manager_vertical_bot     (this, paths_per_pass, true);
-  MultiAccumRowBuffer buff_manager_vertical_topright(this, paths_per_pass, true);
-  MultiAccumRowBuffer buff_manager_vertical_botleft (this, paths_per_pass, true);
+  MultiAccumRowBuffer buff_manager_vertical_top     (this, PATHS_PER_PASS, true);
+  MultiAccumRowBuffer buff_manager_vertical_bot     (this, PATHS_PER_PASS, true);
+  MultiAccumRowBuffer buff_manager_vertical_topright(this, PATHS_PER_PASS, true);
+  MultiAccumRowBuffer buff_manager_vertical_botleft (this, PATHS_PER_PASS, true);
   
   // Set some of the buffers to the reverse direction
   buff_manager_horizontal_right.switch_trips();
@@ -1851,7 +1857,7 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
 
   // Start up thread pool
   FifoWorkQueue thread_pool(num_threads);
-  std::cout << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+  vw_out() << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
 
   // Load all eight required passes as task in to the thread pool   
   typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
