@@ -21,8 +21,11 @@
 #include <vw/tools/modis_utilities.h>
 
 /**
-  Tools for processing MODIS data.
-  MODIS images are in HDF format and are fairly small.
+  Higher level MODIS water detection functions.
+
+  Development of MODIS code was stopped early and this file is incomplete.
+  All MODIS algorithms were originally developed using Google Earth Engine as part
+  of the Crisis Mapping project.
 */
 
 namespace vw {

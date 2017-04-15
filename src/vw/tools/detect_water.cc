@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 /**
-  Program to exercise VW's water detection tools.
+  The central program for using the water detection tools added to Vision Workbench.
 */
 
 #include <vw/Image/ImageIO.h>
@@ -37,23 +37,22 @@ int main(int argc, char **argv) {
 
   std::vector<std::string> input_file_names;
   std::string output_path, mode, dem_path;
-  int num_threads=0;
-  int tile_size=512;
-  //float manual_threshold;
-
+  int num_threads = 0;
+  int tile_size   = 512;
   cartography::GdalWriteOptions write_options;
 
+  // Parse the command line options.
+  
   po::options_description general_options("Runs VW's water detection tools.\n\nGeneral Options");
   general_options.add_options()
     ("output-path,o",    po::value<std::string>(&output_path), "The output file path")
     ("dem-path,d",       po::value<std::string>(&dem_path), "Path to a DEM file to be used with processing.")
-    //("manual-threshold", po::value<float>(&manual_threshold)->default_value(0), "Manually specify a threshold to use")
     ("num-threads",      po::value<int>(&num_threads)->default_value(0), 
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
     ("mode,m",           po::value<std::string>(&mode), 
-        "The processing mode. Required.  Optons: [sentinel1, landsat, worldview]")
+        "The processing mode. Required.  Options: [sentinel1, landsat, worldview]")
     ("debug",  "Record debugging information.")
     ("help,h", "Display this help message");
 
@@ -94,6 +93,8 @@ int main(int argc, char **argv) {
   bool debug = vm.count("debug");
 
   // Check the input mode
+  // - SPOT mode is available as a hidden option since there is an 
+  //   implementation but it does not work well.
   boost::algorithm::to_lower(mode);
   bool radar_mode     = (mode.find("sentinel1") != std::string::npos);
   bool landsat_mode   = (mode.find("landsat"  ) != std::string::npos);
@@ -101,20 +102,20 @@ int main(int argc, char **argv) {
   bool spot_mode      = (mode.find("spot"     ) != std::string::npos);
   if (!radar_mode && !landsat_mode && !worldview_mode && !spot_mode) {
     std::cout << "Error: Unrecognized 'mode' option!  Choices are " 
-              << "'sentinel1' , 'landsat', 'worldview', and 'spot'.\n";
+              << "'sentinel1' , 'landsat', and 'worldview'.\n";
     return -1;
   }
   
   if ((dem_path != "") && (!radar_mode))
     std::cout << "Warning: DEM file is only used when mode is 'sentinel1'\n";
   
-  // Make sure a prodived DEM file exists before we start doing any processing.
+  // If a DEM file was provided, make sure it actually exists before we start doing any processing.
   if ((dem_path != "") && !boost::filesystem::exists(dem_path)) {
     std::cout << "Error: Provided DEM file not found!\n";
     return -2;
   }
   
-  // TODO: Clean up settings usage!
+  // Load settings into VW internals.
   write_options.raster_tile_size = Vector2i(tile_size, tile_size);
   vw_settings().set_default_tile_size(tile_size);
   if (num_threads > 0) {
@@ -122,19 +123,15 @@ int main(int argc, char **argv) {
     vw_settings().set_default_num_threads(write_options.num_threads);
   }
 
-  //// Handle user threshold
-  //float threshold = 100;
-  //if( vm.count("manual-threshold") )
-  //  threshold = manual_threshold;
-
   if( vm.count("output-path") < 1 ) {
     std::cerr << "Error: must specify the output file!" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }
+
+  // Execute the requested flood detection mode.
   
   if (radar_mode) {
-    //dem_path = "/home/smcmich1/data/usgs_floods/dem/imgn30w095_13.tif"; // DEBUG
     std::cout << "Processing sentinel-1 image!\n";
     radar::sar_martinis(input_file_names[0], output_path, write_options, dem_path, debug);
     return 0;
@@ -157,57 +154,6 @@ int main(int argc, char **argv) {
     multispectral::detect_water_spot67(input_file_names, output_path, write_options, debug);
     return 0;
   }
-
   
-
-/*
-
-  std::cout << "Loading MODIS image...\n";
-  modis::ModisImage modis_image;
-  modis::load_modis_image(modis_image, input_file_names);
-
-  write_image("b1.tif", select_channel(modis_image, modis::B1));
-  write_image("b2.tif", select_channel(modis_image, modis::B2));
-  write_image("b3.tif", select_channel(modis_image, modis::B3));
-  write_image("b4.tif", select_channel(modis_image, modis::B4));
-
-  cartography::GeoReference georef;
-  modis::load_modis_georef(input_file_names, georef);
-  std::cout << "Read georef: \n" << georef << std::endl;
-  
-  std::cout << "Forming MODIS products...\n";
-  modis::ModisProductImage product_image;
-  modis::form_modis_product_image(modis_image, product_image);
-  
-  // DEBUG
-  write_image("ndvi.tif", select_channel(product_image, modis::NDVI));
-  write_image("ndwi.tif", select_channel(product_image, modis::NDWI));
-  write_image("evi.tif" , select_channel(product_image, modis::EVI ));
-  write_image("lswi.tif", select_channel(product_image, modis::LSWI));
-  
-
-  std::cout << "Classifying MODIS image...\n";
-  modis::WaterDetection water_result;
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_evi_functor());
-  write_image("evi.tif", water_result);
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_xiao_functor());
-  write_image("xiao.tif", water_result);
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_diff_functor(threshold));
-  write_image("diff.tif", water_result);
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_dartmouth_functor(threshold));
-  write_image("dartmouth.tif", water_result);
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_mod_ndwi_functor(threshold));
-  write_image("ndwi.tif", water_result);
-  modis::for_each_pixel(modis_image, product_image, water_result, modis::detect_water_fai_functor(threshold));
-  write_image("fai.tif", water_result);
-  
-  //write_image(output_path, water_result);
-  
-  
-  
-  std::cout << "Finished!\n";
-
-
-  return 0;
-  */
+  // Basic MODIS flood detection was written but never fully developed.
 }

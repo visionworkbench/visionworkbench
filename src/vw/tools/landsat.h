@@ -29,13 +29,15 @@
 #include <vw/tools/flood_common.h>
 
 /**
-  Tools for processing LANDSAT data.
+  Tools for processing Landsat data.
   Landsat images are split into multiple geotif files and are medium sized.
+  
+  Some support for Landsat 5/7 is provided but only Landsat 8 is fully supported.
 */
 
 namespace vw {
 
-  // Used to save the landsat image as stored in memory
+  // These definitions are needed to save the landsat image as stored in memory
   template<> struct PixelFormatID<PixelMask<Vector<float,  7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
   template<> struct PixelFormatID<PixelMask<Vector<uint16, 7> > > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
   template<> struct PixelFormatID<Vector<uint16, 7> > { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
@@ -47,14 +49,14 @@ namespace landsat {
 
 
 //----------------------------------------------------
-// Landsat types
+// Landsat type definitions
 
 const int NUM_BANDS_OF_INTEREST = 7;
 typedef PixelMask<Vector<uint16, NUM_BANDS_OF_INTEREST> > LandsatPixelType;
 typedef PixelMask<Vector<float,  NUM_BANDS_OF_INTEREST> > LandsatToaPixelType;
 typedef ImageViewRef<LandsatPixelType> LandsatImage;
 
-// These are the Landsat channels we use, available on both 7 and 8.
+// These are the Landsat channels we use, available on both Landsat 7 and Landsat 8.
 enum LANDSAT_CHANNEL_INDICES { BLUE  = 0, 
                                GREEN = 1, 
                                RED   = 2, 
@@ -63,9 +65,7 @@ enum LANDSAT_CHANNEL_INDICES { BLUE  = 0,
                                TEMP  = 5, // = Temperature
                                SWIR2 = 6};
 
-
-// The bands we want are: BLUE, GREEN, RED, NIR, SWIR1, TEMP, SWIR2
-// - These are the bands where this data is located in each Landsat sensor
+// These are the band indices where this data is located in each Landsat sensor.
 // - Note that these are zero-based indices.
 const int LS5_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 6};
 const int LS7_BAND_LOCATIONS[NUM_BANDS_OF_INTEREST] = {0, 1, 2, 3, 4, 5, 7};
@@ -95,6 +95,7 @@ int get_output_channel(int input_channel, int landsat_type) {
 
 /// View for treating multiple single channel images on disk as one multi-channel image.
 /// - T is the data type, N is the number of channels.
+/// - TODO: Move this into VW
 template <typename T, int N>
 class SplitChannelFileView : public ImageViewBase<SplitChannelFileView<T, N> > {
 
@@ -103,14 +104,9 @@ public: // Definitions
   typedef Vector<T, N> pixel_type;
   typedef pixel_type   result_type;
 
-private: // Variables
-
-  std::vector<std::string> const m_input_files;
-  int m_cols, m_rows;
-
 public: // Functions
 
-  // Constructor
+  /// Constructor
   SplitChannelFileView( std::vector<std::string> const& input_files)
                   : m_input_files(input_files){
     // Verify that the correct number of input files were passed in.
@@ -122,13 +118,10 @@ public: // Functions
     m_cols = resource1->format().cols;
     m_rows = resource1->format().rows;
     
-    printf("Output size = %d, %d\n", m_cols, m_rows);
     // Make sure all images are the same size
     for (size_t i=0; i<input_files.size(); ++i) {
       boost::scoped_ptr<SrcImageResource> resource2(DiskImageResource::open(input_files[i]));
-      
-      printf("%s size = %d, %d\n", input_files[i].c_str(), resource2->format().cols, resource2->format().rows);
-      
+            
       if ((m_cols != static_cast<int>(resource2->format().cols)) || 
           (m_rows != static_cast<int>(resource2->format().rows))   )
         vw_throw( ArgumentErr() << "SplitChannelFileView: Input files must all be the same size!\n");
@@ -155,20 +148,12 @@ public: // Functions
     
     // Load info into the file one file at a time
     for (size_t channel=0; channel<m_input_files.size(); ++channel) {
-      //Stopwatch timer1, timer2;
-      //timer1.start();
       ImageView<T> temp = crop(DiskImageView<T>(m_input_files[channel]), bbox);
-      //timer1.stop();
-      //timer2.start();
       select_channel(tile, channel) = temp;
-      //timer2.stop();
-      //std::cout << "T1 time = " << timer1.elapsed_seconds() << "T2 time = " << timer2.elapsed_seconds() << std::endl;
     }
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
-    return prerasterize_type(tile,
-                             -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
+    return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(), cols(), rows());
 
   } // End prerasterize function
 
@@ -176,10 +161,16 @@ public: // Functions
  inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
    vw::rasterize( prerasterize(bbox), dest, bbox );
  }
+ 
+private: // Variables
+
+  std::vector<std::string> const m_input_files;
+  int m_cols, m_rows;
+ 
 }; // End class SplitChannelFileView
 
 
-/// Process MODIS input files into a single image object
+/// Process Landsat input files into a single image object
 void load_landsat_image(LandsatImage &image, std::vector<std::string> const& image_files,
                         int landsat_type) {
 
@@ -206,7 +197,6 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
     }
     text1 = BAND_PREFIX + text1 + ".TIF";
     
-
     //printf("Looking for data %d in channel %d\n", chan, input_channel);
     
     // Look for the string in the input file names
@@ -232,20 +222,19 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
   image.reset(create_mask(SplitChannelFileView<uint16, NUM_BANDS_OF_INTEREST>(sorted_input_files),
                           Vector<uint16, NUM_BANDS_OF_INTEREST>()));
 
-  // TODO: Set the image mask!
-
 } // End function load_landsat_image
 
 
 /// Extract numeric the value from one line of the metadata file.
 int get_band_number_from_line(std::string const& line) {
   // Parse the line containing the info
-  size_t uspos   = line.rfind("_")+1;
-  size_t stoppos = line.rfind("=")-1;
-  std::string num = line.substr(uspos, stoppos-uspos);
+  size_t us_pos   = line.rfind("_")+1;
+  size_t stop_pos = line.rfind("=")-1;
+  std::string num = line.substr(us_pos, stop_pos-us_pos);
   return atoi(num.c_str()) - 1;
 }
 
+/// Parses a landsat metadata line to find the value and the location to store it in.
 template<size_t N>
 bool update_vector_from_line(std::string const& line, 
                              std::string const& prefix, int landsat_type,
@@ -264,11 +253,12 @@ bool update_vector_from_line(std::string const& line,
   return true;
 }
 
-/// Convenience structure for storing Landsat metadata information
+/// Convenience structure for storing Landsat metadata information.
 struct LandsatMetadataContainer {
 
   typedef Vector<float, NUM_BANDS_OF_INTEREST> CoefficientVector;
   
+  // These are all values from the config used to convert to TOA values.
   CoefficientVector rad_mult;
   CoefficientVector rad_add;
   CoefficientVector toa_mult;
@@ -331,7 +321,7 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
   double sun_elevation_radians = DEG_TO_RAD*metadata.sun_elevation_degrees;
   metadata.toa_mult /= sin(sun_elevation_radians);
   metadata.toa_add  /= sin(sun_elevation_radians);
-}
+} // End load_landsat_metadata
 
 
 /// Loads the georeference for a Landsat file
@@ -357,7 +347,6 @@ void load_landsat_georef(std::vector<std::string> const& image_files,
 LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
                                    LandsatMetadataContainer const& metadata)
 {             
-  //std::cout << "IN " << pixel_in << std::endl;
   // This will convert the non-temperature bands to TOA
   LandsatToaPixelType pixel_f = pixel_cast<LandsatToaPixelType>(pixel_in);
   LandsatToaPixelType pixel   = pixel_f;
@@ -365,11 +354,10 @@ LandsatToaPixelType convert_to_toa(LandsatPixelType const& pixel_in,
     pixel[i] = pixel_f[i]*metadata.toa_mult[i] + metadata.toa_add[i];
   
   // Now convert the temperature band
-  // - TODO: This is hard coded to use the K constants from LS8 Band 10!
+  // - This is hard coded to use the K constants from LS8 Band 10!
   float temp_rad = pixel_f[TEMP]*metadata.rad_mult[TEMP] + metadata.rad_add[TEMP];
   pixel[TEMP] = metadata.k_constants[2] / log(metadata.k_constants[0]/temp_rad + 1.0);
-  
-  //std::cout << "OUT " << pixel << " >> " << temp_rad << std::endl;
+
   return pixel;
 }
 
@@ -407,6 +395,9 @@ struct detect_water_ndsi_functor {
   }
 };
 
+// The following water detection functions are copied from our
+//  Earth Engine files and have a bunch of hard coded constants.
+
 /// Guess if a pixel shows a cloud or not.
 bool detect_clouds(LandsatToaPixelType const& pixel) {
  
@@ -428,8 +419,8 @@ bool detect_clouds(LandsatToaPixelType const& pixel) {
 
   // However, clouds are not snow.
   detect_water_ndsi_functor f;
-  score = std::min(score, rescale_to_01(f(pixel), 0.8, 0.6)); // TODO: Is this correct?
-  //std::cout << "Cloud score = " << score << std::endl;
+  score = std::min(score, rescale_to_01(f(pixel), 0.8, 0.6));
+
   const float CLOUD_THRESHOLD = 0.35;
   return (score > CLOUD_THRESHOLD);
 }
@@ -463,7 +454,6 @@ float detect_water(LandsatToaPixelType const& pixel) {
     float shadow_sum = pixel[NIR] + pixel[SWIR1] + pixel[SWIR2];
     shadow_sum = clamp01(rescale_to_01(shadow_sum, 0.35, 0.2));
     score      = std::min(score, shadow_sum);
-    //std::cout << "shadow score = " << shadow_sum << std::endl;
 
     // It also tends to be relatively bright in the blue band
     std::vector<float> dark_values(5);
@@ -483,7 +473,6 @@ float detect_water(LandsatToaPixelType const& pixel) {
       z = clamp01(z);
     }
     score = std::min(score, z);
-    //std::cout << "z = " << z << std::endl;
 
     // Water is at or above freezing
     score = std::min(score, rescale_to_01(pixel[TEMP], 273, 275));
@@ -493,9 +482,6 @@ float detect_water(LandsatToaPixelType const& pixel) {
     if (pixel[GREEN] + pixel[SWIR1] != 0)
       mndwi = (pixel[GREEN] - pixel[SWIR1]) / (pixel[GREEN] + pixel[SWIR1]);
     score = clamp01(std::min(score, rescale_to_01(mndwi, 0.3, 0.8)));
-    //std::cout << "mndwi = " << rescale_to_01(mndwi, 0.3, 0.8) << std::endl;
-
-    //std::cout << "final score = " << score << std::endl;
 
     return score;
 }
@@ -506,9 +492,7 @@ class DetectWaterLandsatFunctor  : public ReturnFixedType<uint8> {
   float m_water_thresh;
 public:
   DetectWaterLandsatFunctor(float sun_elevation_degrees=45)
-   : m_water_thresh(compute_water_threshold(sun_elevation_degrees)) {
-     std::cout << "m_water_thresh = " << m_water_thresh << std::endl;
-   }
+   : m_water_thresh(compute_water_threshold(sun_elevation_degrees)) {}
   
   uint8 operator()( LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
@@ -537,8 +521,8 @@ public:
 void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options, bool debug=false) {
 
+  const int landsat_type= 8; // This could be a parameter but for now it is the only option.
   LandsatImage ls_image;
-  int landsat_type= 8; // TODO: Where to get this!
   load_landsat_image(ls_image, image_files, landsat_type);
 
   cartography::GeoReference georef;
@@ -587,7 +571,6 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
                          apply_mask(
                            per_pixel_view(
                               per_pixel_view(
-                                //crop(ls_image, BBox2(6072, 5472, 10, 8)), // DEBUG
                                 ls_image,
                                 LandsatToaFunctor(metadata)
                               ),
@@ -599,40 +582,7 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
                          true, FLOOD_DETECT_NODATA,
                          write_options,
                          TerminalProgressCallback("vw", "\t--> Classifying Landsat:"));
-
-}
-
-
-/*
-
-/// Estimates the cloud cover percentage in a Landsat image
-def getCloudPercentage(image, region):
-    
-    
-    # The function will attempt the calculation in these ranges
-    # - Native Landsat resolution is 30
-    MIN_RESOLUTION = 60
-    MAX_RESOLUTION = 1000
-    resolution = MIN_RESOLUTION
-
-    while True:
-        try:
-            cloudScore = detect_clouds(image)
-            reducedimage = image.reduce(ee.Reducer.allNonZero())
-            areaCount = reducedimage.reduceRegion(ee.Reducer.sum(), region, resolution)
-            cloudCount = cloudScore.reduceRegion(ee.Reducer.sum(), region, resolution)
-            percentage = safe_get_info(cloudCount)['constant'] / safe_get_info(areaCount)['all']
-            return percentage
-        except Exception as e:
-            # Keep trying with lower resolution until we succeed
-            resolution = 2*resolution
-            #print resolution, MAX_RESOLUTION
-            if resolution > MAX_RESOLUTION:
-                raise e
-
-
-*/
-
+} // End detect_water
 
 
 }} // end namespace vw::landsat

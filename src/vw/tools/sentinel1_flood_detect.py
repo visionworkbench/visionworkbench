@@ -1,12 +1,18 @@
 
-import sys
-import os
-
-
 '''
     Prepare a Sentinel-1 image and run a water detection tool on it.
+    
+    This tool takes care of two additional steps: 
+      - Border junk removal.  This needs to be done prior to warping.
+      - Image georegistration using gdalwarp.
+    Water detection is run after these steps.
 '''
 
+import sys, os
+
+# Append this file location to the system path to make sure that
+#  the packaged GDAL executables are found.
+sys.path.append(os.path.realpath(__file__))
 
 def copyGeoTiffInfo(inputGeoTiffPath, inputTiffPath, outputPath):
     '''Copies geo information from a GeoTiff to a plain Tiff'''
@@ -31,12 +37,15 @@ def main():
     
     # Get the input arguments from the command line
     if len(sys.argv) < 3:
-        print 'Usage: sentinel1_flood_detect.py <input path> <output path>'
+        print 'Usage: sentinel1_flood_detect.py <input path> <output path> [DEM path]'
         return
     
-    # We need the first two arguments but all others will be passed directly to the main c++ tool.
+    # Parse input arguments
     input_path  = sys.argv[1]
     output_path = sys.argv[2]
+    dem_path    = None
+    if len(sys.argv) > 3:
+      dem_path = sys.argv[3]
 
     # Create output folder    
     output_folder = os.path.dirname(output_path)
@@ -55,7 +64,7 @@ def main():
     if not os.path.exists(ortho_path):
     
         # Correct borders   
-        cmd = '/home/smcmich1/repo/visionworkbench/src/vw/tools/clean_sentinel1_borders -o ' + temp_path +' '+ input_path
+        cmd = 'clean_sentinel1_borders -o ' + temp_path +' '+ input_path
         print cmd
         os.system(cmd)
         if not os.path.exists(temp_path):
@@ -71,10 +80,11 @@ def main():
         if not os.path.exists(ortho_path):
             raise Exception('Failed during gdalwarp step!')
     
-    # TODO: Handle thread and tile size inputs?
-    
+   
     # Call the main processing function
-    cmd = '/home/smcmich1/repo/visionworkbench/src/vw/tools/detect_water --mode sentinel1 -o ' + output_path +' '+ ortho_path
+    cmd = 'detect_water --mode sentinel1 -o ' + output_path +' '+ ortho_path
+    if dem_path:
+      cmd += ' --dem-path ' + dem_path
     print cmd
     os.system(cmd)
     if not os.path.exists(output_path):
@@ -86,8 +96,8 @@ def main():
     os.remove(border_correct_path)
     os.remove(ortho_path)
     
-    
     print 'Finished generating output file: ' + output_path
 
+# When run from the command line, execute the main() function.
 if __name__ == "__main__":
     sys.exit(main())
