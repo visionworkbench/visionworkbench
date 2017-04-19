@@ -40,7 +40,7 @@
 #include <vw/InterestPoint/IntegralDetector.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 #include <vw/Camera/CameraUtilities.h>
-
+#include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/LensDistortion.h>
 
 using namespace vw;
@@ -79,280 +79,6 @@ struct Options {
 };
 
 // ------------------------------------------------------------------
-
-// TODO: DELETE TEST CODE!
-
-/*
-// Tool to solve for inverse transform parameters
-
-
-struct LensOptimizeFunctor :  public math::LeastSquaresModelBase<LensOptimizeFunctor> {
-  typedef Vector<double> result_type;
-  typedef Vector4 domain_type;
-  typedef Matrix<double> jacobian_type;
-
-  const camera::PinholeModel& m_cam;
-  const std::vector<Vector2>& m_raw_coords;
-  
-  LensOptimizeFunctor(const camera::PinholeModel& cam, const std::vector<Vector2>& raw_coords)
-    : m_cam(cam), m_raw_coords(raw_coords) {}
-  
-  inline result_type operator()( domain_type const& x ) const {
-    
-    TsaiLensDistortion lens(x); // Construct lens distortion model with given parameters
-    
-    result_type out_vec;
-    out_vec.set_size(m_raw_coords.size()*2);
-    for (size_t i=0; i<m_raw_coords.size(); ++i) {
-      Vector2 loc = lens.distorted_coordinates(m_cam, m_raw_coords[i]);
-      out_vec[2*i  ] = loc[0];
-      out_vec[2*i+1] = loc[1];
-    }
-    return out_vec;
-  }
-}; // End class LensOptimizeFunctor
-
-
-boost::shared_ptr<LensDistortion>
- solve_inverse_lens_distortion(PinholeModel const& pinhole_in, Vector2 image_size) {
-
-  // For now, just solve for undistorted --> distorted with the Icebridge example
-
-  const int sample_spacing = 50;
-
-  // Get input camera information
-  const double pixel_pitch = pinhole_in.pixel_pitch();
-  const vw::camera::LensDistortion* distortion = pinhole_in.lens_distortion();
-
-  // Generate a set of point pairs
-  std::vector<Vector2> undistorted_coords;
-  Vector<double> distorted_coords;
-  int num_cols   = image_size[0]/sample_spacing;
-  int num_rows   = image_size[1]/sample_spacing;
-  int num_coords = num_rows*num_cols;
-  std::cout << "Generating " << num_coords << " points.\n";
-  undistorted_coords.resize(num_coords);
-  distorted_coords.set_size(num_coords*2);
-  
-  int index = 0;
-  for (int r=0; r<num_rows; ++r) {
-    int row = r*sample_spacing;
-    for (int c=0; c<num_cols; ++c) {
-
-      int col = c*sample_spacing;
-
-      // Note that the pixel pairs are corrected for pitch
-      Vector2 raw_pixel       = Vector2(col, row) * pixel_pitch;
-      Vector2 distorted_pixel = distortion->distorted_coordinates(pinhole_in, raw_pixel);
-
-      //std::cout << "Raw: " << raw_pixel << " ---- Distorted: " << distorted_pixel << std::endl;
-
-      undistorted_coords[index    ] = raw_pixel;
-      distorted_coords  [2*index  ] = distorted_pixel[0];
-      distorted_coords  [2*index+1] = distorted_pixel[1];
-      ++index;
-    }
-  }
-
-
-  // Check the error
-  TsaiLensDistortion dummy_tsai(Vector4(0,0,0,0));
-  double diff = 0;
-  for (size_t i=0; i<undistorted_coords.size(); ++i) {
-    Vector2 distorted        = dummy_tsai.distorted_coordinates(pinhole_in, undistorted_coords[i]);
-    Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
-    //std::cout << "New: " << distorted << " ---- Actual: " << actual_distorted << std::endl;
-    diff += norm_2(distorted - actual_distorted);
-  }
-  diff /= static_cast<double>(undistorted_coords.size());
-  std::cout << "Mean coord diff prior to solving = " << diff << std::endl;
-
-  // Now solve for a complementary lens distortion scheme
-
-  // Init solver object with the undistorted coordinates
-  LensOptimizeFunctor solver_model(pinhole_in, undistorted_coords);
-  int status;
-  Vector4 seed; // Start with all zeros (no distortion)
-  // Solve for the best tsai params that give us the distorted coordinates from the undistorted coordinates.
-  std::cout << "Solving...\n";
-  Vector4 tsai_params = math::levenberg_marquardt( solver_model, seed, distorted_coords, status);
-
-  std::cout << "Solved for tsai params: " << tsai_params << std::endl;
-  
-  // Check the error
-  TsaiLensDistortion new_tsai(tsai_params);
-  diff = 0;
-  for (size_t i=0; i<undistorted_coords.size(); ++i) {
-    Vector2 distorted        = new_tsai.distorted_coordinates(pinhole_in, undistorted_coords[i]);
-    Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
-    //std::cout << "New: " << distorted << " ---- Actual: " << actual_distorted << std::endl;
-    diff += norm_2(distorted - actual_distorted);
-  }
-  diff /= static_cast<double>(undistorted_coords.size());
-  std::cout << "Mean coord diff = " << diff << std::endl;
- 
- return boost::shared_ptr<LensDistortion>(new TsaiLensDistortion(tsai_params)); 
-}
-
-
-// ------------------------------------------------------------------
-
-// Copied from LensDistortion.cc
-struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptimizeFunctor> {
-  typedef Vector2 result_type;
-  typedef Vector2 domain_type;
-  typedef Matrix<double> jacobian_type;
-
-  const camera::PinholeModel  & m_cam;
-  const camera::LensDistortion& m_distort;
-  
-  DistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
-  
-  inline result_type operator()( domain_type const& x ) const {
-    return m_distort.undistorted_coordinates(m_cam, x);
-  }
-};
-
-// TODO: This needs to become a view!
-
-template <class ImageInT, class ImageOutT>
-void fast_epipolar_transform_sub(ImageInT     const& image_in,
-                                 PinholeModel const& camera_model_in,
-                                 CAHVModel    const& epipolar_cahv,
-                                 ImageOutT      & image_out) {
-
-  std::cout << "Testing TSAI solver code..." << std::endl;
-  boost::shared_ptr<LensDistortion> inverse_lens = 
-      solve_inverse_lens_distortion(camera_model_in, Vector2(image_in.cols(), image_in.rows()));
-  std::cout << "Finished testing!" << std::endl;
-  //vw_throw(ArgumentErr() << "DEBUG!\n");
-
-  
-
-
-  // TODO: The output size is larger than by our standard method!
-  // Figure out the output size
-  CameraTransform<PinholeModel, CAHVModel> cam_trans( camera_model_in, epipolar_cahv );
-  
-  BBox2f output_roi = compute_transformed_bbox_fast(image_in, cam_trans);
-
-  image_out.set_size(output_roi.width(), output_roi.height());
-  
-  // Set up input image for interpolation
-  InterpolationView<EdgeExtensionView<ImageInT, ZeroEdgeExtension>, BilinearInterpolation> input_wrapper(image_in);
-  
-  // Compute all of the pixel values
-
-  // Since these are pinhole cameras we can treat their center as constant for all pixels
-  Vector3 cahv_center = epipolar_cahv.camera_center(Vector2(0,0));
-
-  // Extract some pinhole information
-  const double pixel_pitch = camera_model_in.pixel_pitch();
-  //const vw::camera::LensDistortion* distortion = camera_model_in.lens_distortion();
-  const vw::camera::LensDistortion* distortion = inverse_lens.get();
-
-  // TODO: Convert inverse distortion model here!
-
-  DistortOptimizeFunctor model(camera_model_in, *distortion);
-  int status;
-
-  double abs_tolerance  = 0.10;
-  double rel_tolerance  = 0.10;
-  double max_iterations = 6;
-
-  Vector2 loc_d;
-
-  // TODO: Speed this up!!  
-  for (int r=0; r<image_out.rows(); ++r) {
-    for (int c=0; c<image_out.cols(); ++c) {
-
-  // DEBUG
-  //for (int r=500; r<1000; ++r) {
-  //  for (int c=500; c<1000; ++c) {
-    
-      // (1) Call src PixelToVector to find the vector emanating from the camera center.
-      Vector3 vec = epipolar_cahv.pixel_to_vector(Vector2(c,r)); // This step is fast
-
-      // (2) take resulting vector and call dest camera's VectorToPixel on it
-      Vector2 loc_nd = camera_model_in.point_to_pixel_no_distortion(vec+cahv_center);
-      
-      Vector2 loc_raw = loc_nd*pixel_pitch;
-      
-      
-      Vector2 loc_d = distortion->distorted_coordinates(camera_model_in, loc_raw);
-      //Vector2 seed = loc_raw;
-      ////if (c != 500)
-      ////  seed = loc_d + Vector2(1.0, 0);
-      //loc_d = math::levenberg_marquardt( model, seed, loc_raw, status, abs_tolerance, rel_tolerance, max_iterations );
-      
-      //std::cout << "Delta = " << loc_d - loc_raw<< std::endl;
-      
-      Vector2 loc = loc_d/pixel_pitch;
-
-      image_out(c,r) = input_wrapper(loc[0], loc[1]);
-    
-    
-      // (1) Call src PixelToVector to find the vector emanating from the camera center.
-      Vector3 vec = epipolar_cahv.pixel_to_vector(Vector2(c,r)); // This step is fast
-
-      // (2) take resulting vector and call dest camera's VectorToPixel on it
-      Vector2f loc = camera_model_in.point_to_pixel(vec+cahv_center);
-      
-    
-      // This method mimics the regular method and gets the same result.
-      Vector2f loc = cam_trans.reverse(Vector2(c,r));
-      image_out(c,r) = input_wrapper(loc[0], loc[1]);
-      
-    }
-  }
-
-                                 
-}
-
-*/
-
-// Given two epipolar rectified CAHV camera models and input images,
-// get the aligned version of the images suitable for writing to disk and processing.
-template <class ImageInT, class ImageOutT>
-void fast_epipolar_transform(std::string const& left_camera_file,
-                                     std::string const& right_camera_file,
-                                     boost::shared_ptr<camera::CameraModel> const left_cahv_camera,
-                                     boost::shared_ptr<camera::CameraModel> const right_cahv_camera,
-                                     ImageInT  const& left_image_in,
-                                     ImageInT  const& right_image_in,
-                                     ImageOutT      & left_image_out,
-                                     ImageOutT      & right_image_out) {
-
-    // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
-    CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*left_cahv_camera )));
-    CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*right_cahv_camera)));
-    if (!left_epipolar_cahv || !right_epipolar_cahv) {
-      vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: CAHVModel cast failed!\n");
-    }
-
-    std::string lcase_file = boost::to_lower_copy(left_camera_file);
-
-    PinholeModel left_pin (left_camera_file );
-    PinholeModel right_pin(right_camera_file);
-    
-    update_pinhole_for_fast_point2pixel(left_pin,  Vector2i(left_image_in.cols(),  left_image_in.rows()));
-    update_pinhole_for_fast_point2pixel(right_pin, Vector2i(right_image_in.cols(), right_image_in.rows()));
-    
-    
-                       //Dest image =  Source image, source model, dest model
-    left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv );
-    right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv);
-
-    //fast_epipolar_transform_sub(left_image_in,  left_pin,  *left_epipolar_cahv,  left_image_out );
-    //fast_epipolar_transform_sub(right_image_in, right_pin, *right_epipolar_cahv, right_image_out);
-
-}
-
-
-
-
-
-
 
 /// Draw the interest points and write as an image.
 template <class ViewT>
@@ -456,7 +182,9 @@ void find_interest_points( std::string const& image_name, InterestPointList& ip,
   vw_out(InfoMessage) << "done." << std::endl;
   if ( opt.save_intermediate ) // Optionally write out a binary interest point file
     write_binary_ip_file(fs::path(image_name).replace_extension("vwip").string(), ip);
-}
+} // End find_interest_points
+
+
 
 
 /// Find the transform between image pairs and write transformed images to disk
@@ -528,6 +256,9 @@ void align_images( Options & opt ) {
   ImageViewRef< PixelRGB<uint8> > left_aligned, right_aligned;
   if ( opt.align_method == "epipolar" ) {
 
+    ImageView< PixelRGB<uint8> > left_aligned2, right_aligned2;
+
+/*
     // Load both input images as CAHV models.
     boost::shared_ptr<CAHVModel> left_cahv, right_cahv;
     left_cahv  = load_cahv_pinhole_camera_model(opt.left_image_file,  opt.left_camera_file );
@@ -539,29 +270,38 @@ void align_images( Options & opt ) {
     epipolar(*(left_cahv.get()),  *(right_cahv.get()),
              *(epipolar_left_cahv.get()), *(epipolar_right_cahv.get()));
 
-/*
-    // Now that we have our epipolar aligned models, transform the input images to match.
-    get_epipolar_transformed_images(opt.left_camera_file,   opt.right_camera_file,
-                        epipolar_left_cahv, epipolar_right_cahv,
-                            ref_image, input_image,
-                            left_aligned, right_aligned);
-*/
-
-
-    ImageView< PixelRGB<uint8> > left_aligned2, right_aligned2;
-/*    fast_epipolar_transform(opt.left_camera_file,   opt.right_camera_file,
-                            epipolar_left_cahv, epipolar_right_cahv,
-                            ref_image, input_image,
-                            left_aligned2, right_aligned2);
-*/
-    // TODO: Why is writing to an ImageView first SO MUCH faster???
     get_epipolar_transformed_images(opt.left_camera_file,   opt.right_camera_file,
                         epipolar_left_cahv, epipolar_right_cahv,
                             ref_image, input_image,
                             left_aligned2, right_aligned2);
+*/
+
+    //// Load input pinhole cameras
+    PinholeModel left_pin (opt.left_camera_file );
+    PinholeModel right_pin(opt.right_camera_file);
+
+    // Generate epipolar-aligned camera models
+    boost::shared_ptr<PinholeModel> epipolar_left_pin (new PinholeModel);
+    boost::shared_ptr<PinholeModel> epipolar_right_pin(new PinholeModel);
+    epipolar(left_pin, right_pin, *(epipolar_left_pin.get()), *(epipolar_right_pin.get()));
+
+    // Expand epipolar cameras to contain the entire source images.
+    Vector2i epi_size1, epi_size2;
+    resize_epipolar_cameras_to_fit(left_pin, right_pin,
+                                   *(epipolar_left_pin.get()), *(epipolar_right_pin.get()),
+                                   ref_image.get_size(), input_image.get_size(),
+                                   epi_size1, epi_size2);
+
+
+    // Generate epipolar images
+    get_epipolar_transformed_pinhole_images(opt.left_camera_file,   opt.right_camera_file,
+                                            epipolar_left_pin, epipolar_right_pin,
+                                            ref_image, input_image,
+                                            epi_size1, epi_size2,
+                                            left_aligned2, right_aligned2);
 
     std::string output_path = opt.output_prefix + "_right_image.tif";
-    write_image(output_path, crop(edge_extend(right_aligned2,ZeroEdgeExtension()),bounding_box(ref_image)),
+    write_image(output_path, crop(edge_extend(right_aligned2,ZeroEdgeExtension()),bounding_box(left_aligned2)),
                 TerminalProgressCallback( "tools.ipalign", "Writing right:") );
     output_path = opt.output_prefix + "_left_image.tif";    
     write_image(output_path, left_aligned2,  TerminalProgressCallback( "tools.ipalign", "Writing left :") );
@@ -659,23 +399,11 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
 int main(int argc, char* argv[]) {
 
   Options opt;
-  //try {
-    handle_arguments( argc, argv, opt ); // Load user arguments
-    align_images( opt );                 // Do all of the work!
-    /*
-  } catch ( const ArgumentErr& e ) {     // Everything else is error catching...
-    vw_out() << e.what() << "\n";
-    return 1;
-  } catch ( const Exception& e ) {
-    std::cerr << "\n\nVW Error: " << e.what() << "\n";
-    return 1;
-  } catch ( const std::bad_alloc& e ) {
-    std::cerr << "\n\nError: Ran out of Memory!\n";
-    return 1;
-  } catch ( const std::exception& e ) {
-    std::cerr << "\n\nError: " << e.what() << "\n";
-    return 1;
-  }
-*/
+ 
+  handle_arguments( argc, argv, opt ); // Load user arguments
+  align_images( opt );                 // Do all of the work!
+  
+  
+  
   return 0;
 }

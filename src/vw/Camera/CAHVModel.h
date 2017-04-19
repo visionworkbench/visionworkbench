@@ -128,10 +128,10 @@ namespace camera {
     //------------------------------------------------------------------
     // Exposed Variables
     //------------------------------------------------------------------
-    Vector3   C;
-    Vector3   A;
-    Vector3   H;
-    Vector3   V;
+    Vector3   C; //< The pinhole center coordinate.
+    Vector3   A; //< A unit vector normal to the sensor plane.
+    Vector3   H; //< Horizontal information vector
+    Vector3   V; //< Vertical information vector
 
   private:
     void read_cahv   (std::string const& filename);

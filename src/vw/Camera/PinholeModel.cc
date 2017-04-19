@@ -37,8 +37,8 @@
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
 
-using namespace vw;
-using namespace camera;
+namespace vw {
+namespace camera {
 
 PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
                                m_camera_center(Vector3(0,0,0)),
@@ -51,9 +51,24 @@ PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
   this->rebuild_camera_matrix();
 }
 
-/// Initialize from a file on disk.
 PinholeModel::PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)) {
   read(filename);
+}
+
+PinholeModel::PinholeModel(PinholeModel const& other) :
+    m_distortion   (other.m_distortion->copy()),
+    m_camera_matrix(other.m_camera_matrix),
+    m_camera_center(other.m_camera_center),
+    m_rotation     (other.m_rotation),
+    m_intrinsics   (other.m_intrinsics),
+    m_extrinsics   (other.m_extrinsics),
+    m_fu(other.m_fu), m_fv(other.m_fv), 
+    m_cu(other.m_cu), m_cv(other.m_cv),
+    m_u_direction  (other.m_u_direction),
+    m_v_direction  (other.m_v_direction),
+    m_w_direction  (other.m_w_direction),
+    m_pixel_pitch  (other.m_pixel_pitch),
+    m_inv_camera_transform(other.m_inv_camera_transform) {
 }
 
 PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
@@ -546,8 +561,7 @@ void PinholeModel::apply_transform(vw::Matrix3x3 const & rotation,
   this->set_camera_pose  (pose);
 }
 
-PinholeModel
-camera::scale_camera(PinholeModel const& camera_model, float scale) {
+PinholeModel scale_camera(PinholeModel const& camera_model, float scale) {
   if (scale == 0)
     vw_throw( ArgumentErr() << "PinholeModel::scale_camera cannot have zero scale value!" );
   // Scaling the camera is easy, just update the pixel pitch to account for the new image size.
@@ -565,8 +579,7 @@ camera::scale_camera(PinholeModel const& camera_model, float scale) {
 }
 
 
-PinholeModel
-camera::strip_lens_distortion(PinholeModel const& camera_model) {
+PinholeModel strip_lens_distortion(PinholeModel const& camera_model) {
   Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   NullLensDistortion distortion;
@@ -579,7 +592,76 @@ camera::strip_lens_distortion(PinholeModel const& camera_model) {
                       distortion, camera_model.pixel_pitch());
 }
 
-std::ostream& camera::operator<<(std::ostream& str,
+
+// TODO: Verify this still works if we have used non-defaults for our 
+//       directional axis vectors.
+void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
+              PinholeModel       &dst_camera0, PinholeModel       &dst_camera1) {
+
+  typedef Matrix<double,3,3> RotMatrix;
+
+  // Get input camera centers and rotations
+  RotMatrix rot0    = src_camera0.camera_pose().rotation_matrix();
+  RotMatrix rot1    = src_camera1.camera_pose().rotation_matrix();
+  Vector3   center0 = src_camera0.camera_center();
+  Vector3   center1 = src_camera1.camera_center();
+
+  // The Z axis of the rotation matrix is the direction the camera is looking
+  // - Multiply by negative one because the coordinate system used in the
+  //   source of these equations is rotated 180 degrees along the X axis from ours.
+  Vector3 look0 = -1*select_col(rot0,2);
+  Vector3 look1 = -1*select_col(rot1,2);
+
+  // Vector U is in the direction of one camera center to the next
+  Vector3 u = (center1 - center0) / norm_2(center1 - center0);
+  
+  // W is going to be similar to the two look vectors but perpendicular to U.
+  Vector3 mean_look = (look0+look1)/2.0;
+  Vector3 temp      = cross_prod(u, cross_prod(mean_look, u));
+  Vector3 w         = temp / norm_2(temp);
+  
+  // Vector V is dictated by the other two to form a coordinate frame.
+  Vector3 v = cross_prod(w, u);
+
+  // This is an alternate way to compute V and W, the results are similar.
+  //Vector3 v     = cross_prod(look0, u);
+  //Vector3 w     = cross_prod(u, v);
+
+  //std::cout << "ROT 0 = " << rot0 << std::endl;
+  //std::cout << "ROT 1 = " << rot1 << std::endl;
+  //std::cout << "Look 0 = " << look0 << std::endl;
+  //std::cout << "Look 1 = " << look1 << std::endl;
+  //std::cout << "u = " << u << std::endl;
+  //std::cout << "w = " << w << std::endl;
+  //std::cout << "v = " << v << std::endl;
+  
+  // Account for the 180 degree coordinate system difference mentioned earlier by
+  // negating the Y and Z columns.
+  RotMatrix new_rot = RotMatrix(u[0], -v[0], -w[0],
+                                u[1], -v[1], -w[1],
+                                u[2], -v[2], -w[2]);    
+                               
+  //std::cout << "R = " << new_rot << std::endl;
+    
+  // The intrinsic values are somewhat arbitrary and are kept similar/identical to the input cameras.
+  Vector2 focal_length = (src_camera0.focal_length() + src_camera1.focal_length()) / 2.0;
+  Vector2 point_offset = (src_camera0.point_offset() + src_camera1.point_offset()) / 2.0;
+  double  pixel_pitch  = (src_camera0.pixel_pitch () + src_camera1.pixel_pitch ()) / 2.0;
+
+  // Set up the two output cameras.  Everything is the same except the positions.
+  dst_camera0 = PinholeModel(center0, new_rot,
+                             focal_length [0], focal_length [1],
+                             point_offset[0], point_offset[1],
+                             pixel_pitch);
+  dst_camera1 = PinholeModel(center1, new_rot,
+                             focal_length [0], focal_length [1],
+                             point_offset[0], point_offset[1],
+                             pixel_pitch);
+}
+
+
+
+std::ostream& operator<<(std::ostream& str,
                                  PinholeModel const& model) {
   str << "Pinhole camera: \n";
   str << "\tCamera Center: " << model.camera_center() << "\n";
@@ -596,3 +678,8 @@ std::ostream& camera::operator<<(std::ostream& str,
 
   return str;
 }
+
+} // end namespace camera
+} // end namespace vw
+
+

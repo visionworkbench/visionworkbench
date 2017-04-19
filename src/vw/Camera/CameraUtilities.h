@@ -88,6 +88,7 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 
   } else if ( boost::ends_with(lcase_file, ".pinhole") ||
               boost::ends_with(lcase_file, ".tsai"   )   ) {
+    // The CAHV class is constructed from a Pinhole model.
     vw::camera::PinholeModel left_pin(camera_path);
     *(cahv.get()) = vw::camera::strip_lens_distortion(left_pin);
 
@@ -227,57 +228,143 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
                                      ImageOutT      & left_image_out,
                                      ImageOutT      & right_image_out) {
 
-    // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
-    CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*left_cahv_camera )));
-    CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*right_cahv_camera)));
-    if (!left_epipolar_cahv || !right_epipolar_cahv) {
-      vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: CAHVModel cast failed!\n");
-    }
+  // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
+  CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*left_cahv_camera )));
+  CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*right_cahv_camera)));
+  if (!left_epipolar_cahv || !right_epipolar_cahv) {
+    vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: CAHVModel cast failed!\n");
+  }
 
-    std::string lcase_file = boost::to_lower_copy(left_camera_file);
+  // Lens distortion is corrected in the transform from the input camera files
+  //  to the input distortionless CAHV camera models.
 
-    // Remove lens distortion and create epipolar rectified images.
-    if (boost::ends_with(lcase_file, ".cahvore")) {
-      CAHVOREModel left_cahvore (left_camera_file );
-      CAHVOREModel right_cahvore(right_camera_file);
-      left_image_out  = camera_transform(left_image_in,  left_cahvore,  *left_epipolar_cahv );
-      right_image_out = camera_transform(right_image_in, right_cahvore, *right_epipolar_cahv);
-      
-    } else if (boost::ends_with(lcase_file, ".cahvor") ||
-               boost::ends_with(lcase_file, ".cmod") ) {
-      CAHVORModel left_cahvor (left_camera_file );
-      CAHVORModel right_cahvor(right_camera_file);
-      left_image_out  = camera_transform(left_image_in,  left_cahvor,  *left_epipolar_cahv );
-      right_image_out = camera_transform(right_image_in, right_cahvor, *right_epipolar_cahv);
+  std::string lcase_file = boost::to_lower_copy(left_camera_file);
 
-    } else if ( boost::ends_with(lcase_file, ".cahv") ||
-                boost::ends_with(lcase_file, ".pin" )) {
-      CAHVModel left_cahv (left_camera_file );
-      CAHVModel right_cahv(right_camera_file);
-      left_image_out  = camera_transform(left_image_in,  left_cahv,  *left_epipolar_cahv );
-      right_image_out = camera_transform(right_image_in, right_cahv, *right_epipolar_cahv);
+  // Remove lens distortion and create epipolar rectified images.
+  if (boost::ends_with(lcase_file, ".cahvore")) {
+    CAHVOREModel left_cahvore (left_camera_file );
+    CAHVOREModel right_cahvore(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahvore,  *left_epipolar_cahv );
+    right_image_out = camera_transform(right_image_in, right_cahvore, *right_epipolar_cahv);
+    
+  } else if (boost::ends_with(lcase_file, ".cahvor") ||
+             boost::ends_with(lcase_file, ".cmod") ) {
+    CAHVORModel left_cahvor (left_camera_file );
+    CAHVORModel right_cahvor(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahvor,  *left_epipolar_cahv );
+    right_image_out = camera_transform(right_image_in, right_cahvor, *right_epipolar_cahv);
 
-    } else if ( boost::ends_with(lcase_file, ".pinhole") ||
-                boost::ends_with(lcase_file, ".tsai") ) {
-      PinholeModel left_pin (left_camera_file );
-      PinholeModel right_pin(right_camera_file);
+  } else if ( boost::ends_with(lcase_file, ".cahv") ||
+              boost::ends_with(lcase_file, ".pin" )) {
+    CAHVModel left_cahv (left_camera_file );
+    CAHVModel right_cahv(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahv,  *left_epipolar_cahv );
+    right_image_out = camera_transform(right_image_in, right_cahv, *right_epipolar_cahv);
 
-      // If necessary, replace the lens distortion models with a approximated models
-      //  that will be much faster in the camera_transform calls below.
-      Vector2i left_image_size (left_image_in.cols(),  left_image_in.rows() );
-      Vector2i right_image_size(right_image_in.cols(), right_image_in.rows());
-      update_pinhole_for_fast_point2pixel(left_pin,  left_image_size );
-      update_pinhole_for_fast_point2pixel(right_pin, right_image_size);
-      
-      left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv );
-      right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv);
+  } else if ( boost::ends_with(lcase_file, ".pinhole") ||
+              boost::ends_with(lcase_file, ".tsai") ) {
+    PinholeModel left_pin (left_camera_file );
+    PinholeModel right_pin(right_camera_file);
 
-    } else {
-      vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: unsupported camera file type.\n");
-    }
+    // If necessary, replace the lens distortion models with a approximated models
+    //  that will be much faster in the camera_transform calls below.
+    Vector2i left_image_size (left_image_in.cols(),  left_image_in.rows() );
+    Vector2i right_image_size(right_image_in.cols(), right_image_in.rows());
+    update_pinhole_for_fast_point2pixel(left_pin,  left_image_size );
+    update_pinhole_for_fast_point2pixel(right_pin, right_image_size);
+    
+    left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv );
+    right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv);
+
+  } else {
+    vw_throw(ArgumentErr() << "get_epipolar_transformed_images: unsupported camera file type.\n");
+  }
 
 }
 
+
+
+/// Adjust a pair of epipolar-aligned cameras so that the input images are fully
+/// contained in the transformed images.
+void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
+                                    PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
+                                    Vector2i     const& size1,     Vector2i     const& size2,
+                                    Vector2i          & epi_size1, Vector2i          & epi_size2) {
+  // Get transforms from input images to epipolar images
+  CameraTransform<PinholeModel, PinholeModel> in_to_epi1(cam1, epi_cam1);
+  CameraTransform<PinholeModel, PinholeModel> in_to_epi2(cam2, epi_cam2);
+  
+  // Figure out the bbox needed to contain the transformed image
+  BBox2 epi_bbox1 = compute_transformed_bbox_fast(size1, in_to_epi1);
+  BBox2 epi_bbox2 = compute_transformed_bbox_fast(size2, in_to_epi2);
+ 
+  //std::cout << "epi_bbox1: " << epi_bbox1 << std::endl;
+  //std::cout << "epi_bbox2: " << epi_bbox2 << std::endl;
+
+  // Figure out leftmost and uppermost pixel coordinates in resampled images 
+  double min_col = std::min(epi_bbox1.min().x(), epi_bbox2.min().x());
+  double min_row = std::min(epi_bbox1.min().y(), epi_bbox2.min().y());
+  
+  // Compute an adjustment of the camera center point (CCD point below focal point)
+  //  such that leftmost and uppermost pixels fall at col 0 and row 0 respectively.
+  // - Shift the center by the number of pixels converted to physical CCD units.
+  // - We can freely adjust the intrinsic portions of the epipolar cameras as long as
+  //   we do the same modification to both cameras.
+  Vector2 point_offset  = epi_cam1.point_offset();
+  Vector2 center_adjust = Vector2(min_col, min_row)*epi_cam1.pixel_pitch();
+  
+  //std::cout << "Point offset = " << point_offset << std::endl;
+  //std::cout << "center_adjust = " << center_adjust << std::endl;
+
+  // Apply the adjustments to the input epipolar cameras and recompute the bounding boxes  
+  epi_cam1.set_point_offset(point_offset - center_adjust);
+  epi_cam2.set_point_offset(point_offset - center_adjust);
+  CameraTransform<PinholeModel, PinholeModel> in_to_epi1_new(cam1, epi_cam1);
+  CameraTransform<PinholeModel, PinholeModel> in_to_epi2_new(cam2, epi_cam2);
+  epi_bbox1 = compute_transformed_bbox_fast(size1, in_to_epi1_new);
+  epi_bbox2 = compute_transformed_bbox_fast(size2, in_to_epi2_new);
+  
+  //std::cout << "epi_bbox1 NEW: " << epi_bbox1 << std::endl;
+  //std::cout << "epi_bbox2 NEW: " << epi_bbox2 << std::endl;
+ 
+  // Just return the size so that the output images are written 
+  // from (0,0) all the way to the maximum position which is what the rest of the code assumes.
+  epi_size1 = epi_bbox1.max();
+  epi_size2 = epi_bbox2.max();
+} // End resize_epipolar_cameras_to_fit
+
+// Get aligned, epipolar rectified pinhole images for stereo processing.
+template <class ImageInT, class ImageOutT>
+void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file,
+                                             std::string const& right_camera_file,
+                                             boost::shared_ptr<camera::CameraModel> const left_camera,
+                                             boost::shared_ptr<camera::CameraModel> const right_camera,
+                                             ImageInT  const& left_image_in,
+                                             ImageInT  const& right_image_in,
+                                             Vector2i  const& left_image_out_size,
+                                             Vector2i  const& right_image_out_size,
+                                             ImageOutT      & left_image_out,
+                                             ImageOutT      & right_image_out) {
+
+  // Cast input camera models to Pinhole
+  PinholeModel* left_epipolar_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_camera )));
+  PinholeModel* right_epipolar_pin = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*right_camera)));
+
+  // Load the original camera models with distortion
+  PinholeModel left_pin (left_camera_file );
+  PinholeModel right_pin(right_camera_file);
+
+  // If necessary, replace the lens distortion models with a approximated models
+  //  that will be much faster in the camera_transform calls below.
+  Vector2i left_image_in_size (left_image_in.cols(),  left_image_in.rows() );
+  Vector2i right_image_in_size(right_image_in.cols(), right_image_in.rows());
+  update_pinhole_for_fast_point2pixel(left_pin,  left_image_in_size );
+  update_pinhole_for_fast_point2pixel(right_pin, right_image_in_size);
+  
+  // Transform the images
+  left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,  left_image_out_size );
+  right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_pin, right_image_out_size);
+}
 
 
 }}      // namespace vw::camera

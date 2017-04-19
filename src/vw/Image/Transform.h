@@ -849,15 +849,15 @@ namespace vw {
   // convex, you will probably want to use
   // compute_transformed_bbox_fast(), below.  If the bounding box
   // exceeds preset limits, a warning will be printed out.
-  template <class ViewT, class TransformT>
-  inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image,
+  template <class TransformT>
+  inline BBox2f compute_transformed_bbox(Vector2i   const& image_size,
                                          TransformT const& transform_func,
                                          double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
                                          double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
     Vector2 pt;
     BBox2f bbox;
-    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++)
-      for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++)
+    for (pt[0] = 0; pt[0] < image_size[0]; (pt[0])++)
+      for (pt[1] = 0; pt[1] < image_size[1]; (pt[1])++)
         bbox.grow(transform_func.forward(pt));
 
     // If the image bounding box is too large or too small, print a
@@ -881,8 +881,8 @@ namespace vw {
   // the transformed position for all pixels in the input image, and
   // for most transformations points on the interior of the input
   // image will end up on the interior of the output image.
-  template <class ViewT, class TransformT>
-  inline BBox2f compute_transformed_bbox_fast(ImageViewBase<ViewT> const& image,
+  template <class TransformT>
+  inline BBox2f compute_transformed_bbox_fast(Vector2i   const& image_size,
                                               TransformT const& transform_func,
                                               double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
                                               double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
@@ -890,26 +890,26 @@ namespace vw {
     BBox2f bbox;
 
     // Top edge
-    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++) {
+    for (pt[0] = 0; pt[0] < image_size[0]; (pt[0])++) {
       pt[1] = 0;
       bbox.grow(transform_func.forward(pt));
     }
 
     // Bottom edge
-    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++) {
-      pt[1] = image.impl().rows() - 1;
+    for (pt[0] = 0; pt[0] < image_size[0]; (pt[0])++) {
+      pt[1] = image_size[1] - 1;
       bbox.grow(transform_func.forward(pt));
     }
 
     // Left edge
-    for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) {
+    for (pt[1] = 0; pt[1] < image_size[1]; (pt[1])++) {
       pt[0] = 0;
       bbox.grow(transform_func.forward(pt));
     }
 
     // Right edge
-    for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) {
-      pt[0] = image.impl().cols() - 1;
+    for (pt[1] = 0; pt[1] < image_size[1]; (pt[1])++) {
+      pt[0] = image_size[0] - 1;
       bbox.grow(transform_func.forward(pt));
     }
 
@@ -978,8 +978,7 @@ namespace vw {
   // This variant of transform allows the user to specify the
   // dimensions of the transformed image.  The upper left hand point
   // (0,0) stays fixed.  For a more flexible method of cropping to an
-  // arbitrary bounding box, use one of the transform methods defined
-  // below.
+  // arbitrary bounding box, use one of the transform methods defined below.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,

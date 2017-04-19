@@ -148,8 +148,6 @@ namespace vw {
     inline int32 rows  () const { return m_rows;   } ///< Returns the number of rows in the image.
     inline int32 planes() const { return m_planes; } ///< Returns the number of planes in the image.
     
-    inline Vector2 get_size() const {return Vector2(cols(), rows());} ///< Returns the image size
-
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)

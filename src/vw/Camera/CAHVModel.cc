@@ -302,6 +302,8 @@ namespace camera {
     Vector3 a  = normalize(app - g);
     Vector3 vp = cross_prod(a, hp) * vs / hs;
 
+    // The two output cameras are identical except that they are each
+    //  colocated with their corresponding input camera.
     dst_camera0.C = src_camera0.C;
     dst_camera1.C = src_camera1.C;
 

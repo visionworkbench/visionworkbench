@@ -95,6 +95,9 @@ namespace vw {
       format.premultiplied = true;
       return format;
     }
+    
+    /// Returns the image size.
+    inline Vector2 get_size() const {return Vector2(impl().cols(), impl().rows());} 
 
   /// \cond INTERNAL
     protected:

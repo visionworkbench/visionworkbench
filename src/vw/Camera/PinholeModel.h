@@ -125,6 +125,9 @@ namespace camera {
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename);
 
+    /// Copy constructor
+    PinholeModel(PinholeModel const& other);
+
     /// Initialize the pinhole model with explicit parameters.
     ///
     /// The user supplies the basic intrinsic camera parameters:
@@ -296,6 +299,11 @@ namespace camera {
   /// - This does not account for the distortion in any way, 
   ///   it just removes the distortion model!
   PinholeModel strip_lens_distortion(PinholeModel const& camera_model);
+
+  /// From a pair of input pinhole cameras, produce a pair of associated
+  ///  zero-distortion epipolar aligned cameras which can be used for stereo.
+  void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
+                PinholeModel       &dst_camera0, PinholeModel       &dst_camera1);
 
   /// Write a description of a PinholeModel to the stream.
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);
