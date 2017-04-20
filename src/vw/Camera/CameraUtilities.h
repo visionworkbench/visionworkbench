@@ -30,6 +30,7 @@
 #include <vw/Camera/CameraTransform.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Image/Transform.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
@@ -286,10 +287,11 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
 
 /// Adjust a pair of epipolar-aligned cameras so that the input images are fully
 /// contained in the transformed images.
-void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
-                                    PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
-                                    Vector2i     const& size1,     Vector2i     const& size2,
-                                    Vector2i          & epi_size1, Vector2i          & epi_size2) {
+inline void 
+resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
+                               PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
+                               Vector2i     const& size1,     Vector2i     const& size2,
+                               Vector2i          & epi_size1, Vector2i          & epi_size2) {
   // Get transforms from input images to epipolar images
   CameraTransform<PinholeModel, PinholeModel> in_to_epi1(cam1, epi_cam1);
   CameraTransform<PinholeModel, PinholeModel> in_to_epi2(cam2, epi_cam2);

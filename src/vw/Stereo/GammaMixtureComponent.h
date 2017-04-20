@@ -83,7 +83,7 @@ namespace stereo {
 
     void fit_parameters() { // weights only used here, so transform the weights into the correct space only here
       BBox2i image_size(0, 0, image_r.cols(), image_r.rows());
-      BBox2i bbox = compute_transformed_bbox_fast(translate(edge_extend(w, ZeroEdgeExtension()), window.min().x(), window.min().y()), inverse(T));
+      BBox2i bbox = compute_transformed_bbox_fast(translate(edge_extend(w, ZeroEdgeExtension()), window.min().x(), window.min().y()).get_size(), inverse(T));
       bbox.max().x() += 1; //for some reason compute transformed bbox outputs an inclusive bottom-right boundry point....
       bbox.max().y() += 1;
       bbox += inverse(T).forward(window.min());
