@@ -56,8 +56,9 @@ using vw::camera::LensDistortion;
 // with many channels and channel types.
 std::string input_file_name, output_file_name, camera_file_name;
 bool preserve_pixel_type = false;
-double output_nodata_value = -std::numeric_limits<double>::max();
+double output_nodata_value = 0;
 bool output_nodata_value_was_set = false;
+std::string interpolation_method;
 
 template <class ImageT>
 class UndistortView: public ImageViewBase< UndistortView<ImageT> >{
@@ -97,10 +98,19 @@ public:
   typedef CropView<ImageView<pixel_type> > prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
-    ImageViewRef<pixel_type>
-      interp_dist_img = interpolate(m_dist_img, BilinearInterpolation(),
-				    ValueEdgeExtension<PixelT>(m_edge_extension_val));
+    ImageViewRef<pixel_type> interp_dist_img;
 
+    if (interpolation_method == "bilinear") 
+      interp_dist_img
+        = interpolate(m_dist_img, BilinearInterpolation(),
+                      ValueEdgeExtension<PixelT>(m_edge_extension_val));
+    else if (interpolation_method == "bicubic") 
+      interp_dist_img
+        = interpolate(m_dist_img, BicubicInterpolation(),
+                      ValueEdgeExtension<PixelT>(m_edge_extension_val));
+    else
+      vw_throw(NoImplErr() << "Unknown interpolation method: " << interpolation_method << "\n");
+    
     const LensDistortion* lens_ptr = m_camera_model.lens_distortion();
     const double pitch = m_camera_model.pixel_pitch();
 
@@ -188,8 +198,11 @@ void do_work() {
   bool is_float = boost::is_same<channel_type, float>::value;
   bool is_double = boost::is_same<channel_type, double>::value;
   
-  // If to use a no-data value when saving. Always use no-data for single
-  // channel output image with float or double pixels.
+  // If to use a no-data value when saving. Always use no-data for
+  // single channel output image with float or double pixels. For
+  // integer pixels, particularly uint8, it is tricker to decide on
+  // the nodata-value, as 0 could be a valid value. Same for
+  // multi-channel images.
   bool use_nodata = (n_channels == 1 && (is_float || is_double));
   int cols = floor(output_area.width());
   int rows = floor(output_area.height());
@@ -219,7 +232,6 @@ void do_work() {
   }else{
 
     // Will use nodata on input and output
-    
     bool has_input_nodata = false;
     double input_nodata = -std::numeric_limits<double>::max();
     {
@@ -231,24 +243,20 @@ void do_work() {
 
     // If there is input no-data, mask it
     ImageViewRef< PixelMask<PixelT> > masked_dist_img;
-    if (!has_input_nodata) {
+    if (!has_input_nodata) 
       masked_dist_img = pixel_cast< PixelMask<PixelT> >(dist_img);
-    }else{
+    else
       masked_dist_img = create_mask(dist_img, PixelT(input_nodata));
-    }
 
     // output_nodata_value is a global var. If the user did not set an
-    // output nodata value, use the input
-    if (!output_nodata_value_was_set) {
+    // output nodata value, use the input.
+    if (!output_nodata_value_was_set) 
       output_nodata_value = input_nodata;
-    }
 
     // If the pixel type is float, the output nodata must also be float
-    if (is_float) {
+    if (is_float) 
       output_nodata_value = std::max(output_nodata_value,
-				     double(-std::numeric_limits<float>::max())
-				     );
-    }
+				     double(-std::numeric_limits<float>::max()));
 
     // Non-existing pixels will be set to invalid
     PixelMask<PixelT> masked_edge_extension_val = edge_extension_val;
@@ -277,6 +285,29 @@ void do_work() {
   std::string out_cam_path = fs::path(output_file_name).replace_extension(".tsai").string();
   vw_out() << "Writing: " << out_cam_path << std::endl;
   out_model.write(out_cam_path);
+
+  Matrix<double,3,4> camera_matrix = out_model.camera_matrix();
+  double pixel_pitch = out_model.pixel_pitch();
+
+  // Adjust the first two columns for the pixel pitch
+  for (size_t r = 0; r < camera_matrix.rows(); r++) {
+    for (size_t c = 0; c < 2; c++) {
+      camera_matrix(r, c) /= pixel_pitch;
+    }
+  }
+
+  std::string out_mat_path = fs::path(output_file_name).replace_extension(".txt").string();
+  vw_out() << "Writing: " << out_mat_path << std::endl;
+  std::ofstream mh (out_mat_path.c_str());
+  mh.precision(17);
+  mh << "CONTOUR\n";
+  for (size_t r = 0; r < camera_matrix.rows(); r++) {
+    for (size_t c = 0; c < camera_matrix.cols(); c++) {
+      mh << camera_matrix(r, c) << " "; 
+    }
+    mh << std::endl;
+  }
+  mh.close();
   
   vw_out() << "Finished!\n";
   
@@ -345,20 +376,21 @@ void do_work_all_channels(std::string const& input_file_name){
     
 int main( int argc, char *argv[] ) {
 
-  po::options_description desc("Usage: undistort_image [options] <input image> <camera model> \n\nOptions");
+  po::options_description desc("Usage: undistort_image [options] <input image> <camera model> <output image>\n\nOptions");
   desc.add_options()
     ("help,h",        "Display this help message")
     ("input-file",    po::value<std::string>(&input_file_name), 
                       "Explicitly specify the input file")
     ("camera-file",    po::value<std::string>(&camera_file_name), 
                       "Explicitly specify the camera file")
-    ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.png"), 
+    ("output-file,o", po::value<std::string>(&output_file_name), 
      "Specify the output file")
-    ("output-nodata-value", po::value(&output_nodata_value),
-     "Set the output nodata value. Only applicable if the output is a single-channel image with pixels that are float or double. The default is the smallest value for the current data type.")
+    ("output-nodata-value", po::value(&output_nodata_value)->default_value(0),
+     "Set the output nodata value. Only applicable if the output is a single-channel image with pixels that are float or double.")
     ("preserve-pixel-type", po::bool_switch(&preserve_pixel_type)->default_value(false),
-     "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.");
-  
+     "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.")
+    ("interpolation-method",  po::value<std::string>(&interpolation_method)->default_value("bilinear"), "Interpolation method. Options: bilinear, bicubic. Default: bilinear.");
+      
   po::positional_options_description p;
   p.add("input-file", 1);
   p.add("camera-file", 1);
@@ -385,7 +417,10 @@ int main( int argc, char *argv[] ) {
   }
 
   output_nodata_value_was_set = vm.count("output-nodata-value");
-  
+
+  if (input_file_name == "" || camera_file_name == "" || output_file_name == "")
+    vw_throw(ArgumentErr() << "Not all inputs were specified.\n" << desc << "\n");
+
   vw::create_out_dir(output_file_name);
   do_work_all_channels(input_file_name);
   
