@@ -16,7 +16,10 @@
 // __END_LICENSE__
 
 /// Tool to undistort a pinhole camera image given the camera model file.
-
+/// It writes the undistorted image and corresponding undistorted
+/// camera models.
+/// By default, it write images as float or double, unless multi-channel.
+/// TODO: What is the effect of interpolation?
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -26,8 +29,10 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Interpolation.h>
+#include <vw/Math/Functors.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/LensDistortion.h>
@@ -50,27 +55,33 @@ using vw::camera::LensDistortion;
 // Global variables, to make it easier to invoke the function do_work
 // with many channels and channel types.
 std::string input_file_name, output_file_name, camera_file_name;
-
+bool preserve_pixel_type = false;
+double output_nodata_value = -std::numeric_limits<double>::max();
+bool output_nodata_value_was_set = false;
 
 template <class ImageT>
 class UndistortView: public ImageViewBase< UndistortView<ImageT> >{
   ImageT m_dist_img;
   int m_cols, m_rows;
   Vector2 m_offset;
+  typename ImageT::pixel_type m_edge_extension_val;
   PinholeModel m_camera_model;
-
   typedef typename ImageT::pixel_type PixelT;
 
 public:
   UndistortView(ImageT const& dist_img, int cols, int rows,
-                Vector2 const& offset, 
+                Vector2 const& offset,
+		typename ImageT::pixel_type const& edge_extension_val,
                 PinholeModel const& camera_model):
     m_dist_img(dist_img), m_cols(cols), m_rows(rows),
-    m_offset(offset), m_camera_model(camera_model){}
-  
+    m_offset(offset),
+    m_edge_extension_val(edge_extension_val),
+    m_camera_model(camera_model){}
+
   typedef PixelT pixel_type;
   typedef PixelT result_type;
   typedef ProceduralPixelAccessor<UndistortView> pixel_accessor;
+  typedef typename CompoundChannelType<PixelT>::type channel_type;
 
   inline int32 cols() const { return m_cols; }
   inline int32 rows() const { return m_rows; }
@@ -86,8 +97,9 @@ public:
   typedef CropView<ImageView<pixel_type> > prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
-    InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>
-      interp_dist_img = interpolate(m_dist_img, BilinearInterpolation(), ZeroEdgeExtension());
+    ImageViewRef<pixel_type>
+      interp_dist_img = interpolate(m_dist_img, BilinearInterpolation(),
+				    ValueEdgeExtension<PixelT>(m_edge_extension_val));
 
     const LensDistortion* lens_ptr = m_camera_model.lens_distortion();
     const double pitch = m_camera_model.pixel_pitch();
@@ -118,9 +130,11 @@ public:
 template <class ImageT>
 UndistortView<ImageT> undistort_image(ImageT const& dist_img,
                                       int cols, int rows,
-                                      Vector2 const& offset, 
+                                      Vector2 const& offset,
+				      typename ImageT::pixel_type edge_extension_val, 
                                       PinholeModel const& camera_model){
-  return UndistortView<ImageT>(dist_img, cols, rows, offset, camera_model);
+  return UndistortView<ImageT>(dist_img, cols, rows, offset, edge_extension_val,
+			       camera_model);
 }
 
 
@@ -169,28 +183,93 @@ void do_work() {
 
   Vector2 offset = output_area.min();
 
+  typedef typename CompoundChannelType<PixelT>::type channel_type;
+  int n_channels = PixelNumChannels<PixelT>::value;
+  bool is_float = boost::is_same<channel_type, float>::value;
+  bool is_double = boost::is_same<channel_type, double>::value;
+  
+  // If to use a no-data value when saving. Always use no-data for single
+  // channel output image with float or double pixels.
+  bool use_nodata = (n_channels == 1 && (is_float || is_double));
   int cols = floor(output_area.width());
   int rows = floor(output_area.height());
   vw_out() << "Output image size: " << cols << ' ' << rows << std::endl;
 
   vw::cartography::GdalWriteOptions write_options;
-
+  PixelT edge_extension_val = PixelT(0);
+  
   bool has_georef = false;
   cartography::GeoReference georef;
-  double nodata = 0;
-  bool has_nodata = false;  // TODO: May need to set this to true, at least for grayscale images
   vw_out() << "Writing: " << output_file_name << std::endl;
   TerminalProgressCallback tpc("vw", "");
-  block_write_gdal_image(output_file_name,
 
-                         undistort_image(dist_img,  
-                                         cols, rows,  
-                                         offset,  
-                                         camera_model),
-                         has_georef,  
-                         georef, has_nodata, nodata,  
-                         write_options, tpc);
+  if (!use_nodata) {
+    double nodata = 0;
+    block_write_gdal_image(output_file_name,
+			   
+			   undistort_image(dist_img,  
+					   cols, rows,  
+					   offset,  
+					   edge_extension_val,
+					   camera_model
+					   ),
+			   has_georef,  
+			   georef, use_nodata, nodata,  
+			   write_options, tpc);
+  }else{
 
+    // Will use nodata on input and output
+    
+    bool has_input_nodata = false;
+    double input_nodata = -std::numeric_limits<double>::max();
+    {
+      // Read the no-data
+      DiskImageResourceGDAL rsrc(input_file_name);
+      has_input_nodata = rsrc.has_nodata_read();
+      if (has_input_nodata) input_nodata = rsrc.nodata_read();
+    }
+
+    // If there is input no-data, mask it
+    ImageViewRef< PixelMask<PixelT> > masked_dist_img;
+    if (!has_input_nodata) {
+      masked_dist_img = pixel_cast< PixelMask<PixelT> >(dist_img);
+    }else{
+      masked_dist_img = create_mask(dist_img, PixelT(input_nodata));
+    }
+
+    // output_nodata_value is a global var. If the user did not set an
+    // output nodata value, use the input
+    if (!output_nodata_value_was_set) {
+      output_nodata_value = input_nodata;
+    }
+
+    // If the pixel type is float, the output nodata must also be float
+    if (is_float) {
+      output_nodata_value = std::max(output_nodata_value,
+				     double(-std::numeric_limits<float>::max())
+				     );
+    }
+
+    // Non-existing pixels will be set to invalid
+    PixelMask<PixelT> masked_edge_extension_val = edge_extension_val;
+    masked_edge_extension_val.invalidate();
+    
+    ImageViewRef< PixelMask<PixelT> > masked_undist_img =
+      undistort_image(masked_dist_img,  
+		      cols, rows,  
+		      offset,  
+		      masked_edge_extension_val,
+		      camera_model
+		      );
+
+    PixelT output_nodata_value_vec = PixelT(output_nodata_value);
+    block_write_gdal_image(output_file_name,
+			   apply_mask(masked_undist_img, output_nodata_value_vec),
+			   has_georef,  
+			   georef, use_nodata, output_nodata_value,  
+			   write_options, tpc);
+  }
+  
   // Save the camera model for the undistorted image
   PinholeModel out_model = vw::camera::strip_lens_distortion(camera_model);
   out_model.set_point_offset(out_model.point_offset() - offset*out_model.pixel_pitch());
@@ -226,14 +305,27 @@ DO_WORK_ALL_CHANNELS(PixelGrayA)
 DO_WORK_ALL_CHANNELS(PixelRGB)
 DO_WORK_ALL_CHANNELS(PixelRGBA)
 
+// Prefer to save to process and save as float, to not lose information
+// during interpolation.
 #define SWITCH_ON_CHANNEL_TYPE( PIXELTYPE )                            \
-  switch (fmt.channel_type) {                                          \
-  case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_uint8();   break;     \
-  case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_int8();    break;     \
-  case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_uint16();  break;     \
-  case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_int16();   break;     \
-  case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;     \
-  default:                 do_work_##PIXELTYPE##_float64(); break;     \
+  if (preserve_pixel_type) {					       \
+    switch (fmt.channel_type) {					       \
+    case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_uint8();   break;   \
+    case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_int8();    break;   \
+    case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_uint16();  break;   \
+    case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_int16();   break;   \
+    case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;   \
+    default:                 do_work_##PIXELTYPE##_float64(); break;   \
+    }								       \
+  }else{							       \
+    switch (fmt.channel_type) {					       \
+    case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_float32(); break;   \
+    case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_float32(); break;   \
+    case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_float32(); break;   \
+    case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_float32(); break;   \
+    case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;   \
+    default:                 do_work_##PIXELTYPE##_float64(); break;   \
+    }								       \
   }
 
 void do_work_all_channels(std::string const& input_file_name){
@@ -253,8 +345,6 @@ void do_work_all_channels(std::string const& input_file_name){
     
 int main( int argc, char *argv[] ) {
 
-  // TODO: Output better be float?
-  
   po::options_description desc("Usage: undistort_image [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
     ("help,h",        "Display this help message")
@@ -263,7 +353,12 @@ int main( int argc, char *argv[] ) {
     ("camera-file",    po::value<std::string>(&camera_file_name), 
                       "Explicitly specify the camera file")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.png"), 
-                      "Specify the output file");
+     "Specify the output file")
+    ("output-nodata-value", po::value(&output_nodata_value),
+     "Set the output nodata value. Only applicable if the output is a single-channel image with pixels that are float or double. The default is the smallest value for the current data type.")
+    ("preserve-pixel-type", po::bool_switch(&preserve_pixel_type)->default_value(false),
+     "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.");
+  
   po::positional_options_description p;
   p.add("input-file", 1);
   p.add("camera-file", 1);
@@ -289,6 +384,8 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
+  output_nodata_value_was_set = vm.count("output-nodata-value");
+  
   vw::create_out_dir(output_file_name);
   do_work_all_channels(input_file_name);
   
