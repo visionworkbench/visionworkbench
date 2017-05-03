@@ -286,6 +286,9 @@ void do_work() {
   vw_out() << "Writing: " << out_cam_path << std::endl;
   out_model.write(out_cam_path);
 
+#if 0
+  // Write a patchmatch camera matrix
+  
   Matrix<double,3,4> camera_matrix = out_model.camera_matrix();
   double pixel_pitch = out_model.pixel_pitch();
 
@@ -296,6 +299,7 @@ void do_work() {
     }
   }
 
+  
   std::string out_mat_path = fs::path(output_file_name).replace_extension(".txt").string();
   vw_out() << "Writing: " << out_mat_path << std::endl;
   std::ofstream mh (out_mat_path.c_str());
@@ -308,6 +312,7 @@ void do_work() {
     mh << std::endl;
   }
   mh.close();
+#endif
   
   vw_out() << "Finished!\n";
   
