@@ -162,8 +162,12 @@ double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
   double sum = 0;
   for (int i=0; i<num_bins; ++i) // Compute sum
     sum += histogram[i];
-  for (int i=0; i<num_bins; ++i) // Divide
+  //std::cout << "== Normalized histogram ==\n";
+  for (int i=0; i<num_bins; ++i) {// Divide
     histogram_percentages[i] = histogram[i] / sum;
+    //std::cout << histogram_percentages[i] << "\n";  
+  }
+  //std::cout << "\n";
 
   // Try out every bin value in the histogram and pick the best one
   //  - Skip the first bin due to computation below.
@@ -183,6 +187,8 @@ double split_histogram_kittler_illingworth(std::vector<double> const& histogram,
       min_index = i+1;
     }
   }
+  //std::cout << "Min index = " << min_index << std::endl;
+  //std::cout << "bin_width = " << bin_width << std::endl;
   // Compute the final threshold which is below the current bin value
   double threshold = min_val + bin_width*(static_cast<double>(min_index) - 0.5);
   
@@ -610,6 +616,8 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
   std::vector<double> optimal_tile_thresholds(num_tiles);
   double dmin = static_cast<double>(global_min);
   double dmax = static_cast<double>(global_max);
+  //std::cout << "Histogram min = " << dmin << std::endl;
+  //std::cout << "Histogram max = " << dmax << std::endl;
   threshold_mean = 0;
   for (size_t i=0; i<num_tiles; ++i) {
   
@@ -657,7 +665,8 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
 */
 void sar_martinis(std::string const& input_image_path, std::string const& output_path,
                   cartography::GdalWriteOptions const& write_options,
-                  std::string dem_path="", bool debug=false, int tile_size = 512) {
+                  std::string dem_path="", bool debug=false, int tile_size = 512,
+                  double sensitivity = 1.0) {
 
   // Set up paths to temporary files in the output folder.
   boost::filesystem::path fs_path(output_path); 
@@ -935,8 +944,8 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
   // Perform two-level flood fill of the defuzzed image and write it to disk.
   // - The mask is added back in at this point.
-  const double FINAL_FLOOD_THRESHOLD = 0.6;
-  const double WATER_GROW_THRESHOLD  = 0.45;
+  const double FINAL_FLOOD_THRESHOLD = sensitivity * 0.6;
+  const double WATER_GROW_THRESHOLD  = sensitivity * 0.45;
   block_write_gdal_image(output_path,
                          apply_mask(
                            copy_mask(

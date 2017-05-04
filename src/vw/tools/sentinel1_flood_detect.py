@@ -8,11 +8,11 @@
     Water detection is run after these steps.
 '''
 
-import sys, os
+import sys, os, optparse
 
 # Append this file location to the system path to make sure that
 #  the packaged GDAL executables are found.
-sys.path.append(os.path.realpath(__file__))
+os.environ['PATH'] += os.pathsep + os.path.dirname(os.path.realpath(__file__))
 
 def copyGeoTiffInfo(inputGeoTiffPath, inputTiffPath, outputPath):
     '''Copies geo information from a GeoTiff to a plain Tiff'''
@@ -36,16 +36,26 @@ def copyGeoTiffInfo(inputGeoTiffPath, inputTiffPath, outputPath):
 def main():
     
     # Get the input arguments from the command line
-    if len(sys.argv) < 3:
-        print 'Usage: sentinel1_flood_detect.py <input path> <output path> [DEM path]'
+    usage  = "Usage: sentinel1_flood_detect.py <input path> <output path>\n"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("--sensitivity", dest="sensitivity", default=None,
+                      help="Decrease to detect more water, increase to detect less.")
+    parser.add_option("--debug", dest="debug", default=False, action='store_true',
+                      help="Enable debug output.")
+    parser.add_option("--num-threads", dest="num_threads", default=None,
+                      help="Number of threads to use.")
+    parser.add_option("--tile-size", dest="tile_size", default=None,
+                      help="Specify size of tile used for processing.")
+    parser.add_option("--dem-path", dest="dem_path", default=None,
+                      help="Process with this DEM file.")
+    (options, args) = parser.parse_args()
+    if len(args) < 2:
+        print usage
         return
-    
+      
     # Parse input arguments
-    input_path  = sys.argv[1]
-    output_path = sys.argv[2]
-    dem_path    = None
-    if len(sys.argv) > 3:
-      dem_path = sys.argv[3]
+    input_path  = args[0]
+    output_path = args[1]
 
     # Create output folder    
     output_folder = os.path.dirname(output_path)
@@ -82,9 +92,17 @@ def main():
     
    
     # Call the main processing function
-    cmd = 'detect_water --mode sentinel1 -o ' + output_path +' '+ ortho_path
-    if dem_path:
-      cmd += ' --dem-path ' + dem_path
+    cmd = ('detect_water --mode sentinel1 -o ' + output_path +' '+ ortho_path)
+    if options.dem_path:
+      cmd += ' --dem-path ' + options.dem_path
+    if options.debug:
+      cmd += ' --debug'
+    if options.sensitivity:
+        cmd += ' --sensitivity ' + options.sensitivity
+    if options.tile_size:
+        cmd += ' --tile-size ' + options.tile_size
+    if options.num_threads:
+        cmd += ' --num-threads ' + options.num_threads
     print cmd
     os.system(cmd)
     if not os.path.exists(output_path):
@@ -92,9 +110,9 @@ def main():
     
     
     # Clean up intermediate files
-    os.remove(temp_path)
-    os.remove(border_correct_path)
-    os.remove(ortho_path)
+    #os.remove(temp_path)
+    #os.remove(border_correct_path)
+    #os.remove(ortho_path)
     
     print 'Finished generating output file: ' + output_path
 

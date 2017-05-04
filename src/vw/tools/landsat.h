@@ -491,8 +491,8 @@ float detect_water(LandsatToaPixelType const& pixel) {
 class DetectWaterLandsatFunctor  : public ReturnFixedType<uint8> {
   float m_water_thresh;
 public:
-  DetectWaterLandsatFunctor(float sun_elevation_degrees=45)
-   : m_water_thresh(compute_water_threshold(sun_elevation_degrees)) {}
+  DetectWaterLandsatFunctor(float sun_elevation_degrees=45, double sensitivity=1.0)
+   : m_water_thresh(compute_water_threshold(sun_elevation_degrees)*sensitivity) {}
   
   uint8 operator()( LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
@@ -518,8 +518,11 @@ public:
 };
 
 
+/// The sensitivity option multiplies the water detection threshold and is
+/// an easy way to adjust the gross sensitivity of the algorithm.
 void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
-                  cartography::GdalWriteOptions const& write_options, bool debug=false) {
+                  cartography::GdalWriteOptions const& write_options, 
+                  double sensitivity=1.0, bool debug=false) {
 
   const int landsat_type= 8; // This could be a parameter but for now it is the only option.
   LandsatImage ls_image;
@@ -540,6 +543,8 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
     std::cout << "toa_add "     << metadata.toa_add     << std::endl;
     std::cout << "k_constants " << metadata.k_constants << std::endl;
     std::cout << "sun_elevation " <<  metadata.sun_elevation_degrees << std::endl;
+    std::cout << "water threshold = " << 
+              compute_water_threshold(metadata.sun_elevation_degrees)*sensitivity << std::endl;
 
     block_write_gdal_image("landsat_toa_input.tif",
                            apply_mask(per_pixel_view(ls_image, LandsatToaFunctor(metadata)), 
@@ -574,7 +579,7 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
                                 ls_image,
                                 LandsatToaFunctor(metadata)
                               ),
-                              DetectWaterLandsatFunctor(metadata.sun_elevation_degrees)
+                              DetectWaterLandsatFunctor(metadata.sun_elevation_degrees, sensitivity)
                            ),
                            FLOOD_DETECT_NODATA
                          ),

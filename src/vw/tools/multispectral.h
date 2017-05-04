@@ -372,8 +372,9 @@ public:
 ///   not very good.  To actually do a good job, would probably need to do something with
 ///   cloud detection (easier) and sun geometry.
 class DetectWaterWorldView23Functor  : public ReturnFixedType<uint8> {
+  double m_sensitivity;
 public:
-  DetectWaterWorldView23Functor() {}
+  DetectWaterWorldView23Functor(double sensitivity=1.0) : m_sensitivity(sensitivity) {}
   
   uint8 operator()( WorldView23ToaPixelType const& pixel) const {
     if (is_valid(pixel)){
@@ -381,9 +382,9 @@ public:
       float ndvi  = compute_ndvi(pixel);
       float ndwi2 = compute_ndwi2(pixel);
 
-      if ((ndvi < 0.1) || (ndwi2 < 0.3))
+      if ((ndvi < 0.1*m_sensitivity) || (ndwi2 < 0.3*m_sensitivity))
         return FLOOD_DETECT_LAND;
-      if ((ndvi > 0.5) || (ndwi2 > 0.5))
+      if ((ndvi > 0.5*m_sensitivity) || (ndwi2 > 0.5*m_sensitivity))
         return FLOOD_DETECT_WATER;
       return FLOOD_DETECT_LAND;
     }
@@ -395,8 +396,9 @@ public:
 /// Very ad-hoc detector for SPOT67.  TOA pixel conversion is not available,
 ///  and only BGR + NIR bands are available.
 class DetectWaterSpot67Functor  : public ReturnFixedType<uint8> {
+  double m_sensitivity;
 public:
-  DetectWaterSpot67Functor() {}
+  DetectWaterSpot67Functor(double sensitivity=1.0) : m_sensitivity(sensitivity) {}
   
   uint8 operator()( Spot67PixelType const& pixel) const {
     if (is_valid(pixel)){
@@ -404,7 +406,7 @@ public:
       float ndvi  = compute_ndvi_spot(pixel);
       float ndwi = compute_ndwi_spot(pixel);
       //std::cout << "ndvi " << ndvi << ", ndwi " << ndwi <<std::endl;
-      if ((ndwi > 0.3) || ((ndvi+ndwi) > 0.6))
+      if ((ndwi > 0.3*m_sensitivity) || ((ndvi+ndwi) > 0.6*m_sensitivity))
         return FLOOD_DETECT_WATER;
       return FLOOD_DETECT_LAND;
     }
@@ -417,7 +419,7 @@ public:
 void detect_water_worldview23(std::vector<std::string> const& image_files, 
                               std::string const& output_path,
                               cartography::GdalWriteOptions const& write_options,
-                              bool debug = false) {
+                              double sensitivity = 1.0, bool debug = false) {
 
   // Load the image and metadata
   WorldView23Image wv_image;
@@ -489,7 +491,7 @@ void detect_water_worldview23(std::vector<std::string> const& image_files,
                                 wv_image,
                                 WorldView23ToaFunctor(metadata)
                               ),
-                              DetectWaterWorldView23Functor()
+                              DetectWaterWorldView23Functor(sensitivity)
                            ),
                            FLOOD_DETECT_NODATA
                          ),
@@ -505,7 +507,7 @@ void detect_water_worldview23(std::vector<std::string> const& image_files,
 void detect_water_spot67(std::vector<std::string> const& image_files, 
                          std::string const& output_path,
                          cartography::GdalWriteOptions const& write_options,
-                         bool debug = false) {
+                         double sensitivity = 1.0, bool debug = false) {
 
   // Load image, no useful metadata available.
   Spot67Image spot_image;
@@ -535,7 +537,7 @@ void detect_water_spot67(std::vector<std::string> const& image_files,
                          apply_mask(
                            per_pixel_view(
                              spot_image,
-                             DetectWaterSpot67Functor()
+                             DetectWaterSpot67Functor(sensitivity)
                            ),
                            FLOOD_DETECT_NODATA
                          ),

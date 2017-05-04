@@ -37,8 +37,9 @@ int main(int argc, char **argv) {
 
   std::vector<std::string> input_file_names;
   std::string output_path, mode, dem_path;
-  int num_threads = 0;
-  int tile_size   = 512;
+  int num_threads    = 0;
+  int tile_size      = 512;
+  double sensitivity = 1.0;
   cartography::GdalWriteOptions write_options;
 
   // Parse the command line options.
@@ -51,6 +52,8 @@ int main(int argc, char **argv) {
                          "Number of threads to use for writing")
     ("tile-size",        po::value<int>(&tile_size)->default_value(512), 
                          "Tile size used for parallel processing")
+    ("sensitivity",      po::value<double>(&sensitivity)->default_value(1.0), 
+                         "Lower this to make the algorithm detect more water, increase for less water.")
     ("mode,m",           po::value<std::string>(&mode), 
         "The processing mode. Required.  Options: [sentinel1, landsat, worldview]")
     ("debug",  "Record debugging information.")
@@ -133,25 +136,26 @@ int main(int argc, char **argv) {
   
   if (radar_mode) {
     std::cout << "Processing sentinel-1 image!\n";
-    radar::sar_martinis(input_file_names[0], output_path, write_options, dem_path, debug);
+    radar::sar_martinis(input_file_names[0], output_path, write_options, dem_path, debug, 
+                        tile_size, sensitivity);
     return 0;
   }
   
   if (landsat_mode) {
     std::cout << "Processing Landsat image!\n";
-    landsat::detect_water(input_file_names, output_path, write_options, debug);
+    landsat::detect_water(input_file_names, output_path, write_options, sensitivity, debug);
     return 0;
   }
 
   if (worldview_mode) {
     std::cout << "Processing WorldView image!\n";
-    multispectral::detect_water_worldview23(input_file_names, output_path, write_options, debug);
+    multispectral::detect_water_worldview23(input_file_names, output_path, write_options, sensitivity, debug);
     return 0;
   }
 
   if (spot_mode) {
     std::cout << "Processing SPOT image!\n";
-    multispectral::detect_water_spot67(input_file_names, output_path, write_options, debug);
+    multispectral::detect_water_spot67(input_file_names, output_path, write_options, sensitivity, debug);
     return 0;
   }
   
