@@ -682,7 +682,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   
   // Read nodata value
   double input_nodata_value = 0;
-  bool   has_input_nodata   = read_nodata_val(input_image_path, input_nodata_value);
+  read_nodata_val(input_image_path, input_nodata_value);
    
   // Compute the min and max values of the image
   std::cout << "Preprocessing...\n";
@@ -860,7 +860,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
     // Should be safe to use this as a DEM nodata value!
     double dem_nodata_value = -3.4028234663852886e+38;
-    bool have_dem_nodata = read_nodata_val(dem_path, dem_nodata_value);
+    read_nodata_val(dem_path, dem_nodata_value); 
 
     DiskImageView<float> dem(dem_path);
 
