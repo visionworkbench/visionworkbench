@@ -227,7 +227,8 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
                                      ImageInT  const& left_image_in,
                                      ImageInT  const& right_image_in,
                                      ImageOutT      & left_image_out,
-                                     ImageOutT      & right_image_out) {
+                                     ImageOutT      & right_image_out,
+                                     ValueEdgeExtension<typename ImageOutT::pixel_type> edge_ext) {
 
   // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
   CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*left_cahv_camera )));
@@ -245,22 +246,34 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
   if (boost::ends_with(lcase_file, ".cahvore")) {
     CAHVOREModel left_cahvore (left_camera_file );
     CAHVOREModel right_cahvore(right_camera_file);
-    left_image_out  = camera_transform(left_image_in,  left_cahvore,  *left_epipolar_cahv );
-    right_image_out = camera_transform(right_image_in, right_cahvore, *right_epipolar_cahv);
+    left_image_out  = camera_transform(left_image_in,  left_cahvore,  *left_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
+    right_image_out = camera_transform(right_image_in, right_cahvore, *right_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
     
   } else if (boost::ends_with(lcase_file, ".cahvor") ||
              boost::ends_with(lcase_file, ".cmod") ) {
     CAHVORModel left_cahvor (left_camera_file );
     CAHVORModel right_cahvor(right_camera_file);
-    left_image_out  = camera_transform(left_image_in,  left_cahvor,  *left_epipolar_cahv );
-    right_image_out = camera_transform(right_image_in, right_cahvor, *right_epipolar_cahv);
+    left_image_out  = camera_transform(left_image_in,  left_cahvor,  *left_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
+    right_image_out = camera_transform(right_image_in, right_cahvor, *right_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
 
   } else if ( boost::ends_with(lcase_file, ".cahv") ||
               boost::ends_with(lcase_file, ".pin" )) {
     CAHVModel left_cahv (left_camera_file );
     CAHVModel right_cahv(right_camera_file);
-    left_image_out  = camera_transform(left_image_in,  left_cahv,  *left_epipolar_cahv );
-    right_image_out = camera_transform(right_image_in, right_cahv, *right_epipolar_cahv);
+    left_image_out  = camera_transform(left_image_in,  left_cahv,  *left_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
+    right_image_out = camera_transform(right_image_in, right_cahv, *right_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
 
   } else if ( boost::ends_with(lcase_file, ".pinhole") ||
               boost::ends_with(lcase_file, ".tsai") ) {
@@ -274,8 +287,12 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
     update_pinhole_for_fast_point2pixel(left_pin,  left_image_size );
     update_pinhole_for_fast_point2pixel(right_pin, right_image_size);
     
-    left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv );
-    right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv);
+    left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
+    right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv,
+                                       edge_ext, BilinearInterpolation()
+                                       );
 
   } else {
     vw_throw(ArgumentErr() << "get_epipolar_transformed_images: unsupported camera file type.\n");
@@ -346,7 +363,8 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
                                              Vector2i  const& left_image_out_size,
                                              Vector2i  const& right_image_out_size,
                                              ImageOutT      & left_image_out,
-                                             ImageOutT      & right_image_out) {
+                                             ImageOutT      & right_image_out,
+                                             ValueEdgeExtension<typename ImageOutT::pixel_type> edge_ext) {
 
   // Cast input camera models to Pinhole
   PinholeModel* left_epipolar_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_camera )));
@@ -364,8 +382,14 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
   update_pinhole_for_fast_point2pixel(right_pin, right_image_in_size);
   
   // Transform the images
-  left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,  left_image_out_size );
-  right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_pin, right_image_out_size);
+  left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,
+                                     left_image_out_size,
+                                     edge_ext, BilinearInterpolation()
+                                     );
+  right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_pin,
+                                     right_image_out_size,
+                                     edge_ext, BilinearInterpolation()
+                                     );
 }
 
 

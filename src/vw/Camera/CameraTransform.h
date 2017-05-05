@@ -121,6 +121,16 @@ namespace camera{
 
 
   /// Transform an image from one camera model to another, explicitly
+  /// specifying the edge extension and interpolation modes. Specify the size of the output image.
+  template <class ImageT, class SrcCameraT, class DstCameraT, class EdgeT, class InterpT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, DstCameraT> >
+  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, Vector2i size, EdgeT const& edge_func, InterpT const& interp_func )
+  {
+    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
+    return transform( image, ctx, size[0], size[1], edge_func, interp_func );
+  }
+
+  /// Transform an image from one camera model to another, explicitly
   /// specifying the edge extension and interpolation modes.
   template <class ImageT, class SrcCameraT, class DstCameraT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, DstCameraT> >

@@ -258,24 +258,6 @@ void align_images( Options & opt ) {
 
     ImageView< PixelRGB<uint8> > left_aligned2, right_aligned2;
 
-/*
-    // Load both input images as CAHV models.
-    boost::shared_ptr<CAHVModel> left_cahv, right_cahv;
-    left_cahv  = load_cahv_pinhole_camera_model(opt.left_image_file,  opt.left_camera_file );
-    right_cahv = load_cahv_pinhole_camera_model(opt.right_image_file, opt.right_camera_file);
-
-    // Generate epipolar-aligned camera models
-    boost::shared_ptr<CAHVModel> epipolar_left_cahv (new CAHVModel);
-    boost::shared_ptr<CAHVModel> epipolar_right_cahv(new CAHVModel);
-    epipolar(*(left_cahv.get()),  *(right_cahv.get()),
-             *(epipolar_left_cahv.get()), *(epipolar_right_cahv.get()));
-
-    get_epipolar_transformed_images(opt.left_camera_file,   opt.right_camera_file,
-                        epipolar_left_cahv, epipolar_right_cahv,
-                            ref_image, input_image,
-                            left_aligned2, right_aligned2);
-*/
-
     //// Load input pinhole cameras
     PinholeModel left_pin (opt.left_camera_file );
     PinholeModel right_pin(opt.right_camera_file);
@@ -293,12 +275,14 @@ void align_images( Options & opt ) {
                                    epi_size1, epi_size2);
 
 
-    // Generate epipolar images
+    // Zero edge extension. Not ideal. One better create a mask or something.
+    PixelRGB<uint8> Zero = PixelRGB<uint8>(0);
     get_epipolar_transformed_pinhole_images(opt.left_camera_file,   opt.right_camera_file,
                                             epipolar_left_pin, epipolar_right_pin,
                                             ref_image, input_image,
                                             epi_size1, epi_size2,
-                                            left_aligned2, right_aligned2);
+                                            left_aligned2, right_aligned2,
+                                            ValueEdgeExtension< PixelRGB<uint8> >(Zero));
 
     std::string output_path = opt.output_prefix + "_right_image.tif";
     write_image(output_path, crop(edge_extend(right_aligned2,ZeroEdgeExtension()),bounding_box(left_aligned2)),
