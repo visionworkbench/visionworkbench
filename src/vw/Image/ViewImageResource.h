@@ -35,7 +35,7 @@ namespace vw {
   template <class ViewT> struct ViewDataAccessor {
     static boost::shared_array<const uint8> data(ViewT const& /*view*/) {
       vw_throw(NoImplErr() << "ViewDataAccessor native_ptr() failed. This view does not support direct data access.");
-      return boost::shared_array<const uint8>(NULL); // never reached
+      return boost::shared_array<const uint8>(); // never reached
     }
   };
 

@@ -228,36 +228,36 @@ void TemporaryFile::init(std::string dir = "", bool delete_on_close = true, cons
     vw_throw(IOErr() << "Failed to create temporary file " << m_filename);
   }
 
-  stream_t::init(m_buf.get());
+  std::iostream::init(m_buf.get());
   m_delete = delete_on_close;
 }
 
-TemporaryFile::TemporaryFile() {
+TemporaryFile::TemporaryFile() : std::iostream(0)  {
   init();
 }
 
-TemporaryFile::TemporaryFile(const std::string& dir) {
+TemporaryFile::TemporaryFile(const std::string& dir) : std::iostream(0) {
   init(dir);
 }
 
-TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close) {
+TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close) : std::iostream(0) {
   init(dir, delete_on_close);
 }
 
-TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix) {
+TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix) : std::iostream(0) {
   init(dir, delete_on_close, prefix);
 }
 
-TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix, const std::string& suffix) {
+TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix, const std::string& suffix) : std::iostream(0) {
   init(dir, delete_on_close, prefix, suffix);
 }
 
-TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix, const std::string& suffix, std::ios_base::openmode mode) {
+TemporaryFile::TemporaryFile(const std::string& dir, bool delete_on_close, const std::string& prefix, const std::string& suffix, std::ios_base::openmode mode) : std::iostream(0) {
   init(dir, delete_on_close, prefix, suffix, mode);
 }
 
 TemporaryFile::~TemporaryFile() {
-  stream_t::init(0);
+  std::iostream::init(0);
   m_buf.reset();
   if (m_delete)
     if (::remove(m_filename.c_str()) == -1 && errno != ENOENT)

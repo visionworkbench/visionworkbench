@@ -619,7 +619,7 @@ public:
 
 
 // ----------------------------------------------------------------------------
-
+/*
 //  compute_normals()
 //
 // Compute a vector normal to the surface of a DEM for each given
@@ -681,7 +681,7 @@ public:
       return dot_prod(pix.child(),m_vec);
   }
 };
-
+*/
 /// Apply a double threshold to an image.
 /// - Pixels are set if they are above the high threshold.  In addition, a flood-fill is performed
 ///   from the high threshold pixels using pixels above the low threshold.

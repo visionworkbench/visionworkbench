@@ -1039,7 +1039,7 @@ struct PixelChannelCastRescaleFunctor : UnaryReturnBinaryTemplateBind2nd<Compoun
 // *******************************************************************
 // weighted_rgb_to_gray()
 // *******************************************************************
-
+/* TODO: Why does this not compile here?
 /// A weighted rgb-to-gray pixel conversion functor.
 class WeightedRGBToGrayFunctor {
   double m_rw, m_gw, m_bw;
@@ -1055,6 +1055,6 @@ public:
     return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
   }
 };
-
+*/
 } // namespace vw
 

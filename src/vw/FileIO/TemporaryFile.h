@@ -28,7 +28,6 @@ namespace vw {
 
 class TemporaryFile : public std::iostream {
   private:
-    typedef std::iostream stream_t;
 
     boost::shared_ptr<std::filebuf> m_buf;
     std::string m_filename;

@@ -249,7 +249,45 @@ namespace vw {
   // directions so that the direction of the vector in physical space
   // can be properly ascertained.  This is often contained in the (0,0)
   // and (1,1) entry of the georeference transform.
-  class ComputeNormalsFunc;
+  class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3f> >
+  {
+    float m_u_scale, m_v_scale;
+
+  public:
+    ComputeNormalsFunc(float u_scale, float v_scale) :
+      m_u_scale(u_scale), m_v_scale(v_scale) {}
+
+    BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
+
+    template <class PixelAccessorT>
+    PixelMask<Vector3f> operator() (PixelAccessorT const& accessor_loc) const {
+      PixelAccessorT acc = accessor_loc;
+
+      // Pick out the three altitude values.
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt1 = *acc;
+
+      acc.advance(1,0);
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt2 = *acc;
+
+      acc.advance(-1,1);
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt3 = *acc;
+
+      // Form two orthogonal vectors in the plane containing the three
+      // altitude points
+      Vector3f n1(m_u_scale, 0, alt2-alt1);
+      Vector3f n2(0, m_v_scale, alt3-alt1);
+
+      // Return the vector normal to the local plane.
+      return normalize(cross_prod(n1,n2));
+    }
+  }; // End class ComputeNormalsFunc
+
 
   template <class ViewT>
   UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> 
@@ -262,7 +300,18 @@ namespace vw {
   // DotProduct
   // ******************************************************************
 
-  class DotProdFunc;
+  /// Perform the dot product between each pixel and a constant vector.
+  class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
+    Vector3f m_vec;
+  public:
+    DotProdFunc(Vector3f const& vec) : m_vec(normalize(vec)) {}
+    PixelMask<PixelGray<float> > operator() (PixelMask<Vector3f> const& pix) const {
+      if (is_transparent(pix))
+        return PixelMask<PixelGray<float> >();
+      else
+        return dot_prod(pix.child(),m_vec);
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3f const& vec) {

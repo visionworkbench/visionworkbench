@@ -124,7 +124,8 @@ void DiskImageResourceRaw::read( ImageBuffer const& dest, BBox2i const& bbox )  
   // Read all the data into a temporary buffer
   char* write_ptr = reinterpret_cast<char*>(image_data.get());
   for (int i=0; i<bbox.height(); ++i) { // For each line
-    m_stream.seekg(offset + i*stride);     // Move to start of read line
+    std::streampos row_offset = i*stride;
+    m_stream.seekg(offset + row_offset);     // Move to start of read line
     m_stream.read(write_ptr, read_width);  // Read the line
     write_ptr += read_width;               // Move to the next write line
   }
@@ -172,7 +173,8 @@ void DiskImageResourceRaw::write( ImageBuffer const& source, BBox2i const& bbox 
   // Write all the data from the temporary buffer
   char* read_ptr = reinterpret_cast<char*>(image_data.get());
   for (int i=0; i<bbox.height(); ++i) { // For each line
-    m_stream.seekg(offset + i*stride);     // Move to start of write line
+    std::streampos row_offset = i*stride;
+    m_stream.seekg(offset + row_offset);     // Move to start of write line
     m_stream.write(read_ptr, read_width);  // write the line
     read_ptr += read_width;                // Move to the next read line
   }

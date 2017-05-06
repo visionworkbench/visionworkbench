@@ -45,6 +45,7 @@ static const typename T::mapped_type& get(const T& m, const typename T::key_type
 }
 } // namespace detail
 
+/*
 template <typename T>
 class Tristate {
     T m_value;
@@ -74,9 +75,9 @@ class Tristate {
       return m_value;
     }
 };
-
+*/
 }} // namespace vw::tools
-
+/*
 // For situations when you need to define the channel in a header
 #define VW_DEFINE_ENUM_PROTO(name, len, tuple)  \
   class name {                                  \
@@ -130,5 +131,5 @@ class Tristate {
 #define VW_DEFINE_ENUM(name, len, tuple)        \
   VW_DEFINE_ENUM_PROTO(name, len, tuple);       \
   VW_DEFINE_ENUM_DEF(name, len, tuple);
-
+*/
 #endif

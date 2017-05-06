@@ -22,9 +22,9 @@
 #include <vw/config.h>
 #include <vw/Core/FundamentalTypes.h>
 
-namespace vw {
+//namespace vw {
 /// Numerical linear algebra and computational geometry.
-namespace math {
+//namespace math {
 
 // There are seemingly two bloodlines of lapack. One decends directly from the
 // fortran libs, and one is a c library formed by running f2c on the fortran
@@ -46,24 +46,16 @@ namespace math {
 #  undef P4
 #  undef P4P
 #  undef P4M
-   typedef MKL_INT f77_int;
 #elif (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
-#  include <vecLib/clapack.h>
-   typedef __CLPK_integer f77_int;
+#  include <Accelerate/Accelerate.h>
 #else
 #  if (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
       (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
       (defined(VW_HAVE_PKG_STANDALONE_FLAPACK) && VW_HAVE_PKG_STANDALONE_FLAPACK==1)
 
-    // fortran-based
-    typedef int32  f77_int;
-
 #  elif (defined(VW_HAVE_PKG_CLAPACK)                    && VW_HAVE_PKG_CLAPACK==1) || \
         (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS) && VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS==1) || \
         (defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1)
-
-    // f2c-based
-    typedef long f77_int;
 
 #   else
 // We're only installed if lapack is installed, so something is wrong at this point.
@@ -168,6 +160,36 @@ namespace math {
   }
   } // anon namespace
 #endif
+
+namespace vw {
+namespace math {
+
+// Need a second block of these checks so that only certain things get in the vw namespace
+#if (defined(VW_HAVE_PKG_INTEL_LAPACK) && VW_HAVE_PKG_INTEL_LAPACK==1)
+   typedef MKL_INT f77_int;
+#elif (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
+   typedef __CLPK_integer f77_int;
+#else
+#  if (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
+      (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
+      (defined(VW_HAVE_PKG_STANDALONE_FLAPACK) && VW_HAVE_PKG_STANDALONE_FLAPACK==1)
+
+    // fortran-based
+    typedef int32  f77_int;
+
+#  elif (defined(VW_HAVE_PKG_CLAPACK)                    && VW_HAVE_PKG_CLAPACK==1) || \
+        (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS) && VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS==1) || \
+        (defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1)
+
+    // f2c-based
+    typedef long f77_int;
+
+#   else
+// We're only installed if lapack is installed, so something is wrong at this point.
+#   error I don't know what lapack you're using
+#   endif
+#endif
+
 
   void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
   void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);

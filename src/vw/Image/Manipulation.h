@@ -523,7 +523,23 @@ namespace vw {
   // *******************************************************************
 
   /// A weighted rgb-to-gray pixel conversion functor.
-  class WeightedRGBToGrayFunctor;
+  //class WeightedRGBToGrayFunctor; // TODO: Why does forward declaration not work?
+
+  /// A weighted rgb-to-gray pixel conversion functor.
+  class WeightedRGBToGrayFunctor {
+    double m_rw, m_gw, m_bw;
+  public:
+    template <class ArgsT> struct result {};
+    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGB<ChannelT>)> { typedef PixelGray<ChannelT> type; };
+    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGBA<ChannelT>)> { typedef PixelGrayA<ChannelT> type; };
+    WeightedRGBToGrayFunctor( double rw, double gw, double bw ) : m_rw(rw), m_gw(gw), m_bw(bw) {}
+    template <class ChannelT> inline PixelGrayA<ChannelT> operator()( PixelRGBA<ChannelT> const& rgb ) const {
+      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
+    }
+    template <class ChannelT> inline PixelGray<ChannelT> operator()( PixelRGB<ChannelT> const& rgb ) const {
+      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
+    }
+  };
 
 
   /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.

@@ -32,12 +32,12 @@
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Mosaic/CelestiaQuadTreeConfig.h>
-#include <vw/Mosaic/GigapanQuadTreeConfig.h>  // for GigapanQuadTreeConfig
-#include <vw/Mosaic/ImageComposite.h>   // for ImageComposite
-#include <vw/Mosaic/KMLQuadTreeConfig.h>  // for KMLQuadTreeConfig
-#include <vw/Mosaic/QuadTreeConfig.h>   // for QuadTreeConfig
-#include <vw/Mosaic/QuadTreeGenerator.h>  // for QuadTreeGenerator
-#include <vw/Mosaic/UniviewQuadTreeConfig.h>  // for UniviewQuadTreeConfig
+#include <vw/Mosaic/GigapanQuadTreeConfig.h>
+#include <vw/Mosaic/ImageComposite.h>
+#include <vw/Mosaic/KMLQuadTreeConfig.h>
+#include <vw/Mosaic/QuadTreeConfig.h>
+#include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/UniviewQuadTreeConfig.h>
 #include <vw/tools/Common.h>
 
 #include <fstream>
@@ -47,24 +47,7 @@
 #include <boost/filesystem/path_traits.hpp>
 #include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
-
-
-VW_DEFINE_ENUM_PROTO(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
-VW_DEFINE_ENUM_PROTO(Mode, 7, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN));
-VW_DEFINE_ENUM_PROTO(DatumOverride, 5, (NONE, WGS84, LUNAR, MARS, SPHERE))
-VW_DEFINE_ENUM_PROTO(Projection, 11, (
-                                      DEFAULT,
-                                      NONE,
-                                      SINUSOIDAL,
-                                      MERCATOR,
-                                      TRANSVERSE_MERCATOR,
-                                      ORTHOGRAPHIC,
-                                      STEREOGRAPHIC,
-                                      LAMBERT_AZIMUTHAL,
-                                      LAMBERT_CONFORMAL_CONIC,
-                                      UTM,
-                                      PLATE_CARREE))
-
+                               
 template <class ImageT, class TransformT>
 vw::TransformView<ImageT, TransformT>
 transform_only( vw::ImageViewBase<ImageT> const& v,
@@ -75,19 +58,20 @@ transform_only( vw::ImageViewBase<ImageT> const& v,
 struct Options {
 
   Options() :
-    output_file_type("png"),
-    module_name("", true),
-    tile_size(256),
-    jpeg_quality(0, true),
-    png_compression(0, true),
-    pixel_scale(1),
+    output_file_type(""),
+    module_name(""),
+    tile_size(0),
+    jpeg_quality(-9999),
+    png_compression(99999),
+    pixel_scale(0),
     pixel_offset(0),
     aspect_ratio(1),
-    global_resolution(0, true),
-    nodata(0, true),
-    north(0, true), south(0, true),
-    east(0, true), west(0, true),
-    channel_type(Channel::NONE),
+    global_resolution(0),
+    nodata(0),
+    nodata_set(false),
+    north(0), south(0),
+    east(0), west(0),
+    channel_type("DEFAULT"),
     multiband(false),
     help(false),
     normalize(false),
@@ -99,20 +83,21 @@ struct Options {
   std::vector<std::string> input_files;
 
   std::string output_file_name;
-  vw::tools::Tristate<std::string> output_file_type;
-  vw::tools::Tristate<std::string> module_name;
-  vw::tools::Tristate<double>      nudge_x, nudge_y;
-  vw::tools::Tristate<vw::uint32>  tile_size;
-  vw::tools::Tristate<float>       jpeg_quality;
-  vw::tools::Tristate<vw::uint32>  png_compression;
-  vw::tools::Tristate<float>       pixel_scale, pixel_offset;
-  vw::tools::Tristate<vw::int32>   aspect_ratio;
-  vw::tools::Tristate<vw::uint32>  global_resolution;
-  vw::tools::Tristate<float>       nodata;
-  vw::tools::Tristate<float>       north, south, east, west;
+  std::string output_file_type;
+  std::string module_name;
+  double      nudge_x, nudge_y;
+  vw::uint32  tile_size;
+  float       jpeg_quality;
+  vw::uint32  png_compression;
+  float       pixel_scale, pixel_offset;
+  vw::int32   aspect_ratio;
+  vw::uint32  global_resolution;
+  float       nodata;
+  bool        nodata_set;
+  float       north, south, east, west;
 
-  Channel channel_type;
-  Mode mode;
+  std::string channel_type;
+  std::string mode; // Quadtree type
 
   bool multiband;
   bool help;
@@ -127,20 +112,20 @@ struct Options {
   } kml;
 
   struct proj_{
-    Projection type;
-    vw::tools::Tristate<double>    lat, lon, scale /*=1*/;
-    vw::tools::Tristate<double>    p1, p2;
-    vw::tools::Tristate<vw::int32> utm_zone;
+    std::string type;
+    double    lat, lon, scale /*=1*/;
+    double    p1, p2;
+    vw::int32 utm_zone;
     proj_() :
-      type(Projection::DEFAULT),
+      type("DEFAULT"),
       scale(1),
-      utm_zone(0, true) {}
+      utm_zone(0) {}
   } proj;
 
   struct datum_ {
-    DatumOverride type;
-    vw::tools::Tristate<float> sphere_radius;
-    datum_() : type(DatumOverride::NONE), sphere_radius(0, true) {}
+    std::string type;
+    float sphere_radius;
+    datum_() : type("NONE"), sphere_radius(0) {}
   } datum;
 
   void validate() {
@@ -148,17 +133,18 @@ struct Options {
     VW_ASSERT(input_files.size() > 0,
               vw::tools::Usage() << "Need at least one input image");
 
-    if (datum.type == DatumOverride::SPHERE)
-      VW_ASSERT(datum.sphere_radius.set(),
+    if (datum.type == "SPHERE")
+      VW_ASSERT(datum.sphere_radius > 0,
                 vw::tools::Usage() << "Sphere datum override requires a radius");
 
     if(output_file_name.empty())
       output_file_name = fs::path(input_files[0]).replace_extension().string();
 
-    if (global || north.set() || south.set() || east.set() || west.set()) {
+    // Handle options for manually specifying projection bounds
+    if (global || north!=0 || south!=0 || east!=0 || west!=0) {
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Cannot override georeference information on multiple images");
-      VW_ASSERT(global || (north.set() && south.set() && east.set() && west.set()),
+      VW_ASSERT(global || ((north!=south) && (east!=west)),
                 vw::tools::Usage() << "If you provide one, you must provide all of: --north --south --east --west");
       if (global) {
         north = 90; south = -90; east = 180; west = -180;
@@ -166,28 +152,20 @@ struct Options {
       manual = true;
     }
 
-    switch (mode) {
-    case Mode::NONE:
+    if (mode == "NONE")
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
-      break;
-    case Mode::CELESTIA:
-    case Mode::UNIVIEW:
-      VW_ASSERT(module_name.set(),
+    if (mode == "CELESTIA" || mode == "UNIVIEW")
+      VW_ASSERT(module_name != "",
                 vw::tools::Usage() << "Uniview and Celestia require --module-name");
-      break;
-    default:
-      /* nothing */
-      break;
-    }
 
-    if (proj.type == Projection::NONE)
+    if (proj.type == "NONE")
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
-
-    if (jpeg_quality.set())
+    // Compare against flag values
+    if (jpeg_quality > 0)
       vw::DiskImageResourceJPEG::set_default_quality( jpeg_quality );
-    if (png_compression.set())
+    if (png_compression!=99999)
       vw::DiskImageResourcePNG::set_default_compression_level( png_compression );
   }
 };
@@ -197,7 +175,7 @@ static float lo_value = vw::ScalarTypeLimits<float>::highest();
 static float hi_value = vw::ScalarTypeLimits<float>::lowest();
 
 vw::int32
-compute_resolution(const Mode& p,
+compute_resolution(const std::string& p,
                    const vw::cartography::GeoTransform& t,
                    const vw::Vector2& v);
 
@@ -210,16 +188,15 @@ void do_normal_mosaic(const Options& opt, const vw::ProgressCallback *progress) 
   using namespace vw;
   DiskImageView<PixelT> img(opt.input_files[0]);
   mosaic::QuadTreeGenerator quadtree(img, opt.output_file_name);
-  quadtree.set_tile_size( opt.tile_size );
-  quadtree.set_file_type( opt.output_file_type );
+  quadtree.set_tile_size( 256 );
+  quadtree.set_file_type( "png" );
 
-  if ( opt.mode != Mode::NONE ) {
-    boost::shared_ptr<mosaic::QuadTreeConfig> config =
-      mosaic::QuadTreeConfig::make(opt.mode.string());
+  if ( opt.mode != "NONE" ) {
+    boost::shared_ptr<mosaic::QuadTreeConfig> config = mosaic::QuadTreeConfig::make(opt.mode);
     config->configure( quadtree );
   }
 
-  vw_out() << "Generating " << opt.mode.string() << " overlay..." << std::endl;
+  vw_out() << "Generating overlay..." << std::endl;
   vw_out() << "Writing: " << opt.output_file_name << std::endl;
 
   quadtree.generate( *progress );
@@ -243,7 +220,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   // If we're not outputting any special sort of mosaic (just a regular old
   // quadtree, no georeferencing, no metadata), we use a different function.
-  if(opt.mode == Mode::NONE || opt.proj.type == Projection::NONE) {
+  if(opt.mode == "NONE" || opt.proj.type == "NONE") {
     do_normal_mosaic<PixelT>(opt, progress);
     return;
   }
@@ -252,7 +229,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   int total_resolution = 1024;
   std::vector<GeoReference> georeferences = load_image_georeferences( opt, total_resolution );
 
-  boost::shared_ptr<mosaic::QuadTreeConfig> config = mosaic::QuadTreeConfig::make(opt.mode.string());
+  boost::shared_ptr<mosaic::QuadTreeConfig> config = mosaic::QuadTreeConfig::make(opt.mode);
 
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / opt.aspect_ratio, yresolution = total_resolution;
@@ -277,10 +254,10 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
     // Handle nodata values/mask
-    if ( opt.nodata.set() ) {
+    if ( opt.nodata_set ) {
       vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
-                                          << opt.nodata.value() << "\n";
-      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(opt.nodata.value())));
+                                          << opt.nodata << "\n";
+      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(opt.nodata)));
     } else if ( file->has_nodata_read() ) {
       vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
                                           << file->nodata_read() << "\n";
@@ -294,11 +271,11 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       (fabs(input_georef.lonlat_to_pixel(Vector2(   0,-90)).y() - source.rows()) < 1));
 
     // Do various modifications to the input image here.
-    if( opt.pixel_scale.set() || opt.pixel_offset.set() ) {
+    if( opt.pixel_scale>0  ) {
       vw_out(VerboseDebugMessage, "tool") << "Apply input scaling: "
-                                          << opt.pixel_scale.value() << " offset: "
-                                          << opt.pixel_offset.value() << "\n";
-      source = channel_cast_rescale<ChannelT>( source * opt.pixel_scale.value() + opt.pixel_offset.value() );
+                                          << opt.pixel_scale << " offset: "
+                                          << opt.pixel_offset << "\n";
+      source = channel_cast_rescale<ChannelT>( source * opt.pixel_scale + opt.pixel_offset );
     }
 
     // Normalize pixel intensity if desired
@@ -358,7 +335,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   VW_ASSERT(total_bbox.width() > 0 && total_bbox.height() > 0,
             LogicErr() << "Total bbox is empty. Georeference calculation is probably incorrect.");
 
-  if(opt.mode == Mode::KML) {
+  if(opt.mode == "KML") {
     BBox2i bbox = total_bbox;
     // Compute a tighter Google Earth coordinate system aligned bounding box.
     int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
@@ -387,7 +364,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   mosaic::QuadTreeGenerator quadtree( composite, opt.output_file_name );
 
   // This whole bit here is terrible. This functionality should be moved into the Config base class somehow.
-  if( opt.mode == Mode::KML ) {
+  if( opt.mode == "KML" ) {
     mosaic::KMLQuadTreeConfig *c2 = dynamic_cast<mosaic::KMLQuadTreeConfig*>(config.get());
     BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
                     180.0 - (360.0*total_bbox.max().y())/yresolution,
@@ -397,14 +374,14 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     c2->set_longlat_bbox( ll_bbox );
     c2->set_max_lod_pixels( opt.kml.max_lod_pixels );
     c2->set_draw_order_offset( opt.kml.draw_order_offset );
-  } else if( opt.mode == Mode::CELESTIA ) {
+  } else if( opt.mode == "CELESTIA" ) {
     mosaic::CelestiaQuadTreeConfig *c2 = dynamic_cast<mosaic::CelestiaQuadTreeConfig*>(config.get());
-    c2->set_module(opt.module_name.value());
-  } else if( opt.mode == Mode::UNIVIEW ) {
+    c2->set_module(opt.module_name);
+  } else if( opt.mode == "UNIVIEW" ) {
     mosaic::UniviewQuadTreeConfig *c2 = dynamic_cast<mosaic::UniviewQuadTreeConfig*>(config.get());
     c2->set_terrain(opt.terrain);
-    c2->set_module(opt.module_name.value());
-  } else if ( opt.mode == Mode::GIGAPAN ) {
+    c2->set_module(opt.module_name);
+  } else if ( opt.mode == "GIGAPAN" ) {
     mosaic::GigapanQuadTreeConfig *c2 = dynamic_cast<mosaic::GigapanQuadTreeConfig*>(config.get());
     BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
                     180.0 - (360.0*total_bbox.max().y())/yresolution,
@@ -415,9 +392,9 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   config->configure(quadtree);
 
-  if (opt.tile_size.set())
+  if (opt.tile_size > 0)
     quadtree.set_tile_size(opt.tile_size);
-  if (opt.output_file_type.set())
+  if (opt.output_file_type != "")
     quadtree.set_file_type(opt.output_file_type);
 
   // This box represents the input data, shifted such that total_bbox.min() is
@@ -428,7 +405,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   quadtree.set_crop_bbox(data_bbox);
 
   // Generate the composite.
-  vw_out() << "Generating " << opt.mode.string() << " overlay..." << std::endl;
+  vw_out() << "Generating overlay..." << std::endl;
   vw_out() << "Writing: " << opt.output_file_name << std::endl;
 
   quadtree.generate(*progress);
