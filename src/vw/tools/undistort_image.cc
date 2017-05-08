@@ -19,7 +19,7 @@
 /// It writes the undistorted image and corresponding undistorted
 /// camera models.
 /// By default, it write images as float or double, unless multi-channel.
-/// TODO: What is the effect of interpolation?
+/// TODO: What is the effect of interpolation in affine epipolar alignment?
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
