@@ -353,7 +353,7 @@ resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const
 } // End resize_epipolar_cameras_to_fit
 
 // Get aligned, epipolar rectified pinhole images for stereo processing.
-template <class ImageInT, class ImageOutT>
+  template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
 void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file,
                                              std::string const& right_camera_file,
                                              boost::shared_ptr<camera::CameraModel> const left_camera,
@@ -364,7 +364,7 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
                                              Vector2i  const& right_image_out_size,
                                              ImageOutT      & left_image_out,
                                              ImageOutT      & right_image_out,
-                                             ValueEdgeExtension<typename ImageOutT::pixel_type> edge_ext) {
+                                             EdgeT const& edge_func, InterpT const& interp_func){
 
   // Cast input camera models to Pinhole
   PinholeModel* left_epipolar_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_camera )));
@@ -384,12 +384,10 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
   // Transform the images
   left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,
                                      left_image_out_size,
-                                     edge_ext, BilinearInterpolation()
-                                     );
+                                     edge_func, interp_func);
   right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_pin,
                                      right_image_out_size,
-                                     edge_ext, BilinearInterpolation()
-                                     );
+                                     edge_func, interp_func);
 }
 
 

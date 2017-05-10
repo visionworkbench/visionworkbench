@@ -282,7 +282,8 @@ void align_images( Options & opt ) {
                                             ref_image, input_image,
                                             epi_size1, epi_size2,
                                             left_aligned2, right_aligned2,
-                                            ValueEdgeExtension< PixelRGB<uint8> >(Zero));
+                                            ValueEdgeExtension< PixelRGB<uint8> >(Zero),
+                                            BilinearInterpolation());
 
     std::string output_path = opt.output_prefix + "_right_image.tif";
     write_image(output_path, crop(edge_extend(right_aligned2,ZeroEdgeExtension()),bounding_box(left_aligned2)),
