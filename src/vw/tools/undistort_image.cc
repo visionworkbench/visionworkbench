@@ -56,7 +56,7 @@ using vw::camera::LensDistortion;
 // with many channels and channel types.
 std::string input_file_name, output_file_name, camera_file_name;
 bool preserve_pixel_type = false;
-double output_nodata_value = 0;
+double output_nodata_value = -std::numeric_limits<float>::max();
 bool output_nodata_value_was_set = false;
 std::string interpolation_method;
 
@@ -389,7 +389,7 @@ int main( int argc, char *argv[] ) {
                       "Explicitly specify the camera file")
     ("output-file,o", po::value<std::string>(&output_file_name), 
      "Specify the output file")
-    ("output-nodata-value", po::value(&output_nodata_value)->default_value(0),
+    ("output-nodata-value", po::value(&output_nodata_value)->default_value(-std::numeric_limits<float>::max()),
      "Set the output nodata value. Only applicable if the output is a single-channel image with pixels that are float or double.")
     ("preserve-pixel-type", po::bool_switch(&preserve_pixel_type)->default_value(false),
      "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.")
