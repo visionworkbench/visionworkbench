@@ -21,7 +21,6 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/GeoReferenceUtils.h> // If this file gets big enough, separate the tests.
 
 using namespace vw;
 using namespace vw::cartography;
@@ -408,51 +407,6 @@ TEST(GeoReference, BoundingBox) {
   EXPECT_VECTOR_NEAR(lonlat_bbox.max(), lonlat_bbox2.max(), .01);
 }
 
-TEST(GeoReference, CropAndResample) {
-  Matrix3x3 affine;
-  affine(0,0) = 0.01; // 100 pix/degree
-  affine(1,1) = -0.01; // 100 pix/degree
-  affine(2,2) = 1;
-  affine(0,2) = 30;   // 30 deg east
-  affine(1,2) = -35;  // 35 deg south
-  GeoReference input_pa( Datum("WGS84"), affine, GeoReference::PixelAsArea );
-  GeoReference crop_pa = crop( input_pa, 200, 400 );
-  GeoReference resample_pa = resample( input_pa, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pa.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
-                      crop_pa.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
-                      resample_pa.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pa.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
-
-  GeoReference input_pp( Datum("WGS84"), affine, GeoReference::PixelAsPoint );
-  GeoReference crop_pp = crop( input_pp, 200, 400 );
-  GeoReference resample_pp = resample( input_pp, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
-
-  // Test with a projection that doesn't use degrees.
-  input_pp.set_equirectangular( 40, 40, 50, 0, 0 );
-  crop_pp =  crop( input_pp, 200, 400 );
-  resample_pp = resample( input_pp, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
-}
-
 TEST(GeoReference, NED_MATRIX) {
 
   // Test the lonlat_to_ned_matrix() function. Create a Cartesian
@@ -701,6 +655,19 @@ TEST( GeoReference, albersTestHighLon) {
   Vector2 pix = georef.lonlat_to_pixel(lonlat);
   EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
 }
+
+//TEST( GeoReference, read_strings) {
+//
+//  std::string file = "/home/smcmich1/data/icebridge_bulk/AN_2011_10_18/ortho/DMS_1281710_00355_20111018_14300236.tif";
+//  boost::shared_ptr<vw::DiskImageResource> resource(vw::DiskImageResource::open(file));
+//  std::map<std::string, std::string> entries;
+//  read_header_strings(*resource.get(), entries);
+//  std::map<std::string, std::string>::const_iterator iter;
+//  for (iter = entries.begin(); iter!=entries.end(); ++iter) {
+//    std::cout << iter->first << ", " << iter->second << std::endl;
+//  }
+//  EXPECT_TRUE(false);
+//}
 
 
 

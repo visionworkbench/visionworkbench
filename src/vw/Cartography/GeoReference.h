@@ -390,6 +390,10 @@ namespace cartography {
   bool read_header_string( ImageResource const& resource, std::string const& str_name,
                            std::string & str_val );
 
+  /// A function to read all strings with given name from geotiff header
+  bool read_header_strings( ImageResource const& resource,
+                            std::map<std::string, std::string> & value_pairs);
+
   /// A function to write a a string with given name and value to geotiff header
   void write_header_string( ImageResource& resource, std::string const& str_name,
                             std::string const& str_val );

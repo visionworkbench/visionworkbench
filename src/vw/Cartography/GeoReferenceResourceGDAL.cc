@@ -170,6 +170,27 @@ namespace cartography {
     return false;
   }
 
+  bool read_gdal_strings( DiskImageResourceGDAL const& resource, 
+                          std::map<std::string, std::string>& value_pairs) {
+
+    boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
+    if (!dataset)
+      vw_throw( LogicErr() << "read_gdal_string: Could not read string. "
+                << "No file has been opened." );
+
+    char **metadata = dataset->GetMetadata();
+    if( CSLCount(metadata) > 0 ) {
+      for( int i = 0; metadata[i] != NULL; i++ ) {
+        std::vector<std::string> split_vec;
+        boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+        if (split_vec.size() >= 2){
+          value_pairs[split_vec[0]] = split_vec[1];
+        }
+      }
+    }
+    return false;
+  }
+
   // Write an arbitrary name = value pair in the geoheader.
   void write_gdal_string( DiskImageResourceGDAL& resource,
                           std::string const& str_name,

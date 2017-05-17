@@ -76,9 +76,21 @@ namespace cartography {
                            std::string & str_val ) {
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-    DiskImageResourceGDAL const* gdal =
-      dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-    if ( gdal ) return read_gdal_string( *gdal, str_name, str_val );
+    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
+    if ( gdal ) 
+      return read_gdal_string( *gdal, str_name, str_val );
+#endif
+    // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
+    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+  }
+
+  bool read_header_strings( ImageResource const& resource, 
+                            std::map<std::string, std::string> & value_pairs ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
+    if ( gdal ) 
+      return read_gdal_strings( *gdal, value_pairs );
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");

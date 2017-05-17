@@ -138,6 +138,49 @@ TEST( GeoReferenceUtils, haversine_distance) {
 }
 
 
+TEST(GeoReference, CropAndResample) {
+  Matrix3x3 affine;
+  affine(0,0) = 0.01; // 100 pix/degree
+  affine(1,1) = -0.01; // 100 pix/degree
+  affine(2,2) = 1;
+  affine(0,2) = 30;   // 30 deg east
+  affine(1,2) = -35;  // 35 deg south
+  GeoReference input_pa( Datum("WGS84"), affine, GeoReference::PixelAsArea );
+  GeoReference crop_pa = crop( input_pa, 200, 400 );
+  GeoReference resample_pa = resample( input_pa, 0.5, 2 );
+  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(200, 400)),
+                      crop_pa.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
+                      crop_pa.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
+                      resample_pa.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(100,100)),
+                      resample_pa.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
 
+  GeoReference input_pp( Datum("WGS84"), affine, GeoReference::PixelAsPoint );
+  GeoReference crop_pp = crop( input_pp, 200, 400 );
+  GeoReference resample_pp = resample( input_pp, 0.5, 2 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
+                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
+                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+
+  // Test with a projection that doesn't use degrees.
+  input_pp.set_equirectangular( 40, 40, 50, 0, 0 );
+  crop_pp =  crop( input_pp, 200, 400 );
+  resample_pp = resample( input_pp, 0.5, 2 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
+                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
+                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+}
 
 
