@@ -44,7 +44,7 @@ protected:
 
   boost::shared_ptr<CameraModel> apollo_camera;
   GeoReference moon_georef;
-  ImageView<float> DEM;
+  ImageView< PixelMask<float> > DEM;
 };
 
 TEST_F( CameraBBoxTest, GeospatialIntersectDatum ) {
@@ -84,7 +84,7 @@ TEST_F( CameraBBoxTest, CameraBBoxDEM ) {
   geotrans(1,2) = 10;
   moon_georef.set_transform(geotrans);
 
-  BBox2 image_bbox = camera_bbox( DEM, moon_georef, apollo_camera, 4096, 4096 );
+  BBox2 image_bbox = camera_bbox( DEM, moon_georef, moon_georef, apollo_camera, 4096, 4096 );
   EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(87,0), 2 );
   EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(94,6), 2 );
 }

@@ -52,6 +52,77 @@ cartography::geospatial_intersect(cartography::GeoReference const& georef,
   return projected_point;
 }
 
+namespace vw { namespace cartography { namespace detail {
+
+  /// A class to help identify the extent of an image when
+  /// projected onto a datum.
+  class CameraDatumBBoxHelper {
+    GeoReference m_georef;
+    boost::shared_ptr<camera::CameraModel> m_camera;
+    Vector2 m_last_intersect;
+
+  public:
+    bool   last_valid, center_on_zero;
+    BBox2  box;
+    double scale;
+
+    CameraDatumBBoxHelper( GeoReference const& georef,
+			   boost::shared_ptr<camera::CameraModel> camera,
+			   bool center=false):
+      m_georef(georef), m_camera(camera), last_valid(false),
+      center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
+
+    void operator()( Vector2 const& pixel ) {
+      bool has_intersection;
+      Vector2 point =
+	geospatial_intersect(m_georef,
+			     m_camera->camera_center(pixel),
+			     m_camera->pixel_to_vector(pixel),
+			     has_intersection);
+      if ( !has_intersection ) {
+	last_valid = false;
+	return;
+      }
+      
+      if (!m_georef.is_projected()){
+	// If we don't use a projected coordinate system, then the
+	// coordinates of this point are simply lon and lat.
+	if ( center_on_zero && point[0] > 180 )
+	  point[0] -= 360.0;
+      }
+      
+      if ( last_valid ) {
+	double current_scale =
+	  norm_2( point - m_last_intersect );
+	if ( current_scale < scale )
+	  scale = current_scale;
+      }
+      m_last_intersect = point;
+      box.grow( point );
+      last_valid = true;
+    }
+    
+  }; // End class CameraDatumBBoxHelper
+
+  // TODO: Why is this not done by default?
+  void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point){
+    if (!georef.is_projected()){
+      // If we don't use a projected coordinate system, then the
+      // coordinates of this point are simply lon and lat.
+      // - Normalize the longitude coordinate.
+      if ( center_on_zero && point[0] > 180 )
+        point[0] -= 360.0;
+      else if ( center_on_zero && point[0] < -180 )
+        point[0] += 360.0;
+      else if ( !center_on_zero && point[0] < 0 )
+        point[0] += 360.0;
+      else if ( !center_on_zero && point[0] > 360 )
+        point[0] -= 360.0;
+    }
+  }
+  
+}}}
+  
 // Compute the bounding box in points (georeference space) that is
 // defined by georef. Scale is MPP as georeference space is in meters.
 BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
@@ -103,32 +174,3 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
   return functor.box;
 }
 
-void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixel ) {
-  bool has_intersection;
-  Vector2 point =
-    geospatial_intersect(m_georef,
-                         m_camera->camera_center(pixel),
-                         m_camera->pixel_to_vector(pixel),
-                         has_intersection);
-  if ( !has_intersection ) {
-    last_valid = false;
-    return;
-  }
-
-  if (!m_georef.is_projected()){
-    // If we don't use a projected coordinate system, then the
-    // coordinates of this point are simply lon and lat.
-    if ( center_on_zero && point[0] > 180 )
-      point[0] -= 360.0;
-  }
-
-  if ( last_valid ) {
-    double current_scale =
-      norm_2( point - m_last_intersect );
-    if ( current_scale < scale )
-      scale = current_scale;
-  }
-  m_last_intersect = point;
-  box.grow( point );
-  last_valid = true;
-}
