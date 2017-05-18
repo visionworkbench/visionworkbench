@@ -138,51 +138,57 @@ void PinholeModel::read(std::string const& filename) {
     //  we just skip it and move on to the next line.  If the version is changed,
     //  handler logic needs to be implemented here.
     std::getline(cam_file, line);
+  }else{
+    // Check if the first line is correct
+    if (sscanf(line.c_str(),"fu = %lf", &m_fu) != 1)
+      vw_throw( IOErr() << "PinholeModel::read_file(): A Pinhole camera file must "
+                << "start either with the VERSION line or the focal length. Got instead:\n"
+                << line << "\n" );
   }
   
   // Start parsing all the parameters from the lines.
   if (!cam_file.good() || sscanf(line.c_str(),"fu = %lf", &m_fu) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x focal length\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the x focal length\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"fv = %lf", &m_fv) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y focal length\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the y focal length\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"cu = %lf", &m_cu) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x principal point\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the x principal point\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"cv = %lf", &m_cv) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y principal point\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the y principal point\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"u_direction = %lf %lf %lf", 
         &m_u_direction(0), &m_u_direction(1), &m_u_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read u direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the u direction vector\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"v_direction = %lf %lf %lf", 
         &m_v_direction(0), &m_v_direction(1), &m_v_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read v direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the v direction vector\n" );
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"w_direction = %lf %lf %lf", 
         &m_w_direction(0), &m_w_direction(1), &m_w_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read w direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the w direction vector\n" );
   }
 
   // Read extrinsic parameters
@@ -190,7 +196,7 @@ void PinholeModel::read(std::string const& filename) {
   if (!cam_file.good() || sscanf(line.c_str(),"C = %lf %lf %lf", 
         &m_camera_center(0), &m_camera_center(1), &m_camera_center(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (camera center) vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (the camera center) vector\n" );
   }
 
   std::getline(cam_file, line);
@@ -200,7 +206,7 @@ void PinholeModel::read(std::string const& filename) {
               &m_rotation(1,0), &m_rotation(1,1), &m_rotation(1,2),
               &m_rotation(2,0), &m_rotation(2,1), &m_rotation(2,2)) != 9 ) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read rotation matrix\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the rotation matrix\n" );
   }
 
   // The pitch line does not exist in older files, so don't fail if it is missing.
@@ -210,7 +216,7 @@ void PinholeModel::read(std::string const& filename) {
   if (line.find("pitch") != std::string::npos) {
     if (!cam_file.good() || sscanf(line.c_str(),"pitch = %lf", &m_pixel_pitch) != 1) {
       cam_file.close();
-      vw_throw( IOErr() << "PinholeModel::read_file(): Could not read pixel pitch\n" );
+      vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the pixel pitch\n" );
     }
     lens_start = cam_file.tellg();
     std::getline(cam_file, line); // After reading the pitch, read the next line.
