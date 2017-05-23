@@ -189,7 +189,7 @@ double vw::cartography::Datum::radius(double /*lon*/, double lat) const {
     return m_semi_major_axis;
   }
 
-  // Bi-axial Ellpisoid datum
+  // Bi-axial ellpisoid datum
   double a = m_semi_major_axis;
   double b = m_semi_minor_axis;
   double t = atan((a/b) * tan(lat * M_PI / 180.0));
@@ -204,7 +204,7 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
     return m_semi_major_axis;
   }
 
-  // Bi-axial Ellpisoid datum
+  // Bi-axial ellpisoid datum
   // http://mathworld.wolfram.com/GeocentricLatitude.html
   double a  = m_semi_major_axis;
   double b  = m_semi_minor_axis;
