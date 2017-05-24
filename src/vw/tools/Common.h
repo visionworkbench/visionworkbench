@@ -27,14 +27,14 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <map>
 
-#define VW_PP_ELEM_TO_ELEM_STRING(s, data, elem) elem, BOOST_PP_STRINGIZE(elem)
-#define VW_PP_ELEM_TO_STRING_ELEM(s, data, elem) BOOST_PP_STRINGIZE(elem), elem
+//#define VW_PP_ELEM_TO_ELEM_STRING(s, data, elem) elem, BOOST_PP_STRINGIZE(elem)
+//#define VW_PP_ELEM_TO_STRING_ELEM(s, data, elem) BOOST_PP_STRINGIZE(elem), elem
 
 namespace vw {
 namespace tools {
 
   VW_DEFINE_EXCEPTION(Usage, Exception);
-
+/*
 namespace detail {
 
 template <typename T>
@@ -44,7 +44,7 @@ static const typename T::mapped_type& get(const T& m, const typename T::key_type
   return i->second;
 }
 } // namespace detail
-
+*/
 /*
 template <typename T>
 class Tristate {

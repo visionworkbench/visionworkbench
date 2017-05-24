@@ -34,11 +34,16 @@ noinst_LIBRARIES =
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
-camera_progs = print_exif bayer undistort_image convert_pinhole_model
+camera_progs = undistort_image convert_pinhole_model
+
+if MAKE_APP_LEGACY
+camera_progs += print_exif bayer
+endif
 
 # Prints out an image's EXIF headers
 print_exif_SOURCES = print_exif.cc
 print_exif_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+
 
 # Applies an inverse Bayer filter to a raw camera image
 bayer_SOURCES = bayer.cc
@@ -76,7 +81,10 @@ grassfirealpha_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 if HAVE_PKG_GDAL
 cart_gdal_progs = georef hillshade
 endif
-cartography_progs = colormap $(cart_gdal_progs) slopemap grassfirealpha georefquery
+cartography_progs = colormap $(cart_gdal_progs) georefquery
+if MAKE_APP_LEGACY
+cartography_progs += slopemap grassfirealpha
+endif
 endif
 
 # Command-line tools based on the HDR module
@@ -93,7 +101,10 @@ endif
 # Command-line tools based on the InterestPoint module
 if MAKE_MODULE_INTERESTPOINT
 if HAVE_PKG_LAPACK
-interestpoint_progs = ipalign ipmatch ipfind learnpca
+interestpoint_progs = ipalign ipmatch ipfind
+if MAKE_APP_LEGACY
+interestpoint_progs += learnpca
+endif
 #
 ipfind_SOURCES = ipfind.cc
 ipfind_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
@@ -112,17 +123,22 @@ endif
 
 # Command-line tools based on the Mosaic module
 if MAKE_MODULE_MOSAIC
+if MAKE_APP_LEGACY
 mosaic_progs = blend
 # Blends multiple images into a composite
 blend_SOURCES = blend.cc
 blend_LDADD = @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
+endif
 endif
 
 # Command-line tools based on the Cartography and Mosaic modules
 if MAKE_MODULE_CARTOGRAPHY
 if MAKE_MODULE_MOSAIC
 if HAVE_PKG_GDAL
-cart_mos_progs = image2qtree image2toast
+cart_mos_progs = image2qtree
+if MAKE_APP_LEGACY
+cart_mos_progs += image2toast
+endif
 
 # Generates a quadtree of some sort from a georeferenced image
 image2qtree_SOURCES = image2qtree.cc
@@ -164,22 +180,26 @@ if MAKE_MODULE_INTERESTPOINT
 stereo_progs = correlate
 # Apply the block stereo correlator to two images, producing a disparity map
 correlate_SOURCES = correlate.cc
-correlate_LDADD = @PKG_STEREO_LIBS@ @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+correlate_LDADD = @PKG_VW_LIBS@ @PKG_STEREO_LIBS@ @PKG_INTERESTPOINT_LIBS@ @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 endif
 endif
 
 # Contour generation program
 if HAVE_PKG_CAIROMM
+if MAKE_APP_LEGACY
 contourgen_progs = contourgen
 contourgen_SOURCES = contour.cpp FitCurves.cpp contourgen.cc contour.h
 contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
 contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
 endif
+endif
 
 if MAKE_MODULE_MOSAIC
+if MAKE_APP_LEGACY
 doc_generate_progs = doc-generate
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
+endif
 endif
 
 if MAKE_MODULE_FLOOD_DETECT

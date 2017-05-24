@@ -184,6 +184,9 @@ int main( int argc, char *argv[] ) {
     if (vm.count("sgm-smooth") != 0)
       stereo_algorithm = CORRELATION_MGM;
 
+    // TODO: Hook up to options!
+    SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
+
     ImageViewRef<PixelMask<Vector2f> > disparity_map;
     int corr_timeout = 0;
     double seconds_per_op = 0.0;
@@ -199,6 +202,7 @@ int main( int argc, char *argv[] ) {
                                  corr_type, corr_timeout, seconds_per_op,
                                  lrthresh, filter_radius, max_pyramid_levels, 
                                  stereo_algorithm, collar_size,
+                                 sgm_subpixel_mode,
                                  blob_filter_area,
                                  write_debug_images);
 

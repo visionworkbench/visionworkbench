@@ -400,6 +400,8 @@ AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS"  = "yes"
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_FLOOD_DETECT,     [test "$MAKE_MODULE_FLOOD_DETECT" = "yes"])
 
+# Option to turn off building a bunch of apps we never use anymore
+AM_CONDITIONAL(MAKE_APP_LEGACY, [test "$MAKE_APP_LEGACY" = "yes"])
 
 ##################################################
 # final processing

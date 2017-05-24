@@ -15,9 +15,9 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
+/*
 #include <vw/tools/Common.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <boost/smart_ptr/scoped_ptr.hpp>
-
+*/
