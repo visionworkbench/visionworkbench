@@ -25,7 +25,9 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        bool use_mgm,
                                        int min_disp_x, int min_disp_y,
                                        int max_disp_x, int max_disp_y,
-                                       int kernel_size, uint16 p1, uint16 p2,
+                                       int kernel_size, 
+                                       SgmSubpixelMode subpixel,
+                                       uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
   m_use_mgm     = use_mgm;
@@ -35,6 +37,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_max_disp_y  = max_disp_y;
   m_kernel_size = kernel_size;
   m_ternary_census_threshold = ternary_census_threshold;
+  m_subpixel_type = subpixel;
   
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -857,6 +860,74 @@ private: // Functions
   std::vector<uint64> m_data;
 };
 
+// A number of proposed subpixel algorithms
+double linearFit(double x) {
+  return x/2.0;
+}
+double parabolaFit(double x) { // Use our 2d implementation instead of this one
+  return x/(x+1.0);
+}
+double poly4Fit(double x) {
+  return (x*x*x*x + x)/4.0;
+}
+double sinFit(double x) {
+  const double PI = 3.14159265359; // TODO: MOVE THIS
+  return 0.5 * (sin(x*PI/2.0 - PI/2.0) + 1.0);
+}
+double cosFit(double x) {
+  const double PI = 3.14159265359; // TODO: MOVE THIS
+  return (1 - cos(x*PI/3.0));
+}
+double alg16(double x) {
+  return std::max(cosFit(x), poly4Fit(x));
+}
+double lcBlendFit(double x) {
+  const double PI = 3.14159265359; // TODO: MOVE THIS
+  
+  double factor = 1.195 - cos(x*(PI/2.3));
+  return cosFit(x)*factor + linearFit(x)*(1.0-factor);
+}
+
+/// Add this offset to the integer disparity to get the final result.
+double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next) {
+  double ld = prev - center;
+  double rd = next - center;
+  if ((rd == 0) && (ld == 0)) // Handle case where all values are equal
+    return 0;
+  // Set up computations
+  double x = rd/ld;
+  double mult = -1.0;
+  if (ld < rd) {
+    x    = ld/rd;
+    mult = 1.0;
+  }
+
+  // Use the selected subpixel function
+  double value = 0;    
+  switch(m_subpixel_type) {
+    case SUBPIXEL_POLY4:    value = poly4Fit  (x); break;
+    case SUBPIXEL_COSINE:   value = cosFit    (x); break;
+    case SUBPIXEL_LC_BLEND: value = lcBlendFit(x); break;
+    default:                value = linearFit (x); break;
+  };
+  // Complete computation
+  return (value - 0.5)*mult;
+}
+
+double SemiGlobalMatcher::compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next) {
+  // Just return the ratio that would be used in compute_subpixel_offset
+  // - If this value is written to disk, subpixel functions can be experimented with Matlab or something.
+  double ld = prev - center;
+  double rd = next - center;
+  if ((rd == 0) && (ld == 0))
+    return 0;
+  if (ld < rd)
+    return ld/rd;
+  else
+    return rd/ld;
+}
+
+// Test out alternate subpixel methods
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
@@ -864,12 +935,14 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
   typedef  PixelMask<Vector2f> p_type;
   ImageView<p_type> disparity(m_num_output_cols, m_num_output_rows);
-  ParabolaFit2d fitter;
+
+  ParabolaFit2d fitter; // Only used with parabola2d
 
   vw_out(DebugMessage, "stereo") << "Creating subpixel disparity image...\n";
   
-  //// DEBUG
+  // DEBUG
   //HistClass hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
+  //std::ofstream rawFile("raw.csv");
   
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
@@ -889,10 +962,17 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         invalidate(disparity(i,j));
         continue; // No need for subpixel here
       }      
-      
-      // Get the best disparity from the integer image.
+            
       int dx = integer_pixel[0];
       int dy = integer_pixel[1];
+
+      // Not stop here if not doing subpixel processing      
+      if (m_subpixel_type == SUBPIXEL_NONE) {
+        disparity(i,j) = p_type(dx, dy);
+        continue;
+      }
+      
+      // Linear index of the min offset that will be checked
       int min_index = (dy-bounds[1])*width + (dx-bounds[0]);
 
       // Fetch the 8 adjacent accumulation vector values
@@ -909,11 +989,26 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
       // Apply subpixel correction and apply
       AccumCostType const* accum_vec = get_accum_vector(i, j);
-      bool valid = 
-        fitter.find_peak( accum_vec[min_index+x_left+y_up  ],  accum_vec[min_index+y_up  ], accum_vec[min_index+x_right+y_up  ],
-                          accum_vec[min_index+x_left       ],  accum_vec[min_index       ], accum_vec[min_index+x_right       ],
-                          accum_vec[min_index+x_left+y_down],  accum_vec[min_index+y_down], accum_vec[min_index+x_right+y_down],
-                          delta_x, delta_y);
+
+
+      bool valid = true;
+      if (m_subpixel_type == SUBPIXEL_PARABOLA) {
+        valid = fitter.find_peak( accum_vec[min_index+x_left+y_up  ],  accum_vec[min_index+y_up  ], accum_vec[min_index+x_right+y_up  ],
+                                  accum_vec[min_index+x_left       ],  accum_vec[min_index       ], accum_vec[min_index+x_right       ],
+                                  accum_vec[min_index+x_left+y_down],  accum_vec[min_index+y_down], accum_vec[min_index+x_right+y_down],
+                                  delta_x, delta_y);
+      }
+      else {
+        // This branch handles all 1D interpolation methods.
+        // - These methods are always considered valid.
+        delta_x = compute_subpixel_offset(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
+        delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ]);
+      }
+
+      // To assist development, write the internal subpixel input ratio to a file.
+      //double temp = compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
+      //rawFile << temp << std::endl;
+
       if (valid) {
         disparity(i,j) = p_type(dx+delta_x, dy+delta_y);
         //hist_dx.add(delta_x);
@@ -923,29 +1018,23 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         disparity(i,j) = p_type(dx, dy);
         percent_bad += 1.0;
       }
-
-      /*
-      if ((i >= 15) && (i <= 15) && (j==40)) { // DEBUG!
-        printf("ACC costs (%d,%d): %d, %d\n", i, j, dx, dy);
-
-        AccumCostType* vec = get_accum_vector(i, j);
-        const int num_disp = get_num_disparities(i, j);
-        for (int k=0; k<num_disp; ++k)
-          std::cout << vec[k] << " " ;
-      }
-      */
-    }
-  }
+    } // End col loop
+  } // End row loop
+  
   percent_bad /= (double)(m_num_output_rows*m_num_output_cols);
-  //std::cout << "Percent bad = " << percent_bad << std::endl;
   vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << std::endl;
+
+  // Write these out for debugging/development
   //write_image( "subpixel_disp.tif", disparity );
   //hist_dx.write("delta_x.csv");
   //hist_dy.write("delta_y.csv");
+  //rawFile.close();
   
   return disparity;
   
 }
+
+
 
 
 // TODO: Replace with ASP implementation?

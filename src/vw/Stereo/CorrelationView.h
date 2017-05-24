@@ -139,6 +139,7 @@ namespace stereo {
                             int32 max_pyramid_levels,
                             CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                             int   collar_size        = 0,
+                            SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                             int   blob_filter_area   = 0,
                             bool  write_debug_images = false) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
@@ -152,6 +153,7 @@ namespace stereo {
       m_blob_filter_area(blob_filter_area),
       m_algorithm(algorithm),
       m_collar_size(collar_size),
+      m_sgm_subpixel_mode(sgm_subpixel_mode),
       m_write_debug_images(write_debug_images){
       
       if (algorithm != CORRELATION_WINDOW)
@@ -222,7 +224,7 @@ namespace stereo {
     
     CorrelationAlgorithm m_algorithm; ///< Store the algorithm choice
     int m_collar_size;     ///< Expand the size of the image for each tile before correlating
-    int m_sgm_filter_size; ///< Filter SGM subpixel results with a filter of this size
+    SemiGlobalMatcher::SgmSubpixelMode m_sgm_subpixel_mode; ///< Subpixel mode used by SGM algorithms
 
     bool m_write_debug_images; ///< If true, write out a bunch of intermediate images.
 
@@ -291,6 +293,7 @@ namespace stereo {
                      int32 max_pyramid_levels,
                      CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
                      int   collar_size        = 0,
+                     SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                      int   blob_filter_area   = 0,
                      bool  write_debug_images =false) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;
@@ -301,7 +304,7 @@ namespace stereo {
                         kernel_size, cost_type,
                         corr_timeout, seconds_per_op,
                         consistency_threshold, filter_half_kernel, max_pyramid_levels,
-                        algorithm, collar_size, blob_filter_area,
+                        algorithm, collar_size, sgm_subpixel_mode, blob_filter_area,
                         write_debug_images);
   }
 

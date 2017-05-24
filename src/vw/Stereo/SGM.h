@@ -66,6 +66,15 @@ public: // Definitions
   
   typedef ImageView<PixelMask<Vector2i> > DisparityImage; // The usual VW disparity type
 
+  /// Available subpixel options
+  enum SgmSubpixelMode {SUBPIXEL_NONE     = 0, // Skip subpixel processing
+                        SUBPIXEL_PARABOLA = 1, // The only combined 2D option
+                        SUBPIXEL_LINEAR   = 2,
+                        SUBPIXEL_POLY4    = 3,
+                        SUBPIXEL_COSINE   = 4,
+                        SUBPIXEL_LC_BLEND = 5  // Probably the best option
+                        };
+
 public: // Functions
 
   SemiGlobalMatcher() {} ///< Default constructor
@@ -77,10 +86,11 @@ public: // Functions
                     int min_disp_x, int min_disp_y,
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
+                    SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
     set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
-                   kernel_size, p1, p2);
+                   kernel_size, subpixel, p1, p2, ternary_census_threshold);
   }
 
   /// Set the parameters to be used for future SGM calls
@@ -92,6 +102,7 @@ public: // Functions
                       int min_disp_x, int min_disp_y,
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
+                      SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
@@ -106,7 +117,7 @@ public: // Functions
                              ImageView<uint8> const* left_image_mask=0,
                              ImageView<uint8> const* right_image_mask=0,
                              DisparityImage const* prev_disparity=0,
-                             int search_buffer = 4);
+                             int search_buffer = 4); // TODO: Experiment with this as an option!
 
   /// Create a subpixel leves disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
@@ -120,6 +131,7 @@ private: // Variables
     int  m_ternary_census_threshold; ///< Used only with the ternary census option
     bool m_use_mgm;
     CostFunctionType m_cost_type;
+    SgmSubpixelMode  m_subpixel_type;
 
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
@@ -310,6 +322,12 @@ private: // Functions
                                      int sse_index, int &output_index, AccumCostType* output);
 
 
+  /// Given disparity cost and adjacent costs, compute subpixel offset.
+  double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next);
+  
+  /// Function to help with developing subpixel functions
+  double compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next);
+
 }; // end class SemiGlobalMatcher
 
 /// Wrapper function for SGM that handles ROIs.
@@ -474,6 +492,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
                    bool                   const  use_mgm,
+                   SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
@@ -515,7 +534,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
     //write_image("final_right.tif", right);
     
     matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0]));
+                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode));
     return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity
