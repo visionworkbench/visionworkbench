@@ -27,6 +27,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        int max_disp_x, int max_disp_y,
                                        int kernel_size, 
                                        SgmSubpixelMode subpixel,
+                                       Vector2i search_buffer,
                                        uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
@@ -38,6 +39,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_kernel_size = kernel_size;
   m_ternary_census_threshold = ternary_census_threshold;
   m_subpixel_type = subpixel;
+  m_search_buffer = search_buffer;
   
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -117,8 +119,7 @@ void SemiGlobalMatcher::populate_constant_disp_bound_image() {
 
 bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
                                                   ImageView<uint8> const* right_image_mask,
-                                                  DisparityImage const* prev_disparity,
-                                                  int search_buffer) {
+                                                  DisparityImage const* prev_disparity) {
 
   //Timer timer_total("Populate disparity bounds");
 
@@ -227,10 +228,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       if (good_disparity) {
       
         // We are more confident in the prior disparity, search nearby.
-        bounds[0]  = dx_scaled - search_buffer; // Min x
-        bounds[2]  = dx_scaled + search_buffer; // Max X
-        bounds[1]  = dy_scaled - search_buffer; // Min y
-        bounds[3]  = dy_scaled + search_buffer; // Max y
+        bounds[0]  = dx_scaled - m_search_buffer[0]; // Min x
+        bounds[2]  = dx_scaled + m_search_buffer[0]; // Max X
+        bounds[1]  = dy_scaled - m_search_buffer[1]; // Min y
+        bounds[3]  = dy_scaled + m_search_buffer[1]; // Max y
       
         // Constrain to global limits
         if (bounds[0] < m_min_disp_x) bounds[0] = m_min_disp_x;
@@ -1705,8 +1706,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
                                               ImageView<uint8> const& right_image,
                                               ImageView<uint8> const* left_image_mask,
                                               ImageView<uint8> const* right_image_mask,
-                                              DisparityImage const* prev_disparity,
-                                              int search_buffer) {
+                                              DisparityImage const* prev_disparity) {
                                               
   // Compute safe bounds to search through given the disparity range and kernel size.
   
@@ -1745,7 +1745,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   //  but set them from the prior disparity image if the user passed it in.
   populate_constant_disp_bound_image();
   
-  if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity, search_buffer)) {
+  if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity)) {
     vw_out(WarningMessage, "stereo") << "No valid pixels found in SGM input!.\n";
     // If the inputs are invalid, return a default disparity image.
     DisparityImage disparity( m_num_output_cols, m_num_output_rows );

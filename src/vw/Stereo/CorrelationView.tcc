@@ -357,7 +357,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, sgm_matcher_ptr,
+                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, sgm_matcher_ptr,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
                            
@@ -386,7 +386,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(edge_extend(left_pyramid [level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, sgm_right_matcher_ptr,
+                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, sgm_right_matcher_ptr,
                            &(left_mask_pyramid[level]), 
                            &(right_mask_pyramid[level]),
                            prev_disp_ptr); 

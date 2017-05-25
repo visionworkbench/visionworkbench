@@ -87,37 +87,38 @@ public: // Functions
                     int max_disp_x, int max_disp_y,
                     int kernel_size=5,
                     SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
+                    Vector2i search_buffer=Vector2i(2,2),
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
     set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
-                   kernel_size, subpixel, p1, p2, ternary_census_threshold);
+                   kernel_size, subpixel, search_buffer, p1, p2, ternary_census_threshold);
   }
 
   /// Set the parameters to be used for future SGM calls
   /// - Parameters that are not provided will be set to the best known default.
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
   ///   If not provided, they well be set to defaults according to the kernel size and cost type.
+  /// - The search buffer value is very important, it defines the radius around each
+  ///   estimated disparity value that we will search.  A value of 2 means a 5x5 search 
+  ///   region.  A larger region directly affects the speed and memory usage of SGM.
   void set_parameters(CostFunctionType cost_type,
                       bool use_mgm,
                       int min_disp_x, int min_disp_y,
                       int max_disp_x, int max_disp_y,
                       int kernel_size=5,
                       SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
+                      Vector2i search_buffer=Vector2i(2,2),
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
   /// Compute SGM stereo on the images.
   /// The masks and disparity inputs are used to improve the searched disparity range.
-  /// - The search buffer value is very important, it defines the radius around each
-  ///   estimated disparity value that we will search.  A value of 2 means a 5x5 search 
-  ///   region.  A larger region directly affects the speed and memory usage of SGM.
   DisparityImage
   semi_global_matching_func( ImageView<uint8> const& left_image,
                              ImageView<uint8> const& right_image,
                              ImageView<uint8> const* left_image_mask=0,
                              ImageView<uint8> const* right_image_mask=0,
-                             DisparityImage const* prev_disparity=0,
-                             int search_buffer = 4); // TODO: Experiment with this as an option!
+                             DisparityImage const* prev_disparity=0);
 
   /// Create a subpixel leves disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
@@ -132,6 +133,7 @@ private: // Variables
     bool m_use_mgm;
     CostFunctionType m_cost_type;
     SgmSubpixelMode  m_subpixel_type;
+    Vector2i m_search_buffer;
 
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
@@ -182,8 +184,7 @@ private: // Functions
   ///   algorithm so this is an important function!
   bool populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
                                  ImageView<uint8> const* right_image_mask,
-                                 DisparityImage   const* prev_disparity,
-                                 int search_buffer);
+                                 DisparityImage   const* prev_disparity);
 
   /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
   void allocate_large_buffers();
@@ -346,6 +347,8 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    Vector2i               const& search_volume, // Max disparity to search in right image
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
                    bool                   const  use_mgm,
+                   SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
+                   Vector2i                      search_buffer, // Search buffer applied around prev_disparity locations
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr=0,  
                    ImageView<uint8>       const* right_mask_ptr=0,
@@ -493,6 +496,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
                    bool                   const  use_mgm,
                    SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
+                   Vector2i                      search_buffer, // Search buffer applied around prev_disparity locations
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
@@ -534,7 +538,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
     //write_image("final_right.tif", right);
     
     matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode));
+                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer));
     return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity
