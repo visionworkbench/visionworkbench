@@ -262,17 +262,15 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
   while ( gcp_iter != gcp_end ) {
 
-    if ( !fs::exists( *gcp_iter ) ) {
-      gcp_iter++;
-      continue;
-    }
+    vw_out() << "Loading GCP file: " << *gcp_iter << std::endl;
 
-    vw_out() << "Loading: " << *gcp_iter << std::endl;
+    if ( !fs::exists( *gcp_iter ) ) {
+      vw_throw( ArgumentErr() << "GCP file " << *gcp_iter << " does not exist!" );
+    }
 
     std::ifstream ifile( (*gcp_iter).c_str() );
     std::string line;
     while ( getline(ifile, line, '\n') ){
-
       // Skip empty lines or lines starting with comments
       if (line.size() == 0) continue;
       if (line.size() > 0 && line[0] == '#') continue;
@@ -292,31 +290,31 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       if (!(is >> point_id >> world_location[0] >> world_location[1]
 	    >> world_location[2] >> world_sigma[0]
 	    >> world_sigma[1] >> world_sigma[2])){
-	vw_out(WarningMessage) << "Could not parse a ground control point "
+        vw_out(WarningMessage) << "Could not parse a ground control point "
 			       << "from line: " << line << std::endl;
-	continue;
+        continue;
       }
 
       // Other elements in the line define the position in images
       while(1){
-	std::string temp_name;
-	Vector4 temp_loc;
-	if (is >> temp_name >> temp_loc[0] >> temp_loc[1]
-	    >> temp_loc[2] >> temp_loc[3]){
-	  if (temp_loc[2] <= 0 || temp_loc[3] <= 0)
-	    vw_throw( ArgumentErr()
-		      << "Standard deviations must be positive "
-		      << "when loading ground control points." );
-	  measure_locations.push_back( temp_loc );
-	  measure_cameras.push_back( temp_name );
-	}else
-	  break;
+        std::string temp_name;
+        Vector4 temp_loc;
+        if (is >> temp_name >> temp_loc[0] >> temp_loc[1]
+            >> temp_loc[2] >> temp_loc[3]){
+          if (temp_loc[2] <= 0 || temp_loc[3] <= 0) {
+            vw_throw( ArgumentErr() << "Standard deviations must be positive "
+	                                  << "when loading ground control points." );
+          }
+          measure_locations.push_back( temp_loc );
+          measure_cameras.push_back( temp_name );
+        }else{
+	        break;
+        }
       }
 
       if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
-	vw_throw( ArgumentErr()
-		  << "Standard deviations must be positive "
-		  << "when loading ground control points." );
+        vw_throw( ArgumentErr() << "Standard deviations must be positive "
+		                            << "when loading ground control points." );
 
       // Make lat,lon into lon,lat
       std::swap(world_location[0], world_location[1]);
@@ -324,8 +322,7 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       // Building Control Point
       Vector3 xyz = datum.geodetic_to_cartesian(world_location);
 
-      vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
-				       << xyz << std::endl;
+      vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: " << xyz << std::endl;
       ControlPoint cpoint(ControlPoint::GroundControlPoint);
       cpoint.set_position(xyz[0],xyz[1],xyz[2]);
       cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
@@ -334,26 +331,26 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
       std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
       while ( m_iter_loc != measure_locations.end() ) {
-	LookupType::iterator it = image_lookup.find(*m_iter_name);
-	if ( it != image_lookup.end() ) {
-	  vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
-				    << " #" << it->second << std::endl;
-	  ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
-			     (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
-	  cpoint.add_measure( cm );
-	} else {
-	  vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
-				      << *m_iter_name << std::endl;
-	}
-	m_iter_loc++;
-	m_iter_name++;
+        LookupType::iterator it = image_lookup.find(*m_iter_name);
+        if ( it != image_lookup.end() ) {
+          vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
+			            << " #" << it->second << std::endl;
+          ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
+		             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
+          cpoint.add_measure( cm );
+        } else {
+          vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+			              << *m_iter_name << std::endl;
+        }
+        m_iter_loc++;
+        m_iter_name++;
       }
 
       // Appended GCP
       cnet.add_control_point(cpoint);
-    }
+    } // End line loop
     ifile.close();
 
     gcp_iter++;
-  }
+  } // End file loop
 }
