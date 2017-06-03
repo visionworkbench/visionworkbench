@@ -55,6 +55,7 @@ int main( int argc, char *argv[] ) {
   int32 v_corr_min, v_corr_max;
   int32 xkernel, ykernel;
   int   lrthresh;
+  int   min_lr_level;
   int   nThreads;
   int   tile_size;
   int   collar_size;
@@ -64,7 +65,7 @@ int main( int argc, char *argv[] ) {
   bool  found_alignment = false;
   int   blob_filter_area;
   Matrix3x3 alignment;
-  float mask_val;
+  float mask_value;
   int   filter_radius;
 
   po::options_description desc("Options");
@@ -80,6 +81,7 @@ int main( int argc, char *argv[] ) {
     ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
     ("ykernel",    po::value(&ykernel)->default_value(15),     "Vertical correlation kernel size")
     ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
+    ("min-lr-level",    po::value(&min_lr_level)->default_value(1),     "Min level to check L/R correspondence at (SGM only).")
     ("filter-radius",   po::value(&filter_radius)->default_value(5), "Disp filtering radius")
     ("correlator-type", po::value(&correlator_type)->default_value(0), 
                         "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr; 3 - Census; 4 - Ternary Census")
@@ -89,10 +91,9 @@ int main( int argc, char *argv[] ) {
     ("tile-size",          po::value(&tile_size)->default_value(0),   "Manually specify the tile size")
     ("collar-size",        po::value(&collar_size)->default_value(0), "Specify a collar size size")
     ("sgm-filter-size",    po::value(&sgm_filter_size)->default_value(0), "Filter SGM subpixel results with this size")
-    ("mask-value",         po::value(&mask_val)->default_value(-32768), "Specify a mask value")
+    ("mask-value",         po::value(&mask_value)->default_value(-32768), "Specify a mask value")
     ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
       "Limit the maximum number of pyramid levels")
-    ("mask-zero",  "Mask out zero valued pixels")
     ("sgm",        "Use the SGM stereo algorithm.")
     ("sgm-smooth", "Use the smoothed version of the SGM stereo algorithm.")
     ("debug",      "Write out debugging images")
@@ -160,9 +161,12 @@ int main( int argc, char *argv[] ) {
   // Set up masks
   ImageView<uint8> left_mask  = constant_view( uint8(255), left );
   ImageView<uint8> right_mask = constant_view( uint8(255), right);
-  if (vm.count("mask-val")) {
-    left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  mask_val)), 0);
-    right_mask = apply_mask(copy_mask(right_mask, create_mask(right, mask_val)), 0);
+  if (vm.count("mask-value")) {
+    left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  mask_value)), 0);
+    right_mask = apply_mask(copy_mask(right_mask, create_mask(right, mask_value)), 0);
+    
+    write_image("correlate_left_mask.tif", left_mask);
+    write_image("correlate_right_mask.tif", right_mask);
   }
 
   bool write_debug_images = (vm.count("debug"));
@@ -200,7 +204,8 @@ int main( int argc, char *argv[] ) {
                                stereo::PREFILTER_LOG, log,
                                search_range, kernel_size,
                                corr_type, corr_timeout, seconds_per_op,
-                               lrthresh, filter_radius, max_pyramid_levels, 
+                               lrthresh, min_lr_level,
+                               filter_radius, max_pyramid_levels, 
                                stereo_algorithm, collar_size,
                                sgm_subpixel_mode,
                                sgm_search_buffer,

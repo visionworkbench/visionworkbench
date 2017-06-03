@@ -38,7 +38,7 @@ prerasterize(BBox2i const& bbox) const {
     if ( m_consistency_threshold >= 0 ) {
       // Getting the crops correctly here is not important as we
       // will re-crop later. The important bit is aligning up the origins.
-      ImageView<pixel_type> rl_result
+      ImageView<pixel_type> disparity_rl
         = calc_disparity(m_cost_type,
                          crop(m_prefilter.filter(m_right_image),right_region),
                          crop(m_prefilter.filter(m_left_image),
@@ -48,7 +48,7 @@ prerasterize(BBox2i const& bbox) const {
                          m_kernel_size) -
         pixel_type(m_search_region.size()+Vector2i(1,1));
 
-      stereo::cross_corr_consistency_check( result, rl_result,
+      stereo::cross_corr_consistency_check( result, disparity_rl,
                                             m_consistency_threshold, false );
     }
     VW_ASSERT( bbox.size() == bounding_box(result).size(),
@@ -90,8 +90,9 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   
   
   int32 max_upscaling = 1 << max_pyramid_levels;
+  std::cout << "max_upscaling = " << max_upscaling << std::endl;
   BBox2i left_global_region, right_global_region;
-  // Region in the left image is the input bbox expanded by the kernel,
+  // Region in the left image is the input bbox, expanded by half the kernel size
   //  to make sure that we have full base of support for the stereo correlation.
   // - Make sure that the kernel buffer size is large enough to support the kernel
   //   buffer at the lower resolution levels!
@@ -102,7 +103,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   // Region in the right image is the left region plus search range offsets
   // - What is the last upscaling term for?
   right_global_region = left_global_region + m_search_region.min();
-  right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling); 
+  right_global_region.max() += m_search_region.size();// + Vector2i(max_upscaling,max_upscaling); 
   // Total increase in right size = 2*region_offset + search_region_size + max_upscaling
   
   vw_out(VerboseDebugMessage, "stereo") << "Left pyramid base bbox:  " << left_global_region  << std::endl;
@@ -142,6 +143,8 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   vw_out(DebugMessage, "stereo") << "Right pyramid base size = " << bounding_box(right_pyramid[0]) << std::endl;
 
   // Reduce the mask images from the expanded-size region to the actual sized region.
+  // - The actual sized region is just the input bbox plus the search range, no expanded base
+  //   of support or anything.
   // - The mask is not used in the expanded base of support region of the image, only the main region.
   // - The larger mask size before is used to compute the mean color values.
   // - Zero edge extension is used here so we don't treat the edge extended pixels as valid.
@@ -150,6 +153,9 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   right_mask.max() += m_search_region.size();
   left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), bbox );
   right_mask_pyramid[0] = crop(edge_extend(m_right_mask,ZeroEdgeExtension()), right_mask);
+
+  vw_out(DebugMessage, "stereo") << "Left  pyramid mask base size = " << bbox       << std::endl;
+  vw_out(DebugMessage, "stereo") << "Right pyramid mask base size = " << right_mask << std::endl;
 
   // Build a smoothing kernel to use before downsampling.
   // Szeliski's book recommended this simple kernel. This
@@ -172,6 +178,9 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
     vw_out(DebugMessage, "stereo") << "--- Created pyramid level " << i << std::endl;    
     vw_out(DebugMessage, "stereo") << "Left  pyramid size = " << bounding_box(left_pyramid[i]) << std::endl;
     vw_out(DebugMessage, "stereo") << "Right pyramid size = " << bounding_box(right_pyramid[i]) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Left  pyramid mask size = " << bounding_box(left_mask_pyramid[i]) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Right pyramid mask size = " << bounding_box(right_mask_pyramid[i]) << std::endl;
+    std::cout << "Level search size = " << (m_search_region.size() / (1 << i)) << std::endl;
   }
 
   // Apply the prefilter to each pyramid level
@@ -272,10 +281,8 @@ prerasterize(BBox2i const& bbox) const {
                                cols(), rows() );
     }
     
-    // TODO: The ROI details are important, document them!
-    
     // 3.0) Actually perform correlation now
-    ImageView<pixel_typeI > disparity, prev_disparity;
+    ImageView<pixel_typeI > disparity, prev_disparity, disparity_rl, prev_disparity_rl;
     std::vector<stereo::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
@@ -299,19 +306,20 @@ prerasterize(BBox2i const& bbox) const {
     double prev_estim      = estim_elapsed;
 
     boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
+    const bool use_sgm = (m_algorithm != CORRELATION_WINDOW); // Really means sgm or mgm
     const bool use_mgm = (m_algorithm == CORRELATION_MGM);
 
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
 
-      const bool on_last_level = (level == 0);
-
-      // In the future we could disable SGM for larger levels.
-      bool use_sgm_on_level = (m_algorithm != CORRELATION_WINDOW);
+      const bool on_last_level = (level == 0);    
+      bool check_rl = false;
 
       int32 scaling = 1 << level;
-      if (use_sgm_on_level)
-        prev_disparity = disparity; // TODO: Not efficient!!!!!!!!!!!!!!!!!!!!!!!
+      if (use_sgm) {
+        prev_disparity    = disparity;
+        prev_disparity_rl = disparity_rl;
+      }
 
       disparity.set_size( left_mask_pyramid[level] ); // Note, no kernel padding here.
       
@@ -319,39 +327,42 @@ prerasterize(BBox2i const& bbox) const {
       //  correlation kernel.  It matches the amount computed in build_image_pyramid().
       Vector2i region_offset = max_upscaling*half_kernel/scaling;
       
-      vw_out(DebugMessage,"stereo") << "\nProcessing level: " << level 
-                                    << " with size " << disparity.get_size() << std::endl;
+      vw_out(DebugMessage,"stereo") << "\n\nProcessing level: " << level 
+                                    << " with size " << disparity.get_size() << "\n\n";
       vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
       vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
       // SGM method
-      if (use_sgm_on_level) {
+      if (use_sgm) {
 
         // Mimic processing in normal case with a single zone
-        BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling+1,
-                                            m_search_region.height()/scaling+1);
+        BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling,
+                                            m_search_region.height()/scaling);
         SearchParam zone(bounding_box(left_mask_pyramid[level]), // Non-padded size
                          disparity_range);
-
-        // TODO: Why are +1's here?        
-        // The zone disparity range is not inclusive, so it is increased by one here?
         
         // The input zone is in the normal pixel coordinates for this level.
         // We need to convert it to a bbox in the expanded base of support image at this level.
+        // - For right region of support, remember that the right image was already shifted
+        //   to account for the disparity locations so only size is accounted for here.
         BBox2i left_region = zone.image_region() + region_offset;
-          left_region.expand(half_kernel);
+        left_region.expand(half_kernel);
         BBox2i right_region = left_region;
-          right_region.max() += zone.disparity_range().size();
+        right_region.max() += zone.disparity_range().size();
         
-        // TODO: Need to get the sizes lined up properly!
         ImageView<pixel_typeI> *prev_disp_ptr=0; // Pass in upper level disparity
-        if (level != max_pyramid_levels) {
+        if (level < max_pyramid_levels) {
           prev_disp_ptr = &prev_disparity;
           vw_out(VerboseDebugMessage, "stereo") << "Disparity size      = " << bounding_box(disparity     ) << std::endl;
           vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size = " << bounding_box(prev_disparity) << std::endl;
         }
         
-        crop(disparity, zone.image_region())
+        // Note: The masks contain exactly the region of interests from the input masks,
+        //       with the right mask containing the region offset by the search range.
+        //       The left mask size should exactly equal the output size here.
+        // - To be fully accurate, should crop the right mask slightly but SGM does not require this.
+        
+        crop(disparity, zone.image_region()) // This crop not needed in SGM case!
           = calc_disparity_sgm(m_cost_type,
                            crop(left_pyramid [level], left_region), 
                            crop(right_pyramid[level], right_region),
@@ -362,44 +373,117 @@ prerasterize(BBox2i const& bbox) const {
                            prev_disp_ptr);
                            
 
-        // If at the last level and the user requested a left<->right consistency check,
+        // If the user requested a left<->right consistency check at this level,
         //   compute right to left disparity.
-        if ( m_consistency_threshold >= 0 && level == 0 ) {
+        if ( m_consistency_threshold >= 0 && level >= m_min_consistency_level ) {
 
+          //std::cout << "\n====== RL CHECK =====\n";
+          check_rl = true;
+
+          // Update m_search_region for this level
+          BBox2i search_region_level = m_search_region;
+          search_region_level /= scaling;
+          
           // To properly perform the reverse correlation, we need to fix the ROIs
           //  to account for the different sizes of the left and right images
           //  and make sure they line up with the previous disparity image and the
           //  input masks.
-          BBox2i right_reverse_region = zone.image_region() + region_offset - m_search_region.min();
-            right_reverse_region.expand(half_kernel);
-          BBox2i left_reverse_region = zone.image_region() + region_offset - m_search_region.max();
-            left_reverse_region.expand(half_kernel);
-            left_reverse_region.max() += m_search_region.size();
 
-          // Convert the previous image estimates to apply to the RL operation
-          *prev_disp_ptr = pixel_typeI((m_search_region.max()-m_search_region.min())/2) - *prev_disp_ptr;
+          BBox2i right_reverse_region = right_region;
+          BBox2i left_reverse_region = left_region - zone.disparity_range().size(); // Shift to right
+          left_reverse_region.max() += 2*zone.disparity_range().size(); // Enlarge to fit the search range
+
+          if (m_write_debug_images) { // DEBUG
+            std::cout << "left region = " << left_region << std::endl;
+            std::cout << "right region = " << right_region << std::endl;
+            std::cout << "scaling       = " << scaling << std::endl;
+            std::cout << "half_kernel   = " << half_kernel << std::endl;
+            std::cout << "region_offset = " << region_offset << std::endl;
+            std::cout << "right_reverse_region  = " << right_reverse_region << std::endl;
+            std::cout << "left_reverse_region   = " << left_reverse_region << std::endl;
+            std::cout << "m_search_region     = " << m_search_region << std::endl;
+            std::cout << "search_region_level = " << search_region_level << std::endl;
+            std::cout << "search_region_level.max() = " << search_region_level.max() << std::endl;
+            std::cout << "zone.image_region() = " << zone.image_region() << std::endl;
+            std::cout << "zone.disparity_range() = " << zone.disparity_range() << std::endl;
+            std::cout << "zone.disparity_range().max() = " << zone.disparity_range().max() << std::endl;
+            std::cout << "right_pyramid[level].size()   = " << bounding_box(right_pyramid[level]) << std::endl;
+            std::cout << "left_pyramid[level].size()   = " << bounding_box(left_pyramid[level]) << std::endl;
+          }
+
+          ImageView<pixel_typeI> *prev_disp_ptr_rl=0; // Pass in upper level disparity
+          if (level < max_pyramid_levels) {
+            prev_disp_ptr_rl = &prev_disparity_rl;
+            vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size RL = " << bounding_box(prev_disparity_rl) << std::endl;
+          }
+
+          
+          // Set the masks to the exact size needed and adjust the position of the left one to match the image shift.
+          BBox2i right_mask_bbox = BBox2i(0,0, right_reverse_region.width ()-2*half_kernel[0],
+                                               right_reverse_region.height()-2*half_kernel[1]);
+          BBox2i left_mask_bbox  = BBox2i(0,0, left_reverse_region.width  ()-2*half_kernel[0],
+                                               left_reverse_region.height ()-2*half_kernel[1]) - zone.disparity_range().size();
+          
+          // Rasterization needed because we pass these by address below.
+          // - Could be avoided with some refactoring.
+          ImageView<typename Mask2T::pixel_type> right_rl_mask =
+              crop(edge_extend(right_mask_pyramid[level], ZeroEdgeExtension()), right_mask_bbox); 
+          ImageView<typename Mask1T::pixel_type> left_rl_mask = 
+              crop(edge_extend(left_mask_pyramid[level], ZeroEdgeExtension()), left_mask_bbox);
+
+          if (m_write_debug_images) { // DEBUG
+            std::cout << "left mask input: "  << bounding_box(left_mask_pyramid [level]) << std::endl;
+            std::cout << "right mask input: " << bounding_box(right_mask_pyramid[level]) << std::endl;
+            std::cout << "left mask: "  << left_mask_bbox << std::endl;
+            std::cout << "right mask: " << right_mask_bbox << std::endl;
+          }
+
+          //write_image("lr_cropl.tif", crop(left_pyramid [level], left_region));
+          //write_image("lr_cropr.tif", crop(right_pyramid[level], right_region));
+          //write_image("rl_cropl.tif", crop(edge_extend(left_pyramid[level]), left_reverse_region));
+          //write_image("rl_cropr.tif", crop(right_pyramid[level], right_reverse_region));
+
+          //// Write out masks with borders inserted - should line up with images!
+          //right_mask_bbox.expand(half_kernel);
+          //write_image("rl_cropRmaskPad.tif", crop(edge_extend(right_rl_mask, ZeroEdgeExtension()), right_mask_bbox));
+          //BBox2i temp = bounding_box(left_rl_mask);
+          //temp.expand(half_kernel);
+          //write_image("rl_cropLmaskPad.tif", crop(edge_extend(left_rl_mask, ZeroEdgeExtension()), temp));
+          //write_image("lr_result.tif", crop(disparity, zone.image_region()));
+          
 
           boost::shared_ptr<SemiGlobalMatcher> sgm_right_matcher_ptr;
-          ImageView<pixel_typeI> rl_result;
-          rl_result = calc_disparity_sgm(m_cost_type,
-                           crop(edge_extend(right_pyramid[level]), right_reverse_region),
-                           crop(edge_extend(left_pyramid [level]), left_reverse_region),
+          disparity_rl = calc_disparity_sgm(m_cost_type,
+                           crop(right_pyramid[level], right_reverse_region),
+                           crop(edge_extend(left_pyramid[level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
                            m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, sgm_right_matcher_ptr,
-                           &(left_mask_pyramid[level]), 
-                           &(right_mask_pyramid[level]),
-                           prev_disp_ptr); 
+                           &(right_rl_mask), 
+                           &(left_rl_mask),
+                           prev_disp_ptr_rl);
+
+          //write_image("rl_result.tif", disparity_rl);
+
 
           // Convert from RL to negative LR values
-          rl_result += pixel_typeI(m_search_region.min()- m_search_region.max());
+          pixel_typeI offset(zone.disparity_range().size());
+          disparity_rl -= offset;
+
+          //write_image("rl_result2.tif", disparity_rl);
 
           // Find pixels where the disparity distance is greater than m_consistency_threshold
-          const bool aligned_images = true; // The LR and RL images line up exactly
-          const bool verbose        = true;
-          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
-                                               rl_result, m_consistency_threshold, 
-                                               aligned_images, verbose);
+          //  and flag those pixels as invalid.
+          const bool verbose = true;
+          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()), // Crop not needed for SGM!
+                                               disparity_rl, m_consistency_threshold, verbose);
+                                               
+          //disparity_rl *= -1;
+          //write_image("rl_result3.tif", disparity_rl);
+          //disparity_rl *= -1;
+          
+          // This offset was used for the cross-corr check but must be reset for the previous disparity image
+          disparity_rl += offset;                                               
                                                
         } // End of last level right to left disparity check
 
@@ -451,9 +535,11 @@ prerasterize(BBox2i const& bbox) const {
                              m_kernel_size);
 
 
+          // TODO: Support checks at higher levels like with SGM!
           // If at the last level and the user requested a left<->right consistency check,
           //   compute right to left disparity.
           if ( m_consistency_threshold >= 0 && level == 0 ) {
+            check_rl = true;
 
             // Check the time again before moving on with this
             SearchParam params2(right_region, zone.disparity_range());
@@ -467,8 +553,7 @@ prerasterize(BBox2i const& bbox) const {
             }
             // Compute right to left disparity in this zone       
             
-            ImageView<pixel_typeI> rl_result;
-            rl_result = calc_disparity(m_cost_type,
+            disparity_rl = calc_disparity(m_cost_type,
                              crop(edge_extend(right_pyramid[level]), right_region),
                              crop(edge_extend(left_pyramid [level]),
                                   left_region - zone.disparity_range().size()),
@@ -478,11 +563,10 @@ prerasterize(BBox2i const& bbox) const {
 
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
-            const bool aligned_images = false; // The LR and RL images are aligned with an offset
             const bool verbose        = true;
             stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
-                                                  rl_result,
-                                                 m_consistency_threshold, aligned_images, verbose);
+                                                  disparity_rl,
+                                                 m_consistency_threshold, verbose);
           } // End of last level right to left disparity check
 
           // Fix the offsets to account for cropping.
@@ -525,7 +609,7 @@ prerasterize(BBox2i const& bbox) const {
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user
       // - SGM method does not use zones.
-      if ( !on_last_level && !use_sgm_on_level) {
+      if ( !on_last_level && !use_sgm) {
         const size_t next_level = level-1;
         zones.clear();
         
@@ -578,19 +662,25 @@ prerasterize(BBox2i const& bbox) const {
              << scaled.min()[1] << "_" << scaled.max()[0] << "_"
              << scaled.max()[1] << "_" << level;
         write_image( ostr.str() + ".tif", pixel_cast<PixelMask<Vector2f> >(disparity) );
-        std::ofstream f( (ostr.str() + "_zone.txt").c_str() );
-        BOOST_FOREACH( SearchParam& zone, zones ) {
-          f << zone.image_region() << " " << zone.disparity_range() << "\n";
+
+        if (use_sgm && check_rl)
+          write_image( ostr.str() + "_rl.tif", pixel_cast<PixelMask<Vector2f> >(disparity_rl) );         
+          
+        if (!use_sgm) { // SGM does not use zones
+          std::ofstream f( (ostr.str() + "_zone.txt").c_str() );
+          BOOST_FOREACH( SearchParam& zone, zones ) {
+            f << zone.image_region() << " " << zone.disparity_range() << "\n";
+          }
+          f.close();
         }
         write_image( ostr.str() + "left.tif",  left_pyramid [level] );
         write_image( ostr.str() + "right.tif", right_pyramid[level] );
         write_image( ostr.str() + "lmask.tif", left_mask_pyramid [level] );
         write_image( ostr.str() + "rmask.tif", right_mask_pyramid[level] );
-        f.close();
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
-      //if (level < 4)
+      //if (level == 2)
       //  vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop

@@ -34,6 +34,7 @@
 namespace vw {
 namespace stereo {
 
+  /// ???
   int
   adjust_weight_image(ImageView<float> &weight,
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
@@ -48,13 +49,10 @@ namespace stereo {
   /// Check for consistency between a left-to-right and right-to-left
   ///  pair of stereo results.  The results are expected to be opposite in
   ///  sign but equal in magnitude.
-  /// - Set aligned_images if the RL image has been shifted so that
-  ///   pixels in RL should be in the same location as in LR.
   template <class ImageT1, class ImageT2>
   void cross_corr_consistency_check( ImageViewBase<ImageT1> const& l2r,
                                      ImageViewBase<ImageT2> const& r2l,
                                      float cross_corr_threshold, 
-                                     bool aligned_images = false,
                                      bool verbose = false ) {
     int32 l2r_rows = l2r.impl().rows(), l2r_cols = l2r.impl().cols(),
           r2l_rows = r2l.impl().rows(), r2l_cols = r2l.impl().cols();
@@ -71,14 +69,9 @@ namespace stereo {
       typename ImageT1::pixel_accessor l2r_col = l2r_row;
       for ( int32 c = 0; c < l2r_cols; ++c ) {
 
-        // Under our regular workflow the corresponding disparity scores will be
-        //  at different pixels, but that is not always the case.
-        int32 r2l_x = c;
-        int32 r2l_y = r;
-        if (!aligned_images) {
-          r2l_x += (*l2r_col)[0];
-          r2l_y += (*l2r_col)[1];
-        }
+        // The corresponding disparity scores will be at different pixels according to the disparity values.
+        int32 r2l_x = c + (*l2r_col)[0];
+        int32 r2l_y = r + (*l2r_col)[1];
 
         if ( r2l_x < 0 || r2l_x >= r2l_cols ||
              r2l_y < 0 || r2l_y >= r2l_rows ) {

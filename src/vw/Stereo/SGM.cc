@@ -130,7 +130,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   bool left_mask_valid = false, right_mask_valid = false;
   if (left_image_mask) {
     vw_out(VerboseDebugMessage, "stereo") << "Left  mask image size:" << bounding_box(*left_image_mask ) << std::endl;
-    
+    // Currently the left mask is required to EXACTLY match the output size...
     if ( (left_image_mask->cols() == m_disp_bound_image.cols()) && 
          (left_image_mask->rows() == m_disp_bound_image.rows())   )
       left_mask_valid = true;
@@ -140,11 +140,13 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   if (right_image_mask) {
     vw_out(VerboseDebugMessage, "stereo") << "Right mask image size:" << bounding_box(*right_image_mask) << std::endl;
     
+    // Currently this class assumes a positive search range and requires the right mask to
+    //  be big enough to contain the output size PLUS the search range.
     if ( (right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) && 
          (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1)   )
       right_mask_valid = true;
     else
-      vw_throw( LogicErr() << "Right mask size does not match the output size!\n" );
+      vw_throw( LogicErr() << "Right mask size is not large enough to support search range!\n" );
   }
 
   // The low-res disparity image must be half-resolution.
@@ -165,6 +167,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   double area = 0, percent_trusted = 0, percent_masked = 0;
 
   // This class will check the right image mask in an efficient manner.
+  // - This implementation relies on >= 0 disparity ranges!
   IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
 
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
@@ -207,21 +210,31 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       c_in = c / SCALE_UP; // Pixel location in prior disparity map if it exists
       
       if (prev_disparity) {
+        
         // Verify that the pixel we want exists
         if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
-          vw_throw( LogicErr() << "Size error!\n" );
+        /*
+          std::cout << "c    = " << c    << std::endl;
+          std::cout << "r    = " << r    << std::endl;
+          std::cout << "c_in = " << c_in << std::endl;
+          std::cout << "r_in = " << r_in << std::endl;
+          std::cout << "prev_disparity->cols() = " << prev_disparity->cols() << std::endl;
+          std::cout << "prev_disparity->rows() = " << prev_disparity->rows() << std::endl;
+          vw_throw( LogicErr() << "populate_disp_bound_image: Size error!\n" );
+          */
         }
+        else {
+          input_disp = prev_disparity->operator()(c_in,r_in);
+          
+          // Disparity values on the edge of our 2D search range are not considered trustworthy!
+          dx_scaled = input_disp[0] * SCALE_UP; 
+          dy_scaled = input_disp[1] * SCALE_UP;
+          
+          bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
+                         || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
 
-        input_disp = prev_disparity->operator()(c_in,r_in);
-        
-        // Disparity values on the edge of our 2D search range are not considered trustworthy!
-        dx_scaled = input_disp[0] * SCALE_UP; 
-        dy_scaled = input_disp[1] * SCALE_UP;
-        
-        bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
-                       || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
-
-        good_disparity = (is_valid(input_disp) && !on_edge);
+          good_disparity = (is_valid(input_disp) && !on_edge);
+        }
         
       } // End prev disparity check
       
@@ -1709,10 +1722,15 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
                                               DisparityImage const* prev_disparity) {
                                               
   // Compute safe bounds to search through given the disparity range and kernel size.
+  // - Using inclusive bounds here.
   
   const int half_kernel_size = (m_kernel_size-1) / 2;
 
-  // Using inclusive bounds here
+  // Figure out the maximum possible image extent that we can compute stereo for
+  //  given the size of two input images and the requirement that we fully search
+  //  the specified search range.
+  // - The search region = the region in the left image + the search bounds, shrunk by
+  //   half the cost function kernel size.
   m_min_row = half_kernel_size - m_min_disp_y; // Assumes the (0,0) pixels are aligned
   m_min_col = half_kernel_size - m_min_disp_x;
   int left_last_col  = left_image.cols () - 1;

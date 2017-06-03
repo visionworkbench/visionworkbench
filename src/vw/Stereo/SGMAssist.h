@@ -165,8 +165,8 @@ private: // Variables
 
 
 /// Class to make counting up "on" mask pixel in a box more efficient.
-/// - This class performs a convolution of two images where it
-///   computes the a percentage of nonzero pixels in the window.
+/// - This class moves a box through an image and returns the fraction of valid
+///   pixels at each position of the box.
 /// - By operating iteratively this class avoids a large memory buffer allocation.
 /// - It looks like we have some similar VW classes, but nothing exactly like this.
 /// TODO: Currently only works with positive position offsets!
@@ -229,9 +229,10 @@ private:
   Vector2i m_box_size;
   Vector2i m_curr_pos;
   
+  /// Init counts from scratch at the current position.
+  /// - Returns the fraction of active pixels at this position.
   double recompute() {
-    m_column_sums = std::queue<int>();
-    //std::cout << "Cleared sum\n";
+    m_column_sums = std::queue<int>(); // Clear sums
     
     for (int col=m_curr_pos[0]; col<m_curr_pos[0]+m_box_size[0]; ++col) {
       int col_sum = 0;
@@ -242,7 +243,6 @@ private:
       }
       m_column_sums.push(col_sum);
       m_curr_sum += col_sum;
-      //std::cout << "Push " << col_sum << ", sum = " << m_curr_sum << std::endl;
     }
     return static_cast<double>(m_curr_sum) / m_box_area;
   }
