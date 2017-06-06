@@ -45,7 +45,8 @@ void safe_measurement( ip::InterestPoint& ip ) {
 }
 
 double vw::ba::triangulate_control_point( ControlPoint& cp,
-                                        std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                          std::vector<boost::shared_ptr<camera::CameraModel> >
+                                          const& camera_models,
                                         double const& minimum_angle ) {
   Vector3 position_sum;
   double error = 0, error_sum = 0;
@@ -62,22 +63,29 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
         stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
                                 camera_models[ k_cam_id ].get() );
 
-        if ( sm.convergence_angle( cp[j].position(),
-                                   cp[k].position() ) >
-             minimum_angle ) {
+        double tri_angle = sm.convergence_angle( cp[j].position(), cp[k].position() );
+        if ( tri_angle > minimum_angle ) {
           count++;
           position_sum += sm( cp[j].position(), cp[k].position(), error );
           error_sum += error;
+        }else{
+          vw_out(WarningMessage,"ba") << "\nDetected a triangulation angle " << tri_angle
+                                      << " which is less than the minimum required angle of "
+                                      << minimum_angle  <<". If too many such errors, "
+                                      << "perhaps your baseline is too small, "
+                                      << "or consider decreasing "
+                                      << "--min-triangulation-angle.\n";
         }
-      } catch ( const camera::PixelToRayErr& ) {
+      } catch ( std::exception const& e) {
         /* Just let it go */
+        vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
       }
     }
   }
-
-  // 4.2.) Summing, Averaging, and Storing
+  
+  // 4.2.) Summing, averaging, and storing
   if ( !count ) {
-    vw_out(WarningMessage,"ba") << "Unable to triangulate point!\n";
+    vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
     // At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
