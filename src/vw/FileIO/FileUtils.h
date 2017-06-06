@@ -16,8 +16,8 @@ namespace vw{
   /// Remove file name extension
   std::string prefix_from_filename(std::string const& filename);
 
-  /// Returns the file extension of a path
-  std::string get_extension(std::string const& input);
+  /// Return lower-case extension, such as .cub (so the dot is also present).
+  std::string get_extension(std::string const& input, bool make_lower = true);
 
   /// If prefix is "dir/out", create directory "dir"
   void create_out_dir(std::string out_prefix);

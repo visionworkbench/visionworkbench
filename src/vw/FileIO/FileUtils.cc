@@ -77,10 +77,12 @@ std::string vw::prefix_from_filename(std::string const& filename) {
   return result;
 }
 
-std::string vw::get_extension( std::string const& input ) {
+// Return lower-case extension, such as .cub (so the dot is also present).
+std::string vw::get_extension( std::string const& input, bool make_lower) {
   boost::filesystem::path ipath( input );
   std::string ext = ipath.extension().string();
-  boost::algorithm::to_lower(ext);
+  if (make_lower)
+    boost::algorithm::to_lower(ext);
   return ext;
 }
 
