@@ -43,16 +43,22 @@ namespace vw {
   /// pixels masked.
   /// - Should safely accept inputs which already contain a mask, in 
   ///   which case the input mask is ignored.
+
+  /// Values are valid if they are different than nodata_val
   template <class PixelT>
   class CreatePixelMask;
-  
-  /// Mask values less than or equal to the nodata value.
+
+  /// Values are valid if nodata_val < val
   template <class PixelT>
   class CreatePixelMaskLE;
 
-  /// Mask values fall within a range.
+  /// Values are valid if they min_val <= val <= max_val
   template <class PixelT>
   class CreatePixelRangeMask;
+
+  /// Values are valid if nodata_val < val <= max_val
+  template <class PixelT>
+  class CreatePixelRangeMask2;
 
   /// Masks out pixels which are equal to NaN
   /// - Only use this with floats and doubles!
@@ -83,6 +89,18 @@ namespace vw {
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view ) {
     return create_mask( view.impl(), typename ViewT::pixel_type() );
+  }
+
+  /// Mask values unless nodata_val < val <= max_val
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,CreatePixelRangeMask2<typename ViewT::pixel_type> >
+  create_pixel_range_mask2(ImageViewBase<ViewT> const& view,
+			   typename ViewT::pixel_type const& nodata_val,
+			   typename ViewT::pixel_type const& max_val
+			   ) {
+    typedef UnaryPerPixelView<ViewT,CreatePixelRangeMask2<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(),
+		      CreatePixelRangeMask2<typename ViewT::pixel_type>(nodata_val, max_val) );
   }
 
   /// Mask values less than or equal to the nodata value.

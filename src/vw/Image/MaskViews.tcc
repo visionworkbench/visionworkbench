@@ -148,8 +148,30 @@ namespace vw {
     }
   };
 
+  /// Mask values less than or equal to the nodata value and greater than the given value.
+  /// Use only with scalar types.
+  template <class PixelT>
+  class CreatePixelRangeMask2: public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+    PixelT m_nodata_value;
+    PixelT m_max_valid_value;
+  public:
+    CreatePixelRangeMask2(PixelT const& nodata_value, PixelT const& max_valid_value ):
+      m_nodata_value(nodata_value), m_max_valid_value(max_valid_value) {}
 
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      
+      if ( value > m_nodata_value && value <= m_max_valid_value)  
+	return MPixelT(value);
 
+      if (value != value) 
+        return  MPixelT();  // Mask NaN values
+
+      // This code was not tested if nodata_value or max_valid_value is NaN.
+      return MPixelT();
+    }
+    
+  };
 
   // *******************************************************************
   /// apply_mask( view, value )
