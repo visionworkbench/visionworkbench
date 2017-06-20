@@ -1,54 +1,49 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
-// 
-// Copyright (C) 2011 by Oleg Alexandrov
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
+//
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
 #include <cassert>
 #include <algorithm>
 #include <fstream>
 #include <cfloat>
-#include <src/vw/Geometry/cutPoly.h>
-#include <src/vw/Geometry/baseUtils.h>
-#include <src/vw/Geometry/edgeUtils.h>
+#include <vw/Geometry/cutPoly.h>
+#include <vw/Geometry/baseUtils.h>
+#include <vw/Geometry/edgeUtils.h>
 
-using namespace std;
-using namespace utils;
+namespace vw { namespace geometry {
 
 #define DEBUG_CUT_POLY 0 // Must be 0 in production code
 
-void utils::cutPolyLine(// inputs -- the polygonal line
-                        int numVerts,
-                        const double * xv, const double * yv,
-                        // inputs -- the cutting window
-                        double xll, double yll, double xur, double yur,
-                        // outputs -- the cut polygons
-                        std::vector< double> & cutX,
-                        std::vector< double> & cutY,
-                        std::vector< int>    & cutNumPolys){
-
+void cutPolyLine(// inputs -- the polygonal line
+		 int numVerts,
+		 const double * xv, const double * yv,
+		 // inputs -- the cutting window
+		 double xll, double yll, double xur, double yur,
+		 // outputs -- the cut polygons
+		 std::vector< double> & cutX,
+		 std::vector< double> & cutY,
+		 std::vector< int>    & cutNumPolys){
+  
   // Cut a polygonal line. First make it into a polygon by traveling
   // forward and then backward on the polygonal line, then cut the
   // obtained polygon, then remove the backward portion from each
   // obtained polygon.
 
-  vector<double> lXv, lYv, lCutX, lCutY;
-  vector<int> lCutNumPolys;
+  std::vector<double> lXv, lYv, lCutX, lCutY;
+  std::vector<int> lCutNumPolys;
   
   lXv.clear(); lYv.clear();
   for (int s = 0; s < numVerts; s++){
@@ -90,7 +85,7 @@ void utils::cutPolyLine(// inputs -- the polygonal line
   return;
 }
 
-void utils::cutPoly(// inputs -- the polygons
+void cutPoly(// inputs -- the polygons
                     int numPolys, const int * numVerts,
                     const double * xv, const double * yv,
                     // inputs -- the cutting window
@@ -115,12 +110,12 @@ void utils::cutPoly(// inputs -- the polygons
   int totalNumVerts = 0;
   for (int s = 0; s < numPolys; s++) totalNumVerts += numVerts[s];
 
-  vector<double> Xin(xv, xv + totalNumVerts);        // A copy of xv as vector
-  vector<double> Yin(yv, yv + totalNumVerts);        // A copy of yv as vector
-  vector<int>    Pin(numVerts, numVerts + numPolys); // A copy of numVerts 
+  std::vector<double> Xin(xv, xv + totalNumVerts);        // A copy of xv as vector
+  std::vector<double> Yin(yv, yv + totalNumVerts);        // A copy of yv as vector
+  std::vector<int>    Pin(numVerts, numVerts + numPolys); // A copy of numVerts 
   
-  vector<double> cutHalfX, cutHalfY, Xout, Yout;
-  vector<int>    cutHalfP, Pout;
+  std::vector<double> cutHalfX, cutHalfY, Xout, Yout;
+  std::vector<int>    cutHalfP, Pout;
 
   for (int c = 0; c < 4; c++){
 
@@ -166,7 +161,7 @@ void utils::cutPoly(// inputs -- the polygons
   return;
 }
 
-void utils::cutToHalfSpace(// inputs 
+void cutToHalfSpace(// inputs 
                            double nx, double ny, double dotH,
                            int numV, 
                            const double * xv, const double * yv,
@@ -176,7 +171,7 @@ void utils::cutToHalfSpace(// inputs
                            std::vector<int>    & cutNumPolys){
 
 
-  vector<valIndex> ptsOnCutline; ptsOnCutline.clear();
+  std::vector<valIndex> ptsOnCutline; ptsOnCutline.clear();
   valIndex C;
   
   cutX.clear(); cutY.clear(); cutNumPolys.clear();
@@ -274,8 +269,8 @@ void utils::cutToHalfSpace(// inputs
   // Find the connected components in the cut polygons
   // To do: Move this to its own function.
   
-  vector<double> X, Y;
-  vector<int> P;
+  std::vector<double> X, Y;
+  std::vector<int> P;
   X.clear(); Y.clear(); P.clear();
 
 #if DEBUG_CUT_POLY
@@ -300,7 +295,7 @@ void utils::cutToHalfSpace(// inputs
   }
 #endif
 
-  vector<int> wasVisited;
+  std::vector<int> wasVisited;
   int numCutPts = cutX.size();
   wasVisited.assign(numCutPts, 0);
 
@@ -400,7 +395,7 @@ void utils::cutToHalfSpace(// inputs
   
 }
 
-void utils::processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
+void processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
 
   
   // Sort the cutline points along the cutline (the sort direction
@@ -408,7 +403,7 @@ void utils::processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
   sort( ptsOnCutline.begin(), ptsOnCutline.end(), lessThan );
 
   // Find the position of each outward and each inward point on the cutline
-  vector<int> outwardPositions, inwardPositions;
+  std::vector<int> outwardPositions, inwardPositions;
   outwardPositions.clear(); inwardPositions.clear();
   int numPtsOnCutline = ptsOnCutline.size();
   for (int s = 0; s < numPtsOnCutline; s++){
@@ -446,4 +441,6 @@ void utils::processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
   
   return;
 }
+
+}}
 

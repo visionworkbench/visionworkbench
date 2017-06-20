@@ -1,41 +1,37 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
-// 
-// Copyright (C) 2011 by Oleg Alexandrov
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
+//
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
 #include <iostream>
 #include <cmath>
 #include <fstream>
 #include <algorithm>
 #include <vector>
 #include <cassert>
-#include <src/vw/Geometry/edgeUtils.h>
-#include <src/vw/Geometry/baseUtils.h>
-using namespace std;
+#include <vw/Geometry/edgeUtils.h>
+#include <vw/Geometry/baseUtils.h>
 
-bool utils::edgeIntersectsBox(// Input: arbitrary edge
-                              double bx, double by,
-                              double ex, double ey,
-                              // Input: Box
-                              double xl, double yl,
-                              double xh, double yh
-                              ){
+namespace vw { namespace geometry {
+
+bool edgeIntersectsBox(// Input: arbitrary edge
+		       double bx, double by,
+		       double ex, double ey,
+		       // Input: Box
+		       double xl, double yl,
+		       double xh, double yh){
 
   assert(xl <= xl && yl <= yh);
 
@@ -58,13 +54,12 @@ bool utils::edgeIntersectsBox(// Input: arbitrary edge
   return false;
 }
   
-bool utils::edgeIntersectsHorizontalEdge(// Input: arbitrary edge
-                                         double x0, double y0,
-                                         double x1, double y1,
-                                         // Input: horizontal edge
-                                         double begx, double endx,
-                                         double yval
-                                         ){
+bool edgeIntersectsHorizontalEdge(// Input: arbitrary edge
+				  double x0, double y0,
+				  double x1, double y1,
+				  // Input: horizontal edge
+				  double begx, double endx,
+				  double yval){
 
   // See if an arbitrary edge intersects a horizontal edge. Care has
   // be taken to avoid as much as possible floating point operations
@@ -78,8 +73,8 @@ bool utils::edgeIntersectsHorizontalEdge(// Input: arbitrary edge
   if (diff == 0.0){ // The two edges are collinear
     assert(y0 == yval && y1 == yval);
     return (
-            max(min(x0, x1), min(begx, endx)) <=
-            min(max(x0, x1), max(begx, endx))
+            std::max(std::min(x0, x1), std::min(begx, endx)) <=
+            std::min(std::max(x0, x1), std::max(begx, endx))
             );
   }
 
@@ -95,8 +90,8 @@ bool utils::edgeIntersectsHorizontalEdge(// Input: arbitrary edge
   return true;
 }
 
-bool utils::isPointOnEdge(double x0, double y0, double x1, double y1,
-                          double x, double y){
+bool isPointOnEdge(double x0, double y0, double x1, double y1,
+		   double x, double y){
   double dist1 = distance(x0, y0, x1, y1);
   double dist2 = distance(x0, y0, x,  y);
   double dist3 = distance(x,  y,  x1, y1);
@@ -104,16 +99,16 @@ bool utils::isPointOnEdge(double x0, double y0, double x1, double y1,
   return(dist2 + dist3 <= (1+tol)*dist1);
 }
 
-bool utils::collinearEdgesIntersect(// Input: first edge
-                                    double ax0, double ay0,
-                                    double ax1, double ay1,
-                                    // Input: second edge
-                                    double bx0, double by0,
-                                    double bx1, double by1,
-                                    // Output: intersection
-                                    // if it exists
-                                    double & x, double & y
-                                    ){
+bool collinearEdgesIntersect(// Input: first edge
+			     double ax0, double ay0,
+			     double ax1, double ay1,
+			     // Input: second edge
+			     double bx0, double by0,
+			     double bx1, double by1,
+			     // Output: intersection
+			     // if it exists
+			     double & x, double & y){
+  
   for (int t = 0; t < 2; t++){
     if (isPointOnEdge(ax0, ay0, ax1, ay1, bx0, by0)){
       x = bx0; y = by0;
@@ -123,22 +118,21 @@ bool utils::collinearEdgesIntersect(// Input: first edge
       x = bx1; y = by1;
       return true;
     }
-    swap(ax0, bx0); swap(ay0, by0);
-    swap(ax1, bx1); swap(ay1, by1);
+    std::swap(ax0, bx0); std::swap(ay0, by0);
+    std::swap(ax1, bx1); std::swap(ay1, by1);
   }
   
   return false;
 }
 
-bool utils::edgesIntersect(// Input: first edge
-                           double ax0, double ay0,
-                           double ax1, double ay1,
-                           // Input: second edge
-                           double bx0, double by0,
+bool edgesIntersect(// Input: first edge
+		    double ax0, double ay0,
+		    double ax1, double ay1,
+		    // Input: second edge
+		    double bx0, double by0,
                            double bx1, double by1,
-                           // Output: intersection if it exists
-                           double & x, double & y
-                           ){
+		    // Output: intersection if it exists
+		    double & x, double & y){
 
   // See if two arbitrary edges intersect. This code does NOT treat
   // all cases and can give incorrect results. To be fixed.
@@ -153,8 +147,8 @@ bool utils::edgesIntersect(// Input: first edge
     if (det0 < 0.0 && det1 < 0.0) return false;
 
     if (count == 0){
-      swap(ax0, bx0); swap(ay0, by0);
-      swap(ax1, bx1); swap(ay1, by1);
+      std::swap(ax0, bx0); std::swap(ay0, by0);
+      std::swap(ax1, bx1); std::swap(ay1, by1);
       continue;
     }
 
@@ -179,7 +173,7 @@ bool utils::edgesIntersect(// Input: first edge
   return true;
 }
 
-void utils::cutEdge(double x0, double y0, double x1, double y1,
+void cutEdge(double x0, double y0, double x1, double y1,
                     double nx, double ny, double H,
                     double & cutx, double & cuty){
 
@@ -200,14 +194,14 @@ void utils::cutEdge(double x0, double y0, double x1, double y1,
   // cutting line
   
   double t = (H - dot0)/(dot1 - dot0);
-  t = max(t, 0.0); t = min(t, 1.0); // extra precautions
+  t = std::max(t, 0.0); t = std::min(t, 1.0); // extra precautions
   cutx = (1-t)*x0 + t*x1;
   cuty = (1-t)*y0 + t*y1;
 
   // Cut symmetrically in x0 and x1. We count on this symmetry
   // in a few places.
   t = (H - dot1)/(dot0 - dot1);
-  t = max(t, 0.0); t = min(t, 1.0); // extra precautions
+  t = std::max(t, 0.0); t = std::min(t, 1.0); // extra precautions
   double cutx2 = (1-t)*x1 + t*x0;
   double cuty2 = (1-t)*y1 + t*y0;
 
@@ -226,3 +220,4 @@ void utils::cutEdge(double x0, double y0, double x1, double y1,
   return;
 }
 
+}}

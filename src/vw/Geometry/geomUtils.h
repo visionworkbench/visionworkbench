@@ -1,32 +1,31 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
 //
-// Copyright (C) 2011 by Oleg Alexandrov
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-#ifndef GEOMUTILS_H
-#define GEOMUTILS_H
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
+#ifndef VW_GEOMETRY_GEOMUTILS_H
+#define VW_GEOMETRY_GEOMUTILS_H
+
 #include <sstream>
 #include <vector>
 #include <fstream>
 #include <cmath>
 #include <set>
 #include <cassert>
+
+namespace vw { namespace geometry {
 
 struct dPoint{
   double x, y;
@@ -56,8 +55,6 @@ struct anno {
 };
 
 std::ostream& operator<<(std::ostream& os, const anno& A);
-
-namespace utils{
 
   void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
                                  int numVerts, double * xv, double * yv);
@@ -160,42 +157,6 @@ namespace utils{
   bool isPointInPolyOrOnEdges(double x, double y,
                               int n, const double* xv, const double*  yv);
 
-  struct linTrans{
-    // Linear transform
-    double a11, a12, a21, a22, sx, sy;
-    linTrans(){
-      a11 = a22 = 1.0;
-      a21 = a12 = sx = sy = 0.0;
-    }
-    void reset(){
-      *this = linTrans();
-    }
-    void print(){
-      std::cout << "transform " << a11 << ' ' << a12 << ' '
-                << a21 << ' ' << a22 << ' ' << sx << ' ' << sy << std::endl;
-    }
-  };
+}}
 
-  utils::linTrans composeTransforms(utils::linTrans P, utils::linTrans Q);
-
-  struct matrix2{
-    // A 2x2 matrix
-    double a11, a12, a21, a22;
-    matrix2(){
-      a11 = a22 = 1.0;
-      a21 = a12 = 0.0;
-    }
-    void reset(){
-      *this = matrix2();
-    }
-    void print(){
-      std::cout << "matrix " << a11 << ' ' << a12 << ' ' << a21 << ' ' << a22 << std::endl;
-    }
-  };
-
-  utils::linTrans transAroundPt(const utils::matrix2 & M, dPoint P);
-
-}
-
-
-#endif
+#endif // VW_GEOMETRY_GEOMUTILS_H

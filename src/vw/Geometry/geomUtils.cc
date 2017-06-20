@@ -1,24 +1,20 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
 //
-// Copyright (C) 2011 by Oleg Alexandrov
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -26,19 +22,20 @@
 #include <cfloat>
 #include <cstring>
 #include <cassert>
-#include <src/vw/Geometry/baseUtils.h>
-#include <src/vw/Geometry/geomUtils.h>
-#include <src/vw/Geometry/edgeUtils.h>
+#include <vw/Geometry/baseUtils.h>
+#include <vw/Geometry/geomUtils.h>
+#include <vw/Geometry/edgeUtils.h>
+
+namespace vw { namespace geometry {
 
 using namespace std;
-using namespace utils;
 
 std::ostream& operator<<(std::ostream& os, const anno& A){
   os << A.x << ' ' << A.y << ' ' << A.label << std::endl;
   return os;
 }
 
-void utils::snapPolyLineTo45DegAngles(bool isClosedPolyLine,
+void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
                                       int numVerts, double * xv, double * yv){
 
   // Given a polygonal line, transform it such that all vertices are
@@ -113,7 +110,7 @@ void utils::snapPolyLineTo45DegAngles(bool isClosedPolyLine,
     double dy = yv[(v+1)%numVerts] - yv[v];
     if ( xv[v] != round(xv[v]) ||
          yv[v] != round(yv[v]) ||
-         !( dx == 0 || dy == 0 || abs(dx) == abs(dy) ) ){
+         !( dx == 0 || dy == 0 || std::abs(dx) == std::abs(dy) ) ){
       cerr << "Error: Expecting integer vertices with 45 degree angles."  << endl;
       cerr << "Instead, got the vector (" << dx << ", " << dy << ") "
            << "with starting point " << xv[v] << ' ' << yv[v] << endl;
@@ -124,7 +121,7 @@ void utils::snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   return;
 }
 
-void utils::snapOneEdgeTo45(int numAngles, double* xs, double* ys,
+void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
                             bool snap2ndClosest,
                             double & x0, double & y0,
                             double & x1, double & y1){
@@ -165,7 +162,7 @@ void utils::snapOneEdgeTo45(int numAngles, double* xs, double* ys,
   }
 
   // Snap to integer coordinates in the direction of minAngle
-  double factor =  abs(xs[minAngle]) + abs(ys[minAngle]); // 1 or sqrt(2)
+  double factor =  std::abs(xs[minAngle]) + std::abs(ys[minAngle]); // 1 or sqrt(2)
   len = factor*round(len/factor);
   x1 = x0 + round( len*xs[minAngle] );
   y1 = y0 + round( len*ys[minAngle] );
@@ -173,7 +170,7 @@ void utils::snapOneEdgeTo45(int numAngles, double* xs, double* ys,
   return;
 }
 
-void utils::minDistFromPtToSeg(//inputs
+void minDistFromPtToSeg(//inputs
                                double xin, double yin,
                                double x0, double y0,
                                double x1, double y1,
@@ -205,7 +202,7 @@ void utils::minDistFromPtToSeg(//inputs
 
 
 
-void utils::searchForColor(std::string lineStr, // input, not a reference on purpose
+void searchForColor(std::string lineStr, // input, not a reference on purpose
                            std::string & color  // output
                            ){
 
@@ -255,7 +252,7 @@ void utils::searchForColor(std::string lineStr, // input, not a reference on pur
   return;
 }
 
-bool utils::searchForAnnotation(std::string lineStr, anno & annotation){
+bool searchForAnnotation(std::string lineStr, anno & annotation){
 
   // Search for annotations, which have the form:
   // anno xval yval label
@@ -278,7 +275,7 @@ bool utils::searchForAnnotation(std::string lineStr, anno & annotation){
   return true;
 }
 
-void utils::searchForLayer(std::string   lineStr, // input
+void searchForLayer(std::string   lineStr, // input
                            std::string & layer    // output
                            ){
 
@@ -309,7 +306,7 @@ void utils::searchForLayer(std::string   lineStr, // input
   return;
 }
 
-double utils::signedPolyArea(int numV, const double* xv, const double* yv){
+double signedPolyArea(int numV, const double* xv, const double* yv){
 
   // Subtract the first vertex when computing the area to handle more
   // accurately polygons very far from the origin.
@@ -329,7 +326,7 @@ double utils::signedPolyArea(int numV, const double* xv, const double* yv){
   return area;
 }
 
-void utils::expandBoxToGivenRatio(// inputs
+void expandBoxToGivenRatio(// inputs
                                   double aspectRatio,
                                   // inputs/outputs
                                   double & xll,  double & yll,
@@ -344,13 +341,13 @@ void utils::expandBoxToGivenRatio(// inputs
   // Sanity checks
   double tol = 1.0e-3;
   bool check = ( nwidx >= widx*(1 - tol) && nwidy >= widy*(1 - tol)
-                 && abs(nwidy/nwidx - aspectRatio) < tol*aspectRatio );
+                 && std::abs(nwidy/nwidx - aspectRatio) < tol*aspectRatio );
   if (!check){
     cout << "ERROR!" << endl;
     cout << "widx widy are "   << widx  << ' ' << widy  << endl;
     cout << "nwidx nwidy are " << nwidx << ' ' << nwidy << endl;
     cout << "Aspect ratio is " << aspectRatio << endl;
-    cout << "|nwidy/nwidx - aspectRatio| = " << abs(nwidy/nwidx - aspectRatio) << endl;
+    cout << "|nwidy/nwidx - aspectRatio| = " << std::abs(nwidy/nwidx - aspectRatio) << endl;
     cout << "Max allowed error is " << tol*aspectRatio << endl;
   }
   assert(check);
@@ -366,7 +363,7 @@ void utils::expandBoxToGivenRatio(// inputs
   return;
 }
 
-bool utils::boxesIntersect(double xl1, double yl1, double xh1, double yh1,
+bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
                            double xl2, double yl2, double xh2, double yh2
                            ){
 
@@ -382,38 +379,7 @@ bool utils::boxesIntersect(double xl1, double yl1, double xh1, double yh1,
 
 }
 
-utils::linTrans utils::composeTransforms(utils::linTrans P, utils::linTrans Q){
-
-  // Composition of two transforms
-
-  linTrans R;
-
-  R.a11 = P.a11*Q.a11 + P.a12*Q.a21;
-  R.a12 = P.a11*Q.a12 + P.a12*Q.a22;
-  R.a21 = P.a21*Q.a11 + P.a22*Q.a21;
-  R.a22 = P.a21*Q.a12 + P.a22*Q.a22;
-
-  R.sx = P.a11*Q.sx + P.a12*Q.sy + P.sx;
-  R.sy = P.a21*Q.sx + P.a22*Q.sy + P.sy;
-
-  return R;
-}
-
-utils::linTrans utils::transAroundPt(const utils::matrix2 & M, dPoint P){
-
-  // Find the linear transformation which applies a given matrix
-  // transform around the current point (for example, rotation around
-  // the current point).
-
-  linTrans T;
-  T.a11 = M.a11; T.a12 = M.a12;
-  T.a21 = M.a21; T.a22 = M.a22;
-  T.sx = P.x - M.a11*P.x - M.a12*P.y;
-  T.sy = P.y - M.a21*P.x - M.a22*P.y;
-  return T;
-}
-
-bool utils::mergePolys(int an,
+bool mergePolys(int an,
                        const double * ax_in, const double * ay_in,
                        int bn,
                        const double * bx_in, const double * by_in,
@@ -430,7 +396,7 @@ bool utils::mergePolys(int an,
   // The tol value needs careful thinking
   double tol = 1e-12;
 
-  // Copy the pointers to non-constant pointers so what we can swap
+  // Copy the pointers to non-constant pointers so what we can std::swap
   // them.
   double* ax = (double*)ax_in; double* ay = (double*)ay_in;
   double* bx = (double*)bx_in; double* by = (double*)by_in;
@@ -475,7 +441,7 @@ bool utils::mergePolys(int an,
                          bx[jl], by[jl], bx[jnl], by[jnl],
                          xl, yl) &&
           isPointOnEdge(currX, currY, ax[in], ay[in], xl, yl) &&
-          (abs(currX - xl) > tol || abs(currY - yl) > tol)
+          (std::abs(currX - xl) > tol || std::abs(currY - yl) > tol)
           ){
         foundIntersection  = true;
         mergeWasSuccessful = true;
@@ -510,9 +476,9 @@ bool utils::mergePolys(int an,
     currY = y;
     mergedX.push_back(currX);
     mergedY.push_back(currY);
-    swap(ax, bx);
-    swap(ay, by);
-    swap(an, bn);
+    std::swap(ax, bx);
+    std::swap(ay, by);
+    std::swap(an, bn);
 
     i = j;
     //if (sx == ax[i] && sy == ay[i]) break;
@@ -521,7 +487,7 @@ bool utils::mergePolys(int an,
   return mergeWasSuccessful;
 }
 
-bool utils::isPointInPolyOrOnEdges(double x, double y,
+bool isPointInPolyOrOnEdges(double x, double y,
                                    int n, const double* xv, const double*  yv){
 
   // Is the given point either completely inside or on the edges
@@ -538,8 +504,8 @@ bool utils::isPointInPolyOrOnEdges(double x, double y,
     double y0 = yv[i], y1 = yv[j];
 
     if (x0 > x1){
-      swap(x0, x1);
-      swap(y0, y1);
+      std::swap(x0, x1);
+      std::swap(y0, y1);
     }
 
     if (x < x0 || x > x1) continue;
@@ -557,3 +523,5 @@ bool utils::isPointInPolyOrOnEdges(double x, double y,
 
   return isInsideOrOnEdges;
 }
+
+}}

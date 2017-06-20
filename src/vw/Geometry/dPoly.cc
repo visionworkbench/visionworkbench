@@ -1,24 +1,20 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
 //
-// Copyright (C) 2011 by Oleg Alexandrov
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -28,10 +24,12 @@
 #include <cstring>
 #include <string>
 #include <map>
-#include <src/vw/Geometry/cutPoly.h>
-#include <src/vw/Geometry/dPoly.h>
+#include <vw/Geometry/cutPoly.h>
+#include <vw/Geometry/dPoly.h>
+
+namespace vw { namespace geometry {
+
 using namespace std;
-using namespace utils;
 
 // A double precision polygon class
 
@@ -401,85 +399,6 @@ void dPoly::scale(double scale){
 
     set_annoByType(annotations, annoType);
   }
-
-  return;
-}
-
-void dPoly::transformMarkedPolys(std::map<int, int> & mark, const utils::linTrans & T){
-
-  int start = 0;
-  for (int pIter = 0; pIter < m_numPolys; pIter++){
-    if (pIter > 0) start += m_numVerts[pIter - 1];
-    if (mark.find(pIter) == mark.end()) continue;
-
-    for (int vIter = 0; vIter < m_numVerts[pIter]; vIter++){
-      int i = start + vIter;
-      double tmpx = T.a11*m_xv[i] + T.a12*m_yv[i] + T.sx;
-      double tmpy = T.a21*m_xv[i] + T.a22*m_yv[i] + T.sy;
-      m_xv[i] = tmpx;
-      m_yv[i] = tmpy;
-    }
-
-  }
-
-  m_vertIndexAnno.clear();
-
-  return;
-}
-
-void dPoly::transformMarkedPolysAroundPt(std::map<int, int> & mark, const utils::matrix2 & M, dPoint P){
-  linTrans T = transAroundPt(M, P);
-  transformMarkedPolys(mark, T);
-  return;
-}
-
-void dPoly::applyTransform(double a11, double a12, double a21, double a22,
-                           double sx, double sy,
-                           utils::linTrans & T // save the transform here
-                           ){
-
-
-  // To do: Need to integrate the several very similar transform functions
-
-  // Save the transform before applying it
-  T.a11 = a11; T.a12 = a12; T.a21 = a21; T.a22 = a22; T.sx = sx; T.sy = sy;
-
-  for (int i = 0; i < (int)m_xv.size(); i++){
-    double tmpx = a11*m_xv[i] + a12*m_yv[i] + sx;
-    double tmpy = a21*m_xv[i] + a22*m_yv[i] + sy;
-    m_xv[i] = tmpx;
-    m_yv[i] = tmpy;
-  }
-
-  vector<anno> annotations;
-  for (int annoType = 0; annoType < 3; annoType++){
-    get_annoByType(annotations, annoType);
-    for (int i = 0; i < (int)annotations.size(); i++){
-      anno & A = annotations[i]; // alias
-      double tmpx = a11*A.x + a12*A.y + sx;
-      double tmpy = a21*A.x + a22*A.y + sy;
-      A.x = tmpx;
-      A.y = tmpy;
-    }
-    set_annoByType(annotations, annoType);
-  }
-
-  return;
-}
-
-
-void dPoly::applyTransformAroundBdBoxCenter(double a11, double a12,
-                                            double a21, double a22,
-                                            utils::linTrans & T
-                                            ){
-
-  if (m_totalNumVerts == 0) return;
-
-  double mx, my;
-  bdBoxCenter(mx, my);
-  applyTransform(a11, a12, a21, a22, mx - a11*mx - a12*my, my - a21*mx - a22*my,
-                 T
-                 );
 
   return;
 }
@@ -963,7 +882,7 @@ void dPoly::sortFromLargestToSmallest(){
     int numV = m_numVerts[s];
 
     boxDims[s].point = dPoint( xur[s] - xll[s], yur[s] - yll[s] );
-    boxDims[s].area  = abs(signedPolyArea(numV,
+    boxDims[s].area  = std::abs(signedPolyArea(numV,
                                           vecPtr(m_xv) + start, vecPtr(m_yv) + start)
                            );
     boxDims[s].index = s;
@@ -1039,7 +958,7 @@ void dPoly::sortBySizeAndMaybeAddBigContainingRect(// inputs
 
   // Add the extra term to ensure we get a box strictly bigger than
   // the polygons and the big window (this will help with sorting below).
-  double extra = max(abs(bigXur - bigXll), abs(bigYur - bigYll)) + 10.0;
+  double extra = max(std::abs(bigXur - bigXll), std::abs(bigYur - bigYll)) + 10.0;
   bigXll -= extra; bigXur += extra;
   bigYll -= extra; bigYur += extra;
 
@@ -1537,3 +1456,5 @@ void dPoly::appendAndShiftMarkedPolys(// Inputs
 
   return;
 }
+
+}}

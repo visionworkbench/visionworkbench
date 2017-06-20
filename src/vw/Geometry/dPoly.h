@@ -1,32 +1,29 @@
-// MIT License Terms (http://en.wikipedia.org/wiki/MIT_License)
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
 //
-// Copyright (C) 2011 by Oleg Alexandrov
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-#ifndef DPOLY_H
-#define DPOLY_H
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
+#ifndef VW_GEOMETRY_DPOLY_H
+#define VW_GEOMETRY_DPOLY_H
 
 #include <vector>
 #include <map>
-#include <src/vw/Geometry/baseUtils.h>
-#include <src/vw/Geometry/geomUtils.h>
+#include <vw/Geometry/baseUtils.h>
+#include <vw/Geometry/geomUtils.h>
 
+namespace vw { namespace geometry {
 
 // A class holding a set of polygons in double precision
 class dPoly{
@@ -82,25 +79,15 @@ public:
   void shift(double shift_x, double shift_y);
   void rotate(double angle);
   void scale(double scale);
-  void transformMarkedPolys(std::map<int, int> & mark, const utils::linTrans & T);
-  void transformMarkedPolysAroundPt(std::map<int, int> & mark, const utils::matrix2 & M, dPoint P);
-  void applyTransform(double a11, double a12, double a21, double a22,
-                      double sx, double sy,
-                      utils::linTrans & T // save the transform here
-                      );
-  void applyTransformAroundBdBoxCenter(double a11, double a12,
-                                       double a21, double a22,
-                                       utils::linTrans & T
-                                       );
 
-  const int    * get_numVerts         () const { return utils::vecPtr(m_numVerts); }
-  const double * get_xv               () const { return utils::vecPtr(m_xv);       }
-  const double * get_yv               () const { return utils::vecPtr(m_yv);       }
-  int get_numPolys                    () const { return m_numPolys;                }
-  int get_totalNumVerts               () const { return m_totalNumVerts;           }
-  std::vector<char> get_isPolyClosed  () const { return m_isPolyClosed;            }
-  std::vector<std::string> get_colors () const { return m_colors;                  }
-  std::vector<std::string> get_layers () const { return m_layers;                  }
+  const int    * get_numVerts         () const { return vecPtr(m_numVerts); }
+  const double * get_xv               () const { return vecPtr(m_xv);       }
+  const double * get_yv               () const { return vecPtr(m_yv);       }
+  int get_numPolys                    () const { return m_numPolys;         }
+  int get_totalNumVerts               () const { return m_totalNumVerts;    }
+  std::vector<char> get_isPolyClosed  () const { return m_isPolyClosed;     }
+  std::vector<std::string> get_colors () const { return m_colors;           }
+  std::vector<std::string> get_layers () const { return m_layers;           }
 
   void set_color(std::string color);
 
@@ -197,8 +184,7 @@ public:
 
   void sortBySizeAndMaybeAddBigContainingRect(// inputs
                                               double bigXll, double bigYll,
-                                              double bigXur, double bigYur
-                                              );
+                                              double bigXur, double bigYur);
 
   void enforce45();
 
@@ -225,4 +211,6 @@ private:
 
 };
 
-#endif
+}}
+
+#endif // VW_GEOMETRY_DPOLY_H

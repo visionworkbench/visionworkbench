@@ -23,8 +23,7 @@
 #include <algorithm>
 #include <memory>
 
-namespace vw
-{
+namespace vw {
   namespace geometry {
     using namespace std;
     using namespace vw::math;
