@@ -23,9 +23,9 @@
 if MAKE_MODULE_GEOMETRY
 
 
-include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h ATrans.h Frame.h TreeNode.h FrameTreeNode.h FrameStore.h FrameHandle.h
+include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h ATrans.h Frame.h TreeNode.h FrameTreeNode.h FrameStore.h FrameHandle.h geomUtils.h edgeUtils.h dPoly.h cutPoly.h baseUtils.h
 
-libvwGeometry_la_SOURCES = SpatialTree.cc FrameTreeNode.cc FrameStore.cc
+libvwGeometry_la_SOURCES = SpatialTree.cc FrameTreeNode.cc FrameStore.cc geomUtils.cc edgeUtils.cc cutPoly.cc dPoly.cc
 libvwGeometry_la_LIBADD = @MODULE_GEOMETRY_LIBS@
 
 lib_LTLIBRARIES = libvwGeometry.la
