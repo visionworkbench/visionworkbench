@@ -82,6 +82,10 @@ namespace stereo {
     /// two rays are close to parallel.
     double convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const;
 
+    // The default 1-cos(x) function does badly when x close to 0,
+    // which then leads to incorrect angle tolerance.
+    static double robust_1_minus_cos(double x);
+      
   protected:
 
     std::vector<const camera::CameraModel *> m_cameras;

@@ -86,7 +86,7 @@ bool StereoModel::are_nearly_parallel(bool least_squares,
   else               tol = 1e-4;
 
   if (angle_tol > 0) tol = angle_tol; // can be over-ridden from the outside
-  
+
   bool are_par = true;
   for (int p = 0; p < int(camDirs.size()) - 1; p++){
     if ( 1 - dot_prod(camDirs[p], camDirs[p+1]) >= tol )
@@ -186,6 +186,14 @@ double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) 
                        m_cameras[1]->pixel_to_vector(pix2)));
 }
 
+// The default 1-cos(x) function does badly when x is close to 0,
+// which then leads to incorrect angle tolerance.
+double StereoModel::robust_1_minus_cos(double x){
+  if (std::abs(x) > 1e-7) 
+    return 1-cos(x);
+  return x*x/2;
+}
+  
 Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
                                        vector<Vector3> const& camCtrs,
                                        Vector3& errorVec){

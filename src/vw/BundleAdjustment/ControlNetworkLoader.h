@@ -43,14 +43,14 @@ namespace ba {
                              std::vector<std::string> const& image_files,
                              std::map< std::pair<int, int>, std::string> const& match_files,
                              size_t min_matches,
-                             double min_angle);
+                             double min_angle_radians);
   
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
   double triangulate_control_point(ControlPoint& cp,
 				   std::vector<boost::shared_ptr<camera::CameraModel> >
 				   const& camera_models,
-				   double const& minimum_angle );
+				   double const& min_angle_radians );
 
   /// Adds ground control points from GCP files to an already built
   /// Control Network. The vector image_files serves as a look up chart

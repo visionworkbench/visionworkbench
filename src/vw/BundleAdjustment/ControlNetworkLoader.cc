@@ -47,7 +47,7 @@ void safe_measurement( ip::InterestPoint& ip ) {
 double vw::ba::triangulate_control_point( ControlPoint& cp,
                                           std::vector<boost::shared_ptr<camera::CameraModel> >
                                           const& camera_models,
-                                        double const& minimum_angle ) {
+					  double const& min_angle_radians ) {
   Vector3 position_sum;
   double error = 0, error_sum = 0;
   size_t count = 0;
@@ -60,21 +60,23 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
     if ( norm_2( camera_models[j_cam_id]->camera_center( cp[j].position() ) -
                  camera_models[k_cam_id]->camera_center( cp[k].position() ) ) > 1e-6 ) {
       try {
-        stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
-                                camera_models[ k_cam_id ].get() );
 
-        double tri_angle = sm.convergence_angle( cp[j].position(), cp[k].position() );
-        if ( tri_angle > minimum_angle ) {
+	double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
+
+	bool least_squares = false;
+        stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
+                                camera_models[ k_cam_id ].get(), least_squares,
+				angle_tol );
+
+	Vector3 pt = sm( cp[j].position(), cp[k].position(), error );
+        if (pt != Vector3() ){
           count++;
-          position_sum += sm( cp[j].position(), cp[k].position(), error );
+          position_sum += pt;
           error_sum += error;
         }else{
-          vw_out(WarningMessage,"ba") << "\nDetected a triangulation angle " << tri_angle
-                                      << " which is less than the minimum required angle of "
-                                      << minimum_angle  <<". If too many such errors, "
+          vw_out(WarningMessage,"ba") << "\nCould not triangulate point. If too many such errors, "
                                       << "perhaps your baseline is too small, "
-                                      << "or consider decreasing "
-                                      << "--min-triangulation-angle.\n";
+                                      << "or consider decreasing --min-triangulation-angle.\n";
         }
       } catch ( std::exception const& e) {
         /* Just let it go */
@@ -85,7 +87,7 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
   
   // 4.2.) Summing, averaging, and storing
   if ( !count ) {
-    vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
+    // vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
     // At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
@@ -111,7 +113,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     std::vector<std::string> const& image_files,
                                     std::map< std::pair<int, int>, std::string> const& match_files,
                                     size_t min_matches,
-                                    double min_angle) {
+                                    double min_angle_radians) {
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
@@ -243,7 +245,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress(inc_prog );
-      ba::triangulate_control_point( cpoint, camera_models, min_angle );
+      ba::triangulate_control_point( cpoint, camera_models, min_angle_radians );
     }
     progress.report_finished();
   }
