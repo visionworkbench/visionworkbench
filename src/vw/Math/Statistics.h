@@ -208,18 +208,29 @@ double median(T const& values) {
     // Suggested values for the inputs:
     // pct = 0.25, outlier_factor: 1.5.
     // We expect 0 < pct < 0.5.
-  
+
+    if (pct > 0.5)
+      pct = 1.0 - pct;
+    if (pct < 0)
+      pct = 0;
+      
     b = 0.0; e = 0.0; // initialize
     std::vector<T> q = p;
     std::sort(q.begin(), q.end());
+
     int len = q.size();
     if (len <= 0) return;
+
     b = q[0]; e = q[len-1];
     if (len <= 3) return; // too few points for analysis
       
     int bn = int(round(pct*len));
     int en = int(round((1.0-pct)*len))-1;
-      
+
+    // Adjust the bounds just in case
+    bn = std::min(len-1, std::max(bn, 0));
+    en = std::min(len-1, std::max(en, 0));
+    
     double Q1 = q[bn];
     double Q3 = q[en];
     b = Q1 - outlier_factor*(Q3-Q1);
