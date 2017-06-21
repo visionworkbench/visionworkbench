@@ -84,7 +84,7 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
       }
     }
   }
-  
+
   // 4.2.) Summing, averaging, and storing
   if ( !count ) {
     // vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
@@ -102,6 +102,7 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
   } else {
     error_sum /= double(count);
     cp.set_position( position_sum / double(count) );
+
     return error_sum;
   }
 }
@@ -114,6 +115,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     std::map< std::pair<int, int>, std::string> const& match_files,
                                     size_t min_matches,
                                     double min_angle_radians) {
+
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
