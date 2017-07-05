@@ -28,6 +28,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        int kernel_size, 
                                        SgmSubpixelMode subpixel,
                                        Vector2i search_buffer,
+                                       bool conserve_mem,
                                        uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
@@ -40,6 +41,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_ternary_census_threshold = ternary_census_threshold;
   m_subpixel_type = subpixel;
   m_search_buffer = search_buffer;
+  m_conserve_mem  = conserve_mem;
   
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -256,7 +258,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       } else {
         // Not a trusted prior disparity, search the entire range!
         // - This takes a long time.
-        bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y); // DEBUG       
+        bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y);
         full_search_image(c,r) = 255;
       }
       
@@ -272,17 +274,20 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   const double max_search_area = max_range_bbox.area();
   
   // Shrink the search range of full range pixels based on neighbors
-  
-  const int NEARBY_DISP_SEARCH_RANGE = 5; // Look this many pixels in each direction
+  // TODO: Make this more efficient!!!
+        int NEARBY_DISP_SEARCH_RANGE = 5; // Look this many pixels in each direction
   const int NEARBY_DISP_EXPANSION    = 3; // Grow search range from what nearby pixels have
+  if (m_conserve_mem)
+    NEARBY_DISP_SEARCH_RANGE = 25;
   double percent_shrunk = 0, shrunk_area = area;
+  float conserved = 0;
   if (prev_disparity) { // No point doing this if a previous disparity image was not provided
   
     // DEBUG
     //std::stringstream s;
     //s << m_disp_bound_image.cols();
     //write_image("full_search_image"+s.str()+".tif", full_search_image);
-  
+
     for (int r=0; r<m_disp_bound_image.rows(); ++r) {
       // Get vertical search range
       int min_search_r = r - NEARBY_DISP_SEARCH_RANGE;
@@ -313,9 +318,18 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
             new_range.grow(Vector2i(vec[2], vec[3]));
           }
         }
-        // Grow the bounding box a bit and then record it
-        if (new_range.empty())
-          continue;       
+        if (new_range.empty()) { // If we did not find a new estimate
+          // If worried about memory, don't try to solve pixels with no estimate.
+          if (m_conserve_mem) {
+            m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
+            percent_shrunk += 1.0;
+            shrunk_area -= max_search_area;
+            conserved += 1.0;
+          }
+          // Otherwise use the full search range for them.
+          continue;
+        }
+        // Grow the bounding box a bit and then record it  
         new_range.expand(NEARBY_DISP_EXPANSION);
         new_range.crop(max_range_bbox); // Constrain to global limits
         m_disp_bound_image(c,r) = Vector4i(new_range.min().x(),   new_range.min().y(),
@@ -334,6 +348,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   percent_trusted /= num_pixels;
   percent_masked  /= num_pixels;
   percent_shrunk  /= num_pixels;
+  conserved       /= num_pixels;
   
   
   double initial_percent_full_range = 1.0 - (percent_trusted+percent_masked);
@@ -346,6 +361,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   vw_out(InfoMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
+  if (m_conserve_mem)
+    vw_out(InfoMessage, "stereo") << "Percent pixels conserved for memory = " << conserved << std::endl;
+  
   
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))

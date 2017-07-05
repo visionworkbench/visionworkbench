@@ -170,6 +170,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     }
   }
 
+  // Loop through the match files...
   size_t num_load_rejected = 0, num_loaded = 0;
   for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++){
     std::string match_file = match_files_vec[file_iter];
@@ -184,49 +185,49 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
       vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
                                 << ip1.size() << " matches. [rejected]\n";
       num_load_rejected += ip1.size();
-    } else {
-      vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
-                                << ip1.size() << " matches.\n";
-      num_loaded += ip1.size();
-
-      // Remove descriptors from interest points and correct scale
-      std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
-      std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
-      std::for_each( ip1.begin(), ip1.end(), safe_measurement );
-      std::for_each( ip2.begin(), ip2.end(), safe_measurement );
-
-      typedef boost::shared_ptr< ba::IPFeature > f_ptr;
-      typedef std::list< f_ptr >::iterator f_itr;
-
-      // Checking to see if features already exist, adding if they
-      // don't, then linking them.
-      vw_out() << "Building the control network for " << match_file <<".\n";
-      TerminalProgressCallback progress("ba", "Building: ");
-      progress.report_progress(0);
-      double inc_prog = 1.0/double(ip1.size());
-      for ( size_t k = 0; k < ip1.size(); k++ ) {
-        f_itr ipfeature1 = std::find_if( crn[index1].begin(),
-                                         crn[index1].end(),
-                                         ContainsEqualIP( ip1[k] ) );
-        f_itr ipfeature2 = std::find_if( crn[index2].begin(),
-                                         crn[index2].end(),
-                                         ContainsEqualIP( ip2[k] ) );
-        if ( ipfeature1 == crn[index1].end() ) {
-          crn[index1].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], index1 ) ) );
-          ipfeature1 = crn[index1].begin();
-        }
-        if ( ipfeature2 == crn[index2].end() ) {
-          crn[index2].relations.push_front( f_ptr( new ba::IPFeature( ip2[k], index2 ) ) );
-          ipfeature2 = crn[index2].begin();
-        }
-
-        // Doubly linking
-        (*ipfeature1)->connection( *ipfeature2, false );
-        (*ipfeature2)->connection( *ipfeature1, false );
-	progress.report_incremental_progress(inc_prog );
-      } // End loop through ip1
-      progress.report_finished();
+      continue;
     }
+    vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
+                              << ip1.size() << " matches.\n";
+    num_loaded += ip1.size();
+
+    // Remove descriptors from interest points and correct scale
+    std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
+    std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
+    std::for_each( ip1.begin(), ip1.end(), safe_measurement );
+    std::for_each( ip2.begin(), ip2.end(), safe_measurement );
+
+    typedef boost::shared_ptr< ba::IPFeature > f_ptr;
+    typedef std::list< f_ptr >::iterator f_itr;
+
+    // Checking to see if features already exist, adding if they
+    // don't, then linking them.
+    vw_out() << "Building the control network for " << match_file <<".\n";
+    TerminalProgressCallback progress("ba", "Building: ");
+    progress.report_progress(0);
+    double inc_prog = 1.0/double(ip1.size());
+    for ( size_t k = 0; k < ip1.size(); k++ ) {
+      f_itr ipfeature1 = std::find_if( crn[index1].begin(),
+                                       crn[index1].end(),
+                                       ContainsEqualIP( ip1[k] ) );
+      f_itr ipfeature2 = std::find_if( crn[index2].begin(),
+                                       crn[index2].end(),
+                                       ContainsEqualIP( ip2[k] ) );
+      if ( ipfeature1 == crn[index1].end() ) {
+        crn[index1].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], index1 ) ) );
+        ipfeature1 = crn[index1].begin();
+      }
+      if ( ipfeature2 == crn[index2].end() ) {
+        crn[index2].relations.push_front( f_ptr( new ba::IPFeature( ip2[k], index2 ) ) );
+        ipfeature2 = crn[index2].begin();
+      }
+
+      // Doubly linking
+      (*ipfeature1)->connection( *ipfeature2, false );
+      (*ipfeature2)->connection( *ipfeature1, false );
+      progress.report_incremental_progress(inc_prog );
+    } // End loop through ip1
+    progress.report_finished();
   } // End loop through match files
 
   if ( num_load_rejected != 0 ) {

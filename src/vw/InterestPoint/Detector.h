@@ -467,9 +467,9 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
   InterestPointList new_ip_list = m_detector(crop(m_view.impl(), m_bbox),0);
 
   for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
-    (*pt).x +=  m_bbox.min().x();
+    (*pt).x  += m_bbox.min().x();
     (*pt).ix += m_bbox.min().x();
-    (*pt).y +=  m_bbox.min().y();
+    (*pt).y  += m_bbox.min().y();
     (*pt).iy += m_bbox.min().y();
   }
 
@@ -766,7 +766,7 @@ process_image(ImageViewBase<ViewT> const& image) const {
       img_data.clear();
       img_data.reserve(octave.num_planes);
       for (int k = 0; k < octave.num_planes; ++k) {
-	img_data.push_back(DataT(octave.scales[k]));
+        img_data.push_back(DataT(octave.scales[k]));
       }
     }
 
@@ -775,7 +775,7 @@ process_image(ImageViewBase<ViewT> const& image) const {
     {
       Timer t("done, elapsed time", DebugMessage, "interest_point");
       for (int k = 0; k < octave.num_planes; ++k) {
-	m_interest(img_data[k], octave.plane_index_to_scale(k));
+        m_interest(img_data[k], octave.plane_index_to_scale(k));
       }
     }
 
@@ -811,8 +811,9 @@ process_image(ImageViewBase<ViewT> const& image) const {
       int original_num_points = new_points.size();
       new_points.sort();
       if ((m_max_points > 0) && (m_max_points/m_octaves < (int)new_points.size()))
-	new_points.resize(m_max_points/m_octaves);
-      vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.), ";
+        new_points.resize(m_max_points/m_octaves);
+      vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - new_points.size() 
+                                             << " interest points, " << new_points.size() << " remaining.), ";
     }
 
     // Assign orientations
@@ -986,17 +987,17 @@ void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
     {
       case OPENCV_IP_DETECTOR_TYPE_BRISK:
       case OPENCV_IP_DETECTOR_TYPE_ORB:
-	for (size_t d=0; d<descriptor_length; ++d)
-	  iter->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
-	break;
+        for (size_t d=0; d<descriptor_length; ++d)
+          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
+        break;
       case OPENCV_IP_DETECTOR_TYPE_SIFT:
-	for (size_t d=0; d<descriptor_length; ++d)
-	  iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
-	break;
+        for (size_t d=0; d<descriptor_length; ++d)
+          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
+        break;
       case OPENCV_IP_DETECTOR_TYPE_SURF:
-	for (size_t d=0; d<descriptor_length; ++d)
-	  iter->descriptor[d] = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
-	break;
+        for (size_t d=0; d<descriptor_length; ++d)
+          iter->descriptor[d] = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
+        break;
       default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
     };
     ++ip_index;
