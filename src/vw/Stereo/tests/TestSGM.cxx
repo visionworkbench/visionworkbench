@@ -45,6 +45,7 @@ TEST( SGM, constant_offset ) {
   ImageView<uint8> right = crop(inputRight, rightRoi);
   
   bool use_mgm = false;
+  bool conserve_memory = false;
   boost::shared_ptr<SemiGlobalMatcher> matcher_ptr;
   CostFunctionType cost_type = CENSUS_TRANSFORM;
   Vector2i search_buffer(4,4);
@@ -53,10 +54,10 @@ TEST( SGM, constant_offset ) {
                                                 Vector2i(disp_x_range, disp_y_range),
                                                 Vector2i(kernel_size, kernel_size),
                                                 use_mgm, SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
-                                                search_buffer, matcher_ptr);
+                                                search_buffer, conserve_memory, matcher_ptr);
                                                 
   result = result + PixelMask<Vector2i>(min_disp_x, min_disp_y);
-  write_image("SGM_output.tif", result);
+  //write_image("SGM_output.tif", result);
 
   double num_pixels  = result.rows()*result.cols();
   size_t num_correct = 0;
