@@ -83,6 +83,8 @@ public:
   const int    * get_numVerts         () const { return vecPtr(m_numVerts); }
   const double * get_xv               () const { return vecPtr(m_xv);       }
   const double * get_yv               () const { return vecPtr(m_yv);       }
+  double * get_xv                     () { return vecPtr(m_xv);             }  // non-const
+  double * get_yv                     () { return vecPtr(m_yv);             }
   int get_numPolys                    () const { return m_numPolys;         }
   int get_totalNumVerts               () const { return m_totalNumVerts;    }
   std::vector<char> get_isPolyClosed  () const { return m_isPolyClosed;     }

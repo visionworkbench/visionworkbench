@@ -364,28 +364,19 @@ void expandBoxToGivenRatio(// inputs
 }
 
 bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
-                           double xl2, double yl2, double xh2, double yh2
-                           ){
+		    double xl2, double yl2, double xh2, double yh2){
 
   assert(xl1 <= xh1 && yl1 <= yh1);
   assert(xl2 <= xh2 && yl2 <= yh2);
-
-  return
-    (
-     std::max(xl1, xl2) <= std::min(xh1, xh2)
-     &&
-     std::max(yl1, yl2) <= std::min(yh1, yh2)
-     );
+  return(std::max(xl1, xl2) <= std::min(xh1, xh2) &&
+	 std::max(yl1, yl2) <= std::min(yh1, yh2));
 
 }
 
-bool mergePolys(int an,
-                       const double * ax_in, const double * ay_in,
-                       int bn,
-                       const double * bx_in, const double * by_in,
-                       std::vector<double> & mergedX,
-                       std::vector<double> & mergedY
-                       ){
+bool mergePolys(int an, const double * ax_in, const double * ay_in,
+		int bn, const double * bx_in, const double * by_in,
+		std::vector<double> & mergedX, std::vector<double> & mergedY
+		){
 
   // Merge two polygons. This function is INCOMPLETE and BUGGY.
   // To be finished.

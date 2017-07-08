@@ -571,6 +571,10 @@ void dPoly::findClosestAnnotation(// inputs
 }
 
 
+// Given a point and a set of polygons, find the polygon vertex
+// closest to the given point. Return the closest vertex and the
+// distance to it from the given point. Return DBL_MAX if the
+// polygon is empty.
 void dPoly::findClosestPolyVertex(// inputs
                                   double x0, double y0,
                                   // outputs
@@ -579,11 +583,6 @@ void dPoly::findClosestPolyVertex(// inputs
                                   double & min_x, double & min_y,
                                   double & min_dist
                                   ) const{
-
-  // Given a point and a set of polygons, find the polygon vertex
-  // closest to the given point. Return the closest vertex and the
-  // distance to it from the given point. Return DBL_MAX if the
-  // polygon is empty.
 
   min_x = x0; min_y = y0; min_dist = DBL_MAX;
   polyIndex = -1; vertIndex = -1;
@@ -609,18 +608,17 @@ void dPoly::findClosestPolyVertex(// inputs
   return;
 }
 
+// Given a point and a set of polygons, find the polygon edge
+// closest to the given point and the location on the edge where the
+// smallest distance is achieved. Return the index of the polygon
+// where the closest distance is achieved, as well as the point at
+// which that distance is achieved and the smallest distance itself.
 void dPoly::findClosestPolyEdge(//inputs
                                  double x0, double y0,
                                  // outputs
                                  int & polyIndex, int & vertIndex,
                                  double & minX, double & minY, double & minDist
                                  ) const{
-
-  // Given a point and a set of polygons, find the polygon edge
-  // closest to the given point and the location on the edge where the
-  // smallest distance is achieved. Return the index of the polygon
-  // where the closest distance is achieved, as well as the point at
-  // which that distance is achieved and the smallest distance itself.
 
   polyIndex = -1;
   vertIndex = -1;
@@ -995,8 +993,7 @@ void dPoly::enforce45(){
 bool dPoly::readPoly(std::string filename,
                      // If isPointCloud is true, treat each point as a
                      // singleton polygon
-                     bool isPointCloud
-                     ){
+                     bool isPointCloud){
 
   reset();
 
@@ -1193,8 +1190,7 @@ bool dPoly::getColorInCntFile(const std::string & line, std::string & color){
 
 bool dPoly::read_pol_or_cnt_format(std::string filename,
                                    std::string type,
-                                   bool isPointCloud
-                                   ){
+                                   bool isPointCloud){
 
   // Read in two very simple and related polygon formats, named pol and cnt.
 
