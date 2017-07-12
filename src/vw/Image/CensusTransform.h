@@ -43,6 +43,8 @@ namespace vw {
 inline uint8  get_census_value_3x3        (ImageView<uint8> const& image, int col, int row);
 inline uint32 get_census_value_5x5        (ImageView<uint8> const& image, int col, int row);
 inline uint64 get_census_value_7x7        (ImageView<uint8> const& image, int col, int row);
+inline uint32 get_census_value_9x9        (ImageView<uint8> const& image, int col, int row);
+inline uint16 get_census_value_ternary_3x3(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
 inline uint64 get_census_value_ternary_5x5(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
 inline uint64 get_census_value_ternary_7x7(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
 inline uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
@@ -51,6 +53,7 @@ inline uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int co
 
 /// Simple, unoptimized code for computing the hamming distance of two integers.
 inline size_t hamming_distance(uint8  a, uint8  b);
+inline size_t hamming_distance(uint16 a, uint16 b);
 inline size_t hamming_distance(uint32 a, uint32 b);
 inline size_t hamming_distance(uint64 a, uint64 b);
 
@@ -112,6 +115,87 @@ uint64 get_census_value_7x7(ImageView<uint8> const& image, int col, int row) {
   return output;
 }
 
+uint32 get_census_value_9x9(ImageView<uint8> const& image, int col, int row) {
+  // This will be a 32 bit sequence.
+  // - Could expand this out to a 64 bit sequence
+  uint32 output = 0;
+  uint32 addend = 1;
+  
+  /* Pixels are checked in this pattern:
+  *...*...*
+  .*.*.*.*.
+  ..*.*.*..
+  .*..*..*.
+  *.**.**.*
+  .*..*..*.
+  ..*.*.*..
+  .*.*.*.*.
+  *...*...*
+  Taken from the paper "TEXTURE-AWARE DENSE IMAGE MATCHING USING TERNARY CENSUS TRANSFORM"
+  by Han Hu,Chongtai Chen, Bo Wu, Xiaoxia Yang, Qing Zhu, Yulin Ding
+  */
+  
+  const int NUM_POSITIONS = 32; // * 1 bits per position = 32 bits
+  int cols[NUM_POSITIONS];
+  int rows[NUM_POSITIONS];
+  cols[ 0] = 0;  cols[ 1] = 4;  cols[ 2] = 8;
+  cols[ 3] = 1;  cols[ 4] = 3;  cols[ 5] = 5;  cols[ 6] = 7;
+  cols[ 7] = 2;  cols[ 8] = 4;  cols[ 9] = 6;
+  cols[10] = 1;  cols[11] = 4;  cols[12] = 7;
+  cols[13] = 0;  cols[14] = 2;  cols[15] = 3; cols[16] = 5;  cols[17] = 6;  cols[18] = 8;
+  cols[19] = 1;  cols[20] = 4;  cols[21] = 7;
+  cols[22] = 2;  cols[23] = 4;  cols[24] = 6;
+  cols[25] = 1;  cols[26] = 3;  cols[27] = 5;  cols[28] = 7;
+  cols[29] = 0;  cols[30] = 4;  cols[31] = 8;
+
+  rows[ 0] = rows[ 1] = rows[ 2] = 0;
+  rows[ 3] = rows[ 4] = rows[ 5] = rows[ 6] = 1;
+  rows[ 7] = rows[ 8] = rows[ 9] = 2;
+  rows[10] = rows[11] = rows[12] = 3;
+  rows[13] = rows[14] = rows[15] = rows[16] = rows[17] = rows[18] = 4;
+  rows[19] = rows[20] = rows[21] = 5;
+  rows[22] = rows[23] = rows[24] = 6;
+  rows[25] = rows[26] = rows[27] = rows[28] = 7;
+  rows[29] = rows[30] = rows[31] = 8;
+  
+  const int center = image(col, row);
+  
+  for (int i=0; i<NUM_POSITIONS; ++i) {
+    int val = image(col+cols[i]-4,row+rows[i]-4);
+    if (val > center)
+      output += addend;
+    addend *=2;
+  }
+  return output;
+}
+
+
+uint16 get_census_value_ternary_3x3(ImageView<uint8> const& image, int col, int row,
+                                    int diff_threshold) {
+  // This will be a 16 bit sequence.
+  uint16 output = 0;
+  uint16 addend = 1;
+  const int center = image(col, row);
+  const int low_thresh  = center - diff_threshold;
+  const int high_thresh = center + diff_threshold;
+  for (int r=row+1; r>=row-1; --r) {
+    for (int c=col+1; c>=col-1; --c) {
+      if ((r == row) && (c==col)) // Skip the central pixel
+        continue;
+      int val = image(c,r);
+      if (val >= low_thresh) {
+        output += addend;
+        if (val > high_thresh) // Greater, += 11
+          output += addend*2;
+        // else Middle range, += 01
+      }
+      // For low range, += 00
+
+      addend *=4;
+    }
+  }
+  return output;
+}
 
 uint64 get_census_value_ternary_5x5(ImageView<uint8> const& image, int col, int row,
                                     int diff_threshold) {
@@ -265,6 +349,19 @@ uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int 
 size_t hamming_distance(uint8 a, uint8 b) {
     uint8 dist = 0;
     uint8 val = a ^ b; // XOR
+
+    // Count the number of bits set
+    while (val != 0) {
+        // A bit is set, so increment the count and clear the bit
+        ++dist;
+        val &= val - 1;
+    }
+    return static_cast<size_t>(dist); // Return the number of differing bits
+}
+
+size_t hamming_distance(uint16 a, uint16 b) {
+    uint16 dist = 0;
+    uint16 val = a ^ b; // XOR
 
     // Count the number of bits set
     while (val != 0) {

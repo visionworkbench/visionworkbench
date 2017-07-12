@@ -59,11 +59,13 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
       case 3:  m_p1 = 3;  break; // 0 - 8
       case 5:  m_p1 = 15; break; // 0 - 24
       case 7:  m_p1 = 30; break; // 0 - 48
+      case 9:  m_p1 = 20; break; // 0 - 32
       default: m_p1 = 3; break; // Unsupported!
       };
       break;
     case TERNARY_CENSUS_TRANSFORM:
       switch(kernel_size){
+      case 3:  m_p1 = 12; break; // 0 - 16
       case 5:  m_p1 = 30; break; // 0 - 48
       case 7:  m_p1 = 40; break; // 0 - 64
       case 9:  m_p1 = 40; break; // 0 - 64
@@ -85,11 +87,13 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
       case 3:  m_p2 = 70;   break; // 0 - 8
       case 5:  m_p2 = 750;  break; // 0 - 24
       case 7:  m_p2 = 1500; break; // 0 - 48
+      case 9:  m_p2 = 1000; break; // 0 - 32
       default: m_p2 = 22;   break; // Unsupported!
       };
       break;
     case TERNARY_CENSUS_TRANSFORM:
       switch(kernel_size){
+      case 3:  m_p2 = 600;  break; // 0 - 16
       case 5:  m_p2 = 1500; break; // 0 - 48
       case 7:  m_p2 = 2000; break; // 0 - 64
       case 9:  m_p2 = 2000; break; // 0 - 64
@@ -1123,6 +1127,7 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
 }
 
 
+
 void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
                                              ImageView<uint8> const& right_image){
   const int half_kernel = (m_kernel_size - 1) / 2;
@@ -1131,20 +1136,31 @@ void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
-                   right_census(right_image.cols()-padding, right_image.rows()-padding);
 
   if (m_cost_type == CENSUS_TRANSFORM) {
+    ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                     right_census(right_image.cols()-padding, right_image.rows()-padding);
+  
     for ( int r = 0; r < left_census.rows(); r++ )
       for ( int c = 0; c < left_census.cols(); c++ )
         left_census(c,r) = get_census_value_3x3(left_image, c+half_kernel, r+half_kernel);
     for ( int r = 0; r < right_census.rows(); r++ )
       for ( int c = 0; c < right_census.cols(); c++ )
         right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
+    get_hamming_distance_costs(left_census, right_census);
   } else {
-    vw_throw(NoImplErr() << "The ternary sensus transform not available in size 3!\n");
+    ImageView<uint16> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                      right_census(right_image.cols()-padding, right_image.rows()-padding);
+                     
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_ternary_3x3(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_ternary_3x3(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
+    get_hamming_distance_costs(left_census, right_census);
   } 
-  get_hamming_distance_costs(left_census, right_census);
+  
 }
 
 void SemiGlobalMatcher::fill_costs_census5x5(ImageView<uint8> const& left_image,
@@ -1215,21 +1231,31 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
-                    right_census(right_image.cols()-padding, right_image.rows()-padding);
+
                    
   if (m_cost_type == CENSUS_TRANSFORM) {
-    vw_throw(NoImplErr() << "The Census transform not available in size 9!\n");
+    ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                      right_census(right_image.cols()-padding, right_image.rows()-padding);
+
+    for ( int r = 0; r < left_census.rows(); r++ )
+      for ( int c = 0; c < left_census.cols(); c++ )
+        left_census(c,r) = get_census_value_9x9(left_image, c+half_kernel, r+half_kernel);
+    for ( int r = 0; r < right_census.rows(); r++ )
+      for ( int c = 0; c < right_census.cols(); c++ )
+        right_census(c,r) = get_census_value_9x9(right_image, c+half_kernel, r+half_kernel);  
+    get_hamming_distance_costs(left_census, right_census);
   } else { // TERNARY_CENSUS_TRANSFORM
+    ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+                      right_census(right_image.cols()-padding, right_image.rows()-padding);
+                    
     for ( int r = 0; r < left_census.rows(); r++ )
       for ( int c = 0; c < left_census.cols(); c++ )
         left_census(c,r) = get_census_value_ternary_9x9(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
     for ( int r = 0; r < right_census.rows(); r++ )
       for ( int c = 0; c < right_census.cols(); c++ )
         right_census(c,r) = get_census_value_ternary_9x9(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-  }
-  
-  get_hamming_distance_costs(left_census, right_census);
+    get_hamming_distance_costs(left_census, right_census);
+  } 
 }
 
 // TODO: Add multithreading capability to this function!
