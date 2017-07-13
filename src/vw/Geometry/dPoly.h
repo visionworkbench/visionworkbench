@@ -181,6 +181,7 @@ public:
   void extractMarkedPolys(std::map<int, int> & mark, // input
                           dPoly & polys              // output
                           ) const;
+  void reverse(); // reverse orientation
   void reverseOnePoly(int polyIndex);
   void sortFromLargestToSmallest();
 

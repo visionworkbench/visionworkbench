@@ -823,7 +823,19 @@ void dPoly::extractMarkedPolys(std::map<int, int> & mark, // input
   return;
 }
 
+// Reverse orientation of all polygons
+void dPoly::reverse(){
 
+  int start = 0;
+  for (int pIter = 0; pIter < m_numPolys; pIter++){
+    if (pIter > 0) start += m_numVerts[pIter - 1];
+    std::reverse(vecPtr(m_xv) + start, vecPtr(m_xv) + start + m_numVerts[pIter]);
+    std::reverse(vecPtr(m_yv) + start, vecPtr(m_yv) + start + m_numVerts[pIter]);
+  }
+  
+  return;
+}
+  
 void dPoly::reverseOnePoly(int polyIndex){
 
   assert(0 <= polyIndex && polyIndex < m_numPolys);
@@ -833,8 +845,8 @@ void dPoly::reverseOnePoly(int polyIndex){
     start += m_numVerts[pIter];
   }
 
-  reverse(vecPtr(m_xv) + start, vecPtr(m_xv) + start + m_numVerts[polyIndex]);
-  reverse(vecPtr(m_yv) + start, vecPtr(m_yv) + start + m_numVerts[polyIndex]);
+  std::reverse(vecPtr(m_xv) + start, vecPtr(m_xv) + start + m_numVerts[polyIndex]);
+  std::reverse(vecPtr(m_yv) + start, vecPtr(m_yv) + start + m_numVerts[polyIndex]);
 
   return;
 }
