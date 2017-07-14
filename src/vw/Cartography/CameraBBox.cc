@@ -74,28 +74,26 @@ namespace vw { namespace cartography { namespace detail {
 
     void operator()( Vector2 const& pixel ) {
       bool has_intersection;
-      Vector2 point =
-	geospatial_intersect(m_georef,
-			     m_camera->camera_center(pixel),
-			     m_camera->pixel_to_vector(pixel),
-			     has_intersection);
+      Vector2 point = geospatial_intersect(m_georef,
+			                                     m_camera->camera_center(pixel),
+			                                     m_camera->pixel_to_vector(pixel),
+			                                     has_intersection);
       if ( !has_intersection ) {
-	last_valid = false;
-	return;
+        last_valid = false;
+        return;
       }
       
       if (!m_georef.is_projected()){
-	// If we don't use a projected coordinate system, then the
-	// coordinates of this point are simply lon and lat.
-	if ( center_on_zero && point[0] > 180 )
-	  point[0] -= 360.0;
+        // If we don't use a projected coordinate system, then the
+        // coordinates of this point are simply lon and lat.
+        if ( center_on_zero && point[0] > 180 )
+          point[0] -= 360.0;
       }
       
       if ( last_valid ) {
-	double current_scale =
-	  norm_2( point - m_last_intersect );
-	if ( current_scale < scale )
-	  scale = current_scale;
+        double current_scale = norm_2( point - m_last_intersect );
+        if ( current_scale < scale )
+          scale = current_scale;
       }
       m_last_intersect = point;
       box.grow( point );
