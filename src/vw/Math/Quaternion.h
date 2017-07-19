@@ -224,29 +224,29 @@ namespace math {
 
       ElemT c[4];
       if (ww == max) {
-	ElemT w4 = ElemT(sqrt(ww * 4.0));
-	c[0] = w4 / 4;
-	c[1] = (rot(2,1) - rot(1,2)) / w4;
-	c[2] = (rot(0,2) - rot(2,0)) / w4;
-	c[3] = (rot(1,0) - rot(0,1)) / w4;
+        ElemT w4 = ElemT(sqrt(ww * 4.0));
+        c[0] = w4 / 4;
+        c[1] = (rot(2,1) - rot(1,2)) / w4;
+        c[2] = (rot(0,2) - rot(2,0)) / w4;
+        c[3] = (rot(1,0) - rot(0,1)) / w4;
       } else if (xx == max) {
-	ElemT x4 = ElemT(sqrt(xx * 4.0));
-	c[0] = (rot(2,1) - rot(1,2)) / x4;
-	c[1] = x4 / 4;
-	c[2] = (rot(0,1) + rot(1,0)) / x4;
-	c[3] = (rot(0,2) + rot(2,0)) / x4;
+        ElemT x4 = ElemT(sqrt(xx * 4.0));
+        c[0] = (rot(2,1) - rot(1,2)) / x4;
+        c[1] = x4 / 4;
+        c[2] = (rot(0,1) + rot(1,0)) / x4;
+        c[3] = (rot(0,2) + rot(2,0)) / x4;
       } else if (yy == max) {
-	ElemT y4 = ElemT(sqrt(yy * 4.0));
-	c[0] = (rot(0,2) - rot(2,0)) / y4;
-	c[1] = (rot(0,1) + rot(1,0)) / y4;
-	c[2] =  y4 / 4;
-	c[3] = (rot(1,2) + rot(2,1)) / y4;
+        ElemT y4 = ElemT(sqrt(yy * 4.0));
+        c[0] = (rot(0,2) - rot(2,0)) / y4;
+        c[1] = (rot(0,1) + rot(1,0)) / y4;
+        c[2] =  y4 / 4;
+        c[3] = (rot(1,2) + rot(2,1)) / y4;
       } else {
-	ElemT z4 = ElemT(sqrt(zz * 4.0));
-	c[0] = (rot(1,0) - rot(0,1)) / z4;
-	c[1] = (rot(0,2) + rot(2,0)) / z4;
-	c[2] = (rot(1,2) + rot(2,1)) / z4;
-	c[3] =  z4 / 4;
+        ElemT z4 = ElemT(sqrt(zz * 4.0));
+        c[0] = (rot(1,0) - rot(0,1)) / z4;
+        c[1] = (rot(0,2) + rot(2,0)) / z4;
+        c[2] = (rot(1,2) + rot(2,1)) / z4;
+        c[3] =  z4 / 4;
       }
       m_core = core_type(c[0],c[1],c[2],c[3]);
     }
@@ -274,7 +274,7 @@ namespace math {
       case 2: return m_core.R_component_3(); break;
       case 3: return m_core.R_component_4(); break;
       default:
-	vw_throw( ArgumentErr() << "Quaternion: Invalid index" );
+        vw_throw( ArgumentErr() << "Quaternion: Invalid index" );
       }
     }
     ElemT operator()( size_t i ) const { return (*this)[i]; }
@@ -296,9 +296,9 @@ namespace math {
       // What's the better way to do this?
       // For rotation of 0 or 180, axis does not matter
       if (fabs(imag_norm_2) < 1e-10) {
-	axis = Vector<ElemT,3>(1,0,0);
+        axis = Vector<ElemT,3>(1,0,0);
       } else {
-	axis = imag_part / norm_2(imag_part);
+        axis = imag_part / norm_2(imag_part);
       }
     }
 

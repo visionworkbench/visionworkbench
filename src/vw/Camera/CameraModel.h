@@ -197,8 +197,7 @@ namespace camera {
 
     /// Modify the adjustments by applying on top of them a rotation + translation
     /// transform with the origin at the center of the planet (such as
-    /// output by pc_align's forward or inverse computed alignment
-    /// transform).
+    /// output by pc_align's forward or inverse computed alignment transform).
     void apply_transform(vw::Matrix4x4 const& M);
     
     void write(std::string const&);
@@ -223,7 +222,8 @@ namespace camera {
   /// Given a point in world coordinates, convert it to camera coordinates.
   /// - This is generic coordinate frame code but there is nowhere else to put it.
   inline Vector3 point_to_camera_coord(Vector3 const& camera_position,
-                                Quat    const& camera_pose,     Vector3 const& point) {
+                                       Quat    const& camera_pose,     
+                                       Vector3 const& point) {
     return inverse(camera_pose).rotate(point - camera_position);
   }
 
