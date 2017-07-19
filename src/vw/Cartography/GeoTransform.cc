@@ -26,7 +26,7 @@
 #include <proj_api.h>
 
 // Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR(ctx_input) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection. Proj.4 error: " << pj_strerrno(ctx_input.error_no()))
+#define CHECK_PROJ_ERROR(ctx_input) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection in GeoTransform.cc. Proj.4 error: " << pj_strerrno(ctx_input.error_no()))
 
 namespace vw {
 namespace cartography {
