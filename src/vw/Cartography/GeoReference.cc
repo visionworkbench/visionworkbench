@@ -38,7 +38,7 @@
 #include <proj_api.h>
 
 // Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR(ctx_input, loc) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection in GeoReference.cc. Proj.4 error: " << pj_strerrno(ctx_input.error_no()) <<"\nLocation is " << loc << ".\n")
+#define CHECK_PROJ_ERROR(ctx_input, loc) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection in GeoReference.cc. Proj.4 error: " << pj_strerrno(ctx_input.error_no()) <<".\nLocation is " << loc << ".\n")
 
 namespace vw {
 namespace cartography {
