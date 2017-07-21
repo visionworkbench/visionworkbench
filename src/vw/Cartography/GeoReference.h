@@ -352,11 +352,7 @@ namespace cartography {
   bool read_georeference( GeoReference& georef, ImageResource const& resource );
 
   /// A convenience function to read georeferencing information from an image file.
-  inline bool read_georeference( GeoReference& georef, const std::string &filename ) {
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
-    bool result = read_georeference( georef, *r );
-    return result;
-  }
+  bool read_georeference( GeoReference& georef, const std::string &filename );
 
   /// A convenience function to read an image and its georeferencing information.
   template <class PixelT>

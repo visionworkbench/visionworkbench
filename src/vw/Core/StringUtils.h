@@ -1,6 +1,6 @@
-/// \file FileIO/Fileutils.h
+/// \file Core/StringUtils.h
 ///
-/// An abstract base class referring to an image on disk.
+/// Minor string utilities. 
 ///
 #ifndef __VW_CORE_STRINGUTILS_H__
 #define __VW_CORE_STRINGUTILS_H__

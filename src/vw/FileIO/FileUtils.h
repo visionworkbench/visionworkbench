@@ -22,6 +22,10 @@ namespace vw{
   /// If prefix is "dir/out", create directory "dir"
   void create_out_dir(std::string out_prefix);
 
+  /// Return true if the image_file/camera file combination represents a SPOT5 camera file.
+  /// - Returns false if the camera_file input is empty.
+  bool has_spot5_extension(std::string const& image_file, std::string const& camera_file="");
+  
 } // namespace vw
 
 #endif // __VW_FILEIO_FILEUTILS_H__

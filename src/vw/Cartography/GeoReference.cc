@@ -29,6 +29,7 @@
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
+#include <vw/FileIO/FileUtils.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -60,6 +61,18 @@ namespace cartography {
     return false;
   }
 
+  /// A convenience function to read georeferencing information from an image file.
+  bool read_georeference( GeoReference& georef, const std::string &filename ) {
+
+    // No image with a SPOT5 suffix can ever have georeference.
+    if (vw::has_spot5_extension(filename)) return false;
+
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
+    bool result = read_georeference( georef, *r );
+    
+    return result;
+  }
+  
   void write_georeference( ImageResource& resource,
                            GeoReference const& georef ) {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
