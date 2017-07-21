@@ -153,82 +153,88 @@ namespace cartography {
                                   int num_max_iter        = 100,
                                   Vector3 xyz_guess       = Vector3()
                                   ){
+    
+    // This is a very fragile function and things can easily go wrong. 
+    try {
+      has_intersection = false;
+      RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr,
+                                             camera_vec, treat_nodata_as_zero);
 
-    has_intersection = false;
-    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr,
-                                           camera_vec, treat_nodata_as_zero);
+      Vector3 xyz;
+      if ( xyz_guess == Vector3() ){ // If no guess provided
+        // Intersect the ray with the datum, this is a good initial guess.
+        xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
 
-    Vector3 xyz;
-    if ( xyz_guess == Vector3() ){ // If no guess provided
-      // Intersect the ray with the datum, this is a good initial guess.
-      xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
+        if ( xyz == Vector3() ) { // If we failed to intersect the datum, give up!
+          has_intersection = false;
+          return Vector3();
+        }
+      }else{ // User provided guess
+        xyz = xyz_guess;
+      }
 
-      if ( xyz == Vector3() ) { // If we failed to intersect the datum, give up!
+      // Length along the ray from camera center to intersection point
+      Vector<double, 1> len0, len;
+      len0[0] = norm_2(xyz - camera_ctr);
+
+      // If the ray intersects the datum at a point which does not
+      // correspond to a valid location in the DEM, wiggle that point
+      // along the ray until hopefully it does.
+      const double radius     = norm_2(xyz); // Radius from XZY coordinate center
+      const int    ITER_LIMIT = 10; // There are two solver attempts per iteration
+      const double small      = radius*0.02/( 1 << (ITER_LIMIT-1) ); // Wiggle
+      for (int i = 0; i <= ITER_LIMIT; i++){
+        // Gradually expand delta until on final iteration it is == radius*0.02
+        double delta = 0;
+        if (i > 0)
+          delta = small*( 1 << (i-1) );
+
+        for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
+          len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
+          // Use our model to compute the height diff at this length
+          Vector<double, 1> height_diff = model(len);
+          // TODO: This is an EXTREMELY lenient threshold! big_val()/10.0 == 1.0e+49!!!
+          //       The effect of this may be to just stop this loop when we get over valid DEM terrain.
+          if ( std::abs(height_diff[0]) < (model.big_val()/10.0) ){
+            has_intersection = true;
+            break;
+          }
+          //if (i == 0) break; // When k*delta==0, no reason to do both + and -!
+
+        } // End k loop
+        if (has_intersection)
+          break;
+      } // End i loop
+
+      // Failed to compute an intersection in the hard coded iteration limit!
+      if ( !has_intersection ) {
+        return Vector3();
+      }
+
+      // Refining the intersection using Levenberg-Marquardt
+      // - This will actually use the L-M solver to play around with the len
+      //   value to minimize the height difference from the DEM.
+      int status = 0;
+      Vector<double, 1> observation; observation[0] = 0;
+      len = math::levenberg_marquardt(model, len, observation, status,
+                                      max_abs_tol, max_rel_tol,
+                                      num_max_iter
+                                      );
+
+      Vector<double, 1> dem_height = model(len);
+
+      if ( (status < 0) || (std::abs(dem_height[0]) > height_error_tol) ){
         has_intersection = false;
         return Vector3();
       }
-    }else{ // User provided guess
-      xyz = xyz_guess;
-    }
 
-    // Length along the ray from camera center to intersection point
-    Vector<double, 1> len0, len;
-    len0[0] = norm_2(xyz - camera_ctr);
-
-    // If the ray intersects the datum at a point which does not
-    // correspond to a valid location in the DEM, wiggle that point
-    // along the ray until hopefully it does.
-    const double radius     = norm_2(xyz); // Radius from XZY coordinate center
-    const int    ITER_LIMIT = 10; // There are two solver attempts per iteration
-    const double small      = radius*0.02/( 1 << (ITER_LIMIT-1) ); // Wiggle
-    for (int i = 0; i <= ITER_LIMIT; i++){
-      // Gradually expand delta until on final iteration it is == radius*0.02
-      double delta = 0;
-      if (i > 0)
-        delta = small*( 1 << (i-1) );
-
-      for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
-        len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
-        // Use our model to compute the height diff at this length
-        Vector<double, 1> height_diff = model(len);
-        // TODO: This is an EXTREMELY lenient threshold! big_val()/10.0 == 1.0e+49!!!
-        //       The effect of this may be to just stop this loop when we get over valid DEM terrain.
-        if ( std::abs(height_diff[0]) < (model.big_val()/10.0) ){
-          has_intersection = true;
-          break;
-        }
-        //if (i == 0) break; // When k*delta==0, no reason to do both + and -!
-
-      } // End k loop
-      if (has_intersection)
-        break;
-    } // End i loop
-
-    // Failed to compute an intersection in the hard coded iteration limit!
-    if ( !has_intersection ) {
-      return Vector3();
-    }
-
-    // Refining the intersection using Levenberg-Marquardt
-    // - This will actually use the L-M solver to play around with the len
-    //   value to minimize the height difference from the DEM.
-    int status = 0;
-    Vector<double, 1> observation; observation[0] = 0;
-    len = math::levenberg_marquardt(model, len, observation, status,
-                                    max_abs_tol, max_rel_tol,
-                                    num_max_iter
-                                    );
-
-    Vector<double, 1> dem_height = model(len);
-
-    if ( (status < 0) || (std::abs(dem_height[0]) > height_error_tol) ){
+      has_intersection = true;
+      xyz = camera_ctr + len[0]*camera_vec;
+      return xyz;
+    }catch(...){
       has_intersection = false;
-      return Vector3();
     }
-
-    has_intersection = true;
-    xyz = camera_ctr + len[0]*camera_vec;
-    return xyz;
+    return Vector3();
   }
 
   namespace detail {
@@ -284,48 +290,53 @@ namespace cartography {
                                             Vector2 & point // output
                                             ){
 
-        // TODO: Make this an input option!  Whether or not this goes outside the dem is IMPORTANT
-        bool   treat_nodata_as_zero = false; // Intersect with datum if no dem
-        
-        bool   has_intersection = false;
-        double height_error_tol = 1e-3;   // error in DEM height
-        double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
-        double max_rel_tol      = 1e-14;
-        int    num_max_iter     = 100;
-        Vector3 xyz_guess       = Vector3();
-        Vector3 camera_ctr = camera->camera_center(pixel);  // Get ray from this pixel
-        Vector3 camera_vec = camera->pixel_to_vector(pixel);
-
-        // Use iterative solver call to compute an intersection of the pixel with the DEM	
-        Vector3 xyz = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
-                                              dem, dem_georef,
-                                              treat_nodata_as_zero,
-                                              has_intersection,
-                                              height_error_tol, max_abs_tol, max_rel_tol,
-                                              num_max_iter, xyz_guess
-                                             );
-        // Quit if we did not find an intersection
-        if (!has_intersection)
+        // This is a very fragile function, and at many steps something can fail.
+        try {
+          // TODO: Make this an input option!  Whether or not this goes outside the dem is IMPORTANT
+          bool   treat_nodata_as_zero = false; // Intersect with datum if no dem
+          
+          bool   has_intersection = false;
+          double height_error_tol = 1e-3;   // error in DEM height
+          double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
+          double max_rel_tol      = 1e-14;
+          int    num_max_iter     = 100;
+          Vector3 xyz_guess       = Vector3();
+          Vector3 camera_ctr = camera->camera_center(pixel);  // Get ray from this pixel
+          Vector3 camera_vec = camera->pixel_to_vector(pixel);
+          
+          // Use iterative solver call to compute an intersection of the pixel with the DEM	
+          Vector3 xyz = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
+                                                dem, dem_georef,
+                                                treat_nodata_as_zero,
+                                                has_intersection,
+                                                height_error_tol, max_abs_tol, max_rel_tol,
+                                                num_max_iter, xyz_guess
+                                                );
+          // Quit if we did not find an intersection
+          if (!has_intersection)
+            return has_intersection;
+          
+          // Use the datum to convert GCC coordinate to lon/lat/height
+          // and to a projected coordinate system
+          Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
+          point = target_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
+          recenter_point(center_on_zero, target_georef, point);
+          
           return has_intersection;
-        
-        // Use the datum to convert GCC coordinate to lon/lat/height
-        // and to a projected coordinate system
-        Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
-        point = target_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
-        recenter_point(center_on_zero, target_georef, point);
-
-        return has_intersection;
+        }catch(...){
+          return false;
+        }
       }
       
       /// Intersect this pixel with the DEM and record some information about the intersection
       void operator() ( Vector2 const& pixel ) {
 
         Vector2 point;
-        bool has_intersection = camera_pixel_to_dem_point(pixel, m_dem, m_dem_georef, m_target_georef,
+        bool has_intersection = camera_pixel_to_dem_point(pixel, m_dem, m_dem_georef,
+                                                          m_target_georef,
                                                           m_camera, m_center_on_zero,  
                                                           point // output
-                                                         );
-
+                                                          );
         // Quit if we did not find an intersection
         if ( !has_intersection ) {
           m_last_valid = false;
@@ -600,7 +611,8 @@ namespace cartography {
         continue;
 
       Vector2 ctr_point;
-      bool has_intersection = functor.camera_pixel_to_dem_point(ctr_pix, dem, dem_georef, target_georef,  
+      bool has_intersection = functor.camera_pixel_to_dem_point(ctr_pix, dem, dem_georef,
+                                                                target_georef,  
                                                                 camera_model, center_on_zero,  
                                                                 ctr_point // output
                                                                );
@@ -618,7 +630,8 @@ namespace cartography {
           continue;
         
         Vector2 off_point;
-        bool has_intersection = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef, target_georef,  
+        bool has_intersection = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
+                                                                  target_georef,  
                                                                   camera_model, center_on_zero,  
                                                                   off_point // output
                                                                  );
