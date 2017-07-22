@@ -40,6 +40,10 @@
 
 namespace vw {
 
+  // Return a smart pointer, this is easier to manage
+  class DiskImageResource;
+  boost::shared_ptr<DiskImageResource> DiskImageResourcePtr(std::string const& image_file);
+  
   // *******************************************************************
   // The DiskImageResource abstract base class
   // *******************************************************************
@@ -133,14 +137,13 @@ namespace vw {
     VW_OUT(InfoMessage, "fileio") << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading
-    DiskImageResource *r = DiskImageResource::open( filename );
+    boost::shared_ptr<DiskImageResource> r(DiskImageResourcePtr(filename));
 
     VW_OUT(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read the data
     read_image(in_image, *r);
 
-    delete r;
   }
 
 
@@ -211,9 +214,6 @@ namespace vw {
 
   ImageFormat image_format(const std::string& filename);
 
-  // Return a smart pointer, this is easier to manage
-  boost::shared_ptr<DiskImageResource> DiskImageResourcePtr(std::string const& image_file);
-  
 } // namespace vw
 
 #endif // __VW_FILEIO_DISKIMAGERESOURCE_H__

@@ -117,13 +117,15 @@ bool parse_int_between_tags(std::string const& line, std::string const& tag, int
   return true;
 }
 
+} // end local private namespace
+  
 // Find the following text, and read ncols and nrows values
 // <Raster_Dimensions>
 //<NCOLS>12000</NCOLS>
 //<NROWS>46408</NROWS>
 //<NBANDS>1</NBANDS>
 //</Raster_Dimensions>
-vw::ImageFormat image_format_from_DIM(std::string camera_file) {
+vw::ImageFormat image_format_from_DIM(std::string const& camera_file) {
 
   vw::Vector2i image_size;
   std::ifstream ifs(camera_file.c_str());
@@ -161,8 +163,6 @@ vw::ImageFormat image_format_from_DIM(std::string camera_file) {
   format.premultiplied = true; // Don't do anything funny to the data
   return format;
 }
-  
-} // end local private namespace
   
 void DiskImageResourceRaw::close() {
   m_stream.close();

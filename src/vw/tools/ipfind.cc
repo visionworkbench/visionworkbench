@@ -86,7 +86,7 @@ static void write_debug_image( std::string const& out_file_name,
 
   vw_out(InfoMessage,"interest_point") << "\t > Drawing raster:\n";
   ImageView<PixelRGB<uint8> > oimage;
-  boost::scoped_ptr<DiskImageResource> irsrc( DiskImageResource::open(input_file_name) );
+  boost::shared_ptr<vw::DiskImageResource> irsrc( vw::DiskImageResourcePtr(input_file_name) );
   if ( irsrc->has_nodata_read() ) {
     oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >( *irsrc ),
                                                                                    irsrc->nodata_read()))) * 0.5 );
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
     std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
 
     // Get reference to the file and convert to floating point
-    boost::scoped_ptr<DiskImageResource> image_rsrc( DiskImageResource::open( input_file_names[i] ) );
+    boost::shared_ptr<vw::DiskImageResource> image_rsrc( vw::DiskImageResourcePtr( input_file_names[i] ) );
     DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
     ImageViewRef<PixelGray<float> >  image = raw_image;
 

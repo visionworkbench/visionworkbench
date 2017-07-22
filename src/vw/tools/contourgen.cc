@@ -49,7 +49,8 @@ BezierContour FitCurve(PointContour &contour, double error);
 vw::ImageView<float> load_dem_from_file(std::string file_in) {
     //    Open the file for reading
     vw::ImageView<float> dem;
-    vw::DiskImageResource *r = vw::DiskImageResource::open( file_in );
+    boost::shared_ptr<vw::DiskImageResource> r( vw::DiskImageResourcePtr(file_in) );
+    
     vw::vw_out(vw::InfoMessage) << "Loading DEM from file" << std::endl;
     vw::vw_out(vw::DebugMessage) << r->rows()
         << "x" << r->cols() << "x" << r->planes()
@@ -61,7 +62,6 @@ vw::ImageView<float> load_dem_from_file(std::string file_in) {
     //    Read the data
     //tpc.set_progress_text("Status (loading image):   " );
     vw::read_image(dem, *r);
-    delete r;
     return dem;
 }
 

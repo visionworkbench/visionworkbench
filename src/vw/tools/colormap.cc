@@ -115,8 +115,9 @@ void do_colormap(Options& opt) {
   cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
-  SrcImageResource *disk_img_rsrc =
-    DiskImageResource::open(opt.input_file_name);
+  boost::shared_ptr<vw::DiskImageResource>
+    disk_img_rsrc( vw::DiskImageResourcePtr(opt.input_file_name) );
+  
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
   } else if ( disk_img_rsrc->has_nodata_read() ) {
@@ -166,8 +167,6 @@ void do_colormap(Options& opt) {
   }
   else
     img = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
-
-  delete disk_img_rsrc;
 
   // Apply colormap
   ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =

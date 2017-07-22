@@ -68,7 +68,7 @@ namespace vw {
 
   /// Find how many channels/bands are in a given image
   inline int get_num_channels(std::string filename){
-    boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
+    boost::shared_ptr<vw::DiskImageResource> src(vw::DiskImageResourcePtr(filename));
     return src->channels()*src->planes();
   }
 
@@ -128,7 +128,7 @@ namespace vw {
 
     // Turning off rescaling is important. Otherwise images with
     // uint16 channels cannot be read properly as floats.
-    boost::shared_ptr<DiskImageResource> rsrc( DiskImageResource::open(filename));
+    boost::shared_ptr<vw::DiskImageResource> rsrc( vw::DiskImageResourcePtr(filename));
     rsrc->set_rescale(false);
     
     vw::ImageViewRef< vw::Vector<T, m> > out_image;

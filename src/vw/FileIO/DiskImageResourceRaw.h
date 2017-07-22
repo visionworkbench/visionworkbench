@@ -119,6 +119,8 @@ namespace vw {
     Vector2i m_block_size;
   };
 
+  ImageFormat image_format_from_DIM(std::string const& camera_file);
+
 } // namespace VW
 
 #endif//__VW_FILEIO_DiskImageResourceRaw_H__

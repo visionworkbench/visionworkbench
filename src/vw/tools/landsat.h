@@ -114,13 +114,13 @@ public: // Functions
       vw_throw( ArgumentErr() << "SplitChannelFileView created with incorrect number of input files!\n");
       
     // Record the image size to save time later
-    boost::scoped_ptr<SrcImageResource> resource1(DiskImageResource::open(input_files[0]));
+    boost::shared_ptr<vw::DiskImageResource> resource1(vw::DiskImageResourcePtr(input_files[0]));
     m_cols = resource1->format().cols;
     m_rows = resource1->format().rows;
     
     // Make sure all images are the same size
     for (size_t i=0; i<input_files.size(); ++i) {
-      boost::scoped_ptr<SrcImageResource> resource2(DiskImageResource::open(input_files[i]));
+      boost::shared_ptr<vw::DiskImageResource> resource2(vw::DiskImageResourcePtr(input_files[i]));
             
       if ((m_cols != static_cast<int>(resource2->format().cols)) || 
           (m_rows != static_cast<int>(resource2->format().rows))   )

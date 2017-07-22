@@ -140,9 +140,10 @@ TEST( DiskImageResource , Raw ) {
   boost::shared_ptr<DiskImageResource> gdal_resource2;
   ASSERT_NO_THROW(gdal_resource2.reset(DiskImageResource::open("bil_test.tif")));
 
-  // Test that the default loader behaves as expected
+  // Test that the default loader behaves as expected. It should fail
+  // because sample.DIM is missing. 
   boost::shared_ptr<DiskImageResource> generic_resource_ptr;
-  EXPECT_THROW(generic_resource_ptr.reset(DiskImageResource::open("sample.BIL")), vw::NoImplErr); 
+  EXPECT_THROW(generic_resource_ptr.reset(DiskImageResource::open("sample.BIL")), vw::ArgumentErr); 
 }
 
 

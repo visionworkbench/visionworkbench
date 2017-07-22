@@ -271,7 +271,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
 }
 
 vw::ImageFormat vw::image_format(const std::string& filename) {
-  boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
+  boost::shared_ptr<vw::DiskImageResource> src(vw::DiskImageResourcePtr(filename));
   return src->format();
 }
 

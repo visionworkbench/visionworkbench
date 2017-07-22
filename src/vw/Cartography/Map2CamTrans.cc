@@ -35,8 +35,8 @@ namespace vw { namespace cartography {
     m_call_from_mapproject(call_from_mapproject), m_has_nodata(false),
     m_nodata(std::numeric_limits<double>::quiet_NaN()){
 
-    boost::shared_ptr<DiskImageResource> dem_rsrc
-      ( DiskImageResource::open( dem_file ) );
+    boost::shared_ptr<vw::DiskImageResource>
+      dem_rsrc( vw::DiskImageResourcePtr(dem_file) );
 
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();

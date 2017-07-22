@@ -70,7 +70,7 @@ namespace vw{
     DiskImageView<PixelT > disk_dem_file(input_file_name);
 
     ImageViewRef<PixelMask<PixelT > > dem;
-    boost::scoped_ptr<SrcImageResource> disk_dem_rsrc(DiskImageResource::open(input_file_name));
+    boost::shared_ptr<vw::DiskImageResource> disk_dem_rsrc(vw::DiskImageResourcePtr(input_file_name));
     if ( !std::isnan(nodata_value) ) {
       vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
       dem = create_mask(disk_dem_file, nodata_value);
