@@ -67,7 +67,7 @@ namespace cartography {
     // No image with a SPOT5 suffix can ever have georeference.
     if (vw::has_spot5_extension(filename)) return false;
 
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
+    boost::shared_ptr<DiskImageResource> r(DiskImageResourcePtr( filename ));
     bool result = read_georeference( georef, *r );
     
     return result;

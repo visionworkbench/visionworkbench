@@ -93,7 +93,7 @@ void imageData::read(std::string const& image, bool ignore_georef,
   else
     bbox = bounding_box(img);               // pixel box
 
-  boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(name));
+  boost::shared_ptr<DiskImageResource> rsrc(DiskImageResourcePtr(name));
   nodata_val = -FLT_MAX;
   if ( rsrc->has_nodata_read() ) {
     nodata_val = rsrc->nodata_read();

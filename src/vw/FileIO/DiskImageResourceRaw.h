@@ -85,10 +85,8 @@ namespace vw {
     }
     
     // Factory functions required by DiskImageResource.cc
-    static DiskImageResource* construct_open( std::string const& filename ) {
-      vw_throw( NoImplErr() << "Cannot construct DiskImageResourceRaw without header information!");
-      return 0;
-    }
+    static DiskImageResource* construct_open( std::string const& filename ); 
+    
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format ) {
       return new DiskImageResourceRaw(filename, format);

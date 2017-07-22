@@ -211,6 +211,9 @@ namespace vw {
 
   ImageFormat image_format(const std::string& filename);
 
+  // Return a smart pointer, this is easier to manage
+  boost::shared_ptr<DiskImageResource> DiskImageResourcePtr(std::string const& image_file);
+  
 } // namespace vw
 
 #endif // __VW_FILEIO_DISKIMAGERESOURCE_H__

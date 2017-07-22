@@ -384,11 +384,8 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
 int main(int argc, char* argv[]) {
 
   Options opt;
- 
   handle_arguments( argc, argv, opt ); // Load user arguments
   align_images( opt );                 // Do all of the work!
-  
-  
   
   return 0;
 }

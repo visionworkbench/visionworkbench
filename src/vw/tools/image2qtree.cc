@@ -81,7 +81,7 @@ load_image_georeferences( const Options& opt, int& total_resolution ) {
   georeferences.reserve( opt.input_files.size() );
 
   BOOST_FOREACH(const std::string filename, opt.input_files) {
-    boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
+    boost::shared_ptr<DiskImageResource> file( DiskImageResourcePtr(filename) );
     vw_out() << "Adding file " << file->filename() << std::endl;
 
     if( opt.normalize ) get_normalize_vals(file, opt);

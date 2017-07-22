@@ -274,3 +274,8 @@ vw::ImageFormat vw::image_format(const std::string& filename) {
   boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
   return src->format();
 }
+
+// Return a smart pointer, this is easier to manage
+boost::shared_ptr<vw::DiskImageResource> vw::DiskImageResourcePtr(std::string const& image_file){
+  return boost::shared_ptr<vw::DiskImageResource>(vw::DiskImageResource::open(image_file));
+}
