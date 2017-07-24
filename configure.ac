@@ -297,7 +297,8 @@ AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4,   [M],          [-lproj],          [proj_api.h])
 AX_PKG(GEOTIFF, [PROJ4 JPEG], [-lgeotiff -ltiff] )
-AX_PKG(GDAL,    [GEOTIFF],    [-lgdal],          [gdal.h])
+AX_PKG(GEOS,    [], [-lgeos -lgeos_c], [geos.h])
+AX_PKG(GDAL,    [GEOTIFF GEOS],    [-lgdal],          [gdal.h])
 
 # GDAL requires tiff support, but it can be internal or external.
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
@@ -346,7 +347,7 @@ AX_MODULE(CORE,   [src/vw/Core],   [libvwCore.la],   yes, [],      [BOOST BOOST_
 AX_MODULE(MATH,   [src/vw/Math],   [libvwMath.la],   yes, [CORE],  [BOOST_GRAPH],                           [LAPACK FLANN])
 AX_MODULE(IMAGE,  [src/vw/Image],  [libvwImage.la],  yes, [MATH],  [],                                      [OPENCV])
 AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [BOOST_FILESYSTEM],                      [Z PNG JPEG TIFF OPENEXR HDF GDAL])
-AX_MODULE(VW,     [src/vw],        [libvw.la],       yes, [],      [IMAGE MATH CORE],                       [FILEIO])
+AX_MODULE(VW,     [src/vw],        [libvw.la],       yes, [],      [IMAGE MATH CORE FILEIO],                       [FILEIO])
 
 if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
