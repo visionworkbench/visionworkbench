@@ -451,10 +451,14 @@ namespace cartography {
   //////////////////////////////////////////////////////
 
   // Simple Intersection interfaces
+  
+  /// Compute the bounding box in points (georeference space) that is
+  /// defined by georef. Scale is MPP as georeference space is in meters.
   BBox2 camera_bbox( GeoReference const& georef,
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &scale );
 
+  /// Overload with no scale return
   inline BBox2 camera_bbox( GeoReference const& dem_georef,
                             boost::shared_ptr<vw::camera::CameraModel> camera_model,
                             int32 cols, int32 rows ) {
@@ -469,12 +473,15 @@ namespace cartography {
   ///   Note that ground resolution in row and col directions can be different for LRO NAC.
   ///   This will just return a mean of the two. 
   ///   The mean_gsd is in GeoReference measurement units (not necessarily meters!)
+  /// - If the quick option is enabled, only rays along the image borders will be used
+  ///   to perform the computation.
   template< class DEMImageT >
   BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem,
                      GeoReference const& dem_georef,
                      GeoReference const& target_georef, // return box in this projection
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                     int32 cols, int32 rows, float &mean_gsd ) {
+                     int32 cols, int32 rows, float &mean_gsd,
+                     bool quick=false ) {
 
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
@@ -523,13 +530,15 @@ namespace cartography {
     functor.m_last_valid = false;
     bresenham_apply( math::BresenhamLine(0,rows-1,0,0), image_step, functor );
 
-    // Do the x pattern
-    functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor );
+    if (!quick) {
+      // Do the x pattern
+      functor.m_last_valid = false;
+      bresenham_apply( math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor );
 
-    functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor );
-    functor.m_last_valid = false;
+      functor.m_last_valid = false;
+      bresenham_apply( math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor );
+      functor.m_last_valid = false;
+    }
     
     // Estimate the smallest distance between adjacent points on the bounding box edges
     // We in fact want the average distance, so we will re-estimate that below.
@@ -541,65 +550,68 @@ namespace cartography {
     // Sampled camera pixels collected so far 
     std::vector<Vector2> cam_pixels = functor.cam_pixels; 
 
-    //vw_out(DebugMessage, "cartography") << "Computed image to DEM bbox: " << cam_bbox << std::endl;
+    if (!quick) {
 
-    // Bugfix. Traversing the bbox of the image and drawing an X on
-    // its diagonals is not enough sometimes to accurately determine
-    // where the map-projected image overlaps with the DEM. It fails
-    // if the DEM is small. Therefore, also do the reverse, from the
-    // DEM project points in the camera, traversing the bbox of the
-    // DEM and doing an X pattern, and see which fall inside.
-    std::vector<Vector2> dem_pixels;
-    detail::sample_points_on_dem(dem, dem_step, dem_pixels);
-      
-    // Project the sampled points into the camera
-    for (size_t it = 0; it < dem_pixels.size(); it++) {
+      //vw_out(DebugMessage, "cartography") << "Computed image to DEM bbox: " << cam_bbox << std::endl;
 
-      Vector2 lonlat, point, dem_pix, cam_pix;
-      double  height;
-      Vector3 llh, xyz;
-
-      try {
-        // Get the point for this DEM pixel and convert it to GCC coords
-        dem_pix = dem_pixels[it];
-        if (!is_valid(dem.impl()(dem_pix[0], dem_pix[1])))
-          continue; // redundant
-        lonlat = dem_georef.pixel_to_lonlat(dem_pix);
-        height = dem.impl()(dem_pix[0], dem_pix[1]);
-
-        point = target_georef.lonlat_to_point(lonlat);
-        detail::recenter_point(center_on_zero, target_georef, point);
+      // Bugfix. Traversing the bbox of the image and drawing an X on
+      // its diagonals is not enough sometimes to accurately determine
+      // where the map-projected image overlaps with the DEM. It fails
+      // if the DEM is small. Therefore, also do the reverse, from the
+      // DEM project points in the camera, traversing the bbox of the
+      // DEM and doing an X pattern, and see which fall inside.
+      std::vector<Vector2> dem_pixels;
+      detail::sample_points_on_dem(dem, dem_step, dem_pixels);
         
-        llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
+      // Project the sampled points into the camera
+      for (size_t it = 0; it < dem_pixels.size(); it++) {
 
-        xyz = dem_georef.datum().geodetic_to_cartesian(llh);
-        if (xyz == Vector3() || xyz != xyz) // watch for invalid values
-          continue;
+        Vector2 lonlat, point, dem_pix, cam_pix;
+        double  height;
+        Vector3 llh, xyz;
 
-        cam_pix = camera_model->point_to_pixel(xyz);
-        if (cam_pix != cam_pix)
-          continue; // watch for nan
+        try {
+          // Get the point for this DEM pixel and convert it to GCC coords
+          dem_pix = dem_pixels[it];
+          if (!is_valid(dem.impl()(dem_pix[0], dem_pix[1])))
+            continue; // redundant
+          lonlat = dem_georef.pixel_to_lonlat(dem_pix);
+          height = dem.impl()(dem_pix[0], dem_pix[1]);
+
+          point = target_georef.lonlat_to_point(lonlat);
+          detail::recenter_point(center_on_zero, target_georef, point);
+          
+          llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
+
+          xyz = dem_georef.datum().geodetic_to_cartesian(llh);
+          if (xyz == Vector3() || xyz != xyz) // watch for invalid values
+            continue;
+
+          cam_pix = camera_model->point_to_pixel(xyz);
+          if (cam_pix != cam_pix)
+            continue; // watch for nan
 	
-        if (cam_pix[0] >= 0 && cam_pix[0] <= cols-1 &&
-            cam_pix[1] >= 0 && cam_pix[1] <= rows-1 ) {
+          if (cam_pix[0] >= 0 && cam_pix[0] <= cols-1 &&
+              cam_pix[1] >= 0 && cam_pix[1] <= rows-1 ) {
 
-          // Finally a good point we can accept
-          cam_bbox.grow(point);
+            // Finally a good point we can accept
+            cam_bbox.grow(point);
 
-          // Add to cam_pixels from this different way of sampling
-          cam_pixels.push_back(cam_pix);
+            // Add to cam_pixels from this different way of sampling
+            cam_pixels.push_back(cam_pix);
+          }
         }
-      }
-      catch(...) {
-        // It is possible to hit exceptions in here from coordinate transformation and such which
-        //  do not cause further problems, for example with points on large DEMs that do not fit
-        //  well into the target georef.  We can safely skip these since they probably don't intersect
-        //  the image anyways.
-        continue;
-      }  
-    } // End loop through points on the DEM
-    
-    //vw_out(DebugMessage, "cartography") << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
+        catch(...) {
+          // It is possible to hit exceptions in here from coordinate transformation and such which
+          //  do not cause further problems, for example with points on large DEMs that do not fit
+          //  well into the target georef.  We can safely skip these since they probably don't intersect
+          //  the image anyways.
+          continue;
+        }  
+      } // End loop through points on the DEM
+      
+      //vw_out(DebugMessage, "cartography") << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
+    } // End if (!quick)
 
     // Now estimate the gsd, in point units, by projecting onto the ground neighboring points
     std::vector<double> gsd;

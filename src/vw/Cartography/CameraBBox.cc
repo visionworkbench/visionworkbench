@@ -121,8 +121,6 @@ namespace vw { namespace cartography { namespace detail {
   
 }}}
   
-// Compute the bounding box in points (georeference space) that is
-// defined by georef. Scale is MPP as georeference space is in meters.
 BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
                                 int32 cols, int32 rows, float &scale ) {

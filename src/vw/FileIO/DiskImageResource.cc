@@ -68,7 +68,7 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
-// TODO: Clean up properly no valgrind does not report memory leaks!
+// TODO: Clean up properly so valgrind does not report memory leaks!
 
 static void register_default_file_types_impl();
 namespace {
@@ -279,3 +279,11 @@ vw::ImageFormat vw::image_format(const std::string& filename) {
 boost::shared_ptr<vw::DiskImageResource> vw::DiskImageResourcePtr(std::string const& image_file){
   return boost::shared_ptr<vw::DiskImageResource>(vw::DiskImageResource::open(image_file));
 }
+
+
+vw::Vector2i vw::file_image_size( std::string const& input ) {
+  boost::shared_ptr<DiskImageResource> rsrc( DiskImageResourcePtr(input));
+  Vector2i size( rsrc->cols(), rsrc->rows() );
+  return size;
+}
+

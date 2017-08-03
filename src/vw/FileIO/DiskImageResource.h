@@ -214,6 +214,9 @@ namespace vw {
 
   ImageFormat image_format(const std::string& filename);
 
+  // Convenience function to get the width and height of an image.
+  vw::Vector2i file_image_size( std::string const& input );
+
 } // namespace vw
 
 #endif // __VW_FILEIO_DISKIMAGERESOURCE_H__

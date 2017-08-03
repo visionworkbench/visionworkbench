@@ -42,128 +42,6 @@ namespace fs = boost::filesystem;
 
 namespace vw {
 
-// Private local functions
-namespace {
-    
-// Try to find a .DIM file for the given .BIL file. 
-std::string DIM_lookup(std::string const& image_file){
-
-  // Try replacing the extension with .DIM
-  std::string cam_file = fs::path(image_file).replace_extension(".DIM").string();
-  if (fs::exists(cam_file)) return cam_file;
-
-  // Now try .dim
-  cam_file = fs::path(image_file).replace_extension(".dim").string();
-  if (fs::exists(cam_file)) return cam_file;
-
-  // Now try something more complicated.  From
-  // back/SEGMT01/IMAGERY.BIL go to back/SEGMT01/METADATA_BACK.DIM or
-  // back/SEGMT01/METADATA.DIM
-  
-  std::string line = image_file;
-  std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
-  
-  std::size_t found = line.rfind("/imagery.b");
-  if (found == std::string::npos) return "";
-  std::string prefix = image_file.substr(0, found);
-
-  found = line.rfind("front/");
-  if (found != std::string::npos) {
-    cam_file = prefix + "/METADATA_FRONT.DIM"; if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/metadata_front.dim"; if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/METADATA.DIM";       if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/metadata.dim";       if (fs::exists(cam_file)) return cam_file;
-    return "";
-  }
-
-  found = line.rfind("back/");
-  if (found != std::string::npos) {
-    cam_file = prefix + "/METADATA_BACK.DIM";  if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/metadata_back.dim";  if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/METADATA.DIM";       if (fs::exists(cam_file)) return cam_file;
-    cam_file = prefix + "/metadata.dim";       if (fs::exists(cam_file)) return cam_file;
-    return "";
-  }
-  
-  return "";
-}
-  
-// Given <tag>12000</tag>, extract the number in between.
-// This is robust to whitespace in various places. 
-bool parse_int_between_tags(std::string const& line, std::string const& tag, int & val){
-
-  // Keep the output uninitialized, initialize it only on success
-  // val = 0;
-
-  // advance to the beginning of <tag>
-  std::size_t found = line.find(tag);
-  if (found == std::string::npos) return false;
-
-  // Advance to the end of <tag>
-  std::size_t beg = line.find(">", found);
-  if (beg == std::string::npos) return false;
-  
-  // Move past "<"
-  beg++;
-
-  // Advance to the beginning of </tag>
-  std::size_t end = line.find("<", found);
-  if (end == std::string::npos) return false;
-
-  std::string val_str = line.substr(beg, end - beg);
-
-  val = atoi(val_str.c_str());
-  
-  return true;
-}
-
-} // end local private namespace
-  
-// Find the following text, and read ncols and nrows values
-// <Raster_Dimensions>
-//<NCOLS>12000</NCOLS>
-//<NROWS>46408</NROWS>
-//<NBANDS>1</NBANDS>
-//</Raster_Dimensions>
-vw::ImageFormat image_format_from_DIM(std::string const& camera_file) {
-
-  vw::Vector2i image_size;
-  std::ifstream ifs(camera_file.c_str());
-  std::string line;
-  while (std::getline(ifs, line)){
-
-    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
-    std::size_t found = line.find("<raster_dimensions");
-    if (found == std::string::npos) continue;
-
-    std::string cols_tag = "ncols";
-    std::getline(ifs, line);
-    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
-    if (!parse_int_between_tags(line, cols_tag, image_size[0]))
-      continue;
-    
-    std::string rows_tag = "nrows";
-    std::getline(ifs, line);
-    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
-    if (!parse_int_between_tags(line, rows_tag, image_size[1]))
-      continue;
-    
-    break;
-  }
-
-  if (image_size[0] <= 0 || image_size[1] <= 0)
-    vw_throw( ArgumentErr() << "Could not parse correctly the image size from: " << camera_file);
-    
-  vw::ImageFormat format;
-  format.cols          = image_size[0];
-  format.rows          = image_size[1];
-  format.planes        = 1;
-  format.pixel_format  = vw::VW_PIXEL_GRAY; // This should be constant
-  format.channel_type  = vw::VW_CHANNEL_UINT8;
-  format.premultiplied = true; // Don't do anything funny to the data
-  return format;
-}
-  
 void DiskImageResourceRaw::close() {
   m_stream.close();
   m_format.cols = 0;
@@ -172,11 +50,11 @@ void DiskImageResourceRaw::close() {
 
 // Factory functions required by DiskImageResource.cc
 DiskImageResource* DiskImageResourceRaw::construct_open( std::string const& filename ) {
-  std::string dim_file = DIM_lookup(filename);
+  std::string dim_file = find_associated_spot5_dim_file(filename);
   if (dim_file == "") 
     vw_throw( ArgumentErr() << "Could not find .DIM file for: " << filename);
   
-  return DiskImageResourceRaw::construct(filename, image_format_from_DIM(dim_file));
+  return DiskImageResourceRaw::construct(filename, image_format_from_spot5_DIM(dim_file));
 }
   
 void DiskImageResourceRaw::check_format() const {
@@ -313,6 +191,131 @@ void DiskImageResourceRaw::write( ImageBuffer const& source, BBox2i const& bbox 
     read_ptr += read_width;                // Move to the next read line
   }
 }
+
+
+std::string DiskImageResourceRaw::find_associated_spot5_dim_file(std::string const& image_file){
+
+  // Try replacing the extension with .DIM
+  std::string cam_file = fs::path(image_file).replace_extension(".DIM").string();
+  if (fs::exists(cam_file))
+    return cam_file;
+
+  // Now try .dim
+  cam_file = fs::path(image_file).replace_extension(".dim").string();
+  if (fs::exists(cam_file))
+    return cam_file;
+
+  // Now try something more complicated.  From
+  // back/SEGMT01/IMAGERY.BIL go to back/SEGMT01/METADATA_BACK.DIM or
+  // back/SEGMT01/METADATA.DIM
+  
+  std::string line = image_file;
+  std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
+  
+  // Try looking in some hard coded folders that the header file is often found in.
+  std::size_t found = line.rfind("/imagery.b");
+  if (found == std::string::npos)
+    return "";
+  std::string prefix = image_file.substr(0, found);
+
+  found = line.rfind("front/");
+  if (found != std::string::npos) {
+    cam_file = prefix + "/METADATA_FRONT.DIM"; if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/metadata_front.dim"; if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/METADATA.DIM";       if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/metadata.dim";       if (fs::exists(cam_file)) return cam_file;
+    return "";
+  }
+
+  found = line.rfind("back/");
+  if (found != std::string::npos) {
+    cam_file = prefix + "/METADATA_BACK.DIM";  if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/metadata_back.dim";  if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/METADATA.DIM";       if (fs::exists(cam_file)) return cam_file;
+    cam_file = prefix + "/metadata.dim";       if (fs::exists(cam_file)) return cam_file;
+    return "";
+  }
+  
+  return "";
+}
+  
+bool DiskImageResourceRaw::parse_int_between_tags(std::string const& line, std::string const& tag, int & val){
+
+  // Keep the output uninitialized, initialize it only on success
+  // val = 0;
+
+  // advance to the beginning of <tag>
+  std::size_t found = line.find(tag);
+  if (found == std::string::npos)
+    return false;
+
+  // Advance to the end of <tag>
+  std::size_t beg = line.find(">", found);
+  if (beg == std::string::npos)
+    return false;
+  
+  // Move past "<"
+  beg++;
+
+  // Advance to the beginning of </tag>
+  std::size_t end = line.find("<", found);
+  if (end == std::string::npos)
+    return false;
+
+  std::string val_str = line.substr(beg, end - beg);
+
+  val = atoi(val_str.c_str());
+  
+  return true;
+}
+
+vw::ImageFormat DiskImageResourceRaw::image_format_from_spot5_DIM(std::string const& camera_file) {
+
+  // Find the following text, and read ncols and nrows values
+  // <Raster_Dimensions>
+  //<NCOLS>12000</NCOLS>
+  //<NROWS>46408</NROWS>
+  //<NBANDS>1</NBANDS>
+  //</Raster_Dimensions>
+
+  vw::Vector2i image_size;
+  std::ifstream ifs(camera_file.c_str());
+  std::string line;
+  while (std::getline(ifs, line)){
+
+    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
+    std::size_t found = line.find("<raster_dimensions");
+    if (found == std::string::npos)
+      continue;
+
+    std::string cols_tag = "ncols";
+    std::getline(ifs, line);
+    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
+    if (!parse_int_between_tags(line, cols_tag, image_size[0]))
+      continue;
+    
+    std::string rows_tag = "nrows";
+    std::getline(ifs, line);
+    std::transform(line.begin(), line.end(), line.begin(), ::tolower); // lowercase
+    if (!parse_int_between_tags(line, rows_tag, image_size[1]))
+      continue;
+    
+    break;
+  }
+
+  if (image_size[0] <= 0 || image_size[1] <= 0)
+    vw_throw( ArgumentErr() << "Could not parse correctly the image size from: " << camera_file);
+    
+  vw::ImageFormat format;
+  format.cols          = image_size[0];
+  format.rows          = image_size[1];
+  format.planes        = 1;
+  format.pixel_format  = vw::VW_PIXEL_GRAY; // This should be constant
+  format.channel_type  = vw::VW_CHANNEL_UINT8;
+  format.premultiplied = true; // Don't do anything funny to the data
+  return format;
+}
+
 
 } // end namespace vw
 

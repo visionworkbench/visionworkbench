@@ -33,9 +33,10 @@ namespace vw {
   /// Provides support for the any sort of raw image data on disk.
   /// - Currently this class only supports single channel images.
   /// - Currently the DiskImageResource internal factory function 
-  ///   will FAIL to load this file type because the interface does
-  ///   not allow the the header info to be passed in.  Until there is
-  ///   an interface change this file type needs to be specifically loaded!
+  ///   is hardcoded to only read SPOT5 images holding to certain
+  ///   conventions as to where the associated header files are
+  ///   located.  If other raw image types need to be supported by
+  ///   this class then something will have to be changed.
   class DiskImageResourceRaw : public DiskImageResource {
   public:
 
@@ -84,7 +85,8 @@ namespace vw {
       return new DiskImageResourceRaw(filename, format, read_only, block_size);
     }
     
-    // Factory functions required by DiskImageResource.cc
+    // Factory function required by DiskImageResource.cc
+    // -> These are hardcoded to only work with SPOT5 data!
     static DiskImageResource* construct_open( std::string const& filename ); 
     
     static DiskImageResource* construct_create( std::string const& filename,
@@ -110,16 +112,26 @@ namespace vw {
     virtual void set_block_write_size(const Vector2i& block_size);
 
 
+    /// Populate an ImageFormat object from a SPOT5 DIM file.
+    static vw::ImageFormat image_format_from_spot5_DIM(std::string const& camera_file);
+
   private:
   
+    /// Use hardcoded paths to try and find a .DIM file associated with a SPOT5
+    /// raw image file.
+    static std::string find_associated_spot5_dim_file(std::string const& image_file);
+   
+    /// Given <tag>12000</tag>, extract the number in between.
+    /// This is robust to whitespace in various places. 
+    /// - This function could be moved somewhere else and used for other XML files.
+    static bool parse_int_between_tags(std::string const& line, std::string const& tag, int & val);
+
     /// Throws an exception if the format is bad
     void check_format() const;
   
     mutable std::fstream m_stream;
     Vector2i m_block_size;
   };
-
-  ImageFormat image_format_from_DIM(std::string const& camera_file);
 
 } // namespace VW
 
