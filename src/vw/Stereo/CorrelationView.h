@@ -317,7 +317,7 @@ namespace stereo {
                         corr_timeout, seconds_per_op,
                         consistency_threshold, min_consistency_level,
                         filter_half_kernel, max_pyramid_levels,
-                        algorithm, collar_size, sgm_subpixel_mode, sgm_search_buffer, blob_filter_area,
+                        algorithm, collar_size, sgm_subpixel_mode, sgm_search_buffer, memory_limit_mb, blob_filter_area,
                         write_debug_images);
   }
 
