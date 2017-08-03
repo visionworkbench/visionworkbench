@@ -142,6 +142,7 @@ namespace stereo {
                             int   collar_size        = 0,
                             SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                             Vector2i  sgm_search_buffer = Vector2i(2,2),
+                            size_t memory_limit_mb=6000,
                             int   blob_filter_area   = 0,
                             bool  write_debug_images = false) :
       m_left_image(left.impl()),     m_right_image(right.impl()),
@@ -158,6 +159,7 @@ namespace stereo {
       m_collar_size(collar_size),
       m_sgm_subpixel_mode(sgm_subpixel_mode),
       m_sgm_search_buffer(sgm_search_buffer),
+      m_memory_limit_mb(memory_limit_mb),
       m_write_debug_images(write_debug_images){
       
       if (algorithm != CORRELATION_WINDOW)
@@ -231,6 +233,7 @@ namespace stereo {
     int m_collar_size;     ///< Expand the size of the image for each tile before correlating
     SemiGlobalMatcher::SgmSubpixelMode m_sgm_subpixel_mode; ///< Subpixel mode used by SGM algorithms
     Vector2i m_sgm_search_buffer;
+    size_t m_memory_limit_mb;
 
     bool m_write_debug_images; ///< If true, write out a bunch of intermediate images.
 
@@ -302,6 +305,7 @@ namespace stereo {
                      int   collar_size        = 0,
                      SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                      Vector2i sgm_search_buffer=Vector2i(2,2),
+                     size_t memory_limit_mb=6000,
                      int   blob_filter_area   = 0,
                      bool  write_debug_images =false) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;

@@ -28,7 +28,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        int kernel_size, 
                                        SgmSubpixelMode subpixel,
                                        Vector2i search_buffer,
-                                       bool conserve_mem,
+                                       size_t memory_limit_mb,
                                        uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
@@ -39,9 +39,9 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_max_disp_y  = max_disp_y;
   m_kernel_size = kernel_size;
   m_ternary_census_threshold = ternary_census_threshold;
-  m_subpixel_type = subpixel;
-  m_search_buffer = search_buffer;
-  m_conserve_mem  = conserve_mem;
+  m_subpixel_type   = subpixel;
+  m_search_buffer   = search_buffer;
+  m_memory_limit_mb = memory_limit_mb;
   
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -272,7 +272,36 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     } // End col loop
     right_mask_checker.advance_row();
   } // End row loop
+
+  double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
+  percent_masked  /= num_pixels;
+  percent_trusted /= num_pixels;
+
+  vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked  << std::endl;
+  vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
  
+  // Reduce full range pixels where possible
+  constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, false);
+  
+  bool result = false;
+  try { // Check if the computed boundaries fall within the user specified memory limit
+    result = compute_buffer_length();
+  }
+  catch(...) {
+    // Reduce all full range pixels so we use less memory
+    result = constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, true);
+  }
+ 
+  return result;
+}
+ 
+ 
+bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
+                                                   DisparityImage const* prev_disparity,
+                                                   double percent_trusted, double percent_masked, double area,
+                                                   bool conserve_memory) {
+
+  const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
   const BBox2i max_range_bbox(Vector2i(m_min_disp_x, m_min_disp_y), Vector2i(m_max_disp_x, m_max_disp_y));
   const double max_search_area = max_range_bbox.area();
@@ -281,7 +310,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   // TODO: Make this more efficient!!!
         int NEARBY_DISP_SEARCH_RANGE = 5; // Look this many pixels in each direction
   const int NEARBY_DISP_EXPANSION    = 3; // Grow search range from what nearby pixels have
-  if (m_conserve_mem)
+  if (conserve_memory)
     NEARBY_DISP_SEARCH_RANGE = 25;
   double percent_shrunk = 0, shrunk_area = area;
   float conserved = 0;
@@ -324,7 +353,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         }
         if (new_range.empty()) { // If we did not find a new estimate
           // If worried about memory, don't try to solve pixels with no estimate.
-          if (m_conserve_mem) {
+          if (conserve_memory) {
             m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
             percent_shrunk += 1.0;
             shrunk_area -= max_search_area;
@@ -348,24 +377,19 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   // Compute some statistics for help improving the speed
   double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
   area            /= num_pixels;
-  shrunk_area     /= num_pixels;
-  percent_trusted /= num_pixels;
-  percent_masked  /= num_pixels;
+  shrunk_area     /= num_pixels; 
   percent_shrunk  /= num_pixels;
   conserved       /= num_pixels;
-  
   
   double initial_percent_full_range = 1.0 - (percent_trusted+percent_masked);
   double final_percent_full_range   = initial_percent_full_range - percent_shrunk;
   vw_out(InfoMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
   vw_out(InfoMessage, "stereo") << "Mean pixel search area (initial) = "  << area               << std::endl;
   vw_out(InfoMessage, "stereo") << "Mean pixel search area (final  ) = "  << shrunk_area        << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted    << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked     << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
-  if (m_conserve_mem)
+  if (conserve_memory)
     vw_out(InfoMessage, "stereo") << "Percent pixels conserved for memory = " << conserved << std::endl;
   
   
@@ -377,9 +401,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 } // End populate_disp_bound_image
 
 
-void SemiGlobalMatcher::allocate_large_buffers() {
-
-  //Timer timer_total("Memory allocation");
+size_t SemiGlobalMatcher::compute_buffer_length() {
 
   // Init the starts data storage
   m_buffer_starts.set_size(m_num_output_cols, m_num_output_rows);
@@ -400,15 +422,31 @@ void SemiGlobalMatcher::allocate_large_buffers() {
 
   vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << std::endl;
 
-  // TODO: Check available memory first!
+  const size_t BYTES_PER_MB   = 1024*1024;
+  const size_t total_bytes    = total_offset * (sizeof(CostType) + sizeof(AccumCostType));
+  const size_t total_usage_mb = total_bytes / BYTES_PER_MB;
+  
+  if (total_usage_mb > m_memory_limit_mb)
+    vw_throw( ArgumentErr() << "SGM: Required memory usage is "<< total_usage_mb 
+                            << " MB which is greater than the cap of "<< m_memory_limit_mb <<" MB!\n" );
 
-  const size_t cost_buffer_num_bytes = total_offset * sizeof(CostType);  
-  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << cost_buffer_num_bytes/(1024*1024) << " MB\n";
+  return total_offset;
+}
+
+void SemiGlobalMatcher::allocate_large_buffers() {
+
+  //Timer timer_total("Memory allocation");
+
+  const size_t BYTES_PER_MB = 1024*1024;  
+  const size_t total_offset           = compute_buffer_length();
+  const size_t cost_buffer_num_bytes  = total_offset * sizeof(CostType);  
+  const size_t accum_buffer_num_bytes = total_offset * sizeof(AccumCostType);
+
+  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << cost_buffer_num_bytes/BYTES_PER_MB << " MB\n";
 
   m_cost_buffer.reset(new CostType[total_offset]);
-
-  const size_t accum_buffer_num_bytes = total_offset * sizeof(AccumCostType);  
-  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << accum_buffer_num_bytes/(1024*1024) << " MB\n";
+  
+  vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << accum_buffer_num_bytes/BYTES_PER_MB << " MB\n";
 
   // Allocate the requested memory and init all to zero
   m_accum_buffer.reset(new AccumCostType[total_offset]);

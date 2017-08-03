@@ -334,8 +334,6 @@ prerasterize(BBox2i const& bbox) const {
 
       // SGM method
       if (use_sgm) {
-        // On the final level, constrain memory usage so we don't blow out the machine's RAM!
-        const bool conserve_mem = on_last_level;
 
         // Mimic processing in normal case with a single zone
         BBox2i disparity_range = BBox2i(0,0,m_search_region.width()/scaling,
@@ -370,7 +368,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(right_pyramid[level], right_region),
                            left_region - left_region.min(), // Specify that the whole cropped region is valid
                            zone.disparity_range().size(), 
-                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, conserve_mem,
+                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, m_memory_limit_mb,
                            sgm_matcher_ptr,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
@@ -461,7 +459,7 @@ prerasterize(BBox2i const& bbox) const {
                            crop(edge_extend(left_pyramid[level]), left_reverse_region),
                            right_reverse_region - right_reverse_region.min(), // Full RR region
                            zone.disparity_range().size(), 
-                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, conserve_mem,
+                           m_kernel_size, use_mgm, m_sgm_subpixel_mode, m_sgm_search_buffer, m_memory_limit_mb,
                            sgm_right_matcher_ptr,
                            &(right_rl_mask), 
                            &(left_rl_mask),

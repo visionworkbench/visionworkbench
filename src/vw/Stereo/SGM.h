@@ -88,20 +88,24 @@ public: // Functions
                     int kernel_size=5,
                     SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                     Vector2i search_buffer=Vector2i(2,2),
-                    bool conserve_mem=false,
+                    size_t memory_limit_mb=6000,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
     set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
-                   kernel_size, subpixel, search_buffer, conserve_mem, p1, p2, ternary_census_threshold);
+                   kernel_size, subpixel, search_buffer, memory_limit_mb, p1, p2, ternary_census_threshold);
   }
 
   /// Set the parameters to be used for future SGM calls
   /// - Parameters that are not provided will be set to the best known default.
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
   ///   If not provided, they well be set to defaults according to the kernel size and cost type.
-  /// - The search buffer value is very important, it defines the radius around each
+  /// - The search buffer value is important, it defines the radius around each
   ///   estimated disparity value that we will search.  A value of 2 means a 5x5 search 
   ///   region.  A larger region directly affects the speed and memory usage of SGM.
+  /// - memory_limit_mb is the maximum amount of memory that the algorithm is allowed to allocate
+  ///   for its large buffers (total memory usage can go slightly over this).  The program will
+  ///   attempt a more conservative search range if needed to get under this target and if that
+  ///   fails then the program will throw an exception.
   void set_parameters(CostFunctionType cost_type,
                       bool use_mgm,
                       int min_disp_x, int min_disp_y,
@@ -109,7 +113,7 @@ public: // Functions
                       int kernel_size=5,
                       SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                       Vector2i search_buffer=Vector2i(2,2),
-                      bool conserve_mem=false,
+                      size_t memory_limit_mb=6000,
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
@@ -136,7 +140,7 @@ private: // Variables
     CostFunctionType m_cost_type;
     SgmSubpixelMode  m_subpixel_type;
     Vector2i m_search_buffer;
-    bool m_conserve_mem; ///< Make choices to avoid high memory usage
+    size_t m_memory_limit_mb; ///< Maximum memory usage allowed in main buffers
 
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
@@ -188,6 +192,20 @@ private: // Functions
   bool populate_disp_bound_image(ImageView<uint8> const* left_image_mask,
                                  ImageView<uint8> const* right_image_mask,
                                  DisparityImage   const* prev_disparity);
+
+  /// Reduce the search range of full-search-range pixel by looking at nearby
+  ///  pixels with a smaller search range.
+  /// - Set conserve_memory=true replace any remaining full range pixels with
+  ///   no-search-range pixels which will be ignored.
+  /// - Returns false if there is a problem processing the image.
+  bool constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
+                                  DisparityImage const* prev_disparity,
+                                  double percent_trusted, double percent_masked, double area,
+                                  bool conserve_memory);
+
+  /// Return the number of elements in each of the large buffers.
+  /// - Also perform a check to make sure our memory usage falls within the user specified limit.
+  size_t compute_buffer_length();
 
   /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
   void allocate_large_buffers();
@@ -352,7 +370,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    bool                   const  use_mgm,
                    SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
                    Vector2i               const  search_buffer, // Search buffer applied around prev_disparity locations
-                   bool                   const conserve_mem,
+                   size_t                 const memory_limit_mb,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr=0,  
                    ImageView<uint8>       const* right_mask_ptr=0,
@@ -501,7 +519,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    bool                   const  use_mgm,
                    SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
                    Vector2i               const  search_buffer, // Search buffer applied around prev_disparity locations
-                   bool                   const conserve_mem,
+                   size_t                 const  memory_limit_mb,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
@@ -541,7 +559,7 @@ calc_disparity_sgm(CostFunctionType cost_type,
     //write_image("final_right.tif", right);
     
     matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, conserve_mem));
+                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb));
     return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
     
   } // End function calc_disparity

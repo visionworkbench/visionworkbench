@@ -190,6 +190,7 @@ int main( int argc, char *argv[] ) {
   // TODO: Hook up to options!
   SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
   Vector2i sgm_search_buffer(2,2);
+  size_t memory_limit_mb = 1024*10;
 
   ImageViewRef<PixelMask<Vector2f> > disparity_map;
   int corr_timeout = 0;
@@ -209,6 +210,7 @@ int main( int argc, char *argv[] ) {
                                stereo_algorithm, collar_size,
                                sgm_subpixel_mode,
                                sgm_search_buffer,
+                               memory_limit_mb,
                                blob_filter_area,
                                write_debug_images);
 
