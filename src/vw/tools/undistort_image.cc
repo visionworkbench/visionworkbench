@@ -380,7 +380,7 @@ void do_work_all_channels(std::string const& input_file_name){
     
 int main( int argc, char *argv[] ) {
 
-  po::options_description desc("Usage: undistort_image [options] <input image> <camera model> <output image>\n\nOptions");
+  po::options_description desc("Usage: undistort_image [options] <input image> <camera model> -o <output image>\n\nOptions");
   desc.add_options()
     ("help,h",        "Display this help message")
     ("input-file",    po::value<std::string>(&input_file_name), 
