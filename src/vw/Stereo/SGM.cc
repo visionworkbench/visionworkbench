@@ -1525,7 +1525,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
   const int last_column = m_num_output_cols - 1;
   const int last_row    = m_num_output_rows - 1;
 
-  std::cout << "Starting first trip...\n";
+  vw_out() << "Starting first pass.\n";
 
   // Loop through all pixels in the output image for the first trip, top-left to bottom-right.
   for (int row=0; row<m_num_output_rows; ++row) {
@@ -1597,7 +1597,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
   buff_manager_horizontal.switch_trips();  
 
 
-  std::cout << "Starting second trip...\n";
+  vw_out() << "Starting second pass.\n";
 
   // Loop through all pixels in the output image for the second trip, bottom-right to top-left.
   for (int row = last_row; row >= 0; --row) {
@@ -1662,7 +1662,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   // -- Done with the horizontal passes, switch to vertical passes.
 
-  std::cout << "Starting third trip...\n";
+  vw_out() << "Starting third pass.\n";
 
   // Loop through all pixels in the output image for the third trip, bottom-left to top-right.
   for (int col = 0; col < m_num_output_cols; ++col) {
@@ -1889,7 +1889,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   // Start up the thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out() << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+  vw_out() << "Using " << thread_pool.max_threads() << " threads.\n";
   
   // Initialize a number of line buffers equal to the number of threads
   OneLineBufferManager mem_buff_manager(num_threads, this);
@@ -2046,7 +2046,7 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
 
   // Start up thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out() << "Starting thread pool with " << thread_pool.max_threads() << " threads.\n";
+  vw_out() << "Using " << thread_pool.max_threads() << " threads.\n";
 
   // Load all eight required passes as task in to the thread pool   
   typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
@@ -2069,7 +2069,7 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
   thread_pool.add_task(task_BL);
   
   thread_pool.join_all(); // Wait for all tasks to complete
-  std::cout << "Done with multi threaded smooth accumulation.\n";  
+  vw_out() << "Finished multi-threaded smooth accumulation.\n";  
 
 } // End function smooth_path_accumulation_multithreaded
 
