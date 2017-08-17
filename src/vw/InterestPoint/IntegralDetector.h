@@ -114,8 +114,8 @@ namespace ip {
     static const int IP_DEFAULT_SCALES = 8;
 
     /// Setting max_points = 0 will disable interest point culling.
-    IntegralInterestPointDetector( int max_points = 1000 )
-      : m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES), m_max_points(max_points) {}
+    IntegralInterestPointDetector( int max_points = 1000, int num_scales = IP_DEFAULT_SCALES )
+      : m_interest(InterestT()), m_scales(num_scales), m_max_points(max_points) {}
 
     IntegralInterestPointDetector( InterestT const& interest, int max_points = 1000 )
       : m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_max_points(max_points) {}
@@ -294,8 +294,8 @@ namespace ip {
     using InterestDetectorBase<IntegralAutoGainDetector>::impl;
     using InterestDetectorBase<IntegralAutoGainDetector>::operator();
 
-    IntegralAutoGainDetector( size_t max_points = 200 )
-      : IntegralInterestPointDetector<OBALoGInterestOperator>( OBALoGInterestOperator(0), IP_DEFAULT_SCALES, max_points ) {}
+    IntegralAutoGainDetector( size_t max_points = 200, size_t scales = IP_DEFAULT_SCALES )
+      : IntegralInterestPointDetector<OBALoGInterestOperator>( OBALoGInterestOperator(0), scales, max_points ) {}
 
     /// Detect Interest Points in the source image.
     template <class ViewT>
