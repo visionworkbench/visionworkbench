@@ -127,8 +127,6 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
                                                   ImageView<uint8> const* right_image_mask,
                                                   DisparityImage const* prev_disparity) {
 
-  //Timer timer_total("Populate disparity bounds");
-
   vw_out(VerboseDebugMessage, "stereo") << "disparity bound image size = " << bounding_box(m_disp_bound_image) << std::endl;
 
   // The masks are assumed to be the same size as the output image.
@@ -162,19 +160,19 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   // search range for each pixel in the left image.
   // - If this value is too low, many border pixels will be assigned the full
   //   search range and significantly slow down SGM!
-  const double MIN_MASK_OVERLAP = 0.95;
+  //const double MIN_MASK_OVERLAP = 0.95;
 
   // There needs to be some "room" in the disparity search space for
   // us to discard prior results on the edge as not trustworthy predictors.
-  // In other words, don't mark any pixels as edge if the one dimension has search space 1!
-  const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 1);
-  const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 1);
+  // In other words, don't mark any pixels as edge if the search space is too small!
+  const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 3);
+  const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 3);
 
   double area = 0, percent_trusted = 0, percent_masked = 0;
 
   // This class will check the right image mask in an efficient manner.
   // - This implementation relies on >= 0 disparity ranges!
-  IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
+  //IterativeMaskBoxCounter right_mask_checker(right_image_mask, Vector2i(m_num_disp_x, m_num_disp_y));
 
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
@@ -185,10 +183,11 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   int dx_scaled, dy_scaled;
   PixelMask<Vector2i> input_disp;
   Vector4i bounds;
+  double missing_prev_disp_count = 0;
   for (int r=0; r<m_disp_bound_image.rows(); ++r) {
     r_in = r / SCALE_UP;
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
-
+/*
       // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
       // Verify that there is sufficient overlap with the right image mask
       if (right_mask_valid) {
@@ -201,7 +200,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
           continue;
         }
       } // End right mask handling
-
+*/
       // If the left mask is invalid here, flag the pixel as invalid.
       // - Do this second so that our right image pixel tracker stays up to date.
       if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
@@ -228,10 +227,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
           std::cout << "prev_disparity->rows() = " << prev_disparity->rows() << std::endl;
           vw_throw( LogicErr() << "populate_disp_bound_image: Size error!\n" );
           */
+          missing_prev_disp_count += 1;
         }
         else {
           input_disp = prev_disparity->operator()(c_in,r_in);
-          
           // Disparity values on the edge of our 2D search range are not considered trustworthy!
           dx_scaled = input_disp[0] * SCALE_UP; 
           dy_scaled = input_disp[1] * SCALE_UP;
@@ -266,11 +265,45 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         full_search_image(c,r) = 255;
       }
       
+      // Restrict search range to the right image mask
+      // - This could be improved and more efficient!
+      if (right_mask_valid) {
+        // Iterate in x and y directions to see the furthest unmasked right image extent,
+        //  and limit the search range for this pixel to hit that extent.
+        int max_x = -1;
+        int max_y = -1;
+        for (int i=bounds[0]; i<=bounds[2]; ++i){
+          if (c+i >= right_image_mask->cols())
+            break;
+          if (right_image_mask->operator()(c+i, r) > 0)
+            max_x = i;
+        }
+        for (int i=bounds[1]; i<=bounds[3]; ++i){
+          if (r+i >= right_image_mask->rows())
+            break;
+          if (right_image_mask->operator()(c, r+i) > 0)
+            max_y = i;
+        }
+        // If we did not hit any valid pixels, don't search at this pixel.
+        if ((max_x < 0) || (max_y < 0)) {
+          m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
+          ++percent_masked;
+          full_search_image(c,r) = 0;
+          continue;
+        }
+        //std::cout << "bounds[2] = " << bounds[2] << std::endl;
+        //std::cout << "max_x = " << max_x << std::endl;
+        // If we hit at least some valid pixels, constrain the search range.
+        if (bounds[2] > max_x) bounds[2] = max_x;
+        if (bounds[3] > max_y) bounds[3] = max_y;
+      }
+      
+      
       m_disp_bound_image(c,r) = bounds;
       int this_area = (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
       area += this_area;
     } // End col loop
-    right_mask_checker.advance_row();
+    //right_mask_checker.advance_row();
   } // End row loop
 
   double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
@@ -279,6 +312,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked  << std::endl;
   vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
+  vw_out(InfoMessage, "stereo") << "Number missing prev disp = "          << missing_prev_disp_count << std::endl;
  
   // Reduce full range pixels where possible
   constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, false);
@@ -289,6 +323,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   }
   catch(...) {
     // Reduce all full range pixels so we use less memory
+    vw_out(InfoMessage, "stereo") << "Recomputing search range to converve memory." << std::endl;
     result = constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, true);
   }
  
@@ -308,15 +343,15 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
   
   // Shrink the search range of full range pixels based on neighbors
   // TODO: Make this more efficient!!!
-        int NEARBY_DISP_SEARCH_RANGE = 5; // Look this many pixels in each direction
+        int NEARBY_DISP_SEARCH_RANGE = 10; // Look this many pixels in each direction
   const int NEARBY_DISP_EXPANSION    = 3; // Grow search range from what nearby pixels have
   if (conserve_memory)
-    NEARBY_DISP_SEARCH_RANGE = 25;
+    NEARBY_DISP_SEARCH_RANGE = 100;
   double percent_shrunk = 0, shrunk_area = area;
   float conserved = 0;
   if (prev_disparity) { // No point doing this if a previous disparity image was not provided
   
-    // DEBUG
+    //// DEBUG
     //std::stringstream s;
     //s << m_disp_bound_image.cols();
     //write_image("full_search_image"+s.str()+".tif", full_search_image);
@@ -340,17 +375,25 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         if (max_search_c >= m_disp_bound_image.cols()) max_search_c = m_disp_bound_image.cols()-1;
         
         // Look through the search range
+        // - Look in a cross pattern to more efficiently search a larger space
         BBox2i new_range;
         for (int rs=min_search_r; rs<=max_search_r; ++rs) {
-          for (int cs=min_search_c; cs<=max_search_c; ++cs) {
-            if (full_search_image(cs,rs)) // Don't look at other uncertain pixels
-              continue;
-            // Expand bounding box
-            Vector4i vec = m_disp_bound_image(cs,rs);
-            new_range.grow(Vector2i(vec[0], vec[1]));
-            new_range.grow(Vector2i(vec[2], vec[3]));
-          }
+          if (full_search_image(c,rs)) // Don't look at other uncertain pixels
+            continue;
+          // Expand bounding box
+          Vector4i vec = m_disp_bound_image(c,rs);
+          new_range.grow(Vector2i(vec[0], vec[1]));
+          new_range.grow(Vector2i(vec[2], vec[3]));
         }
+        for (int cs=min_search_c; cs<=max_search_c; ++cs) {
+          if (full_search_image(cs,r)) // Don't look at other uncertain pixels
+            continue;
+          // Expand bounding box
+          Vector4i vec = m_disp_bound_image(cs,r);
+          new_range.grow(Vector2i(vec[0], vec[1]));
+          new_range.grow(Vector2i(vec[2], vec[3]));
+        }
+        
         if (new_range.empty()) { // If we did not find a new estimate
           // If worried about memory, don't try to solve pixels with no estimate.
           if (conserve_memory) {

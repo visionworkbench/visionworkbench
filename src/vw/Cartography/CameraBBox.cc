@@ -59,7 +59,7 @@ namespace vw { namespace cartography { namespace detail {
   class CameraDatumBBoxHelper {
     GeoReference m_georef;
     boost::shared_ptr<camera::CameraModel> m_camera;
-    Vector2 m_last_intersect;
+    Vector2      m_last_intersect;
 
   public:
     bool   last_valid, center_on_zero;
@@ -125,46 +125,34 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
                                 int32 cols, int32 rows, float &scale ) {
 
-  // To do: Integrate the almost identical functions camera_bbox in
-  // CameraBBox.h and CameraBBox.cc. One of them uses a DEM and the
-  // second one does not.
-
   // Testing to see if we should be centering on zero
   bool center_on_zero = true;
   Vector3 camera_llr =
     georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
     //XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
-  if ( camera_llr[0] < -90 ||
-       camera_llr[0] > 90 )
+  if ( camera_llr[0] < -90 || camera_llr[0] > 90 )
     center_on_zero = false;
 
   int32 step_amount = (2*cols+2*rows)/100;
   step_amount = std::min(step_amount, cols/4); // ensure at least 4 pts/col
   step_amount = std::min(step_amount, rows/4); // ensure at least 4 pts/row
   step_amount = std::max(step_amount, 1);      // step amount must be > 0
-  detail::CameraDatumBBoxHelper functor(georef, camera_model,
-                                        center_on_zero);
+  detail::CameraDatumBBoxHelper functor(georef, camera_model, center_on_zero);
 
   // Running the edges. Note: The last valid point on a
   // BresenhamLine is the last point before the endpoint.
-  bresenham_apply( BresenhamLine(0,0,cols,0),
-                   step_amount, functor );
+  bresenham_apply( BresenhamLine(0,      0,      cols,   0     ), step_amount, functor );
   functor.last_valid = false;
-  bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
-                   step_amount, functor );
+  bresenham_apply( BresenhamLine(cols-1, 0,      cols-1, rows  ), step_amount, functor );
   functor.last_valid = false;
-  bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),
-                   step_amount, functor );
+  bresenham_apply( BresenhamLine(cols-1, rows-1, 0,      rows-1), step_amount, functor );
   functor.last_valid = false;
-  bresenham_apply( BresenhamLine(0,rows-1,0,0),
-                   step_amount, functor );
+  bresenham_apply( BresenhamLine(0,      rows-1, 0,      0     ), step_amount, functor );
   functor.last_valid = false;
 
   // Do the x pattern
-  bresenham_apply( BresenhamLine(0,0,cols-1,rows-1),
-                   step_amount, functor );
-  bresenham_apply( BresenhamLine(0,rows-1,cols-1,0),
-                   step_amount, functor );
+  bresenham_apply( BresenhamLine(0, 0,      cols-1, rows-1), step_amount, functor );
+  bresenham_apply( BresenhamLine(0, rows-1, cols-1, 0     ), step_amount, functor );
 
   scale = functor.scale/double(step_amount);
   return functor.box;

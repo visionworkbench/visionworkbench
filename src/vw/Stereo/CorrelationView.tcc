@@ -444,14 +444,14 @@ prerasterize(BBox2i const& bbox) const {
           //write_image("rl_cropl.tif", crop(edge_extend(left_pyramid[level]), left_reverse_region));
           //write_image("rl_cropr.tif", crop(right_pyramid[level], right_reverse_region));
 
-          //// Write out masks with borders inserted - should line up with images!
+
+          // Write out masks with borders inserted - should line up with images!
           //right_mask_bbox.expand(half_kernel);
           //write_image("rl_cropRmaskPad.tif", crop(edge_extend(right_rl_mask, ZeroEdgeExtension()), right_mask_bbox));
           //BBox2i temp = bounding_box(left_rl_mask);
           //temp.expand(half_kernel);
           //write_image("rl_cropLmaskPad.tif", crop(edge_extend(left_rl_mask, ZeroEdgeExtension()), temp));
           //write_image("lr_result.tif", crop(disparity, zone.image_region()));
-          
 
           boost::shared_ptr<SemiGlobalMatcher> sgm_right_matcher_ptr;
           disparity_rl = calc_disparity_sgm(m_cost_type,
@@ -467,7 +467,6 @@ prerasterize(BBox2i const& bbox) const {
 
           //write_image("rl_result.tif", disparity_rl);
 
-
           // Convert from RL to negative LR values
           pixel_typeI offset(zone.disparity_range().size());
           disparity_rl -= offset;
@@ -479,6 +478,8 @@ prerasterize(BBox2i const& bbox) const {
           const bool verbose = true;
           stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()), // Crop not needed for SGM!
                                                disparity_rl, m_consistency_threshold, verbose);
+          
+          //write_image("lr_result_cons.tif", crop(disparity, zone.image_region()));
                                                
           //disparity_rl *= -1;
           //write_image("rl_result3.tif", disparity_rl);
@@ -565,7 +566,7 @@ prerasterize(BBox2i const& bbox) const {
 
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
-            const bool verbose        = true;
+            const bool verbose = true;
             stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
                                                   disparity_rl,
                                                  m_consistency_threshold, verbose);
@@ -682,7 +683,7 @@ prerasterize(BBox2i const& bbox) const {
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
-      //if (level == 2)
+      //if (level == 5)
       //  vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop

@@ -206,13 +206,15 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     TerminalProgressCallback progress("ba", "Building: ");
     progress.report_progress(0);
     double inc_prog = 1.0/double(ip1.size());
-    for ( size_t k = 0; k < ip1.size(); k++ ) {
+    for ( size_t k = 0; k < ip1.size(); k++ ) { // Loop through all existing IP
+      // Check if either IP is already in the lists
       f_itr ipfeature1 = std::find_if( crn[index1].begin(),
                                        crn[index1].end(),
                                        ContainsEqualIP( ip1[k] ) );
       f_itr ipfeature2 = std::find_if( crn[index2].begin(),
                                        crn[index2].end(),
                                        ContainsEqualIP( ip2[k] ) );
+      // If the IP are new, add them to the list
       if ( ipfeature1 == crn[index1].end() ) {
         crn[index1].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], index1 ) ) );
         ipfeature1 = crn[index1].begin();

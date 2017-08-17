@@ -126,10 +126,9 @@ namespace cartography {
       vw_throw( LogicErr() << "GeoReferenceHelperGDAL: Could not write georeference. No file has been opened." );
 
     // Store the transform matrix
-    double geo_transform[6] =
-      { georef.transform()(0,2), georef.transform()(0,0),
-        georef.transform()(0,1), georef.transform()(1,2),
-        georef.transform()(1,0), georef.transform()(1,1) };
+    double geo_transform[6] = { georef.transform()(0,2), georef.transform()(0,0),
+                                georef.transform()(0,1), georef.transform()(1,2),
+                                georef.transform()(1,0), georef.transform()(1,1) };
     dataset->SetGeoTransform( geo_transform );
 
     // This is a little ridiculous, but GDAL can't write geotiffs
