@@ -334,7 +334,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
                                                    DisparityImage const* prev_disparity,
                                                    double percent_trusted, double percent_masked, double area,
-                                                   bool conserve_memory) {
+                                                   bool const conserve_memory) {
 
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
@@ -351,48 +351,71 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
   float conserved = 0;
   if (prev_disparity) { // No point doing this if a previous disparity image was not provided
   
-    //// DEBUG
+    // DEBUG
     //std::stringstream s;
     //s << m_disp_bound_image.cols();
+    //if (conserve_memory)
+    //  s << "_conserve_";
     //write_image("full_search_image"+s.str()+".tif", full_search_image);
 
-    for (int r=0; r<m_disp_bound_image.rows(); ++r) {
-      // Get vertical search range
-      int min_search_r = r - NEARBY_DISP_SEARCH_RANGE;
-      int max_search_r = r + NEARBY_DISP_SEARCH_RANGE;
-      if (min_search_r <  0                        ) min_search_r = 0;
-      if (max_search_r >= m_disp_bound_image.rows()) max_search_r = m_disp_bound_image.rows()-1;
-      
+    // Debug image to record the search size for each pixel
+    //ImageView<int> search_size_image(full_search_image.cols(), full_search_image.rows());
+
+    for (int r=0; r<m_disp_bound_image.rows(); ++r) {      
       for (int c=0; c<m_disp_bound_image.cols(); ++c) {
         // Skip pixels without a full search range
-        if (!full_search_image(c,r))
+        //Vector4i bounds = m_disp_bound_image(c,r);
+        //int this_area = (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
+        if (!full_search_image(c,r)) {
+          //search_size_image(c,r) = this_area;
           continue;
+        }
 
-        // Get horizontal search range
-        int min_search_c = c - NEARBY_DISP_SEARCH_RANGE;
-        int max_search_c = c + NEARBY_DISP_SEARCH_RANGE;
-        if (min_search_c <  0                        ) min_search_c = 0;
-        if (max_search_c >= m_disp_bound_image.cols()) max_search_c = m_disp_bound_image.cols()-1;
+        //if ((c == 4240) && (r == 945))
+        //  vw_out() << "Full pixel with range: " << m_disp_bound_image(c,r) << std::endl;
         
-        // Look through the search range
-        // - Look in a cross pattern to more efficiently search a larger space
+        // Look in a star pattern to cheaply search a larger space
+        // - Keep expanding outward and quit when we find valid pixels.
         BBox2i new_range;
-        for (int rs=min_search_r; rs<=max_search_r; ++rs) {
-          if (full_search_image(c,rs)) // Don't look at other uncertain pixels
-            continue;
-          // Expand bounding box
-          Vector4i vec = m_disp_bound_image(c,rs);
-          new_range.grow(Vector2i(vec[0], vec[1]));
-          new_range.grow(Vector2i(vec[2], vec[3]));
+        for (int i=1; i<=NEARBY_DISP_SEARCH_RANGE; ++i) {
+          std::vector<Vector2i> coords;
+          coords.push_back(Vector2i(c+i,r  )); // Next set of pixels
+          coords.push_back(Vector2i(c  ,r+i));
+          coords.push_back(Vector2i(c-i,r  ));
+          coords.push_back(Vector2i(c  ,r-i));
+          coords.push_back(Vector2i(c-i,r-i));
+          coords.push_back(Vector2i(c+i,r-i));
+          coords.push_back(Vector2i(c-i,r+i));
+          coords.push_back(Vector2i(c+i,r+i));
+          
+          for (size_t j=0; j<coords.size(); ++j) { // Loop through the four points.
+            int cs = coords[j][0];
+            int rs = coords[j][1];
+            if ((cs < 0) || (rs < 0) || 
+                (cs >= m_disp_bound_image.cols()) || (rs >= m_disp_bound_image.rows()))
+              continue; // Skip out of bounds pixels
+            if (full_search_image(cs,rs)) // Don't look at other uncertain pixels
+              continue;
+            Vector4i vec = m_disp_bound_image(cs,rs);
+            if (vec == ZERO_SEARCH_AREA) // Skip zeroed out pixels too
+              continue;
+            new_range.grow(Vector2i(vec[0], vec[1])); // Expand to contain this pixel
+            new_range.grow(Vector2i(vec[2], vec[3]));
+            //if ((c == 4240) && (r == 945))
+            //  vw_out() << "Expand to contain: " << vec << std::endl;
+          }
+          if (!new_range.empty())
+            break; // Quit when we hit valid pixels
         }
-        for (int cs=min_search_c; cs<=max_search_c; ++cs) {
-          if (full_search_image(cs,r)) // Don't look at other uncertain pixels
-            continue;
-          // Expand bounding box
-          Vector4i vec = m_disp_bound_image(cs,r);
-          new_range.grow(Vector2i(vec[0], vec[1]));
-          new_range.grow(Vector2i(vec[2], vec[3]));
-        }
+        //if ((c == 4240) && (r == 945)) {
+        //  vw_out() << "New size: " << new_range << std::endl;
+        //  if (new_range.empty())
+        //    vw_out() << "Empty!\n";
+        //}
+        
+        // TODO: Handle this failure case properly!
+//        if (new_range.area() >= max_search_area)
+//          new_range = BBox2i();
         
         if (new_range.empty()) { // If we did not find a new estimate
           // If worried about memory, don't try to solve pixels with no estimate.
@@ -401,8 +424,12 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
             percent_shrunk += 1.0;
             shrunk_area -= max_search_area;
             conserved += 1.0;
+            //search_size_image(c,r) = 0;
           }
           // Otherwise use the full search range for them.
+          //if ((c == 4240) && (r == 945))
+          //  vw_out() << "Final size: " << m_disp_bound_image(c,r) << std::endl;
+          //search_size_image(c,r) = this_area;
           continue;
         }
         // Grow the bounding box a bit and then record it  
@@ -412,9 +439,14 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
                                            new_range.max().x(),   new_range.max().y());
         percent_shrunk += 1.0;
         shrunk_area -= (max_search_area - new_range.area());
-      }
-    }
+        //search_size_image(c,r) = new_range.area();
+        //if ((c == 4240) && (r == 945))
+        //  vw_out() << "Final size: " << m_disp_bound_image(c,r) << std::endl;
+      } // End col loop
+    } // End row loop
     //std::cout << "max_range_bbox = " << max_range_bbox << std::endl;
+    //std::cout << "===> Writing file: search_size_image"+s.str()+".tif\n";
+    //write_image("search_size_image"+s.str()+".tif", search_size_image);
   } // End of search range shrinking code
   
   // Compute some statistics for help improving the speed
