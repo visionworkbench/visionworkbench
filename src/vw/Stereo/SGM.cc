@@ -1154,6 +1154,19 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ]);
       }
 
+      //if (dy+delta_y == 1.5) {
+      //  double ratio = compute_subpixel_ratio(accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down]);
+        //printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
+        //       accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down], ratio);
+      //  rawFile << "up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", ratio = " << ratio << ", y_up = " << y_up << ", y_down = " << y_down << ", dy = " << dy << ", min_index = " << min_index << std::endl;
+        //for (int j=0; j<height; ++j) {
+        //  for (int i=0; i<width; ++i) {
+        //    rawFile << accum_vec[j*height+i];
+         // }
+        //  rawFile << std::endl;
+        //}
+      //}
+
       // To assist development, write the internal subpixel input ratio to a file.
       //double temp = compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
       //rawFile << temp << std::endl;
@@ -1169,9 +1182,11 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
       }
     } // End col loop
   } // End row loop
-  
-  percent_bad /= (double)(m_num_output_rows*m_num_output_cols);
-  vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << std::endl;
+
+  if (m_subpixel_type == SUBPIXEL_PARABOLA) { // Only ever failures with this mode
+    percent_bad /= (double)(m_num_output_rows*m_num_output_cols);
+    vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << std::endl;
+  }
 
   // Write these out for debugging/development
   //write_image( "subpixel_disp.tif", disparity );

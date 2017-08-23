@@ -36,6 +36,7 @@
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -189,7 +190,7 @@ int main( int argc, char *argv[] ) {
 
   // TODO: Hook up to options!
   SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
-  Vector2i sgm_search_buffer(2,2);
+  Vector2i sgm_search_buffer(4,3);
   size_t memory_limit_mb = 1024*4;
 
   ImageViewRef<PixelMask<Vector2f> > disparity_map;
@@ -254,11 +255,15 @@ int main( int argc, char *argv[] ) {
   // Actually invoke the raster
   {
     vw::Timer corr_timer("Correlation Time");
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create("disparity.tif",disparity_map.format()));
-    r->set_block_write_size( Vector2i(vw::vw_settings().default_tile_size(),
-                                      vw::vw_settings().default_tile_size()) );
-    block_write_image( *r, disparity_map,
-                       TerminalProgressCallback( "", "Rendering: ") );
+    cartography::GdalWriteOptions geo_opt;
+    geo_opt.raster_tile_size = Vector2i(1024, 1024);
+    if (stereo_algorithm == CORRELATION_WINDOW) {
+      block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
+    }
+    else { // SGM/MGM needs to be rasterized in a single tile.
+      ImageView<PixelMask<Vector2f> > result = disparity_map;
+      block_write_gdal_image("disparity.tif", result, geo_opt);
+    }
   }
 
   //// Write disparity debug images
