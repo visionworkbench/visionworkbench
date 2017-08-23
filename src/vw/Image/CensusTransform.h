@@ -347,55 +347,43 @@ uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int 
 
 
 size_t hamming_distance(uint8 a, uint8 b) {
-    uint8 dist = 0;
-    uint8 val = a ^ b; // XOR
+  uint8 dist = 0;
+  uint8 val = a ^ b; // XOR
 
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
+  // Count the number of bits set
+  while (val != 0) {
+      // A bit is set, so increment the count and clear the bit
+      ++dist;
+      val &= val - 1;
+  }
+  return static_cast<size_t>(dist); // Return the number of differing bits
 }
 
 size_t hamming_distance(uint16 a, uint16 b) {
-    uint16 dist = 0;
-    uint16 val = a ^ b; // XOR
+  uint16 dist = 0;
+  uint16 val = a ^ b; // XOR
 
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
+  // Count the number of bits set
+  while (val != 0) {
+      // A bit is set, so increment the count and clear the bit
+      ++dist;
+      val &= val - 1;
+  }
+  return static_cast<size_t>(dist); // Return the number of differing bits
 }
 
 size_t hamming_distance(uint32 a, uint32 b) {
-    uint32 dist = 0;
-    uint32 val = a ^ b; // XOR
+  uint32 dist = 0;
+  uint32 val = a ^ b; // XOR
 
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
+  return __builtin_popcount(val); // Use GCC compiler function to count the set bits
 }
 
 size_t hamming_distance(uint64 a, uint64 b) {
-    uint64 dist = 0;
-    uint64 val = a ^ b; // XOR
+  uint64 dist = 0;
+  uint64 val = a ^ b; // XOR
 
-    // Count the number of bits set
-    while (val != 0) {
-        // A bit is set, so increment the count and clear the bit
-        ++dist;
-        val &= val - 1;
-    }
-    return static_cast<size_t>(dist); // Return the number of differing bits
+  return __builtin_popcountl(val); // Use GCC compiler function to count the set bits
 }
 
 
