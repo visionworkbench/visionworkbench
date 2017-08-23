@@ -174,9 +174,10 @@ inline double compute_line_weights(Vector2 const& pix, bool horizontal,
 // and end and the centerline. The same thing is repeated for columns.
 // Then two such functions are multiplied. This works better than
 // grassfire for images with simple boundary and without holes.
+// If fill_holes is true, this will return positive weights inside holes.
 template<class ImageT>
 void centerline_weights(ImageT const& img, ImageView<double> & weights,
-                        BBox2i roi){
+                        BBox2i roi, bool fill_holes){
 
   int numRows = img.rows();
   int numCols = img.cols();
@@ -247,8 +248,8 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
   for (int row = output_bbox.min().y(); row < output_bbox.max().y(); row++){
     for (int col = output_bbox.min().x(); col < output_bbox.max().x(); col++){
       Vector2 pix(col, row);
-      double new_weight = 0; // Invalid pixels always get zero weight
-      if (is_valid(img(col,row))) {
+      double new_weight = 0; // Invalid pixels usually get zero weight
+      if (is_valid(img(col,row)) || fill_holes) {
         double weight_h = compute_line_weights(pix, true,  hCenterLine, hMaxDistArray);
         double weight_v = compute_line_weights(pix, false, vCenterLine, vMaxDistArray);
         new_weight = weight_h*weight_v;

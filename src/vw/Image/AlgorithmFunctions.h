@@ -70,7 +70,7 @@ namespace vw {
   ///   better than using grassfire weights.
   template <class ImageT>
   void centerline_weights( ImageT const& src, ImageView<double>& weights,
-                           BBox2i roi=BBox2i() );
+                           BBox2i roi=BBox2i(), bool fill_holes = false );
 
   // *******************************************************************
   // bounding_box()
