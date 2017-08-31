@@ -373,16 +373,12 @@ size_t hamming_distance(uint16 a, uint16 b) {
 }
 
 size_t hamming_distance(uint32 a, uint32 b) {
-  uint32 dist = 0;
   uint32 val = a ^ b; // XOR
-
   return __builtin_popcount(val); // Use GCC compiler function to count the set bits
 }
 
 size_t hamming_distance(uint64 a, uint64 b) {
-  uint64 dist = 0;
   uint64 val = a ^ b; // XOR
-
   return __builtin_popcountl(val); // Use GCC compiler function to count the set bits
 }
 

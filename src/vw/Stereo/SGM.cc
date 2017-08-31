@@ -165,8 +165,12 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   // There needs to be some "room" in the disparity search space for
   // us to discard prior results on the edge as not trustworthy predictors.
   // In other words, don't mark any pixels as edge if the search space is too small!
-  const bool check_x_edge = ((m_max_disp_x - m_min_disp_x) > 3);
-  const bool check_y_edge = ((m_max_disp_y - m_min_disp_y) > 3);
+  // - The edges come from the previous resolution level, so don't check edges unless
+  //   the previous level was at least 5 pixels in that axis.
+  const int disp_range_width  = (m_max_disp_x - m_min_disp_x + 1);
+  const int disp_range_height = (m_max_disp_y - m_min_disp_y + 1);
+  const bool check_x_edge = (disp_range_width  >= 10);
+  const bool check_y_edge = (disp_range_height >= 10);
 
   double area = 0, percent_trusted = 0, percent_masked = 0;
 
@@ -338,20 +342,23 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
+  //const int DEBUG_X = 4611;
+  //const int DEBUG_Y = 668;
+
   const BBox2i max_range_bbox(Vector2i(m_min_disp_x, m_min_disp_y), Vector2i(m_max_disp_x, m_max_disp_y));
   const double max_search_area = max_range_bbox.area();
   
   // Shrink the search range of full range pixels based on neighbors
   // TODO: Make this more efficient!!!
         int NEARBY_DISP_SEARCH_RANGE = 10; // Look this many pixels in each direction
-  const int NEARBY_DISP_EXPANSION    = 3; // Grow search range from what nearby pixels have
+  const int NEARBY_DISP_EXPANSION    = 2; // Grow search range from what nearby pixels have
   if (conserve_memory)
-    NEARBY_DISP_SEARCH_RANGE = 100;
+    NEARBY_DISP_SEARCH_RANGE = 25;
   double percent_shrunk = 0, shrunk_area = area;
   float conserved = 0;
   if (prev_disparity) { // No point doing this if a previous disparity image was not provided
   
-    // DEBUG
+    //// DEBUG
     //std::stringstream s;
     //s << m_disp_bound_image.cols();
     //if (conserve_memory)
@@ -362,18 +369,27 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
     //ImageView<int> search_size_image(full_search_image.cols(), full_search_image.rows());
 
     for (int r=0; r<m_disp_bound_image.rows(); ++r) {      
+    
+      // Get vertical search range
+      int min_search_r = r - NEARBY_DISP_SEARCH_RANGE;
+      int max_search_r = r + NEARBY_DISP_SEARCH_RANGE;
+      if (min_search_r <  0                        ) min_search_r = 0;
+      if (max_search_r >= m_disp_bound_image.rows()) max_search_r = m_disp_bound_image.rows()-1;
+    
+    
       for (int c=0; c<m_disp_bound_image.cols(); ++c) {
         // Skip pixels without a full search range
-        //Vector4i bounds = m_disp_bound_image(c,r);
+        Vector4i bounds = m_disp_bound_image(c,r);
         //int this_area = (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
         if (!full_search_image(c,r)) {
           //search_size_image(c,r) = this_area;
           continue;
         }
 
-        //if ((c == 4240) && (r == 945))
+        //if ((c == DEBUG_X) && (r == DEBUG_Y))
         //  vw_out() << "Full pixel with range: " << m_disp_bound_image(c,r) << std::endl;
         
+        /*
         // Look in a star pattern to cheaply search a larger space
         // - Keep expanding outward and quit when we find valid pixels.
         BBox2i new_range;
@@ -401,13 +417,40 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
               continue;
             new_range.grow(Vector2i(vec[0], vec[1])); // Expand to contain this pixel
             new_range.grow(Vector2i(vec[2], vec[3]));
-            //if ((c == 4240) && (r == 945))
-            //  vw_out() << "Expand to contain: " << vec << std::endl;
+            if ((c == DEBUG_X) && (r == DEBUG_Y))
+              vw_out() << "Expand to contain: " << vec << std::endl;
           }
           if (!new_range.empty())
             break; // Quit when we hit valid pixels
         }
-        //if ((c == 4240) && (r == 945)) {
+        */
+        
+        
+        
+
+        // Get horizontal search range
+        int min_search_c = c - NEARBY_DISP_SEARCH_RANGE;
+        int max_search_c = c + NEARBY_DISP_SEARCH_RANGE;
+        if (min_search_c <  0                        ) min_search_c = 0;
+        if (max_search_c >= m_disp_bound_image.cols()) max_search_c = m_disp_bound_image.cols()-1;
+        
+        // Look through the search range
+        BBox2i new_range;
+        for (int rs=min_search_r; rs<=max_search_r; ++rs) {
+          for (int cs=min_search_c; cs<=max_search_c; ++cs) {
+            if (full_search_image(cs,rs)) // Don't look at other uncertain pixels
+              continue;
+            // Expand bounding box
+            Vector4i vec = m_disp_bound_image(cs,rs);
+            if (vec == ZERO_SEARCH_AREA) // Skip zeroed out pixels too
+              continue;
+            new_range.grow(Vector2i(vec[0], vec[1]));
+            new_range.grow(Vector2i(vec[2], vec[3]));
+          }
+        }
+        
+        
+        //if ((c == DEBUG_X) && (r == DEBUG_Y)) {
         //  vw_out() << "New size: " << new_range << std::endl;
         //  if (new_range.empty())
         //    vw_out() << "Empty!\n";
@@ -426,10 +469,11 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
             conserved += 1.0;
             //search_size_image(c,r) = 0;
           }
-          // Otherwise use the full search range for them.
-          //if ((c == 4240) && (r == 945))
+          //else
+          //  search_size_image(c,r) = this_area;
+          //if ((c == DEBUG_X) && (r == DEBUG_Y))
           //  vw_out() << "Final size: " << m_disp_bound_image(c,r) << std::endl;
-          //search_size_image(c,r) = this_area;
+          // Otherwise use the full search range for them.
           continue;
         }
         // Grow the bounding box a bit and then record it  
@@ -440,7 +484,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         percent_shrunk += 1.0;
         shrunk_area -= (max_search_area - new_range.area());
         //search_size_image(c,r) = new_range.area();
-        //if ((c == 4240) && (r == 945))
+        //if ((c == DEBUG_X) && (r == DEBUG_Y))
         //  vw_out() << "Final size: " << m_disp_bound_image(c,r) << std::endl;
       } // End col loop
     } // End row loop
@@ -929,7 +973,14 @@ SemiGlobalMatcher::get_accum_vector_min(int col, int row,
   dx = min_index - (dy*d_width) + bounds[0];
   dy += bounds[1];
   
-  //printf("%d, %d, %d -> %d, %d\n", value, min_index, d_width, dx, dy);
+  /*if ((col == 1625) && (row == 1207)) {
+    std::cout << "TEST ACCUM\n";
+    for (int i=0; i<num_disp; ++i) {
+      std::cout << vec[i] << ", ";
+    }
+    std::cout << std::endl;
+    printf("%d, %d, %d -> %d, %d\n", value, min_index, d_width, dx, dy);
+  }*/
   
   return value;
 }
@@ -1037,19 +1088,35 @@ double lcBlendFit(double x) {
   return cosFit(x)*factor + linearFit(x)*(1.0-factor);
 }
 
+/// Crude way of performning subpixel interpolation when only two values are available
+/// - Returns fraction of distance from the primary to the other value.
+double SemiGlobalMatcher::two_value_subpixel(AccumCostType primary, AccumCostType other) {
+  return 0.5*(static_cast<double>(primary) / static_cast<double>(other));
+}
+
 /// Add this offset to the integer disparity to get the final result.
-double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next) {
-  double ld = prev - center;
-  double rd = next - center;
-  if ((rd == 0) && (ld == 0)) // Handle case where all values are equal
+double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
+                                                  bool left_bound, bool right_bound) {
+  double ld = prev - center; // Left  diff
+  double rd = next - center; // Right diff
+  if ((rd == 0) && (ld == 0)) // Handle case where all values are equal or both bounds are set
     return 0;
-  // Set up computations
+    
+  // If only two value are available, use a lower quality two value interpolation.
+  if (left_bound )
+    return two_value_subpixel(center, next); // Shift right
+  if (right_bound)
+    return -1.0*two_value_subpixel(center, prev); // Shift left
+    
+  // Pick which direction to interpolate in.
+  // - Never interpolate in a bounded direction.
   double x = rd/ld;
   double mult = -1.0;
   if (ld < rd) {
     x    = ld/rd;
     mult = 1.0;
   }
+
 
   // Use the selected subpixel function
   double value = 0;    
@@ -1062,7 +1129,7 @@ double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostT
   // Complete computation
   return (value - 0.5)*mult;
 }
-
+/*
 double SemiGlobalMatcher::compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next) {
   // Just return the ratio that would be used in compute_subpixel_offset
   // - If this value is written to disk, subpixel functions can be experimented with Matlab or something.
@@ -1075,7 +1142,7 @@ double SemiGlobalMatcher::compute_subpixel_ratio(AccumCostType prev, AccumCostTy
   else
     return rd/ld;
 }
-
+*/
 // Test out alternate subpixel methods
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
@@ -1112,7 +1179,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         continue; // No need for subpixel here
       }      
             
-      int dx = integer_pixel[0];
+      int dx = integer_pixel[0]; // The input integer disparity
       int dy = integer_pixel[1];
 
       // Not stop here if not doing subpixel processing      
@@ -1124,17 +1191,19 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
       // Linear index of the min offset that will be checked
       int min_index = (dy-bounds[1])*width + (dx-bounds[0]);
 
-      // Fetch the 8 adjacent accumulation vector values
-
-      // Don't interpolate out of bounds
+      // Get the indices of where to find the four adjacent pixels
       int x_left  = -1;
       int x_right =  1;
       int y_up    = -width;
       int y_down  =  width;
-      if (dx == bounds[0]) x_left  = 0;
-      if (dx == bounds[2]) x_right = 0;
-      if (dy == bounds[1]) y_up    = 0;
-      if (dy == bounds[3]) y_down  = 0;  
+      
+      // Don't interpolate out of bounds
+      bool top_bound, bottom_bound, left_bound, right_bound;
+      top_bound = bottom_bound = left_bound = right_bound = false;
+      if (dx == bounds[0]) { x_left  = 0; left_bound   = true; }
+      if (dx == bounds[2]) { x_right = 0; right_bound  = true; }
+      if (dy == bounds[1]) { y_up    = 0; top_bound    = true; }
+      if (dy == bounds[3]) { y_down  = 0; bottom_bound = true; }
 
       // Apply subpixel correction and apply
       AccumCostType const* accum_vec = get_accum_vector(i, j);
@@ -1150,21 +1219,24 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
       else {
         // This branch handles all 1D interpolation methods.
         // - These methods are always considered valid.
-        delta_x = compute_subpixel_offset(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
-        delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ]);
+        delta_x = compute_subpixel_offset(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right], 
+                                          left_bound, right_bound);
+        delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ], 
+                                          top_bound, bottom_bound);
       }
 
-      //if (dy+delta_y == 1.5) {
-      //  double ratio = compute_subpixel_ratio(accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down]);
+      //if (bottom_bound) {
+        //double ratio = compute_subpixel_ratio(accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down]);
         //printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
         //       accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down], ratio);
-      //  rawFile << "up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", ratio = " << ratio << ", y_up = " << y_up << ", y_down = " << y_down << ", dy = " << dy << ", min_index = " << min_index << std::endl;
+        //rawFile << "dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", dy = " << dy << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << std::endl;
         //for (int j=0; j<height; ++j) {
         //  for (int i=0; i<width; ++i) {
-        //    rawFile << accum_vec[j*height+i];
-         // }
+        //    rawFile << accum_vec[j*width+i] << " ";
+        //  }
         //  rawFile << std::endl;
         //}
+        //rawFile << std::endl;
       //}
 
       // To assist development, write the internal subpixel input ratio to a file.

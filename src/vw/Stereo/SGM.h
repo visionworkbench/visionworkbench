@@ -259,13 +259,6 @@ private: // Functions
 
   /// Generate the output disparity view from the accumulated costs.
   DisparityImage create_disparity_view();
-
-
-  /// Given the dx and dy positions of a pixel, return the 
-  ///  full size disparity index.
-  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) {
-    return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
-  }
   
   /// Get the value and index of the smallest element in an accumulation vector
   AccumCostType get_accum_vector_min(int col, int row,
@@ -311,6 +304,12 @@ private: // Functions
   friend class PixelPassTask;
   friend class SmoothPathAccumTask;
 
+  /// Given the dx and dy positions of a pixel, return the full size disparity index.
+  /// - Note that the big storage vectors do not store the entire disparity range for each pixel.
+  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) {
+    return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
+  }
+
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
   void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
@@ -345,10 +344,14 @@ private: // Functions
 
 
   /// Given disparity cost and adjacent costs, compute subpixel offset.
-  double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next);
+  double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
+                                 bool left_bound=false, bool right_bound=false);
   
-  /// Function to help with developing subpixel functions
-  double compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next);
+  /// Crude two-element subpixel estimation.
+  double two_value_subpixel(AccumCostType primary, AccumCostType other);
+  
+  ///// Function to help with developing subpixel functions
+  //double compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next);
 
 }; // end class SemiGlobalMatcher
 
