@@ -306,11 +306,13 @@ prerasterize(BBox2i const& bbox) const {
     double prev_estim      = estim_elapsed;
 
     boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
-    const bool use_sgm = (m_algorithm != CORRELATION_WINDOW); // Really means sgm or mgm
-    const bool use_mgm = (m_algorithm == CORRELATION_MGM);
+    const bool use_sgm = (m_algorithm != CORRELATION_WINDOW); // Anything but block matching
 
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
+
+      const bool use_mgm = ( (m_algorithm == CORRELATION_MGM) || 
+                            ((m_algorithm == CORRELATION_FINAL_MGM) && (level == 0)));
 
       const bool on_last_level = (level == 0);    
       bool check_rl = false;

@@ -105,9 +105,10 @@ namespace stereo {
 
 
   enum CorrelationAlgorithm {
-    CORRELATION_WINDOW = 0, ///< Use a local sliding search window.
-    CORRELATION_SGM    = 1, ///< Use a Semi-Global Matching algorithm.
-    CORRELATION_MGM    = 2  ///< Use the More-Global Matching algorithm.
+    CORRELATION_WINDOW    = 0, ///< Use a local sliding search window.
+    CORRELATION_SGM       = 1, ///< Use a Semi-Global Matching algorithm.
+    CORRELATION_MGM       = 2, ///< Use the More-Global Matching algorithm.
+    CORRELATION_FINAL_MGM = 3  ///< SGM until resolution level 0, then MGM.
   };
 
   /// An image view for performing pyramid image correlation (Faster than CorrelationView).

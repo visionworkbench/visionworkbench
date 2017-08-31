@@ -62,7 +62,8 @@ int main( int argc, char *argv[] ) {
   int   collar_size;
   int   sgm_filter_size;
   int   max_pyramid_levels;
-  int   correlator_type;
+  int   cost_mode;
+  int   stereo_algorithm;
   bool  found_alignment = false;
   int   blob_filter_area;
   Matrix3x3 alignment;
@@ -83,9 +84,11 @@ int main( int argc, char *argv[] ) {
     ("ykernel",    po::value(&ykernel)->default_value(15),     "Vertical correlation kernel size")
     ("lrthresh",   po::value(&lrthresh)->default_value(2),     "Left/right correspondence threshold")
     ("min-lr-level",    po::value(&min_lr_level)->default_value(1),     "Min level to check L/R correspondence at (SGM only).")
-    ("filter-radius",   po::value(&filter_radius)->default_value(5), "Disp filtering radius")
-    ("correlator-type", po::value(&correlator_type)->default_value(0), 
+    ("filter-radius",      po::value(&filter_radius)->default_value(5), "Disp filtering radius")
+    ("cost-mode",          po::value(&cost_mode)->default_value(0), 
                         "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr; 3 - Census; 4 - Ternary Census")
+    ("stereo-algorithm",   po::value(&stereo_algorithm)->default_value(0), 
+                    "Choose the stereo algorithm: 0=BM, 1=SGM, 2=MGM, 3=FinalMGM")
     //("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)") // TODO: Unused!
     ("blob-filter-area",   po::value(&blob_filter_area)->default_value(0),     "Filter blobs of this size.")
     ("threads",            po::value(&nThreads)->default_value(0),    "Manually specify the number of threads")
@@ -95,8 +98,6 @@ int main( int argc, char *argv[] ) {
     ("mask-value",         po::value(&mask_value)->default_value(-32768), "Specify a mask value")
     ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
       "Limit the maximum number of pyramid levels")
-    ("sgm",        "Use the SGM stereo algorithm.")
-    ("sgm-smooth", "Use the smoothed version of the SGM stereo algorithm.")
     ("debug",      "Write out debugging images")
     ;
   po::positional_options_description p;
@@ -172,26 +173,10 @@ int main( int argc, char *argv[] ) {
 
   bool write_debug_images = (vm.count("debug"));
 
-  stereo::CostFunctionType corr_type;
-  switch(correlator_type) {
-    case 0: corr_type = ABSOLUTE_DIFFERENCE;      break;
-    case 1: corr_type = SQUARED_DIFFERENCE;       break;
-    case 2: corr_type = CROSS_CORRELATION;        break;
-    case 3: corr_type = CENSUS_TRANSFORM;         break;
-    case 4: corr_type = TERNARY_CENSUS_TRANSFORM; break;
-    default: vw_throw( NoImplErr() << "Invalid correlation type entered!\n" );
-  };
-
-  CorrelationAlgorithm stereo_algorithm = CORRELATION_WINDOW;
-  if (vm.count("sgm") != 0)
-    stereo_algorithm = CORRELATION_SGM;
-  if (vm.count("sgm-smooth") != 0)
-    stereo_algorithm = CORRELATION_MGM;
-
   // TODO: Hook up to options!
   SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
-  Vector2i sgm_search_buffer(4,3);
-  size_t memory_limit_mb = 1024*4;
+  Vector2i sgm_search_buffer(4,2);
+  size_t memory_limit_mb = 1024*3;
 
   ImageViewRef<PixelMask<Vector2f> > disparity_map;
   int corr_timeout = 0;
@@ -205,10 +190,12 @@ int main( int argc, char *argv[] ) {
                                left_mask, right_mask,
                                stereo::PREFILTER_LOG, log,
                                search_range, kernel_size,
-                               corr_type, corr_timeout, seconds_per_op,
+                               static_cast<vw::stereo::CostFunctionType>(cost_mode), 
+                               corr_timeout, seconds_per_op,
                                lrthresh, min_lr_level,
                                filter_radius, max_pyramid_levels, 
-                               stereo_algorithm, collar_size,
+                               static_cast<vw::stereo::CorrelationAlgorithm>(stereo_algorithm), 
+                               collar_size,
                                sgm_subpixel_mode,
                                sgm_search_buffer,
                                memory_limit_mb,
