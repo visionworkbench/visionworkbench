@@ -632,23 +632,13 @@ void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
   // This is an alternate way to compute V and W, the results are similar.
   //Vector3 v     = cross_prod(look0, u);
   //Vector3 w     = cross_prod(u, v);
-
-  //std::cout << "ROT 0 = " << rot0 << std::endl;
-  //std::cout << "ROT 1 = " << rot1 << std::endl;
-  //std::cout << "Look 0 = " << look0 << std::endl;
-  //std::cout << "Look 1 = " << look1 << std::endl;
-  //std::cout << "u = " << u << std::endl;
-  //std::cout << "w = " << w << std::endl;
-  //std::cout << "v = " << v << std::endl;
   
   // Account for the 180 degree coordinate system difference mentioned earlier by
   // negating the Y and Z columns.
   RotMatrix new_rot = RotMatrix(u[0], -v[0], -w[0],
                                 u[1], -v[1], -w[1],
                                 u[2], -v[2], -w[2]);    
-                               
-  //std::cout << "R = " << new_rot << std::endl;
-    
+
   // The intrinsic values are somewhat arbitrary and are kept similar/identical to the input cameras.
   Vector2 focal_length = (src_camera0.focal_length() + src_camera1.focal_length()) / 2.0;
   Vector2 point_offset = (src_camera0.point_offset() + src_camera1.point_offset()) / 2.0;

@@ -217,7 +217,8 @@ namespace ip {
         new_points.sort();
         if (m_max_points < original_num_points)
           new_points.resize( m_max_points );
-        vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.)\n";
+        vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size() 
+                                               << " interest points, " << new_points.size() << " remaining.)\n";
       }
 
       { // Assign orientations

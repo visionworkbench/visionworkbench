@@ -22,7 +22,7 @@
 
 if MAKE_MODULE_INTERESTPOINT
 
-include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h          \
+include_HEADERS = Detector.h Detector.tcc Descriptor.h Matcher.h Extrema.h \
                   Localize.h InterestOperator.h WeightedHistogram.h    \
                   ImageOctave.h InterestData.h ImageOctaveHistory.h    \
                   InterestTraits.h MatrixIO.h LearnPCA.h               \
@@ -30,7 +30,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h          \
 		  IntegralDetector.h BoxFilter.h IntegralDescriptor.h
 
 libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc   \
-	          IntegralDetector.cc IntegralInterestOperator.cc Matcher.cc
+	          IntegralInterestOperator.cc Matcher.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la

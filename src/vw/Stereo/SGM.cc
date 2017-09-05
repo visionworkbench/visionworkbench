@@ -379,7 +379,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
     
       for (int c=0; c<m_disp_bound_image.cols(); ++c) {
         // Skip pixels without a full search range
-        Vector4i bounds = m_disp_bound_image(c,r);
+        //Vector4i bounds = m_disp_bound_image(c,r);
         //int this_area = (bounds[3]-bounds[1]+1)*(bounds[2]-bounds[0]+1);
         if (!full_search_image(c,r)) {
           //search_size_image(c,r) = this_area;

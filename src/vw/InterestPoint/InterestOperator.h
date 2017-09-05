@@ -34,6 +34,9 @@
 namespace vw {
 namespace ip {
 
+  // These various InterestOperator classes (and the one on IntegralInterestOperator.h)
+  //  all conform to a class pattern but do not derive from anything.
+
   // --------------------------- ------------------------ ----------------------------
   // --------------------------- Harris Interest Operator ----------------------------
   // --------------------------- ------------------------ ----------------------------
