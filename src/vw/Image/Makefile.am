@@ -65,6 +65,7 @@ include_HEADERS = \
   SparseImageCheck.h \
   SparseView.h \
   Statistics.h \
+  Statistics.tcc \
   Transform.h \
   UtilityViews.h \
   ViewImageResource.h

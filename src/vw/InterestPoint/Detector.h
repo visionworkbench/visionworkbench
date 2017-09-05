@@ -86,8 +86,8 @@ namespace ip {
   /// out.  However, this seems to work well enough for the time being.
   template <class OriT, class MagT>
   float get_orientation( ImageViewBase<OriT> const& x_grad,
-			 ImageViewBase<MagT> const& y_grad,
-			 float i0, float j0, float sigma_ratio = 1.0);
+                         ImageViewBase<MagT> const& y_grad,
+                         float i0, float j0, float sigma_ratio = 1.0);
 
 
   /// This class performs interest point detection on a source image
@@ -157,11 +157,11 @@ namespace ip {
     /// Otherwies, the max_points most "interesting" points are returned.
     ScaledInterestPointDetector(int max_points = 1000)
       : m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES),
-	m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
+        m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     ScaledInterestPointDetector(InterestT const& interest, int max_points = 1000)
       : m_interest(interest), m_scales(IP_DEFAULT_SCALES),
-	m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
+        m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     ScaledInterestPointDetector(InterestT const& interest, int scales, int octaves, int max_points = 1000)
       : m_interest(interest), m_scales(scales), m_octaves(octaves), m_max_points(max_points) {}
@@ -209,39 +209,6 @@ namespace ip {
 
 
 
-
-
-  //TODO: Move this function!
-  /// Converts a single channel image into a uint8 image with percentile based intensity scaling.
-  template <class ViewT>
-  void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
-				ImageView<PixelGray<vw::uint8> > &output_image,
-				double low_percentile=0.02, double high_percentile=0.98,
-				int num_bins=256) {
-
-    // First get the min and max values
-    double min_val, max_val;
-    find_image_min_max(input_image, min_val, max_val);
-
-    // Compute the input image histogram
-    std::vector<double> hist;
-    histogram(input_image, num_bins, min_val, max_val, hist);
-
-    // Find the bins at the input percentiles
-    size_t low_bin  = get_histogram_percentile(hist, low_percentile );
-    size_t high_bin = get_histogram_percentile(hist, high_percentile);
-
-    // Find the input values that correspond to the bin indices
-    double bin_width = (max_val - min_val) / (static_cast<double>(num_bins - 1));
-    double low_value  = (low_bin +1) * bin_width + min_val;
-    double high_value = (high_bin+1) * bin_width + min_val;
-
-    // Scale the image using the computed values and convert to uint8
-    output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, low_value, high_value),
-						    low_value, high_value, 0.0, 255.0 ));
-  }
-
-
   // TODO: Make an OpenCV interface file for this stuff
 
   enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
@@ -268,8 +235,6 @@ namespace ip {
   template <class LIST_ITER>
   void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
 				     cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type);
-
-  // TODO: Add point limit or other options for all detectors
 
   /// Interest point detector build using OpenCV functions
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
@@ -387,8 +352,8 @@ namespace ip {
   public:
 
     InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
-			    OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-			    int tile_size );
+                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
+                            int tile_size );
 
     size_t size() { return m_bboxes.size(); }
 
