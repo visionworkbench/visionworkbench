@@ -72,8 +72,10 @@ namespace ip {
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
     /// Find the interest points in an image using the provided detector.
+    /// - desired_num_ip is ignored if set to zero.
     template <class ViewT>
-    InterestPointList operator() (vw::ImageViewBase<ViewT> const& image);
+    InterestPointList operator() (vw::ImageViewBase<ViewT> const& image,
+                                  int desired_num_ip=0);
   };
 
   /// Get the orientation of the point at (i0,j0,k0).  This is done by
@@ -110,11 +112,11 @@ namespace ip {
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) const;
+    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const;
 
   protected:
     InterestT m_interest;
-    int m_max_points;
+    int       m_max_points;
 
     // By default, use find_peaks in Extrema.h
     template <class DataT>
@@ -168,7 +170,7 @@ namespace ip {
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) const;
+    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const;
 
   protected:
     InterestT m_interest;
@@ -246,16 +248,17 @@ namespace ip {
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) const;
+    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const;
 
   private:
     OpenCvIpDetectorType m_detector_type;
     bool                 m_add_descriptions;
     bool                 m_normalize;
-    cv::Ptr<cv::BRISK> m_detector_brisk; // TODO: Can these be consolidated with OCV3?
-    cv::Ptr<cv::ORB  > m_detector_orb;
-    cv::Ptr<cv::xfeatures2d::SIFT > m_detector_sift;
-    cv::Ptr<cv::xfeatures2d::SURF > m_detector_surf;
+    int                  m_max_points;
+    cv::Ptr<cv::FeatureDetector> m_detector;
+
+    /// Initialize an OpenCV detector object
+    cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, int max_points) const;
 
   }; // End class OpenCvInterestPointDetector
 #else
@@ -272,7 +275,7 @@ namespace ip {
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
+    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const {
       vw_throw( ArgumentErr() << "Can't use OpenCV IP detection functions if VW is not built with OpenCV!\n");
       return InterestPointList();
     }
@@ -310,18 +313,21 @@ namespace ip {
   template <class ViewT, class DetectorT>
   class InterestPointDetectionTask : public Task, private boost::noncopyable {
 
-    ViewT              m_view;          ///< Source image
-    DetectorT        & m_detector;      ///< Interest point detection class instance (TODO: const?)
-    BBox2i             m_bbox;          ///< Region of the source image to check for points
+    ViewT              m_view;           ///< Source image
+    DetectorT        & m_detector;       ///< Interest point detection class instance (TODO: const?)
+    BBox2i             m_bbox;           ///< Region of the source image to check for points
+    int                m_desired_num_ip; 
     int                m_id, m_max_id;
     InterestPointList& m_global_points;
     OrderedWorkQueue & m_write_queue;
 
   public:
     InterestPointDetectionTask(ImageViewBase<ViewT> const& view,
-			       DetectorT& detector, BBox2i const& bbox, int id, int max_id,
-			       InterestPointList& global_list, OrderedWorkQueue& write_queue) :
-      m_view(view.impl()), m_detector(detector), m_bbox(bbox), m_id(id), m_max_id(max_id),
+                               DetectorT& detector, BBox2i const& bbox, 
+                               int desired_num_ip, int id, int max_id,
+                               InterestPointList& global_list, OrderedWorkQueue& write_queue) :
+      m_view(view.impl()), m_detector(detector), m_bbox(bbox), 
+      m_desired_num_ip(desired_num_ip), m_id(id), m_max_id(max_id),
       m_global_points(global_list), m_write_queue(write_queue) {}
 
     virtual ~InterestPointDetectionTask(){}
@@ -344,6 +350,8 @@ namespace ip {
     OrderedWorkQueue  & m_write_queue;
     InterestPointList & m_ip_list;
     std::vector<BBox2i> m_bboxes;
+    int                 m_tile_size;
+    int                 m_desired_num_ip;
     Mutex               m_mutex;
     size_t              m_index;
 
@@ -353,7 +361,7 @@ namespace ip {
 
     InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
                             OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                            int tile_size );
+                            int tile_size, int desired_num_ip=0 );
 
     size_t size() { return m_bboxes.size(); }
 
@@ -368,8 +376,11 @@ namespace ip {
   /// This function implements a multithreaded interest point detector using
   /// the passed-in detector object.
   /// - Threads are spun off to process the image in 1024x1024 pixel blocks.
+  /// - Pass in desired_num_ip to enforce this limit proportional to the tile size,
+  ///   otherwise each tile will use the same number regardless of size.
   template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view, DetectorT& detector);
+  InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view, DetectorT& detector,
+                                           int desired_num_ip=0);
 
 
 // Include all the function definitions

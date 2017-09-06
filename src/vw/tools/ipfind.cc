@@ -129,14 +129,14 @@ static void write_debug_image( std::string const& out_file_name,
 }
 
 
-
+// TODO: Refactor tool to more closely match our IP code
 
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
   float  ip_gain;
   uint32 max_points;
-  int    tile_size, num_threads;
+  int    tile_size, num_threads, print_num_ip;
   ImageView<double> integral;
   bool   no_orientation;
 
@@ -154,14 +154,16 @@ int main(int argc, char** argv) {
     ("lowe,l",        "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
     ("debug-image,d", "Write out debug images.")
+    ("print-ip", po::value(&print_num_ip)->default_value(0), 
+          "Print information for this many detected IP")
 
     // Interest point detector options
     ("interest-operator", po::value(&interest_operator)->default_value("IAGD"), 
-          "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Brisk, Orb]")
+          "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Brisk, Orb, Sift, Surf]")
     ("gain,g", po::value(&ip_gain)->default_value(1.0), 
           "Increasing this number will increase the gain at which interest points are detected.")
     ("max-points", po::value(&max_points)->default_value(0), 
-          "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
+          "Set the maximum number of interest points you want returned per tile.")
     ("single-scale", 
           "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
     ("no-orientation", po::bool_switch(&no_orientation), "Shutoff rotational invariance")
@@ -261,19 +263,7 @@ int main(int argc, char** argv) {
     if ( image_rsrc->has_nodata_read() )
       vw_out(DebugMessage,"interest_point") << "Image has a nodata value: "
                                             << image_rsrc->nodata_read() << "\n";
-
-    // The max points sent to IP Detector class is applied to each
-    // tile of an image. In order to curb memory use we'll set the max
-    // size for each tile smaller (proportional to the number of tiles).
-    int number_tiles = (image.cols()/vw_settings().default_tile_size()+1) *
-                       (image.rows()/vw_settings().default_tile_size()+1);
-    uint32 tile_max_points = uint32(float(max_points)/float(number_tiles))*2; // A little over shoot
-    // incase the tile is empty
-    if ( max_points == 0 ) 
-      tile_max_points = 0; // No culling
-    else if ( tile_max_points < 50 ) 
-      tile_max_points = 50;
-
+                                            
     std::cout << "IP finder: " << interest_operator << std::endl;
 
     const bool describeInDetect = true;
@@ -284,11 +274,11 @@ int main(int argc, char** argv) {
       // Harris threshold is inversely proportional to gain.
       HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, tile_max_points);
-        ip = detect_interest_points(image, detector);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
+        ip = detect_interest_points(image, detector, max_points);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, tile_max_points);
-        ip = detect_interest_points(image, detector);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
+        ip = detect_interest_points(image, detector, max_points);
       }
     } else if ( interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -296,34 +286,34 @@ int main(int argc, char** argv) {
       // LoG threshold is inversely proportional to gain..
       LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, tile_max_points);
-        ip = detect_interest_points(image, detector);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
+        ip = detect_interest_points(image, detector, max_points);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator, tile_max_points);
-        ip = detect_interest_points(image, detector);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
+        ip = detect_interest_points(image, detector, max_points);
       }
     } else if ( interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, tile_max_points );
-      ip = detect_interest_points(image, detector);
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, max_points );
+      ip = detect_interest_points(image, detector, max_points);
     } else if ( interest_operator == "iagd") {
       // This is the default ASP implementation
-      IntegralAutoGainDetector detector( tile_max_points );
-      ip = detect_interest_points(image, detector);
+      IntegralAutoGainDetector detector( max_points );
+      ip = detect_interest_points(image, detector, max_points);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
-      // TODO: Does the float input image work with OpenCV?
+    // Floats don't work here
 
     } else if ( interest_operator == "brisk") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, describeInDetect, tile_max_points);
-      ip = detect_interest_points(image, detector);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, true, describeInDetect, max_points);
+      ip = detect_interest_points(image, detector, max_points);
     } else if ( interest_operator == "orb") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, describeInDetect, tile_max_points);
-      ip = detect_interest_points(image, detector);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, true, describeInDetect, max_points);
+      ip = detect_interest_points(image, detector, max_points);
     } else if ( interest_operator == "sift") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, describeInDetect, tile_max_points);
-      ip = detect_interest_points(image, detector);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, true, describeInDetect, max_points);
+      ip = detect_interest_points(image, detector, max_points);
 /*
       ImageView<PixelGray<unsigned char> >  buffer_image;
       cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
@@ -378,8 +368,8 @@ int main(int argc, char** argv) {
 */
 
     } else if ( interest_operator == "surf") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, describeInDetect, tile_max_points);
-      ip = detect_interest_points(image, detector);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, true, describeInDetect, max_points);
+      ip = detect_interest_points(image, detector, max_points);
     }
 #else // End OpenCV section
     } else {
@@ -457,12 +447,6 @@ int main(int argc, char** argv) {
   printf("Wrote dump image\n");
 }
 */
-    // Additional Culling for the entire image
-    if ( max_points > 0  && ip.size() > max_points ) {
-      ip.sort();
-      ip.resize(max_points);
-      vw_out() << "\t Culled to " << ip.size() << " points.\n";
-    }
 
     // Delete the orientation value if requested
     if ( no_orientation ) {
@@ -584,12 +568,13 @@ return 0;
     }
 #endif
 
-    int limit = 100;
+    // Print raw IP info if requested
+    int limit = print_num_ip;
     for (InterestPointList::const_iterator iter=ip.begin(); iter!=ip.end(); ++iter) {
-      std::cout << iter->to_string() << "\n";  
-      --limit;
       if (limit <= 0)
         break;
+      std::cout << iter->to_string() << "\n";  
+      --limit;
     }
 
     // If ASCII output was requested, write it out.  Otherwise stick with binary output.

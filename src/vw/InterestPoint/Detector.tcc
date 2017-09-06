@@ -24,7 +24,8 @@
 // Find the interest points in an image using the provided detector.
 template <class ImplT>
 template <class ViewT>
-InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<ViewT> const& image) {
+InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<ViewT> const& image,
+                                                           int desired_num_ip) {
 
   InterestPointList interest_points;
   vw_out(DebugMessage, "interest_point") << "Finding interest points in block: [ " << image.impl().cols() 
@@ -33,7 +34,7 @@ InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<Vie
   // Note: We explicitly convert the image to PixelGray<float>
   // (rescaling as necessary) here before passing it off to the
   // rest of the interest detector code.
-  interest_points = impl().process_image(pixel_cast_rescale<PixelGray<float> >(image.impl()));
+  interest_points = impl().process_image(pixel_cast_rescale<PixelGray<float> >(image.impl()), desired_num_ip);
 
   vw_out(DebugMessage, "interest_point") << "Finished processing block. Found " << interest_points.size() 
                                          << " interest points.\n";
@@ -49,10 +50,11 @@ template <class ViewT, class DetectorT>
 void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
 
   vw_out(InfoMessage, "interest_point") << "Locating interest points in block "
-                                        << m_id + 1 << "/" << m_max_id << "   [ " << m_bbox << " ]\n";
+                                        << m_id + 1 << "/" << m_max_id << "   [ " << m_bbox << 
+                                        " ] with " << m_desired_num_ip << " ip.\n";
 
   // Use the m_detector object to find a set of image points in the cropped section of the image.
-  InterestPointList new_ip_list = m_detector(crop(m_view.impl(), m_bbox));
+  InterestPointList new_ip_list = m_detector(crop(m_view.impl(), m_bbox), m_desired_num_ip);
 
   for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
     (*pt).x  += m_bbox.min().x();
@@ -77,9 +79,11 @@ template <class ViewT, class DetectorT>
 InterestDetectionQueue<ViewT, DetectorT>::
 InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
                         OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                        int tile_size ) :
+                        int tile_size, int desired_num_ip) :
      m_view(view.impl()), m_detector(detector),
-     m_write_queue(write_queue), m_ip_list(ip_list), m_index(0) {
+     m_write_queue(write_queue), m_ip_list(ip_list), m_tile_size(tile_size), 
+     m_desired_num_ip(desired_num_ip), m_index(0) {
+     
   m_bboxes = subdivide_bbox( m_view, tile_size, tile_size );
   this->notify();
 }
@@ -93,8 +97,25 @@ InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
     return boost::shared_ptr<Task>();
 
   m_index++;
+
+  int num_ip = 0; // The default value means let the detector pick the IP count.
+  
+  if (m_desired_num_ip > 0) {
+    // Determine the desired number of IP for this tile based on its size
+    //  relative to a full sized tile.
+    const int MIN_NUM_IP = 1;
+    double expected_area = m_tile_size*m_tile_size;
+    double area          = m_bboxes[m_index-1].area();
+    double fraction      = area / expected_area;
+           num_ip        = ceil(fraction * static_cast<double>(m_desired_num_ip));
+    if (num_ip < MIN_NUM_IP)
+      num_ip = MIN_NUM_IP;
+    if (num_ip > m_desired_num_ip)
+      num_ip = m_desired_num_ip;
+  }
+
   return boost::shared_ptr<Task>( new task_type( m_view, m_detector,
-                                                 m_bboxes[m_index-1], m_index-1,
+                                                 m_bboxes[m_index-1], num_ip, m_index-1,
                                                  m_bboxes.size(), m_ip_list, m_write_queue ) 
                                 );
 }
@@ -104,9 +125,11 @@ InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
 // This free function implements a multithreaded interest point
 // detector.  Threads are spun off to process the image in 1024x1024 pixel blocks.
 template <class ViewT, class DetectorT>
-InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, DetectorT& detector) {
+InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, DetectorT& detector,
+                                         int desired_num_ip) {
 
-  VW_OUT(DebugMessage, "interest_point") << "Running multi-threaded interest point detector.  Input image: [ "
+  VW_OUT(DebugMessage, "interest_point") << "Running multi-threaded interest point detector with ip/tile = "
+                                         << desired_num_ip << ".  Input image: [ "
                                          << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
 
   // Process the image in no less than 1024x1024 size pixel blocks.
@@ -118,8 +141,7 @@ InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, Dete
   OrderedWorkQueue write_queue(1); // Used to insure that interest points are written in a
                                    // specific order and not by the random way threads finish.
   InterestPointList ip_list;
-  InterestDetectionQueue<ViewT, DetectorT>
-    detect_queue( view, detector, write_queue, ip_list, tile_size );
+  InterestDetectionQueue<ViewT, DetectorT> detect_queue( view, detector, write_queue, ip_list, tile_size, desired_num_ip );
   VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
   detect_queue.join_all();
   write_queue.join_all();
@@ -179,7 +201,8 @@ float get_orientation( ImageViewBase<OriT> const& x_grad,
 // Detect interest points in the source image.
 template <class InterestT>
 template <class ViewT>
-InterestPointList InterestPointDetector<InterestT>::process_image(ImageViewBase<ViewT> const& image) const {
+InterestPointList InterestPointDetector<InterestT>::process_image(ImageViewBase<ViewT> const& image,
+                                                                  int desired_num_ip) const {
   Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
   // Calculate gradients, orientations and magnitudes
@@ -226,14 +249,19 @@ InterestPointList InterestPointDetector<InterestT>::process_image(ImageViewBase<
     vw_out(DebugMessage, "interest_point") << "done (" << points.size() << " interest points), ";
   }
 
+  // Handle max_points override
+  int curr_max_points = m_max_points;
+  if (desired_num_ip > 0)
+    curr_max_points = desired_num_ip;
+
   // Cull (limit the number of interest points to the N "most interesting" points)
-  vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
+  vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << curr_max_points << " points)... ";
   {
     Timer t("elapsed time", DebugMessage, "interest_point");
     int original_num_points = points.size();
     points.sort();
-    if ((m_max_points > 0) && (m_max_points < original_num_points))
-       points.resize(m_max_points);
+    if ((curr_max_points > 0) && (curr_max_points < original_num_points))
+       points.resize(curr_max_points);
     vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - points.size() 
                                            << " interest points, " << points.size() << " remaining.), ";
   }
@@ -318,7 +346,7 @@ void InterestPointDetector<InterestT>::write_images(DataT const& img_data) const
 template <class InterestT>
 template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
-process_image(ImageViewBase<ViewT> const& image) const {
+process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
   typedef ImageInterestData<ImageView<typename ViewT::pixel_type>,InterestT> DataT;
 
   Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
@@ -384,14 +412,20 @@ process_image(ImageViewBase<ViewT> const& image) const {
       vw_out(DebugMessage, "interest_point") << "done (" << new_points.size() << " interest points), ";
     }
 
+
+    // Handle max_points override
+    int curr_max_points = m_max_points;
+    if (desired_num_ip > 0)
+      curr_max_points = desired_num_ip;
+
     // Cull (limit the number of interest points to the N "most interesting" points)
-    vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
+    vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << curr_max_points << " points)... ";
     {
       Timer t("elapsed time", DebugMessage, "interest_point");
       int original_num_points = new_points.size();
       new_points.sort();
-      if ((m_max_points > 0) && (m_max_points/m_octaves < (int)new_points.size()))
-        new_points.resize(m_max_points/m_octaves);
+      if ((curr_max_points > 0) && (curr_max_points/m_octaves < (int)new_points.size()))
+        new_points.resize(curr_max_points/m_octaves);
       vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - new_points.size() 
                                              << " interest points, " << new_points.size() << " remaining.), ";
     }
@@ -522,13 +556,16 @@ cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
 			   ImageView<PixelGray<vw::uint8> > &image_buffer,
 			   bool normalize) {
 
+  // Rasterize the input image so we don't suffer from slow disk access or something.
+  ImageView<typename ViewT::pixel_type> input_buffer = input_image.impl();
+
   if (normalize) // Convert the input image to uint8 with 2%-98% intensity scaling.
-    percentile_scale_convert(input_image, image_buffer, 0.02, 0.98);
+    percentile_scale_convert(input_buffer, image_buffer, 0.02, 0.98);
   else {
     // Convert to uint8 using the default ranges for the input data type
     double standard_min = ChannelRange<typename ViewT::pixel_type>::min();
     double standard_max = ChannelRange<typename ViewT::pixel_type>::max();
-    image_buffer = pixel_cast_rescale<vw::uint8>(clamp(input_image, standard_min, standard_max));
+    image_buffer = pixel_cast_rescale<vw::uint8>(clamp(input_buffer, standard_min, standard_max));
   }
 
   // Figure out the image buffer parameters
@@ -539,7 +576,7 @@ cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
 
   // Create an OpenCV wrapper for the buffer image
   cv::Mat cv_image(image_buffer.rows(), image_buffer.cols(),
-		   cv_data_type, raw_data_ptr, step_size);
+                   cv_data_type, raw_data_ptr, step_size);
   return cv_image;
 }
 
@@ -586,38 +623,41 @@ void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
 
 
 inline
-OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
-			    bool normalize,
-			    bool add_descriptions, int max_points)
-  : m_detector_type(detector_type), m_add_descriptions(add_descriptions), m_normalize(normalize) {
+cv::Ptr<cv::FeatureDetector> 
+OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type, int max_points) const {
 
   // Instantiate the feature detector
+  // - There are a lot of detector variables that we just leave as the default here.
   switch (detector_type)
   {
     case OPENCV_IP_DETECTOR_TYPE_BRISK:
       vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
-      //m_detector_brisk = cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
+      //return cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
     case OPENCV_IP_DETECTOR_TYPE_ORB:
-      m_detector_orb = cv::ORB::create();
-      m_detector_orb->setMaxFeatures(max_points);
-      break;
+      return cv::ORB::create(max_points);
     case OPENCV_IP_DETECTOR_TYPE_SIFT:
-      m_detector_sift = cv::xfeatures2d::SIFT::create(max_points);
-      break;
+      return cv::xfeatures2d::SIFT::create(max_points);
     case OPENCV_IP_DETECTOR_TYPE_SURF:
       vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
-      //m_detector_surf  = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
-    default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-  };
-  //if (!m_detector) vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector failed to initialize!\n");
+      //m_detector = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
+    default: 
+      vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+  }; 
+}
+
+inline
+OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
+                                                         bool normalize, bool add_descriptions, int max_points)
+  : m_detector_type(detector_type), m_add_descriptions(add_descriptions), 
+    m_normalize(normalize), m_max_points(max_points) {
+
+  m_detector = init_detector(detector_type, max_points);
 }
 
 /// Detect interest points in the source image.
 template <class ViewT>
-InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image) const {
-
-  //if (!m_detector)
-  //    vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector is not initialized!\n");
+InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image,
+                                                             int desired_num_ip) const {
 
   // If the image is too small to use, don't return any interest points.
   const int MIN_DETECTOR_SIZE = 32;
@@ -632,25 +672,17 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
   std::vector<cv::KeyPoint> keypoints;
   cv::Mat cvDescriptors;
 
-  if (m_add_descriptions) {
-    switch (m_detector_type)
-    {
-      //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->operator()(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detectAndCompute (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->detectAndCompute(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      //case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
-      default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-    };
-  } else { // Don't add descriptions
-    switch (m_detector_type)
-    {
-      //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->detect(cv_image, keypoints); break;
-      case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detect (cv_image, keypoints);   break;
-      case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->detect(cv_image, keypoints);  break;
-      //case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->detect(cv_image, keypoints);  break;
-      default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-    };
-  }
+  // If the number of desired points has changed we need to create a temporary detector instance
+  cv::Ptr<cv::FeatureDetector> detector = m_detector;
+  if ((desired_num_ip > 0) && (desired_num_ip != m_max_points))
+    detector = init_detector(m_detector_type, desired_num_ip);
+
+  // Perform detection/description
+  if (m_add_descriptions)
+    detector->detectAndCompute (cv_image, cv::Mat(), keypoints, cvDescriptors);
+  else // Don't add descriptions
+    detector->detect(cv_image, keypoints);
+
 
   // Convert back to our output format
   InterestPointList ip_list;

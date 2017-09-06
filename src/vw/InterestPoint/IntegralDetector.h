@@ -125,7 +125,8 @@ namespace ip {
 
     /// Detect Interest Points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image ) const {
+    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+                                    int desired_num_ip=0 ) const {
       typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
       typedef ImageInterestData<ImageT,InterestT> DataT;
 
@@ -210,13 +211,18 @@ namespace ip {
         interest_data.pop_front();
       } // End scale loop
 
-      if ( m_max_points > 0 ) { // Cull
+      // Handle max_points override
+      int curr_max_points = m_max_points;
+      if (desired_num_ip > 0)
+        curr_max_points = desired_num_ip;
+
+      if ( curr_max_points > 0 ) { // Cull
         vw_out(DebugMessage, "interest_point") << "\tCulling ...";
         Timer t("elapsed time", DebugMessage, "interest_point");
         int original_num_points = new_points.size();
         new_points.sort();
-        if (m_max_points < original_num_points)
-          new_points.resize( m_max_points );
+        if (curr_max_points < original_num_points)
+          new_points.resize( curr_max_points );
         vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size() 
                                                << " interest points, " << new_points.size() << " remaining.)\n";
       }
@@ -273,8 +279,7 @@ namespace ip {
                            int               const& scale ) const {
       InterestPointList::iterator pos = points.begin();
       while (pos != points.end()) {
-        if (!m_interest.threshold(*pos,
-                                  img_data, scale) )
+        if (!m_interest.threshold(*pos, img_data, scale) )
           pos = points.erase(pos);
         else
           pos++;
@@ -300,7 +305,8 @@ namespace ip {
 
     /// Detect Interest Points in the source image.
     template <class ViewT>
-    InterestPointList process_image(vw::ImageViewBase<ViewT> const& image ) const {
+    InterestPointList process_image(vw::ImageViewBase<ViewT> const& image,
+                                    int desired_num_ip=0 ) const {
       using namespace vw;
       typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
       typedef ip::ImageInterestData<ImageT,ip::OBALoGInterestOperator> DataT;
@@ -406,8 +412,13 @@ namespace ip {
         interest_data.pop_front();
       }
 
+      // Handle max_points override
+      int curr_max_points = m_max_points;
+      if (desired_num_ip > 0)
+        curr_max_points = desired_num_ip;
+
       // Are all points good?
-      if ( m_max_points < int(new_points.size()) && m_max_points > 0 ) {
+      if ( curr_max_points < int(new_points.size()) && (curr_max_points > 0) ) {
         VW_OUT(DebugMessage, "interest_point") << "\tCulling ...\n";
         Timer t("elapsed time", DebugMessage, "interest_point");
 
@@ -417,9 +428,10 @@ namespace ip {
         new_points.sort();
         VW_OUT(DebugMessage, "interest_point") << "\t     Best IP : " << new_points.front().interest << std::endl;
         VW_OUT(DebugMessage, "interest_point") << "\t     Worst IP: " << new_points.back().interest << std::endl;
-        new_points.resize( m_max_points );
+        new_points.resize( curr_max_points );
 
-        VW_OUT(DebugMessage, "interest_point") << "\t     (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.)\n";
+        VW_OUT(DebugMessage, "interest_point") << "\t     (removed " << original_num_points - new_points.size() 
+                                               << " interest points, " << new_points.size() << " remaining.)\n";
       } else {
         VW_OUT(DebugMessage, "interest_point") << "\t     Not culling anything.\n";
       }

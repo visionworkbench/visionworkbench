@@ -176,11 +176,11 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
     right_mask_pyramid[i] = subsample_mask_by_two(right_mask_pyramid[i-1]);
     
     vw_out(DebugMessage, "stereo") << "--- Created pyramid level " << i << std::endl;    
-    vw_out(DebugMessage, "stereo") << "Left  pyramid size = " << bounding_box(left_pyramid[i]) << std::endl;
-    vw_out(DebugMessage, "stereo") << "Right pyramid size = " << bounding_box(right_pyramid[i]) << std::endl;
-    vw_out(DebugMessage, "stereo") << "Left  pyramid mask size = " << bounding_box(left_mask_pyramid[i]) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Left  pyramid size = "      << bounding_box(left_pyramid[i]      ) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Right pyramid size = "      << bounding_box(right_pyramid[i]     ) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Left  pyramid mask size = " << bounding_box(left_mask_pyramid[i] ) << std::endl;
     vw_out(DebugMessage, "stereo") << "Right pyramid mask size = " << bounding_box(right_mask_pyramid[i]) << std::endl;
-    std::cout << "Level search size = " << (m_search_region.size() / (1 << i)) << std::endl;
+    vw_out(DebugMessage, "stereo") << "Level search size = "       << (m_search_region.size() / (1 << i)) << std::endl;
   }
 
   // Apply the prefilter to each pyramid level
