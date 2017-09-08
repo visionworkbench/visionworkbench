@@ -76,8 +76,7 @@ namespace cartography {
   void write_georeference( ImageResource& resource,
                            GeoReference const& georef ) {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-    DiskImageResourceGDAL* gdal =
-      dynamic_cast<DiskImageResourceGDAL*>( &resource );
+    DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>( &resource );
     if ( gdal ) 
       return write_gdal_georeference( *gdal, georef );
 #endif
@@ -145,21 +144,21 @@ namespace cartography {
 
 
 
-  GeoReference::GeoReference() : m_pixel_interpretation( PixelAsArea ) {
+  GeoReference::GeoReference() : m_pixel_interpretation( PixelAsArea ), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum) :
-        m_pixel_interpretation( PixelAsArea ), m_datum(datum){
+        m_pixel_interpretation( PixelAsArea ), m_datum(datum), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
-      : m_pixel_interpretation ( pixel_interpretation ), m_datum(datum) {
+      : m_pixel_interpretation ( pixel_interpretation ), m_datum(datum), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -167,7 +166,7 @@ namespace cartography {
 
   GeoReference::GeoReference(Datum const& datum,
                              Matrix<double,3,3> const& transform) :
-                   m_pixel_interpretation( PixelAsArea ), m_datum(datum) {
+                   m_pixel_interpretation( PixelAsArea ), m_datum(datum), m_projcs_name("") {
     set_transform(transform);
     set_geographic();
     init_proj();
@@ -176,7 +175,7 @@ namespace cartography {
   GeoReference::GeoReference(Datum const& datum,
                              Matrix<double,3,3> const& transform,
                              PixelInterpretation pixel_interpretation) :
-    m_pixel_interpretation(pixel_interpretation), m_datum(datum) {
+    m_pixel_interpretation(pixel_interpretation), m_datum(datum), m_projcs_name("") {
     set_transform(transform);
     set_geographic();
     init_proj();
@@ -596,6 +595,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
     std::string proj4_str = proj_str_tmp;
     CPLFree( proj_str_tmp );
+    
+    // TODO: set m_projcs_name if possible from WKT string.
 
     std::vector<std::string> input_strings, output_strings, datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
@@ -665,10 +666,19 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   // Get the wkt string from the georef. It only has projection and datum information.
   std::string GeoReference::get_wkt() const {
 
-    OGRSpatialReference gdal_spatial_ref;
-    Datum const& datum = this->datum();
-    gdal_spatial_ref.importFromProj4(this->proj4_str().c_str());
+    // Create an OGRSpatialReference gdal object, load it with the
+    //  proj4 string and datum information, and then use it to 
+    //  generate the WKT string.
 
+    OGRSpatialReference gdal_spatial_ref;
+    Datum const& datum = this->datum();      
+    gdal_spatial_ref.importFromProj4(this->proj4_str().c_str());
+    
+    // Apply projcs override if it was specified
+    std::string projcs_name = this->get_projcs_name();
+    if (projcs_name != "")
+      gdal_spatial_ref.SetProjCS(projcs_name.c_str());
+    
     // For perfect spheres, we set the inverse flattening to
     // zero. This is making us compliant with OpenGIS Implementation
     // Specification: CTS 12.3.10.2. In short, we are not allowed to
@@ -834,26 +844,6 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return strings;
   }
 
-#if PJ_VERSION < 480
-  ProjContext::ProjContext(std::string const& proj4_str) : m_proj4_str(proj4_str) {
-
-    // proj.4 is expecting the parameters to be split up into seperate
-    // c-style strings.
-    int num;
-    char** proj_strings = split_proj4_string(m_proj4_str, num);
-    m_proj_ptr.reset( pj_init(num, proj_strings),
-                      pj_free );
-
-    VW_ASSERT( !pj_errno, InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_errno) );
-
-    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
-    delete [] proj_strings;
-  }
-  ProjContext::ProjContext( ProjContext const& other ) : m_proj_ptr(other.m_proj_ptr), m_proj4_str(other.m_proj4_str) {}
-  int ProjContext::error_no() const {
-    return pj_errno;
-  }
-#else // PJ_VERSION >= 480
 
   ProjContext::ProjContext(std::string const& proj4_str ) : m_proj4_str(proj4_str) {
     m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
@@ -864,9 +854,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
                      pj_free);
 
     VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
+               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " 
+                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
 
-    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
+    for ( int i = 0; i < num; i++ )
+      delete [] proj_strings[i];
     delete [] proj_strings;
   }
 
@@ -884,16 +876,18 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
                      pj_free);
 
     VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
+               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " 
+                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
 
-    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
+    for ( int i = 0; i < num; i++ )
+      delete [] proj_strings[i];
     delete [] proj_strings;
   }
 
   int ProjContext::error_no() const {
     return pj_ctx_get_errno(m_proj_ctx_ptr.get());
   }
-#endif
+
 //************** End functions for class ProjContext ******************
 //*********************************************************************
 
@@ -1070,6 +1064,9 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
   std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
     os << "-- Proj.4 Geospatial Reference Object --\n";
+    if (georef.get_projcs_name() != "")
+      os << "\tPROJCS name: " << georef.get_projcs_name() << "\n";
+    os << "\tProj.4 String: " << georef.proj4_str() << "\n";
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";
     os << "\tProj.4 String: " << georef.proj4_str() << "\n";

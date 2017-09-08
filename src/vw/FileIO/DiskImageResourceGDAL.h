@@ -63,25 +63,22 @@ namespace vw {
     typedef std::map<std::string,std::string> Options;
 
     DiskImageResourceGDAL( std::string const& filename )
-      : DiskImageResource( filename )
-    {
+      : DiskImageResource( filename ) {
       open( filename );
     }
 
     DiskImageResourceGDAL( std::string const& filename,
                            ImageFormat const& format,
-                           Vector2i block_size = Vector2i(-1,-1) )
-      : DiskImageResource( filename )
-    {
+                           Vector2i           block_size = Vector2i(-1,-1) )
+      : DiskImageResource( filename ) {
       create( filename, format, block_size );
     }
 
     DiskImageResourceGDAL( std::string const& filename,
                            ImageFormat const& format,
-                           Vector2i block_size,
-                           Options const& options )
-      : DiskImageResource( filename )
-    {
+                           Vector2i           block_size,
+                           Options     const& options )
+      : DiskImageResource( filename ) {
       create( filename, format, block_size, options );
     }
 
@@ -89,24 +86,24 @@ namespace vw {
 
     /// Returns the type of disk image resource.
     static std::string type_static() { return "GDAL"; }
-    static void set_gdal_cache_size(int size);  // Set GDAL cache size in bytes
+    static void        set_gdal_cache_size(int size);  // Set GDAL cache size in bytes
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+    virtual void read ( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
-    virtual bool has_block_read()   const {return true;}
-    virtual bool has_block_write()  const {return true;}
-    virtual bool has_nodata_read()  const;
+    virtual bool has_block_read  () const {return true;}
+    virtual bool has_block_write () const {return true;}
+    virtual bool has_nodata_read () const;
     virtual bool has_nodata_write() const {return true;}
 
-    virtual Vector2i block_write_size() const;
-    virtual void set_block_write_size(const Vector2i&);
-    virtual Vector2i block_read_size() const;
+    virtual Vector2i block_write_size    () const;
+    virtual void     set_block_write_size(const Vector2i&);
+    virtual Vector2i block_read_size     () const;
 
-    virtual void set_nodata_write(double);
+    virtual void   set_nodata_write(double);
     virtual double nodata_read() const;
 
     virtual void flush();
@@ -114,15 +111,15 @@ namespace vw {
     // Ask GDAL if it's compiled with support for this file
     static bool gdal_has_support(std::string const& filename);
 
-    void open( std::string const& filename );
+    void open  ( std::string const& filename );
     void create( std::string const& filename,
                  ImageFormat const& format,
-                 Vector2i block_size,
-                 Options const& options );
+                 Vector2i           block_size,
+                 Options     const& options );
 
     void create( std::string const& filename,
                  ImageFormat const& format,
-                 Vector2i block_size = Vector2i(-1,-1) )
+                 Vector2i           block_size = Vector2i(-1,-1) ) 
     {
       std::string extension = boost::to_lower_copy(boost::filesystem::path(filename).extension().string());
       if ( extension == ".tif" || extension == ".tiff" ) {
@@ -156,14 +153,14 @@ namespace vw {
     static Mutex &global_lock();
 
   private:
-    void initialize_write_resource_locked();
+    void     initialize_write_resource_locked();
     Vector2i default_block_size();
 
     std::string m_filename;
     boost::shared_ptr<GDALDataset> m_write_dataset_ptr;
     std::vector<PixelRGBA<uint8> > m_palette;
     Vector2i m_blocksize;
-    Options m_options;
+    Options  m_options;
     boost::shared_ptr<GDALDataset> m_read_dataset_ptr;
   };
 

@@ -44,12 +44,8 @@ namespace cartography {
 
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.
-  //
-  // Implementation of the methods to this class change based on what
-  // Proj4 version is available. So unfortunately, the methods and
-  // private variables are a mash up of what is needed for the 4.7 and 4.8 versions.
   class ProjContext {
-    boost::shared_ptr<void> m_proj_ctx_ptr; //  Only used for Proj4.8
+    boost::shared_ptr<void> m_proj_ctx_ptr;
     boost::shared_ptr<void> m_proj_ptr;
     std::string             m_proj4_str;
 
@@ -60,7 +56,7 @@ namespace cartography {
 
     ProjContext() : m_proj4_str("") {};
     ProjContext(std::string const& proj4_str);
-    ProjContext(ProjContext const& other ); // Only used for Proj4.8
+    ProjContext(ProjContext const& other );
 
     inline void* proj_ptr() const {
       VW_ASSERT( !m_proj4_str.empty(),
@@ -73,6 +69,10 @@ namespace cartography {
 
     int error_no() const;
   };
+
+  // Would it make more sense for this class to keep information in an
+  //  OGRSpatialReference gdal object instead of in a proj4 string?
+  //  More information can be stored that way.
 
   /// The georeference class contains the mapping from image
   /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
@@ -114,17 +114,21 @@ namespace cartography {
 
   private:  
     PixelInterpretation m_pixel_interpretation;
-    Datum m_datum;
+    Datum       m_datum;
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
-    std::string m_proj_projection_str, m_gml_str;
+    std::string m_proj_projection_str; // Duplicate of information in m_proj_context
     ProjContext m_proj_context;
-    bool        m_is_projected;
+    bool        m_is_projected; // As opposed to lonlat
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
     /// - If false, the projected space maps to the 0 to 360 degree longitude range. 
     /// - Output longitude values are always given in the specified range.
     /// - Any input longitude value can be handled.
     bool m_center_lon_zero;
+    
+    std::string m_projcs_name; ///< Override the projcs name when writing WKT and to file.
+    
+    // ---- Functions -------------------------
 
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
@@ -205,7 +209,6 @@ namespace cartography {
     Datum const& datum() const { return m_datum; }
 
           std::string  proj4_str() const;
-    const std::string  gml_str  () const { return m_gml_str; }
     Matrix<double,3,3> transform() const { return m_transform; }
 
     /// Returns the proj.4 string of both the GeoReference and the datum,
@@ -259,6 +262,11 @@ namespace cartography {
 
     // Get the wkt string from the georef. It only has projection and datum information.
     std::string get_wkt() const;
+    
+    /// Set a projcs name used in WKT and writing to disk.
+    void        set_projcs_name(std::string const& projcs_name) {m_projcs_name=projcs_name;}
+    std::string get_projcs_name() const {return m_projcs_name;}
+    
 #endif
 
     //===============================================================================

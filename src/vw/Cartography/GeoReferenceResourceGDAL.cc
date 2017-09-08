@@ -135,6 +135,7 @@ namespace cartography {
     // without a string of Well Known Text (WKT), so we must conjure
     // up an OGRSpatialReference here and use it to convert from proj.4 to WKT.
     std::string wkt_str = georef.get_wkt();
+    std::cout << "write_gdal_georeference: set wkt_str = " << wkt_str << std::endl;
     dataset->SetProjection( wkt_str.c_str() );
 
     // Set the pixel interpretation for the image.  See the comments
@@ -198,7 +199,7 @@ namespace cartography {
     boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
     if (!dataset)
       vw_throw( LogicErr() << "write_gdal_string: Could not write string. "
-                << "No file has been opened." );
+                           << "No file has been opened." );
 
     dataset->SetMetadataItem(str_name.c_str(), str_val.c_str());
   }

@@ -99,10 +99,6 @@ TEST( GeoReferenceUtils, gdal_write_checks ) {
   TerminalProgressCallback tpc("vw", "");
   GdalWriteOptions opt;
 
-  block_write_gdal_image("img1.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
-  block_write_gdal_image("img2.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
-  block_write_gdal_image("img3.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
-  block_write_gdal_image("img4.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
   block_write_gdal_image("dem.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
 } 
 

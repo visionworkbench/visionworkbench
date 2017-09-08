@@ -550,7 +550,7 @@ namespace vw {
                           dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
           if (result != CE_None) {
             vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
-                << CPLGetLastErrorMsg() << "'" << std::endl;
+                                             << CPLGetLastErrorMsg() << "'" << std::endl;
           }
         }
       }

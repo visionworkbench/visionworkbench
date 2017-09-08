@@ -305,9 +305,6 @@ TEST( GeoReference, IOLoop ) {
     EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
                              test_georeference.transform() );
 
-    EXPECT_STREQ( retn_georeference.gml_str().c_str(),
-                  test_georeference.gml_str().c_str() );
-
     std::ostringstream retn_ostr, test_ostr;
     retn_ostr << retn_georeference;
     test_ostr << test_georeference;
@@ -334,8 +331,6 @@ TEST( GeoReference, IOLoop ) {
     EXPECT_MATRIX_DOUBLE_EQ( retn_georef.transform(),
                              test_georef.transform() );
 
-    EXPECT_STREQ( retn_georef.gml_str().c_str(),
-                  test_georef.gml_str().c_str() );
   }
 
   { // Test that georef png can't be written
