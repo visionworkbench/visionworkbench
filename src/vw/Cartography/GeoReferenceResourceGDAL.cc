@@ -135,7 +135,6 @@ namespace cartography {
     // without a string of Well Known Text (WKT), so we must conjure
     // up an OGRSpatialReference here and use it to convert from proj.4 to WKT.
     std::string wkt_str = georef.get_wkt();
-    std::cout << "write_gdal_georeference: set wkt_str = " << wkt_str << std::endl;
     dataset->SetProjection( wkt_str.c_str() );
 
     // Set the pixel interpretation for the image.  See the comments
