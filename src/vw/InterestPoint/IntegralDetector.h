@@ -127,13 +127,13 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
-      typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
+      typedef ImageView<typename PixelChannelType<PixelGray<float> >::type> ImageT;
       typedef ImageInterestData<ImageT,InterestT> DataT;
 
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
       // Rendering own standard copy of the image as the passed in view is just a cropview
-      ImageT original_image = image.impl();
+      ImageView<PixelGray<float> > original_image = pixel_cast_rescale<PixelGray<float> >(image);
 
       // Producing Integral Image
       ImageT integral_image;

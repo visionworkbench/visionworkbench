@@ -254,9 +254,10 @@ int main(int argc, char** argv) {
     DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
     ImageViewRef<PixelGray<float> >  image = raw_image;
 
-    if ( vm.count("normalize") && image_rsrc->has_nodata_read() )
-      image = apply_mask(normalize(create_mask(raw_image,image_rsrc->nodata_read())));
-    else if ( vm.count("normalize") )
+    if ( vm.count("normalize") && image_rsrc->has_nodata_read() ) {
+      double nodata = image_rsrc->nodata_read();
+      image = apply_mask(normalize(create_mask(raw_image, nodata)));
+    } else if ( vm.count("normalize") )
       image = normalize(raw_image);
 
     // Potentially mask image on a no data value
@@ -304,16 +305,16 @@ int main(int argc, char** argv) {
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
     // Floats don't work here
-
+    // TODO: Don't always apply nodata mask.
     } else if ( interest_operator == "brisk") {
       OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, true, describeInDetect, max_points);
-      ip = detect_interest_points(image, detector, max_points);
+      ip = detect_interest_points(create_mask(image), detector, max_points);
     } else if ( interest_operator == "orb") {
       OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, true, describeInDetect, max_points);
-      ip = detect_interest_points(image, detector, max_points);
+      ip = detect_interest_points(create_mask(image), detector, max_points);
     } else if ( interest_operator == "sift") {
       OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, true, describeInDetect, max_points);
-      ip = detect_interest_points(image, detector, max_points);
+      ip = detect_interest_points(create_mask(image), detector, max_points);
 /*
       ImageView<PixelGray<unsigned char> >  buffer_image;
       cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
@@ -369,7 +370,7 @@ int main(int argc, char** argv) {
 
     } else if ( interest_operator == "surf") {
       OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, true, describeInDetect, max_points);
-      ip = detect_interest_points(image, detector, max_points);
+      ip = detect_interest_points(create_mask(image), detector, max_points);
     }
 #else // End OpenCV section
     } else {

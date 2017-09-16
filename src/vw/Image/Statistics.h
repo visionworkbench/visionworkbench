@@ -434,7 +434,7 @@ namespace vw {
   /// Converts a single channel image into a uint8 image with percentile based intensity scaling.
   template <class ViewT>
   void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
-                                ImageView<PixelGray<vw::uint8> > &output_image,
+                                ImageView<vw::uint8> &output_image,
                                 double low_percentile=0.02, double high_percentile=0.98,
                                 int num_bins=256);
 

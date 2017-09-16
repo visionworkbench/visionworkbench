@@ -43,6 +43,7 @@
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 #include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include "opencv2/features2d.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #endif
@@ -230,13 +231,15 @@ namespace ip {
 
   /// Get an OpenCV wrapper, rasterizing the VW image to a provided buffer.
   template <class ViewT>
-  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
-			     ImageView<PixelGray<vw::uint8> > &image_buffer,
-			     bool normalize = true);
+  void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
+                          cv::Mat & cv_image,
+                          ImageView<vw::uint8> &image_buffer,
+                          cv::Mat & cv_mask,
+                          bool normalize = true);
 
   template <class LIST_ITER>
   void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
-				     cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type);
+                                     cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type);
 
   /// Interest point detector build using OpenCV functions
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {

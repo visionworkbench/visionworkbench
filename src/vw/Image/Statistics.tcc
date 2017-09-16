@@ -180,8 +180,8 @@ double optimal_threshold( const ImageViewBase<ViewT> &view){
 
 template <class ViewT>
 void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
-			ImageView<PixelGray<vw::uint8> > &output_image,
-			double low_percentile, double high_percentile, int num_bins) {
+                              ImageView<vw::uint8> &output_image,
+                              double low_percentile, double high_percentile, int num_bins) {
 
   // First get the min and max values
   double min_val, max_val;
@@ -202,7 +202,7 @@ void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
 
   // Scale the image using the computed values and convert to uint8
   output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, low_value, high_value),
-					    low_value, high_value, 0.0, 255.0 ));
+                                                        low_value, high_value, 0.0, 255.0 ));
 }
 
 

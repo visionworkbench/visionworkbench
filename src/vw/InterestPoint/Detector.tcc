@@ -31,10 +31,9 @@ InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<Vie
   vw_out(DebugMessage, "interest_point") << "Finding interest points in block: [ " << image.impl().cols() 
                                          << " x " << image.impl().rows() << " ]\n";
 
-  // Note: We explicitly convert the image to PixelGray<float>
-  // (rescaling as necessary) here before passing it off to the
-  // rest of the interest detector code.
-  interest_points = impl().process_image(pixel_cast_rescale<PixelGray<float> >(image.impl()), desired_num_ip);
+  // It is up to the individual IP implementations to convert the input image
+  //  to their desired input format.
+  interest_points = impl().process_image(image.impl(), desired_num_ip);
 
   vw_out(DebugMessage, "interest_point") << "Finished processing block. Found " << interest_points.size() 
                                          << " interest points.\n";
@@ -211,9 +210,11 @@ InterestPointList InterestPointDetector<InterestT>::process_image(ImageViewBase<
 
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
-  typedef SeparableConvolutionView<ViewT, typename DefaultKernelT<typename ViewT::pixel_type>::type, 
+  // - First rasterize the input image to a buffer and convert to required float type
+  ImageView<PixelGray<float> > float_image = pixel_cast_rescale<PixelGray<float> >(image);
+  typedef SeparableConvolutionView<ImageView<PixelGray<float> >, typename DefaultKernelT<PixelGray<float> >::type, 
                                                                   ConstantEdgeExtension> blurred_image_type;
-  ImageInterestData<blurred_image_type, InterestT> img_data(gaussian_filter(image,0.5));
+  ImageInterestData<blurred_image_type, InterestT> img_data(gaussian_filter(float_image,0.5));
 
   delete timer;
 
@@ -347,7 +348,6 @@ template <class InterestT>
 template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
 process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
-  typedef ImageInterestData<ImageView<typename ViewT::pixel_type>,InterestT> DataT;
 
   Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
@@ -355,9 +355,12 @@ process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
   vw_out(DebugMessage, "interest_point") << "\n\tCreating initial image octave... ";
   Timer *t_oct = new Timer("done, elapsed time", DebugMessage, "interest_point");
 
+  typedef ImageInterestData<ImageView<PixelGray<float> >,InterestT> DataT;
+
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
-  ImageOctave<typename DataT::source_type> octave(gaussian_filter(image,0.5), m_scales);
+  ImageOctave<typename DataT::source_type> octave(gaussian_filter(
+                    pixel_cast_rescale<PixelGray<float> >(image),0.5), m_scales);
 
   delete t_oct;
 
@@ -547,14 +550,16 @@ int ScaledInterestPointDetector<InterestT>::write_images(std::vector<DataT> cons
   return 0;
 }
 
-
+//-----------------------------------------------------------------------------------------------------------------------
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 template <class ViewT>
-cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
-			   ImageView<PixelGray<vw::uint8> > &image_buffer,
-			   bool normalize) {
+void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
+                        cv::Mat & cv_image,
+                        ImageView<vw::uint8> &image_buffer,
+                        cv::Mat & cv_mask,
+                        bool normalize) {
 
   // Rasterize the input image so we don't suffer from slow disk access or something.
   ImageView<typename ViewT::pixel_type> input_buffer = input_image.impl();
@@ -575,14 +580,34 @@ cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
   size_t  step_size    = image_buffer.cols() * pixel_size;
 
   // Create an OpenCV wrapper for the buffer image
-  cv::Mat cv_image(image_buffer.rows(), image_buffer.cols(),
-                   cv_data_type, raw_data_ptr, step_size);
-  return cv_image;
+  cv_image = cv::Mat(image_buffer.rows(), image_buffer.cols(),
+                     cv_data_type, raw_data_ptr, step_size);
+
+  if (input_image.channels() != 2) {
+    // If there is no mask on the input image, use an empty mask.
+    cv_mask = cv::Mat();
+    return;
+  }
+
+  // Just make sure the masked input image pixels are zero to create the opencv mask
+  ImageView<vw::uint8> mask_buffer = channel_cast_rescale<uint8>(select_channel(input_buffer, 1));
+
+  // Wrap our mask object with OpenCV
+  raw_data_ptr = reinterpret_cast<void*>(mask_buffer.data());
+  cv::Mat full_cv_mask(mask_buffer.rows(), mask_buffer.cols(),
+                       cv_data_type, raw_data_ptr, step_size);
+
+  // Use OpenCV call to erode some pixels off the mask
+  const int ERODE_RADIUS = 5;
+  cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(ERODE_RADIUS, ERODE_RADIUS));
+  cv::erode(full_cv_mask, cv_mask, kernel);
+
+  return;
 }
 
 template <class LIST_ITER>
 void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
-				   cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type) {
+                                   cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type) {
 
   size_t num_ip_descriptors = cvDescriptors.rows;
   size_t descriptor_length  = cvDescriptors.cols;
@@ -665,8 +690,15 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
     return InterestPointList();
 
   // Convert the image into a plain uint8 image buffer wrapped by OpenCV
-  ImageView<PixelGray<vw::uint8> > buffer_image;
-  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image, m_normalize);
+  ImageView<vw::uint8> image_buffer;
+  cv::Mat cv_image, cv_mask;
+  try {
+    get_opencv_wrapper(image, cv_image, image_buffer, cv_mask, m_normalize);
+  } catch(vw::LogicErr) {
+    // This error should indicate that we were unable to rescale the image because no pixels were valid.
+    vw_out(DebugMessage, "interest_point") << "No valid pixels found, skipping tile.\n";
+    return InterestPointList();
+  }
 
   // Detect features
   std::vector<cv::KeyPoint> keypoints;
@@ -679,9 +711,9 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
 
   // Perform detection/description
   if (m_add_descriptions)
-    detector->detectAndCompute (cv_image, cv::Mat(), keypoints, cvDescriptors);
+    detector->detectAndCompute (cv_image, cv_mask, keypoints, cvDescriptors);
   else // Don't add descriptions
-    detector->detect(cv_image, keypoints);
+    detector->detect(cv_image, keypoints, cv_mask);
 
 
   // Convert back to our output format
