@@ -685,8 +685,8 @@ prerasterize(BBox2i const& bbox) const {
         vw_out() << "Finished writing DEBUG data...\n";
       } // End DEBUG
       
-      //if (level == 5)
-      //  vw_throw( NoImplErr() << "DEBUG" );
+      if (level == 2)
+        vw_throw( NoImplErr() << "DEBUG" );
       
     } // End of the level loop
 

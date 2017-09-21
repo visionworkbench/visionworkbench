@@ -156,6 +156,7 @@ private: // Variables
     // The two main memory buffers that must be allocated.
     boost::shared_array<CostType     > m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
+    size_t                             m_buffer_lengths;
     
     /// Image containing the inclusive disparity bounds for each pixel.
     /// - Stored as min_col, min_row, max_col, max_row.
@@ -316,7 +317,6 @@ private: // Functions
     dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
     dx = (disp % m_num_disp_x) + m_min_disp_x;
   }
-  
 
   //// Print out a disparity vector
   //template <typename T>

@@ -541,13 +541,41 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
 
   vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << std::endl;
 
-  const size_t BYTES_PER_MB   = 1024*1024;
-  const size_t total_bytes    = total_offset * (sizeof(CostType) + sizeof(AccumCostType));
-  const size_t total_usage_mb = total_bytes / BYTES_PER_MB;
+  if (total_offset < 6)
+    vw_throw( ArgumentErr() << "SGM: Total disparity usage is too low!\n" );
+                            
+  const size_t BYTES_PER_MB      = 1024*1024;
+  const size_t main_buffer_bytes = total_offset * (sizeof(CostType) + sizeof(AccumCostType));
+
+  vw_out(DebugMessage, "stereo") << "SGM: Estimating total large buffer size: " 
+                                 << main_buffer_bytes/BYTES_PER_MB << " MB\n";
+
+  m_buffer_lengths = total_offset; // Record this value
+
+
+  // Verify that allocating the "small" buffers won't put us over the limit.
+  // - m_buffer_lengths must be set for this to work.
+  const int PATHS_PER_PASS  = 1;
+  const int NUM_MGM_BUFFERS = 4;
+  size_t small_buffer_size = 0;
+  if (m_use_mgm)
+    // Four vertical buffers and four horizontal buffers.
+    small_buffer_size = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true )*NUM_MGM_BUFFERS +
+                        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false)*NUM_MGM_BUFFERS;
+  else {
+    int num_threads   = vw_settings().default_num_threads();
+    small_buffer_size = OneLineBuffer::get_buffer_size(this)*num_threads;
+  }
+  size_t small_buffer_size_bytes = small_buffer_size * sizeof(AccumCostType);
+  vw_out(DebugMessage, "stereo") << "SGM: Estimating total small buffer size: " 
+                                 << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
   
-  if (total_usage_mb > m_memory_limit_mb)
-    vw_throw( ArgumentErr() << "SGM: Required memory usage is "<< total_usage_mb 
+  size_t total_num_bytes = main_buffer_bytes + small_buffer_size_bytes;
+  if (total_num_bytes/BYTES_PER_MB > m_memory_limit_mb) {
+    vw_throw( ArgumentErr() << "SGM: Required memory usage is "<< total_num_bytes 
                             << " MB which is greater than the cap of "<< m_memory_limit_mb <<" MB!\n" );
+  }
+
 
   return total_offset;
 }
@@ -570,6 +598,7 @@ void SemiGlobalMatcher::allocate_large_buffers() {
   // Allocate the requested memory and init all to zero
   m_accum_buffer.reset(new AccumCostType[total_offset]);
   memset(m_accum_buffer.get(), 0, accum_buffer_num_bytes);
+  
 }
 
 

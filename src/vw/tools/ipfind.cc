@@ -139,6 +139,7 @@ int main(int argc, char** argv) {
   int    tile_size, num_threads, print_num_ip;
   ImageView<double> integral;
   bool   no_orientation;
+  bool opencv_normalize = false;
 
   const float IDEAL_LOG_THRESHOLD    = .03;
   const float IDEAL_OBALOG_THRESHOLD = .07;
@@ -153,6 +154,7 @@ int main(int argc, char** argv) {
           "Specify the tile size for processing interest points. (Useful when working with large images).")
     ("lowe,l",        "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
+    ("opencv-normalize",     "Apply per-tile openCV normalization.")
     ("debug-image,d", "Write out debug images.")
     ("print-ip", po::value(&print_num_ip)->default_value(0), 
           "Print information for this many detected IP")
@@ -243,6 +245,9 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
+  if ( vm.count("opencv-normalize"))
+    opencv_normalize = true;
+
   // Iterate over the input files and find interest points in each.
   for (size_t i = 0; i < input_file_names.size(); ++i) {
 
@@ -307,13 +312,13 @@ int main(int argc, char** argv) {
     // Floats don't work here
     // TODO: Don't always apply nodata mask.
     } else if ( interest_operator == "brisk") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, true, describeInDetect, max_points);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, opencv_normalize, describeInDetect, max_points);
       ip = detect_interest_points(create_mask(image), detector, max_points);
     } else if ( interest_operator == "orb") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, true, describeInDetect, max_points);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, opencv_normalize, describeInDetect, max_points);
       ip = detect_interest_points(create_mask(image), detector, max_points);
     } else if ( interest_operator == "sift") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, true, describeInDetect, max_points);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, opencv_normalize, describeInDetect, max_points);
       ip = detect_interest_points(create_mask(image), detector, max_points);
 /*
       ImageView<PixelGray<unsigned char> >  buffer_image;
@@ -369,7 +374,7 @@ int main(int argc, char** argv) {
 */
 
     } else if ( interest_operator == "surf") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, true, describeInDetect, max_points);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, opencv_normalize, describeInDetect, max_points);
       ip = detect_interest_points(create_mask(image), detector, max_points);
     }
 #else // End OpenCV section

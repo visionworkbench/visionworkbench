@@ -279,21 +279,14 @@ public:
                    PASS_ONE  = 0,
                    PASS_TWO  = 1 };
 
-  /// Construct the buffers.
-  /// - num_paths_in_pass must be four (8 directions) or eight (16 directions)
-  MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
-                      const int  num_paths_in_pass=4,
-                      const bool vertical=false) {
-    m_parent_ptr        = parent_ptr;  
-    m_num_paths_in_pass = num_paths_in_pass;
-    m_vertical          = vertical;
-    
-    const int num_cols = m_parent_ptr->m_num_output_cols;
-    const int num_rows = m_parent_ptr->m_num_output_rows;
-    
-    m_line_size = num_cols;
+  /// Return the number of elements in the buffer
+  static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr,
+                                const int  num_paths_in_pass,
+                                const bool vertical) {
+
+    size_t line_size = parent_ptr->m_num_output_cols;
     if (vertical)
-      m_line_size = num_rows;
+      line_size = parent_ptr->m_num_output_rows;
 
     //std::cout << "m_line_size = " << m_line_size << std::endl;
 
@@ -302,11 +295,46 @@ public:
     // - Within each buffer, data is indexed in order [col][pass][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
-    const size_t buffer_pixel_size = m_num_paths_in_pass*m_parent_ptr->m_num_disp;
-    m_buffer_size       = m_line_size*buffer_pixel_size;
+    const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
+    size_t buffer_size = line_size*buffer_pixel_size;
+       
+    // No reason for the buffer size to be larger than the entire accumulator!
+    if (buffer_size > parent_ptr->m_buffer_lengths)
+      buffer_size = parent_ptr->m_buffer_lengths;
+    
+    // If the buffer is over 128 MB, reduce its size to a percentage of the
+    //  size of the entire accumulation buffer.
+    const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
+    const double MAX_PERCENTAGE   = 0.04;
+    
+    if (buffer_size > SAFE_BUFFER_SIZE) {
+      buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      if (buffer_size < SAFE_BUFFER_SIZE)
+        buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+    }
+
+    return buffer_size;
+  }
+
+  /// Construct the buffers.
+  /// - num_paths_in_pass can be 1, four (8 directions), or eight (16 directions)
+  MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
+                      const int  num_paths_in_pass=4,
+                      const bool vertical=false) {
+    m_parent_ptr        = parent_ptr;  
+    m_num_paths_in_pass = num_paths_in_pass;
+    m_vertical          = vertical;
+    
+    const int num_rows = m_parent_ptr->m_num_output_rows;
+    m_line_size = m_parent_ptr->m_num_output_cols;
+    if (vertical)
+      m_line_size = num_rows;
+
+    m_buffer_size       = get_buffer_size(parent_ptr, num_paths_in_pass, vertical);
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
    
-    //std::cout << "Allocating buffer: " << m_buffer_size_bytes << std::endl;
+    vw_out(DebugMessage, "stereo") << "MultiAccumRowBuffer - allocating buffer size (MB): " 
+                                   << m_buffer_size_bytes/(1024*1024) << std::endl;
    
     // Allocate buffers that store accumulation scores
     m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
@@ -560,27 +588,50 @@ public:
     initialize(parent_ptr);
   }
 
-  /// Initialize the buffer.
-  /// - All this really does is allocate a memory buffer of the maximum possible required size.
-  void initialize(const SemiGlobalMatcher* parent_ptr) {
-
+  /// Returns the size it elements of the buffer.
+  static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr) {
+  
     // Figure out the max possible line length (diagonal line down the center)    
     const int num_cols = parent_ptr->m_num_output_cols;
     const int num_rows = parent_ptr->m_num_output_rows;
     int line_size = sqrt(num_cols*num_cols + num_rows*num_rows) + 1;
-    //std::cout << "m_line_size = " << m_line_size << std::endl;
 
     // Instantiate single-row buffer that will be used to temporarily store
     //  accumulated cost info until it can be addded to the main SGM class buffer.
     // - Within each buffer, data is indexed in order [pixel][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
+    size_t buffer_size = line_size*parent_ptr->m_num_disp;
+    
+    // No reason for the buffer size to be larger than the entire accumulator!
+    if (buffer_size > parent_ptr->m_buffer_lengths)
+      buffer_size = parent_ptr->m_buffer_lengths;
+    
+    // If the buffer is over 64 MB, reduce its size to a percentage of the
+    //  size of the entire accumulation buffer.
+    const size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
+    const double MAX_PERCENTAGE   = 0.02;
+    
+    if (buffer_size > SAFE_BUFFER_SIZE) {
+      buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      if (buffer_size < SAFE_BUFFER_SIZE)
+        buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+    }
+
+    return buffer_size;
+  }
+
+  /// Initialize the buffer.
+  /// - All this really does is allocate a memory buffer of the maximum possible required size.
+  void initialize(const SemiGlobalMatcher* parent_ptr) {
+
+    // Determine the buffer size
     m_num_disp          = parent_ptr->m_num_disp;
-    m_buffer_size       = line_size*m_num_disp;
+    m_buffer_size       = get_buffer_size(parent_ptr);
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
    
-    //std::cout << "OneLineBuffer - allocating buffer size: " << m_buffer_size_bytes << std::endl;
-    //std::cout << "OneLineBuffer - m_num_disp = " << m_num_disp << std::endl;
+    vw_out(DebugMessage, "stereo") << "OneLineBuffer - allocating buffer size (MB): " 
+                                   << m_buffer_size_bytes/(1024*1024) << std::endl;
    
     // Allocate the accumulation buffer
     m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
@@ -695,7 +746,7 @@ public:
 
     // Retrive a memory buffer to work with
     size_t buffer_id = m_buffer_manager_ptr->get_free_buffer_id();
-    OneLineBuffer                   * buff_ptr       = m_buffer_manager_ptr->get_line_buffer(buffer_id);
+    OneLineBuffer* buff_ptr       = m_buffer_manager_ptr->get_line_buffer(buffer_id);
     AccumCostType* full_prior_ptr = buff_ptr->get_full_prior_ptr();
 
     // Make a copy of the pixel iterator so we can re-use it for accum buffer addition
