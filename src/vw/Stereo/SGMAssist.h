@@ -498,8 +498,11 @@ public:
     size_t offset      = (m_offsets_lead[m_current_col] + pass_offset);
     if (m_vertical)
       offset = (m_offsets_lead[m_current_row] + pass_offset);
-    //std::cout << "output accum offset = " <<offset-pass_offset
-    //          << " + pass " << pass_offset <<", num_disps = " << num_disps << std::endl;
+
+    // Make sure there is enough memory left to support this location.
+    if (offset + num_disps > m_buffer_size)
+      vw_throw( ArgumentErr() << "Insufficient memory in small buffers, disparity image may be degenerate.\n" );
+
     return m_lead_buffer + offset;
   }
   
@@ -511,27 +514,38 @@ public:
     int    num_disps   = m_parent_ptr->get_num_disparities(col, row);
     size_t pass_offset = num_disps*pass;
 
+
     // Just get the index of the column in the correct buffer, then add an offset for the selected pass.
-    
+    size_t offset = 0;
+    SemiGlobalMatcher::AccumCostType * output_ptr=0;
     if (!m_vertical) { // horizontal
       if (row_offset == 0) { 
         // Same row, must be the in the leading buffer
-        return m_lead_buffer + (m_offsets_lead[col] + pass_offset);
+        offset     = m_offsets_lead[col] + pass_offset;
+        output_ptr = m_lead_buffer;
       } else { 
         // Different row, must be in the trailing buffer
-        return m_trail_buffer + (m_offsets_trail[col] + pass_offset);
+        offset     = m_offsets_trail[col] + pass_offset;
+        output_ptr = m_trail_buffer;
       }
     } else { // vertical
       if (col_offset == 0) { 
         // Same row, must be the in the leading buffer
-        //std::cout << "offset = " << pass_offset << ", lead loc = " << m_offsets_lead[row] << std::endl;
-        return m_lead_buffer + (m_offsets_lead[row] + pass_offset);
+        offset     = m_offsets_lead[row] + pass_offset;
+        output_ptr = m_lead_buffer;
       } else { 
         // Different row, must be in the trailing buffer
-        //std::cout << "offset = " << pass_offset << ", trail loc = " << m_offsets_trail[row] << std::endl;
-        return m_trail_buffer + (m_offsets_trail[row] + pass_offset);
+        offset     = m_offsets_trail[row] + pass_offset;
+        output_ptr = m_trail_buffer;
       }
     }
+    
+    // Make sure there is enough memory left to support this location.
+    if (offset + num_disps > m_buffer_size)
+      vw_throw( ArgumentErr() << "Insufficient memory in small buffers, disparity image may be degenerate.\n" );
+    
+    return output_ptr + offset;
+    
   } // End function get_trailing_pixel_accum_ptr
 
 private:
@@ -650,7 +664,8 @@ public:
   }
 
   /// Get the pointer to the start of the output accumulation buffer
-  SemiGlobalMatcher::AccumCostType * get_output_accum_ptr() {
+  SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(size_t &buffer_size) {
+    buffer_size = m_buffer_size;
     return m_buffer.get();
   }
 
@@ -761,7 +776,9 @@ public:
     
     // Get the start of the output accumulation buffer
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
-    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr();
+    size_t buffer_size   = 0;
+    size_t consumed_size = 0;
+    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr(buffer_size);
     AccumCostType* prior_accum_ptr    = 0;
 
     while (pixel_loc_iter_copy.is_good()) {
@@ -779,6 +796,11 @@ public:
       // Get information about the current pixel location from the parent
       int num_disp = m_parent_ptr->get_num_disparities(col, row);
       CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
+
+      // Make sure we don't run out of memory in the buffer
+      consumed_size += num_disp;
+      if (consumed_size > buffer_size)
+        vw_throw( ArgumentErr() << "Ran out of memory in the small buffer, disparity image may be degenerate.\n" );
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
@@ -819,7 +841,8 @@ public:
 
     // Get the start of the output accumulation buffer
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
-    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr();
+    size_t buffer_size=0;
+    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr(buffer_size);
 
     // Loop through all pixels in the line
     while (m_pixel_loc_iter.is_good()) {

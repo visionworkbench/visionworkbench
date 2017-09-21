@@ -182,6 +182,39 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
   ImageView<uint8> full_search_image(m_disp_bound_image.cols(), m_disp_bound_image.rows());
 
+  
+  // Restrict search range to the right image mask
+  // - This could be improved and more efficient!
+  std::vector<int> min_valid_rows, max_valid_rows;
+  if (right_mask_valid) {
+
+    // Set up an array of column boundaries to look at later.
+    int num_cols = m_disp_bound_image.cols();
+    min_valid_rows.resize(num_cols);
+    max_valid_rows.resize(num_cols);
+
+    for (int c=0; c<num_cols; ++c) {
+      min_valid_rows[c] = -1; // Default values
+      max_valid_rows[c] = -2;
+      
+      // For this column, find the maximum and minimum valid rows.
+      for (int i=right_image_mask->rows()-1; i>0; --i) {
+        if (right_image_mask->operator()(c, i) > 0) {
+          max_valid_rows[c] = i;
+          break;
+        }
+      } // End first row loop
+      if (max_valid_rows[c] > 0) { // Only do if there are valid pixels
+        for (int i=0; i<right_image_mask->rows(); ++i) {
+          if (right_image_mask->operator()(c, i) > 0) {
+            min_valid_rows[c] = i;
+            break;
+          }
+        } // End second row loop
+      }
+    } // End col loop
+  } // End mask valid case
+
   // Loop through the output disparity image and compute a search range for each pixel
   int r_in, c_in;
   int dx_scaled, dy_scaled;
@@ -190,6 +223,26 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   double missing_prev_disp_count = 0;
   for (int r=0; r<m_disp_bound_image.rows(); ++r) {
     r_in = r / SCALE_UP;
+    
+    int min_valid_column = -1, max_valid_column = -2;
+    if (right_mask_valid) {
+      // For this row, find the maximum and minimum valid columns.
+      for (int i=right_image_mask->cols()-1; i>0; --i) {
+        if (right_image_mask->operator()(i, r) > 0) {
+          max_valid_column = i;
+          break;
+        }
+      }
+      if (max_valid_column > 0) { // Only do if there are valid pixels
+        for (int i=0; i<right_image_mask->cols(); ++i) {
+          if (right_image_mask->operator()(i, r) > 0) {
+            min_valid_column = i;
+            break;
+          }
+        }
+      }
+    } // End mask column checking
+    
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
 /*
       // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
@@ -272,35 +325,33 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       // Restrict search range to the right image mask
       // - This could be improved and more efficient!
       if (right_mask_valid) {
-        // Iterate in x and y directions to see the furthest unmasked right image extent,
-        //  and limit the search range for this pixel to hit that extent.
-        int max_x = -1;
-        int max_y = -1;
-        for (int i=bounds[0]; i<=bounds[2]; ++i){
-          if (c+i >= right_image_mask->cols())
-            break;
-          if (right_image_mask->operator()(c+i, r) > 0)
-            max_x = i;
-        }
-        for (int i=bounds[1]; i<=bounds[3]; ++i){
-          if (r+i >= right_image_mask->rows())
-            break;
-          if (right_image_mask->operator()(c, r+i) > 0)
-            max_y = i;
-        }
-        // If we did not hit any valid pixels, don't search at this pixel.
-        if ((max_x < 0) || (max_y < 0)) {
+
+        // Get the intersection of the valid pixels and the offsets
+        BBox2i valid_region(Vector2i(min_valid_column, min_valid_rows[c]),
+                            Vector2i(max_valid_column, max_valid_rows[c]));
+        BBox2i valid_offsets = valid_region - Vector2i(c,r);
+        BBox2i full_offsets(Vector2i(bounds[0], bounds[1]),
+                            Vector2i(bounds[2], bounds[3]));
+        //std::cout << "valid_region = " << valid_region.min() << ", " << valid_region.max() << std::endl;
+        //std::cout << "valid_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
+        //std::cout << "full_offsets = " << full_offsets.min() << ", " << full_offsets.max() << std::endl;
+        valid_offsets.crop(full_offsets);
+        //std::cout << "crop_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
+
+        // Case with no valid offsets available
+        if ((valid_offsets.min()[0] > valid_offsets.max()[0]) ||
+            (valid_offsets.min()[1] > valid_offsets.max()[1])   ) {
           m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
           ++percent_masked;
           full_search_image(c,r) = 0;
           continue;
         }
-        //std::cout << "bounds[2] = " << bounds[2] << std::endl;
-        //std::cout << "max_x = " << max_x << std::endl;
-        // If we hit at least some valid pixels, constrain the search range.
-        if (bounds[2] > max_x) bounds[2] = max_x;
-        if (bounds[3] > max_y) bounds[3] = max_y;
-      }
+        
+        bounds[0] = valid_offsets.min()[0];
+        bounds[1] = valid_offsets.min()[1];
+        bounds[2] = valid_offsets.max()[0];
+        bounds[3] = valid_offsets.max()[1];
+      } // End mask checking case
       
       
       m_disp_bound_image(c,r) = bounds;
