@@ -495,14 +495,16 @@ namespace cartography {
     if (dem_cols <= 0 || dem_rows <= 0)
       return BBox2(); // nothing to do
 
+    int NUM_SAMPLES = 400; // increased from 100, which was cutting corners
+    
     // Image sampling
-    int32 image_step = (2*cols+2*rows)/100;
+    int32 image_step = (2*cols+2*rows)/NUM_SAMPLES;
     image_step = std::min(image_step, cols/4); // must have at least several points per col
     image_step = std::min(image_step, rows/4); // must have at least several points per row
     image_step = std::max(image_step, 1);      // step amount must be > 0
 
     // DEM sampling
-    int32 dem_step = (2*dem_cols+2*dem_rows)/100;
+    int32 dem_step = (2*dem_cols+2*dem_rows)/NUM_SAMPLES;
     dem_step = std::min(dem_step, dem_cols/4); // must have at least several points per col
     dem_step = std::min(dem_step, dem_rows/4); // must have at least several points per row
     dem_step = std::max(dem_step, 1);          // step amount must be > 0
