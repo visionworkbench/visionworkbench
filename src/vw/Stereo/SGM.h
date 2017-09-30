@@ -196,13 +196,13 @@ private: // Functions
 
   /// Reduce the search range of full-search-range pixel by looking at nearby
   ///  pixels with a smaller search range.
-  /// - Set conserve_memory=true replace any remaining full range pixels with
-  ///   no-search-range pixels which will be ignored.
+  /// - conserve_memory controls how aggressive the function is in finding possible
+  ///   search areas for uncertain pixels.  Level 0 uses full search ranges.
   /// - Returns false if there is a problem processing the image.
   bool constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
                                   DisparityImage const* prev_disparity,
                                   double percent_trusted, double percent_masked, double area,
-                                  bool conserve_memory);
+                                  int conserve_memory=0);
 
   /// Return the number of elements in each of the large buffers.
   /// - Also perform a check to make sure our memory usage falls within the user specified limit.
@@ -240,11 +240,18 @@ private: // Functions
   template <typename T>
   void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
                                   ImageView<T> const& right_binary_image);
-                         
-  /// Returns a block cost score at a given location
+
+  /// Compute the mean and STD of a small image patch.
+  /// - Does not perform bounds checking.
+  void compute_patch_mean_std(ImageView<uint8> const& image, int x, int y,
+                              double &mean, double &std) const;
+
+  /// Returns a block cost score at a given location.
+  /// - Supports non-census cost modes.
   CostType get_cost_block(ImageView<uint8> const& left_image,
                     ImageView<uint8> const& right_image,
-                    int left_x, int left_y, int right_x, int right_y, bool debug);
+                    double mean_left, double std_left,
+                    int left_x, int left_y, int right_x, int right_y, bool debug) const;
   
   /// Get a pointer to a cost vector
   CostType * get_cost_vector(int col, int row) {
@@ -261,9 +268,21 @@ private: // Functions
   /// Generate the output disparity view from the accumulated costs.
   DisparityImage create_disparity_view();
   
+  // DEPRECATED
   /// Get the value and index of the smallest element in an accumulation vector
   AccumCostType get_accum_vector_min(int col, int row,
-                                     DisparityType &dx, DisparityType &dy);
+                                     DisparityType &dx, DisparityType &dy,
+                                     AccumCostType &second,
+                                     double &mean,
+                                     int &count);
+
+  /// Select the best disparity index in the accumulation vector.
+  /// - If needed, applies smoothing to the values in order to yield a single minimum value.
+  int select_best_disparity(AccumCostType * accum_vec,
+                            Vector4i const& bounds,
+                            int &min_index,
+                            std::vector<AccumCostType> & buffer,
+                            bool debug);
 
   /// Get the pixel diff along a line at a specified output location.
   int get_path_pixel_diff(ImageView<uint8> const& left_image,
@@ -307,16 +326,28 @@ private: // Functions
 
   /// Given the dx and dy positions of a pixel, return the full size disparity index.
   /// - Note that the big storage vectors do not store the entire disparity range for each pixel.
-  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) {
+  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) const {
     return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
   }
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
-  void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) {
+  void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) const {
     dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
     dx = (disp % m_num_disp_x) + m_min_disp_x;
   }
+
+  /// Convert a pixel's minimum disparity index to dx, dy.
+  void disp_index_to_xy(int min_index, int col, int row, DisparityType &dx, DisparityType &dy) const {
+    // Convert the disparity index to dx and dy
+    const Vector4i bounds = m_disp_bound_image(col,row);
+    int d_width  = bounds[2] - bounds[0] + 1;
+    dy = (min_index / d_width);
+    dx = min_index - (dy*d_width) + bounds[0];
+    dy += bounds[1];
+  }
+  
+  
 
   //// Print out a disparity vector
   //template <typename T>
@@ -345,7 +376,7 @@ private: // Functions
 
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
-                                 bool left_bound=false, bool right_bound=false);
+                                 bool left_bound=false, bool right_bound=false, bool debug=false);
   
   /// Crude two-element subpixel estimation.
   double two_value_subpixel(AccumCostType primary, AccumCostType other);

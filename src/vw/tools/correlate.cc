@@ -176,7 +176,7 @@ int main( int argc, char *argv[] ) {
   // TODO: Hook up to options!
   SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
   Vector2i sgm_search_buffer(4,2);
-  size_t memory_limit_mb = 1024*3;
+  size_t memory_limit_mb = 1024*5;
 
   ImageViewRef<PixelMask<Vector2f> > disparity_map;
   int corr_timeout = 0;

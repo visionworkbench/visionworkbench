@@ -334,6 +334,8 @@ prerasterize(BBox2i const& bbox) const {
       vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
       vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
+      ImageView<typename Mask2T::pixel_type> right_rl_mask, left_rl_mask;
+
       // SGM method
       if (use_sgm) {
 
@@ -380,7 +382,6 @@ prerasterize(BBox2i const& bbox) const {
         //   compute right to left disparity.
         if ( m_consistency_threshold >= 0 && level >= m_min_consistency_level ) {
 
-          //std::cout << "\n====== RL CHECK =====\n";
           check_rl = true;
 
           // Update m_search_region for this level
@@ -397,6 +398,7 @@ prerasterize(BBox2i const& bbox) const {
           left_reverse_region.max() += 2*zone.disparity_range().size(); // Enlarge to fit the search range
 
           if (m_write_debug_images) { // DEBUG
+            std::cout << "\n====== RL CHECK =====\n";
             std::cout << "left region = " << left_region << std::endl;
             std::cout << "right region = " << right_region << std::endl;
             std::cout << "scaling       = " << scaling << std::endl;
@@ -429,10 +431,8 @@ prerasterize(BBox2i const& bbox) const {
           
           // Rasterization needed because we pass these by address below.
           // - Could be avoided with some refactoring.
-          ImageView<typename Mask2T::pixel_type> right_rl_mask =
-              crop(edge_extend(right_mask_pyramid[level], ZeroEdgeExtension()), right_mask_bbox); 
-          ImageView<typename Mask1T::pixel_type> left_rl_mask = 
-              crop(edge_extend(left_mask_pyramid[level], ZeroEdgeExtension()), left_mask_bbox);
+          right_rl_mask = crop(edge_extend(right_mask_pyramid[level], ZeroEdgeExtension()), right_mask_bbox); 
+          left_rl_mask  = crop(edge_extend(left_mask_pyramid [level], ZeroEdgeExtension()), left_mask_bbox );
 
           if (m_write_debug_images) { // DEBUG
             std::cout << "left mask input: "  << bounding_box(left_mask_pyramid [level]) << std::endl;
@@ -586,6 +586,9 @@ prerasterize(BBox2i const& bbox) const {
       const float rm_min_matches_percent = 0.5;
       const float rm_threshold = 3.0;
 
+      // R-L image only needs to be filtered when using SGM because it is used in that case
+      //  to initialize the search range of the following pyramid level.
+
       if (m_filter_half_kernel > 0) { // Skip filtering if zero radius passed in
         if ( !on_last_level ) {
           disparity = disparity_mask(disparity_cleanup_using_thresh
@@ -595,6 +598,15 @@ prerasterize(BBox2i const& bbox) const {
                                         rm_min_matches_percent),
                                        left_mask_pyramid [level],
                                        right_mask_pyramid[level]);
+          if (check_rl && use_sgm) {
+            disparity_rl = disparity_mask(disparity_cleanup_using_thresh
+                                           (disparity_rl,
+                                            m_filter_half_kernel, m_filter_half_kernel,
+                                            rm_threshold,
+                                            rm_min_matches_percent),
+                                           right_rl_mask, 
+                                           left_rl_mask);
+          }
         } else {
         
           // We don't do a single hot pixel check on the final level as it leaves a border.
@@ -605,11 +617,16 @@ prerasterize(BBox2i const& bbox) const {
                                         rm_min_matches_percent),
                                        left_mask_pyramid [level],
                                        right_mask_pyramid[level]);
+
+          // No need to filter R-L disparity with SGM on the last level.
         }
       } // End of 
 
       // The kernel based filtering tends to leave isolated blobs behind.
-      disparity_blob_filter(disparity, level, m_blob_filter_area);        
+      disparity_blob_filter(disparity, level, m_blob_filter_area);
+      if (check_rl)
+        disparity_blob_filter(disparity_rl, level, m_blob_filter_area);
+
 
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user

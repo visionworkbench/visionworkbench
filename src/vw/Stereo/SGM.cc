@@ -1,5 +1,6 @@
 
 #include <queue>
+#include <math.h>
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/SGMAssist.h>
 #include <vw/Core/Debugging.h>
@@ -369,18 +370,26 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
   vw_out(InfoMessage, "stereo") << "Number missing prev disp = "          << missing_prev_disp_count << std::endl;
  
-  // Reduce full range pixels where possible
-  constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, false);
-  
+  // Next we attempt to refine the search ranges to stay within the memory usage limits.
+  const int NO_CONSERVE  = 0;
+  const int MAX_CONSERVE = 3;
   bool result = false;
-  try { // Check if the computed boundaries fall within the user specified memory limit
-    result = compute_buffer_length();
-  }
-  catch(...) {
-    // Reduce all full range pixels so we use less memory
-    vw_out(InfoMessage, "stereo") << "Recomputing search range to converve memory." << std::endl;
-    result = constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, percent_masked, area, true);
-  }
+  for (int conserve_level=NO_CONSERVE; conserve_level<=MAX_CONSERVE; ++conserve_level) {
+    // Refine the disparity search ranges with the current conservation level.
+    vw_out(InfoMessage, "stereo") << "Refining search ranges with conservation level "
+                                  << conserve_level << std::endl;
+    constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, 
+                               percent_masked, area, conserve_level);
+    try { // Check if the computed boundaries fall within the user specified memory limit
+      result = compute_buffer_length();
+      break; // Memory usage is ok!
+    }
+    catch(...) { // Used too much memory!
+      vw_out(InfoMessage, "stereo") << "Uses too much memory with conservation level "
+                                    << conserve_level << std::endl;
+      result = false;
+    }
+  } // End loop through search range conservation attempts
  
   return result;
 }
@@ -389,7 +398,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
                                                    DisparityImage const* prev_disparity,
                                                    double percent_trusted, double percent_masked, double area,
-                                                   bool const conserve_memory) {
+                                                   int conserve_memory) {
 
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
@@ -403,8 +412,12 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
   // TODO: Make this more efficient!!!
         int NEARBY_DISP_SEARCH_RANGE = 10; // Look this many pixels in each direction
   const int NEARBY_DISP_EXPANSION    = 2; // Grow search range from what nearby pixels have
-  if (conserve_memory)
+  if (conserve_memory == 1) // Look further, but failing pixels are discarded.
     NEARBY_DISP_SEARCH_RANGE = 25;
+  if (conserve_memory == 2) // Look less and failing pixels are discarded.
+    NEARBY_DISP_SEARCH_RANGE = 3;
+  if (conserve_memory == 3) // Most conservative, don't look for ranges at all.
+    NEARBY_DISP_SEARCH_RANGE = 0;
   double percent_shrunk = 0, shrunk_area = area;
   float conserved = 0;
   if (prev_disparity) { // No point doing this if a previous disparity image was not provided
@@ -513,7 +526,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         
         if (new_range.empty()) { // If we did not find a new estimate
           // If worried about memory, don't try to solve pixels with no estimate.
-          if (conserve_memory) {
+          if (conserve_memory > 0) {
             m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
             percent_shrunk += 1.0;
             shrunk_area -= max_search_area;
@@ -1028,10 +1041,12 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
 } // End evaluate_path SSE
 #endif
 
-
+// TODO: DEPRECATED
 SemiGlobalMatcher::AccumCostType 
 SemiGlobalMatcher::get_accum_vector_min(int col, int row,
-                                        DisparityType &dx, DisparityType &dy) {
+                                        DisparityType &dx, DisparityType &dy,
+                                        AccumCostType &second,
+                                        double &mean, int &count) {
   // Get the array
   AccumCostType const* vec = get_accum_vector(col, row);
   const int num_disp = get_num_disparities(col, row);
@@ -1039,19 +1054,31 @@ SemiGlobalMatcher::get_accum_vector_min(int col, int row,
   // Get the minimum index of the array
   int min_index = 0;
   AccumCostType value = std::numeric_limits<AccumCostType>::max();
+  second = value;
   for (int i=0; i<num_disp; ++i) {
+    mean += static_cast<double>(vec[i]);
     if (vec[i] < value) {
+      second = value;
       value = vec[i];
       min_index = i;
     }
+    else {
+      if (vec[i] < second)
+        second = vec[i];
+    }
+    
+  }
+  mean /= static_cast<double>(num_disp);
+
+  // Count number of equal minimum values
+  count = 0;
+  for (int i=0; i<num_disp; ++i) {
+    if (vec[i] == value)
+      count += 1;
   }
   
-  // Convert the disparity index to dx and dy
-  const Vector4i bounds = m_disp_bound_image(col,row);
-  int d_width  = bounds[2] - bounds[0] + 1;
-  dy = (min_index / d_width);
-  dx = min_index - (dy*d_width) + bounds[0];
-  dy += bounds[1];
+  // Convert the disparity index to dx and dy 
+  disp_index_to_xy(min_index, col, row, dx, dy);
   
   /*if ((col == 1625) && (row == 1207)) {
     std::cout << "TEST ACCUM\n";
@@ -1065,28 +1092,232 @@ SemiGlobalMatcher::get_accum_vector_min(int col, int row,
   return value;
 }
 
+/* This function is not 100% successful at removing "multiple minimums"
+   but it usually works.  Multiple minimums are most commonly
+   encountered over large regions of low quality image where most
+   costs are zero.  The result is very poor subpixel performance,
+   oscillating disparity values, and other artifacts.
+*/
+int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
+                                             Vector4i const& bounds,
+                                             int &min_index,
+                                             std::vector<AccumCostType> & buffer,
+                                             bool debug) {
+  // The input cost buffer is always a rectangle
+  int height   = (bounds[3] - bounds[1] + 1);
+  int width    = (bounds[2] - bounds[0] + 1);
+  int num_vals = height*width;
+  
+  // Find and count the minimum value and create a copy of the input cost buffer
+  buffer.resize(num_vals);
+  int index     = 0;
+  int min_count = 0;
+  min_index = 0;
+  AccumCostType min_val = std::numeric_limits<AccumCostType>::max();
+  AccumCostType value;
+  for (int row=0; row<height; ++row) {
+    for (int col=0; col<width; ++col) {
+      value = accum_vec[index]; // Copy value
+      buffer[index] = value;
+      
+      // Track the minimum value
+      if (value == min_val)
+        ++min_count;
+      if (value < min_val) {
+        min_index = index;
+        min_val = value;
+        min_count = 1;
+      }
+      ++index;
+    }
+  } // End double loop
+  
+  if (debug) {
+    std::cout << "Input:\n";
+    for (int j=0; j<height; ++j) {
+      for (int i=0; i<width; ++i) {
+        std::cout << buffer[j*width+i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "min_index = " << min_index << std::endl;
+    std::cout << std::endl;
+  }
+
+  // Filtering steps below will go back and forth between buffers.
+  AccumCostType * input_array  = accum_vec;
+  AccumCostType * output_array = &(buffer[0]);
+  AccumCostType * swap = 0;
+  
+  // If there is more than one value tied for minimum cost,
+  //  apply smoothing kernels to the accumulation values until
+  //  we are reduced to a single minimum or we give up.
+  
+  //TODO: Function calls to do this!  The VW convolve functions are messy.
+  const int FILTER_WIDTH = 3;
+  std::vector<double> filter(FILTER_WIDTH);
+  filter[0] = 1.0/3.0; filter[1] = 1.0/3.0; filter[2] = 1.0/3.0;
+  int filter_radius = (FILTER_WIDTH -1) / 2;
+
+  const int MAX_ITERATIONS = 6; // This many iterations total
+  const int VERT_ITERATION = 5; // After this many iterations switch to vertical filtering
+  int iter_count = 0;
+  while (min_count > 1) {
+
+    // Swap buffers
+    // - The first swap means we go from buffer to accum_vec
+    swap         = input_array;
+    input_array  = output_array;
+    output_array = swap;
+
+    index     = 0;
+    min_count = 0;
+    min_val = std::numeric_limits<AccumCostType>::max();
+    min_index = 0;
+    for (int row=0; row<height; ++row) {
+      // Convolve this row
+      for (int col=0; col<width; ++col) {
+        int min = -1*filter_radius;
+        int max =    filter_radius;
+        double result      = 0;
+        double weight_total = 0;
+        
+        // Usually horizontal filtering is good enough but sometimes vertical
+        //  filtering is needed to get down to one minimum.
+        if (iter_count < VERT_ITERATION) {
+          // Horizontal filtering
+          if (min + col < 0     ) min = 0; // TODO: Hard coded to radius 1!!
+          if (max + col >= width) max = 0;
+          
+          for (int k=min; k<=max; ++k) {
+            double weight = filter[k+filter_radius];
+            result       += static_cast<double>(input_array[index + k]) * weight;
+            weight_total += weight;
+          }
+        } else {
+          // Vertical filtering
+          if (min + row < 0      ) min = 0; // TODO: Hard coded to radius 1!!
+          if (max + row >= height) max = 0;
+          
+          for (int k=min; k<=max; ++k) {
+            double weight = filter[k+filter_radius];
+            result       += static_cast<double>(input_array[index + k*width]) * weight;
+            weight_total += weight;
+          }
+        }
+        value = static_cast<AccumCostType>(round(result / weight_total));
+        
+        // Track the minimum value and the minimum count
+        if (value == min_val)
+          ++min_count;
+        if (value < min_val) {
+          min_index = index;
+          min_val = value;
+          min_count = 1;
+        }
+        output_array[index] = value;
+        
+        ++index;
+      } // End col loop
+    } // End row loop
+    
+    ++iter_count;
+    
+    if (debug ) {
+      std::cout << "Filtered:\n";
+      for (int j=0; j<height; ++j) {
+        for (int i=0; i<width; ++i) {
+          std::cout << output_array[j*width+i] << " ";
+        }
+        std::cout << std::endl;
+      }
+      std::cout << std::endl;
+      std::cout << "New min count = " << min_count << std::endl;
+    }
+
+    // Make sure this never becomes an infinite loop    
+    if (iter_count >= MAX_ITERATIONS)
+      break;
+  } // End smoothing iteration loop
+  
+  // Copy result back to the accum vector if needed
+  if ((iter_count > 0) && (iter_count % 2 == 0)) {
+    for (int i=0; i<index; ++i)
+      input_array[i] = output_array[i];
+  }
+  
+  if (debug) {
+    std::cout << "Output:\n";
+    for (int j=0; j<height; ++j) {
+      for (int i=0; i<width; ++i) {
+        std::cout << accum_vec[j*width+i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "min_index = " << min_index << std::endl;
+    std::cout << "iter_count = " << iter_count << std::endl;
+    std::cout << "min_count = " << min_count << std::endl << std::endl;
+  }
+  
+  return min_count;
+} // End function select_best_disparity
+
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::create_disparity_view() {
   // Init output vector
-  DisparityImage disparity( m_num_output_cols, m_num_output_rows );
+  DisparityImage disparity(m_num_output_cols, m_num_output_rows);
+  
   // For each element in the accumulated costs matrix, 
   //  select the disparity with the lowest accumulated cost.
   //Timer timer("Calculate Disparity Minimum");
+  
+  //ImageView<int> wto_intervals(m_num_output_cols, m_num_output_rows);
+  //ImageView<int> second_intervals(m_num_output_cols, m_num_output_rows);
+  //ImageView<int> min_counts(m_num_output_cols, m_num_output_rows);
+  
   DisparityType dx, dy;
+  //AccumCostType best, second;
+  //double mean;
+  //int count = 0;
+  int min_index=0;
+  std::vector<AccumCostType> accum_buffer;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
     for ( int i = 0; i < m_num_output_cols; i++ ) {
       
       int num_disp = get_num_disparities(i, j);
-      if (num_disp > 0) {
-        // Valid pixel, choose the best disparity with a winner-take-all (WTA) method.
-        // - Would a fancier selection method improve our results?
-        get_accum_vector_min(i, j, dx, dy);
-        disparity(i,j) = DisparityImage::pixel_type(dx, dy);
-        
-      } else { // Pixels with no search area were never valid.
+      
+      if (num_disp == 0) {
+        // Pixels with no search area were never valid.
         disparity(i,j) = DisparityImage::pixel_type();
         invalidate(disparity(i,j));
+
+        // DEBUG        
+        //wto_intervals(i,j) = 0;
+        //second_intervals(i,j) = 0;
+        //min_counts(i,j) = 0;
+        continue;
       }
+
+      // Valid pixel, choose the best disparity.
+
+      // TODO: DEPRECATED function
+      //best = get_accum_vector_min(i, j, dx, dy, second, mean, count); // DEBUG
+      
+      bool debug = false;//((j==2937) && (i >= 4635) && (i <= 4645));
+      const Vector4i bounds = m_disp_bound_image(i, j);
+      AccumCostType  *accum_vec = get_accum_vector(i, j);
+      if (debug)
+        std::cout << "j = " << j << ", i = " << i << std::endl;
+      select_best_disparity(accum_vec, bounds, min_index, accum_buffer, debug);
+      disp_index_to_xy(min_index, i, j, dx, dy);
+      
+      disparity(i,j) = DisparityImage::pixel_type(dx, dy);
+      
+      // DEBUG
+      //wto_intervals(i,j) = floor((double)mean - best);
+      //second_intervals(i,j) = second - best;
+      //min_counts(i,j) = count;
+
 
       /*
       if ((i >= 15) && (i <= 15) && (j==40)) { // DEBUG!
@@ -1100,6 +1331,11 @@ SemiGlobalMatcher::create_disparity_view() {
       */
     }
   }
+  //std::cout << "Writing WTA diff image\n";
+  //write_image("wta_intervals.tif", wto_intervals);
+  //write_image("second_intervals.tif", second_intervals);
+  //write_image("min_counts.tif", min_counts);
+  
   vw_out(DebugMessage, "stereo") << "Finished creating integer disparity image.\n";
   return disparity;
 }
@@ -1176,13 +1412,13 @@ double SemiGlobalMatcher::two_value_subpixel(AccumCostType primary, AccumCostTyp
 
 /// Add this offset to the integer disparity to get the final result.
 double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
-                                                  bool left_bound, bool right_bound) {
+                                                  bool left_bound, bool right_bound, bool debug) {
   double ld = prev - center; // Left  diff
   double rd = next - center; // Right diff
   if ((rd == 0) && (ld == 0)) // Handle case where all values are equal or both bounds are set
     return 0;
     
-  // If only two value are available, use a lower quality two value interpolation.
+  // If only two values are available, use a lower quality two value interpolation.
   if (left_bound )
     return two_value_subpixel(center, next); // Shift right
   if (right_bound)
@@ -1223,6 +1459,9 @@ double SemiGlobalMatcher::compute_subpixel_ratio(AccumCostType prev, AccumCostTy
     return rd/ld;
 }
 */
+
+
+
 // Test out alternate subpixel methods
 ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
@@ -1262,7 +1501,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
       int dx = integer_pixel[0]; // The input integer disparity
       int dy = integer_pixel[1];
 
-      // Not stop here if not doing subpixel processing      
+      // Stop here if not doing subpixel processing      
       if (m_subpixel_type == SUBPIXEL_NONE) {
         disparity(i,j) = p_type(dx, dy);
         continue;
@@ -1288,6 +1527,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
       // Apply subpixel correction and apply
       AccumCostType const* accum_vec = get_accum_vector(i, j);
 
+      bool debug = false;//((j==2937) && (i >= 4635) && (i <= 4645));
 
       bool valid = true;
       if (m_subpixel_type == SUBPIXEL_PARABOLA) {
@@ -1296,28 +1536,29 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
                                   accum_vec[min_index+x_left+y_down],  accum_vec[min_index+y_down], accum_vec[min_index+x_right+y_down],
                                   delta_x, delta_y);
       }
-      else {
+      else {      
         // This branch handles all 1D interpolation methods.
         // - These methods are always considered valid.
         delta_x = compute_subpixel_offset(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right], 
-                                          left_bound, right_bound);
+                                          left_bound, right_bound, debug);
         delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ], 
-                                          top_bound, bottom_bound);
+                                          top_bound, bottom_bound, false);
       }
+/*
+      if (debug) {
+        double ratio = 0.0;//compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
+        printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
+        //       accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right], ratio);
+        rawFile << "col = " << i << ", row = " << j << ", dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << std::endl;
+        for (int j=0; j<height; ++j) {
+          for (int i=0; i<width; ++i) {
+            rawFile << accum_vec[j*width+i] << " ";
+          }
+          rawFile << std::endl;
+        }
+        rawFile << std::endl;
 
-      //if (bottom_bound) {
-        //double ratio = compute_subpixel_ratio(accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down]);
-        //printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
-        //       accum_vec[min_index+y_up], accum_vec[min_index], accum_vec[min_index+y_down], ratio);
-        //rawFile << "dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", dy = " << dy << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << std::endl;
-        //for (int j=0; j<height; ++j) {
-        //  for (int i=0; i<width; ++i) {
-        //    rawFile << accum_vec[j*width+i] << " ";
-        //  }
-        //  rawFile << std::endl;
-        //}
-        //rawFile << std::endl;
-      //}
+      }*/
 
       // To assist development, write the internal subpixel input ratio to a file.
       //double temp = compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
@@ -1351,20 +1592,82 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 }
 
 
+void SemiGlobalMatcher::compute_patch_mean_std(ImageView<uint8> const& image, int x, int y,
+                            double &mean, double &std) const {
+
+  if (m_kernel_size == 1) {
+    mean = static_cast<double>(image(x, y));
+    std  = 1;
+    return;
+  }
+
+  const int half_kernel_size = (m_kernel_size-1) / 2;
+
+  // Compute the mean
+  mean = 0;
+  double count=0;
+  for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
+    for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+      mean += static_cast<double>(image(x +i, y +j));
+      count += 1.0;
+    }
+  }
+  mean /= count;
+
+  // Compute the STD
+  std = 0;
+  for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
+    for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+      double val = static_cast<double>(image(x +i, y +j)) - mean;
+      std += val*val;
+    }
+  }
+  std = sqrt(std / (count - 1.0));
+} // End function compute_patch_mean
 
 
 // TODO: Replace with ASP implementation?
 SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
                ImageView<uint8> const& right_image,
-               int left_x, int left_y, int right_x, int right_y, bool debug) {
+               double mean1, double std1,
+               int left_x, int left_y, int right_x, int right_y, bool debug) const{
+               
   if (m_kernel_size == 1) { // Special handling for single pixel case
     int diff = static_cast<int>(left_image (left_x,  left_y )) - 
                static_cast<int>(right_image(right_x, right_y));
     return static_cast<CostType>(abs(diff));
   }
 
-  // Block mean of abs dists
-  const int half_kernel_size = (m_kernel_size-1) / 2;
+  const CostType MAX_RESULT = 255; // For uint8
+  const int      half_kernel_size = (m_kernel_size-1) / 2;
+  const int      count = static_cast<int>(m_kernel_size*m_kernel_size);
+  
+  // Normalized cross correlation
+  if (m_cost_type == 2) {
+  
+    // Already have stats for the left image patch, compute them for the right image patch.
+    double mean2, std2;
+    compute_patch_mean_std(right_image, right_x, right_y, mean2, std2);
+
+    double sum=0;
+    double coeff = 1.0 / (std1*std2);
+    for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
+      for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+        double a = static_cast<double>(left_image (left_x +i, left_y +j)) - mean1;
+        double b = static_cast<double>(right_image(right_x+i, right_y+j)) - mean2;
+        sum += a*b*coeff;
+      }
+    }
+    sum /= static_cast<double>(count);
+
+    // Saturate the result
+    if (sum > MAX_RESULT)
+      return MAX_RESULT;
+    return static_cast<CostType>(floor(sum));
+  } // End normalized cross correlaton case
+  
+
+  // Mean of abs differences
   int sum=0, diff=0;
   for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
     for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
@@ -1373,9 +1676,11 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
       sum += abs(diff);
     }
   }
-  CostType result = sum / static_cast<int>(m_kernel_size*m_kernel_size);
-  //printf("sum = %d, result = %d\n", sum, result);
-  return static_cast<CostType>(result);
+  sum /= count;
+  if (sum > MAX_RESULT)
+    return MAX_RESULT;
+
+  return static_cast<CostType>(sum);
 }
 
 void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
@@ -1391,11 +1696,17 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
       
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
 
+      // These statistics are used repeatedly for this particular cost type.
+      double mean_left=0, std_left=1;
+      if (m_cost_type == 2)
+        compute_patch_mean_std(left_image, c, r, mean_left, std_left);
+
       // Only compute costs in the search radius for this pixel    
       for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
         for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {          
           
-          CostType cost = get_cost_block(left_image, right_image, c, r, c+dx,r+dy, false);
+          CostType cost = get_cost_block(left_image, right_image, mean_left, std_left,
+                                         c, r, c+dx,r+dy, false);
           m_cost_buffer[cost_index] = cost;
           ++cost_index;
         }    
@@ -1403,8 +1714,7 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
     } // End x loop
   }// End y loop
   
-  
-}
+} // End function fill_costs_block
 
 
 
@@ -1555,6 +1865,50 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
     // Replace this with ASP's efficient existing cost functions?
     fill_costs_block(left_image, right_image);
   }
+  
+  /*
+  // DEBUG: Record the min and max cost for each pixel
+  std::cout << "Generating debug cost images\n";
+  ImageView<CostType> min_cost_image(m_num_output_cols, m_num_output_rows),
+                      max_cost_image(m_num_output_cols, m_num_output_rows),
+                      mean_cost_image(m_num_output_cols, m_num_output_rows);
+  size_t cost_index = 0;
+  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+    int output_row = r - m_min_row;
+    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
+      int output_col = c - m_min_col;
+      
+      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
+    
+      CostType min_cost = 255; // Max value of uint8
+      CostType max_cost = 0;
+      double mean_cost = 0;
+      double num_disp =0;
+      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
+        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
+          
+          CostType value = m_cost_buffer[cost_index];
+          if (value < min_cost)
+            min_cost = value;
+          if (value > max_cost)
+            max_cost = value;            
+          mean_cost += static_cast<double>(value);
+          num_disp += 1.0;
+            
+          ++cost_index;
+        }    
+      } // End disparity loops
+      min_cost_image(output_col, output_row) = min_cost;
+      max_cost_image(output_col, output_row) = max_cost;
+      mean_cost_image(output_col, output_row) = floor(mean_cost / num_disp);
+      
+    } // End x loop
+  }// End y loop 
+  write_image("min_cost_image.tif", min_cost_image);
+  write_image("max_cost_image.tif", max_cost_image);
+  write_image("mean_cost_image.tif", mean_cost_image);
+  */
+  
   
 /*
  int debug_row = m_num_output_rows * 0.5;
@@ -2088,7 +2442,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   populate_constant_disp_bound_image();
   
   if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity)) {
-    vw_out(WarningMessage, "stereo") << "No valid pixels found in SGM input!.\n";
+    vw_out(WarningMessage, "stereo") << "Unable to compute valid search ranges for SGM input!.\n";
     // If the inputs are invalid, return a default disparity image.
     DisparityImage disparity( m_num_output_cols, m_num_output_rows );
     return invalidate_mask(disparity);
