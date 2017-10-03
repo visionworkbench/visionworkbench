@@ -495,7 +495,7 @@ namespace cartography {
     if (dem_cols <= 0 || dem_rows <= 0)
       return BBox2(); // nothing to do
 
-    int NUM_SAMPLES = 400; // increased from 100, which was cutting corners
+    int NUM_SAMPLES = 1000; // increased from 100, which was cutting corners
     
     // Image sampling
     int32 image_step = (2*cols+2*rows)/NUM_SAMPLES;
