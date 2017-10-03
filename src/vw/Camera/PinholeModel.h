@@ -234,6 +234,10 @@ namespace camera {
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const;
     void set_camera_pose(Quaternion<double> const& pose);
     void set_camera_pose(Matrix<double,3,3> const& pose);
+    
+    // WARNING: There may be a bug copying pose between cameras so use this function
+    //           instead of camera_pose() for copies until it is resolved!
+    Matrix<double,3,3> const& get_rotation_matrix() const {return m_rotation;}
 
     //  u_direction, v_direction, and w_direction define how the coordinate
     //  system of the camera relate to the directions in the image:
