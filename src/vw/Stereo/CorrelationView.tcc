@@ -282,7 +282,7 @@ prerasterize(BBox2i const& bbox) const {
     }
     
     // 3.0) Actually perform correlation now
-    ImageView<pixel_typeI > disparity, prev_disparity, disparity_rl, prev_disparity_rl;
+    ImageView<pixel_typeI> disparity, prev_disparity, disparity_rl, prev_disparity_rl;
     std::vector<stereo::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
@@ -305,7 +305,7 @@ prerasterize(BBox2i const& bbox) const {
     int    measure_spacing = 2; // seconds
     double prev_estim      = estim_elapsed;
 
-    boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
+    ImageView<result_type> subpixel_disparity;
     const bool use_sgm = (m_algorithm != CORRELATION_WINDOW); // Anything but block matching
 
     // Loop down through all of the pyramid levels, low res to high res.
@@ -366,6 +366,7 @@ prerasterize(BBox2i const& bbox) const {
         //       The left mask size should exactly equal the output size here.
         // - To be fully accurate, should crop the right mask slightly but SGM does not require this.
         
+        boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
         crop(disparity, zone.image_region()) // This crop not needed in SGM case!
           = calc_disparity_sgm(m_cost_type,
                            crop(left_pyramid [level], left_region), 
@@ -376,7 +377,18 @@ prerasterize(BBox2i const& bbox) const {
                            sgm_matcher_ptr,
                            &(left_mask_pyramid[level]), &(right_mask_pyramid[level]),
                            prev_disp_ptr);
-                           
+        // Delete the matcher pointer right after we use it to free up its large buffers.
+        // - On the last level we need to generate the subpixel view before we delete it.
+        // - Note that the subpixel image is created BEFORE filtering out bad pixels at the
+        //   integer level.  This is ok, we just apply the integer filter results before 
+        //   returning the subpixel disparity.  Doing things in this order avoids having
+        //   to keep both the LR and the RL large accumulation buffers in memory at the 
+        //   same time but it does mean we waste time computing subpixel values for pixels
+        //   that will get invalidated later.
+        if (level == 0)
+          subpixel_disparity = sgm_matcher_ptr->create_disparity_view_subpixel(disparity);
+        sgm_matcher_ptr.reset();
+
 
         // If the user requested a left<->right consistency check at this level,
         //   compute right to left disparity.
@@ -466,6 +478,7 @@ prerasterize(BBox2i const& bbox) const {
                            &(right_rl_mask), 
                            &(left_rl_mask),
                            prev_disp_ptr_rl);
+          sgm_right_matcher_ptr.reset(); // Immediately delete this to clear memory.
 
           //write_image("rl_result.tif", disparity_rl);
 
@@ -607,7 +620,7 @@ prerasterize(BBox2i const& bbox) const {
                                            right_rl_mask, 
                                            left_rl_mask);
           }
-        } else {
+        } else { // On the last level
         
           // We don't do a single hot pixel check on the final level as it leaves a border.
           disparity = disparity_mask(rm_outliers_using_thresh
@@ -624,7 +637,7 @@ prerasterize(BBox2i const& bbox) const {
 
       // The kernel based filtering tends to leave isolated blobs behind.
       disparity_blob_filter(disparity, level, m_blob_filter_area);
-      if (check_rl)
+      if (check_rl && !on_last_level)
         disparity_blob_filter(disparity_rl, level, m_blob_filter_area);
 
 
@@ -728,9 +741,16 @@ prerasterize(BBox2i const& bbox) const {
 
     if (m_algorithm != CORRELATION_WINDOW) {
     
+      // Copy the filtered out pixels to the subpixel view.
+      for (int r=0; r<disparity.rows(); ++r){
+        for (int c=0; c<disparity.cols(); ++c){
+          if (!is_valid(disparity(c,r)))
+            invalidate(subpixel_disparity(c,r));
+        }
+      }
+    
       // For SGM, subpixel correlation is performed here, not in stereo_rfne.     
-      return prerasterize_type(sgm_matcher_ptr->create_disparity_view_subpixel(disparity) 
-                                 + result_type(m_search_region.min()),
+      return prerasterize_type(subpixel_disparity + result_type(m_search_region.min()),
                                -bbox.min().x(), -bbox.min().y(),
                                cols(), rows() );      
     } else {
