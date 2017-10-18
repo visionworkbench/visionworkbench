@@ -18,6 +18,7 @@
 
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/System.h>
+#include <vw/Core/Exception.h>
 
 // Time
 #ifdef WIN32

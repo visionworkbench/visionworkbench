@@ -50,6 +50,7 @@
 
 #ifndef __VW_CORE_THREAD_H__
 #define __VW_CORE_THREAD_H__
+#include <vw/config.h>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -76,7 +77,7 @@ namespace vw {
   ///   - lock_upgrade = Similar to lock_shared, but with the ability to upgrade to lock.
   ///                    Having this intermediate lock step is necessary to secure exclusive 
   ///                    access (lock) in a timely manner.
-  class Mutex : private boost::shared_mutex {
+  class VW_API Mutex : private boost::shared_mutex {
 
     friend class WriteLock;
     friend class ReadLock;
@@ -126,7 +127,7 @@ namespace vw {
   };// End class Mutex
 
   /// A wrapper around the boost::recursive_mutex class.
-  class RecursiveMutex : private boost::recursive_mutex {
+  class VW_API RecursiveMutex : private boost::recursive_mutex {
 
     friend class Lock;
 
@@ -154,7 +155,7 @@ namespace vw {
   /// A thread class, that runs a "Task", which is an object or
   /// function that has the operator() defined.  When the Thread object
   /// is destroyed it will join the child thread if it has not already terminated.
-  class Thread : private boost::noncopyable {
+  class VW_API Thread : private boost::noncopyable {
 
     boost::thread m_thread;
 

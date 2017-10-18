@@ -23,6 +23,8 @@
 #define __VW_IMAGE_BLOB_INDEX_THREADED_H__
 
 // VW
+#include <vw/config.h>
+
 #include <vw/Core/Log.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/ThreadPool.h>
@@ -64,7 +66,7 @@ namespace blob {
   ////////////////////////////////////
   // A nice way to describe a blob,
   // but reducing our memory foot print
-  class BlobCompressed {
+  class VW_API BlobCompressed {
     // This describes a blob as lines of rows
     // to reduce the memory foot print
     Vector2i m_min;
@@ -110,16 +112,16 @@ namespace blob {
   // Blob Index Custom
   ////////////////////////////////////
   /// A different version of Blob index that uses the compressed format and the new options
-  class BlobIndex {
+  class VW_API BlobIndex {
     std::vector<BlobCompressed> m_c_blob;
-    uint m_blob_count;
+    uint32_t m_blob_count;
 
   public:
     // Constructor performs processing
     template <class SourceT>
     BlobIndex( ImageViewBase<SourceT> const& src, // Masked input image
                ImageView<uint32>           & dst, // Output image contains labeled blobs
-               uint /*max_area*/=0 ) {
+               uint32_t /*max_area*/=0 ) {
 
       if ( src.impl().planes() > 1 )
         vw_throw( NoImplErr()
@@ -357,7 +359,7 @@ namespace blob {
 
       { // Append results (single thread)
         Mutex::Lock lock(m_append_mutex);
-        for ( uint i = 0; i < local_bboxes.size(); i++ ) {
+        for ( uint32_t i = 0; i < local_bboxes.size(); i++ ) {
           m_c_blob.push_back( bindex.blob(i) );
           m_c_blob.back().min() += m_bbox.min(); // Fix offset
           m_blob_bbox.push_back( local_bboxes[i] );
@@ -382,7 +384,7 @@ namespace blob {
 // Blob Index Threaded
 ///////////////////////////////////
 /// Performs Blob Index using all threads and a minimal amount of memory
-class BlobIndexThreaded {
+class VW_API BlobIndexThreaded {
 
   std::deque<BBox2i>           m_blob_bbox;
   std::deque<blob::BlobCompressed> m_c_blob;

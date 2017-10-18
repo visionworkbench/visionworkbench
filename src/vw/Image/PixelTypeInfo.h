@@ -23,7 +23,7 @@
 ///
 #ifndef __VW_IMAGE_PIXELTYPEINFO_H__
 #define __VW_IMAGE_PIXELTYPEINFO_H__
-
+#include <vw/config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
@@ -593,16 +593,16 @@ namespace vw {
   template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
   // This function determines whether a POD-style copy is sufficient
-  bool simple_conversion(PixelFormatEnum a, PixelFormatEnum b);
-  bool simple_conversion(ChannelTypeEnum a, ChannelTypeEnum b);
+  VW_API bool simple_conversion(PixelFormatEnum a, PixelFormatEnum b);
+  VW_API bool simple_conversion(ChannelTypeEnum a, ChannelTypeEnum b);
 
-  uint32          channel_size        ( ChannelTypeEnum type    );
-  uint32          channel_size_nothrow( ChannelTypeEnum type    );
-  const char *    channel_type_name   ( ChannelTypeEnum type    );
-  uint32          num_channels        ( PixelFormatEnum format  ); ///< Return the number of channels of a PixelFormatEnum.
-  uint32          num_channels_nothrow( PixelFormatEnum format  );
-  const char *    pixel_format_name   ( PixelFormatEnum format  );
-  ChannelTypeEnum channel_name_to_enum( const std::string& name );
+  VW_API uint32          channel_size        ( ChannelTypeEnum type    );
+  VW_API uint32          channel_size_nothrow( ChannelTypeEnum type    );
+  VW_API const char *    channel_type_name   ( ChannelTypeEnum type    );
+  VW_API uint32          num_channels        ( PixelFormatEnum format  ); ///< Return the number of channels of a PixelFormatEnum.
+  VW_API uint32          num_channels_nothrow( PixelFormatEnum format  );
+  VW_API const char *    pixel_format_name   ( PixelFormatEnum format  );
+  VW_API ChannelTypeEnum channel_name_to_enum( const std::string& name );
 
 } // namespace vw
 

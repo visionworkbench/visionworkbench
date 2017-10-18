@@ -104,7 +104,7 @@ float rescale_to_01(float value, float min, float max) {
 /// - Copied from "Radiometric Use of WorldView-2 Imagery"
 double compute_earth_sun_distance(int year, int month, int day, int hour, int minute, double second) {
   double ut = (double)hour + (double)minute/60.0 + second/3600.0;
-  if ((month == 1) or (month == 2)) {
+  if ((month == 1) || (month == 2)) {
     --year;
     month += 12;
   }

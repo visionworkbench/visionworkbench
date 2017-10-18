@@ -36,7 +36,7 @@
 namespace vw {
 
   /// Provides support for the Netpbm format.
-  class DiskImageResourcePBM : public DiskImageResource {
+  class VW_API DiskImageResourcePBM : public DiskImageResource {
   public:
 
     // Standard DiskImageResource interface:

@@ -770,9 +770,9 @@ namespace stereo {
   // Method 4: Fit a plane to the other pixels and see how well the
   // test pixel fits the plane.
     
-  bool fitPlaneToPoints(const std::vector<Vector3> &points, Vector3 &planeDesc);
-  double pointToPlaneDist(const Vector3 &point, const Vector3 &planeDesc);
-  bool checkPointToPlaneFit(const std::vector<Vector3> &points,
+  VW_API bool fitPlaneToPoints(const std::vector<Vector3> &points, Vector3 &planeDesc);
+  VW_API double pointToPlaneDist(const Vector3 &point, const Vector3 &planeDesc);
+  VW_API bool checkPointToPlaneFit(const std::vector<Vector3> &points,
                             const Vector3 &planeDesc,
                             double &meanError, double &stdDevError);
     
@@ -951,7 +951,7 @@ namespace stereo {
   //
   /// Remove pixels from the disparity map that correspond to low
   /// contrast pixels in the original image.
-  class StdDevImageFunc : public UnaryReturnTemplateType<PixelTypeFromPixelAccessor>
+  class VW_API StdDevImageFunc : public UnaryReturnTemplateType<PixelTypeFromPixelAccessor>
   {
     int32 m_kernel_width, m_kernel_height;
 
@@ -1179,7 +1179,7 @@ template <class ViewT>
   // Given Left I. + Disparity I. = Right Image :
   // transform( right_image, DisparityTransform(DisparityI)) will
   // project the right image into the perspective of the left.
-  class DisparityTransform : public TransformBase<DisparityTransform> {
+  class VW_API DisparityTransform : public TransformBase<DisparityTransform> {
     typedef ImageViewRef<PixelMask<Vector2f> > inner_view;
     typedef ZeroEdgeExtension EdgeT;
     typedef EdgeExtensionView<inner_view,EdgeT> edge_extend_view;

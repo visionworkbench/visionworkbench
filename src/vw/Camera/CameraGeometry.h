@@ -52,7 +52,7 @@ namespace camera {
   Vector3 Convert2HomogenousVec2( ip::InterestPoint const& ip );
 
   // Measurement Prep Functors
-  struct SimilarityNormalizingFunctor {
+  struct VW_API SimilarityNormalizingFunctor {
     // Matrix apply functor
     template <class ContainerT>
     struct MatrixApplyFunc {
@@ -104,7 +104,7 @@ namespace camera {
   // Solves for 3x4 matrix which describes the mapping of a pinhole
   // camera from 3D points in the world to 2D points in an image.
 
-  struct CameraMatrixErrorMetric {
+  struct VW_API CameraMatrixErrorMetric {
     template <class RelationT, class ContainerT>
     double operator()( RelationT const& H,
                        ContainerT const& p1,
@@ -116,7 +116,7 @@ namespace camera {
   };
 
   // This fitting functor fits a 3x4 camera matrix P
-  struct CameraMatrixFittingFunctor : public SimilarityNormalizingFunctor {
+  struct VW_API CameraMatrixFittingFunctor : public SimilarityNormalizingFunctor {
     typedef vw::Matrix<double> result_type;
 
     template <class ContainerT>
@@ -221,7 +221,7 @@ namespace camera {
   // lines are defined be the epipole (which is the location of the first
   // image in the perspective of the second camera (and vice versa)).
 
-  struct FundamentalMatrixSampsonErrorMetric {
+  struct VW_API FundamentalMatrixSampsonErrorMetric {
     template <class RelationT, class ContainerT>
     double operator()( RelationT const& F,
                        ContainerT const& p1,
@@ -230,7 +230,7 @@ namespace camera {
     }
   };
 
-  struct FundamentalMatrixDistanceErrorMetric {
+  struct VW_API FundamentalMatrixDistanceErrorMetric {
     template <class RelationT, class ContainerT>
     double operator()( RelationT const& F,
                        ContainerT const& p1,
@@ -242,7 +242,7 @@ namespace camera {
 
   /// Fundamental Matrix solver using normalized 8 point algorithm.
   /// - Page 282 or Algorithm 11.1 in Multiple View Geometry
-  struct FundamentalMatrix8PFittingFunctor : public SimilarityNormalizingFunctor {
+  struct VW_API FundamentalMatrix8PFittingFunctor : public SimilarityNormalizingFunctor {
     typedef vw::Matrix<double> result_type;
 
     template <class ContainerT>
@@ -309,7 +309,7 @@ namespace camera {
 
   // Fundamental Matrix solver using the Maximum Likelihood method
   // Page 285 or Algorithm 11.3 in Multiple View Geometry
-  struct FundamentalMatrixMLFittingFunctor {
+  struct VW_API FundamentalMatrixMLFittingFunctor {
     typedef vw::Matrix<double> result_type;
 
     template <class ContainerT>
@@ -354,7 +354,7 @@ namespace camera {
     }
 
     // Non-linear solution to an over-constrained problem
-    class ProjectiveModelLMA : public math::LeastSquaresModelBase<ProjectiveModelLMA> {
+    class VW_API ProjectiveModelLMA : public math::LeastSquaresModelBase<ProjectiveModelLMA> {
 
     public:
       typedef Vector<double> result_type; // reprojective error

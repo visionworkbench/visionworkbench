@@ -372,14 +372,30 @@ size_t hamming_distance(uint16 a, uint16 b) {
   return static_cast<size_t>(dist); // Return the number of differing bits
 }
 
+inline size_t popcnt32(uint32_t v) {
+#ifdef _MSC_VER
+    return __popcnt(v);
+#else
+    return __builtin_popcount(v);
+#endif // _MSC_VER
+}
+
+inline size_t popcnt64(uint64_t v) {
+#ifdef _MSC_VER
+    return __popcnt64(v);
+#else
+    return __builtin_popcountl(v);
+#endif // _MSC_VER
+}
+
 size_t hamming_distance(uint32 a, uint32 b) {
   uint32 val = a ^ b; // XOR
-  return __builtin_popcount(val); // Use GCC compiler function to count the set bits
+  return popcnt32(val); // Use GCC compiler function to count the set bits
 }
 
 size_t hamming_distance(uint64 a, uint64 b) {
   uint64 val = a ^ b; // XOR
-  return __builtin_popcountl(val); // Use GCC compiler function to count the set bits
+  return popcnt64(val); // Use GCC compiler function to count the set bits
 }
 
 

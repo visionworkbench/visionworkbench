@@ -33,13 +33,13 @@ namespace vw {
 namespace fileio {
 namespace detail {
 
-Mutex& gdal() VW_WARN_UNUSED;
+VW_API Mutex& gdal() VW_WARN_UNUSED;
 
 // These classes exist to share code between the on-disk and in-memory versions
 // of the relevant image resources. They are not intended for use by users
 // (thus the detail namespace).
 
-class GdalIODecompress : public ScanlineReadBackend {
+class VW_API GdalIODecompress : public ScanlineReadBackend {
   protected:
     boost::shared_ptr<GDALDataset> m_dataset;
   public:
@@ -54,7 +54,7 @@ class GdalIODecompress : public ScanlineReadBackend {
     bool nodata_read_ok(double& value) const;
 };
 
-class GdalIOCompress : public ScanlineWriteBackend {
+class VW_API GdalIOCompress : public ScanlineWriteBackend {
   protected:
     std::string m_fn;
     GDALDriver *m_driver;

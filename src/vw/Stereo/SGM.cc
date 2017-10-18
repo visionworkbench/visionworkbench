@@ -714,7 +714,7 @@ void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
 } // End function populate_adjacent_disp_lookup_table
 
 
-#if not defined(VW_ENABLE_SSE) || (VW_ENABLE_SSE==0)
+#if !defined(VW_ENABLE_SSE) || VW_ENABLE_SSE==0
 // Note: local and output are the same size.
 // full_prior_buffer is always length m_num_disps and comes in initialized to a
 //  large flag value.  When the function quits the buffer must be returned to this state.
@@ -951,7 +951,12 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   
   // Allocate linear storage for data to pass to SSE instructions
   const int SSE_BUFF_LEN = 8;
-  uint16 d_packed[SSE_BUFF_LEN*11] __attribute__ ((aligned (16))); // TODO: Could be passed in!
+#ifdef _MSC_VER
+  __declspec(align(16)) uint16 d_packed[SSE_BUFF_LEN * 11]; // TODO: Could be passed in!
+#else
+  uint16 d_packed[SSE_BUFF_LEN * 11] __attribute__((aligned(16))); // TODO: Could be passed in!
+#endif
+  
   uint16* dL   = &(d_packed[0*SSE_BUFF_LEN]);
   uint16* d0   = &(d_packed[1*SSE_BUFF_LEN]);
   uint16* d1   = &(d_packed[2*SSE_BUFF_LEN]);

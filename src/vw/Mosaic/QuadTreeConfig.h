@@ -28,7 +28,7 @@ namespace mosaic {
   class QuadTreeGenerator;
 
   /// ???
-  class QuadTreeConfig {
+  class VW_API QuadTreeConfig {
   public:
     virtual ~QuadTreeConfig() {}
     /// 

@@ -86,18 +86,18 @@ namespace ba {
     DebugJacobianReport = 110
   };
 
-  bool vector_sorting( Vector3 i, Vector3 j);
+  VW_API bool vector_sorting( Vector3 i, Vector3 j);
 
-  void write_kml_styles( KMLFile& kml );
+  VW_API void write_kml_styles( KMLFile& kml );
   
   /// Writes an INACCURATE kml listing of the GCPs
-  void write_gcps_kml( KMLFile& kml,
+  VW_API void write_gcps_kml( KMLFile& kml,
                        ControlNetwork const& cnet );
   /// Inaccurate!
-  void write_3d_est_kml( KMLFile& kml,
+  VW_API void write_3d_est_kml( KMLFile& kml,
                          ControlNetwork const& cnet,
                          std::vector<double>& image_errors );
-  void recursive_kml_placemark( KMLFile& kml,
+  VW_API void recursive_kml_placemark( KMLFile& kml,
                                 std::list<Vector3>& list,
                                 std::string const& name,
                                 double& min, double& max,

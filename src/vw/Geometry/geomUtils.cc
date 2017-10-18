@@ -22,6 +22,8 @@
 #include <cfloat>
 #include <cstring>
 #include <cassert>
+#include <algorithm>
+
 #include <vw/Geometry/baseUtils.h>
 #include <vw/Geometry/geomUtils.h>
 #include <vw/Geometry/edgeUtils.h>
@@ -45,7 +47,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   if (numVerts <= 0) return;
 
   // The vectors corresponding to angles multiple of 45 degree
-  int numAngles = 8;
+  constexpr int numAngles = 8;
   double xs[numAngles], ys[numAngles];
   for (int a = 0; a < numAngles; a++){
     double theta = a*45*M_PI/180;

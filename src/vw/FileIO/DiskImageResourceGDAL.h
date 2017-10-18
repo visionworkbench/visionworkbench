@@ -56,7 +56,7 @@ namespace vw {
 
 namespace vw {
 
-  class DiskImageResourceGDAL : public DiskImageResource {
+  class VW_API DiskImageResourceGDAL : public DiskImageResource {
     bool nodata_read_ok(double& value) const;
   public:
 
@@ -164,7 +164,7 @@ namespace vw {
     boost::shared_ptr<GDALDataset> m_read_dataset_ptr;
   };
 
-  void UnloadGDAL();
+  VW_API void UnloadGDAL();
 
 } // namespace vw
 

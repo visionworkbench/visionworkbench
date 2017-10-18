@@ -103,9 +103,9 @@
 ///
 #ifndef __VW_CORE_EXCEPTION_H__
 #define __VW_CORE_EXCEPTION_H__
+#include <vw/config.h>
 
 #include <vw/Core/Features.h>
-#include <vw/config.h>
 
 #include <string>
 #include <sstream>
@@ -121,7 +121,7 @@
 namespace vw {
 
   /// The core exception class.
-  struct Exception VW_IF_EXCEPTIONS( : public std::exception )
+  struct VW_IF_EXCEPTIONS(VW_API) Exception VW_IF_EXCEPTIONS( : public std::exception )
   {
 
     /// The default constructor generates exceptions with empty error
@@ -199,7 +199,7 @@ namespace vw {
   /// Macro for quickly creating a hierarchy of exceptions, all of
   /// which share the same functionality.
   #define VW_DEFINE_EXCEPTION(exception_type,base)                             \
-    struct exception_type : public base {                                      \
+    struct VW_IF_EXCEPTIONS(VW_API) exception_type : public base {                                      \
       VW_EXCEPTION_API(exception_type)                                         \
     }
 
@@ -210,10 +210,10 @@ namespace vw {
   // functions or data. When using this macro, you must include the
   // VW_EXCEPTION_API macro inside the braces
   #define VW_DEFINE_EXCEPTION_EXT(exception_type,base)                         \
-    struct _VW_EXCEPTION_SENTINEL(exception_type) : public base {              \
+    struct VW_IF_EXCEPTIONS(VW_API) _VW_EXCEPTION_SENTINEL(exception_type) : public base {              \
       virtual std::string name() const = 0;                                    \
     };                                                                         \
-    struct exception_type : public _VW_EXCEPTION_SENTINEL(exception_type)
+    struct VW_IF_EXCEPTIONS(VW_API) exception_type : public _VW_EXCEPTION_SENTINEL(exception_type)
 
   #define VW_EXCEPTION_API(exception_type)                                     \
     virtual std::string name() const { return #exception_type; }               \
@@ -254,7 +254,7 @@ namespace vw {
 
   /// The abstract exception handler base class, which users
   /// can subclass to install an alternative exception handler.
-  class ExceptionHandler {
+  class VW_API ExceptionHandler {
   public:
     virtual void handle( Exception const& e ) const VW_NORETURN = 0;
     virtual ~ExceptionHandler() VW_NOTHROW {}
@@ -267,12 +267,12 @@ namespace vw {
   /// at build time, in which case the default behavior is to
   /// print the error message at the ErrorMessage level and
   /// to call abort().
-  void set_exception_handler( ExceptionHandler const* eh );
+  void VW_API  set_exception_handler( ExceptionHandler const* eh );
 
   /// Throws an exception via the Vision Workbench error
   /// handling mechanism, which may not actually involvle
   /// throwing an exception in the usual C++ sense.
-  void vw_throw( Exception const& e ) VW_NORETURN;
+  void VW_API vw_throw( Exception const& e ) VW_NORETURN;
 
 } // namespace vw
 

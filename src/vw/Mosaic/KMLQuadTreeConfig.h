@@ -33,9 +33,9 @@ namespace mosaic {
 
   struct KMLQuadTreeConfigData;
 
-  cartography::GeoReference kml_output_georef(uint32 xresolution, uint32 yresolution = 0);
+  VW_API cartography::GeoReference kml_output_georef(uint32 xresolution, uint32 yresolution = 0);
 
-  class KMLQuadTreeConfig : public QuadTreeConfig {
+  class VW_API KMLQuadTreeConfig : public QuadTreeConfig {
   public:
     KMLQuadTreeConfig();
     virtual ~KMLQuadTreeConfig() {}

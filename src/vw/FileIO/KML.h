@@ -30,6 +30,7 @@
 #include <stack>
 
 // Vision Workbench
+#include <vw/config.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
 
@@ -43,15 +44,15 @@ namespace vw {
 
   // TabCount:
   // Used to keep track of tabbing in KML File
-  struct TabCount {
+  struct VW_API TabCount {
     int count;
   };
 
-  std::ostream& operator<<( std::ostream& os, TabCount const& tab);
+  VW_API std::ostream& operator<<( std::ostream& os, TabCount const& tab);
 
   // KMLFile:
   // Class wrapper for KML file.
-  class KMLFile {
+  class VW_API KMLFile {
     boost::filesystem::ofstream m_output_file;
     TabCount m_tab;
     std::string m_filename;   // Output filename

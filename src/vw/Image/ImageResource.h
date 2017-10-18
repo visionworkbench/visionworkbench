@@ -26,6 +26,7 @@
 ///
 #ifndef __VW_IMAGE_IMAGERESOURCE_H__
 #define __VW_IMAGE_IMAGERESOURCE_H__
+#include <vw/config.h>
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
@@ -39,7 +40,7 @@ namespace vw {
 
   /// Describes the format of an image, i.e. its dimensions, pixel
   /// structure, and channel type.
-  struct ImageFormat {
+  struct VW_API ImageFormat {
     uint32          cols, 
                     rows, 
                     planes;
@@ -92,15 +93,15 @@ namespace vw {
 
   /// Copies image pixel data from the source buffer to the destination
   /// buffer, converting the pixel format and channel type as required.
-  void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
+  void VW_API convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
   
   /// Throws an exception if src cannot be converted to dst using the convert() function.
   /// - Using this function allows us to throw a legible error message instead of gibberish.
-  void check_convertability(ImageFormat const& dst, ImageFormat const& src);
+  void VW_API check_convertability(ImageFormat const& dst, ImageFormat const& src);
 
 
   /// A read-only image resource
-  class SrcImageResource {
+  class VW_API SrcImageResource {
     public:
       virtual ~SrcImageResource() {}
 
@@ -137,6 +138,7 @@ namespace vw {
       /// Fetch this ImageResource's nodata value
       virtual double nodata_read() const {
         vw_throw(NoImplErr() << "This ImageResource does not support nodata_read().");
+        return DBL_MAX;
       }
 
       /// Return a pointer to the data in the same format as format(). This
@@ -147,7 +149,7 @@ namespace vw {
   };
 
   /// A write-only image resource
-  class DstImageResource {
+  class VW_API DstImageResource {
     public:
       virtual ~DstImageResource() {}
 
@@ -161,11 +163,13 @@ namespace vw {
       /// Gets the preferred block size/alignment for partial writes.
       virtual Vector2i block_write_size() const {
         vw_throw(NoImplErr() << "This ImageResource does not support block writes");
+        return Vector2i();
       }
 
       /// Sets the preferred block size/alignment for partial writes.
       virtual void set_block_write_size(const Vector2i& /*v*/) {
         vw_throw(NoImplErr() << "This ImageResource does not support block writes");
+        return;
       }
 
       // Does this resource have an output nodata value?
@@ -182,7 +186,7 @@ namespace vw {
   };
 
   // A read-write image resource
-  class ImageResource : public SrcImageResource, public DstImageResource {};
+  class VW_API ImageResource : public SrcImageResource, public DstImageResource {};
 
   /// Represents a generic image buffer in memory, with dimensions and
   /// pixel format specified at run time.  This class does not
@@ -191,7 +195,7 @@ namespace vw {
   /// purpose of this class is to provide some common ground for
   /// converting between image formats using the convert() function.
   /// To allocate a fresh buffer for an image, see ImageView.
-  struct ImageBuffer {
+  struct VW_API ImageBuffer {
     void* data;
     ImageFormat format;
     ssize_t cstride, rstride, pstride;

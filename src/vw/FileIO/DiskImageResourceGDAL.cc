@@ -616,6 +616,10 @@ namespace vw {
     return new DiskImageResourceGDAL( filename, format );
   }
 
+  void UnloadGDAL()
+  {
+      
+  }
 
 } // namespace vw
 

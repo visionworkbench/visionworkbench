@@ -52,7 +52,7 @@ class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress
         vw_throw(IOErr() << "Unable to open memory dataset.");
       }
     }
-    Data* rewind() const {vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported");}
+    Data* rewind() const { vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported"); return NULL; }
   public:
     Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {
       VW_ASSERT(buffer, ArgumentErr() << VW_CURRENT_FUNCTION << ": buffer must be non-null");

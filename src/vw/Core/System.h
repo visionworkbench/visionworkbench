@@ -22,6 +22,8 @@
 #ifndef __VW_CORE_SYSTEM_H__
 #define __VW_CORE_SYSTEM_H__
 
+#include <vw/config.h>
+
 namespace vw {
 
   class Cache;
@@ -31,18 +33,18 @@ namespace vw {
 
   // This cache is used by default for all new BlockImageView<>'s such as
   // DiskImageView<>.
-  Cache& vw_system_cache();
+  VW_API Cache& vw_system_cache();
 
   // You should *always* use this method if you want to access Vision Workbench
   // system log, where all Vision Workbench log messages go.  For example:
   //     vw_log().console_log() << "Some text\n";
-  Log& vw_log();
+  VW_API Log& vw_log();
 
   // Global instance of Settings
-  Settings& vw_settings();
+  VW_API Settings& vw_settings();
 
   // Global instance of StopwatchSet
-  StopwatchSet& vw_stopwatch_set();
+  VW_API StopwatchSet& vw_stopwatch_set();
 }
 
 #endif

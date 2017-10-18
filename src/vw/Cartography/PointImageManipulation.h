@@ -63,7 +63,7 @@ namespace cartography {
   };
 
   /// Functor to convert lon/lat/alt to GCC x/y/z using a datum.
-  class GeodeticToCartesian : public ReturnFixedType<Vector3> {
+  class VW_API GeodeticToCartesian : public ReturnFixedType<Vector3> {
     Datum m_datum;
   public:
     GeodeticToCartesian(Datum const& d) : m_datum(d) {}
@@ -72,7 +72,7 @@ namespace cartography {
   };
 
   /// Functor to convert GCC x/y/z to lon/lat/alt using a datum.
-  class CartesianToGeodetic : public ReturnFixedType<Vector3> {
+  class VW_API CartesianToGeodetic : public ReturnFixedType<Vector3> {
     Datum m_datum;
   public:
     CartesianToGeodetic(Datum const& d) : m_datum(d) {}
@@ -81,7 +81,7 @@ namespace cartography {
   };
 
   /// Functor to convert lon/lat/alt to projected pixel col/row/alt using a georef.
-  class GeodeticToProjection : public ReturnFixedType<Vector3> {
+  class VW_API GeodeticToProjection : public ReturnFixedType<Vector3> {
     GeoReference m_reference;
   public:
     GeodeticToProjection( GeoReference const& r ) : m_reference(r) {}
@@ -90,7 +90,7 @@ namespace cartography {
   };
 
   /// Functor to convert projected pixel col/row/alt to lon/lat/alt using a georef.
-  class ProjectionToGeodetic : public ReturnFixedType<Vector3> {
+  class VW_API ProjectionToGeodetic : public ReturnFixedType<Vector3> {
     GeoReference m_reference;
   public:
     ProjectionToGeodetic( GeoReference const& r ) : m_reference(r) {}
@@ -99,7 +99,7 @@ namespace cartography {
   };
 
   /// Functor to convert lon/lat/alt to projected x/y/alt using a georef.
-  class GeodeticToPoint : public ReturnFixedType<Vector3> {
+  class VW_API GeodeticToPoint : public ReturnFixedType<Vector3> {
     GeoReference m_reference;
   public:
     GeodeticToPoint( GeoReference const& r ) : m_reference(r) {}
@@ -108,7 +108,7 @@ namespace cartography {
   };
 
   /// Functor to convert projected x/y/alt to lon/lat/alt using a georef.
-  class PointToGeodetic : public ReturnFixedType<Vector3> {
+  class VW_API PointToGeodetic : public ReturnFixedType<Vector3> {
     GeoReference m_reference;
   public:
     PointToGeodetic( GeoReference const& r ) : m_reference(r) {}
@@ -195,7 +195,7 @@ namespace cartography {
   // WARNING: These functions are estimations, they do not produce accurate results.
 
   /// GCC to GDC conversion with elevation being distance from 0,0,0
-  class XYZtoLonLatRadEstimateFunctor : public UnaryReturnSameType {
+  class VW_API XYZtoLonLatRadEstimateFunctor : public UnaryReturnSameType {
     bool m_east_positive;
     bool m_centered_on_zero; // Use the range [-180,180] otherwise [0,360]
   public:
@@ -240,7 +240,7 @@ namespace cartography {
   };
 
   /// GDC to GCC conversion with elevation being distance from 0,0,0
-  class LonLatRadToXYZEstimateFunctor : public UnaryReturnSameType {
+  class VW_API LonLatRadToXYZEstimateFunctor : public UnaryReturnSameType {
     bool m_east_positive;
   public:
     LonLatRadToXYZEstimateFunctor(bool east_positive = true) : m_east_positive(east_positive) {}

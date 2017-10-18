@@ -661,7 +661,7 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type, i
     case OPENCV_IP_DETECTOR_TYPE_ORB:
       return cv::ORB::create(max_points);
     case OPENCV_IP_DETECTOR_TYPE_SIFT:
-      return cv::xfeatures2d::SIFT::create(max_points);
+      vw_throw(NoImplErr() << "OpenCV SIFT option is not supported yet!\n");
     case OPENCV_IP_DETECTOR_TYPE_SURF:
       vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
       //m_detector = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;

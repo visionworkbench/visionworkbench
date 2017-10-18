@@ -32,6 +32,10 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Filter.h>
 
+#ifndef M_PI
+#define M_PI       3.14159265358979323846   // pi 
+#endif
+
 /// Compute a Gaussian kernel.  The default size is seven times sigma
 /// rounded down to the nearest odd integer, or 3, whichever is larger.
 template <class KernelT>

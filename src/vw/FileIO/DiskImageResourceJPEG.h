@@ -32,32 +32,17 @@
 
 namespace vw {
 
-  class DiskImageResourceJPEG : public DiskImageResource {
+  class VW_API DiskImageResourceJPEG : public DiskImageResource {
   public:
 
-    DiskImageResourceJPEG( std::string const& filename,
-                           int subsample_factor = 1,
-                           size_t byte_offset = 0)
-      : DiskImageResource( filename )
-    {
-      m_quality = default_quality;
-      m_file_ptr = NULL;
-      m_jpg_compress_header = NULL;
-      m_jpg_decompress_header = NULL;
-      open( filename, subsample_factor, byte_offset );
-    }
+      DiskImageResourceJPEG(std::string const& filename,
+          int subsample_factor = 1,
+          size_t byte_offset = 0);
 
-    DiskImageResourceJPEG( std::string const& filename,
-                           ImageFormat const& format )
-      : DiskImageResource( filename )
-    {
-      m_subsample_factor = default_subsampling_factor;
-      m_quality = default_quality;
-      m_file_ptr = NULL;
-      m_jpg_compress_header = NULL;
-      m_jpg_decompress_header = NULL;
-      create( filename, format );
-    }
+
+    DiskImageResourceJPEG(std::string const& filename,
+        ImageFormat const& format);
+     
 
     virtual ~DiskImageResourceJPEG();
 
@@ -79,7 +64,7 @@ namespace vw {
     void set_quality(float quality) { m_quality = quality; }
 
     /// Set the default compression quality of jpeg images.
-    static void set_default_quality(float quality) { default_quality = quality; }
+    static void set_default_quality(float quality);
 
     /// Set the subsample factor.  The default is no scaling.  Valid
     /// values are 1, 2, 4, and 8.  Smaller scaling ratios permit
@@ -92,9 +77,7 @@ namespace vw {
     }
 
     /// Set the default subsampling factor
-    static void set_default_subsample_factor(int subsample_factor) {
-      default_subsampling_factor = subsample_factor;
-    }
+    static void set_default_subsample_factor(int subsample_factor);
 
     void open( std::string const& filename,
                int subsample_factor = 1,

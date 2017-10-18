@@ -37,7 +37,7 @@ namespace vw {
   ///   conventions as to where the associated header files are
   ///   located.  If other raw image types need to be supported by
   ///   this class then something will have to be changed.
-  class DiskImageResourceRaw : public DiskImageResource {
+  class VW_API DiskImageResourceRaw : public DiskImageResource {
   public:
 
     /// The file contains no header info so the user must provide it.

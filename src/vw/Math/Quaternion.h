@@ -39,13 +39,14 @@
 
 #include <boost/math/quaternion.hpp>
 
+#include <vw/config.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
 namespace vw {
 namespace math {
 
-  class QuaternionImplementation {
+  class VW_API QuaternionImplementation {
   public:
 
     template <class QuaternionT, class OStreamT>
@@ -555,12 +556,12 @@ namespace math {
 namespace vw { namespace math {
 
   // Quaternion interpolation
-  Quat slerp(double alpha, Quat const& a, Quat const& b, int spin);
+  Quat VW_API slerp(double alpha, Quat const& a, Quat const& b, int spin);
 
   // Compute the n-weight slerp, analogous to the linear combination
   // w[0]*Q[0] + ... + w[n-1]*Q[n-1]. This is experimental.
   // We assume the sum of weights is 1.
-  Quat slerp_n(std::vector<double> const& w, std::vector<Quat> const& Q, int spin);
+  Quat VW_API slerp_n(std::vector<double> const& w, std::vector<Quat> const& Q, int spin);
 }}
 
 #endif // __VW_QUATERNION_H__

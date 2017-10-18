@@ -20,14 +20,14 @@
 
 #ifndef __VW_IMAGE_IMAGERESOURCESTREAM_H__
 #define __VW_IMAGE_IMAGERESOURCESTREAM_H__
-
+#include <vw/config.h>
 #include <vw/Image/ImageResource.h>
 #include <boost/noncopyable.hpp>
 
 namespace vw {
 
 /// ImageResource that reads from an std::stream
-class SrcImageResourceStream : public SrcImageResource, private boost::noncopyable
+class VW_API SrcImageResourceStream : public SrcImageResource, private boost::noncopyable
 {
   public:
     typedef std::istream stream_type;
@@ -64,7 +64,7 @@ class SrcImageResourceStream : public SrcImageResource, private boost::noncopyab
 };
 
 /// ImageResource that writes to an std::stream
-class DstImageResourceStream : public DstImageResource, private boost::noncopyable
+class VW_API DstImageResourceStream : public DstImageResource, private boost::noncopyable
 {
   public:
     typedef std::ostream stream_type;
@@ -99,7 +99,7 @@ class DstImageResourceStream : public DstImageResource, private boost::noncopyab
 };
 
 /// ImageResource that reads and writes from/to an std::stream
-class ImageResourceStream : public ImageResource, public SrcImageResourceStream, public DstImageResourceStream
+class VW_API ImageResourceStream : public ImageResource, public SrcImageResourceStream, public DstImageResourceStream
 {
   public:
     typedef std::iostream stream_type;

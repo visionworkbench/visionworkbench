@@ -45,7 +45,7 @@
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/features2d.hpp"
-#include "opencv2/xfeatures2d.hpp"
+// #include "opencv2/xfeatures2d.hpp"
 #endif
 
 namespace vw {
@@ -245,7 +245,7 @@ namespace ip {
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
 
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_SIFT,
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_ORB,
 				bool normalize=true,
 				bool add_descriptions=false, int max_points = 1000);
 

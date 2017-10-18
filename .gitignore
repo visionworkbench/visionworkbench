@@ -261,3 +261,5 @@ docs/workbook/workbook.toc
 /src/vw/tools/print_exif
 /src/vw/tools/shaded_relief
 /src/vw/tools/slopemap
+
+\.vscode/

@@ -32,7 +32,7 @@
 namespace vw {
 namespace hdr {
 
-  ImageView<PixelRGB<double> > ashikhmin_tone_map(ImageView<PixelRGB<double> > hdr_image,
+  VW_API ImageView<PixelRGB<double> > ashikhmin_tone_map(ImageView<PixelRGB<double> > hdr_image,
                                                   double threshold = 0.5);
 
 }} // namespace vw::HDR

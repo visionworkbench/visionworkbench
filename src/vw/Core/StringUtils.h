@@ -26,7 +26,7 @@ namespace vw{
 
   /// Executes a find-replace operation in-place on a string.
   /// - Returns the number of instances replaced.
-  size_t string_replace(std::string &s, std::string const& find, std::string const& replace);
+  size_t VW_API string_replace(std::string &s, std::string const& find, std::string const& replace);
 
   //=============================================================================
   // Function definitions

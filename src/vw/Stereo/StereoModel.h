@@ -34,7 +34,7 @@ namespace vw {
 namespace stereo {
 
   /// 
-  class StereoModel {
+  class VW_API StereoModel {
 
   public:
 

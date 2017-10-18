@@ -43,7 +43,7 @@ namespace ba {
   /// to a control point.  In addition to the location of the pixel, the
   /// control measure also stores the uncertainty of the measurement,
   /// and a identifier for the image from which it was derived.
-  class ControlMeasure {
+  class VW_API ControlMeasure {
     std::string m_serialNumber;
     float       m_col, m_row, m_col_sigma, m_row_sigma, m_diameter;
     std::string m_date_time, m_description, m_chooserName;
@@ -196,13 +196,13 @@ namespace ba {
     return false;
   }
 
-  std::ostream& operator<<( std::ostream& os, ControlMeasure const& measure);
+  VW_API std::ostream& operator<<( std::ostream& os, ControlMeasure const& measure);
 
   /// ControlPoints are 3D locations in geographic coordinates (lon,
   /// lat, radius) that are associated with a certain number of
   /// ControlMeasures.  Each ControlMeasure is an observation where
   /// this ControlPoint was located in an image.
-  class ControlPoint {
+  class VW_API ControlPoint {
 
     std::string m_id;
     std::vector<ControlMeasure> m_measures;
@@ -296,7 +296,7 @@ namespace ba {
 
   }; // End class ControlPoint
 
-  std::ostream& operator<<( std::ostream& os, ControlPoint const& point);
+  VW_API std::ostream& operator<<( std::ostream& os, ControlPoint const& point);
 
   /// The control network contains a list of control points (either
   /// ground control points or tie points).
@@ -305,7 +305,7 @@ namespace ba {
   /// - various methods for computing error
   /// - assoc. with image list/serial number
   ///
-  class ControlNetwork {
+  class VW_API ControlNetwork {
     std::vector<ControlPoint> m_control_points;
     std::string m_targetName;         // Name of the target
     std::string m_networkId;          // Network Id
@@ -414,10 +414,10 @@ namespace ba {
 
   }; // End class ControlNetwork
 
-  std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet);
+  VW_API std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet);
 
   /// I/O for ISIS Pvl file
-  void read_pvl_property( std::ostringstream& ostr,
+  VW_API void read_pvl_property( std::ostringstream& ostr,
                           std::vector< std::string >& tokens );
 
 }} // namespace vw::ba

@@ -42,7 +42,7 @@ namespace camera {
   // --------------------------------------------------------------------------
 
   /// Simple position interpolation when only an initial point and velocity are known.
-  class LinearPositionInterpolation {
+  class VW_API LinearPositionInterpolation {
     Vector3 m_initial_position, m_initial_velocity;
 
   public:
@@ -53,7 +53,7 @@ namespace camera {
   };
 
   /// Simple linear interpolation between a series of positions.
-  class LinearPiecewisePositionInterpolation {
+  class VW_API LinearPiecewisePositionInterpolation {
     std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
   public:
@@ -68,7 +68,7 @@ namespace camera {
   };
 
   /// Performs smooth interpolation between sparse pose data points using gaussians.
-  class SmoothPiecewisePositionInterpolation {
+  class VW_API SmoothPiecewisePositionInterpolation {
     std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
     int m_num_wts;
@@ -92,7 +92,7 @@ namespace camera {
   /// Performs Lagrangian interpolation between data points with flexible times.
   /// - If it becomes useful this can be combined with the fixed interval Lagrangian
   ///   class using a boolean check.
-  class LagrangianInterpolationVarTime {
+  class VW_API LagrangianInterpolationVarTime {
     std::vector<Vector3> m_samples;
     std::vector<double > m_times;
     int m_radius;
@@ -107,7 +107,7 @@ namespace camera {
   };
 
   /// Performs Lagrangian interpolation between data points with constant time intervals.
-  class LagrangianInterpolation {
+  class VW_API LagrangianInterpolation {
     std::vector<Vector3> m_samples;
     double m_start_time, m_time_delta, m_last_time;
     int m_radius;
@@ -126,7 +126,7 @@ namespace camera {
 
 
   /// Interpolation between a series of positions incorporating accelleration information.
-  class PiecewiseAPositionInterpolation {
+  class VW_API PiecewiseAPositionInterpolation {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
@@ -141,7 +141,7 @@ namespace camera {
   };
 
 
-  class Curve3DPositionInterpolation {
+  class VW_API Curve3DPositionInterpolation {
     Matrix<double,3,3> m_cached_fit;
 
   public:
@@ -176,7 +176,7 @@ namespace camera {
 
   /// Cubic Hermite Spline interpolation or CSpline. Assumes you
   /// provide the velocity measurements.
-  class HermitePositionInterpolation {
+  class VW_API HermitePositionInterpolation {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
@@ -195,7 +195,7 @@ namespace camera {
   // --------------------------------------------------------------------------
 
   /// Always returns the input pose.
-  class ConstantPoseInterpolation {
+  class VW_API ConstantPoseInterpolation {
     Quat m_pose;
   public:
     ConstantPoseInterpolation(Quat const& pose);
@@ -207,7 +207,7 @@ namespace camera {
 
   /// Performs interpolation between sparse pose data points using the
   /// spherical linear interpolation algorithm.
-  class SLERPPoseInterpolation {
+  class VW_API SLERPPoseInterpolation {
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
 
@@ -224,7 +224,7 @@ namespace camera {
   };
 
   /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
-  class SlerpGridPointingInterpolation {
+  class VW_API SlerpGridPointingInterpolation {
     std::vector< std::vector<vw::Vector3> > m_directions;
     double m_row0, m_drow, m_row_end;
     double m_col0, m_dcol, m_col_end;
@@ -246,7 +246,7 @@ namespace camera {
 
   /// Performs smooth interpolation between sparse pose data points using the
   /// spherical linear interpolation algorithm. Highly experimental and not tested.
-  class SmoothSLERPPoseInterpolation {
+  class VW_API SmoothSLERPPoseInterpolation {
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
     int m_num_wts;
@@ -270,7 +270,7 @@ namespace camera {
   // --------------------------------------------------------------------------
 
   /// Simple linear interpolation of the time at a given line.
-  class LinearTimeInterpolation {
+  class VW_API LinearTimeInterpolation {
     double m_t0, m_dt;
 
   public:
@@ -280,7 +280,7 @@ namespace camera {
   };
 
   ///
-  class TLCTimeInterpolation {
+  class VW_API TLCTimeInterpolation {
     typedef std::map<double, double> map_type;
     map_type m_m, m_b; // Tables keyed on line: time = m * line + b;
 

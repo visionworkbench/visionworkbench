@@ -25,7 +25,7 @@
 
 namespace vw {
 
-  class SrcMemoryImageResourceJPEG : public SrcMemoryImageResource, private boost::noncopyable {
+  class VW_API SrcMemoryImageResourceJPEG : public SrcMemoryImageResource, private boost::noncopyable {
       class Data;
       mutable boost::shared_ptr<Data> m_data;
 
@@ -40,7 +40,7 @@ namespace vw {
       virtual bool has_nodata_read() const {return false;}
   };
 
-  class DstMemoryImageResourceJPEG : public DstMemoryImageResource {
+  class VW_API DstMemoryImageResourceJPEG : public DstMemoryImageResource {
       class Data;
       boost::shared_ptr<Data> m_data;
 

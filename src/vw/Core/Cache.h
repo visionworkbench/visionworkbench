@@ -62,6 +62,7 @@
 // Uncomment one of these to enable or disable cache debug messages
 #define VW_CACHE_DEBUG(x) x
 //#define VW_CACHE_DEBUG(x)
+#include <vw/config.h>
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
@@ -130,7 +131,7 @@ namespace vw {
       to the Cache and you will get out a Handle object.
     
   */
-  class Cache {
+  class VW_API Cache {
   // Do some forward declarations so we can put the public interface first
   private:
     class CacheLineBase;

@@ -47,16 +47,16 @@ namespace vw
      * and source->data().transform() is returned.
      * @param source The source coordinate frame. If NULL, the identity-matrix is returned.
      */
-    Frame::Transform get_transform(FrameTreeNode const * target, FrameTreeNode const * source);
+    VW_API Frame::Transform get_transform(FrameTreeNode const * target, FrameTreeNode const * source);
     /**
      * Get transform of transform, expressed relative to the source frame, relative to the target frame.
      */
-    Frame::Transform get_transform_of(FrameTreeNode const * target, FrameTreeNode const * source,
+    VW_API Frame::Transform get_transform_of(FrameTreeNode const * target, FrameTreeNode const * source,
         Frame::Transform const& transform);
     /**
      * Set transform of the frame to the transform specified realtive to the source frame.
      */
-    void set_transform(FrameTreeNode * frame, FrameTreeNode const * source,
+    VW_API void set_transform(FrameTreeNode * frame, FrameTreeNode const * source,
                                        Frame::Transform const& transform);
 
     /**
@@ -72,7 +72,7 @@ namespace vw
      *    * "..": parent frame
      *    * "...": 0 to n frames down in breadth-first order
      */
-    FrameTreeNode * lookup(FrameTreeNode * start_frame, std::string const& path);
+    VW_API FrameTreeNode * lookup(FrameTreeNode * start_frame, std::string const& path);
 
     inline
     Frame::Transform
@@ -106,7 +106,7 @@ namespace vw
      *
      * @WARNING: Don't merge trees of nodes from different allocation categories (heap vs stack).
      */
-    void merge_frame_trees(FrameTreeNode * target_tree, FrameTreeNode * source_tree);
+    VW_API void merge_frame_trees(FrameTreeNode * target_tree, FrameTreeNode * source_tree);
   }
 }
 

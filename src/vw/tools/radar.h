@@ -128,7 +128,7 @@ double compute_kittler_illingworth_jt(std::vector<double> const& histogram,
     }
 
     // Only continue if both classes contain at least one pixel.
-    if ((P1 <= 0) or (P2 <= 0))
+    if ((P1 <= 0) || (P2 <= 0))
         return FAIL_VAL;
     double mean1 = weighted_sum1 / P1;
     double mean2 = weighted_sum2 / P2;
@@ -143,7 +143,7 @@ double compute_kittler_illingworth_jt(std::vector<double> const& histogram,
     sigma2 /= P2;
 
     // Make sure both classes contain at least two intensity values.
-    if ((sigma1 <= 0) or (sigma2 <= 0))
+    if ((sigma1 <= 0) || (sigma2 <= 0))
         return FAIL_VAL;
 
     // Compute J(T).

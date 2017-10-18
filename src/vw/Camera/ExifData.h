@@ -54,7 +54,7 @@ namespace camera {
     } value;
   } ExifTagData;
 
-  class ExifData {
+  class VW_API ExifData {
   private:
     static const int NUM_FORMATS = 12;
 

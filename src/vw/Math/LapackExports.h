@@ -174,41 +174,41 @@ namespace math {
   } // anon namespace
 #endif
 
-  void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
-  void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);
+  void VW_API geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
+  void VW_API geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);
 
-  void gesdd(char jobz, f77_int m, f77_int n, float *a, f77_int lda, float *s, float *u, f77_int ldu, float *vt, f77_int ldvt, float *work, f77_int lwork, f77_int *iwork, f77_int *info);
-  void gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info);
+  void VW_API gesdd(char jobz, f77_int m, f77_int n, float *a, f77_int lda, float *s, float *u, f77_int ldu, float *vt, f77_int ldvt, float *work, f77_int lwork, f77_int *iwork, f77_int *info);
+  void VW_API gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info);
 
-  void geqrf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
-  void geqrf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
+  void VW_API geqrf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
+  void VW_API geqrf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
 
-  void orgqr(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
-  void orgqr(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
+  void VW_API orgqr(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
+  void VW_API orgqr(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
 
-  void gerqf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
-  void gerqf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
+  void VW_API gerqf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
+  void VW_API gerqf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
 
-  void orgrq(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
-  void orgrq(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
+  void VW_API orgrq(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
+  void VW_API orgrq(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
 
-  void gelsd(f77_int m, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int* iwork, f77_int *info);
-  void gelsd(f77_int m, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int* iwork, f77_int *info);
+  void VW_API gelsd(f77_int m, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int* iwork, f77_int *info);
+  void VW_API gelsd(f77_int m, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int* iwork, f77_int *info);
 
-  void gelss(f77_int m, f77_int n, f77_int rhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int *info);
-  void gelss(f77_int m, f77_int n, f77_int rhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int *info);
+  void VW_API gelss(f77_int m, f77_int n, f77_int rhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int *info);
+  void VW_API gelss(f77_int m, f77_int n, f77_int rhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int *info);
 
-  void gesv(f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
-  void gesv(f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
+  void VW_API gesv(f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
+  void VW_API gesv(f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
 
-  void posv(char uplo, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, f77_int *info);
-  void posv(char uplo, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, f77_int *info);
+  void VW_API posv(char uplo, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, f77_int *info);
+  void VW_API posv(char uplo, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, f77_int *info);
 
-  void getrf(f77_int m, f77_int n, float *a, f77_int lda, f77_int *ipiv, f77_int *info);
-  void getrf(f77_int m, f77_int n, double *a, f77_int lda, f77_int *ipiv, f77_int *info);
+  void VW_API getrf(f77_int m, f77_int n, float *a, f77_int lda, f77_int *ipiv, f77_int *info);
+  void VW_API getrf(f77_int m, f77_int n, double *a, f77_int lda, f77_int *ipiv, f77_int *info);
 
-  void getrs(char trans, f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
-  void getrs(char trans, f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
+  void VW_API getrs(char trans, f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
+  void VW_API getrs(char trans, f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
 
   /// \endcond
 

@@ -54,14 +54,14 @@ namespace ip {
   /// L2 Norm: returns Euclidian distance squared between pair of
   /// interest point descriptors.  Optional argument "maxdist" to
   /// provide early termination of computation if result will exceed maxdist.
-  struct L2NormMetric {
+  struct VW_API L2NormMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
 		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_L2;
   };
 
   /// Hamming distance for binary descriptors
-  struct HammingMetric {
+  struct VW_API HammingMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
 		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_Hamming;
@@ -70,7 +70,7 @@ namespace ip {
   /// KL distance (relative entropy) between interest point
   /// descriptors. Optional argument "maxdist" to provide early
   /// termination of computation if result will exceed maxdist.
-  struct RelativeEntropyMetric {
+  struct VW_API RelativeEntropyMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
 		      float maxdist = std::numeric_limits<float>::max()) const;
     static const math::FLANN_DistType flann_type = math::FLANN_DistType_Unsupported;
@@ -99,7 +99,7 @@ namespace ip {
   ///
   /// This default matching constraint functor providing NO
   /// constraints on putative matches.
-  class NullConstraint {
+  class VW_API NullConstraint {
   public:
     bool operator()(InterestPoint const& /*baseline_ip*/, InterestPoint const& /*test_ip*/) const {
       return true;
@@ -111,7 +111,7 @@ namespace ip {
   };
 
   /// Constraint on interest point orientation and scale differences.
-  class ScaleOrientationConstraint {
+  class VW_API ScaleOrientationConstraint {
   public:
     double scale_ratio_min;
     double scale_ratio_max;
@@ -131,7 +131,7 @@ namespace ip {
   };
 
   /// Constraint on interest point location differences.
-  class PositionConstraint {
+  class VW_API PositionConstraint {
   public:
     double min_x;
     double max_x;
@@ -225,16 +225,16 @@ namespace ip {
 
   /// Matching doesn't constraint a point to being matched to only one
   /// other point. Here's a way to remove duplicates and have only pairwise points.
-  void remove_duplicates(std::vector<InterestPoint>& ip1,
+  VW_API void remove_duplicates(std::vector<InterestPoint>& ip1,
 			 std::vector<InterestPoint>& ip2);
 
   /// The name of the match file.
-  std::string match_filename(std::string const& out_prefix,
+  VW_API std::string match_filename(std::string const& out_prefix,
 			     std::string const& input_file1,
 			     std::string const& input_file2);
 
   /// The names of IP files.
-  void ip_filenames(std::string const& out_prefix,
+  VW_API void ip_filenames(std::string const& out_prefix,
 		    std::string const& input_file1,
 		    std::string const& input_file2,
 		    std::string      & output_ip1,

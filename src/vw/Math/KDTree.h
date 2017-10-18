@@ -100,6 +100,7 @@
 ///
 #ifndef __VW_MATH_KDTREE_H__
 #define __VW_MATH_KDTREE_H__
+#include <vw/config.h>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -216,7 +217,7 @@ namespace math {
   //
   // TODO: sort and partition may be overkill. Try to implement this with
   // partial_sort.
-  class MedianPartitioner
+  class VW_API MedianPartitioner
   {
   public:
     template<typename RandomAccessIterT>
@@ -240,7 +241,7 @@ namespace math {
   };
 
   // A thread-safer random number generator
-  class KDRandom{
+  class VW_API KDRandom{
   public:
     ssize_t operator()(ssize_t max) const {
       double tmp;
@@ -252,7 +253,7 @@ namespace math {
 
 
   //Input is partitioned around a randomly selected pivot record
-  class RandPartitioner {
+  class VW_API RandPartitioner {
   public:
     template <typename RandomAccessIterT>
     RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, size_t disc) const
@@ -272,7 +273,7 @@ namespace math {
   //////////////// Discriminator Selectors //////////////////////
 
   //Selects the discriminator as the dimension of maximum variance
-  class VarianceDiscSelector {
+  class VW_API VarianceDiscSelector {
   public:
     template<typename RandomAccessIterT>
     size_t operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, size_t /*disc*/) const {
@@ -328,7 +329,7 @@ namespace math {
 
 
   //Selects the discriminator as the dimension with largest (max-min) value
-  class MaxDiffDiscSelector {
+  class VW_API MaxDiffDiscSelector {
   public:
     template<typename RandomAccessIterT>
     size_t operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, size_t /*unused_argument*/) const {
@@ -377,7 +378,7 @@ namespace math {
 
 
   //NEXTDISC(d) = d+1 mod k (Bently's Discriminator selector)
-  class ModuloDiscSelector {
+  class VW_API ModuloDiscSelector {
     size_t m_k;
   public:
     //Constructor
@@ -394,7 +395,7 @@ namespace math {
   // These must implement the unary operator(), and the binary
   // function domains overlap both functions must be passed objects with
   // iterators
-  struct NullRecordConstraintKD {
+  struct VW_API NullRecordConstraintKD {
     template<typename T>
     bool operator()(T /*record*/) const {
       return true;
@@ -456,7 +457,7 @@ namespace math {
   };
 
   //////////////////// Distance Metrics ////////////////////////////////////
-  class SafeEuclideanDistanceMetric{
+  class VW_API SafeEuclideanDistanceMetric{
   public:
     //TODO: should a and b be required to be the same type of iterator?
     // If they were required to be of the same type, this could return

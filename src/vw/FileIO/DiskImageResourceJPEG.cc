@@ -183,6 +183,28 @@ public:
 
 };
 
+vw::DiskImageResourceJPEG::DiskImageResourceJPEG(std::string const & filename, int subsample_factor, size_t byte_offset)
+    : DiskImageResource(filename)
+{
+    m_quality = default_quality;
+    m_file_ptr = NULL;
+    m_jpg_compress_header = NULL;
+    m_jpg_decompress_header = NULL;
+    open(filename, subsample_factor, byte_offset);
+}
+
+// exported static member can not be used inline, so this has to be moved to cpp file
+vw::DiskImageResourceJPEG::DiskImageResourceJPEG(std::string const & filename, ImageFormat const & format)
+    : DiskImageResource(filename)
+{
+    m_subsample_factor = default_subsampling_factor;
+    m_quality = default_quality;
+    m_file_ptr = NULL;
+    m_jpg_compress_header = NULL;
+    m_jpg_decompress_header = NULL;
+    create(filename, format);
+}
+
 /// Close the JPEG file when the object is destroyed
 DiskImageResourceJPEG::~DiskImageResourceJPEG() {
   this->flush();
@@ -196,6 +218,17 @@ void DiskImageResourceJPEG::flush()
     fclose((FILE*)m_file_ptr);
     m_file_ptr = NULL;
   }
+}
+
+void vw::DiskImageResourceJPEG::set_default_quality(float quality)
+{
+    default_quality = quality;
+}
+
+// exported static member can not be used inline, so this has to be moved to cpp file
+void vw::DiskImageResourceJPEG::set_default_subsample_factor(int subsample_factor)
+{
+    default_subsampling_factor = subsample_factor;
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open

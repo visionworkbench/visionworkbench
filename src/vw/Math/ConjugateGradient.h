@@ -73,6 +73,7 @@
 #ifndef __VW_MATH_CONJUGATEGRADIENT_H__
 #define __VW_MATH_CONJUGATEGRADIENT_H__
 
+#include <vw/config.h>
 #include <vw/Core/Log.h>
 
 #define VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS 20
@@ -80,7 +81,7 @@
 namespace vw {
 namespace math{
 
-  class ConstantStepSize {
+  class VW_API ConstantStepSize {
     double stepsize;
   public:
     ConstantStepSize( double stepsize ) : stepsize(stepsize) {}
@@ -95,7 +96,7 @@ namespace math{
   };
 
 
-  class ArmijoStepSize {
+  class VW_API ArmijoStepSize {
     double m_initial_stepsize, m_beta, m_sigma;
     static const int m_max_iterations = 1000;
   public:
@@ -126,7 +127,7 @@ namespace math{
   };
 
 
-  class CharalambousStepSize {
+  class VW_API CharalambousStepSize {
     double initial_stepsize;
     double mu, sigma, gamma;
   public:

@@ -56,7 +56,7 @@ namespace geometry
      * for membership of the frame to the FrameStore.
 
    */
-  class FrameStore {
+  class VW_API FrameStore {
 
   public:
     //! @{ Public data types.

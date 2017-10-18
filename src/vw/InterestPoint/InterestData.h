@@ -43,7 +43,7 @@ namespace vw {
 namespace ip {
 
   /// A class for storing information about an interest point.
-  struct InterestPoint {
+  struct VW_API InterestPoint {
     typedef vw::Vector<float>               descriptor_type;
     typedef descriptor_type::iterator       iterator;
     typedef descriptor_type::const_iterator const_iterator;
@@ -173,18 +173,18 @@ namespace ip {
 
   // Utility function converts from a list of interest points to a
   // vector of interest point locations.  (Useful when preping data for RANSAC...)
-  std::vector<Vector3      > iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
+  VW_API std::vector<Vector3      > iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
   //std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3      > const& veclist); // Avoid using, info is lost!
 
   // Routines for reading & writing interest point data files
-  void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
-  void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
-  std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
+  VW_API void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
+  VW_API void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
+  VW_API std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
 
   // Routines for reading & writing interest point match files
-  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
+  VW_API void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
                                std::vector<InterestPoint> const& ip2);
-  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
+  VW_API void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                               std::vector<InterestPoint> &ip2);
 
   /// Select only the interest points that fall within the specified bounding box.
@@ -199,7 +199,7 @@ namespace ip {
   }
 
   /// Helpful functors
-  void remove_descriptor( InterestPoint & ip );
+  VW_API void remove_descriptor( InterestPoint & ip );
 
   
   /// Convert a an InterestPointList into a dense matrix of IP descriptors, one per row.

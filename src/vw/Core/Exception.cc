@@ -25,6 +25,7 @@
 #include <vw/config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Features.h>
+#include <vw/Core/Log.h>
 
 #include <cstdlib>
 
@@ -39,7 +40,7 @@ namespace {
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
       e.default_throw();
 #else
-      vw::VW_OUT(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
+      VW_OUT(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
 #endif
       std::abort();
     }

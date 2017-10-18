@@ -41,7 +41,7 @@ namespace vw {
 namespace cartography {
 
   // Intersect the ray back-projected from the camera with the datum.
-  Vector3 datum_intersection( Datum const& datum,
+  VW_API Vector3 datum_intersection( Datum const& datum,
                               camera::CameraModel const* model,
                               Vector2 const& pix );
 
@@ -49,7 +49,7 @@ namespace cartography {
   // current camera pixel with the datum ellipsoid. The return value
   // is a map-projected point location (the intermediate between
   // lon-lat-altitude and pixel).
-  Vector2 geospatial_intersect( GeoReference const& georef,
+  VW_API Vector2 geospatial_intersect( GeoReference const& georef,
                                 Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 bool& has_intersection );
 
@@ -240,7 +240,7 @@ namespace cartography {
   namespace detail {
 
     // TODO: Why is this not done by default?
-    void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point);
+  VW_API void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point);
                         
     /// Apply a function to evenly spaced locations along a line of pixels
     template <class FunctionT>
@@ -454,7 +454,7 @@ namespace cartography {
   
   /// Compute the bounding box in points (georeference space) that is
   /// defined by georef. Scale is MPP as georeference space is in meters.
-  BBox2 camera_bbox( GeoReference const& georef,
+  VW_API BBox2 camera_bbox( GeoReference const& georef,
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &scale );
 

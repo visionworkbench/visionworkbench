@@ -33,6 +33,7 @@
 
 #ifndef __VW_CORE_LOG_H__
 #define __VW_CORE_LOG_H__
+#include <vw/config.h>
 
 #include <vw/Core/Features.h>
 #include <vw/Core/Thread.h>
@@ -332,7 +333,7 @@ namespace vw {
     return o.str();
   }
 
-  class LogRuleSet {
+  class VW_API LogRuleSet {
     // The ruleset determines what log messages are sent to the VW system log file
     typedef std::pair<int, std::string> rule_type;
     typedef std::list<rule_type> rules_type;
@@ -367,7 +368,7 @@ namespace vw {
   //                         LogInstance
   // -------------------------------------------------------
   //
-  class LogInstance : private boost::noncopyable {
+  class VW_API LogInstance : private boost::noncopyable {
     PerThreadBufferedStream<char> m_log_stream;
     std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
@@ -411,7 +412,7 @@ namespace vw {
   /// Important Note: You should access the system log using the vw::vw_log
   /// free function, which is a singleton instance of the system log class.  You
   /// should not need to create a log object yourself.
-  class Log : private boost::noncopyable {
+  class VW_API Log : private boost::noncopyable {
 
     // Pointers to various log instances that are currently being
     // managed by the system log.
@@ -481,7 +482,7 @@ namespace vw {
   /// The vision workbench logging operator.  Use this to generate a
   /// message in the system log using the given log_level and
   /// log_namespace.
-  std::ostream& vw_out( int log_level = vw::InfoMessage,
+  VW_API std::ostream& vw_out( int log_level = vw::InfoMessage,
                         std::string const& log_namespace = "console" );
 
   /// A macro for vw_out that allows for lazy evaluation. It achieves
@@ -491,12 +492,12 @@ namespace vw {
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log
   /// by manipulating the Log::system_log().console_log().rule_set().
-  void set_debug_level( int log_level ) VW_DEPRECATED;
+  VW_API void set_debug_level( int log_level ) VW_DEPRECATED;
 
   /// Deprecated: Set the output stream for the system console log to
   /// an arbitrary C++ ostream.  You should use
   /// Log::system_log().set_console_stream() instead.
-  void set_output_stream( std::ostream& stream ) VW_DEPRECATED;
+  VW_API void set_output_stream( std::ostream& stream ) VW_DEPRECATED;
 
 } // namespace vw
 

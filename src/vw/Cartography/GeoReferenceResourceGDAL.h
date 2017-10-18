@@ -31,19 +31,19 @@
 namespace vw {
 namespace cartography {
 
-  bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
-  void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
+  VW_API bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
+  VW_API void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
 
   // Read an arbitrary name = value pair from the geoheader.
-  bool read_gdal_string( DiskImageResourceGDAL const& resource, std::string const& str_name,
+  VW_API bool read_gdal_string( DiskImageResourceGDAL const& resource, std::string const& str_name,
                          std::string & str_val );
 
   // Read all name = value pairs from the geoheader.
-  bool read_gdal_strings( DiskImageResourceGDAL const& resource, 
+  VW_API bool read_gdal_strings( DiskImageResourceGDAL const& resource,
                           std::map<std::string, std::string> & value_pairs);
 
   // Write an arbitrary name = value pair in the geoheader.
-  void write_gdal_string( DiskImageResourceGDAL& resource, std::string const& str_name,
+  VW_API void write_gdal_string( DiskImageResourceGDAL& resource, std::string const& str_name,
                           std::string const& str_val );
 
 }} // namespace vw::cartography

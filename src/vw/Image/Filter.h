@@ -52,7 +52,7 @@ namespace vw {
   };
 
   /// Compute the kernel size for given sigma 
-  int compute_kernel_size(double sigma);
+  VW_API int compute_kernel_size(double sigma);
   
   /// Computes a Gaussian kernel.
   template <class KernelT>

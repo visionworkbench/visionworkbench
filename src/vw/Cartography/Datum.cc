@@ -338,12 +338,12 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
     // On the equator plane
     llh[1] = 0;
     llh[2] = norm_2( xyz ) - m_semi_major_axis;
-  } else if ( evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon() ) {
+  } else if ( evolute < 0 && fabs(q) > std::numeric_limits<double>::epsilon() ) {
     // On or inside the evolute
     double atan_result = atan2( sqrt( e4 * p * q ), sqrt( -evolute ) + sqrt(-8 * r3) );
     u = -4 * r * sin( 2.0 / 3.0 * atan_result )
                * cos( M_PI / 6.0 + 2.0 / 3.0 * atan_result );
-  } else if ( fabs(q) < std::numeric_limits<double>::epsilon() and p <= e4 ) {
+  } else if ( fabs(q) < std::numeric_limits<double>::epsilon() && p <= e4 ) {
     // In the singular disc
     llh[2] = -m_semi_major_axis * sqrt(1 - e2) * sqrt(e2 - p) / sqrt(e2);
     llh[1] = 2 * atan2( sqrt(e4 - p), sqrt(e2*(e2 - p)) + sqrt(1-e2) * sqrt(p) );

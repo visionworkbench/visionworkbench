@@ -26,6 +26,7 @@
 #define __VW_IMAGE_TRANSFORM_H__
 
 // Vision Workbench
+#include <vw/config.h>
 #include <vw/Core/Features.h>
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
@@ -52,7 +53,7 @@ namespace vw {
   // not subclass Transform directly, but rather indirectly via
   // TransformBase or TransformHelper.  Similarly, you should not use
   // Transform pointers or references directly, but rather indirectly via TransformRef.
-  class Transform {
+  class VW_API Transform {
     double m_tolerance;
 
     class ForwardLMA : public math::LeastSquaresModelBase<ForwardLMA> {
@@ -68,7 +69,7 @@ namespace vw {
       }
     };
 
-    class ReverseLMA : public math::LeastSquaresModelBase<ReverseLMA> {
+    class VW_API ReverseLMA : public math::LeastSquaresModelBase<ReverseLMA> {
       const Transform* m_tx;
     public:
       ReverseLMA( const Transform* tx ) : m_tx(tx) {}
@@ -237,7 +238,7 @@ namespace vw {
   // Identity image transform functor
   //
   // Does nothing!
-  class IdentityTransform : public TransformHelper<IdentityTransform,ConvexFunction,ConvexFunction> {
+  class VW_API IdentityTransform : public TransformHelper<IdentityTransform,ConvexFunction,ConvexFunction> {
   public:
     IdentityTransform(){}
 
@@ -248,7 +249,7 @@ namespace vw {
   // Resample image transform functor
   //
   // Transform points by applying a scaling in x and y.
-  class ResampleTransform : public TransformHelper<ResampleTransform,ConvexFunction,ConvexFunction> {
+  class VW_API ResampleTransform : public TransformHelper<ResampleTransform,ConvexFunction,ConvexFunction> {
     double m_xfactor, m_yfactor;
   public:
     ResampleTransform( double x_scaling, double y_scaling ) :
@@ -275,7 +276,7 @@ namespace vw {
   // Translate image transform functor
   //
   // Reposition an image by applying a translation to x and y.
-  class TranslateTransform : public TransformHelper<TranslateTransform,ConvexFunction,ConvexFunction> {
+  class VW_API TranslateTransform : public TransformHelper<TranslateTransform,ConvexFunction,ConvexFunction> {
     double m_xtrans, m_ytrans;
   public:
     TranslateTransform(double x_translation, double y_translation) :
@@ -300,7 +301,7 @@ namespace vw {
 
 
   // Linear function (i.e. 2x2 matrix) image transform functor
-  class LinearTransform : public TransformHelper<LinearTransform,ConvexFunction,ConvexFunction> {
+  class VW_API LinearTransform : public TransformHelper<LinearTransform,ConvexFunction,ConvexFunction> {
   protected:
     Matrix2x2 m_matrix, m_matrix_inverse;
     LinearTransform() {}
@@ -318,7 +319,7 @@ namespace vw {
   };
 
   // Affine function (i.e. linear plus translation) image transform functor
-  class AffineTransform : public TransformHelper<AffineTransform,ConvexFunction,ConvexFunction> {
+  class VW_API AffineTransform : public TransformHelper<AffineTransform,ConvexFunction,ConvexFunction> {
   protected:
     double m_a, m_b, m_c, m_d;
     double m_ai, m_bi, m_ci, m_di;
@@ -353,11 +354,11 @@ namespace vw {
   std::ostream& operator<<(std::ostream& os, const AffineTransform& trans);
 
   // Helper functions to pull and push a matrix to an affine transform
-  Matrix3x3 affine2mat(AffineTransform const& transform);
-  AffineTransform mat2affine(Matrix3x3 const& T);
+  VW_API Matrix3x3 affine2mat(AffineTransform const& transform);
+  VW_API AffineTransform mat2affine(Matrix3x3 const& T);
 
   // Rotate image transform functor
-  class RotateTransform : public AffineTransform {
+  class VW_API RotateTransform : public AffineTransform {
   public:
     RotateTransform( double theta, Vector2 const& translate ) {
       double c=cos(theta), s=sin(theta);
@@ -377,7 +378,7 @@ namespace vw {
   //
   // Transform points for image warping by applying a linear operator
   // in homogeneous coordinates, i.e. a 3x3 homography.
-  class HomographyTransform : public TransformHelper<HomographyTransform,ConvexFunction,ConvexFunction> {
+  class VW_API HomographyTransform : public TransformHelper<HomographyTransform,ConvexFunction,ConvexFunction> {
   protected:
     Matrix3x3 m_H, m_H_inverse;
     HomographyTransform() {}
@@ -407,7 +408,7 @@ namespace vw {
   // image.  The pixel location in the input image that corresponds
   // to location (i,j) in the output image is at the position stored
   // in lookup_image(i,j).
-  class PointLookupTransform : public TransformBase<PointLookupTransform> {
+  class VW_API PointLookupTransform : public TransformBase<PointLookupTransform> {
     ImageViewRef<Vector2> m_lookup_image;
   public:
     template <class OffsetImageT>
@@ -429,7 +430,7 @@ namespace vw {
   // lookup-table image.  The pixel location in the input image that
   // corresponds to location (i,j) in the output image is at the
   // position stored in (i,j) + lookup_image(i,j).
-  class PointOffsetTransform : public TransformBase<PointOffsetTransform> {
+  class VW_API PointOffsetTransform : public TransformBase<PointOffsetTransform> {
     ImageViewRef<Vector2> m_offset_image;
   public:
     template <class OffsetImageT>
@@ -684,7 +685,7 @@ namespace vw {
 
 
   // TransformRef virtualized image transform functor adaptor
-  class TransformRef : public TransformBase<TransformRef> {
+  class VW_API TransformRef : public TransformBase<TransformRef> {
     boost::shared_ptr<Transform> m_transform;
   public:
     template <class TransformT> explicit TransformRef( TransformT const& transform ) : m_transform( new TransformT( transform ) ) {}

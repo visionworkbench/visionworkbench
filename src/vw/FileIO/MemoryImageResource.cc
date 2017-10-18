@@ -45,7 +45,7 @@
 #include <boost/algorithm/string/trim.hpp>
 
 namespace {
-  typedef boost::function<vw::SrcMemoryImageResource*(const boost::shared_array<const vw::uint8>, size_t)> open_func;
+  typedef boost::function<vw::SrcMemoryImageResource*(const boost::shared_array<const vw::uint8>&, const size_t&)> open_func;
   typedef boost::function<vw::DstMemoryImageResource*(const vw::ImageFormat&)> create_func;
 
   typedef std::map<std::string, open_func> open_map_t;

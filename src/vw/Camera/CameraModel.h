@@ -57,7 +57,7 @@ namespace camera {
   /// projected.  However stereo vision techniques can be used to
   /// determine the location of the original point by intersecting two
   /// rays from two distinct cameras.
-  class CameraModel {
+  class VW_API CameraModel {
 
   public:
 
@@ -116,7 +116,7 @@ namespace camera {
   // Here, P is in the world coordinate system. P is a point on the
   // unadjusted camera, and it becomes after the transform a point on
   // the adjusted camera.
-  class AdjustedCameraModel : public CameraModel {
+  class VW_API AdjustedCameraModel : public CameraModel {
 
     boost::shared_ptr<CameraModel> m_camera;
     Vector3 m_translation;
@@ -141,7 +141,7 @@ namespace camera {
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
                         Vector3 const& translation  = Vector3(),
-                        Quat    const& rotation     = Quat(math::identity_matrix<3>()),
+                        Quat    const& rotation     = Quat(math::identity_matrix(3)),
                         Vector2 const& pixel_offset = Vector2(),
                         double scale = 1.0);
 
@@ -209,8 +209,8 @@ namespace camera {
   std::ostream& operator<<(std::ostream&, AdjustedCameraModel const&);
 
   // If this is an adjusted model, get the unadjusted one.
-        CameraModel* unadjusted_model(      CameraModel * cam);
-  const CameraModel* unadjusted_model(const CameraModel * cam);
+  VW_API       CameraModel* unadjusted_model(      CameraModel * cam);
+  VW_API const CameraModel* unadjusted_model(const CameraModel * cam);
 
   /// Error during projection of a 3D point onto the image plane.
   VW_DEFINE_EXCEPTION(PointToPixelErr, vw::Exception);

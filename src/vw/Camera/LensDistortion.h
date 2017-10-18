@@ -38,7 +38,7 @@ namespace camera {
 
   /// Base class which all distortion models inherit from.
   /// - Trivia: Back in 2009 this was implemented using CRTP.  See commit e2749b36d3db37f3176acd8907434dbf4ab29096.
-  class LensDistortion {
+  class VW_API LensDistortion {
   protected:
     std::vector<std::string> m_distortion_param_names;
   public:
@@ -86,7 +86,7 @@ namespace camera {
   }; // End class LensDistortion
 
   /// Write any derived lens distortion class to the stream.
-  std::ostream& operator<<(std::ostream& os, const LensDistortion& ld);
+  VW_API std::ostream& operator<<(std::ostream& os, const LensDistortion& ld);
 
 
   // ------------------------------------------------------------------------------
@@ -94,7 +94,7 @@ namespace camera {
 
 
   /// A NULL lens distortion model.
-  struct NullLensDistortion : public LensDistortion {
+  struct VW_API NullLensDistortion : public LensDistortion {
     virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const& v) const { return v; }
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
 
@@ -131,7 +131,7 @@ namespace camera {
   /// Be careful when you find a camera calibration result with K1/K2, even though the names
   ///  are the same they could be used in a different way than the TSAI model!!!
 
-  class TsaiLensDistortion : public LensDistortion {
+  class VW_API TsaiLensDistortion : public LensDistortion {
     Vector4 m_distortion;
   public:
     TsaiLensDistortion();
@@ -161,7 +161,7 @@ namespace camera {
   ///   Photometric Engineering, pages 444-462, Vol. 32, No. 3, 1966
   /// Close-Range Camera Calibration - D.C. Brown,
   ///   Photogrammetric Engineering, pages 855-866, Vol. 37, No. 8, 1971
-  class BrownConradyDistortion : public LensDistortion {
+  class VW_API BrownConradyDistortion : public LensDistortion {
     Vector2 m_principal_point;      // xp, yp
     Vector3 m_radial_distortion;    // K1, K2, K3
     Vector2 m_centering_distortion; // P1, P2
@@ -200,7 +200,7 @@ namespace camera {
   ///
   /// References:
   /// http://www.vision.caltech.edu/bouguetj/calib_doc/htmls/parameters.html
-  class AdjustableTsaiLensDistortion : public LensDistortion {
+  class VW_API AdjustableTsaiLensDistortion : public LensDistortion {
     Vector<double> m_distortion;
   public:
     AdjustableTsaiLensDistortion() {}
@@ -246,7 +246,7 @@ namespace camera {
   /// k1, k2 are radial distortion parameters; p1, p2 are tangential distortion
   /// parameters. principal point is at (xp, yp). B1 and B2 are not used yet.
   ///
-  class PhotometrixLensDistortion : public LensDistortion {
+  class VW_API PhotometrixLensDistortion : public LensDistortion {
     Vector<float64,9> m_distortion;
   public:
     PhotometrixLensDistortion();

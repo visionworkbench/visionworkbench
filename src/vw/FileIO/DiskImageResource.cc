@@ -106,6 +106,9 @@ void vw::DiskImageResource::set_default_rescale(bool rescale) {
   default_rescale = rescale;
 }
 
+// this function have static member and can not be used inline in the header, thus move it to implementation file
+vw::DiskImageResource::DiskImageResource(std::string const & filename) : m_filename(filename), m_rescale(default_rescale) {}
+
 namespace vw {
   namespace internal {
 

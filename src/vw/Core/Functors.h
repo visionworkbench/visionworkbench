@@ -31,6 +31,7 @@
 ///
 #ifndef __VW_CORE_FUNCTORS_H__
 #define __VW_CORE_FUNCTORS_H__
+#include <vw/config.h>
 
 #include <vw/Core/TypeDeduction.h>
 
@@ -38,7 +39,7 @@ namespace vw {
 
   /// A mix-in specifying that a functor is an unary functor
   /// whose return type is the same as its argument type.
-  struct UnaryReturnSameType {
+  struct VW_API UnaryReturnSameType {
     /// \cond INTERNAL
     template <class Args> struct result;
     template <class ChannelT, class FuncT>
@@ -90,7 +91,7 @@ namespace vw {
 
   /// A mix-in specifying that a binary functor always returns
   /// the same type as its first argument.
-  struct BinaryReturn1stType {
+  struct VW_API BinaryReturn1stType {
     /// \cond INTERNAL
     template <class Args> struct result;
     template <class FuncT, class Arg1T, class Arg2T>
@@ -102,7 +103,7 @@ namespace vw {
 
   /// A mix-in specifying that a binary functor always returns
   /// the same type as its second argument.
-  struct BinaryReturn2ndType {
+  struct VW_API BinaryReturn2ndType {
     /// \cond INTERNAL
     template <class Args> struct result;
     template<class FuncT, class Arg1T, class Arg2T>
@@ -188,13 +189,13 @@ namespace vw {
   // ********************************************************************
 
   // Unary no-operation functor
-  struct NoOpFunctor : ReturnFixedType<void> {
+  struct VW_API NoOpFunctor : ReturnFixedType<void> {
     template <class ArgT>
     inline void operator()( ArgT const& /*arg*/ ) const {}
   };
 
   // Unary identity functor
-  struct IdentityFunctor : UnaryReturnSameType {
+  struct VW_API IdentityFunctor : UnaryReturnSameType {
     template <class ArgT>
     inline ArgT const& operator()( ArgT const& arg ) const {
       return arg;
@@ -207,14 +208,14 @@ namespace vw {
   // ********************************************************************
 
   // Unary negation of an argument
-  struct ArgNegationFunctor : UnaryReturnSameType {
+  struct VW_API ArgNegationFunctor : UnaryReturnSameType {
     template <class ArgT>
     typename result<ArgNegationFunctor(ArgT)>::type
     inline operator()( ArgT const& arg ) const { return -arg; }
   };
 
   // Binary sum of two arguments
-  struct ArgArgSumFunctor : BinaryReturnTemplateType<SumType> {
+  struct VW_API ArgArgSumFunctor : BinaryReturnTemplateType<SumType> {
     template <class Arg1T, class Arg2T>
     inline typename SumType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1+arg2; }
   };
@@ -292,7 +293,7 @@ namespace vw {
   };
 
   // Binary in-place difference of two arguments
-  struct ArgArgInPlaceDifferenceFunctor : BinaryReturn1stType {
+  struct VW_API ArgArgInPlaceDifferenceFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
     inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1-arg2); }
   };
@@ -310,7 +311,7 @@ namespace vw {
   };
 
   // Binary product of two arguments
-  struct ArgArgProductFunctor : BinaryReturnTemplateType<ProductType> {
+  struct VW_API ArgArgProductFunctor : BinaryReturnTemplateType<ProductType> {
     template <class Arg1T, class Arg2T>
     inline typename ProductType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1*arg2; }
   };
@@ -340,7 +341,7 @@ namespace vw {
   };
 
   // Binary in-place product of two arguments
-  struct ArgArgInPlaceProductFunctor : BinaryReturn1stType {
+  struct VW_API ArgArgInPlaceProductFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
     inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1*arg2); }
   };
@@ -358,7 +359,7 @@ namespace vw {
   };
 
   // Binary quotient of two arguments
-  struct ArgArgQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
+  struct VW_API ArgArgQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
     template <class Arg1T, class Arg2T>
     inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1/arg2; }
   };
@@ -388,7 +389,7 @@ namespace vw {
   };
 
   // Binary in-place quotient of two arguments
-  struct ArgArgInPlaceQuotientFunctor : BinaryReturn1stType {
+  struct VW_API ArgArgInPlaceQuotientFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
     inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1/arg2); }
   };
@@ -451,7 +452,7 @@ namespace vw {
   };
 
   // Safe binary in-place quotient of two arguments
-  struct ArgArgInPlaceSafeQuotientFunctor : BinaryReturn1stType {
+  struct VW_API ArgArgInPlaceSafeQuotientFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
     inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const {
       if ( arg2==Arg2T() ) return arg1=Arg1T();
@@ -475,7 +476,7 @@ namespace vw {
   };
 
   // Binary equality operator of two arguments
-  struct ArgArgEqualityFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgEqualityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1==arg2; }
   };
@@ -505,7 +506,7 @@ namespace vw {
   };
 
   // Binary inequality operator of two arguments
-  struct ArgArgInequalityFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgInequalityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1!=arg2; }
   };
@@ -535,7 +536,7 @@ namespace vw {
   };
 
   // Binary less-than operator of two arguments
-  struct ArgArgLessThanFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgLessThanFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<arg2; }
   };
@@ -565,7 +566,7 @@ namespace vw {
   };
 
   // Binary less-than-or-equal operator of two arguments
-  struct ArgArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<=arg2; }
   };
@@ -595,7 +596,7 @@ namespace vw {
   };
 
   // Binary greater-than operator of two arguments
-  struct ArgArgGreaterThanFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgGreaterThanFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>arg2; }
   };
@@ -625,7 +626,7 @@ namespace vw {
   };
 
   // Binary greater-than-or-equal operator of two arguments
-  struct ArgArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct VW_API ArgArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>=arg2; }
   };
