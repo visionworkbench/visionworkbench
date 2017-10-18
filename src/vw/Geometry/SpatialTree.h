@@ -32,7 +32,7 @@
 namespace vw {
 namespace geometry {
 
-  class GeomPrimitive {
+  class VW_API GeomPrimitive {
   public:
     virtual ~GeomPrimitive() {}
     // distance() must be implemented to call SpatialTree::closest()
@@ -44,7 +44,7 @@ namespace geometry {
     virtual const BBoxN &bounding_box() const = 0;
   };
 
-  class SpatialTree {
+  class VW_API SpatialTree {
   public:
     typedef BBoxN BBoxT;
     typedef Vector<double> VectorT;

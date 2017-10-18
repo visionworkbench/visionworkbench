@@ -77,7 +77,7 @@ enum Direction
 };
 
 
-class ChipPtRef
+class VW_API ChipPtRef
 {
     friend class ChipRefList;
     friend class Chipper;
@@ -94,7 +94,7 @@ public:
     }
 };
 
-class ChipRefList
+class VW_API ChipRefList
 {
     friend class Chipper;
 
@@ -143,7 +143,7 @@ private:
     }
 };
 
-class Chipper
+class VW_API Chipper
 {
 public:
 

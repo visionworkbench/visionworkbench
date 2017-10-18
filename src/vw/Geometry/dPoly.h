@@ -26,7 +26,7 @@
 namespace vw { namespace geometry {
 
 // A class holding a set of polygons in double precision
-class dPoly{
+class VW_API dPoly{
 
 public:
 

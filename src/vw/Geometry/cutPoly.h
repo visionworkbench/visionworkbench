@@ -34,7 +34,7 @@ namespace vw { namespace geometry {
     int    nextIndexInward; // Useful only when isOutward is true
   };
 
-  void cutPolyLine(// inputs -- the polygonal line
+  void VW_API cutPolyLine(// inputs -- the polygonal line
                    int numVerts,
                    const double * xv, const double * yv,
                    // inputs -- the cutting window
@@ -44,7 +44,7 @@ namespace vw { namespace geometry {
                    std::vector< double> & cutY,
                    std::vector< int>    & cutNumPolys);
   
-  void cutPoly(// inputs -- the polygons
+  void VW_API cutPoly(// inputs -- the polygons
                int numPolys, const int * numVerts,
                const double * xv, const double * yv,
                // inputs -- the cutting window
@@ -56,9 +56,9 @@ namespace vw { namespace geometry {
 
   inline bool lessThan (valIndex A, valIndex B){ return A.val < B.val; }
   
-  void processPointsOnCutline(std::vector<valIndex> & ptsOnCutline);
+  void VW_API processPointsOnCutline(std::vector<valIndex> & ptsOnCutline);
 
-  void cutToHalfSpace(// inputs 
+  void VW_API cutToHalfSpace(// inputs 
                       double nx, double ny, double dotH,
                       int numV, 
                       const double * xv, const double * yv,

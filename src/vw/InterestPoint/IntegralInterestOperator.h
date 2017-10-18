@@ -64,7 +64,7 @@ namespace ip {
 
   // OBALoG Interest Operator
   // _____________________________________________________________
-  class OBALoGInterestOperator {
+  class VW_API OBALoGInterestOperator {
 
     // Predefined functions
     static const double SCALE_LOG_SIGMA [10];     // For reference

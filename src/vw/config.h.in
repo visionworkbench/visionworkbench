@@ -1,0 +1,52 @@
+#pragma once
+
+#ifdef WIN32
+    #ifdef VW_SHARED_LIB
+        #ifdef VW_EXPORT
+            #define VW_API __declspec(dllexport)
+        #else
+            #define VW_API __declspec(dllimport)
+        #endif
+    #else
+        #define VW_API
+    #endif
+#else
+    #define VW_API
+#endif
+
+#cmakedefine VW_HAVE_PKG_CORE @VW_HAVE_PKG_CORE@
+#cmakedefine VW_HAVE_PKG_MATH @VW_HAVE_PKG_MATH@
+#cmakedefine VW_HAVE_PKG_IMAGE @VW_HAVE_PKG_IMAGE@
+#cmakedefine VW_HAVE_PKG_FILEIO @VW_HAVE_PKG_FILEIO@
+#cmakedefine VW_HAVE_PKG_CAMERA @VW_HAVE_PKG_CAMERA@
+#cmakedefine VW_HAVE_PKG_MOSAIC @VW_HAVE_PKG_MOSAIC@
+#cmakedefine VW_HAVE_PKG_CARTOGRAPHY @VW_HAVE_PKG_CARTOGRAPHY@
+#cmakedefine VW_HAVE_PKG_HDR @VW_HAVE_PKG_HDR@
+#cmakedefine VW_HAVE_PKG_GEOMETRY @VW_HAVE_PKG_GEOMETRY@
+#cmakedefine VW_HAVE_PKG_GPU @VW_HAVE_PKG_GPU@
+#cmakedefine VW_HAVE_PKG_INTERESTPOINT @VW_HAVE_PKG_INTERESTPOINT@
+#cmakedefine VW_HAVE_PKG_STEREO @VW_HAVE_PKG_STEREO@
+#cmakedefine VW_HAVE_PKG_BUNDLEADJUSTMENT @VW_HAVE_PKG_BUNDLEADJUSTMENT@
+#cmakedefine VW_HAVE_PKG_HDR @VW_HAVE_PKG_HDR@
+
+// VW Options
+#cmakedefine VW_ENABLE_EXCEPTIONS @VW_ENABLE_EXCEPTIONS@
+#cmakedefine VW_ENABLE_SSE @VW_ENABLE_SSE@
+
+// 3rd parties
+#cmakedefine VW_HAVE_PKG_BOOST_IOSTREAMS @VW_HAVE_PKG_BOOST_IOSTREAMS@
+#cmakedefine VW_HAVE_PKG_OPENCV @VW_HAVE_PKG_OPENCV@
+#cmakedefine VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS @VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS@
+#cmakedefine VW_HAVE_PKG_FLANN @VW_HAVE_PKG_FLANN@
+#cmakedefine VW_HAVE_PKG_JPEG @VW_HAVE_PKG_JPEG@
+#cmakedefine VW_HAVE_PKG_PNG @VW_HAVE_PKG_PNG@
+#cmakedefine VW_HAVE_PKG_GDAL @VW_HAVE_PKG_GDAL@
+#cmakedefine VW_HAVE_PKG_TIFF @VW_HAVE_PKG_TIFF@
+#cmakedefine VW_HAVE_PKG_PROJ4 @VW_HAVE_PKG_PROJ4@
+
+#define VW_NUM_THREADS 8
+#define VW_CACHE_SIZE 256
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif

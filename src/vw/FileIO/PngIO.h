@@ -36,14 +36,14 @@ namespace detail {
 // of the relevant image resources. They are not intended for use by users
 // (thus the detail namespace).
 
-class PngIO {
+class VW_API PngIO {
   protected:
     png_structp m_ctx;
     png_infop m_info;
     PngIO();
 };
 
-class PngIODecompress : public PngIO, public ScanlineReadBackend {
+class VW_API PngIODecompress : public PngIO, public ScanlineReadBackend {
   private:
     bool m_read;
   public:
@@ -55,7 +55,7 @@ class PngIODecompress : public PngIO, public ScanlineReadBackend {
     void read(uint8* data, size_t bufsize);
 };
 
-class PngIOCompress : public PngIO, public ScanlineWriteBackend {
+class VW_API PngIOCompress : public PngIO, public ScanlineWriteBackend {
   private:
     bool m_written;
   public:

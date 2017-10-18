@@ -28,7 +28,7 @@
 ///
 #ifndef __VW_IMAGE_INTERPOLATION_H__
 #define __VW_IMAGE_INTERPOLATION_H__
-
+#include <vw/config.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
@@ -60,7 +60,7 @@ namespace vw {
   /// of InterpolationBase _must_ override this value and set it to
   /// the number of pixels that the interpolation algorithm will need
   /// to search outside the boundaries of the image on each side.
-  struct InterpolationBase {
+  struct VW_API InterpolationBase {
     static const int32 pixel_buffer = 0;
     template <class ArgsT> struct result {};
     template <class FuncT, class ViewT, class IT, class JT, class PT>
@@ -110,7 +110,7 @@ namespace vw {
   };
 
   // Bilinear interpolation operator
-  struct BilinearInterpolation {
+  struct VW_API BilinearInterpolation {
     static const int32 pixel_buffer = 1;
     template <class ViewT>
     struct Interpolator {
@@ -186,7 +186,7 @@ namespace vw {
   };
 
   // Bicubic interpolation operator
-  struct BicubicInterpolation {
+  struct VW_API BicubicInterpolation {
     static const int32 pixel_buffer = 2;
     template <class ViewT>
     struct Interpolator {
@@ -207,7 +207,7 @@ namespace vw {
   }
 
   // NearestPixel interpolation operator.
-  struct NearestPixelInterpolation {
+  struct VW_API NearestPixelInterpolation {
     static const int32 pixel_buffer = 1;
     template <class ViewT>
     struct Interpolator {

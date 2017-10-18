@@ -23,6 +23,7 @@
 ///
 #ifndef __VW_CORE_THREADPOOL_H__
 #define __VW_CORE_THREADPOOL_H__
+#include <vw/config.h>
 
 #include <vector>
 #include <list>
@@ -43,7 +44,7 @@ namespace vw {
   /// Keep track of whether task is finished. WorkQueue is responsible
   /// for calling "signal_finished" after task is finished
   /// - The thread pool classes only operate on things derived from the Task class.
-  class Task {
+  class VW_API Task {
     Mutex         m_task_mutex;
     Condition     m_finished_event;
     volatile bool m_finished;
@@ -70,7 +71,7 @@ namespace vw {
   // ----------------------  --------------  ---------------------------
 
   /// Work Queue Base Class - This is really a thread pool!
-  class WorkQueue {
+  class VW_API WorkQueue {
   private:
     /// A helper class created by WorkQueue that executes tasks. When a worker 
     /// thread finishes its task it notifies the threadpool, which farms out
@@ -149,7 +150,7 @@ namespace vw {
 
 
   /// A simple, first-in, first-out work queue.
-  class FifoWorkQueue : public WorkQueue {
+  class VW_API FifoWorkQueue : public WorkQueue {
     std::list<boost::shared_ptr<Task> > m_queued_tasks;
     Mutex m_mutex;
   public:
@@ -169,7 +170,7 @@ namespace vw {
   /// and they are processed in order starting with the task at index
   /// 0.  The idle() method returns true unless the task with the next
   /// expected index is present in the work queue.
-  class OrderedWorkQueue : public WorkQueue {
+  class VW_API OrderedWorkQueue : public WorkQueue {
     std::map<int, boost::shared_ptr<Task> > m_queued_tasks;
     int   m_next_index;
     Mutex m_mutex;

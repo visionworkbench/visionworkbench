@@ -18,6 +18,7 @@
 
 #ifndef __VW_FILEIO_JPEGIO_H__
 #define __VW_FILEIO_JPEGIO_H__
+#include <vw/config.h>
 
 #include <vw/FileIO/ScanlineIO.h>
 
@@ -39,7 +40,7 @@ namespace detail {
 // Note: This code does not support suspending data sources! As the libjpeg
 // docs say, if you don't know what that means, you don't need it.
 
-class JpegIO {
+class VW_API JpegIO {
   private:
     jpeg_error_mgr m_jerr;
   protected:
@@ -58,7 +59,7 @@ class JpegIODecompress : public JpegIO, public ScanlineReadBackend {
     void read(uint8* data, size_t bufsize);
 };
 
-class JpegIOCompress : public JpegIO, public ScanlineWriteBackend {
+class VW_API JpegIOCompress : public JpegIO, public ScanlineWriteBackend {
   protected:
     jpeg_compress_struct m_ctx;
   public:
@@ -71,8 +72,8 @@ class JpegIOCompress : public JpegIO, public ScanlineWriteBackend {
     void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes);
 };
 
-void jpeg_ptr_src(j_decompress_ptr cinfo, const uint8* buffer, size_t size);
-void jpeg_vector_dest(j_compress_ptr cinfo, std::vector<uint8>* v);
+void VW_API jpeg_ptr_src(j_decompress_ptr cinfo, const uint8* buffer, size_t size);
+void VW_API jpeg_vector_dest(j_compress_ptr cinfo, std::vector<uint8>* v);
 
 }}} // namespace vw::fileio::detail
 

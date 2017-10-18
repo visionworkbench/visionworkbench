@@ -45,11 +45,11 @@ namespace hdr {
   /// Generate a set of brightness values based on a known ratio of
   /// exposures between images.  Note that this brightness value will
   /// only be correct in a relative sense.
-  std::vector<double> brightness_values_from_exposure_ratio(double exposure_ratio, int size);
+  VW_API std::vector<double> brightness_values_from_exposure_ratio(double exposure_ratio, int size);
 
   /// Generate a list of brightness values from EXIF information
   /// stored in a list of files.
-  std::vector<double> brightness_values_from_exif(std::vector<std::string> const& filenames);
+  VW_API std::vector<double> brightness_values_from_exif(std::vector<std::string> const& filenames);
 
 
   // -----------------------------------------------------------------------
@@ -200,7 +200,7 @@ namespace hdr {
   // Camera Curve Estimation
   // ---------------------------------------------------------------------
 
-  class CameraCurveFn {
+  class VW_API CameraCurveFn {
 
     // The lookup table stores the log luminance values for each pixel
     // value.
@@ -256,7 +256,7 @@ namespace hdr {
 
   /// Returns a lookup table, indexed by pixel values, that contains
   /// their corresponding log luminance values.
-  Vector<double> estimate_camera_curve(vw::Matrix<double> const& pixels,
+  VW_API Vector<double> estimate_camera_curve(vw::Matrix<double> const& pixels,
                                       std::vector<double> const& brightness_values);
 
   /// Computes the camera curve for LDR images of the same scene.
@@ -292,10 +292,10 @@ namespace hdr {
   }
 
   /// Write the camera curve values in a tabulated format on disk.
-  void write_curves(std::string const& curves_file, CameraCurveFn const &curves);
+  VW_API void write_curves(std::string const& curves_file, CameraCurveFn const &curves);
 
   /// Read the camera curve values from a tabulated format on disk.
-  CameraCurveFn read_curves(std::string const& curves_file);
+  VW_API CameraCurveFn read_curves(std::string const& curves_file);
 
   /// A pixel casting functor, used by \ref pixel_cast().
   template <class PixelT>

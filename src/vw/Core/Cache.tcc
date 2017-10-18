@@ -1,3 +1,4 @@
+#include "Cache.h"
 // __BEGIN_LICENSE__
 //  Copyright (c) 2006-2013, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
@@ -152,11 +153,12 @@ typename Cache::Handle<GeneratorT>::value_type const& Cache::Handle<GeneratorT>:
 }
 
 // TODO: Can we delete this?
-template <class GeneratorT>
-Cache::Handle<GeneratorT>::operator boost::shared_ptr<value_type>() const {
-  VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
-  m_is_locked = true;
-  return m_line_ptr->value();
+template<class GeneratorT>
+Cache::Handle<GeneratorT>::operator boost::shared_ptr<typename Cache::Handle<GeneratorT>::value_type>() const
+{
+    VW_ASSERT(m_line_ptr, NullPtrErr() << "Invalid cache handle!");
+    m_is_locked = true;
+    return m_line_ptr->value();
 }
 
 template <class GeneratorT>

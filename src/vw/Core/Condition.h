@@ -17,6 +17,7 @@
 
 #ifndef __VW_CORE_CONDITION_H__
 #define __VW_CORE_CONDITION_H__
+#include <vw/config.h>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -29,7 +30,7 @@ namespace vw {
   // --------------------------------------------------------------
 
   /// Wrapper around the boost::condition class
-  class Condition : private boost::condition,
+  class VW_API Condition : private boost::condition,
                     private boost::noncopyable
   {
 

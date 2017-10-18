@@ -19,6 +19,8 @@
 #ifndef __VW_CORE_STOPWATCH_H__
 #define __VW_CORE_STOPWATCH_H__
 
+#include <vw/config.h>
+
 #include <vw/Core/Thread.h>
 #include <vw/Core/FundamentalTypes.h>
 
@@ -33,7 +35,7 @@ namespace vw {
 
   /// Stopwatch measures time elapsed between calls to start() and stop()
 
-  class Stopwatch {
+  class VW_API Stopwatch {
     struct data {
       uint64 m_total_elapsed; // in microseconds
       uint64 m_last_start;    // from Stopwatch::microtime
@@ -89,7 +91,7 @@ namespace vw {
   }; // class Stopwatch
 
   // StopwatchSet is a named set of Stopwatches
-  class StopwatchSet {
+  class VW_API StopwatchSet {
     mutable Mutex m_mutex;
     uint64 m_construction_time;
 
@@ -129,7 +131,7 @@ namespace vw {
   //
 
   // Find or create names stopwatch from the global StopwatchSet
-  Stopwatch stopwatch_get(const std::string &name);
+  Stopwatch VW_API stopwatch_get(const std::string &name);
 
   // Start the named stopwatch from the global StopwatchSet
   inline void stopwatch_start(const std::string &name) { stopwatch_get(name).start(); }
@@ -142,7 +144,7 @@ namespace vw {
   //  on destruction
   //
 
-  class ScopedWatch {
+  class VW_API ScopedWatch {
   private:
     Stopwatch m_stopwatch;
   public:

@@ -32,7 +32,7 @@
 
 namespace vw {
 
-  class DiskImageResourcePDS : public DiskImageResource {
+  class VW_API DiskImageResourcePDS : public DiskImageResource {
   public:
 
     DiskImageResourcePDS( std::string const& filename )

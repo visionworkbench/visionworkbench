@@ -19,6 +19,8 @@
 #ifndef __VW_CORE_TEMPORARYFILE_H__
 #define __VW_CORE_TEMPORARYFILE_H__
 
+#include <vw/config.h>
+
 #include <iostream>
 #include <boost/smart_ptr/shared_ptr.hpp>
 
@@ -26,7 +28,7 @@
 
 namespace vw {
 
-class TemporaryFile : public std::iostream {
+class VW_API TemporaryFile : public std::iostream {
   private:
 
     boost::shared_ptr<std::filebuf> m_buf;
@@ -53,7 +55,7 @@ class TemporaryFile : public std::iostream {
     const std::string& filename() const;
 };
 
-class TemporaryDir {
+class VW_API TemporaryDir {
   private:
     std::string m_filename;
     bool m_delete;

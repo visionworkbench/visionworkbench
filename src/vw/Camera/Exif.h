@@ -173,7 +173,7 @@ namespace camera {
   // Module Specific Exceptions
   VW_DEFINE_EXCEPTION(ExifErr, vw::Exception);
 
-  class ExifView {
+  class VW_API ExifView {
     ExifData m_data;
 
   public:

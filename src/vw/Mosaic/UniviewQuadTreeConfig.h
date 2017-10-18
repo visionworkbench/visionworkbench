@@ -30,7 +30,7 @@
 namespace vw {
 namespace mosaic {
 
-  class UniviewQuadTreeConfig : public QuadTreeConfig {
+  class VW_API UniviewQuadTreeConfig : public QuadTreeConfig {
   public:
     UniviewQuadTreeConfig( bool terrain = false ) : m_terrain( terrain ) {}
     virtual ~UniviewQuadTreeConfig() {}

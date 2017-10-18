@@ -46,6 +46,22 @@ namespace fs = boost::filesystem;
 #    include <unistd.h>
 #  endif
 
+#ifdef _MSC_VER
+#include <process.h>
+#include <io.h>
+#include <direct.h>
+#if defined(WIN32) || defined(WIN64)
+// Copied from linux libc sys/stat.h:
+#ifndef S_ISREG
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif // !S_ISREG
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif //S_ISDIR
+#endif //WIN32
+#endif // _MSC_VER
+
+
 #  ifdef WIN32
 #    define stat _stat
      typedef struct _stat struct_stat;
@@ -92,7 +108,7 @@ _gettemp(char *path, int *doopen, int domkdir, int slen)
   char *start, *trv, *suffp;
   struct stat sbuf;
   int rval;
-  pid_t pid;
+  int pid;
 
   if (doopen && domkdir) {
     errno = EINVAL;
@@ -116,7 +132,7 @@ _gettemp(char *path, int *doopen, int domkdir, int slen)
   while (trv >= path && *trv == 'X') {
     char c;
 
-    pid = (random() & 0xffff) % (26+26);
+    pid = (rand() & 0xffff) % (26+26);
     if (pid < 26)
       c = pid + 'A';
     else
@@ -151,16 +167,16 @@ _gettemp(char *path, int *doopen, int domkdir, int slen)
   for (;;) {
     if (doopen) {
       if ((*doopen =
-          open(path, O_CREAT|O_EXCL|O_RDWR, 0600)) >= 0)
+          _open(path, O_CREAT|O_EXCL|O_RDWR, 0600)) >= 0)
         return(1);
       if (errno != EEXIST)
         return(0);
     } else if (domkdir) {
-      if (mkdir(path, 0700) == 0)
+      if (_mkdir(path) == 0)
         return(1);
       if (errno != EEXIST)
         return(0);
-    } else if (lstat(path, &sbuf))
+    } else if (_stat(path, &sbuf))
       return(errno == ENOENT ? 1 : 0);
 
     /* tricky little algorithm for backward compatibility */
@@ -274,8 +290,9 @@ void TemporaryDir::init(std::string dir = "", bool delete_on_close = true, const
     std::string templ_s = dir + "/" + prefix + "XXXXXX";
     boost::scoped_array<char> templ(new char[templ_s.size()+1]);
     ::strcpy(templ.get(), templ_s.c_str());
-    char *ret = ::mkdtemp(templ.get());
+    char *ret = _mktemp(templ.get());
     VW_ASSERT(ret, IOErr() << "Failed to create temporary dir from template " << templ_s << ": " << ::strerror(errno));
+    fs::create_directories(fs::path(templ.get()));
     m_filename = std::string(templ.get());
   }
 

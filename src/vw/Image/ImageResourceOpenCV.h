@@ -25,7 +25,7 @@
 #ifndef __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 # error Do not include this file directly. Instead, include <vw/Image/ImageResourceImpl.h>
 #endif
-
+#include <vw/config.h>
 #include <vw/Image/ImageResource.h>
 
 namespace cv {class Mat;}
@@ -33,7 +33,7 @@ namespace cv {class Mat;}
 namespace vw {
 
 /// ImageResource to read/write OpenCV in-memory images.
-class ImageResourceOpenCV : public ImageResource {
+class VW_API ImageResourceOpenCV : public ImageResource {
   private:
     ImageFormat                m_format;
     boost::shared_ptr<cv::Mat> m_matrix;

@@ -111,7 +111,7 @@ namespace ba {
 
   // Interest Point Feature
   // - Intended for fast insertion of IP matches
-  struct IPFeature : public FeatureBase<IPFeature> {
+  struct VW_API IPFeature : public FeatureBase<IPFeature> {
     ip::InterestPoint m_ip;
 
     // Standard Constructor
@@ -139,11 +139,11 @@ namespace ba {
     ControlMeasure control_measure() const;
   };
 
-  std::ostream& operator<<( std::ostream& os, IPFeature const& feat );
+  VW_API std::ostream& operator<<( std::ostream& os, IPFeature const& feat );
 
   // Jacobian Feature
   // - Intended for internal use in BA
-  struct JFeature : public FeatureBase<JFeature> {
+  struct VW_API JFeature : public FeatureBase<JFeature> {
     Matrix<double> m_w, m_y; // W = product of Jacobians, Y = product of W
 
     size_t m_point_id;
@@ -165,7 +165,7 @@ namespace ba {
     ControlMeasure control_measure() const;
   };
 
-  std::ostream& operator<<( std::ostream& os, JFeature const& feat );
+  VW_API std::ostream& operator<<( std::ostream& os, JFeature const& feat );
 
   // Camera Relation Class
   template <class FeatureT>

@@ -44,7 +44,7 @@ namespace cartography {
 
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.
-  class ProjContext {
+  class VW_API ProjContext {
     boost::shared_ptr<void> m_proj_ctx_ptr;
     boost::shared_ptr<void> m_proj_ptr;
     std::string             m_proj4_str;
@@ -79,7 +79,7 @@ namespace cartography {
   /// or possibly meters in a UTM grid cell, etc.).  It must also
   /// encode how to translate between this coordinate system and the
   /// "Geographic" coordinate system (lat,lon)
-  class GeoReference{
+  class VW_API GeoReference{
   
   public:
     /// The affine transform converts from pixel space to geographic
@@ -350,17 +350,17 @@ namespace cartography {
   };
 
   /// Format a GeoReference to a text stream
-  std::ostream& operator<<(std::ostream& os, const GeoReference& georef);
+  VW_API std::ostream& operator<<(std::ostream& os, const GeoReference& georef);
 
   //
   // Georeference I/O operations
   //
 
   /// Read georeferencing information from an image resource.
-  bool read_georeference( GeoReference& georef, ImageResource const& resource );
+  VW_API bool read_georeference( GeoReference& georef, ImageResource const& resource );
 
   /// A convenience function to read georeferencing information from an image file.
-  bool read_georeference( GeoReference& georef, const std::string &filename );
+  VW_API bool read_georeference( GeoReference& georef, const std::string &filename );
 
   /// A convenience function to read an image and its georeferencing information.
   template <class PixelT>
@@ -375,7 +375,7 @@ namespace cartography {
 
   /// Write georeferencing information to an image resource.  You should
   /// generally call this prior to writing image data to the resource.
-  void write_georeference( ImageResource& resource, GeoReference const& georef );
+  VW_API void write_georeference( ImageResource& resource, GeoReference const& georef );
 
   /// A convenience function to write image data and its georeferencing information to a file.
   template <class ImageT>
@@ -391,15 +391,15 @@ namespace cartography {
   }
 
   /// A function to read a string with given name from geotiff header
-  bool read_header_string( ImageResource const& resource, std::string const& str_name,
+  VW_API bool read_header_string( ImageResource const& resource, std::string const& str_name,
                            std::string & str_val );
 
   /// A function to read all strings with given name from geotiff header
-  bool read_header_strings( ImageResource const& resource,
+  VW_API bool read_header_strings( ImageResource const& resource,
                             std::map<std::string, std::string> & value_pairs);
 
   /// A function to write a a string with given name and value to geotiff header
-  void write_header_string( ImageResource& resource, std::string const& str_name,
+  VW_API void write_header_string( ImageResource& resource, std::string const& str_name,
                             std::string const& str_val );
 
   // -----------------------------------------------------------
@@ -421,7 +421,7 @@ namespace cartography {
   // diagonal. It is important to note that the maximum is exclusive.
   // This is used as a way of sampling the lon-lat values of all pixel values
   // in this box.
-  void gen_bd_and_diag_pts(BBox2i const& pixel_bbox, std::vector<Vector2> & points);
+  VW_API void gen_bd_and_diag_pts(BBox2i const& pixel_bbox, std::vector<Vector2> & points);
 
 }} // namespace vw::cartography
 

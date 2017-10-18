@@ -28,12 +28,16 @@
 #include <vw/Core/Log.h>
 #include <vw/Camera/CameraModel.h>
 
+#ifndef M_PI
+# define M_PI		3.14159265358979323846
+#endif
+
 namespace vw {
 namespace camera {
 
   class CAHVModel;
 
-  class CAHVOREModel : public CameraModel {
+  class VW_API CAHVOREModel : public CameraModel {
   public:
     typedef CAHVModel linearized_type;
 
@@ -90,7 +94,7 @@ namespace camera {
   };
 
   // Function to "map" the CAHVORE parameters into CAHV:
-  CAHVModel linearize_camera( CAHVOREModel const& camera_model,
+  CAHVModel VW_API linearize_camera( CAHVOREModel const& camera_model,
                               Vector2i const& cahvore_image_size,
                               Vector2i const& cahv_image_size );
 

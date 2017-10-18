@@ -22,7 +22,7 @@
 ///
 #ifndef __MATH_GEOMETRY_H__
 #define __MATH_GEOMETRY_H__
-
+#include <vw/config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
@@ -38,16 +38,16 @@ namespace vw {
 namespace math {
 
   /// Normalizes a degree longitude value into either the -180 to 180 range (default) or the 0-360 range.
-  double normalize_longitude(double lon, bool center_on_zero=true);
+  double VW_API normalize_longitude(double lon, bool center_on_zero=true);
 
   /// Computes the absolute distance between to measurements in degrees, accounting for wraparound.
-  double degree_diff(double d1, double d2);
+  double VW_API degree_diff(double d1, double d2);
 
 
   /// This fitting functor attempts to find a homography (8 degrees of
   /// freedom) that transforms point p1 to match points p2.  This fit
   /// is optimal in a least squares sense.
-  struct HomographyFittingFunctor {
+  struct VW_API HomographyFittingFunctor {
     typedef vw::Matrix<double> result_type;
 
     /// A homography requires at least 4 point matches to determine 8 unknowns

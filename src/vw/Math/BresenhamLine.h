@@ -19,6 +19,8 @@
 #ifndef __VW_MATH_BRESENHAMLINE_H__
 #define __VW_MATH_BRESENHAMLINE_H__
 
+#include <vw/config.h>
+
 #include <cmath>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Vector.h>
@@ -31,7 +33,7 @@ namespace math {
   /// - See http://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
   /// - This class is an iterator down the pixels of the line.
   /// - Unit tests for this class are in the underused TestFunctions.cxx file.
-  class BresenhamLine : public boost::iterator_facade<BresenhamLine,
+  class VW_API BresenhamLine : public boost::iterator_facade<BresenhamLine,
                                                       Vector2i,
                                                       boost::forward_traversal_tag,
                                                       Vector2i,

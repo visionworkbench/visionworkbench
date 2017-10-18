@@ -17,6 +17,7 @@
 
 #ifndef VW_GEOMETRY_GEOMUTILS_H
 #define VW_GEOMETRY_GEOMUTILS_H
+#include <vw/config.h>
 
 #include <sstream>
 #include <vector>
@@ -27,7 +28,7 @@
 
 namespace vw { namespace geometry {
 
-struct dPoint{
+struct VW_API dPoint{
   double x, y;
   dPoint(): x(0), y(0){}
   dPoint(double x_in, double y_in): x(x_in), y(y_in){}
@@ -42,7 +43,7 @@ inline bool greaterThan (dPoint P, dPoint Q){
   return ( P.x > Q.x ) || (P.x == Q.x && P.y > Q.y);
 }
 
-struct anno {
+struct VW_API anno {
 
   double x;
   double y;
@@ -54,16 +55,16 @@ struct anno {
 
 };
 
-std::ostream& operator<<(std::ostream& os, const anno& A);
+VW_API std::ostream& operator<<(std::ostream& os, const anno& A);
 
-  void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
+VW_API void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
                                  int numVerts, double * xv, double * yv);
-  void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
+VW_API void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
                        bool snap2ndClosest,
                        double & x0, double & y0,
                        double & x1, double & y1);
 
-  void minDistFromPtToSeg(//inputs
+VW_API void minDistFromPtToSeg(//inputs
                           double xin, double yin,
                           double x0, double y0,
                           double x1, double y1,
@@ -72,26 +73,26 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
                           double & minDist
                           );
 
-  void searchForLayer(std::string   lineStr, // input
+VW_API void searchForLayer(std::string   lineStr, // input
                       std::string & layer    // output
                       );
 
-  double signedPolyArea(int numV, const double* xv, const double* yv);
+VW_API double signedPolyArea(int numV, const double* xv, const double* yv);
 
-  void searchForColor(std::string lineStr, // input, not a reference on purpose
+VW_API void searchForColor(std::string lineStr, // input, not a reference on purpose
                       std::string & color  // output
                       );
 
-  bool searchForAnnotation(std::string lineStr, anno & annotation);
+VW_API bool searchForAnnotation(std::string lineStr, anno & annotation);
 
-  void expandBoxToGivenRatio(// inputs
+VW_API void expandBoxToGivenRatio(// inputs
                              double aspectRatio,
                              // inputs/outputs
                              double & xll,  double & yll,
                              double & widx, double & widy);
 
 
-  struct dRect{
+  struct VW_API dRect{
     dRect(double xl_in = 0.0, double yl_in = 0.0,
           double xh_in = 0.0, double yh_in = 0.0):
       xl(xl_in), yl(yl_in), xh(xh_in), yh(yh_in) {}
@@ -99,7 +100,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
   };
 
 
-  struct dRectWithId: public dRect{
+  struct VW_API dRectWithId: public dRect{
     int id;
     dRectWithId(double xl_in = 0.0, double yl_in = 0.0,
                 double xh_in = 0.0, double yh_in = 0.0,
@@ -107,7 +108,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
       dRect(xl_in, yl_in, xh_in, yh_in), id(id_in){}
   };
 
-  struct seg{
+  struct VW_API seg{
     double begx, begy, endx, endy;
     seg(double begx_in = 0.0, double begy_in = 0.0,
         double endx_in = 0.0, double endy_in = 0.0):
@@ -115,7 +116,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
   };
 
 
-  struct segDist: public seg{
+  struct VW_API segDist: public seg{
     double dist;
     segDist(double begx_in, double begy_in, double endx_in,
             double endy_in, double dist_in):
@@ -142,19 +143,19 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
     return output;  // for multiple << operators
   }
 
-  bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
+  bool VW_API boxesIntersect(double xl1, double yl1, double xh1, double yh1,
                       double xl2, double yl2, double xh2, double yh2
                       );
 
 
-  bool mergePolys(int an,
+  bool VW_API mergePolys(int an,
                   const double * ax_in, const double * ay_in,
                   int bn,
                   const double * bx_in, const double * by_in,
                   std::vector<double> & mergedX,
                   std::vector<double> & mergedY
                   );
-  bool isPointInPolyOrOnEdges(double x, double y,
+  bool VW_API isPointInPolyOrOnEdges(double x, double y,
                               int n, const double* xv, const double*  yv);
 
 }}

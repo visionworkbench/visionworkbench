@@ -31,7 +31,7 @@
 
 namespace vw {
 
-  class DiskImageResourcePNG : public DiskImageResource {
+  class VW_API DiskImageResourcePNG : public DiskImageResource {
   public:
 
     // Forward declare the options structure, which gets defined later on.
@@ -90,7 +90,7 @@ namespace vw {
 
     // Options that can be passed in while writing. The default is
     // generally 'good enough'.
-    struct Options {
+    struct VW_API Options {
       int compression_level; // From 0 to 9
       bool using_interlace; // Interlace output.
       bool using_palette; // Output as a palette.

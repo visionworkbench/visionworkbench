@@ -23,6 +23,8 @@
 #ifndef __VW_CORE_FUNDAMENTALTYPES_H__
 #define __VW_CORE_FUNDAMENTALTYPES_H__
 
+#include <vw/config.h>
+
 #include <vw/Core/Features.h>
 
 #include <complex>
@@ -58,6 +60,7 @@ namespace boost {
 }
 #endif
 
+typedef int64_t ssize_t;
 // ssize_t is not in the c++ spec (just POSIX) but it's important. If you've
 // arrived here due to a compile error, something else has previously defined
 // ssize_t in a way that is incorrect.

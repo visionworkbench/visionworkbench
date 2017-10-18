@@ -36,7 +36,7 @@ namespace ba {
   /// image names. This function uses Boost::FS to then find match files
   /// that would have been created by 'ipmatch' by searching the entire
   /// permutation of the image_files vector.
-  bool build_control_network(bool triangulate_points,
+  VW_API bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
                              std::vector<boost::shared_ptr<camera::CameraModel> >
 			     const& camera_models,
@@ -47,7 +47,7 @@ namespace ba {
   
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
-  double triangulate_control_point(ControlPoint& cp,
+  VW_API double triangulate_control_point(ControlPoint& cp,
 				   std::vector<boost::shared_ptr<camera::CameraModel> >
 				   const& camera_models,
 				   double const& min_angle_radians );
@@ -58,7 +58,7 @@ namespace ba {
   /// indexing.  Each GCP is a line in the file, containing the point
   /// id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
   /// for each image, the image file name, pixel measurements, and their sigmas.
-  void add_ground_control_points(ControlNetwork& cnet,
+  VW_API void add_ground_control_points(ControlNetwork& cnet,
 				 std::vector<std::string> const& image_files,
 				 std::vector<std::string> const& gcp_files,
 				 cartography::Datum const& datum);

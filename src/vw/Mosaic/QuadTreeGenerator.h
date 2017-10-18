@@ -60,7 +60,7 @@ namespace mosaic {
   }
   
   /// A class that generates filesystem-based quadtrees of large images.
-  class QuadTreeGenerator {
+  class VW_API QuadTreeGenerator {
   public:
     struct TileInfo {
       std::string name, filepath, filetype;

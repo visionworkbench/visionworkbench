@@ -29,6 +29,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
+#include <vw/config.h>
 #include <vw/Core/Features.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/ProgressCallback.h>
@@ -42,7 +43,7 @@ namespace vw {
 
   // Return a smart pointer, this is easier to manage
   class DiskImageResource;
-  boost::shared_ptr<DiskImageResource> DiskImageResourcePtr(std::string const& image_file);
+  VW_API boost::shared_ptr<DiskImageResource> DiskImageResourcePtr(std::string const& image_file);
   
   // *******************************************************************
   // The DiskImageResource abstract base class
@@ -51,7 +52,7 @@ namespace vw {
   /// A base class for ImageResource objects where the buffer is on disk.
   /// - Base class from which specific file handlers derive.
   /// - Noncopyable because every impl is noncopyable
-  class DiskImageResource : public ImageResource,
+  class VW_API DiskImageResource : public ImageResource,
                             private boost::noncopyable {
   public:
 
@@ -118,7 +119,7 @@ namespace vw {
     virtual void flush() {}
 
   protected:
-    DiskImageResource( std::string const& filename ) : m_filename(filename), m_rescale(default_rescale) {}
+      DiskImageResource(std::string const& filename);
     ImageFormat m_format;
     std::string m_filename;
     bool        m_rescale;
@@ -212,10 +213,10 @@ namespace vw {
     return false;
   }
 
-  ImageFormat image_format(const std::string& filename);
+  VW_API ImageFormat image_format(const std::string& filename);
 
   // Convenience function to get the width and height of an image.
-  vw::Vector2i file_image_size( std::string const& input );
+  VW_API vw::Vector2i file_image_size( std::string const& input );
 
 } // namespace vw
 

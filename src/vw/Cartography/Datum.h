@@ -46,7 +46,7 @@ namespace cartography {
   /// all distances are measured in meters.  This class incorporates a
   /// prime meridian offset, which is not usually strictly considered
   /// part of the datum but which has no better place to be right now.
-  class Datum {
+  class VW_API Datum {
     std::string m_name;
     std::string m_spheroid_name;
     std::string m_meridian_name;
@@ -138,12 +138,12 @@ namespace cartography {
     Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
   };
 
-  std::ostream& operator<<(std::ostream& os, const Datum& datum);
+  VW_API std::ostream& operator<<(std::ostream& os, const Datum& datum);
 
   // Free associated functions
-  vw::Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
+  VW_API vw::Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec);
-  vw::Vector3 datum_intersection( Datum const& datum,
+  VW_API vw::Vector3 datum_intersection( Datum const& datum,
                               vw::Vector3 camera_ctr, vw::Vector3 camera_vec );
 
 

@@ -78,10 +78,10 @@ namespace vw {
     _VW_INTERNAL_TYPE_DEDUCTION(  signed long long, 1000);
     _VW_INTERNAL_TYPE_DEDUCTION(unsigned long long, 1100);
 #endif
-#if defined(BOOST_HAS_MS_INT64)
-    _VW_INTERNAL_TYPE_DEDUCTION(          __int64;, 1200);
-    _VW_INTERNAL_TYPE_DEDUCTION( unsigned __int64;, 1300);
-#endif
+// #if defined(BOOST_HAS_MS_INT64)
+//     _VW_INTERNAL_TYPE_DEDUCTION(          __int64, 1200);
+//     _VW_INTERNAL_TYPE_DEDUCTION( unsigned __int64, 1300);
+// #endif
     _VW_INTERNAL_TYPE_DEDUCTION(             float, 1400);
     _VW_INTERNAL_TYPE_DEDUCTION(            double, 1500);
     _VW_INTERNAL_TYPE_DEDUCTION(       long double, 1600);

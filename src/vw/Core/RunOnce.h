@@ -25,6 +25,7 @@
 
 #ifndef __VW_CORE_RUNONCE_H__
 #define __VW_CORE_RUNONCE_H__
+#include <vw/config.h>
 
 #include <boost/thread/once.hpp>
 
@@ -39,7 +40,7 @@ namespace vw {
   // A special POD class to enable safe library initialization.  You
   // should only define these objects at global or namespace scope,
   // and statically initialize them to VW_RUNONCE_INIT.
-  struct RunOnce {
+  struct VW_API RunOnce {
     boost::once_flag m_flag;
 
     inline void run( void (*func)() ) {

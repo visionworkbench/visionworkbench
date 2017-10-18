@@ -55,7 +55,7 @@ Future improvements:
   comes up when called from CorrelationView, but would make the class more flexible.
 */
 
-class SemiGlobalMatcher {
+class VW_API SemiGlobalMatcher {
 
 public: // Definitions
 

@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/vw-targets.cmake")
+
+set(VW_LIBRARIES @VW_LIBRARIES@)
+
+if(@BUILD_SHARED_LIBS@)
+    set_target_properties(${VW_LIBRARIES} PROPERTIES INTERFACE_COMPILE_DEFINITIONS VW_SHARED_LIB)
+endif()
+
+set_target_properties(${VW_LIBRARIES} PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+
+check_required_components("vw")

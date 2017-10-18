@@ -31,7 +31,7 @@ namespace vw {
 
   class DiskImageResourceInfoTIFF;
 
-  class DiskImageResourceTIFF : public DiskImageResource {
+  class VW_API DiskImageResourceTIFF : public DiskImageResource {
   public:
 
     DiskImageResourceTIFF( std::string const& filename );

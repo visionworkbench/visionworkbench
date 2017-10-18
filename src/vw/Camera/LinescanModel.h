@@ -28,6 +28,9 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Camera/CameraModel.h>
 
+#ifndef M_PI
+#define M_PI       3.14159265358979323846   // pi
+#endif
 namespace vw {
 namespace camera {
 
@@ -44,7 +47,7 @@ namespace camera {
   // the image); it is also the flight direction.  If this is not 
   // accurate for your camera you can apply a rotation in PoseFuncT.
 
-  class LinescanModel : public vw::camera::CameraModel {
+  class VW_API LinescanModel : public vw::camera::CameraModel {
 
   public:
     //------------------------------------------------------------------

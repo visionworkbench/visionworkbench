@@ -29,7 +29,7 @@ namespace detail {
 
 /// Abstract scanline reading interface.
 /// - This interface is common to several file types such as PNG and JPEG.
-class ScanlineBackend {
+class VW_API ScanlineBackend {
   protected:
     // The subclass constructor must initialize these
     ImageFormat m_fmt;
@@ -53,7 +53,7 @@ class ScanlineBackend {
     virtual bool ready() const = 0;
 };
 
-class ScanlineReadBackend : public ScanlineBackend {
+class VW_API ScanlineReadBackend : public ScanlineBackend {
   protected:
     // The subclass constructor must initialize these
     size_t m_rstride;
@@ -67,7 +67,7 @@ class ScanlineReadBackend : public ScanlineBackend {
     virtual ScanlineReadBackend* rewind() const = 0;
 };
 
-class ScanlineWriteBackend : public ScanlineBackend {
+class VW_API ScanlineWriteBackend : public ScanlineBackend {
   public:
     // encode data from buffer. buffer must hold rows * cols * chan_bytes() bytes
     virtual void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes) = 0;

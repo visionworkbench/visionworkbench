@@ -31,10 +31,10 @@ namespace vw {
   namespace stereo {
 
     namespace detail {
-      ImageView<PixelMask<Vector2f> >
+      ImageView<PixelMask<Vector2f> > VW_API
       subsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp);
 
-      ImageView<PixelMask<Vector2f> >
+      ImageView<PixelMask<Vector2f> > VW_API
       upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
                                int up_width, int up_height);
     }

@@ -120,7 +120,7 @@ namespace vw {
 
 // Macros to easily create functors with a certain interface
 #define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
-    struct Arg##name##Functor                                           \
+    struct VW_API Arg##name##Functor                                           \
       : UnaryReturnBinaryTemplateBind1st<ArgUnaryFunctorType,Arg##name##Functor> { \
         template <class ValT>                                           \
           typename ArgUnaryFunctorType<Arg##name##Functor,ValT>::type   \
@@ -135,7 +135,7 @@ namespace vw {
     using ::func;
 // END __VW_UNARY_MATH_FUNCTOR
 #define __VW_BINARY_MATH_FUNCTOR(name,func)                             \
-    struct ArgArg##name##Functor                                        \
+    struct VW_API ArgArg##name##Functor                                        \
       : BinaryReturnTernaryTemplateBind1st<BinaryFunctorType,ArgArg##name##Functor> { \
     float operator()( float arg1, float arg2 ) const {                  \
     return func##f(arg1,arg2);                                          \
@@ -226,7 +226,7 @@ namespace vw {
 
 
     // Real part functor
-    struct ArgRealFunctor : UnaryReturnTemplateType<MakeReal> {
+    struct VW_API ArgRealFunctor : UnaryReturnTemplateType<MakeReal> {
       template <class ValT>
       ValT operator()( ValT const& val ) const {
         return val;
@@ -240,7 +240,7 @@ namespace vw {
 
 
     // Imaginary part functor
-    struct ArgImagFunctor : UnaryReturnTemplateType<MakeReal> {
+    struct VW_API ArgImagFunctor : UnaryReturnTemplateType<MakeReal> {
       template <class ValT>
       ValT operator()( ValT const& /*val*/ ) const {
         return ValT();
@@ -262,7 +262,7 @@ namespace vw {
     template <bool IntegralN> struct DefaultAbsBehavior { template <class ValT> static inline int apply( ValT val ) { return std::abs(val); } };
     template <> struct DefaultAbsBehavior<false> { template <class ValT> static inline double apply( ValT val ) { return fabs(val); } };
     /// \endcond
-    struct ArgAbsFunctor {
+    struct VW_API ArgAbsFunctor {
       template <class Args> struct result;
 
       template <class FuncT, class ValT>
@@ -299,7 +299,7 @@ namespace vw {
 
 
     // Complex conjugation functor
-    struct ArgConjFunctor : UnaryReturnSameType {
+    struct VW_API ArgConjFunctor : UnaryReturnSameType {
       template <class ValT>
       ValT operator()( ValT const& val ) const {
         return val;
@@ -312,7 +312,7 @@ namespace vw {
     };
 
     // Square Functor (so we don't have to always invoke POW)
-    struct ArgSquareFunctor : UnaryReturnSameType {
+    struct VW_API ArgSquareFunctor : UnaryReturnSameType {
       template <class ValT>
       ValT operator()( ValT const& val ) const {
         return val*val;

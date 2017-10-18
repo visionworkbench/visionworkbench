@@ -219,7 +219,7 @@ namespace stereo {
   /// The first  BBox specifies a location in an image.
   /// The second BBox describes a 2D disparity range using the min and max.
   //typedef std::pair<BBox2i,BBox2i> SearchParam;
-  struct SearchParam : public std::pair<BBox2i,BBox2i> {
+  struct VW_API SearchParam : public std::pair<BBox2i,BBox2i> {
   
     SearchParam(BBox2i const& image_region, BBox2i const& disparity_range)
       : std::pair<BBox2i,BBox2i>(image_region, disparity_range){}
@@ -240,7 +240,7 @@ namespace stereo {
   };
   
   /// Functor for finding faster SearchParam objects
-  struct SearchParamLessThan {
+  struct VW_API SearchParamLessThan {
     bool operator()(SearchParam const& A, SearchParam const& B) const {
       return A.search_volume() < B.search_volume();
     }
@@ -323,7 +323,7 @@ namespace stereo {
   ///   PixelMask<Vector2i>. 
   /// - This should stay an image view as we'll be
   ///   accessing the image alot and randomly.
-  bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
+  VW_API bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                           BBox2i const& current_bbox,
                           std::vector<SearchParam>& list, // Output goes here
                           Vector2i const& kernel_size,

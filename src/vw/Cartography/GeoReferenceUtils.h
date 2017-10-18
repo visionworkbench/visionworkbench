@@ -37,26 +37,26 @@ namespace cartography {
 
   /// Generates a new georeference which covers a sub-region of this georeference object.
   /// - Input coordinates are pixels in the corresponding image
-  GeoReference crop( GeoReference const& input,
+  VW_API GeoReference crop( GeoReference const& input,
                      double upper_left_x, double upper_left_y,
                      double width=0, double height=0 );
 
   /// Overload of crop() that takes a bounding box object (still in pixels)
-  GeoReference crop( GeoReference const& input, BBox2 const& bbox );
+  VW_API GeoReference crop( GeoReference const& input, BBox2 const& bbox );
 
   /// Modify the scale in the projected coordinate to pixel coordinate transform.
   /// - A larger scale increases the number of pixels.
-  GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
-  GeoReference resample( GeoReference const& input, double scale );
+  VW_API GeoReference resample( GeoReference const& input, double scale_x, double scale_y );
+  VW_API GeoReference resample( GeoReference const& input, double scale );
 
   /// Returns the distance along the Earth's surface in meters between two points.
   /// - The distance is returned in meters.
   /// - Accuracy is not perfect but should be pretty good.
   /// - Inputs should be in lon/lat degrees.
-  double haversine_circle_distance(Vector2 a, Vector2 b);
+  VW_API double haversine_circle_distance(Vector2 a, Vector2 b);
 
   /// Estimates meters per pixel for an image.
-  double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
+  VW_API double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
   /// Standard options for multi-threaded GDAL (tif) image writing.
   /// - num_threads sets the number of parallel block-writing threads when calling one
@@ -65,7 +65,7 @@ namespace cartography {
   // TODO: This is the wrong place, as it has nothing to do with cartography.
   // Move to DiskImageResourceGDAL.h.
   // This will be an immense change. 
-  struct GdalWriteOptions {
+  struct VW_API GdalWriteOptions {
     DiskImageResourceGDAL::Options gdal_options;
     Vector2i     raster_tile_size;
     int32        num_threads;  
@@ -75,7 +75,7 @@ namespace cartography {
   };
 
   /// An object to let Program Options know about our GdalWriteOptions
-  struct GdalWriteOptionsDescription : public boost::program_options::options_description {
+  struct VW_API GdalWriteOptionsDescription : public boost::program_options::options_description {
     GdalWriteOptionsDescription( GdalWriteOptions& opt);
   };
 

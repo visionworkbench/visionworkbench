@@ -32,7 +32,7 @@ namespace mosaic {
 
   // This class is overkill, but is exists by analogy to others
   // like it for consistency.
-  class TMSQuadTreeConfig : public QuadTreeConfig {
+  class VW_API TMSQuadTreeConfig : public QuadTreeConfig {
   public:
     virtual ~TMSQuadTreeConfig() {}
     void configure( QuadTreeGenerator& qtree ) const;

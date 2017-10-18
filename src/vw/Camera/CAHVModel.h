@@ -22,7 +22,7 @@
 ///
 #ifndef __VW_CAMERAMODEL_CAHV_H__
 #define __VW_CAMERAMODEL_CAHV_H__
-
+#include <vw/config.h>
 #include <vw/Camera/CameraModel.h>
 
 namespace vw {
@@ -48,7 +48,7 @@ namespace camera {
   /// Cameras". Computer Graphics and Image Processing 7,
   /// pp. 195-210. (1978)
   ///
-  class CAHVModel : public CameraModel {
+  class VW_API CAHVModel : public CameraModel {
   public:
     //------------------------------------------------------------------
     // Constructors / Destructors
@@ -140,10 +140,10 @@ namespace camera {
 
   /// Given two CAHV camera models, this method returns two new camera
   /// models that have been epipolar rectified.
-  void epipolar(CAHVModel const &src_camera0, CAHVModel const &src_camera1,
+  void VW_API epipolar(CAHVModel const &src_camera0, CAHVModel const &src_camera1,
                 CAHVModel       &dst_camera0, CAHVModel       &dst_camera1);
 
-  std::ostream& operator<<(std::ostream& str, CAHVModel const& model);
+  VW_API std::ostream& operator<<(std::ostream& str, CAHVModel const& model);
 
 }} // namespace vw::camera
 

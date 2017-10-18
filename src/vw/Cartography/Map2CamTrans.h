@@ -44,7 +44,7 @@ namespace vw { namespace camera{
 
 namespace vw { namespace cartography {
 
-  class Map2CamTrans : public vw::TransformBase<Map2CamTrans> {
+  class VW_API Map2CamTrans : public vw::TransformBase<Map2CamTrans> {
     vw::camera::CameraModel const* m_cam;
     GeoReference m_image_georef, m_dem_georef;
     vw::DiskImageView<float> m_dem;
@@ -82,7 +82,7 @@ namespace vw { namespace cartography {
     vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
   };
   
-  std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
+  VW_API std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
 
 
 }} // namespace vw::cartography

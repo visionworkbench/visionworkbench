@@ -35,7 +35,7 @@ namespace mosaic {
 
   // This class is overkill, but it exists by analogy to others
   // like it for consistency.
-  class CelestiaQuadTreeConfig : public QuadTreeConfig {
+  class VW_API CelestiaQuadTreeConfig : public QuadTreeConfig {
     std::string m_module_name;
   public:
     virtual ~CelestiaQuadTreeConfig() {}

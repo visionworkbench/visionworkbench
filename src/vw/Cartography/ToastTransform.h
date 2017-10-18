@@ -82,7 +82,7 @@
 namespace vw {
 namespace cartography {
 
-  class ToastTransform : public TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction> {
+  class VW_API ToastTransform : public TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction> {
     GeoReference m_georef;
     int32 m_resolution;
 

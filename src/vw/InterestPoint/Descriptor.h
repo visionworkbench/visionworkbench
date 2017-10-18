@@ -86,7 +86,7 @@ namespace ip {
   /// A basic example descriptor class. The descriptor for an interest
   /// point is simply the pixel values in the support region around
   /// the point. It is normalized to provide some tolerance to changes in illumination.
-  struct PatchDescriptorGenerator : public DescriptorGeneratorBase<PatchDescriptorGenerator> {
+  struct VW_API PatchDescriptorGenerator : public DescriptorGeneratorBase<PatchDescriptorGenerator> {
 
     template <class ViewT, class IterT>
     void compute_descriptor( ImageViewBase<ViewT> const& support,
@@ -96,7 +96,7 @@ namespace ip {
   };
 
   // An implementation of PCA-SIFT
-  struct PCASIFTDescriptorGenerator : public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
+  struct VW_API PCASIFTDescriptorGenerator : public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
 
     std::string basis_filename, avg_filename;
     Matrix<float> pca_basis;
@@ -121,7 +121,7 @@ namespace ip {
 
   // A Simple Scaled Gradient descriptor that reduces the number of elements
   // used in the descriptor and is hopefully more robust against illumination changes.
-  struct SGradDescriptorGenerator : public DescriptorGeneratorBase<SGradDescriptorGenerator> {
+  struct VW_API SGradDescriptorGenerator : public DescriptorGeneratorBase<SGradDescriptorGenerator> {
 
     static const uint32 box_strt[5];
     static const uint32 box_size[5];
@@ -237,7 +237,7 @@ namespace ip {
   }; // End class InterestPointDescriptionTask
 
   /// Helper functor for determining if an IP is in a bbox
-  struct IsInBBox {
+  struct VW_API IsInBBox {
     BBox2i m_bbox;
 
     IsInBBox( BBox2i const& bbox ) : m_bbox( bbox ) {}

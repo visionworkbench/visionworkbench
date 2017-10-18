@@ -36,7 +36,7 @@ namespace cartography {
   /// two GeoReference objects.
   /// - Use of this class is the ONLY safe method to convert coordinates between two
   ///   GeoReference objects that fully handles all variables.
-  class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
+  class VW_API GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
@@ -237,7 +237,7 @@ namespace cartography {
   ///
   /// Important Note: The convention here is that the Vector3 contains
   /// the ordered triple: (longitude, latitude, altitude).
-  void reproject_point_image(ImageView<Vector3> const& point_image,
+  VW_API void reproject_point_image(ImageView<Vector3> const& point_image,
                              GeoReference const& src_georef,
                              GeoReference const& dst_georef);
 
