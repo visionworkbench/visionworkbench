@@ -239,7 +239,8 @@ namespace cartography {
 
   namespace detail {
 
-    // TODO: Why is this not done by default?
+    // TODO: This should be done by default!
+    // Normalize the coordinate if lonlat
     void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point);
                         
     /// Apply a function to evenly spaced locations along a line of pixels
@@ -260,6 +261,7 @@ namespace cartography {
       boost::shared_ptr<camera::CameraModel> m_camera;
       DEMImageT    m_dem;
       Vector2      m_last_intersect;
+      std::vector<Vector3> *m_coords;
 
     public:
       bool   m_last_valid, m_center_on_zero;
@@ -270,14 +272,18 @@ namespace cartography {
       /// Constructor initializes class with DEM, camera model, etc.
       CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem,
                            GeoReference const& dem_georef,
-			   GeoReference const& target_georef, // return box in this projection
+                           GeoReference const& target_georef, // return box in this projection
                            boost::shared_ptr<camera::CameraModel> camera,
-                           bool center_on_zero)
+                           bool center_on_zero,
+                           std::vector<Vector3> *coords=0)
         : m_dem_georef(dem_georef),
           m_target_georef(target_georef), 
-          m_camera(camera), m_dem(dem.impl()),
+          m_camera(camera), m_dem(dem.impl()), m_coords(coords),
           m_last_valid(false), m_center_on_zero(center_on_zero),
-          scale( std::numeric_limits<double>::max() ) {}
+          scale( std::numeric_limits<double>::max() ) {
+        if (m_coords)
+          m_coords->clear();
+      }
 
       // This is a function we don't want exposed outside the logic of this file,
       // as we make too many particular choices.
@@ -287,8 +293,8 @@ namespace cartography {
                                             GeoReference const& target_georef, 
                                             boost::shared_ptr<camera::CameraModel> camera,
                                             bool center_on_zero,
-                                            Vector2 & point // output
-                                            ){
+                                            Vector2 & point, // output
+                                            Vector3 & xyz){
 
         // This is a very fragile function, and at many steps something can fail.
         try {
@@ -305,23 +311,23 @@ namespace cartography {
           Vector3 camera_vec = camera->pixel_to_vector(pixel);
           
           // Use iterative solver call to compute an intersection of the pixel with the DEM	
-          Vector3 xyz = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
-                                                dem, dem_georef,
-                                                treat_nodata_as_zero,
-                                                has_intersection,
-                                                height_error_tol, max_abs_tol, max_rel_tol,
-                                                num_max_iter, xyz_guess
-                                                );
+          xyz = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
+                                        dem, dem_georef,
+                                        treat_nodata_as_zero,
+                                        has_intersection,
+                                        height_error_tol, max_abs_tol, max_rel_tol,
+                                        num_max_iter, xyz_guess
+                                       );
           // Quit if we did not find an intersection
           if (!has_intersection)
-            return has_intersection;
+            return false;
           
           // Use the datum to convert GCC coordinate to lon/lat/height
           // and to a projected coordinate system
           Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
           point = target_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
           recenter_point(center_on_zero, target_georef, point);
-          
+                    
           return has_intersection;
         }catch(...){
           return false;
@@ -332,11 +338,12 @@ namespace cartography {
       void operator() ( Vector2 const& pixel ) {
 
         Vector2 point;
+        Vector3 xyz;
         bool has_intersection = camera_pixel_to_dem_point(pixel, m_dem, m_dem_georef,
                                                           m_target_georef,
                                                           m_camera, m_center_on_zero,  
-                                                          point // output
-                                                          );
+                                                          point, // output
+                                                          xyz);
         // Quit if we did not find an intersection
         if ( !has_intersection ) {
           m_last_valid = false;
@@ -353,6 +360,9 @@ namespace cartography {
         
         m_last_intersect = point; // Record this intersection
         
+        if (m_coords)
+          m_coords->push_back(xyz);
+        
         box.grow( point ); // Expand a bounding box of all points intersected so far
         m_last_valid = true; // Record intersection success
         cam_pixels.push_back(pixel);
@@ -361,8 +371,7 @@ namespace cartography {
     }; // End class CameraDEMBBoxHelper
 
     // Collect valid pixel coordinates on the perimeter of the DEM,
-    // and also inside using an X pattern. Some of these points may
-    // be duplicated. 
+    // and also inside using an X pattern. Some of these points may be duplicated. 
     template <class DEMImageT>
     void sample_points_on_dem(DEMImageT const& dem, int dem_step, 
                               std::vector<Vector2> & dem_pixels){
@@ -454,9 +463,11 @@ namespace cartography {
   
   /// Compute the bounding box in points (georeference space) that is
   /// defined by georef. Scale is MPP as georeference space is in meters.
+  /// - If coords is provided the intersection coordinates will be stored there.
   BBox2 camera_bbox( GeoReference const& georef,
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                     int32 cols, int32 rows, float &scale );
+                     int32 cols, int32 rows, float &scale,
+                     std::vector<Vector2> *coords=0 );
 
   /// Overload with no scale return
   inline BBox2 camera_bbox( GeoReference const& dem_georef,
@@ -475,13 +486,15 @@ namespace cartography {
   ///   The mean_gsd is in GeoReference measurement units (not necessarily meters!)
   /// - If the quick option is enabled, only rays along the image borders will be used
   ///   to perform the computation.
+  /// - If coords is provided the intersection coordinates will be stored there.
   template< class DEMImageT >
   BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem,
                      GeoReference const& dem_georef,
                      GeoReference const& target_georef, // return box in this projection
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &mean_gsd,
-                     bool quick=false ) {
+                     bool quick=false,
+                     std::vector<Vector3> *coords=0 ) {
 
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
@@ -511,7 +524,7 @@ namespace cartography {
 
     // Construct helper class with DEM and camera information.
     detail::CameraDEMBBoxHelper<DEMImageT> functor( dem, dem_georef, target_georef,
-                                                    camera_model, center_on_zero );
+                                                    camera_model, center_on_zero, coords );
 
     // Running the edges. Note: The last valid point on a
     // BresenhamLine is the last point before the endpoint.
@@ -625,10 +638,12 @@ namespace cartography {
         continue;
 
       Vector2 ctr_point;
+      Vector3 xyz;
       bool has_intersection = functor.camera_pixel_to_dem_point(ctr_pix, dem, dem_georef,
                                                                 target_georef,  
                                                                 camera_model, center_on_zero,  
-                                                                ctr_point // output
+                                                                ctr_point, // output
+                                                                xyz
                                                                );
       if ( !has_intersection )
         continue; 
@@ -647,7 +662,8 @@ namespace cartography {
         bool has_intersection = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
                                                                   target_georef,  
                                                                   camera_model, center_on_zero,  
-                                                                  off_point // output
+                                                                  off_point, // output
+                                                                  xyz
                                                                  );
         if ( !has_intersection )
           continue; 
@@ -692,10 +708,10 @@ namespace cartography {
                             GeoReference const& dem_georef,
                             GeoReference const& target_georef,
                             boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                            int32 cols, int32 rows ) {
+                            int32 cols, int32 rows) {
     float mean_gsd;
     return camera_bbox<DEMImageT>( dem.impl(), dem_georef, target_georef,
-				   camera_model, cols, rows, mean_gsd );
+                                    camera_model, cols, rows, mean_gsd );
   }
 
 } // namespace cartography

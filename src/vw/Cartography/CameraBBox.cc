@@ -41,10 +41,10 @@ cartography::geospatial_intersect(cartography::GeoReference const& georef,
   if (intersection == Vector3()){
     has_intersection = false;
     return Vector2();
-  } else {
-    has_intersection = true;
   }
-
+  
+  has_intersection = true;
+  
   Vector3 llh = georef.datum().cartesian_to_geodetic( intersection );
   Vector2 projected_point = georef.lonlat_to_point( Vector2( llh.x(),
                                                              llh.y() ) );
@@ -60,6 +60,7 @@ namespace vw { namespace cartography { namespace detail {
     GeoReference m_georef;
     boost::shared_ptr<camera::CameraModel> m_camera;
     Vector2      m_last_intersect;
+    std::vector<Vector2> *m_coords;
 
   public:
     bool   last_valid, center_on_zero;
@@ -68,9 +69,13 @@ namespace vw { namespace cartography { namespace detail {
 
     CameraDatumBBoxHelper( GeoReference const& georef,
 			   boost::shared_ptr<camera::CameraModel> camera,
-			   bool center=false):
-      m_georef(georef), m_camera(camera), last_valid(false),
-      center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
+			   bool center=false,
+			   std::vector<Vector2> *coords=0):
+      m_georef(georef), m_camera(camera), m_coords(coords), last_valid(false),
+      center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
+      if (m_coords)
+        m_coords->clear();
+    }
 
     void operator()( Vector2 const& pixel ) {
       bool has_intersection;
@@ -89,6 +94,8 @@ namespace vw { namespace cartography { namespace detail {
         if ( center_on_zero && point[0] > 180 )
           point[0] -= 360.0;
       }
+      if (m_coords)
+        m_coords->push_back(point);
       
       if ( last_valid ) {
         double current_scale = norm_2( point - m_last_intersect );
@@ -123,13 +130,13 @@ namespace vw { namespace cartography { namespace detail {
   
 BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
-                                int32 cols, int32 rows, float &scale ) {
+                                int32 cols, int32 rows, float &scale,
+                                std::vector<Vector2> *coords ) {
 
   // Testing to see if we should be centering on zero
   bool center_on_zero = true;
   Vector3 camera_llr =
     georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
-    //XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
   if ( camera_llr[0] < -90 || camera_llr[0] > 90 )
     center_on_zero = false;
 
@@ -137,7 +144,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
   step_amount = std::min(step_amount, cols/4); // ensure at least 4 pts/col
   step_amount = std::min(step_amount, rows/4); // ensure at least 4 pts/row
   step_amount = std::max(step_amount, 1);      // step amount must be > 0
-  detail::CameraDatumBBoxHelper functor(georef, camera_model, center_on_zero);
+  detail::CameraDatumBBoxHelper functor(georef, camera_model, center_on_zero, coords);
 
   // Running the edges. Note: The last valid point on a
   // BresenhamLine is the last point before the endpoint.
