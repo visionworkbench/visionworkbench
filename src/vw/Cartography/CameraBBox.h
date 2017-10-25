@@ -567,7 +567,7 @@ namespace cartography {
 
     if (!quick) {
 
-      //vw_out(DebugMessage, "cartography") << "Computed image to DEM bbox: " << cam_bbox << std::endl;
+      //vw_out() << "Computed image to DEM bbox: " << cam_bbox << std::endl;
 
       // Bugfix. Traversing the bbox of the image and drawing an X on
       // its diagonals is not enough sometimes to accurately determine
@@ -611,6 +611,9 @@ namespace cartography {
 
             // Finally a good point we can accept
             cam_bbox.grow(point);
+            //vw_out() << "cam_pix: " << cam_pix << std::endl;
+            //vw_out() << "point: " << point << std::endl;
+            //vw_out() << "llh: " << llh << std::endl;
 
             // Add to cam_pixels from this different way of sampling
             cam_pixels.push_back(cam_pix);
@@ -625,7 +628,7 @@ namespace cartography {
         }  
       } // End loop through points on the DEM
       
-      //vw_out(DebugMessage, "cartography") << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
+      //vw_out() << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
     } // End if (!quick)
 
     // Now estimate the gsd, in point units, by projecting onto the ground neighboring points
