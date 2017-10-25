@@ -69,6 +69,7 @@ int main( int argc, char *argv[] ) {
   Matrix3x3 alignment;
   float mask_value;
   int   filter_radius;
+  int   mem_limit_gb;
 
   po::options_description desc("Options");
   desc.add_options()
@@ -93,7 +94,8 @@ int main( int argc, char *argv[] ) {
     ("blob-filter-area",   po::value(&blob_filter_area)->default_value(0),     "Filter blobs of this size.")
     ("threads",            po::value(&nThreads)->default_value(0),    "Manually specify the number of threads")
     ("tile-size",          po::value(&tile_size)->default_value(0),   "Manually specify the tile size")
-    ("collar-size",        po::value(&collar_size)->default_value(0), "Specify a collar size size")
+    ("collar-size",        po::value(&collar_size)->default_value(0), "Specify a collar size")
+    ("max-mem-GB",         po::value(&mem_limit_gb)->default_value(0), "Specify the maximum memory size")
     ("sgm-filter-size",    po::value(&sgm_filter_size)->default_value(0), "Filter SGM subpixel results with this size")
     ("mask-value",         po::value(&mask_value)->default_value(-32768), "Specify a mask value")
     ("max-pyramid-levels", po::value(&max_pyramid_levels)->default_value(5),
@@ -177,6 +179,8 @@ int main( int argc, char *argv[] ) {
   SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND;
   Vector2i sgm_search_buffer(4,2);
   size_t memory_limit_mb = 1024*5;
+  if (mem_limit_gb > 0)
+    memory_limit_mb = mem_limit_gb * 1024;
 
   ImageViewRef<PixelMask<Vector2f> > disparity_map;
   int corr_timeout = 0;
