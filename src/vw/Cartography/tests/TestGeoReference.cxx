@@ -411,7 +411,7 @@ TEST(GeoReference, NED_MATRIX) {
   Matrix3x3 test_transform;
   test_transform(0,0) = 1.2; test_transform(0,1) = 3.2;
   test_transform(1,1) = 4.5; test_transform(1,2) = 6.3;
-  test_transform(2,2) = 1; test_transform(2,1) = 0;
+  test_transform(2,2) = 1;   test_transform(2,1) = 0;
 
   Datum test_datum("D_MOON");
   GeoReference georef(test_datum, test_transform);
@@ -425,20 +425,25 @@ TEST(GeoReference, NED_MATRIX) {
   // Vector pointing North
   xyz_eps_p = georef.datum().geodetic_to_cartesian(G + Vector3(0, eps, 0));
   xyz_eps_m = georef.datum().geodetic_to_cartesian(G - Vector3(0, eps, 0));
-  xyz_lat = (xyz_eps_p - xyz_eps_m)/eps; xyz_lat = xyz_lat/norm_2(xyz_lat);
+  xyz_lat   = (xyz_eps_p - xyz_eps_m)/eps;
+  xyz_lat   = xyz_lat/norm_2(xyz_lat);
 
   // Vector pointing East
   xyz_eps_p = georef.datum().geodetic_to_cartesian(G + Vector3(eps, 0, 0));
   xyz_eps_m = georef.datum().geodetic_to_cartesian(G - Vector3(eps, 0, 0));
-  xyz_lon   = (xyz_eps_p - xyz_eps_m)/eps; xyz_lon = xyz_lon/norm_2(xyz_lon);
+  xyz_lon   = (xyz_eps_p - xyz_eps_m)/eps;
+  xyz_lon   = xyz_lon/norm_2(xyz_lon);
 
   // Vector pointing down
   xyz_rad = -xyz/norm_2(xyz);
 
-  Vector3   q  = 1*xyz_lat + 2*xyz_lon + 3*xyz_rad;
-  Matrix3x3 M  = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
-  EXPECT_LT(norm_2( M*q - Vector3(1, 2, 3)), 1.0e-8 );
-
+  // The Matrix should be the same as the three vectors side by side.
+  Matrix3x3 M = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
+  for (int i=0; i<3; ++i) {
+    EXPECT_NEAR(M(i, 0), xyz_lat[i], eps);
+    EXPECT_NEAR(M(i, 1), xyz_lon[i], eps);
+    EXPECT_NEAR(M(i, 2), xyz_rad[i], eps);
+  }
 }
 
 /// Loop through a bunch of pixels in an image and

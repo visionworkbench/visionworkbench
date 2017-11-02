@@ -270,13 +270,13 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& l
   Matrix3x3 R;
 
   R(0,0) = -slat*clon;
-  R(0,1) = -slat*slon;
-  R(0,2) = clat;
-  R(1,0) = -slon;
+  R(1,0) = -slat*slon;
+  R(2,0) = clat;
+  R(0,1) = -slon;
   R(1,1) = clon;
-  R(1,2) = 0.0;
-  R(2,0) = -clon*clat;
-  R(2,1) = -slon*clat;
+  R(2,1) = 0.0;
+  R(0,2) = -clon*clat;
+  R(1,2) = -slon*clat;
   R(2,2) = -slat;
 
   return R;
