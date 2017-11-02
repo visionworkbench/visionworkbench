@@ -297,7 +297,7 @@ namespace camera {
 
   /// Used to modify camera in the event to user resizes the image
   /// - Under the hood all this does is change the pixel pitch.
-  PinholeModel scale_camera(PinholeModel const& camera_model, float scale);
+  PinholeModel scale_camera(PinholeModel const& camera_model, double scale);
                             
   /// Returns a copy of the camera model with no lens distortion.
   /// - This does not account for the distortion in any way, 

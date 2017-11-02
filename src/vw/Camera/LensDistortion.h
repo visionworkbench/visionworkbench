@@ -78,7 +78,7 @@ namespace camera {
     virtual std::string name() const = 0;
     
     /// Used to scale distortion w/ image size
-    virtual void scale(float scale) = 0;
+    virtual void scale(double scale) = 0;
     
     /// Used to scale distortion w/ image size
     std::vector<std::string> distortion_param_names() const { return m_distortion_param_names; }
@@ -103,7 +103,7 @@ namespace camera {
     virtual void read (std::istream& os);
     static  std::string class_name()       { return "NULL";       }
     virtual std::string name      () const { return class_name(); }
-    virtual void        scale(float /*scale*/);
+    virtual void        scale(double /*scale*/);
   };
 
   /// TSAI Lens Distortion Model
@@ -147,7 +147,7 @@ namespace camera {
 
     static  std::string class_name()       { return "TSAI";       }
     virtual std::string name      () const { return class_name(); }
-    virtual void        scale( float scale );
+    virtual void        scale( double scale );
     void init_distortion_param_names();
   };
 
@@ -184,7 +184,7 @@ namespace camera {
     virtual void read (std::istream& os);
     static  std::string class_name()       { return "BrownConrady"; }
     virtual std::string name      () const { return class_name();   }
-    virtual void        scale( float /*scale*/ );
+    virtual void        scale( double /*scale*/ );
     void init_distortion_param_names();
   };
 
@@ -216,7 +216,7 @@ namespace camera {
     
     static  std::string class_name()       { return "AdjustableTSAI"; }
     virtual std::string name      () const { return class_name(); }
-    virtual void scale( float /*scale*/ );
+    virtual void scale( double /*scale*/ );
   };
   
   
@@ -247,10 +247,10 @@ namespace camera {
   /// parameters. principal point is at (xp, yp). B1 and B2 are not used yet.
   ///
   class PhotometrixLensDistortion : public LensDistortion {
-    Vector<float64,9> m_distortion;
+    Vector<double> m_distortion;
   public:
     PhotometrixLensDistortion();
-    PhotometrixLensDistortion(Vector<float64,9> const& params);
+    PhotometrixLensDistortion(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
     virtual boost::shared_ptr<LensDistortion> copy() const;
@@ -263,7 +263,7 @@ namespace camera {
     static  std::string class_name()       { return "Photometrix"; }
     virtual std::string name      () const { return class_name();  }
 
-    virtual void scale( float scale );
+    virtual void scale( double scale );
     void init_distortion_param_names();
   };
   

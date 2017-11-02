@@ -100,6 +100,7 @@ Vector2
 LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
+  // TODO: For bundle adjust, 1e-6 may be too lenient. Revisit this!
   Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-16, 50 );
   VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
                    PixelToRayErr() << "distorted_coordinates: failed to converge." );
@@ -113,12 +114,20 @@ vw::Vector2
 LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   DistortOptimizeFunctor model(cam, *this);
   int status;
-  Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
-  VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
-                   PixelToRayErr() << "distorted_coordinates: failed to converge." );
-  //double error = norm_2(model(solution) - v);
-  //std::cout << "status = " << status << ", input = " << v 
-  //          << ", pixel = " << solution << ", error = " << error << std::endl;
+  // Must push the solver really hard, to make sure bundle adjust gets accurate values
+  // to play with.
+  Vector2 solution = math::levenberg_marquardt(model, v, v, status, 1e-16, 1e-16, 200);
+  //VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, 
+  //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
+
+  // Check if it failed badly to converge. That it did not converge is not on its own
+  // unreasonable, sometimes the inputs are bad. But then the user must know about it.
+  Vector2 undist = this->undistorted_coordinates(cam, solution);
+  double err = norm_2(undist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
+  double tol = 1e-10;
+  if (err > tol)
+    vw_throw( PointToPixelErr() << "LensDistortion: Did not converge.\n" );
+
   return solution;
 }
 
@@ -147,7 +156,7 @@ void NullLensDistortion::read(std::istream & is) {
   // Nothing to read
 }
 
-void NullLensDistortion::scale(float scale) { }
+void NullLensDistortion::scale(double scale) { }
 
 // ======== TsaiLensDistortion ========
 
@@ -226,7 +235,7 @@ void TsaiLensDistortion::read(std::istream & is) {
   read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
-void TsaiLensDistortion::scale( float scale ) {
+void TsaiLensDistortion::scale( double scale ) {
   m_distortion *= scale;
 }
 
@@ -325,7 +334,7 @@ void BrownConradyDistortion::read(std::istream & is) {
 }
 
 
-void BrownConradyDistortion::scale( float scale ) {
+void BrownConradyDistortion::scale( double scale ) {
   vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
 }
 
@@ -391,7 +400,7 @@ void AdjustableTsaiLensDistortion::write(std::ostream & os) const {
 }
 
 void AdjustableTsaiLensDistortion::read(std::istream & is) {
-  Vector<float64,0> radial_vec, tangential_vec;
+  Vector<double,0> radial_vec, tangential_vec;
   double alpha;
   
   std::string label, line;
@@ -416,7 +425,7 @@ void AdjustableTsaiLensDistortion::read(std::istream & is) {
   m_distortion[m_distortion.size()-1]    = alpha;
 }
 
-void AdjustableTsaiLensDistortion::scale( float /*scale*/ ) {
+void AdjustableTsaiLensDistortion::scale( double /*scale*/ ) {
   vw_throw( NoImplErr() << "AdjustableTsai doesn't support scaling." );
 }
 
@@ -425,15 +434,21 @@ void AdjustableTsaiLensDistortion::scale( float /*scale*/ ) {
 
 PhotometrixLensDistortion::PhotometrixLensDistortion(){
   PhotometrixLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
 }
 
-PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<float64,9> const& params) 
+PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<double> const& params) 
   : m_distortion(params) {
   PhotometrixLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw( IOErr() << "PhotometrixLensDistortion: Incorrect number of parameters was passed in.");
 }
 
 void PhotometrixLensDistortion::init_distortion_param_names(){
-  std::string names[] = {"xp", "yp", "k1", "k2", "k3", "p1", "p2", "b1", "b2"};
+  std::string names[] = {"xp", "yp",
+                         "k1", "k2", "k3", "p1", "p2",
+                         "b1", "b2"};
+  
   size_t num_names = sizeof(names)/sizeof(std::string);
   m_distortion_param_names.resize(num_names);
   for (size_t p = 0; p < num_names; p++) 
@@ -447,6 +462,8 @@ PhotometrixLensDistortion::distortion_parameters() const {
 
 void PhotometrixLensDistortion::set_distortion_parameters(Vector<double> const& params) {
   m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw( IOErr() << "PhotometrixLensDistortion: Incorrect number of parameters was passed in.");
 }
 
 boost::shared_ptr<LensDistortion>
@@ -476,25 +493,17 @@ PhotometrixLensDistortion::undistorted_coordinates(const camera::PinholeModel& c
   double K1 = m_distortion[2];
   double K2 = m_distortion[3];
   double K3 = m_distortion[4];
-  
-  double drr = K1*r2 + K2*r2*r2 + K3*r2*r2*r2; // This is dr/r, not dr
-
-  //std::cout << "x = " << x << std::endl;
-  //std::cout << "y = " << y << std::endl;
-  //std::cout << "drr = " << drr << std::endl;
-  
   double P1 = m_distortion[5];
   double P2 = m_distortion[6];
-  
-  //std::cout << "dx_t = " << P1*(r2 +2.0*x2) + 2.0*P2*x*y << std::endl;
-  //std::cout << "dy_t = " << P2*(r2 +2.0*y2) + 2.0*P1*x*y << std::endl;
-  
-  // The cal document includes -xp/yp in these lines, but they are removed
-  //  so that the results are relative to 0,0 instead of relative to the principle point.
-  double x_corr = x_meas + x*drr + P1*(r2 +2.0*x2) + 2.0*P2*x*y;
-  double y_corr = y_meas + y*drr + P2*(r2 +2.0*y2) + 2.0*P1*x*y;
 
-  // Note that parameters B1 and B2 are not used.  The software output provides them
+  double drr = K1*r2 + K2*r2*r2 + K3*r2*r2*r2; // This is dr/r, not dr
+
+  // The cal document includes -xp/yp in these lines, but they are removed
+  //  so that the results are relative to 0,0 instead of relative to the principal point.
+  double x_corr = x_meas + x*drr + P1*(r2 + 2.0*x2) + 2.0*P2*x*y;
+  double y_corr = y_meas + y*drr + P2*(r2 + 2.0*y2) + 2.0*P1*x*y;
+
+  // Note that parameters B1 and B2 are not used. The software output provides them
   // but did not specify their use since they were zero.  If you see an example that 
   // includes them, update the calculations above!
 
@@ -507,10 +516,11 @@ void PhotometrixLensDistortion::write(std::ostream & os) const {
 }
 
 void PhotometrixLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
   read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
-void PhotometrixLensDistortion::scale( float scale ) {
+void PhotometrixLensDistortion::scale( double scale ) {
   m_distortion *= scale;
 }
 

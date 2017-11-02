@@ -567,7 +567,7 @@ void PinholeModel::apply_transform(vw::Matrix3x3 const & rotation,
   this->set_camera_pose  (pose);
 }
 
-PinholeModel scale_camera(PinholeModel const& camera_model, float scale) {
+PinholeModel scale_camera(PinholeModel const& camera_model, double scale) {
   if (scale == 0)
     vw_throw( ArgumentErr() << "PinholeModel::scale_camera cannot have zero scale value!" );
   // Scaling the camera is easy, just update the pixel pitch to account for the new image size.
