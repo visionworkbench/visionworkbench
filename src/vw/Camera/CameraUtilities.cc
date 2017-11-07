@@ -25,8 +25,6 @@
 namespace vw {
 namespace camera {
 
-// TODO: Move code into a .cc file!
-
 /// Load a pinhole camera model of any supported type
 boost::shared_ptr<vw::camera::CameraModel>
 load_pinhole_camera_model(std::string const& path){

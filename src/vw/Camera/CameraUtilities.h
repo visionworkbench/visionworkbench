@@ -200,7 +200,8 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   
 // For RPC, must always ensure the undistortion coefficients are up to date.
 // This function will be used before saving or displaying a pinhole model.
-inline void update_rpc_undistortion(PinholeModel const& model){
+// This function is not in the .cc file as it is related to the above.
+  inline void update_rpc_undistortion(PinholeModel const& model){
 
   const vw::camera::LensDistortion* distortion = model.lens_distortion();
   std::string lens_name = distortion->name();
