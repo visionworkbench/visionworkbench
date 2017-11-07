@@ -94,10 +94,11 @@ TEST( PinholeModel, TsaiDistortion ) {
                         math::identity_matrix<3>(),     // camera pose
                         500,500,                        // fx, fy
                         500,500,                        // cx, cy
-                        TsaiLensDistortion(Vector4(-0.2805362343788147,
-                                                   0.1062035113573074,
-                                                   -0.0001422458299202845,
-                                                   0.00116333004552871)));
+                        TsaiLensDistortion(Vector<double, TsaiLensDistortion::num_distortion_params>
+					   (-0.2805362343788147,
+					    0.1062035113573074,
+					    -0.0001422458299202845,
+					    0.00116333004552871)));
   const LensDistortion* distortion = pinhole.lens_distortion();
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
@@ -124,10 +125,11 @@ TEST( PinholeModel, ScalePinhole ) {
                         Vector3(1, 0, 0),
                         Vector3(0, -1, 0),
                         Vector3(0, 0, 1),
-                        TsaiLensDistortion(Vector4(-0.2796604335308075,
-                                                   0.1031486615538597,
-                                                   -0.0007824968779459596,
-                                                   0.0009675505571067333)));
+                        TsaiLensDistortion(Vector<double, TsaiLensDistortion::num_distortion_params>
+					   (-0.2796604335308075,
+					    0.1031486615538597,
+					    -0.0007824968779459596,
+					    0.0009675505571067333)));
   PinholeModel scaled = scale_camera(pinhole4, .1);
 
   Vector3 point = Vector3(2,-1,1) +
@@ -272,11 +274,12 @@ TEST_F( PinholeTest, NullLensDistortion ) {
 }
 
 TEST_F( PinholeTest, TsaiLensDistortion ) {
-  pinhole.set_lens_distortion(
-    TsaiLensDistortion(Vector4(-0.2796604335308075,
-                               0.1031486615538597,
-                               -0.0007824968779459596,
-                               0.0009675505571067333) ) );
+  pinhole.set_lens_distortion(TsaiLensDistortion
+			      (Vector<double, TsaiLensDistortion::num_distortion_params>
+			       (-0.2796604335308075,
+				0.1031486615538597,
+				-0.0007824968779459596,
+				0.0009675505571067333) ) );
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif

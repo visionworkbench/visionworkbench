@@ -22,6 +22,7 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/LensDistortion.h>
+#include <vw/Camera/CameraUtilities.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>
@@ -277,6 +278,12 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return true;
   }
 
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name()))
+      != std::string::npos) {
+    m_distortion.reset(new RPCLensDistortion());
+    return true;
+  }
+
   // TSAI is the default model.  Older files which do not have a specifier string
   //  contain TSAI parameters.
   m_distortion.reset(new TsaiLensDistortion());
@@ -288,8 +295,9 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return false;
 }
 
-
 void PinholeModel::write(std::string const& filename) const {
+  
+  update_rpc_undistortion(*this);
 
   // Update this field whenever there is a significant change to the file.
   // - It can be used to keep backwards compatibility with future plain text changes.
@@ -656,9 +664,11 @@ void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
 }
 
 
-
 std::ostream& operator<<(std::ostream& str,
                                  PinholeModel const& model) {
+
+  update_rpc_undistortion(model);
+  
   str << "Pinhole camera: \n";
   str << "\tCamera Center: " << model.camera_center() << "\n";
   str << "\tRotation Matrix: " << model.camera_pose() << "\n";

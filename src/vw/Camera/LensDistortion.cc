@@ -88,6 +88,52 @@ void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals, s
   }
 }
 
+// Read a line of the form: name = a b c
+template<class VectorT>
+void read_param_vec(std::string const& param_name, size_t param_len,
+                    std::istream & is, VectorT & vals){
+
+  vals.set_size(param_len);
+
+  if (!is.good())
+    vw_throw( IOErr() << "Could not read LensDistortion.\n" );
+
+  std::string line;
+  std::getline(is, line);
+  std::istringstream iss(line);
+  
+  std::string val;
+  if (! (iss >> val) ) 
+    vw_throw( IOErr() << "Could not read LensDistortion.\n" );
+  
+  if (val != param_name)
+    vw_throw( IOErr() << "In LensDistortion, got " << val << " but expected " << param_name );
+  
+  if ( !(iss >> val)  || val != "=" )
+    vw_throw( IOErr() << "In LensDistortion, got " << val << " but expected the equal sign.");
+  
+  double dval = 0.0;
+  size_t count = 0;
+  while (iss >> dval) {
+    if (count >= param_len ) 
+      vw_throw( IOErr() << "Book-keeping failure in reading LensDistortion.\n" );
+    vals[count] = dval;
+    count++;
+  }
+    
+  if (count != param_len) 
+    vw_throw( IOErr() << "Book-keeping failure in reading LensDistortion.\n" );
+}
+
+// Write a line of the form: name = a b c
+template<class VectorT>
+void write_param_vec(std::string const& param_name, std::ostream & os, VectorT const& vals){
+  os << param_name << " = ";
+  for (size_t p = 0; p < vals.size(); p++) 
+    os << vals[p] << " ";
+  os << "\n";
+}
+
 // Default implemenations for Lens Distortion -------------------
 
 
@@ -100,10 +146,19 @@ Vector2
 LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
-  // TODO: For bundle adjust, 1e-6 may be too lenient. Revisit this!
-  Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-16, 50 );
-  VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
-                   PixelToRayErr() << "distorted_coordinates: failed to converge." );
+
+  // Must push the solver really hard, to make sure bundle adjust gets accurate values
+  // to play with.
+  Vector2 solution = math::levenberg_marquardt( model, v, v, status, 1e-16, 1e-16, 100 );
+
+  Vector2 dist = this->distorted_coordinates(cam, solution);
+  double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
+  double tol = 1e-10;
+  if (err > tol)
+    vw_throw( PointToPixelErr() << "LensDistortion: Did not converge.\n" );
+  
+  //VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
+  //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
   //double error = norm_2(model(solution) - v);
   //std::cout << "status = " << status << ", input = " << v 
   //          << ", pixel = " << solution << ", error = " << error << std::endl;
@@ -116,7 +171,7 @@ LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 c
   int status;
   // Must push the solver really hard, to make sure bundle adjust gets accurate values
   // to play with.
-  Vector2 solution = math::levenberg_marquardt(model, v, v, status, 1e-16, 1e-16, 200);
+  Vector2 solution = math::levenberg_marquardt(model, v, v, status, 1e-16, 1e-16, 100);
   //VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, 
   //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
 
@@ -162,10 +217,13 @@ void NullLensDistortion::scale(double scale) { }
 
 TsaiLensDistortion::TsaiLensDistortion(){
   TsaiLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
 }
 
-TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(params) {
+TsaiLensDistortion::TsaiLensDistortion(Vector<double> const& params) : m_distortion(params) {
   TsaiLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw( IOErr() << "TsaiLensDistortion: Incorrect number of parameters was passed in.");
 }
 
 Vector<double>
@@ -180,7 +238,10 @@ void TsaiLensDistortion::init_distortion_param_names(){
 }
 
 void TsaiLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  TsaiLensDistortion::init_distortion_param_names();
   m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw( IOErr() << "TsaiLensDistortion: Incorrect number of parameters was passed in.");
 }
 
 boost::shared_ptr<LensDistortion>
@@ -232,6 +293,7 @@ void TsaiLensDistortion::write(std::ostream & os) const {
 }
 
 void TsaiLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
   read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
@@ -297,10 +359,10 @@ Vector2
 BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
   Vector2 offset       = cam.point_offset();
   Vector2 intermediate = p - m_principal_point - offset;
-  double r2        = norm_2_sqr(intermediate);
-  double radial    = 1 + m_radial_distortion   [0]*r2 + m_radial_distortion   [1]*r2*r2
+  double r2            = norm_2_sqr(intermediate);
+  double radial        = 1 + m_radial_distortion   [0]*r2 + m_radial_distortion   [1]*r2*r2
                                                       + m_radial_distortion   [2]*r2*r2*r2;
-  double tangental =     m_centering_distortion[0]*r2 + m_centering_distortion[1]*r2*r2;
+  double tangental     = m_centering_distortion[0]*r2 + m_centering_distortion[1]*r2*r2;
   intermediate *= radial;
   intermediate[0] -= tangental*sin(m_centering_angle);
   intermediate[1] += tangental*cos(m_centering_angle);
@@ -320,7 +382,7 @@ void BrownConradyDistortion::write(std::ostream& os) const {
 }
 
 void BrownConradyDistortion::read(std::istream & is) {
-  Vector<double, 8> distortion;
+  Vector<double, num_distortion_params> distortion;
   read_fields_in_vec(m_distortion_param_names, distortion, is);
   int p = 0;
   m_principal_point[0]      = distortion[p]; p++;
@@ -523,6 +585,203 @@ void PhotometrixLensDistortion::read(std::istream & is) {
 void PhotometrixLensDistortion::scale( double scale ) {
   m_distortion *= scale;
 }
+
+// RPC lens distortion. Use a 4th degree polynomial in x and y.
+
+// ======== RPCLensDistortion ========
+
+RPCLensDistortion::RPCLensDistortion(){
+  m_distortion.set_size(num_distortion_params);
+  m_undistortion.set_size(num_distortion_params);
+  m_can_undistort = false;
+}
+
+RPCLensDistortion::RPCLensDistortion(Vector<double> const& params) 
+  : m_distortion(params) {
+  if (m_distortion.size() != num_distortion_params)
+    vw_throw( IOErr() << "RPCLensDistortion: Incorrect number of parameters was passed in.");
+  m_can_undistort = false;
+}
+
+Vector<double>
+RPCLensDistortion::distortion_parameters() const { 
+  return m_distortion; 
+}
+
+Vector<double>
+RPCLensDistortion::undistortion_parameters() const { 
+  return m_undistortion; 
+}
+
+void RPCLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  m_distortion = params;
+  m_can_undistort = false; // Need to update the undistortion
+  if (m_distortion.size() != num_distortion_params)
+    vw_throw( IOErr() << "RPCLensDistortion: Incorrect number of parameters was passed in.");
+}
+
+void RPCLensDistortion::set_undistortion_parameters(Vector<double> const& params) {
+  m_undistortion = params;
+  m_can_undistort = true;
+}
+
+void RPCLensDistortion::set_image_size(Vector2i const& image_size){
+  m_image_size = image_size;
+}
+
+boost::shared_ptr<LensDistortion>
+RPCLensDistortion::copy() const {
+  return boost::shared_ptr<RPCLensDistortion>(new RPCLensDistortion(*this));
+}
+
+Vector2
+RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+  return RPCLensDistortion::compute_rpc(p, m_distortion);
+}
+
+Vector2
+RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << "RPCLensDistortion: Undistorted coefficients are not up to date.\n" );
+  
+  return RPCLensDistortion::compute_rpc(v, m_undistortion);
+}
+
+// Compute the RPC transform. Note that if the RPC coefficients are all zero,
+// the obtained transform is the identity.
+Vector2
+RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
+  
+  if (num_distortion_params != coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+
+  int i = 0;
+  double a00 = coeffs[i]; i++;
+  double a10 = coeffs[i]; i++;
+  double a01 = coeffs[i]; i++;
+  double a20 = coeffs[i]; i++;
+  double a11 = coeffs[i]; i++;
+  double a02 = coeffs[i]; i++;
+  double a30 = coeffs[i]; i++;
+  double a21 = coeffs[i]; i++;
+  double a12 = coeffs[i]; i++;
+  double a03 = coeffs[i]; i++;
+  double a40 = coeffs[i]; i++;
+  double a31 = coeffs[i]; i++;
+  double a22 = coeffs[i]; i++;
+  double a13 = coeffs[i]; i++;
+  double a04 = coeffs[i]; i++;
+
+  double b10 = coeffs[i]; i++;
+  double b01 = coeffs[i]; i++;
+  double b20 = coeffs[i]; i++;
+  double b11 = coeffs[i]; i++;
+  double b02 = coeffs[i]; i++;
+  double b30 = coeffs[i]; i++;
+  double b21 = coeffs[i]; i++;
+  double b12 = coeffs[i]; i++;
+  double b03 = coeffs[i]; i++;
+  double b40 = coeffs[i]; i++;
+  double b31 = coeffs[i]; i++;
+  double b22 = coeffs[i]; i++;
+  double b13 = coeffs[i]; i++;
+  double b04 = coeffs[i]; i++;
+
+  double c00 = coeffs[i]; i++;
+  double c10 = coeffs[i]; i++;
+  double c01 = coeffs[i]; i++;
+  double c20 = coeffs[i]; i++;
+  double c11 = coeffs[i]; i++;
+  double c02 = coeffs[i]; i++;
+  double c30 = coeffs[i]; i++;
+  double c21 = coeffs[i]; i++;
+  double c12 = coeffs[i]; i++;
+  double c03 = coeffs[i]; i++;
+  double c40 = coeffs[i]; i++;
+  double c31 = coeffs[i]; i++;
+  double c22 = coeffs[i]; i++;
+  double c13 = coeffs[i]; i++;
+  double c04 = coeffs[i]; i++;
+
+  double d10 = coeffs[i]; i++;
+  double d01 = coeffs[i]; i++;
+  double d20 = coeffs[i]; i++;
+  double d11 = coeffs[i]; i++;
+  double d02 = coeffs[i]; i++;
+  double d30 = coeffs[i]; i++;
+  double d21 = coeffs[i]; i++;
+  double d12 = coeffs[i]; i++;
+  double d03 = coeffs[i]; i++;
+  double d40 = coeffs[i]; i++;
+  double d31 = coeffs[i]; i++;
+  double d22 = coeffs[i]; i++;
+  double d13 = coeffs[i]; i++;
+  double d04 = coeffs[i]; i++;
+
+  if (size_t(i) != coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+  
+  double x = p[0];
+  double y = p[1];
+
+  // Note how we add 1.0 to a10 and a01.
+  
+  double x_corr =
+    (a00 + (1.0+a10)*x + a01*y + a20*x*x + a11*x*y + a02*y*y +
+     a30*x*x*x + a21*x*x*y + a12*x*y*y + a03*y*y*y +
+     (a40*x*x*x*x + a31*x*x*x*y + a22*x*x*y*y + a13*x*y*y*y + + a04*y*y*y*y)/10000 ) /
+      (1 + b10*x + b01*y + b20*x*x + b11*x*y + b02*y*y +
+       b30*x*x*x + b21*x*x*y + b12*x*y*y + b03*y*y*y +
+       (b40*x*x*x*x + b31*x*x*x*y + b22*x*x*y*y + b13*x*y*y*y + + b04*y*y*y*y)/10000 
+       );
+  
+  double y_corr =
+    (c00 + c10*x + (1.0 + c01)*y + c20*x*x + c11*x*y + c02*y*y +
+     c30*x*x*x + c21*x*x*y + c12*x*y*y + c03*y*y*y +
+     (c40*x*x*x*x + c31*x*x*x*y + c22*x*x*y*y + c13*x*y*y*y + + c04*y*y*y*y)/10000 
+     ) /
+      (1 + d10*x + d01*y + d20*x*x + d11*x*y + d02*y*y +
+       d30*x*x*x + d21*x*x*y + d12*x*y*y + d03*y*y*y+
+       (d40*x*x*x*x + d31*x*x*x*y + d22*x*x*y*y + d13*x*y*y*y + + d04*y*y*y*y)/10000 
+       );
+
+  return Vector2(x_corr, y_corr);
+}
+
+void RPCLensDistortion::write(std::ostream & os) const {
+
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << "RPCLensDistortion: Undistorted coefficients are not up to date.\n" );
+
+  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
+  // because otherwise the RPC model can return wrong results which confuse
+  // bundle adjustment. 
+  write_param_vec("image_size", os, m_image_size);
+  write_param_vec("distortion_coeffs", os, m_distortion);
+  write_param_vec("undistortion_coeffs", os, m_undistortion);
+}
+
+void RPCLensDistortion::read(std::istream & is) {
+
+  m_image_size.set_size(2);
+  m_distortion.set_size(num_distortion_params);
+  m_undistortion.set_size(num_distortion_params);
+
+  read_param_vec("image_size", m_image_size.size(), is, m_image_size);
+  read_param_vec("distortion_coeffs", num_distortion_params, is, m_distortion);
+  read_param_vec("undistortion_coeffs", num_distortion_params, is, m_undistortion);
+
+  m_can_undistort = true; 
+}
+
+void RPCLensDistortion::scale( double scale ) {
+  m_distortion *= scale;
+  m_undistortion *= scale;
+}
+
+
+
+
 
 
 

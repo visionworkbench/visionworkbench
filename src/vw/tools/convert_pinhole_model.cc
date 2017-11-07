@@ -17,7 +17,7 @@
 
 /// Tool to generate a new pinhole camera model that approximates an existing model.
 /// - The only current usage is to swap from one model with slow point-to-pixel performance
-///   to a TSAI model with fast point-to-pixel performance.
+///   to a TsaiLensDistortion or BrownConradyDistortion with fast point-to-pixel performance.
 
 
 #ifdef _MSC_VER
@@ -32,7 +32,6 @@
 #include <vw/Image/Interpolation.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/CameraUtilities.h>
 
 #include <iostream>
@@ -41,13 +40,11 @@
 namespace po = boost::program_options;
 
 using namespace vw;
-using vw::camera::PinholeModel;
-using vw::camera::LensDistortion;
-
+using namespace vw::camera;
 
 int main( int argc, char *argv[] ) {
 
-  std::string image_file_name, output_file_name, camera_file_name;
+  std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing;
 
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
@@ -59,6 +56,8 @@ int main( int argc, char *argv[] ) {
                       "Explicitly specify the camera file")
     ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
                        "Sample distance used for approximating the distortion model")
+    ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
+                      "Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, RPCLensDistortion.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
                       "Specify the output file");
   po::positional_options_description p;
@@ -86,18 +85,33 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
   
-
   try {
     // Get the size of the input image
     boost::shared_ptr<vw::DiskImageResource> image_in(vw::DiskImageResource::open(image_file_name));
     Vector2i image_size(image_in->format().cols, image_in->format().rows);
-
+    
     printf("Loading camera model file: %s\n", camera_file_name.c_str());
     PinholeModel camera_model(camera_file_name);
-
-    double error = update_pinhole_for_fast_point2pixel(camera_model, image_size, sample_spacing);
-    std::cout << "Approximation error = " << error << std::endl;
-
+    
+    //double error;
+    if (output_model_type == "TsaiLensDistortion") {
+      //error =
+      update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>
+	(camera_model, image_size, sample_spacing);
+    }else if (output_model_type == "BrownConradyDistortion") {
+      //error =
+      update_pinhole_for_fast_point2pixel<BrownConradyDistortion, BrownConradyDistortion::num_distortion_params>
+        (camera_model, image_size, sample_spacing);
+    } else if (output_model_type == "RPCLensDistortion") {
+      //error =
+      update_pinhole_for_fast_point2pixel<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+	(camera_model, image_size, sample_spacing);
+    }else{
+      vw_out() << "Unsupported output model type: " << output_model_type << "\n";
+      return 1;
+    }
+    
+    //std::cout << "Approximation error = " << error << std::endl;
     printf("Writing output model: %s\n", output_file_name.c_str());
     camera_model.write(output_file_name);
   }

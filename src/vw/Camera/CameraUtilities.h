@@ -39,92 +39,39 @@
 namespace vw {
 namespace camera {
 
-// TODO: Move code into a .cc file!
-
 /// Load a pinhole camera model of any supported type
-inline boost::shared_ptr<vw::camera::CameraModel>
-load_pinhole_camera_model(std::string const& path){
-
-  std::string lcase_file = boost::to_lower_copy(path);
-  if (boost::ends_with(lcase_file,".cahvore") ) {
-    return boost::shared_ptr<vw::camera::CameraModel>( new vw::camera::CAHVOREModel(path) );
-  } else if (boost::ends_with(lcase_file,".cahvor") ||
-             boost::ends_with(lcase_file,".cmod"  )   ) {
-    return boost::shared_ptr<vw::camera::CameraModel>( new vw::camera::CAHVORModel(path) );
-  } else if ( boost::ends_with(lcase_file,".cahv") ||
-              boost::ends_with(lcase_file,".pin" )   ) {
-    return boost::shared_ptr<vw::camera::CameraModel>( new vw::camera::CAHVModel(path) );
-  } else if ( boost::ends_with(lcase_file,".pinhole") ||
-              boost::ends_with(lcase_file,".tsai"   )   ) {
-    return boost::shared_ptr<vw::camera::CameraModel>( new vw::camera::PinholeModel(path) );
-  } else {
-    vw::vw_throw(vw::ArgumentErr() << "PinholeStereoSession: unsupported camera file type.\n");
-  }
-}
-
+boost::shared_ptr<vw::camera::CameraModel> load_pinhole_camera_model(std::string const& path);
 
 /// Load a pinhole, CAHV, CAHVOR, or CAHVORE model and convert to CAHV.
-inline boost::shared_ptr<vw::camera::CAHVModel>
+boost::shared_ptr<vw::camera::CAHVModel>
 load_cahv_pinhole_camera_model(std::string const& image_path,
-                               std::string const& camera_path){
-  // Get the image size
-  vw::DiskImageView<float> disk_image(image_path);
-  vw::Vector2i image_size(disk_image.cols(), disk_image.rows());
-
-  // Load the appropriate camera model object and if necessary
-  // convert it to the CAHVModel type.
-  std::string lcase_file = boost::to_lower_copy(camera_path);
-  boost::shared_ptr<vw::camera::CAHVModel> cahv(new vw::camera::CAHVModel);
-  if (boost::ends_with(lcase_file, ".cahvore") ) {
-    vw::camera::CAHVOREModel cahvore(camera_path);
-    *(cahv.get()) = vw::camera::linearize_camera(cahvore, image_size, image_size);
-  } else if (boost::ends_with(lcase_file, ".cahvor")  ||
-             boost::ends_with(lcase_file, ".cmod"  )   ) {
-    vw::camera::CAHVORModel cahvor(camera_path);
-    *(cahv.get()) = vw::camera::linearize_camera(cahvor, image_size, image_size);
-
-  } else if ( boost::ends_with(lcase_file, ".cahv") ||
-              boost::ends_with(lcase_file, ".pin" )) {
-    *(cahv.get()) = vw::camera::CAHVModel(camera_path);
-
-  } else if ( boost::ends_with(lcase_file, ".pinhole") ||
-              boost::ends_with(lcase_file, ".tsai"   )   ) {
-    // The CAHV class is constructed from a Pinhole model.
-    vw::camera::PinholeModel left_pin(camera_path);
-    *(cahv.get()) = vw::camera::strip_lens_distortion(left_pin);
-
-  } else {
-    vw_throw(vw::ArgumentErr() << "load_cahv_pinhole_camera_model - unsupported camera file type.\n");
-  }
-
-  return cahv;
-}
-
-
-/// Class to use with the LevenbergMarquardt solver to optimize the parameters of a TSAI lens
+                               std::string const& camera_path);
+ 
+/// Class to use with the LevenbergMarquardt solver to optimize the parameters of a desired lens
 ///  to match the passed in pairs of undistorted (input) and distorted (output) points.
-struct TsaiLensOptimizeFunctor :  public math::LeastSquaresModelBase<TsaiLensOptimizeFunctor> {
+template <class DistModelT, int NumModelParamsT>
+struct DistortionOptimizeFunctor :  public math::LeastSquaresModelBase< DistortionOptimizeFunctor<DistModelT, NumModelParamsT> > {
   typedef Vector<double> result_type;
-  typedef Vector4 domain_type;
+  typedef Vector<double, NumModelParamsT> domain_type;
   typedef Matrix<double> jacobian_type;
 
   const camera::PinholeModel& m_cam;
-  const std::vector<Vector2>& m_raw_coords;
+  const std::vector<Vector2>& m_undist_coords;
   
   /// Init the object with the pinhole model and the list of undistorted image coordinates.
   /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row) 
   ///    must be passed to the solver function.
-  TsaiLensOptimizeFunctor(const camera::PinholeModel& cam, const std::vector<Vector2>& raw_coords)
-    : m_cam(cam), m_raw_coords(raw_coords) {}
+  DistortionOptimizeFunctor(const camera::PinholeModel& cam, const std::vector<Vector2>& undist_coords)
+    : m_cam(cam), m_undist_coords(undist_coords) {}
   
   /// Return a Vector<double> of all the distorted pixel coordinates.
   inline result_type operator()( domain_type const& x ) const {
-    TsaiLensDistortion lens(x); // Construct lens distortion model with given parameters
+    DistModelT lens(x); // Construct lens distortion model with given parameters
     result_type        out_vec;
     
-    out_vec.set_size(m_raw_coords.size()*2);
-    for (size_t i=0; i<m_raw_coords.size(); ++i) {
-      Vector2 loc = lens.distorted_coordinates(m_cam, m_raw_coords[i]);
+    out_vec.set_size(m_undist_coords.size()*2);
+    for (size_t i=0; i<m_undist_coords.size(); ++i) {
+      Vector2 loc = lens.distorted_coordinates(m_cam, m_undist_coords[i]);
       out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
       out_vec[2*i+1] = loc[1];
     }
@@ -132,15 +79,44 @@ struct TsaiLensOptimizeFunctor :  public math::LeastSquaresModelBase<TsaiLensOpt
   }
 }; // End class LensOptimizeFunctor
 
+/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion.
+template <class DistModelT, int NumModelParamsT>
+struct UndistortionOptimizeFunctor :  public math::LeastSquaresModelBase< UndistortionOptimizeFunctor<DistModelT, NumModelParamsT> > {
+  typedef Vector<double> result_type;
+  typedef Vector<double, NumModelParamsT> domain_type;
+  typedef Matrix<double> jacobian_type;
 
-/// If necessary, replace the lens distortion model in the pinhole camera model
-///  with an approximated model that has a fast distortion function needed for
-///  quick computation of the point_to_pixel function.
-/// - Does not replace the camera if the approximation error is too high.
-/// - Returns the approximation error.
-inline
-double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
-                                         int sample_spacing=50) {
+  const camera::PinholeModel& m_cam;
+  const std::vector<Vector2>& m_dist_coords;
+  
+  /// Init the object with the pinhole model and the list of undistorted image coordinates.
+  /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row) 
+  ///    must be passed to the solver function.
+  UndistortionOptimizeFunctor(const camera::PinholeModel& cam, const std::vector<Vector2>& dist_coords)
+    : m_cam(cam), m_dist_coords(dist_coords) {}
+  
+  /// Return a Vector<double> of all the distorted pixel coordinates.
+  inline result_type operator()( domain_type const& x ) const {
+    DistModelT lens;
+    lens.set_undistortion_parameters(x); // Construct lens distortion model with given parameters
+    result_type        out_vec;
+    
+    out_vec.set_size(m_dist_coords.size()*2);
+    for (size_t i=0; i< m_dist_coords.size(); ++i) {
+      Vector2 loc = lens.undistorted_coordinates(m_cam, m_dist_coords[i]);
+      out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
+      out_vec[2*i+1] = loc[1];
+    }
+    return out_vec;
+  }
+}; // End class LensOptimizeFunctor
+
+// A very analogous function to
+// update_pinhole_for_fast_point2pixel. This one computes the
+// undistortion coefficients.  Only applicable for RPC.
+template<class DistModelT, int NumModelParamsT>
+double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
+                            int sample_spacing=50) {
 
   // Get info on existing distortion model
   const vw::camera::LensDistortion* input_distortion = pin_model.lens_distortion();
@@ -148,10 +124,125 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if ((lens_name == "NULL") || (lens_name == "TSAI") || (lens_name == "AdjustableTSAI"))
-    return 0;
+  if (lens_name != "RPC")  
+    vw_throw(ArgumentErr() << "Undistortion can only be computed for RPC.\n");
+  
+  // Get input camera information
+  const double pixel_pitch = pin_model.pixel_pitch();
 
-  // Otherwise we will try to approximate the input lens with a TSAI lens model.
+  // Generate a set of point pairs
+  std::vector<Vector2> distorted_coords;
+  Vector<double> undistorted_coords;
+  int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
+  int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
+  int num_coords = num_rows*num_cols;
+  distorted_coords.resize(num_coords);
+  undistorted_coords.set_size(num_coords*2);
+
+  // TODO: Need to get boxes of where the RPC model is valid!!!
+  
+  int index = 0;
+  for (int r=0; r<num_rows; ++r) {
+    int row = r*sample_spacing;
+    for (int c=0; c<num_cols; ++c) {
+      int col = c*sample_spacing;
+
+      // TODO: Need more care below to fill up the domain of validity!!!
+      // Generate an distorted/undistorted point pair using the input model.
+      // - Note that the pixel pairs need to be corrected for pitch here.
+      Vector2 undist_pixel = Vector2(col, row) * pixel_pitch;
+      Vector2 dist_pixel   = input_distortion->distorted_coordinates(pin_model, undist_pixel);
+      //std::cout << "Undist: " << undist_pixel << " ---- Distorted: " << dist_pixel << std::endl;
+
+      distorted_coords[index] = dist_pixel;
+      // Pack these points into 1D vector alternating col,row      
+      undistorted_coords[2*index  ] = undist_pixel[0]; 
+      undistorted_coords[2*index+1] = undist_pixel[1];
+      ++index;
+    }
+  } // End loop through sampled pixels
+
+  // Now solve for a complementary lens distortion scheme
+
+  // Init solver object with the distorted coordinates
+  UndistortionOptimizeFunctor<DistModelT, NumModelParamsT> solver_model(pin_model,
+                                                                       distorted_coords);
+  int status;
+  Vector<double, NumModelParamsT> seed; // Start with all zeros (no distortion)
+
+  // Solve for the best new model params that give us the undistorted coordinates from the distorted coordinates.
+  Vector<double, NumModelParamsT> undist_params
+    = math::levenberg_marquardt(solver_model, seed, undistorted_coords, status);
+
+  // Make a copy of the model
+  boost::shared_ptr<LensDistortion> dist_copy = input_distortion->copy();
+  DistModelT new_model = *((DistModelT*)(dist_copy.get()));
+
+  // Set the new undistortion params
+  new_model.set_undistortion_parameters(undist_params);
+  new_model.set_image_size(image_size);
+  
+  // Check the error
+  double diff = 0;
+  for (size_t i=0; i < distorted_coords.size(); ++i) {
+    Vector2 undistorted        = new_model.undistorted_coordinates(pin_model, distorted_coords[i]);
+    Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
+    //std::cout << "New: " << undistorted << " ---- Actual: " << actual_undistorted
+    //          << " error: " << norm_2(undistorted - actual_undistorted) << std::endl;
+    diff += norm_2(undistorted - actual_undistorted);
+  }
+  diff /= static_cast<double>(distorted_coords.size());
+  vw_out() << "RPC undistortion approximation mean error: " << diff << ".\n";
+  
+  pin_model.set_lens_distortion(new_model);
+  return diff;
+} 
+  
+// For RPC, must always ensure the undistortion coefficients are up to date.
+// This function will be used before saving or displaying a pinhole model.
+inline void update_rpc_undistortion(PinholeModel const& model){
+
+  const vw::camera::LensDistortion* distortion = model.lens_distortion();
+  std::string lens_name = distortion->name();
+  if (lens_name != "RPC")
+    return;
+  
+  // Have to cast away the const-ness. Not nice. Only happens for RPC
+  // distortion.
+  PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
+  RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
+    (const_cast<LensDistortion*>(distortion));
+  if (rpc_dist == NULL) 
+    vw_throw( ArgumentErr() << "PinholeModel::expecting an RPC model." );
+
+  // Only update this if we have to
+  if (!rpc_dist->can_undistort()) 
+    compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+      (*pin_ptr, rpc_dist->image_size());
+}
+
+/// If necessary, replace the lens distortion model in the pinhole camera model
+///  with an approximated model that has a fast distortion function needed for
+///  quick computation of the point_to_pixel function.
+/// - Does not replace the camera if the approximation error is too high.
+/// - Returns the approximation error.
+template<class DistModelT, int NumModelParamsT>
+double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
+                                           int sample_spacing=50) {
+
+  // Get info on existing distortion model
+  const vw::camera::LensDistortion* input_distortion = pin_model.lens_distortion();
+  std::string lens_name = input_distortion->name();
+  
+  // Check for all of the models that currently support a fast distortion function.
+  // - The other models use a solver for this function, greatly increasing the run time.
+  if ( (lens_name == "NULL") || (lens_name == "TSAI") || (lens_name == "AdjustableTSAI")
+       || (lens_name == "RPC") ) {
+    //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
+    return 0;
+  }
+  
+  // Otherwise we will try to approximate the input lens with a lens model of type DistModelT.
   
   // Get input camera information
   const double pixel_pitch = pin_model.pixel_pitch();
@@ -173,13 +264,14 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
 
       // Generate an undistorted/distorted point pair using the input model.
       // - Note that the pixel pairs need to be corrected for pitch here.
-      Vector2 raw_pixel       = Vector2(col, row) * pixel_pitch;
-      Vector2 distorted_pixel = input_distortion->distorted_coordinates(pin_model, raw_pixel);
-      //std::cout << "Raw: " << raw_pixel << " ---- Distorted: " << distorted_pixel << std::endl;
+      Vector2 undist_pixel = Vector2(col, row) * pixel_pitch;
+      Vector2 dist_pixel   = input_distortion->distorted_coordinates(pin_model, undist_pixel);
+      //std::cout << "Undist: " << undist_pixel << " ---- Distorted: " << dist_pixel << std::endl;
 
-      undistorted_coords[index    ] = raw_pixel;
-      distorted_coords  [2*index  ] = distorted_pixel[0]; // Pack these points into 1D vector alternating col,row
-      distorted_coords  [2*index+1] = distorted_pixel[1];
+      undistorted_coords[index    ] = undist_pixel;
+      // Pack these points into 1D vector alternating col,row
+      distorted_coords  [2*index  ] = dist_pixel[0];
+      distorted_coords  [2*index+1] = dist_pixel[1];
       ++index;
     }
   } // End loop through sampled pixels
@@ -187,35 +279,45 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   // Now solve for a complementary lens distortion scheme
 
   // Init solver object with the undistorted coordinates
-  TsaiLensOptimizeFunctor solver_model(pin_model, undistorted_coords);
+  DistortionOptimizeFunctor<DistModelT, NumModelParamsT> solver_model(pin_model,
+                                                                       undistorted_coords);
   int status;
-  Vector4 seed; // Start with all zeros (no distortion)
-  // Solve for the best tsai params that give us the distorted coordinates from the undistorted coordinates.
-  Vector4 tsai_params = math::levenberg_marquardt( solver_model, seed, distorted_coords, status);
+  Vector<double, NumModelParamsT> seed; // Start with all zeros (no distortion)
+
+  // Solve for the best new model params that give us the distorted coordinates from the undistorted coordinates.
+  Vector<double, NumModelParamsT> model_params
+    = math::levenberg_marquardt(solver_model, seed, distorted_coords, status);
   
   // Check the error
-  TsaiLensDistortion new_tsai(tsai_params);
+  DistModelT new_model(model_params);
   double diff = 0;
   for (size_t i=0; i<undistorted_coords.size(); ++i) {
-    Vector2 distorted        = new_tsai.distorted_coordinates(pin_model, undistorted_coords[i]);
+    Vector2 distorted        = new_model.distorted_coordinates(pin_model, undistorted_coords[i]);
     Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
     //std::cout << "New: " << distorted << " ---- Actual: " << actual_distorted << std::endl;
     diff += norm_2(distorted - actual_distorted);
   }
   diff /= static_cast<double>(undistorted_coords.size());
-  VW_OUT(InfoMessage, "camera") << "Approximated " << lens_name 
-      << " distortion model using a Tsai model with " << diff << " mean error.\n";
+  vw_out() << "Approximated " << lens_name << " distortion model using a model of type " <<
+    new_model.name() <<  " with a " << diff << " mean error.\n";
 
   // If the approximation is not very good, keep the original model and warn
   //  the user that things might take a long time.
   const double MAX_ERROR = 0.3;
   if (diff > MAX_ERROR)
     vw_out() << "Warning: Failed to approximate reverse pinhole lens distortion, using the original (slow) model.\n";
-  else
-    pin_model.set_lens_distortion(new_tsai);
+  else {
+
+    pin_model.set_lens_distortion(new_model);
+
+    // This must be invoked here, when we know the image size
+    if (new_model.name() == "RPC") 
+      compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+	(pin_model, image_size, sample_spacing);
+  }
+  
   return diff;
 } // End function update_pinhole_for_fast_point2pixel
-
 
 // Given two epipolar rectified CAHV camera models and input images,
 // get the aligned version of the images suitable for writing to disk and processing.
@@ -284,23 +386,19 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
     //  that will be much faster in the camera_transform calls below.
     Vector2i left_image_size (left_image_in.cols(),  left_image_in.rows() );
     Vector2i right_image_size(right_image_in.cols(), right_image_in.rows());
-    update_pinhole_for_fast_point2pixel(left_pin,  left_image_size );
-    update_pinhole_for_fast_point2pixel(right_pin, right_image_size);
+    update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(left_pin,  left_image_size );
+    update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(right_pin, right_image_size);
     
     left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv,
-                                       edge_ext, BilinearInterpolation()
-                                       );
+                                       edge_ext, BilinearInterpolation());
     right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv,
-                                       edge_ext, BilinearInterpolation()
-                                       );
+                                       edge_ext, BilinearInterpolation());
 
   } else {
     vw_throw(ArgumentErr() << "get_epipolar_transformed_images: unsupported camera file type.\n");
   }
 
 }
-
-
 
 /// Adjust a pair of epipolar-aligned cameras so that the input images are fully
 /// contained in the transformed images.
@@ -378,8 +476,8 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
   //  that will be much faster in the camera_transform calls below.
   Vector2i left_image_in_size (left_image_in.cols(),  left_image_in.rows() );
   Vector2i right_image_in_size(right_image_in.cols(), right_image_in.rows());
-  update_pinhole_for_fast_point2pixel(left_pin,  left_image_in_size );
-  update_pinhole_for_fast_point2pixel(right_pin, right_image_in_size);
+  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(left_pin,  left_image_in_size );
+  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(right_pin, right_image_in_size);
   
   // Transform the images
   left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,

@@ -82,7 +82,6 @@ namespace camera {
     
     /// Used to scale distortion w/ image size
     std::vector<std::string> distortion_param_names() const { return m_distortion_param_names; }
-    
   }; // End class LensDistortion
 
   /// Write any derived lens distortion class to the stream.
@@ -132,10 +131,10 @@ namespace camera {
   ///  are the same they could be used in a different way than the TSAI model!!!
 
   class TsaiLensDistortion : public LensDistortion {
-    Vector4 m_distortion;
   public:
+    static const size_t num_distortion_params = 4;
     TsaiLensDistortion();
-    TsaiLensDistortion(Vector4 const& params);
+    TsaiLensDistortion(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
     virtual boost::shared_ptr<LensDistortion> copy() const;
@@ -149,6 +148,9 @@ namespace camera {
     virtual std::string name      () const { return class_name(); }
     virtual void        scale( double scale );
     void init_distortion_param_names();
+
+  private:
+    Vector<double, num_distortion_params> m_distortion;
   };
 
   /// Brown Conrady Distortion
@@ -162,11 +164,8 @@ namespace camera {
   /// Close-Range Camera Calibration - D.C. Brown,
   ///   Photogrammetric Engineering, pages 855-866, Vol. 37, No. 8, 1971
   class BrownConradyDistortion : public LensDistortion {
-    Vector2 m_principal_point;      // xp, yp
-    Vector3 m_radial_distortion;    // K1, K2, K3
-    Vector2 m_centering_distortion; // P1, P2
-    double  m_centering_angle;      // phi
   public:
+    static const size_t num_distortion_params = 8;
     BrownConradyDistortion();
     BrownConradyDistortion( Vector<double> const& params );
     BrownConradyDistortion( Vector<double> const& principal,
@@ -186,6 +185,11 @@ namespace camera {
     virtual std::string name      () const { return class_name();   }
     virtual void        scale( double /*scale*/ );
     void init_distortion_param_names();
+  private:
+    Vector2 m_principal_point;      // xp, yp
+    Vector3 m_radial_distortion;    // K1, K2, K3
+    Vector2 m_centering_distortion; // P1, P2
+    double  m_centering_angle;      // phi
   };
 
   /// Adjustable Tsai Distortion
@@ -267,9 +271,52 @@ namespace camera {
     void init_distortion_param_names();
   };
   
-  
-  
 
+  // RPC lens distortion, ratio of polynomials of degree 4 with certain coeffcients.
+  // Note that undistortion is done analogously using a second set of coefficients.
+  // The function compute_undistortion() which also has access to the Pinhole
+  // class computes this approximation. It has great fitting power. To avoid
+  // over-fitting if optimizing these coefficients, need to use a lot of
+  // data, ideally also lidar or some kind of ground truth.
+  class RPCLensDistortion : public LensDistortion {
+    Vector2i m_image_size;
+    Vector<double> m_distortion, m_undistortion;
+    
+    // This variable signals that the coefficients needed to perform undistortion
+    // have been computed.
+    bool m_can_undistort;
+
+    // Compute the RPC model with given coeffcient at the given point
+    Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
+
+  public:
+    
+    static const size_t num_distortion_params = 15 + 15 + 14 + 14;
+
+    RPCLensDistortion();
+    RPCLensDistortion(Vector<double> const& params);
+    virtual Vector<double> distortion_parameters() const;
+    Vector<double> undistortion_parameters() const;
+    Vector2i image_size() const { return m_image_size;} 
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    void set_undistortion_parameters(Vector<double> const& params);
+    void set_image_size(Vector2i const& image_size);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
+
+    static  std::string class_name()       { return "RPC"; }
+    virtual std::string name      () const { return class_name();  }
+
+    virtual void scale( double scale );
+
+    bool can_undistort() const { return m_can_undistort; }
+  };
+  
 }} // namespace vw::camera
 
 #endif // __VW_CAMERA_LENSDISTORTION_H__

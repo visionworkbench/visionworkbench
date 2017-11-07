@@ -51,14 +51,15 @@ include_HEADERS =   \
   $(lapack_headers)
 
 libvwCamera_la_SOURCES = \
-  CAHVModel.cc      \
-  CAHVOREModel.cc   \
-  CAHVORModel.cc    \
-  CameraModel.cc    \
-  Exif.cc           \
-  ExifData.cc       \
-  LensDistortion.cc \
-  PinholeModel.cc   \
+  CAHVModel.cc       \
+  CAHVOREModel.cc    \
+  CAHVORModel.cc     \
+  CameraModel.cc     \
+  CameraUtilities.cc \
+  Exif.cc            \
+  ExifData.cc        \
+  LensDistortion.cc  \
+  PinholeModel.cc    \
   $(lapack_sources)
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
