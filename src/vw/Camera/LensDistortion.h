@@ -316,6 +316,51 @@ namespace camera {
 
     bool can_undistort() const { return m_can_undistort; }
   };
+
+  // RPC lens distortion, ratio of polynomials of degree 4 with certain coeffcients.
+  // Note that undistortion is done analogously using a second set of coefficients.
+  // The function compute_undistortion() which also has access to the Pinhole
+  // class computes this approximation. It has great fitting power. To avoid
+  // over-fitting if optimizing these coefficients, need to use a lot of
+  // data, ideally also lidar or some kind of ground truth.
+  class RPCLensDistortion5 : public LensDistortion {
+    Vector2i m_image_size;
+    Vector<double> m_distortion, m_undistortion;
+    
+    // This variable signals that the coefficients needed to perform undistortion
+    // have been computed.
+    bool m_can_undistort;
+
+    // Compute the RPC model with given coeffcient at the given point
+    Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
+
+  public:
+    
+    static const size_t num_distortion_params = 21 + 21 + 20 + 20;
+
+    RPCLensDistortion5();
+    RPCLensDistortion5(Vector<double> const& params);
+    virtual Vector<double> distortion_parameters() const;
+    Vector<double> undistortion_parameters() const;
+    Vector2i image_size() const { return m_image_size;} 
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    void set_undistortion_parameters(Vector<double> const& params);
+    void set_image_size(Vector2i const& image_size);
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os);
+
+    static  std::string class_name()       { return "RPC5"; }
+    virtual std::string name      () const { return class_name();  }
+
+    virtual void scale( double scale );
+
+    bool can_undistort() const { return m_can_undistort; }
+  };
   
 }} // namespace vw::camera
 

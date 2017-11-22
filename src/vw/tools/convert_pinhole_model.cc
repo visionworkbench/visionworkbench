@@ -57,7 +57,7 @@ int main( int argc, char *argv[] ) {
     ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
                        "Sample distance used for approximating the distortion model")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
-                      "Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, RPCLensDistortion.")
+                      "Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, RPCLensDistortion, RPCLensDistortion5.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
                       "Specify the output file");
   po::positional_options_description p;
@@ -105,6 +105,10 @@ int main( int argc, char *argv[] ) {
     } else if (output_model_type == "RPCLensDistortion") {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+	(camera_model, image_size, sample_spacing);
+    } else if (output_model_type == "RPCLensDistortion5") {
+      //error =
+      update_pinhole_for_fast_point2pixel<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
 	(camera_model, image_size, sample_spacing);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";

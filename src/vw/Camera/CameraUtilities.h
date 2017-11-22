@@ -124,7 +124,7 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if (lens_name != "RPC")  
+  if (lens_name != "RPC" && lens_name != "RPC5")  
     vw_throw(ArgumentErr() << "Undistortion can only be computed for RPC.\n");
   
   // Get input camera information
@@ -201,25 +201,41 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
 // For RPC, must always ensure the undistortion coefficients are up to date.
 // This function will be used before saving or displaying a pinhole model.
 // This function is not in the .cc file as it is related to the above.
-  inline void update_rpc_undistortion(PinholeModel const& model){
+inline void update_rpc_undistortion(PinholeModel const& model){
 
   const vw::camera::LensDistortion* distortion = model.lens_distortion();
   std::string lens_name = distortion->name();
-  if (lens_name != "RPC")
+  if (lens_name != "RPC" && lens_name != "RPC5")
     return;
   
   // Have to cast away the const-ness. Not nice. Only happens for RPC
   // distortion.
   PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
-  RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
-    (const_cast<LensDistortion*>(distortion));
-  if (rpc_dist == NULL) 
-    vw_throw( ArgumentErr() << "PinholeModel::expecting an RPC model." );
 
-  // Only update this if we have to
-  if (!rpc_dist->can_undistort()) 
-    compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
-      (*pin_ptr, rpc_dist->image_size());
+  if (lens_name == "RPC") {
+    RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
+      (const_cast<LensDistortion*>(distortion));
+    if (rpc_dist == NULL) 
+      vw_throw( ArgumentErr() << "PinholeModel::expecting an RPC model." );
+    
+    // Only update this if we have to
+    if (!rpc_dist->can_undistort()) 
+      compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+        (*pin_ptr, rpc_dist->image_size());
+  }
+
+  if (lens_name == "RPC5") {
+    RPCLensDistortion5 * rpc_dist = dynamic_cast<RPCLensDistortion5*>
+      (const_cast<LensDistortion*>(distortion));
+    if (rpc_dist == NULL) 
+      vw_throw( ArgumentErr() << "PinholeModel::expecting an RPC5 model." );
+    
+    // Only update this if we have to
+    if (!rpc_dist->can_undistort()) 
+      compute_undistortion<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
+        (*pin_ptr, rpc_dist->image_size());
+  }
+  
 }
 
 /// If necessary, replace the lens distortion model in the pinhole camera model
@@ -238,7 +254,7 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
   if ( (lens_name == "NULL") || (lens_name == "TSAI") || (lens_name == "AdjustableTSAI")
-       || (lens_name == "RPC") ) {
+       || (lens_name == "RPC") || (lens_name == "RPC5")  ) {
     //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
     return 0;
   }
@@ -314,6 +330,9 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
     // This must be invoked here, when we know the image size
     if (new_model.name() == "RPC") 
       compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+	(pin_model, image_size, sample_spacing);
+    if (new_model.name() == "RPC5") 
+      compute_undistortion<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
 	(pin_model, image_size, sample_spacing);
   }
   

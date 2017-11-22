@@ -115,14 +115,16 @@ void read_param_vec(std::string const& param_name, size_t param_len,
   double dval = 0.0;
   size_t count = 0;
   while (iss >> dval) {
-    if (count >= param_len ) 
+    if (count >= param_len ) {
       vw_throw( IOErr() << "Book-keeping failure in reading LensDistortion.\n" );
+    }
     vals[count] = dval;
     count++;
   }
     
-  if (count != param_len) 
+  if (count != param_len) {
     vw_throw( IOErr() << "Book-keeping failure in reading LensDistortion.\n" );
+  }
 }
 
 // Write a line of the form: name = a b c
@@ -778,6 +780,239 @@ void RPCLensDistortion::scale( double scale ) {
   m_distortion *= scale;
   m_undistortion *= scale;
 }
+
+
+
+
+
+
+
+
+
+// ======== RPCLensDistortion5 ========
+
+RPCLensDistortion5::RPCLensDistortion5(){
+  m_distortion.set_size(num_distortion_params);
+  m_undistortion.set_size(num_distortion_params);
+  m_can_undistort = false;
+}
+
+RPCLensDistortion5::RPCLensDistortion5(Vector<double> const& params) 
+  : m_distortion(params) {
+  if (m_distortion.size() != num_distortion_params)
+    vw_throw( IOErr() << "RPCLensDistortion5: Incorrect number of parameters was passed in.");
+  m_can_undistort = false;
+}
+
+Vector<double>
+RPCLensDistortion5::distortion_parameters() const { 
+  return m_distortion; 
+}
+
+Vector<double>
+RPCLensDistortion5::undistortion_parameters() const { 
+  return m_undistortion; 
+}
+
+void RPCLensDistortion5::set_distortion_parameters(Vector<double> const& params) {
+  m_distortion = params;
+  m_can_undistort = false; // Need to update the undistortion
+  if (m_distortion.size() != num_distortion_params)
+    vw_throw( IOErr() << "RPCLensDistortion5: Incorrect number of parameters was passed in.");
+}
+
+void RPCLensDistortion5::set_undistortion_parameters(Vector<double> const& params) {
+  m_undistortion = params;
+  m_can_undistort = true;
+}
+
+void RPCLensDistortion5::set_image_size(Vector2i const& image_size){
+  m_image_size = image_size;
+}
+
+boost::shared_ptr<LensDistortion>
+RPCLensDistortion5::copy() const {
+  return boost::shared_ptr<RPCLensDistortion5>(new RPCLensDistortion5(*this));
+}
+
+Vector2
+RPCLensDistortion5::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+  return RPCLensDistortion5::compute_rpc(p, m_distortion);
+}
+
+Vector2
+RPCLensDistortion5::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << "RPCLensDistortion5: Undistorted coefficients are not up to date.\n" );
+  
+  return RPCLensDistortion5::compute_rpc(v, m_undistortion);
+}
+
+// Compute the RPC transform. Note that if the RPC coefficients are all zero,
+// the obtained transform is the identity.
+Vector2
+RPCLensDistortion5::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
+  
+  if (num_distortion_params != coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion5.\n" );
+
+  int i = 0;
+  double a00 = coeffs[i]; i++;
+  double a10 = coeffs[i]; i++;
+  double a01 = coeffs[i]; i++;
+  double a20 = coeffs[i]; i++;
+  double a11 = coeffs[i]; i++;
+  double a02 = coeffs[i]; i++;
+  double a30 = coeffs[i]; i++;
+  double a21 = coeffs[i]; i++;
+  double a12 = coeffs[i]; i++;
+  double a03 = coeffs[i]; i++;
+  double a40 = coeffs[i]; i++;
+  double a31 = coeffs[i]; i++;
+  double a22 = coeffs[i]; i++;
+  double a13 = coeffs[i]; i++;
+  double a04 = coeffs[i]; i++;
+
+  double b10 = coeffs[i]; i++;
+  double b01 = coeffs[i]; i++;
+  double b20 = coeffs[i]; i++;
+  double b11 = coeffs[i]; i++;
+  double b02 = coeffs[i]; i++;
+  double b30 = coeffs[i]; i++;
+  double b21 = coeffs[i]; i++;
+  double b12 = coeffs[i]; i++;
+  double b03 = coeffs[i]; i++;
+  double b40 = coeffs[i]; i++;
+  double b31 = coeffs[i]; i++;
+  double b22 = coeffs[i]; i++;
+  double b13 = coeffs[i]; i++;
+  double b04 = coeffs[i]; i++;
+
+  double c00 = coeffs[i]; i++;
+  double c10 = coeffs[i]; i++;
+  double c01 = coeffs[i]; i++;
+  double c20 = coeffs[i]; i++;
+  double c11 = coeffs[i]; i++;
+  double c02 = coeffs[i]; i++;
+  double c30 = coeffs[i]; i++;
+  double c21 = coeffs[i]; i++;
+  double c12 = coeffs[i]; i++;
+  double c03 = coeffs[i]; i++;
+  double c40 = coeffs[i]; i++;
+  double c31 = coeffs[i]; i++;
+  double c22 = coeffs[i]; i++;
+  double c13 = coeffs[i]; i++;
+  double c04 = coeffs[i]; i++;
+
+  double d10 = coeffs[i]; i++;
+  double d01 = coeffs[i]; i++;
+  double d20 = coeffs[i]; i++;
+  double d11 = coeffs[i]; i++;
+  double d02 = coeffs[i]; i++;
+  double d30 = coeffs[i]; i++;
+  double d21 = coeffs[i]; i++;
+  double d12 = coeffs[i]; i++;
+  double d03 = coeffs[i]; i++;
+  double d40 = coeffs[i]; i++;
+  double d31 = coeffs[i]; i++;
+  double d22 = coeffs[i]; i++;
+  double d13 = coeffs[i]; i++;
+  double d04 = coeffs[i]; i++;
+
+  double a50 = coeffs[i]; i++;
+  double a41 = coeffs[i]; i++;
+  double a32 = coeffs[i]; i++;
+  double a23 = coeffs[i]; i++;
+  double a14 = coeffs[i]; i++;
+  double a05 = coeffs[i]; i++;
+
+  double b50 = coeffs[i]; i++;
+  double b41 = coeffs[i]; i++;
+  double b32 = coeffs[i]; i++;
+  double b23 = coeffs[i]; i++;
+  double b14 = coeffs[i]; i++;
+  double b05 = coeffs[i]; i++;
+
+  double c50 = coeffs[i]; i++;
+  double c41 = coeffs[i]; i++;
+  double c32 = coeffs[i]; i++;
+  double c23 = coeffs[i]; i++;
+  double c14 = coeffs[i]; i++;
+  double c05 = coeffs[i]; i++;
+
+  double d50 = coeffs[i]; i++;
+  double d41 = coeffs[i]; i++;
+  double d32 = coeffs[i]; i++;
+  double d23 = coeffs[i]; i++;
+  double d14 = coeffs[i]; i++;
+  double d05 = coeffs[i]; i++;
+
+  if (size_t(i) != coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion5.\n" );
+  
+  double x = p[0];
+  double y = p[1];
+
+  // Note how we add 1.0 to a10 and a01.
+  
+  double x_corr =
+    (a00 + (1.0+a10)*x + a01*y + a20*x*x + a11*x*y + a02*y*y +
+     a30*x*x*x + a21*x*x*y + a12*x*y*y + a03*y*y*y +
+     (a40*x*x*x*x + a31*x*x*x*y + a22*x*x*y*y + a13*x*y*y*y + + a04*y*y*y*y)/10000 +
+     (a50*x*x*x*x*x + a41*x*x*x*x*y + a32*x*x*x*y*y + a23*x*x*y*y*y + + a14*x*y*y*y*y + a05*y*y*y*y*y)/1000000 
+     ) /
+      (1 + b10*x + b01*y + b20*x*x + b11*x*y + b02*y*y +
+       b30*x*x*x + b21*x*x*y + b12*x*y*y + b03*y*y*y +
+       (b40*x*x*x*x + b31*x*x*x*y + b22*x*x*y*y + b13*x*y*y*y + + b04*y*y*y*y)/10000 +
+       (b50*x*x*x*x*x + b41*x*x*x*x*y + b32*x*x*x*y*y + b23*x*x*y*y*y + + b14*x*y*y*y*y + b05*y*y*y*y*y)/1000000 
+       );
+  
+  double y_corr =
+    (c00 + c10*x + (1.0 + c01)*y + c20*x*x + c11*x*y + c02*y*y +
+     c30*x*x*x + c21*x*x*y + c12*x*y*y + c03*y*y*y +
+     (c40*x*x*x*x + c31*x*x*x*y + c22*x*x*y*y + c13*x*y*y*y + + c04*y*y*y*y)/10000 +
+     (c50*x*x*x*x*x + c41*x*x*x*x*y + c32*x*x*x*y*y + c23*x*x*y*y*y + + c14*x*y*y*y*y + c05*y*y*y*y*y)/1000000 
+     ) /
+      (1 + d10*x + d01*y + d20*x*x + d11*x*y + d02*y*y +
+       d30*x*x*x + d21*x*x*y + d12*x*y*y + d03*y*y*y+
+       (d40*x*x*x*x + d31*x*x*x*y + d22*x*x*y*y + d13*x*y*y*y + + d04*y*y*y*y)/10000 +
+       (d50*x*x*x*x*x + d41*x*x*x*x*y + d32*x*x*x*y*y + d23*x*x*y*y*y + + d14*x*y*y*y*y + d05*y*y*y*y*y)/1000000 
+       );
+
+  return Vector2(x_corr, y_corr);
+}
+
+void RPCLensDistortion5::write(std::ostream & os) const {
+
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << "RPCLensDistortion5: Undistorted coefficients are not up to date.\n" );
+
+  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
+  // because otherwise the RPC model can return wrong results which confuse
+  // bundle adjustment. 
+  write_param_vec("image_size", os, m_image_size);
+  write_param_vec("distortion_coeffs", os, m_distortion);
+  write_param_vec("undistortion_coeffs", os, m_undistortion);
+}
+
+void RPCLensDistortion5::read(std::istream & is) {
+  
+  m_image_size.set_size(2);
+  m_distortion.set_size(num_distortion_params);
+  m_undistortion.set_size(num_distortion_params);
+
+  read_param_vec("image_size", m_image_size.size(), is, m_image_size);
+  read_param_vec("distortion_coeffs", num_distortion_params, is, m_distortion);
+  read_param_vec("undistortion_coeffs", num_distortion_params, is, m_undistortion);
+
+  m_can_undistort = true; 
+}
+
+void RPCLensDistortion5::scale( double scale ) {
+  m_distortion *= scale;
+  m_undistortion *= scale;
+}
+
 
 
 

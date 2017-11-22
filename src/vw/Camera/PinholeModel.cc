@@ -278,12 +278,19 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return true;
   }
 
+  // Match RPC5 before matching RPC
+  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion5::class_name()))
+      != std::string::npos) {
+    m_distortion.reset(new RPCLensDistortion5());
+    return true;
+  }
+  
   if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name()))
       != std::string::npos) {
     m_distortion.reset(new RPCLensDistortion());
     return true;
   }
-
+  
   // TSAI is the default model.  Older files which do not have a specifier string
   //  contain TSAI parameters.
   m_distortion.reset(new TsaiLensDistortion());
