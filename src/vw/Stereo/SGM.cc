@@ -184,36 +184,32 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   ImageView<uint8> full_search_image(m_disp_bound_image.cols(), m_disp_bound_image.rows());
 
   
-  // Restrict search range to the right image mask
-  // - This could be improved and more efficient!
-  std::vector<int> min_valid_rows, max_valid_rows;
+  // Find the upper and lower bounds of valid pixels in the right mask image.
+  int min_valid_right_row = right_image_mask->rows()-1;
+  int max_valid_right_row = 0;
   if (right_mask_valid) {
 
-    // Set up an array of column boundaries to look at later.
     int num_cols = m_disp_bound_image.cols();
-    min_valid_rows.resize(num_cols);
-    max_valid_rows.resize(num_cols);
 
+    // For each column, find the maximum and minimum valid rows.
     for (int c=0; c<num_cols; ++c) {
-      min_valid_rows[c] = -1; // Default values
-      max_valid_rows[c] = -2;
       
-      // For this column, find the maximum and minimum valid rows.
-      for (int i=right_image_mask->rows()-1; i>0; --i) {
+      for (int i=right_image_mask->rows()-1; i>0; --i) { // Top to bottom
         if (right_image_mask->operator()(c, i) > 0) {
-          max_valid_rows[c] = i;
-          break;
+          if (i > max_valid_right_row)
+            max_valid_right_row = i;
+          break; // Stop at first pixel
         }
       } // End first row loop
-      if (max_valid_rows[c] > 0) { // Only do if there are valid pixels
-        for (int i=0; i<right_image_mask->rows(); ++i) {
-          if (right_image_mask->operator()(c, i) > 0) {
-            min_valid_rows[c] = i;
-            break;
-          }
-        } // End second row loop
-      }
+      for (int i=0; i<right_image_mask->rows(); ++i) { // Bottom to top
+        if (right_image_mask->operator()(c, i) > 0) {
+          if (i < min_valid_right_row)
+            min_valid_right_row = i;
+          break; // Stop at first pixel
+        }
+      } // End second row loop
     } // End col loop
+    
   } // End mask valid case
 
   // Loop through the output disparity image and compute a search range for each pixel
@@ -222,22 +218,22 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   PixelMask<Vector2i> input_disp;
   Vector4i bounds;
   double missing_prev_disp_count = 0;
-  for (int r=0; r<m_disp_bound_image.rows(); ++r) {
+  for (int r=0; r<m_disp_bound_image.rows(); ++r) { // Start loop through rows
     r_in = r / SCALE_UP;
     
-    int min_valid_column = -1, max_valid_column = -2;
+    int min_valid_right_column = -1, max_valid_right_column = -2;
     if (right_mask_valid) {
       // For this row, find the maximum and minimum valid columns.
       for (int i=right_image_mask->cols()-1; i>0; --i) {
         if (right_image_mask->operator()(i, r) > 0) {
-          max_valid_column = i;
+          max_valid_right_column = i;
           break;
         }
       }
-      if (max_valid_column > 0) { // Only do if there are valid pixels
+      if (max_valid_right_column > 0) { // Only do if there are valid pixels
         for (int i=0; i<right_image_mask->cols(); ++i) {
           if (right_image_mask->operator()(i, r) > 0) {
-            min_valid_column = i;
+            min_valid_right_column = i;
             break;
           }
         }
@@ -260,7 +256,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       } // End right mask handling
 */
       // If the left mask is invalid here, flag the pixel as invalid.
-      // - Do this second so that our right image pixel tracker stays up to date.
+      //// - Do this second so that our right image pixel tracker stays up to date.
       if (left_mask_valid && (left_image_mask->operator()(c,r) == 0)) {
         m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
         ++percent_masked;
@@ -328,16 +324,20 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       if (right_mask_valid) {
 
         // Get the intersection of the valid pixels and the offsets
-        BBox2i valid_region(Vector2i(min_valid_column, min_valid_rows[c]),
-                            Vector2i(max_valid_column, max_valid_rows[c]));
+        BBox2i valid_region(Vector2i(min_valid_right_column, min_valid_right_row),
+                            Vector2i(max_valid_right_column, max_valid_right_row));
         BBox2i valid_offsets = valid_region - Vector2i(c,r);
         BBox2i full_offsets(Vector2i(bounds[0], bounds[1]),
                             Vector2i(bounds[2], bounds[3]));
-        //std::cout << "valid_region = " << valid_region.min() << ", " << valid_region.max() << std::endl;
-        //std::cout << "valid_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
-        //std::cout << "full_offsets = " << full_offsets.min() << ", " << full_offsets.max() << std::endl;
+        //bool DD = ((r == 1557) && (c == 250));
+        //if (DD) {
+        //  std::cout << "valid_region = " << valid_region.min() << ", " << valid_region.max() << std::endl;
+        //  std::cout << "valid_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
+        //  std::cout << "full_offsets = " << full_offsets.min() << ", " << full_offsets.max() << std::endl;
+        //}
         valid_offsets.crop(full_offsets);
-        //std::cout << "crop_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
+        //if (DD)
+        //  std::cout << "crop_offsets = " << valid_offsets.min() << ", " << valid_offsets.max() << std::endl;
 
         // Case with no valid offsets available
         if ((valid_offsets.min()[0] > valid_offsets.max()[0]) ||
@@ -1046,7 +1046,7 @@ SemiGlobalMatcher::AccumCostType
 SemiGlobalMatcher::get_accum_vector_min(int col, int row,
                                         DisparityType &dx, DisparityType &dy,
                                         AccumCostType &second,
-                                        double &mean, int &count) {
+                                        double &mean, int &count, int &worst) {
   // Get the array
   AccumCostType const* vec = get_accum_vector(col, row);
   const int num_disp = get_num_disparities(col, row);
@@ -1055,18 +1055,20 @@ SemiGlobalMatcher::get_accum_vector_min(int col, int row,
   int min_index = 0;
   AccumCostType value = std::numeric_limits<AccumCostType>::max();
   second = value;
+  worst  = 0;
   for (int i=0; i<num_disp; ++i) {
     mean += static_cast<double>(vec[i]);
     if (vec[i] < value) {
       second = value;
-      value = vec[i];
+      value  = vec[i];
       min_index = i;
     }
     else {
       if (vec[i] < second)
         second = vec[i];
     }
-    
+    if (vec[i] > worst) // Track the worst score
+      worst = vec[i];
   }
   mean /= static_cast<double>(num_disp);
 
@@ -1271,14 +1273,21 @@ SemiGlobalMatcher::create_disparity_view() {
   //  select the disparity with the lowest accumulated cost.
   //Timer timer("Calculate Disparity Minimum");
   
-  //ImageView<int> wto_intervals(m_num_output_cols, m_num_output_rows);
-  //ImageView<int> second_intervals(m_num_output_cols, m_num_output_rows);
-  //ImageView<int> min_counts(m_num_output_cols, m_num_output_rows);
+  /*ImageView<int> wto_intervals   (m_num_output_cols, m_num_output_rows);
+  ImageView<int> second_intervals(m_num_output_cols, m_num_output_rows);
+  ImageView<int> max_intervals   (m_num_output_cols, m_num_output_rows);
+  ImageView<int> min_counts      (m_num_output_cols, m_num_output_rows);
+  ImageView<int> wto_ratio       (m_num_output_cols, m_num_output_rows);
+  ImageView<int> raw             (m_num_output_cols, m_num_output_rows);
+  ImageView<int> cost_second     (m_num_output_cols, m_num_output_rows);
+  ImageView<int> cost_ratio      (m_num_output_cols, m_num_output_rows);
+  ImageView<int> best_costs      (m_num_output_cols, m_num_output_rows);
+  ImageView<int> worst_costs     (m_num_output_cols, m_num_output_rows);*/
   
   DisparityType dx, dy;
-  //AccumCostType best, second;
-  //double mean;
-  //int count = 0;
+  AccumCostType best, second;
+  double mean;
+  int count = 0, worst=0;
   int min_index=0;
   std::vector<AccumCostType> accum_buffer;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
@@ -1292,16 +1301,23 @@ SemiGlobalMatcher::create_disparity_view() {
         invalidate(disparity(i,j));
 
         // DEBUG        
-        //wto_intervals(i,j) = 0;
-        //second_intervals(i,j) = 0;
-        //min_counts(i,j) = 0;
+        /*wto_intervals(i,j) = 0;
+        max_intervals(i,j) = 0;
+        second_intervals(i,j) = 0;
+        min_counts(i,j) = 0;
+        wto_ratio(i,j) = 0;
+        raw(i,j) = 0;
+        cost_second(i,j) = 0;
+        cost_ratio(i,j) = 0;
+        best_costs(i,j) = 0;
+        worst_costs(i,j) = 0;*/
         continue;
       }
 
       // Valid pixel, choose the best disparity.
 
       // TODO: DEPRECATED function
-      //best = get_accum_vector_min(i, j, dx, dy, second, mean, count); // DEBUG
+      //best = get_accum_vector_min(i, j, dx, dy, second, mean, count, worst); // DEBUG
       
       bool debug = false;//((j==2937) && (i >= 4635) && (i <= 4645));
       const Vector4i bounds = m_disp_bound_image(i, j);
@@ -1314,10 +1330,43 @@ SemiGlobalMatcher::create_disparity_view() {
       disparity(i,j) = DisparityImage::pixel_type(dx, dy);
       
       // DEBUG
-      //wto_intervals(i,j) = floor((double)mean - best);
-      //second_intervals(i,j) = second - best;
-      //min_counts(i,j) = count;
-
+      /*
+      // Cost measurements
+      CostType min_cost = 255, second_cost=0, worst_cost = 0;
+      double mean_cost = 0;
+      CostType *cost_vec = get_cost_vector(i,j);
+      for (size_t n=0; n<num_disp; ++n) {
+        mean_cost += cost_vec[n];
+        if (cost_vec[n] < min_cost){
+          second_cost = min_cost;
+          min_cost = cost_vec[n];
+        }
+        else
+          if (cost_vec[n] < second_cost)
+            second_cost = cost_vec[n];
+        if (cost_vec[n] > worst_cost)
+          worst_cost = cost_vec[n];
+      }
+      mean_cost /= static_cast<double>(num_disp);
+      cost_second(i,j) = second_cost - min_cost;
+      if (min_cost > 0)
+        cost_ratio(i,j) = floor(mean_cost /  (double)min_cost);
+      else
+        cost_ratio(i,j) = 0;
+      best_costs (i,j) = min_cost;
+      worst_costs(i,j) = worst_cost;
+      
+      // Accumulation measurements
+      wto_intervals(i,j) = floor(mean - (double)best);
+      second_intervals(i,j) = second - best;
+      max_intervals(i,j) = worst - best;
+      min_counts(i,j) = count;
+      if (best > 0)
+        wto_ratio(i,j) = floor(mean /  (double)best);
+      else
+        wto_ratio(i,j) = 0;
+      raw(i,j) = best;
+      */
 
       /*
       if ((i >= 15) && (i <= 15) && (j==40)) { // DEBUG!
@@ -1331,10 +1380,17 @@ SemiGlobalMatcher::create_disparity_view() {
       */
     }
   }
-  //std::cout << "Writing WTA diff image\n";
-  //write_image("wta_intervals.tif", wto_intervals);
-  //write_image("second_intervals.tif", second_intervals);
-  //write_image("min_counts.tif", min_counts);
+  /*std::cout << "Writing WTA diff image\n";
+  write_image("wta_intervals.tif",    wto_intervals);
+  write_image("second_intervals.tif", second_intervals);
+  write_image("max_intervals.tif",    max_intervals);
+  write_image("min_counts.tif",       min_counts);
+  write_image("wto_ratios.tif",       wto_ratio);
+  write_image("raw_scores.tif",       raw);
+  write_image("cost_second.tif",      cost_second);
+  write_image("cost_ratio.tif",       cost_ratio);
+  write_image("best_costs.tif",       best_costs);
+  write_image("worst_costs.tif",      worst_costs);*/
   
   vw_out(DebugMessage, "stereo") << "Finished creating integer disparity image.\n";
   return disparity;
@@ -1658,12 +1714,13 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
         sum += a*b*coeff;
       }
     }
-    sum /= static_cast<double>(count);
+    sum /= static_cast<double>(count); // Result is in the range: -1 to +1
 
     // Saturate the result
     if (sum > MAX_RESULT)
       return MAX_RESULT;
-    return static_cast<CostType>(floor(sum));
+    const double OFFSET = 128;
+    return static_cast<CostType>(sum*OFFSET + OFFSET); // Convert to 0-255 range.
   } // End normalized cross correlaton case
   
 

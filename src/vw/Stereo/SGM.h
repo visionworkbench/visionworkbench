@@ -274,7 +274,7 @@ private: // Functions
                                      DisparityType &dx, DisparityType &dy,
                                      AccumCostType &second,
                                      double &mean,
-                                     int &count);
+                                     int &count, int& worst);
 
   /// Select the best disparity index in the accumulation vector.
   /// - If needed, applies smoothing to the values in order to yield a single minimum value.
