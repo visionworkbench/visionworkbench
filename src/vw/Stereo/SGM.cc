@@ -182,12 +182,13 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   const Vector4i ZERO_SEARCH_AREA(0, 0, -1, -1);
 
   ImageView<uint8> full_search_image(m_disp_bound_image.cols(), m_disp_bound_image.rows());
-
   
   // Find the upper and lower bounds of valid pixels in the right mask image.
-  int min_valid_right_row = right_image_mask->rows()-1;
-  int max_valid_right_row = 0;
+  int min_valid_right_row = 0, max_valid_right_row = 0;
+
   if (right_mask_valid) {
+
+    min_valid_right_row = right_image_mask->rows()-1;
 
     int num_cols = m_disp_bound_image.cols();
 
@@ -239,7 +240,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         }
       }
     } // End mask column checking
-    
+
     for (int c=0; c<m_disp_bound_image.cols(); ++c) {
 /*
       // TODO: This will fail if not used with positive search ranges!!!!!!!!!!!!!!!!!!!!!!!
@@ -296,7 +297,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         }
         
       } // End prev disparity check
-      
+
       if (good_disparity) {
       
         // We are more confident in the prior disparity, search nearby.
@@ -318,7 +319,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         bounds = Vector4i(m_min_disp_x, m_min_disp_y, m_max_disp_x, m_max_disp_y);
         full_search_image(c,r) = 255;
       }
-      
+
       // Restrict search range to the right image mask
       // - This could be improved and more efficient!
       if (right_mask_valid) {
@@ -1398,40 +1399,6 @@ SemiGlobalMatcher::create_disparity_view() {
 
 
 
-// TODO: Clean up and move!
-class HistClass{
-
-public: // Functions
-  HistClass(int num_bins, double min, double max): m_num_bins(num_bins), m_min(min), m_max(max) {
-    m_data.assign(num_bins, 0);
-  };
-  
-  void add(double val) {
-    int bin = static_cast<int>(round( (m_num_bins - 1) * ( (val - m_min)/(m_max - m_min) ) ));
-    if ((bin < 0) || (bin >= m_num_bins)) {
-      std::cout << "Bad bin = " << bin << ", val = " << val << std::endl;
-    }
-    else
-      m_data[bin]++;
-  }
-  
-  double bin(int i) const {return m_data[i];}
-  
-  void write(std::string const& path) const {
-    std::ofstream f(path.c_str());
-    for (int i=0; i<m_num_bins; ++i) {
-      f << m_data[i] << std::endl;
-    }
-    f.close();
-  }
-  
-private: // Functions
-
-  int    m_num_bins;
-  double m_min, m_max;
-  std::vector<uint64> m_data;
-};
-
 // A number of proposed subpixel algorithms
 double linearFit(double x) {
   return x/2.0;
@@ -1532,7 +1499,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
   vw_out(DebugMessage, "stereo") << "Creating subpixel disparity image...\n";
   
   // DEBUG
-  //HistClass hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
+  //math::Histogram hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
   //std::ofstream rawFile("raw.csv");
   
   // For each element in the accumulated costs matrix, 
@@ -1622,8 +1589,8 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
       if (valid) {
         disparity(i,j) = p_type(dx+delta_x, dy+delta_y);
-        //hist_dx.add(delta_x);
-        //hist_dy.add(delta_y);
+        //hist_dx.add_value(delta_x);
+        //hist_dy.add_value(delta_y);
       }
       else {
         disparity(i,j) = p_type(dx, dy);
@@ -1639,8 +1606,8 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
   // Write these out for debugging/development
   //write_image( "subpixel_disp.tif", disparity );
-  //hist_dx.write("delta_x.csv");
-  //hist_dy.write("delta_y.csv");
+  //hist_dx.write_to_disk("delta_x.csv");
+  //hist_dy.write_to_disk("delta_y.csv");
   //rawFile.close();
   
   return disparity;

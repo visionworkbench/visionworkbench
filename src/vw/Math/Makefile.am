@@ -36,7 +36,7 @@ endif
 
 include_HEADERS = Geometry.h Vector.h Matrix.h BBox.h BBox.tcc Functions.h Functors.h	\
 		  Quaternion.h EulerAngles.h ConjugateGradient.h	\
-		  NelderMead.h Statistics.h DisjointSet.h		\
+		  NelderMead.h Statistics.h Statistics.tcc DisjointSet.h		\
 		  MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
 		  BresenhamLine.h GaussianClustering.h \
 		  RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)

@@ -17,6 +17,7 @@
 
 
 #include <gtest/gtest_VW.h>
+#include <boost/random.hpp>
 #include <vw/config.h>
 #include <vw/Math/Functors.h>
 
@@ -204,3 +205,19 @@ TEST(Functors, Fdim)     { TEST_BINARY_MATH_FUNCTOR(Fdim,3.0,2.0,1.0);
                            TEST_BINARY_MATH_FUNCTOR(Fdim,2.0,3.0,0.0); }
 
 #endif
+
+
+TEST(Functiors, Median) {
+  MedianAccumulator<double> median;
+
+  boost::mt19937 random_gen(42);
+  boost::cauchy_distribution<double> cauchy(35,80);
+  boost::variate_generator<boost::mt19937&,
+    boost::cauchy_distribution<double> > generator(random_gen, cauchy);
+
+  for ( uint16 i = 0; i < 50000; i++ )
+    median( generator() );
+
+  EXPECT_NEAR( median.value(), 35.0, 1.5 );
+}
+

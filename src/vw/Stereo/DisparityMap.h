@@ -24,6 +24,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/Statistics.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PerPixelViews.h>

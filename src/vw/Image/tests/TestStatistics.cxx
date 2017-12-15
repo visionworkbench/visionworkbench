@@ -511,14 +511,14 @@ TEST( Statistics, MedianChannel ) {
 
 TEST( Statistics, Histogram ) {
   
-  std::vector<double> hist;
+  vw::math::Histogram hist;
   int num_bins = 256;
   histogram(im8b, num_bins, hist);
 
-  EXPECT_EQ(hist[0],   2);
-  EXPECT_EQ(hist[24],  1);
-  EXPECT_EQ(hist[119], 2);
-  EXPECT_EQ(hist[255], 1);
+  EXPECT_EQ(hist.get_bin_value(  0), 2);
+  EXPECT_EQ(hist.get_bin_value( 24), 1);
+  EXPECT_EQ(hist.get_bin_value(119), 2);
+  EXPECT_EQ(hist.get_bin_value(255), 1);
 }
 
 TEST( Statistics, OptimalThreshold ) {

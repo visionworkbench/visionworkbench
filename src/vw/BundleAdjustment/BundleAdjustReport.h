@@ -32,6 +32,7 @@
 
 // Vision Workbench
 #include <vw/Core/Log.h>
+#include <vw/Math/Statistics.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/PointImageManipulation.h>

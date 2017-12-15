@@ -44,7 +44,7 @@
 #define __VW_IMAGE_STATISTICS_H__
 
 #include <boost/type_traits.hpp>
-
+#include <vw/Math/Statistics.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
@@ -405,7 +405,7 @@ namespace vw {
 
   // Find the histogram of an image. 
   template <class ViewT>
-  void histogram( const ImageViewBase<ViewT> &view, int num_bins, std::vector<double> &hist);
+  void histogram( const ImageViewBase<ViewT> &view, int num_bins, math::Histogram &hist);
 
 
   /// Find the min and max values in an image
@@ -416,10 +416,7 @@ namespace vw {
   /// Overload that takes precomputed min and max values
   template <class ViewT>
   void histogram( const ImageViewBase<ViewT> &view, int num_bins, double min_val, double max_val,
-                  std::vector<double> &hist);
-
-  /// Returns the histogram bin index corresponding to the specified percentile
-  inline size_t get_histogram_percentile(std::vector<double> const& hist, double percentile);
+                  math::Histogram &hist);
 
   // Find the optimal Otsu threshold for splitting a gray scale image
   // into black and white pixels.

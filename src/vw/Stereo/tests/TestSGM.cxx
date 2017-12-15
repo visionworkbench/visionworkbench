@@ -49,6 +49,7 @@ TEST( SGM, constant_offset ) {
   boost::shared_ptr<SemiGlobalMatcher> matcher_ptr;
   CostFunctionType cost_type = CENSUS_TRANSFORM;
   Vector2i search_buffer(4,4);
+
   SemiGlobalMatcher::DisparityImage result = calc_disparity_sgm(cost_type, left, right, 
                                                 BBox2i(0,0,left.cols(), left.rows()),
                                                 Vector2i(disp_x_range, disp_y_range),
