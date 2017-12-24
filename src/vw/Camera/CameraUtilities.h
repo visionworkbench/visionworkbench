@@ -114,7 +114,7 @@ struct UndistortionOptimizeFunctor :  public math::LeastSquaresModelBase< Undist
 // A very analogous function to
 // update_pinhole_for_fast_point2pixel. This one computes the
 // undistortion coefficients.  Only applicable for RPC.
-template<class DistModelT, int NumModelParamsT>
+template<class DistModelT>
 double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
                             int sample_spacing=50) {
 
@@ -124,7 +124,9 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if (lens_name != RPCLensDistortion::class_name() && lens_name != RPCLensDistortion5::class_name() && lens_name != RPCLensDistortion6::class_name())  
+  if (lens_name != RPCLensDistortion::class_name()  &&
+      lens_name != RPCLensDistortion5::class_name() &&
+      lens_name != RPCLensDistortion6::class_name())  
     vw_throw(ArgumentErr() << "Undistortion can only be computed for RPC models.\n");
   
   // Get input camera information
@@ -165,13 +167,14 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   // Now solve for a complementary lens distortion scheme
 
   // Init solver object with the distorted coordinates
-  UndistortionOptimizeFunctor<DistModelT, NumModelParamsT> solver_model(pin_model,
-                                                                       distorted_coords);
+  UndistortionOptimizeFunctor<DistModelT, DistModelT::num_distortion_params>
+    solver_model(pin_model, distorted_coords);
   int status;
-  Vector<double, NumModelParamsT> seed; // Start with all zeros (no distortion)
+  Vector<double, DistModelT::num_distortion_params> seed; // Start with all zeros (no distortion)
 
-  // Solve for the best new model params that give us the undistorted coordinates from the distorted coordinates.
-  Vector<double, NumModelParamsT> undist_params
+  // Solve for the best new model params that give us the undistorted
+  // coordinates from the distorted coordinates.
+  Vector<double, DistModelT::num_distortion_params> undist_params
     = math::levenberg_marquardt(solver_model, seed, undistorted_coords, status);
 
   // Make a copy of the model
@@ -222,7 +225,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+      compute_undistortion<RPCLensDistortion>
         (*pin_ptr, rpc_dist->image_size());
   }
 
@@ -235,7 +238,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
+      compute_undistortion<RPCLensDistortion5>
         (*pin_ptr, rpc_dist->image_size());
   }
   
@@ -248,7 +251,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion6, RPCLensDistortion6::num_distortion_params>
+      compute_undistortion<RPCLensDistortion6>
         (*pin_ptr, rpc_dist->image_size());
   }
 
@@ -350,13 +353,13 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
 
     // This must be invoked here, when we know the image size
     if (new_model.name() == RPCLensDistortion::class_name()) 
-      compute_undistortion<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
+      compute_undistortion<RPCLensDistortion>
 	(pin_model, image_size, sample_spacing);
     if (new_model.name() == RPCLensDistortion5::class_name()) 
-      compute_undistortion<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
+      compute_undistortion<RPCLensDistortion5>
 	(pin_model, image_size, sample_spacing);
     if (new_model.name() == RPCLensDistortion6::class_name()) 
-      compute_undistortion<RPCLensDistortion6, RPCLensDistortion6::num_distortion_params>
+      compute_undistortion<RPCLensDistortion6>
 	(pin_model, image_size, sample_spacing);
   }
   
