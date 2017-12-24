@@ -46,7 +46,9 @@ int main( int argc, char *argv[] ) {
 
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing;
-
+  
+  std::string output_types = std::string("Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, ") + RPCLensDistortion::class_name() + ", " + RPCLensDistortion5::class_name() + ", " + RPCLensDistortion6::class_name() + ".";
+  
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
     ("help,h",        "Display this help message")
@@ -57,7 +59,7 @@ int main( int argc, char *argv[] ) {
     ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
                        "Sample distance used for approximating the distortion model")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
-                      "Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, RPCLensDistortion, RPCLensDistortion5.")
+     output_types.c_str())
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
                       "Specify the output file");
   po::positional_options_description p;
@@ -102,13 +104,17 @@ int main( int argc, char *argv[] ) {
       //error =
       update_pinhole_for_fast_point2pixel<BrownConradyDistortion, BrownConradyDistortion::num_distortion_params>
         (camera_model, image_size, sample_spacing);
-    } else if (output_model_type == "RPCLensDistortion") {
+    } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
 	(camera_model, image_size, sample_spacing);
-    } else if (output_model_type == "RPCLensDistortion5") {
+    } else if (output_model_type == RPCLensDistortion5::class_name()) {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
+	(camera_model, image_size, sample_spacing);
+    } else if (output_model_type == RPCLensDistortion6::class_name()) {
+      //error =
+      update_pinhole_for_fast_point2pixel<RPCLensDistortion6, RPCLensDistortion6::num_distortion_params>
 	(camera_model, image_size, sample_spacing);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";

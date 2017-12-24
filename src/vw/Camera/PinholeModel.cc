@@ -278,15 +278,22 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return true;
   }
 
+  // Match RPC6 before matching RPC
+  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion6::class_name())) 
+        != std::string::npos) ) {
+    m_distortion.reset(new RPCLensDistortion6());
+    return true;
+  }
+
   // Match RPC5 before matching RPC
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion5::class_name()))
-      != std::string::npos) {
+  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion5::class_name())) 
+        != std::string::npos) ) {
     m_distortion.reset(new RPCLensDistortion5());
     return true;
   }
   
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name()))
-      != std::string::npos) {
+  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
+        != std::string::npos) ) {
     m_distortion.reset(new RPCLensDistortion());
     return true;
   }
