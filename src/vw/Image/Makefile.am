@@ -27,6 +27,7 @@ include_HEADERS = \
   AlgorithmFunctions.tcc \
   Algorithms.h \
   Algorithms.tcc \
+  Algorithms2.h \
   AntiAliasing.h \
   BlobIndex.h \
   BlockProcessor.h \
