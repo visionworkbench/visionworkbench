@@ -49,7 +49,11 @@ IntType round_and_clamp(double val){
 // for the given output type and cast to this output type.
 template <class ImageT, class OutputPixelT>
 class RoundAndClamp: public ImageViewBase< RoundAndClamp<ImageT, OutputPixelT> >{
-  ImageT const& m_img;
+
+  // This must be a standalone image, rather than a reference. I think VW won't
+  // make a whole new copy of the data here. Putting here a reference causes
+  // a crash.
+  ImageT m_img;
 
 public:
   RoundAndClamp( ImageT const& img): m_img(img){}
