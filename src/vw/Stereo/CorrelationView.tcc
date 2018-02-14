@@ -90,7 +90,7 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   
   
   int32 max_upscaling = 1 << max_pyramid_levels;
-  std::cout << "max_upscaling = " << max_upscaling << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "max_upscaling = " << max_upscaling << std::endl;
   BBox2i left_global_region, right_global_region;
   // Region in the left image is the input bbox, expanded by half the kernel size
   //  to make sure that we have full base of support for the stereo correlation.
@@ -528,8 +528,8 @@ prerasterize(BBox2i const& bbox) const {
           SearchParam params(left_region, zone.disparity_range());
           double next_elapsed = m_seconds_per_op * params.search_volume();
           if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-            vw_out() << "Tile: " << bbox << " reached timeout: "
-                     << m_corr_timeout << " s" << std::endl;
+            vw_out(DebugMessage,"stereo") << "Tile: " << bbox << " reached timeout: "
+                                          << m_corr_timeout << " s" << std::endl;
             break;
           }else
             estim_elapsed += next_elapsed;
@@ -563,8 +563,8 @@ prerasterize(BBox2i const& bbox) const {
             SearchParam params2(right_region, zone.disparity_range());
             double next_elapsed = m_seconds_per_op * params2.search_volume();
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-              vw_out() << "Tile: " << bbox << " reached timeout: "
-                       << m_corr_timeout << " s" << std::endl;
+              vw_out(DebugMessage,"stereo") << "Tile: " << bbox << " reached timeout: "
+                                            << m_corr_timeout << " s" << std::endl;
               break;
             }else{
               estim_elapsed += next_elapsed;

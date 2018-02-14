@@ -34,7 +34,7 @@
 namespace vw {
 
   // *******************************************************************
-  // Compount type traits classes.
+  // Compound type traits classes.
   // *******************************************************************
 
   // Default compound type traits templates.  Compound types are mainly used
