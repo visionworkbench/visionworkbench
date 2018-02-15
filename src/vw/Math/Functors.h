@@ -416,6 +416,52 @@ namespace vw {
       }
     };
 
+    // Compute the normalized median absolute deviation:
+    // nmad = 1.4826 * median(abs(X - median(X)))  
+    // Note: This function modifies the input!
+    template <class T>
+    T destructive_nmad(std::vector<T> & vec){
+      int len = vec.size();
+      VW_ASSERT(len, ArgumentErr() << "nmad: no valid samples.");
+      
+      // Find the median. This sorts the vector, but that is not a problem.
+      T median = destructive_median(vec);
+      
+      for (size_t it = 0; it < vec.size(); it++)
+        vec[it] = std::abs(vec[it] - median);
+      
+      median = destructive_median(vec);
+      
+      median *= 1.4826;
+      
+      return median;
+    }
+  
+    // Compute the percentile using
+    // https://en.wikipedia.org/wiki/Percentile#The_nearest-rank_method
+    // Note: This function modifies the input!
+    template <class T>
+    T destructive_percentile(std::vector<T> & vec, double percentile){
+      
+      int len = vec.size();
+      VW_ASSERT(len > 0, ArgumentErr() << "percentile: no valid samples.");
+      VW_ASSERT(percentile >= 0 && percentile <= 100.0,
+                ArgumentErr() << "Percentile must be between 0 and 100.");
+
+      // Sorting is vital
+      std::sort(vec.begin(), vec.end());
+
+      int index = ceil((percentile/100.0) * double(len));
+
+      // Account for the fact that in C++ indices start from 0 
+      index--;
+
+      if (index < 0) index = 0;
+      if (index >= len) index = len-1;
+        
+      return vec[index];
+    }
+
     /// Computes the mean of the values to which it is applied.
     template <class ValT>
     class MeanAccumulator : public ReturnFixedType<void> {
@@ -440,6 +486,7 @@ namespace vw {
 
 
     /// Computes the standard deviation of the values to which it is applied.
+    /// This implementation normalizes by num_samples, not num_samples - 1.
     template <class ValT>
     class StdDevAccumulator : public ReturnFixedType<void> {
       typedef typename CompoundChannelCast<ValT,double>::type accum_type;

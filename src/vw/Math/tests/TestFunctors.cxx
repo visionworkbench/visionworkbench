@@ -88,15 +88,74 @@ TEST(Functors, Conj) {
 }
 
 TEST(Functors, Median){
-  MedianAccumulator<double> M;
-  M(0);
-  M(1);
+  MedianAccumulator<double> V;
+  V(8);
+  V(9);
+  V(3);
+  V(5);
 
-  // The median of 0 and 1 is 0.5.
-  EXPECT_TRUE( M.value() == 0.5 );
+  // The median better be 6.5
+  EXPECT_TRUE( V.value() == 6.5 );
 }
 
-#define TEST_UNARY_MATH_FUNCTOR(func,arg,result)                                                          \
+TEST(Functors, StdDev){
+  StdDevAccumulator<double> V;
+  V(8);
+  V(9);
+  V(3);
+  V(5);
+
+  EXPECT_TRUE( V.value() == 2.3848480035423640366 );
+}
+
+TEST(Functors, DestructiveMedian){
+
+  std::vector<double> V;
+  V.push_back(8);
+  V.push_back(9);
+  V.push_back(3);
+  V.push_back(5);
+
+  // The median better be 6.5
+  EXPECT_TRUE( destructive_median(V) == 6.5 );
+}
+
+TEST(Functors, DestructiveNmad){
+
+  std::vector<double> V;
+  V.push_back(8);
+  V.push_back(9);
+  V.push_back(3);
+  V.push_back(5);
+
+  EXPECT_TRUE( destructive_nmad(V) == 2.9652 );
+}
+
+TEST(Functors, DestructivePercentile){
+
+  std::vector<double> V, W;
+  V.push_back(8);
+  V.push_back(9);
+  V.push_back(3);
+  V.push_back(5);
+
+  // Start with new W each time, as it will be messed up
+
+  W = V; EXPECT_TRUE( destructive_percentile(V,   0) == 3 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  20) == 3 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  25) == 3 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  26) == 5 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  45) == 5 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  50) == 5 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  51) == 8 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  70) == 8 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  75) == 8 );
+  W = V; EXPECT_TRUE( destructive_percentile(V,  76) == 9 );
+  W = V; EXPECT_TRUE( destructive_percentile(V, 100) == 9 );
+  
+}
+
+#define TEST_UNARY_MATH_FUNCTOR(func,arg,result)                        \
   do {                                                                                                    \
     Arg##func##Functor f;                                                                                 \
     EXPECT_NEAR( (result), f((float)(arg)),       DELTA );                                                        \
