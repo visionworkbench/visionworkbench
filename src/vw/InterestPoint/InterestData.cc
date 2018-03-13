@@ -144,7 +144,7 @@ namespace ip {
 
     // Error Handling
     if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << match_file << "\" as Match file." );
+      vw_throw( IOErr() << "Failed to open match file: " << match_file );
 
     uint64 size1, size2;
     f.read((char*)&size1, sizeof(uint64));
