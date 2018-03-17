@@ -47,21 +47,22 @@ int main( int argc, char *argv[] ) {
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing;
   
-  std::string output_types = std::string("Specify the output distortion model. Default: TsaiLensDistortion. Also supported: BrownConradyDistortion, ") + RPCLensDistortion::class_name() + ", " + RPCLensDistortion5::class_name() + ", " + RPCLensDistortion6::class_name() + ".";
+  std::string output_types = std::string("Specify the output distortion model. Options: TsaiLensDistortion, BrownConradyDistortion, ") + RPCLensDistortion::class_name() + ", " + RPCLensDistortion5::class_name() + ", " + RPCLensDistortion6::class_name() + ".";
   
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
-    ("help,h",        "Display this help message")
+    ("help,h",        "Display this help message.")
     ("input-file",    po::value<std::string>(&image_file_name), 
-                      "Explicitly specify the input file")
+                      "Explicitly specify the input file.")
     ("camera-file",    po::value<std::string>(&camera_file_name), 
-                      "Explicitly specify the camera file")
+                      "Explicitly specify the camera file.")
     ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
-                       "Sample distance used for approximating the distortion model")
+                       "Pick one out of this many consecutive pixels to sample.")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
      output_types.c_str())
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
-                      "Specify the output file");
+     "Specify the output file. It is expected to have the .tsai extension.");
+  
   po::positional_options_description p;
   p.add("input-file",  1);
   p.add("camera-file", 1);

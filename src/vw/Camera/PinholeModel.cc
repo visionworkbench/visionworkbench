@@ -245,12 +245,12 @@ void PinholeModel::read(std::string const& filename) {
   // If there was no line containing the distortion model name (true for old files)
   //  then we need to back up to before the distortion parameters begin in the file.
   if (!found_name)
-    cam_file.seekg(lens_start ,std::ios_base::beg);    
+    cam_file.seekg(lens_start, std::ios_base::beg);    
 
   // The lens distortion class knows how to parse the rest of the input stream.
   m_distortion->read(cam_file);
 
-  cam_file.close();    
+  cam_file.close();
 }
 
 bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
@@ -344,6 +344,7 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file << m_distortion->name() << std::endl;
   cam_file << *m_distortion;
   cam_file.close();
+
 }
 
 
