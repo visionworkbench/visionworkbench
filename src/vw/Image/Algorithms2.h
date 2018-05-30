@@ -45,71 +45,26 @@ IntType round_and_clamp(double val){
   return static_cast<IntType>(val);
 }
 
-// Pick the first channel of an image. Round its values, then clamp to the bounds
-// for the given output type and cast to this output type.
-template <class ImageT, class OutputPixelT>
-class RoundAndClamp: public ImageViewBase< RoundAndClamp<ImageT, OutputPixelT> >{
-
-  // This must be a standalone image, rather than a reference. I think VW won't
-  // make a whole new copy of the data here. Putting here a reference causes
-  // a crash.
-  ImageT m_img;
-
+// Apply this to a an image pixel. If more than one channel, use the first. 
+template<class IntType, class InputType>
+class RoundAndClamp: public ReturnFixedType<IntType> {
 public:
-  RoundAndClamp( ImageT const& img): m_img(img){}
-
-  typedef typename ImageT::pixel_type InputPixelT;
-  typedef OutputPixelT pixel_type;
-  typedef OutputPixelT result_type;
-  typedef ProceduralPixelAccessor<RoundAndClamp> pixel_accessor;
-
-  inline int32 cols() const { return m_img.cols(); }
-  inline int32 rows() const { return m_img.rows(); }
-  inline int32 planes() const { return 1; }
-
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-
-  inline result_type operator()( double/*i*/, double/*j*/, int32/*p*/ = 0 ) const {
-    vw_throw(NoImplErr() << "RoundAndClamp::operator()(...) is not implemented");
-    return result_type();
-  }
-
-  typedef CropView<ImageView<result_type> > prerasterize_type;
-  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
-
-    ImageView<result_type> tile(bbox.width(), bbox.height());
-    for (int col = bbox.min().x(); col < bbox.max().x(); col++){
-      for (int row = bbox.min().y(); row < bbox.max().y(); row++){
-
-        // I could not figure out in reasonable time how to select a channel
-        // from a pixel which can be single or compound. Hence use the
-        // functionality for selecting a channel from an image.
-        ImageView<InputPixelT> A(1, 1);
-        A(0, 0) = m_img(col, row);
-
-        // First cast to double, as the values of A could be out of range
-        // for the OutputPixelT data type.
-        ImageView<double> B = select_channel(A, 0);
-
-        // Now round, clamp, and cast. 
-        tile(col - bbox.min().x(), row - bbox.min().y() ) = round_and_clamp<OutputPixelT>(B(0, 0));
-      }
-    }
+  IntType operator()(InputType const& v) const {
     
-    return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
-  }
-
-  template <class DestT>
-  inline void rasterize(DestT const& dest, BBox2i bbox) const {
-    vw::rasterize(prerasterize(bbox), dest, bbox);
+    // I could not figure out in reasonable time how to select a channel
+    // from a pixel which can be single or compound. Hence use the
+    // functionality for selecting a channel from an image.
+    ImageView<InputType> A(1, 1);
+    A(0, 0) = v;
+    
+    // First cast to double, as the values of A could be out of range
+    // for the OutputPixelT data type.
+    ImageView<double> B = select_channel(A, 0);
+    
+    return round_and_clamp<IntType>(B(0,0));
   }
 };
-template <class ImageT, class OutputPixelT>
-RoundAndClamp<ImageT, OutputPixelT> round_and_clamp(ImageT const& img){
-  return RoundAndClamp<ImageT, OutputPixelT>(img);
-}
-
+  
 } // namespace vw
 
 #endif // __VW_IMAGE_ALGORITHMS2_H__
