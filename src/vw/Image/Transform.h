@@ -873,16 +873,17 @@ namespace vw {
     return bbox;
   }
 
-  // Compute full extent of the transformed image by performing the
-  // inverse transformation on the pixel coordinates of the input
-  // image.  This version of the function computes the bounds by
-  // computing only the transformed pixel locations for the perimiter
-  // pixels of the input image.  This is much faster than calculating
-  // the transformed position for all pixels in the input image, and
-  // for most transformations points on the interior of the input
-  // image will end up on the interior of the output image.
+
+  /// Compute full extent of the transformed image by performing the
+  /// inverse transformation on the pixel coordinates of the input
+  /// image.  This version of the function computes the bounds by
+  /// computing only the transformed pixel locations for the perimiter
+  /// pixels of the ROI in the input image.  This is much faster than calculating
+  /// the transformed position for all pixels in the input image, and
+  /// for most transformations points on the interior of the input
+  /// image will end up on the interior of the output image.
   template <class TransformT>
-  inline BBox2f compute_transformed_bbox_fast(Vector2i   const& image_size,
+  inline BBox2f compute_transformed_bbox_fast(BBox2i     const& image_roi,
                                               TransformT const& transform_func,
                                               double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
                                               double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
@@ -890,26 +891,26 @@ namespace vw {
     BBox2f bbox;
 
     // Top edge
-    for (pt[0] = 0; pt[0] < image_size[0]; (pt[0])++) {
-      pt[1] = 0;
+    for (pt[0] = image_roi.min()[0]; pt[0] < image_roi.max()[0]; (pt[0])++) {
+      pt[1] = image_roi.min()[1];
       bbox.grow(transform_func.forward(pt));
     }
 
     // Bottom edge
-    for (pt[0] = 0; pt[0] < image_size[0]; (pt[0])++) {
-      pt[1] = image_size[1] - 1;
+    for (pt[0] = image_roi.min()[0]; pt[0] < image_roi.max()[0]; (pt[0])++) {
+      pt[1] = image_roi.max()[1] - 1;
       bbox.grow(transform_func.forward(pt));
     }
 
     // Left edge
-    for (pt[1] = 0; pt[1] < image_size[1]; (pt[1])++) {
-      pt[0] = 0;
+    for (pt[1] = image_roi.min()[1]; pt[1] < image_roi.max()[1]; (pt[1])++) {
+      pt[0] = image_roi.min()[0];
       bbox.grow(transform_func.forward(pt));
     }
 
     // Right edge
-    for (pt[1] = 0; pt[1] < image_size[1]; (pt[1])++) {
-      pt[0] = image_size[0] - 1;
+    for (pt[1] = image_roi.min()[1]; pt[1] < image_roi.max()[1]; (pt[1])++) {
+      pt[0] = image_roi.max()[0] - 1;
       bbox.grow(transform_func.forward(pt));
     }
 
@@ -927,6 +928,15 @@ namespace vw {
     return bbox;
   }
 
+  /// Overload that starts the ROI at 0,0
+  template <class TransformT>
+  inline BBox2f compute_transformed_bbox_fast(Vector2i   const& image_size,
+                                              TransformT const& transform_func,
+                                              double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
+                                              double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
+    return compute_transformed_bbox_fast(BBox2i(0, 0, image_size[0], image_size[1]), transform_func,
+                                                min_image_size, max_image_size);
+  }
 
   // -------------------------------------------------------------------------------
   // Functional API

@@ -452,18 +452,16 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
 inline void 
 resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
                                PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
-                               Vector2i     const& size1,     Vector2i     const& size2,
+                               BBox2i       const& roi1,      BBox2i       const& roi2,
                                Vector2i          & epi_size1, Vector2i          & epi_size2) {
   // Get transforms from input images to epipolar images
   CameraTransform<PinholeModel, PinholeModel> in_to_epi1(cam1, epi_cam1);
   CameraTransform<PinholeModel, PinholeModel> in_to_epi2(cam2, epi_cam2);
   
   // Figure out the bbox needed to contain the transformed image
-  BBox2 epi_bbox1 = compute_transformed_bbox_fast(size1, in_to_epi1);
-  BBox2 epi_bbox2 = compute_transformed_bbox_fast(size2, in_to_epi2);
- 
-  //std::cout << "epi_bbox1: " << epi_bbox1 << std::endl;
-  //std::cout << "epi_bbox2: " << epi_bbox2 << std::endl;
+  // - This just uses the ROIs for the two input images so the cameras can be shifted to align with 0,0.
+  BBox2 epi_bbox1 = compute_transformed_bbox_fast(roi1, in_to_epi1);
+  BBox2 epi_bbox2 = compute_transformed_bbox_fast(roi2, in_to_epi2);
 
   // Figure out leftmost and uppermost pixel coordinates in resampled images 
   double min_col = std::min(epi_bbox1.min().x(), epi_bbox2.min().x());
@@ -476,65 +474,81 @@ resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const
   //   we do the same modification to both cameras.
   Vector2 point_offset  = epi_cam1.point_offset();
   Vector2 center_adjust = Vector2(min_col, min_row)*epi_cam1.pixel_pitch();
-  
-  //std::cout << "Point offset = " << point_offset << std::endl;
-  //std::cout << "center_adjust = " << center_adjust << std::endl;
 
   // Apply the adjustments to the input epipolar cameras and recompute the bounding boxes  
   epi_cam1.set_point_offset(point_offset - center_adjust);
   epi_cam2.set_point_offset(point_offset - center_adjust);
   CameraTransform<PinholeModel, PinholeModel> in_to_epi1_new(cam1, epi_cam1);
   CameraTransform<PinholeModel, PinholeModel> in_to_epi2_new(cam2, epi_cam2);
-  epi_bbox1 = compute_transformed_bbox_fast(size1, in_to_epi1_new);
-  epi_bbox2 = compute_transformed_bbox_fast(size2, in_to_epi2_new);
   
-  //std::cout << "epi_bbox1 NEW: " << epi_bbox1 << std::endl;
-  //std::cout << "epi_bbox2 NEW: " << epi_bbox2 << std::endl;
+  // Recompute the bounding boxes to be sure
+  epi_bbox1 = compute_transformed_bbox_fast(roi1, in_to_epi1_new);
+  epi_bbox2 = compute_transformed_bbox_fast(roi2, in_to_epi2_new);
  
-  // Just return the size so that the output images are written 
-  // from (0,0) all the way to the maximum position which is what the rest of the code assumes.
+  // Return the size required to contain all of the transformed image data.
   epi_size1 = epi_bbox1.max();
   epi_size2 = epi_bbox2.max();
 } // End resize_epipolar_cameras_to_fit
 
-// Get aligned, epipolar rectified pinhole images for stereo processing.
-  template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
+
+template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
 void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file,
                                              std::string const& right_camera_file,
-                                             boost::shared_ptr<camera::CameraModel> const left_camera,
-                                             boost::shared_ptr<camera::CameraModel> const right_camera,
+                                             boost::shared_ptr<camera::CameraModel> const left_epi_cam,
+                                             boost::shared_ptr<camera::CameraModel> const right_epi_cam,
                                              ImageInT  const& left_image_in,
                                              ImageInT  const& right_image_in,
-                                             Vector2i  const& left_image_out_size,
-                                             Vector2i  const& right_image_out_size,
+                                             BBox2i    const& left_image_in_roi,
+                                             BBox2i    const& right_image_in_roi,
+                                             Vector2i       & left_image_out_size,
+                                             Vector2i       & right_image_out_size,
                                              ImageOutT      & left_image_out,
                                              ImageOutT      & right_image_out,
-                                             EdgeT const& edge_func, InterpT const& interp_func){
-
-  // Cast input camera models to Pinhole
-  PinholeModel* left_epipolar_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_camera )));
-  PinholeModel* right_epipolar_pin = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*right_camera)));
+                                             EdgeT const& edge_func, InterpT const& interp_func) {
 
   // Load the original camera models with distortion
-  PinholeModel left_pin (left_camera_file );
-  PinholeModel right_pin(right_camera_file);
+  boost::shared_ptr<PinholeModel> left_pin (new PinholeModel(left_camera_file ));
+  boost::shared_ptr<PinholeModel> right_pin(new PinholeModel(right_camera_file));
 
   // If necessary, replace the lens distortion models with a approximated models
   //  that will be much faster in the camera_transform calls below.
   Vector2i left_image_in_size (left_image_in.cols(),  left_image_in.rows() );
   Vector2i right_image_in_size(right_image_in.cols(), right_image_in.rows());
-  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(left_pin,  left_image_in_size );
-  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(right_pin, right_image_in_size);
+  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(*left_pin,  left_image_in_size );
+  update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>(*right_pin, right_image_in_size);
+ 
+  // Make sure there are no adjustments on the aligned camera models
+  PinholeModel* left_epi_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_epi_cam)));
+  PinholeModel* right_epi_pin = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*right_epi_cam)));
   
-  // Transform the images
-  left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_pin,
-                                     left_image_out_size,
-                                     edge_func, interp_func);
-  right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_pin,
-                                     right_image_out_size,
-                                     edge_func, interp_func);
-}
+  // If so, create an adjusted version of the input files from disk and then transform, otherwise just transform.
+  Vector3 ZERO_TRANSLATION(0,0,0);
+  Quat    ZERO_ROTATION(1,0,0,0);
+  double  NO_SCALE = 1.0;
+  if (left_image_in_roi.min() != Vector2i(0,0)) {
+    // Get the input raw camera model with the crop applied.
+    AdjustedCameraModel left_adj_cam(left_pin, ZERO_TRANSLATION,  ZERO_ROTATION, left_image_in_roi.min(), NO_SCALE);
+    
+    // Convert from the cropped input to the epipolar-aligned camera model.
+    left_image_out  = camera_transform(left_image_in,  left_adj_cam,  *left_epi_pin,
+                                     left_image_out_size, edge_func, interp_func);
+  }
+  else { // Don't need to handle crops.
+    left_image_out  = camera_transform(left_image_in,  *left_pin,  *left_epi_pin,
+                                       left_image_out_size, edge_func, interp_func);
+  }
+  // Repeat for the right camera.
+  if (right_image_in_roi.min() != Vector2i(0,0)) {
+    AdjustedCameraModel right_adj_cam(right_pin, ZERO_TRANSLATION,  ZERO_ROTATION, right_image_in_roi.min(), NO_SCALE);
 
+    right_image_out = camera_transform(right_image_in, right_adj_cam, *right_epi_pin,
+                                       right_image_out_size, edge_func, interp_func);
+  }
+  else { // No crops
+        right_image_out = camera_transform(right_image_in, *right_pin, *right_epi_pin,
+                                       right_image_out_size, edge_func, interp_func);
+  }
+}
 
 }}      // namespace vw::camera
 

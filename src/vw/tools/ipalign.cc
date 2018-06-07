@@ -269,9 +269,11 @@ void align_images( Options & opt ) {
 
     // Expand epipolar cameras to contain the entire source images.
     Vector2i epi_size1, epi_size2;
+    BBox2i left_input_roi (Vector2i(0,0), ref_image.get_size()  ),
+           right_input_roi(Vector2i(0,0), input_image.get_size());
     resize_epipolar_cameras_to_fit(left_pin, right_pin,
                                    *(epipolar_left_pin.get()), *(epipolar_right_pin.get()),
-                                   ref_image.get_size(), input_image.get_size(),
+                                   left_input_roi, right_input_roi,
                                    epi_size1, epi_size2);
 
 
@@ -280,6 +282,7 @@ void align_images( Options & opt ) {
     get_epipolar_transformed_pinhole_images(opt.left_camera_file,   opt.right_camera_file,
                                             epipolar_left_pin, epipolar_right_pin,
                                             ref_image, input_image,
+                                            left_input_roi, right_input_roi,
                                             epi_size1, epi_size2,
                                             left_aligned2, right_aligned2,
                                             ValueEdgeExtension< PixelRGB<uint8> >(Zero),

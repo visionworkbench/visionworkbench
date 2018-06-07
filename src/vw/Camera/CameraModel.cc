@@ -62,10 +62,13 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
 }
 
 AdjustedCameraModel::~AdjustedCameraModel() {}
+
 std::string AdjustedCameraModel::type() const { return "Adjusted"; }
 
 Vector3 AdjustedCameraModel::translation() const { return m_translation; }
+
 Quat AdjustedCameraModel::rotation() const { return m_rotation; }
+
 Matrix<double,3,3> AdjustedCameraModel::rotation_matrix() const { return m_rotation.rotation_matrix(); }
 
 Vector3 AdjustedCameraModel::axis_angle_rotation() const {
