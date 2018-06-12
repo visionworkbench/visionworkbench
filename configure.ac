@@ -227,10 +227,10 @@ AX_PKG_BOOST([BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD BOOST_GRAPH],
     [AX_PKG_BOOST_LIB(GRAPH,           [],                        [boost/graph/adjacency_list.hpp])]
 )
 
-#if test x"$HAVE_PKG_BOOST" = "xyes"; then
-#  AX_PKG_BOOST_CHECK_VERSION([VW_])
-#  AC_MSG_NOTICE([Using Boost header version $BOOST_VERSION, library suffix $PKG_BOOST_SAME_SUFFIX])
-#fi
+if test x"$HAVE_PKG_BOOST" = "xyes"; then
+  AX_PKG_BOOST_CHECK_VERSION([VW_])
+  AC_MSG_NOTICE([Using Boost header version $BOOST_VERSION, library suffix $PKG_BOOST_SAME_SUFFIX])
+fi
 
 # This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.
