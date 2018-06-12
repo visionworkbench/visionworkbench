@@ -53,7 +53,7 @@ AC_DEFUN([AX_PKG_BOOST],
 
           AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [#include <boost/version.hpp>], [BOOST_VERSION=$output],
             [AX_LOG([Couldn't get boost version for $ax_boost_inc_path/boost]); continue;],
-            ["-I${ax_boost_inc_path}"])
+            ["-isystem${ax_boost_inc_path}"])
 
           AX_LOG([Found boost includes at ${ax_boost_inc_path}, version(${BOOST_VERSION})])
 
@@ -87,7 +87,7 @@ AC_DEFUN([AX_PKG_BOOST],
 
   if test "${HAVE_PKG_BOOST}" = "yes" ; then
     ax_have_pkg_bool=1
-    OTHER_CPPFLAGS="${OTHER_CPPFLAGS} -I${PKG_BOOST_INCDIR}"
+    OTHER_CPPFLAGS="${OTHER_CPPFLAGS} -isystem${PKG_BOOST_INCDIR}"
     OTHER_LDFLAGS="${OTHER_LDFLAGS} -L${PKG_BOOST_LIBDIR}"
     AC_MSG_RESULT([yes])
   elif test x"${HAVE_PKG_BOOST#no:}" != "x$HAVE_PKG_BOOST"; then # read as: if has_prefix(HAVE_PKG_BOOST, "no:")

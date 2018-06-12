@@ -184,12 +184,8 @@ AM_CONDITIONAL(ENABLE_SSE, [test x"$ENABLE_SSE" = x"yes"])
 AM_CONDITIONAL(ENABLE_BOUNDS_CHECK, [test x"$ENABLE_BOUNDS_CHECK" = x"yes"])
 AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 
-
-
 if test "$ENABLE_SSE" = "yes"; then
-
-  echo "*** Enabling SSE support! ***"
-
+  echo "*** Enabling SSE support ***"
   dnl Add required flag
   CXXFLAGS="$CXXFLAGS -msse4.1"
 fi
@@ -231,10 +227,10 @@ AX_PKG_BOOST([BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD BOOST_GRAPH],
     [AX_PKG_BOOST_LIB(GRAPH,           [],                        [boost/graph/adjacency_list.hpp])]
 )
 
-if test x"$HAVE_PKG_BOOST" = "xyes"; then
-  AX_PKG_BOOST_CHECK_VERSION([VW_])
-  AC_MSG_NOTICE([Using Boost header version $BOOST_VERSION, library suffix $PKG_BOOST_SAME_SUFFIX])
-fi
+#if test x"$HAVE_PKG_BOOST" = "xyes"; then
+#  AX_PKG_BOOST_CHECK_VERSION([VW_])
+#  AC_MSG_NOTICE([Using Boost header version $BOOST_VERSION, library suffix $PKG_BOOST_SAME_SUFFIX])
+#fi
 
 # This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.
@@ -297,7 +293,7 @@ AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4,   [M],          [-lproj],          [proj_api.h])
 AX_PKG(GEOTIFF, [PROJ4 JPEG], [-lgeotiff -ltiff] )
-AX_PKG(GEOS,    [], [-lgeos -lgeos_c], [geos.h])
+AX_PKG(GEOS,    [], [-lgeos -lgeos_c], [geos_c.h])
 AX_PKG(GDAL,    [GEOTIFF GEOS],    [-lgdal],          [gdal.h])
 
 # GDAL requires tiff support, but it can be internal or external.
@@ -345,9 +341,9 @@ AM_CONDITIONAL(HAVE_PYTHON,         [test "$HAVE_PYTHON"         = "yes"])
 
 AX_MODULE(CORE,   [src/vw/Core],   [libvwCore.la],   yes, [],      [BOOST BOOST_PROGRAM_OPTIONS THREADS M], [PTHREADS])
 AX_MODULE(MATH,   [src/vw/Math],   [libvwMath.la],   yes, [CORE],  [BOOST_GRAPH],                           [LAPACK FLANN])
-AX_MODULE(IMAGE,  [src/vw/Image],  [libvwImage.la],  yes, [MATH],  [],                                      [OPENCV])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [BOOST_FILESYSTEM],                      [Z PNG JPEG TIFF OPENEXR HDF GDAL])
-AX_MODULE(VW,     [src/vw],        [libvw.la],       yes, [],      [IMAGE MATH CORE],                       [FILEIO])
+AX_MODULE(IMAGE,  [src/vw/Image],  [libvwImage.la],  yes, [MATH],  [OPENCV],                                [])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [BOOST_FILESYSTEM GDAL],                      [PNG JPEG TIFF Z OPENEXR HDF])
+AX_MODULE(VW,     [src/vw],        [libvw.la],       yes, [],      [IMAGE MATH CORE FILEIO],                [])
 
 if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
@@ -366,7 +362,7 @@ PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
 AX_MODULE(CAMERA,           [src/vw/Camera],           [libvwCamera.la],           yes, [VW],               [],                      [BOOST_IOSTREAMS])
 AX_MODULE(INTERESTPOINT,    [src/vw/InterestPoint],    [libvwInterestPoint.la],    yes, [VW])
-AX_MODULE(CARTOGRAPHY,      [src/vw/Cartography],      [libvwCartography.la],      yes, [VW],        [PROJ4],            [GDAL])
+AX_MODULE(CARTOGRAPHY,      [src/vw/Cartography],      [libvwCartography.la],      yes, [VW],        [PROJ4 GDAL],            [])
 AX_MODULE(MOSAIC,           [src/vw/Mosaic],           [libvwMosaic.la],           yes, [CARTOGRAPHY VW])
 AX_MODULE(HDR,              [src/vw/HDR],              [libvwHDR.la],              yes, [CAMERA VW], [LAPACK])
 AX_MODULE(STEREO,           [src/vw/Stereo],           [libvwStereo.la],           yes, [CAMERA VW])
