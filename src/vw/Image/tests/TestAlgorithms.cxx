@@ -20,6 +20,7 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/WindowAlgorithms.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Manipulation.h>
@@ -337,4 +338,25 @@ TEST( Algorithms, MedianFilter ) {
   EXPECT_EQ( 7, output(1,4));
 }
 
+TEST( Algorithms, StdDevFilter ) {
 
+  // Create a test image
+  ImageView<float> image(6, 6);
+  image(0,0) = 10.0;  image(1,0) = 10.0;  image(2,0) = 10.0;  image(3,0) =  3.0;  image(4,0) =  2.0;  image(5,0) = 10.0;
+  image(0,1) = 10.0;  image(1,1) =  3.0;  image(2,1) = 10.0;  image(3,1) = 10.0;  image(4,1) = 10.0;  image(5,1) = 10.0;
+  image(0,2) = 10.0;  image(1,2) =  2.0;  image(2,2) = 10.0;  image(3,2) = 10.0;  image(4,2) =  7.0;  image(5,2) =  5.0;
+  image(0,3) =  5.0;  image(1,3) =  6.0;  image(2,3) = 10.0;  image(3,3) = 10.0;  image(4,3) = 10.0;  image(5,3) =  8.0;
+  image(0,4) =  7.0;  image(1,4) = 10.0;  image(2,4) =  5.0;  image(3,4) = 10.0;  image(4,4) = 10.0;  image(5,4) = 10.0;
+  image(0,5) = 10.0;  image(1,5) =  7.0;  image(2,5) = 10.0;  image(3,5) = 10.0;  image(4,5) = 10.0;  image(5,5) = 10.0;
+
+  // Run the algorithm
+  ImageView<float> output = stddev_filter_view(image, Vector2i(3,3));
+
+  // Check results
+  const double eps = 0.01;
+  EXPECT_NEAR(3.13, output(1,1), eps);
+  EXPECT_NEAR( 3.08, output(0,2), eps);
+  EXPECT_NEAR( 1.97, output(5,2), eps);
+  EXPECT_NEAR(1.945, output(2,4), eps);
+  EXPECT_NEAR( 2.096, output(1,4), eps);
+}

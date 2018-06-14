@@ -69,7 +69,8 @@ include_HEADERS = \
   Statistics.tcc \
   Transform.h \
   UtilityViews.h \
-  ViewImageResource.h
+  ViewImageResource.h \
+  WindowAlgorithms.h
 
 libvwImage_la_SOURCES = \
   BlobIndex.cc \

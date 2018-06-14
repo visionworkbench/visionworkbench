@@ -19,10 +19,8 @@
 #include <boost/algorithm/string.hpp>
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
 #include <ogr_spatialref.h>
 #include <cpl_string.h>
-#endif
 
 vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& spheroid_name,
@@ -47,7 +45,6 @@ vw::cartography::Datum::Datum(std::string const& name,
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
 void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name) { this->name() = datum_name; }
 
@@ -71,25 +68,16 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference cons
 
   this->proj4_str() = proj4_str_tmp;
   CPLFree( proj4_str_tmp );
-#else
-  vw_throw( NoImplErr() << "Cannot set the datum without GDAL support. Please rebuild VW with GDAL." );
-#endif
-
 }
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
 void vw::cartography::Datum::set_datum_from_proj_str( std::string const& proj_str ) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.SetFromUserInput( proj_str.c_str() ))
     vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
-#else
-  vw_throw( NoImplErr() << "Cannot set the datum without GDAL support. Please rebuild VW with GDAL." );
-#endif
-
 }
 
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {

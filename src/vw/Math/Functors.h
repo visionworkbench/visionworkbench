@@ -39,6 +39,8 @@
 #include <vw/Core/Exception.h>
 #include <vw/config.h>
 
+#include <queue>
+
 // The math.h header in FreeBSD (and possibly other platforms) does not
 // include routines for manipulating long doubles.  We disable long
 // double VW math routines here for certain platforms.
@@ -486,7 +488,7 @@ namespace vw {
 
 
     /// Computes the standard deviation of the values to which it is applied.
-    /// This implementation normalizes by num_samples, not num_samples - 1.
+    /// - This implementation normalizes by num_samples, not num_samples - 1.
     template <class ValT>
     class StdDevAccumulator : public ReturnFixedType<void> {
       typedef typename CompoundChannelCast<ValT,double>::type accum_type;
@@ -516,6 +518,71 @@ namespace vw {
     };
 
 
+    /// Compute the standard deviation of values in a fixed size list.
+    /// - When a new value is added, the oldest value is removed from the statistics.
+    /// - This implementation normalizes by num_samples, not num_samples - 1.
+    class StdDevSlidingFunctor {
+    public:
+      /// Constructor set with the sliding window size.
+      StdDevSlidingFunctor(const size_t max_size)
+        : m_max_size(max_size), m_mean(0), m_squared(0) {}
+
+      /// Implement push with the standard functor interface
+      void operator()(double new_val) {
+        push(new_val);
+      }
+
+      /// Add a new value and eject the oldest value.
+      void push(double new_val) {
+
+        // If we grew larger than the size limit remove the oldest value
+        if (m_values.size() >= m_max_size)
+          pop();
+
+        // Now incorporate the newest value
+        m_values.push(new_val); // Record the new value
+        double count = static_cast<double>(m_values.size());
+
+        // Update the statistics to add in the new value
+        double delta = new_val - m_mean;
+        m_mean += delta/count;
+
+        double delta2 = new_val - m_mean;
+        m_squared += delta*delta2;
+      }
+
+      /// Remove the oldest value
+      void pop() {
+        if (m_values.empty()) // Handle empty case
+          return;
+
+        double old_val = m_values.front();
+        double count   = static_cast<double>(m_values.size());
+        m_values.pop();
+
+        // Update the statistics to account for removing the old value
+        double shrunk_count = count - 1.0;
+        double new_mean = (count*m_mean - old_val)/shrunk_count;
+
+        m_squared -= (old_val - m_mean) * (old_val - new_mean);
+        m_mean = new_mean;
+      };
+
+      /// Compute the standard deviation of all current values.
+      double get_std_dev() {
+        double count = static_cast<double>(m_values.size());
+        if (count < 2.0)
+          return 0;
+        return sqrt(m_squared/count);
+      }
+
+    private:
+        size_t m_max_size; ///< Max number of values to store.
+        std::queue<double> m_values; ///< Store current values
+        double m_mean;    ///< Store the mean
+        double m_squared; ///< Store sum of differences squared
+    }; // End class StdDevSlidingFunctor
+
   } // namespace math
 
   // I'm not even really sure why the math namespace exists anymore.... -MDH
@@ -524,6 +591,7 @@ namespace vw {
   using math::MedianAccumulator;
   using math::MeanAccumulator;
   using math::StdDevAccumulator;
+  using math::StdDevSlidingFunctor;
 
 } // namespace vw
 
