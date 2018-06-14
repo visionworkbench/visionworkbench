@@ -76,9 +76,9 @@ public:
   inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
 
     // Take an edge extended image view of the input support region
-    ImageViewRef<typename ImageT::pixel_type> src = edge_extend(m_image, m_edge);
+    ImageViewRef<typename ImageT::pixel_type> src = edge_extend(crop(m_image, bbox), m_edge);
 
-    ImageView<typename ImageT::pixel_type> dst(bbox.height(), bbox.width());
+    ImageView<typename ImageT::pixel_type> dst(bbox.width(), bbox.height());
     const size_t window_area = m_window_size[0]*m_window_size[1];
     for (int r=0; r<dst.rows(); ++r) {
 

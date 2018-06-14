@@ -90,7 +90,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
-AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@ # @PKG_FILEIO_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
