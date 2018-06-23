@@ -31,10 +31,6 @@ namespace vw {
     class CameraModel;
   }
 
-  // Registering point cloud for FileIO
-  template<> struct PixelFormatID<Vector3> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector3f> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-
 namespace stereo {
 
   template <class T>

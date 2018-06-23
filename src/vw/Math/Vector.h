@@ -1686,12 +1686,18 @@ namespace math {
   typedef Vector<float64,2> Vector2;
   typedef Vector<float64,3> Vector3;
   typedef Vector<float64,4> Vector4;
+  typedef Vector<float64,5> Vector5;
+  typedef Vector<float64,6> Vector6;
   typedef Vector<float32,2> Vector2f;
   typedef Vector<float32,3> Vector3f;
   typedef Vector<float32,4> Vector4f;
-  typedef Vector<int32,2> Vector2i;
-  typedef Vector<int32,3> Vector3i;
-  typedef Vector<int32,4> Vector4i;
+  typedef Vector<float32,5> Vector5f;
+  typedef Vector<float32,6> Vector6f;
+  typedef Vector<int32,  2> Vector2i;
+  typedef Vector<int32,  3> Vector3i;
+  typedef Vector<int32,  4> Vector4i;
+  typedef Vector<int32,  5> Vector5i;
+  typedef Vector<int32,  6> Vector6i;
 
 } // namespace vw
 
