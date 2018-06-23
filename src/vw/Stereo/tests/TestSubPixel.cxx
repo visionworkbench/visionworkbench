@@ -28,9 +28,7 @@
 using namespace vw;
 using namespace vw::stereo;
 
-namespace vw {
-  template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-}
+
 
 template <int32 istretch>
 class SubPixelCorrelateTest : public ::testing::Test {
