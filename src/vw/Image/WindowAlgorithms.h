@@ -75,8 +75,12 @@ public:
   typedef CropView<ImageView<typename ImageT::pixel_type> > prerasterize_type;
   inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
 
-    // Take an edge extended image view of the input support region
-    ImageViewRef<typename ImageT::pixel_type> src = edge_extend(crop(m_image, bbox), m_edge);
+    // Rasterize the input support region
+    BBox2i larger_bbox = bbox;
+    larger_bbox.expand(m_half_width);
+    ImageView<typename ImageT::pixel_type> src = crop(edge_extend(m_image, m_edge), larger_bbox);
+    const int col_off = m_half_width;
+    const int row_off = m_half_width;
 
     ImageView<typename ImageT::pixel_type> dst(bbox.width(), bbox.height());
     const size_t window_area = m_window_size[0]*m_window_size[1];
@@ -86,8 +90,8 @@ public:
       StdDevSlidingFunctor stddev_functor(window_area);
       for (int x=-m_half_width; x<=m_half_width; ++x) { // Iterate over columns, then rows.
         for (int y=-m_half_height; y<=m_half_height; ++y) {
-          if (is_valid(src(0+x, r+y)))
-            stddev_functor.push(src(0+x, r+y));
+          if (is_valid(src(0+x+col_off, r+y+row_off)))
+            stddev_functor.push(src(0+x+col_off, r+y+row_off));
           else
             stddev_functor.pop();
         }
@@ -97,8 +101,8 @@ public:
       // For successive pixels use sliding window optimizations
       for (int c=1; c<dst.cols(); ++c) {
         for (int y=-m_half_height; y<=m_half_height; ++y) {
-          if (is_valid(src(c+m_half_width, r+y)))
-            stddev_functor.push(src(c+m_half_width, r+y)); // Add pixels at leading edge of the window.
+          if (is_valid(src(c+m_half_width+col_off, r+y+row_off)))
+            stddev_functor.push(src(c+m_half_width+col_off, r+y+row_off)); // Add pixels at leading edge of the window.
           else
             stddev_functor.pop();
         }
