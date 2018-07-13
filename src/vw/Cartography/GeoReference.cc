@@ -601,9 +601,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     std::vector<std::string> input_strings, output_strings, datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
     boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") );
-    for (size_t i = 0; i < input_strings.size(); ++i) {
-      const std::string& key = input_strings[i];
-
+    BOOST_FOREACH(const std::string& key, input_strings) {
       // Pick out the parts of the projection string that pertain to
       // map projections.  We essentially want to eliminate all of
       // the strings that have to do with the datum, since those are
@@ -611,30 +609,30 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
       // OGRSpatialReference below. This is sort of messy, but it's
       // the easiest way to do this, as far as I can tell.
       if (key == "+k=0") {
-        vw_out(WarningMessage) << "Input contained an illegal scale_factor of zero. Ignored." << std::endl;
-      } else if ((key.find("+proj=") == 0) ||
-          (key.find("+x_0=") == 0) ||
-          (key.find("+y_0=") == 0) ||
-          (key.find("+lon") == 0) ||
-          (key.find("+lat") == 0) ||
-          (key.find("+k=") == 0) ||
-          (key.find("+lat_ts=") == 0) ||
-          (key.find("+ns") == 0) ||
-          (key.find("+no_cut") == 0) ||
-          (key.find("+h=") == 0) ||
-          (key.find("+W=") == 0) ||
-          (key.find("+units=") == 0) ||
-          (key.find("+zone=") == 0)) {
+        vw_out(WarningMessage)
+            << "Input contained an illegal scale_factor of zero. Ignored."
+            << std::endl;
+      } else if (boost::starts_with(key, "+proj=") ||
+                 boost::starts_with(key, "+x_0=") ||
+                 boost::starts_with(key, "+y_0=") ||
+                 boost::starts_with(key, "+lon") ||
+                 boost::starts_with(key, "+lat") ||
+                 boost::starts_with(key, "+k=") ||
+                 boost::starts_with(key, "+lat_ts=") ||
+                 boost::starts_with(key, "+ns") ||
+                 boost::starts_with(key, "+no_cut") ||
+                 boost::starts_with(key, "+h=") ||
+                 boost::starts_with(key, "+W=") ||
+                 boost::starts_with(key, "+units=") ||
+                 boost::starts_with(key, "+zone=")) {
         output_strings.push_back(key);
-      } else if ((key.find("+ellps=") == 0) ||
-                 (key.find("+datum=") == 0)) {
+      } else if (boost::starts_with(key, "+ellps=") ||
+                 boost::starts_with(key, "+datum=")) {
         // We put these in the proj4_str for the Datum class.
         datum_strings.push_back(key);
       }
     }
-    std::ostringstream strm;
-    BOOST_FOREACH( std::string const& element, output_strings )
-      strm << element << " ";
+    std::string strm = boost::join(output_strings, " ");
 
     // If the file contains no projection related information, we
     // supply proj.4 with a "default" interpretation that the file
@@ -642,22 +640,19 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     if (output_strings.empty())
       set_proj4_projection_str("+proj=longlat");
     else
-      set_proj4_projection_str(strm.str());
+      set_proj4_projection_str(strm);
 
     int utm_north = 0;
     int utm_zone = gdal_spatial_ref.GetUTMZone(&utm_north);
-    if (utm_zone)
-      set_UTM(utm_zone, utm_north);
+    if (utm_zone) set_UTM(utm_zone, utm_north);
 
     // Set the proj4 string for datum.
-    std::stringstream datum_proj4_ss;
-    BOOST_FOREACH( std::string const& element, datum_strings )
-      datum_proj4_ss << element << " ";
+    std::string datum_proj4_ss =
+        boost::trim_copy(boost::join(datum_strings, " "));
     // Add the current proj4 string in the case that our ellipse/datum
     // values are empty.
-    if ( boost::trim_copy(datum_proj4_ss.str()) == "" )
-      datum_proj4_ss << datum.proj4_str();
-    datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
+    if (datum_proj4_ss.empty()) datum_proj4_ss = datum.proj4_str();
+    datum.proj4_str() = datum_proj4_ss;
 
     // Setting the fully processed datum
     set_datum(datum);
