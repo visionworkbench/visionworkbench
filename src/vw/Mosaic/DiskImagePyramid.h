@@ -261,7 +261,7 @@ namespace vw { namespace mosaic {
     m_top_image_max_pix(top_image_max_pix),
     m_nodata_val(std::numeric_limits<double>::quiet_NaN()) {
     
-    if (base_file == "")
+    if (base_file.empty())
       return;
 
     if (subsample < 2) {

@@ -156,7 +156,7 @@ struct Options {
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
     if (mode == "CELESTIA" || mode == "UNIVIEW")
-      VW_ASSERT(module_name != "",
+      VW_ASSERT(!module_name.empty(),
                 vw::tools::Usage() << "Uniview and Celestia require --module-name");
 
     if (proj.type == "NONE")
@@ -394,7 +394,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   if (opt.tile_size > 0)
     quadtree.set_tile_size(opt.tile_size);
-  if (opt.output_file_type != "")
+  if (!opt.output_file_type.empty())
     quadtree.set_file_type(opt.output_file_type);
 
   // This box represents the input data, shifted such that total_bbox.min() is

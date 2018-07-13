@@ -51,7 +51,7 @@ void DiskImageResourceRaw::close() {
 // Factory functions required by DiskImageResource.cc
 DiskImageResource* DiskImageResourceRaw::construct_open( std::string const& filename ) {
   std::string dim_file = find_associated_spot5_dim_file(filename);
-  if (dim_file == "") 
+  if (dim_file.empty()) 
     vw_throw( ArgumentErr() << "Could not find .DIM file for: " << filename);
   
   return DiskImageResourceRaw::construct(filename, image_format_from_spot5_DIM(dim_file));

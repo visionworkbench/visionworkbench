@@ -853,7 +853,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
   }
 
 
-  if (dem_path == "") {
+  if (dem_path.empty()) {
     // Handle the case where a DEM was not provided
   
     std::cout << "No input DEM file provided, finishing calculations without one.\n";

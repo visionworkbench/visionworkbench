@@ -108,7 +108,7 @@ bool vw::has_spot5_extension(std::string const& image_file, std::string const& c
   if ((image_ext == ".bip") || (image_ext == ".bil") || (image_ext == ".bsq"))
     return true;
   // If no camera file was provided it cannot be a Spot5 file
-  if ((camera_file == "") || (camera_file == image_file))
+  if ((camera_file.empty()) || (camera_file == image_file))
     return false;
   // The Spot5 file is the last thing we check
   const std::string camera_ext = vw::get_extension(camera_file);

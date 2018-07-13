@@ -1149,7 +1149,7 @@ void dPoly::writePoly(std::string filename, std::string defaultColor){
 
     string layer = "";
     if (pIter < (int)m_layers.size()) layer = m_layers[pIter];
-    if (layer != "") layer = " ; " + layer;
+    if (!layer.empty()) layer = " ; " + layer;
 
     bool isPolyClosed = true;
     if ( pIter < (int)m_colors.size() ) isPolyClosed = m_isPolyClosed[pIter];

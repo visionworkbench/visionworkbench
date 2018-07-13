@@ -671,7 +671,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     
     // Apply projcs override if it was specified
     std::string projcs_name = this->get_projcs_name();
-    if (projcs_name != "")
+    if (!projcs_name.empty())
       gdal_spatial_ref.SetProjCS(projcs_name.c_str());
     
     // For perfect spheres, we set the inverse flattening to

@@ -344,7 +344,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if( opt.output_prefix == "" )
+  if( opt.output_prefix.empty() )
     opt.output_prefix=fs::path(opt.input_file_name).replace_extension().string();
 
   //checking strings
@@ -355,7 +355,7 @@ int main( int argc, char *argv[] ) {
     algorithm_string == "sa" ||
     algorithm_string == "planefit" ||
 
-    algorithm_string == "" ) ) { //it's okay if it isn't set?
+    algorithm_string.empty() ) ) { //it's okay if it isn't set?
     vw_out() << "Unknown opt.algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
     exit(0);
   }
