@@ -142,7 +142,6 @@ namespace vw {
     PixelFormatEnum planes_to_pixel_format(int32 planes) const;
     std::map<std::string, std::string> m_header_entries;
     int m_image_data_offset;
-    int m_native_num_planes;
     bool m_invalid_as_alpha;
     bool m_file_is_msb_first;
     std::string m_pds_data_filename;

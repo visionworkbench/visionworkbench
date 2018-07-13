@@ -60,10 +60,6 @@ static void vw_jpeg_error_exit(j_common_ptr cinfo) {
 */
 class DiskImageResourceJPEG::vw_jpeg_decompress_context
 {
-  // The enclosing class. Need the pointer so we can access its member
-  // variables.
-  DiskImageResourceJPEG *outer;
-
   jpeg_error_mgr jerr;
 
 public:
@@ -72,8 +68,7 @@ public:
   JSAMPARRAY scanline;
   int cstride;
 
-  vw_jpeg_decompress_context(DiskImageResourceJPEG *outer) : outer(outer)
-  {
+  vw_jpeg_decompress_context(DiskImageResourceJPEG *outer) {
     current_line = -1;
 
     // Set the position of the input stream at zero. Create a new decompress
