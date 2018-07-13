@@ -170,9 +170,9 @@ namespace ba {
       f << "      EphemerisTime  = " << m_ephemeris_time << "\n";
     if ( m_diameter > 0 )
       f << "      Diameter       = " << m_diameter << "\n";
-    if ( m_date_time != "" )
+    if ( !m_date_time.empty() )
       f << "      DateTime       = " << m_date_time << "\n";
-    if ( m_chooserName != "" )
+    if ( !m_chooserName.empty() )
       f << "      ChooserName    = " << m_chooserName << "\n";
     if ( m_ignore )
       f << "      Ignore         = True\n";
@@ -210,7 +210,7 @@ namespace ba {
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
           iter != tokens.end(); ++iter ) {
-        if ( (*iter) == "" ) {
+        if ( (*iter).empty() ) {
           iter = tokens.erase(iter);
           iter--;
         }
@@ -446,7 +446,7 @@ namespace ba {
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
           iter != tokens.end(); ++iter ) {
-        if ( (*iter) == "" ) {
+        if ( (*iter).empty() ) {
           iter = tokens.erase(iter);
           iter--;
         }
@@ -634,7 +634,7 @@ namespace ba {
     // Making sure all the control points have unique IDs
     size_t cpcount = 0;
     BOOST_FOREACH( ControlPoint& cp, m_control_points ) {
-      if ( cp.id() == "Null" || cp.id() == "" ) {
+      if ( cp.id() == "Null" || cp.id().empty() ) {
         std::ostringstream ostr;
         ostr << std::setw(9) << std::setfill('0') << cpcount;
         cp.set_id( ostr.str() );
@@ -698,7 +698,7 @@ namespace ba {
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
           iter != tokens.end(); ++iter ) {
-        if ( (*iter) == "" ) {
+        if ( (*iter).empty() ) {
           iter = tokens.erase(iter);
           iter--;
         }

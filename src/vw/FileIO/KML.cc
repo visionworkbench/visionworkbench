@@ -84,9 +84,9 @@ namespace vw {
   void KMLFile::enter_folder( std::string name,
                               std::string desc ) {
     open_bracket("Folder");
-    if ( name != "" )
+    if ( !name.empty() )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( desc != "" )
+    if ( !desc.empty() )
       m_output_file << m_tab << "<description>"<< desc <<"</description>\n";
   }
 
@@ -104,12 +104,12 @@ namespace vw {
                                   double altitude,
                                   bool extrude ) {
     open_bracket("Placemark");
-    if ( name != "" )
+    if ( !name.empty() )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( description != "" )
+    if ( !description.empty() )
       m_output_file << m_tab << "<description>"
                     << description << "</description>\n";
-    if ( style != "")
+    if ( !style.empty())
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("Point");
     if ( extrude )
@@ -125,9 +125,9 @@ namespace vw {
                              std::string name,
                              std::string style ) {
     open_bracket("Placemark");
-    if ( name != "" )
+    if ( !name.empty() )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( style != "")
+    if ( !style.empty())
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("LineString");
     m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
@@ -157,9 +157,9 @@ namespace vw {
     double heading = angles(0)*180/M_PI, tilt = angles(1)*180/M_PI, roll = angles(2)*180/M_PI;
 
     open_bracket("Placemark");
-    if ( name != "" )
+    if ( !name.empty() )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( description != "" )
+    if ( !description.empty() )
       m_output_file << m_tab << "<description>"
                     << description << "</description>\n";
 
@@ -228,7 +228,7 @@ namespace vw {
       close_brackets(1);
     }
     open_bracket("IconStyle");
-    if (color_hex != "" )
+    if (!color_hex.empty() )
       m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
     m_output_file << m_tab << "<scale>" << scale << "</scale>\n";
     open_bracket("Icon");
@@ -243,7 +243,7 @@ namespace vw {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
     m_tab.count++;
     open_bracket("LineStyle");
-    if (color_hex != "" )
+    if (!color_hex.empty() )
       m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
     m_output_file << m_tab << "<width>" << width << "</width>\n";
     close_brackets(1);
@@ -288,7 +288,7 @@ namespace vw {
   // Open / Close Stuff
   void KMLFile::open_kml() {
     std::ostringstream path;
-    if ( m_directory != "" )
+    if ( !m_directory.empty() )
       path << m_directory << "/";
     path << m_filename;
     fs::path kml_path( path.str() );

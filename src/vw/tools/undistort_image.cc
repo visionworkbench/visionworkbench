@@ -422,7 +422,7 @@ int main( int argc, char *argv[] ) {
 
   output_nodata_value_was_set = vm.count("output-nodata-value");
 
-  if (input_file_name == "" || camera_file_name == "" || output_file_name == "")
+  if (input_file_name.empty() || camera_file_name.empty() || output_file_name.empty())
     vw_throw(ArgumentErr() << "Not all inputs were specified.\n" << desc << "\n");
 
   vw::create_out_dir(output_file_name);

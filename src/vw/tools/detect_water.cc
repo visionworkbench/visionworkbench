@@ -109,11 +109,11 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  if ((dem_path != "") && (!radar_mode))
+  if ((!dem_path.empty()) && (!radar_mode))
     std::cout << "Warning: DEM file is only used when mode is 'sentinel1'\n";
   
   // If a DEM file was provided, make sure it actually exists before we start doing any processing.
-  if ((dem_path != "") && !boost::filesystem::exists(dem_path)) {
+  if ((!dem_path.empty()) && !boost::filesystem::exists(dem_path)) {
     std::cout << "Error: Provided DEM file not found!\n";
     return -2;
   }

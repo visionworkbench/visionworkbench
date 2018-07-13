@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if( output_file_name == "" )
+  if( output_file_name.empty() )
     output_file_name = fs::path(image_files[0]).replace_extension("toast").string();
 
   if( tile_size <= 0 || tile_size != pow(2.,floor(log((double)tile_size)/log(2.))) ) {

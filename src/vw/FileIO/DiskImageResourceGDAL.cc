@@ -361,7 +361,7 @@ namespace vw {
 
     m_options = user_options;
 
-    if (m_options["PREDICTOR"] == ""){
+    if (m_options["PREDICTOR"].empty()){
       // Unless predictor was explicitly set, use predictor 3 for
       // compression of float/double, and predictor 2 for integers,
       // except whose size is one byte, as for those compression makes

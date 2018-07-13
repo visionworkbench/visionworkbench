@@ -128,7 +128,7 @@ int main( int argc, char *argv[] ) {
     read_georeference( georef, file_resource );
   }
 
-  if ( georef.proj4_str() == "" ) georef.set_well_known_geogcs("WGS84");
+  if ( georef.proj4_str().empty() ) georef.set_well_known_geogcs("WGS84");
   if( manual || georef.transform() == identity_matrix<3>() ) {
     if( manual ) {
       vw_out() << "Using manual Plate Carree coordinates: ";
