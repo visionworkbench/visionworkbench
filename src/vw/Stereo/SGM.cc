@@ -1283,12 +1283,13 @@ SemiGlobalMatcher::create_disparity_view() {
   ImageView<int> cost_second     (m_num_output_cols, m_num_output_rows);
   ImageView<int> cost_ratio      (m_num_output_cols, m_num_output_rows);
   ImageView<int> best_costs      (m_num_output_cols, m_num_output_rows);
-  ImageView<int> worst_costs     (m_num_output_cols, m_num_output_rows);*/
+  ImageView<int> worst_costs     (m_num_output_cols, m_num_output_rows);
+  double mean;
+  AccumCostType best, second;
+  int count = 0, worst=0;
+  */
   
   DisparityType dx, dy;
-  AccumCostType best, second;
-  double mean;
-  int count = 0, worst=0;
   int min_index=0;
   std::vector<AccumCostType> accum_buffer;
   for ( int j = 0; j < m_num_output_rows; j++ ) {
