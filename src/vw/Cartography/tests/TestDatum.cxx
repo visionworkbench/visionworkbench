@@ -97,6 +97,32 @@ vw::Vector3 vermille_2011_cart_to_geodetic( Datum const& d, Vector3 const& cart 
   return llh;
 }
 
+
+TEST( Datum, SetFromName) {
+  // Verify that all of our standard names work
+  Datum d;
+  EXPECT_NO_THROW(d.set_well_known_datum("WGS84" ));
+  EXPECT_NO_THROW(d.set_well_known_datum("WGS72" ));
+  EXPECT_NO_THROW(d.set_well_known_datum("NAD83" ));
+  EXPECT_NO_THROW(d.set_well_known_datum("NAD27" ));
+  EXPECT_NO_THROW(d.set_well_known_datum("D_MOON"));
+  EXPECT_NO_THROW(d.set_well_known_datum("D_MARS"));
+  EXPECT_NO_THROW(d.set_well_known_datum("MOLA"  ));
+  EXPECT_THROW(d.set_well_known_datum("MOOLA"), vw::InputErr);
+}
+
+TEST( Datum, SetFromProjString) {
+  // This grid file does not exist but we don't check until a conversion is attempted.
+  std::string proj_str = "+proj=longlat +datum=NAD83 +no_defs +nadgrids=fake_grid.ct2";
+  Datum d;
+  d.set_datum_from_proj_str(proj_str);
+  EXPECT_EQ(proj_str, d.proj4_str());
+  
+  EXPECT_EQ("North_American_Datum_1983", d.name());
+  EXPECT_EQ("GRS 1980", d.spheroid_name());
+  EXPECT_EQ("Greenwich", d.meridian_name());
+}
+
 TEST( Datum, GeodeticConversion ) {
   Datum datum("WGS84");
 

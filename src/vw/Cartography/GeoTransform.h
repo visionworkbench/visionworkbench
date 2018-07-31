@@ -23,6 +23,7 @@
 #include <string>
 
 #include <vw/Math/Vector.h>
+#include <vw/Core/Thread.h>
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
 
@@ -36,22 +37,28 @@ namespace cartography {
   /// two GeoReference objects.
   /// - Use of this class is the ONLY safe method to convert coordinates between two
   ///   GeoReference objects that fully handles all variables.
+  /// - Be very careful using this class to convert between datums!  Not all datums will correctly convert.
+  ///   To be safe verify that your datums convert properly or use a dedicated tool such as 
+  ///   ASP's datum_convert to do the conversions.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
-    GeoReference m_src_georef;
-    GeoReference m_dst_georef;
-    BBox2        m_src_bbox,
-                 m_dst_bbox;
-    ProjContext  m_src_datum_proj,
-                 m_dst_datum_proj;
-    bool         m_skip_map_projection;
-    bool         m_skip_datum_conversion;
+    GeoReference  m_src_georef;
+    GeoReference  m_dst_georef;
+    BBox2         m_src_bbox,
+                  m_dst_bbox;
+    ProjContext   m_src_datum_proj,
+                  m_dst_datum_proj;
+    bool          m_skip_map_projection;
+    bool          m_skip_datum_conversion;
+    mutable Mutex m_mutex; // Used to control access to the ProjContext objects
 
   public:
   
     /// Default constructor, does not generate a usable object.
     GeoTransform() {}
-  
+
+    GeoTransform(GeoTransform const& other);
+
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
                  BBox2 const& src_bbox = BBox2i(0, 0, 0, 0),
@@ -65,7 +72,7 @@ namespace cartography {
 
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
-    /// pixel the destination (transformed) image.
+    /// pixel in the destination (transformed) image.
     Vector2 forward(Vector2 const& v) const {return pixel_to_pixel(v);}
 
     /// Given a pixel coordinate of an image in a destination
@@ -101,6 +108,9 @@ namespace cartography {
     /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
     Vector2 lonlat_to_lonlat(Vector2 const& lonlat, bool forward=true) const;
 
+    /// Converts lonlatalt coords, taking the datums into account.
+    /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
+    Vector3 lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward=true) const;
 
     /// Returns true if bounding box conversions wrap around the output
     ///  georeference, creating a very large bounding box.

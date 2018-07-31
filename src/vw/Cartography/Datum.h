@@ -60,6 +60,7 @@ namespace cartography {
 
     /// Constructs a well-known datum by name.
     /// - Supported names: WGS84, WGS72, NAD83, NAD27, D_MOON, D_MARS, MOLA.
+    /// - Note that this class does not fully support Earth datums other than WGS84!
     Datum( std::string const& name ) {
       set_well_known_datum( name );
     }

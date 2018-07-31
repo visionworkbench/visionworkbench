@@ -45,7 +45,7 @@ namespace cartography {
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
     // the affine transform.
-    if ((m_src_georef.proj4_str() == m_dst_georef.proj4_str()) &&
+    if ((m_src_georef.overall_proj4_str() == m_dst_georef.overall_proj4_str()) &&
         (src_georef.is_lon_center_around_zero() == dst_georef.is_lon_center_around_zero()) )
       m_skip_map_projection = true;
     else
@@ -56,7 +56,7 @@ namespace cartography {
     // as we transform.
     if(src_datum == dst_datum) {
       m_skip_datum_conversion = true;
-    } else {
+    } else {     
       // Set up the various variables for proj.
       m_skip_datum_conversion = false;
 
@@ -64,17 +64,21 @@ namespace cartography {
       std::stringstream ss_src;
       // We convert lat/long to lat/long regardless of what the
       // source or destination georef uses.
-      ss_src << "+proj=latlong " << src_datum;
+      ss_src << "+proj=longlat " << src_datum;
       m_src_datum_proj = ProjContext( ss_src.str() );
 
       // The destination proj4 context.
       std::stringstream ss_dst;
-      ss_dst << "+proj=latlong " << dst_datum;
+      ss_dst << "+proj=longlat " << dst_datum;
       m_dst_datum_proj = ProjContext( ss_dst.str() );
     }
     // Because GeoTransform is typically very slow, we default to a tolerance
     // of 0.1 pixels to allow ourselves to be approximated.
     set_tolerance( 0.1 );
+  }
+
+  GeoTransform::GeoTransform(GeoTransform const& other) {
+    *this = other;
   }
 
   GeoTransform& GeoTransform::operator=(GeoTransform const& other) {
@@ -91,10 +95,10 @@ namespace cartography {
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
-    Vector2 src_lonlat = m_dst_georef.pixel_to_lonlat(v);
+    Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
     if(m_skip_datum_conversion)
-      return m_src_georef.lonlat_to_pixel(src_lonlat);
-    src_lonlat = lonlat_to_lonlat(src_lonlat, false);
+      return m_src_georef.lonlat_to_pixel(dst_lonlat);
+    Vector2 src_lonlat = lonlat_to_lonlat(dst_lonlat, false);
     return m_src_georef.lonlat_to_pixel(src_lonlat);
   }
 
@@ -102,10 +106,10 @@ namespace cartography {
   Vector2 GeoTransform::pixel_to_pixel(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-    Vector2 dst_lonlat = m_src_georef.pixel_to_lonlat(v);
+    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
     if(m_skip_datum_conversion)
-      return m_dst_georef.lonlat_to_pixel(dst_lonlat);
-    dst_lonlat = lonlat_to_lonlat(dst_lonlat, true);
+      return m_dst_georef.lonlat_to_pixel(src_lonlat);
+    Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
 
@@ -178,9 +182,14 @@ namespace cartography {
 
   // Performs a forward or reverse datum conversion.
   Vector2 GeoTransform::lonlat_to_lonlat(Vector2 const& lonlat, bool forward) const {
-    double lon = lonlat[0];
-    double lat = lonlat[1];
+    if (m_skip_datum_conversion)
+      return lonlat;
+
+    double lon = lonlat[0] * DEG_TO_RAD; // proj4 requires radians
+    double lat = lonlat[1] * DEG_TO_RAD;
     double alt = 0;
+
+    Mutex::WriteLock write_lock(m_mutex);
 
     if(forward) // src to dst
       pj_transform(m_src_datum_proj.proj_ptr(), m_dst_datum_proj.proj_ptr(), 1, 0, &lon, &lat, &alt);
@@ -189,8 +198,29 @@ namespace cartography {
     CHECK_PROJ_ERROR( m_src_datum_proj );
     CHECK_PROJ_ERROR( m_dst_datum_proj );
 
-    return Vector2(lon, lat);
+    return Vector2(lon*RAD_TO_DEG, lat*RAD_TO_DEG);
   }
+
+  Vector3 GeoTransform::lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward) const {
+    if (m_skip_datum_conversion)
+      return lonlatalt;
+
+    double lon = lonlatalt[0] * DEG_TO_RAD; // proj4 requires radians
+    double lat = lonlatalt[1] * DEG_TO_RAD;
+    double alt = lonlatalt[2];
+
+    Mutex::WriteLock write_lock(m_mutex);
+
+    if(forward) // src to dst
+      pj_transform(m_src_datum_proj.proj_ptr(), m_dst_datum_proj.proj_ptr(), 1, 0, &lon, &lat, &alt);
+    else // dst to src
+      pj_transform(m_dst_datum_proj.proj_ptr(), m_src_datum_proj.proj_ptr(), 1, 0, &lon, &lat, &alt);
+    CHECK_PROJ_ERROR( m_src_datum_proj );
+    CHECK_PROJ_ERROR( m_dst_datum_proj );
+
+    return Vector3(lon*RAD_TO_DEG, lat*RAD_TO_DEG, alt);
+  }
+
 
   bool GeoTransform::check_bbox_wraparound() const {
 

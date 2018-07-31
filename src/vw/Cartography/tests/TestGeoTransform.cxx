@@ -22,10 +22,62 @@
 
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
 
 using namespace vw;
 using namespace vw::cartography;
 using namespace vw::test;
+
+
+TEST(GeoTransform, safe_set_center) {
+
+  Matrix3x3 a; // Set an affine matrix for centering in the 0-360 range.
+  a(0,0) = 6.44839e-06;  a(0,1) =  0;            a(0,2) = 243.745;
+  a(1,0) = 0;            a(1,1) = -6.44839e-06;  a(1,2) = 35.2553;
+  a(2,0) = 0;            a(2,1) = 0;             a(2,2) = 1;
+
+  GeoReference in_georef, out_georef;
+  in_georef.set_well_known_geogcs("NAD27");
+  out_georef.set_well_known_geogcs("WGS84");
+  in_georef.set_transform(a);
+  out_georef.set_transform(a);
+  in_georef.safe_set_lon_center(true); // Move center to -180 to 180 range.
+  out_georef.safe_set_lon_center(true);
+  
+  GeoTransform tf(in_georef, out_georef);
+  
+  Vector2 pixel = tf.reverse(Vector2(100,100));
+  EXPECT_VECTOR_NEAR(Vector2(232.2344,96.8230), pixel, 1e-4);
+}
+
+
+
+/// Try running a pixel-to-pixel transform with a +nadgrids file.
+TEST(GeoTransform, nadgrids) {
+
+  const std::string proj_str_in  = "+proj=longlat +datum=WGS84";
+  const std::string proj_str_out = "+proj=longlat +datum=NAD83 +no_defs +nadgrids="TEST_SRCDIR"/wgs84_to_nad83.ct2";
+
+  Matrix3x3 af;
+  Datum d_in, d_out;
+  d_in.set_datum_from_proj_str(proj_str_in);
+  d_out.set_datum_from_proj_str(proj_str_out);
+
+  af(0,0) = 6.44839e-06; af(0,1) =  0;           af(0,2) = 243.745;
+  af(1,0) = 0;           af(1,1) = -6.44839e-06; af(1,2) = 35.2553;
+  af(2,0) = 0;           af(2,1) = 0;            af(2,2) = 1;
+
+  GeoReference georef1(d_in,  af);
+  GeoReference georef2(d_out, af);
+
+  GeoTransform trans12(georef1, georef2);
+
+  Vector2 pixel(87, 72);
+  Vector2 p1 = trans12.pixel_to_pixel(pixel);
+ 
+  EXPECT_VECTOR_NEAR(p1,  Vector2(84.3167187348,71.0064820955), 1e-4);
+}
+
 
 TEST( GeoTransform, BasicTransform ) {
   GeoReference src_georef;
@@ -112,7 +164,6 @@ TEST( GeoTransform, StereographicSingularity ) {
 TEST(GeoTransform, skipProjectionTest) {
 
   // Test GeoTransform functions when the skip_map_projection flag is set.
-
   Matrix3x3 affine;
   Datum d("WGS72");
 
@@ -121,14 +172,14 @@ TEST(GeoTransform, skipProjectionTest) {
   affine(2,2) = 1;
   affine(0,2) = 100.0; // Degrees
   affine(1,2) = 30.0;
-  
+
   GeoReference georef1(d, affine, GeoReference::PixelAsPoint);
 
   affine(0,0) =  0.02; // degrees per pixel
   affine(1,1) = -0.02; // degrees per pixel
   
   GeoReference georef2(d, affine, GeoReference::PixelAsPoint);
-  
+
   georef1.set_proj4_projection_str("+proj=longlat +ellps=WGS72 +no_defs");
   georef2.set_proj4_projection_str("+proj=longlat +ellps=WGS72 +no_defs");
 
@@ -148,7 +199,6 @@ TEST(GeoTransform, skipProjectionTest) {
   EXPECT_VECTOR_NEAR(pixel2, Vector2(5.0, 10.0), EPS);
   EXPECT_VECTOR_NEAR(point1, point2,  EPS);
   EXPECT_VECTOR_NEAR(point2, point2b, EPS);
-
 }
 
 TEST(GeoTransform, RefToRef) {
@@ -296,4 +346,3 @@ TEST(GeoTransform, sinusoidalTest) {
   EXPECT_NEAR(pixel2.max().x(), 924.0, eps);
   EXPECT_NEAR(pixel2.max().y(), 914.0, eps);  
 }
-

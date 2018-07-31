@@ -46,13 +46,16 @@ vw::cartography::Datum::Datum(std::string const& name,
 void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref) {
 
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
-  if (datum_name) { this->name() = datum_name; }
+  if (datum_name)
+    this->name() = datum_name;
 
   const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
-  if (spheroid_name) { this->spheroid_name() = spheroid_name; }
+  if (spheroid_name)
+    this->spheroid_name() = spheroid_name;
 
   const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
-  if (meridian_name) { this->meridian_name() = meridian_name;}
+  if (meridian_name)
+    this->meridian_name() = meridian_name;
 
   OGRErr e1, e2;
   double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
@@ -74,15 +77,16 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference cons
 void vw::cartography::Datum::set_datum_from_proj_str( std::string const& proj_str ) {
 
   OGRSpatialReference gdal_spatial_ref;
-  if (gdal_spatial_ref.SetFromUserInput( proj_str.c_str() ))
+  if (gdal_spatial_ref.importFromProj4( proj_str.c_str() ))
     vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
+  this->proj4_str() = proj_str; // The other call can change the string, don't let it!
 }
 
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
-  m_meridian_name = "Greenwich";
-  m_geocentric = false;
+  m_meridian_name   = "Greenwich";
+  m_geocentric      = false;
   m_meridian_offset = 0.0;
 
   // These numbers will be over-written later. However, we must
@@ -103,13 +107,13 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   }
 
   if (up_name == "WGS72" || up_name == "WGS_1972") {
-    set_datum_from_proj_str("+proj=longlat +datum=WGS72 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +ellps=WGS72 +no_defs");
     return;
   }
 
   if (up_name == "NAD83" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
-    set_datum_from_proj_str("+proj=longlat +datum=NAD83 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs");
     return;
   }
 
@@ -375,7 +379,8 @@ std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Da
   oss << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
       << "  Semi-major axis: " << datum.semi_major_axis()
       << "  Semi-minor axis: " << datum.semi_minor_axis()
-      << "  Meridian: "   << datum.meridian_name() << " at " << datum.meridian_offset();
+      << "  Meridian: "   << datum.meridian_name() << " at " << datum.meridian_offset()
+      << "  Proj4 Str: "  << datum.proj4_str();
   os << oss.str();
   return os;
 }

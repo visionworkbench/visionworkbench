@@ -125,14 +125,46 @@ namespace cartography {
 //=============================================================================================
 
 
+// TODO: Move this!
+
+size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) {
+  std::vector<std::string> arg_strings;
+  std::string trimmed_proj4_str = boost::trim_copy(str_in);
+  boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") );
+  str_out = "";
+  size_t num_kept = 0;
+
+  for (size_t i=0; i < arg_strings.size(); ++i) {
+    bool duplicate = false;
+    for (size_t k=i+1; k < arg_strings.size(); ++k) {
+      if (arg_strings[i] == arg_strings[k]) {
+        duplicate = true;
+        break;
+      }
+    } // End k loop
+    if (duplicate)
+      continue;
+    // Not a duplicate!
+    if (num_kept > 0)
+      str_out += " ";
+    str_out += arg_strings[i];
+    ++num_kept;
+  } // End i loop
+
+  return num_kept;
+}
+
   std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
   }
 
   std::string GeoReference::overall_proj4_str() const {
+    // Make sure these elements exist but prevent duplicate entries
     std::string proj4_str = boost::trim_copy(m_proj_projection_str) + " "
                             + boost::trim_copy(m_datum.proj4_str()) + " +no_defs";
-    return proj4_str;
+    std::string proj4_str_no_dups;
+    remove_proj4_duplicates(proj4_str, proj4_str_no_dups);
+    return proj4_str_no_dups;
   }
 
   void GeoReference::init_proj() {
@@ -210,7 +242,6 @@ namespace cartography {
       m_datum.name() = "WGS_1984";
       m_datum.proj4_str() += " +datum=WGS84";
     }
-
     init_proj();
   }
 
@@ -366,6 +397,29 @@ namespace cartography {
       clear_proj4_over();
     else 
       set_proj4_over();
+  }
+
+  bool GeoReference::safe_set_lon_center(bool new_center_around_zero) {
+    bool current_center = is_lon_center_around_zero();
+    if (current_center == new_center_around_zero)
+      return false; // The center is already how we want it
+      
+    std::string proj = overall_proj4_str();
+    if (proj.find("+proj=longlat") == std::string::npos)
+      vw_throw( NoImplErr() << "safe_set_georef_center is only defined for longlat projections!" );
+    
+    // Shift the projection transform matrix to account for the new longitude center.
+    Matrix3x3 affine = transform();
+    if (current_center) {
+      affine(0,2) += 360.0;
+      set_lon_center(false);
+    }
+    else {
+      affine(0,2) -= 360.0;
+      set_lon_center(true);
+    }
+    set_transform(affine);
+    return true; // Center was changed.
   }
 
   bool GeoReference::extract_proj4_value(std::string const& proj4_string, std::string const& key,
@@ -1061,7 +1115,6 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     os << "-- Proj.4 Geospatial Reference Object --\n";
     if (georef.get_projcs_name() != "")
       os << "\tPROJCS name: " << georef.get_projcs_name() << "\n";
-    os << "\tProj.4 String: " << georef.proj4_str() << "\n";
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";
     os << "\tProj.4 String: " << georef.proj4_str() << "\n";

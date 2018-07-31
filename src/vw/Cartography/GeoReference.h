@@ -188,13 +188,18 @@ namespace cartography {
 
     /// Set the GeoReference to either the [-180,180] longitude range or to the [0,360] longitude range.
     /// - The value set by this function MUST properly correspond to the range of projected space
-    ///   occupied by the GeoReference.
+    ///   occupied by the GeoReference.  For +proj=lonlat cases, adding or subtracting 360.0 from the
+    ///   (0,2) element of the affine transform will compensate for the center shift.
     /// - UTM projections must always be in the [-180,180] range and this function enforces this.
     /// - If this function is not called the class will attempt to automatically select the best value.
     /// - All longitude inputs are accepted.
     /// - All longitude outputs will be given in this range.
     void set_lon_center(bool centered_on_lon_zero);
-    
+
+    /// As set_lon_center and also update the transform matrix to match.
+    /// - Return false if the center did not need to be changed.
+    bool safe_set_lon_center(bool new_center_around_zero);
+
     /// Returns true if the output longitude values will be normalized to the [-180, 180] range.
     /// - Otherwise they will be normalized to the [0, 360] range.
     bool is_lon_center_around_zero() const {return m_center_lon_zero;}
@@ -208,6 +213,7 @@ namespace cartography {
 
     Datum const& datum() const { return m_datum; }
 
+    // TODO: Why are there two string functions??????!!!!!!
           std::string  proj4_str() const;
     Matrix<double,3,3> transform() const { return m_transform; }
 
