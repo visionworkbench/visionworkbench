@@ -31,18 +31,19 @@
 namespace vw {
 namespace camera {
 
-  // This is a generic line scan camera model that can be derived
-  // from to help implement specific cameras.
-  //
-  // This expects the pose to be a rotation from the camera frame to
-  // the world frame. The position is a the camera's location in the
-  // world frame.
-  //
-  // The intrinisic model expects +Z to point out the camera. +X is
-  // the column direction of the image and is perpendicular to
-  // direction of flight. +Y is the row direction of the image (down
-  // the image); it is also the flight direction.  If this is not 
-  // accurate for your camera you can apply a rotation in PoseFuncT.
+  /// This is a generic line scan camera model that can be derived
+  /// from to help implement specific cameras.  Some parts (velocity
+  /// and atmospheric correction) currently only work for Earth.
+  ///
+  /// This expects the pose to be a rotation from the camera frame to
+  /// the world frame. The position is a the camera's location in the
+  /// world frame.
+  ///
+  /// The intrinisic model expects +Z to point out the camera. +X is
+  /// the column direction of the image and is perpendicular to
+  /// direction of flight. +Y is the row direction of the image (down
+  /// the image); it is also the flight direction.  If this is not 
+  /// accurate for your camera you can apply a rotation in PoseFuncT.
 
   class LinescanModel : public vw::camera::CameraModel {
 
@@ -51,9 +52,18 @@ namespace camera {
     // Constructors / Destructors
     //------------------------------------------------------------------
     LinescanModel(Vector2i const& image_size,
-		              bool            correct_velocity_aberration) :
+		              bool            correct_velocity_aberration,
+		              bool            correct_atmospheric_refraction) :
       m_image_size(image_size), 
-      m_correct_velocity_aberration(correct_velocity_aberration){}
+      m_correct_velocity_aberration(correct_velocity_aberration),
+      m_correct_atmospheric_refraction(correct_atmospheric_refraction){
+      
+      // Set default values for these constants which can be overridden later on.
+      const double DEFAULT_EARTH_RADIUS      = 6371000.0;  // In meters.
+      const double DEFAULT_SURFACE_ELEVATION = 0.0;
+      m_mean_earth_radius      = DEFAULT_EARTH_RADIUS;
+      m_mean_surface_elevation = DEFAULT_SURFACE_ELEVATION;
+    }
 
     virtual ~LinescanModel() {}
     virtual std::string type() const { return "Linescan"; }
@@ -122,11 +132,20 @@ namespace camera {
     /// Image size in pixels: [num lines, num samples]
     Vector2i m_image_size;      
 
+    double m_mean_earth_radius;
+    double m_mean_surface_elevation;
+
     /// Set this flag to enable velocity aberration correction.
     /// - For satellites this makes a big difference, make sure it is set!
     bool m_correct_velocity_aberration;
+    
+    /// Set this flag to enable atmospheric refraction correction.
+    bool m_correct_atmospheric_refraction;
 
   protected:
+
+    /// Returns the radius of the Earth under the current camera position.
+    double get_earth_radius() const;
 
     /// Returns the velocity corrected to account for the planetary rotation.
     /// - For efficiency, requires the uncorrected look vector at this location.
@@ -138,6 +157,13 @@ namespace camera {
     ///   correction for the Earth's rotation.
     Vector3 apply_velocity_aberration_correction(Vector2 const& pixel,
                                                  Vector3 const& uncorrected_vector) const;
+
+    /// Simple atmospheric atmospheric correction method.
+    static double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha);
+
+    /// Account for atmospheric refraction.
+    Vector3 apply_atmospheric_refraction_correction(Vector2 const& pixel,
+                                                    Vector3 const& uncorrected_vector) const;
 
   }; // End class LinescanModel
   

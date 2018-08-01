@@ -53,7 +53,6 @@ Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const
 // WARNING: This currently only works for Earth!
 Vector3 LinescanModel::get_rotation_corrected_velocity(Vector2 const& pixel,
                                                        Vector3 const& uncorrected_vector) const {
-  // TODO: This could be a function that lives somewhere else!
   
   // 1. Find the distance from the camera to the first
   // intersection of the current ray with the Earth surface.
@@ -61,13 +60,13 @@ Vector3 LinescanModel::get_rotation_corrected_velocity(Vector2 const& pixel,
   double  earth_ctr_to_cam = norm_2(cam_ctr);
   double  cam_angle_cos    = dot_prod(uncorrected_vector, -normalize(cam_ctr));
   double  len_cos          = earth_ctr_to_cam*cam_angle_cos;
-  double  earth_rad        = 6371000.0; // TODO: Vary by location?
+  double  earth_rad        = m_mean_earth_radius;
   double  cam_to_surface   = len_cos - sqrt(earth_rad*earth_rad
                                             + len_cos*len_cos
                                             - earth_ctr_to_cam*earth_ctr_to_cam);
   // 2. Account for Earth's rotation  
-  double seconds_in_day = 86164.0905;
-  Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/seconds_in_day);
+  const double SECONDS_PER_DAY = 86164.0905;
+  Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/SECONDS_PER_DAY);
   Vector3 cam_vel      = camera_velocity(pixel);
   Vector3 cam_vel_corr = cam_vel
     - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
@@ -77,7 +76,7 @@ Vector3 LinescanModel::get_rotation_corrected_velocity(Vector2 const& pixel,
 
 Vector3 LinescanModel::
 apply_velocity_aberration_correction(Vector2 const& pixel,
-				     Vector3 const& uncorrected_vector) const {
+				                             Vector3 const& uncorrected_vector) const {
   
   // 1. Correct the camera velocity due to the fact that the Earth
   // rotates around its axis.
@@ -89,10 +88,58 @@ apply_velocity_aberration_correction(Vector2 const& pixel,
     - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
 
   // 3. Correct direction for velocity aberration due to the speed of light.
-  double light_speed = 299792458.0;
-  Vector3 corrected_vector = uncorrected_vector - cam_vel_corr2/light_speed;
+  const double LIGHT_SPEED = 299792458.0;
+  Vector3 corrected_vector = uncorrected_vector - cam_vel_corr2/LIGHT_SPEED;
   return normalize(corrected_vector);
+}
 
+
+/// Compute the ray correction for atmospheric refraction using the 
+///  Saastamoinen equation.
+double LinescanModel::saastamoinen_atmosphere_correction(
+          double camera_alt, double ground_alt, double alpha) {
+
+  const double METERS_PER_KM = 1000.0;
+  double H      = camera_alt / METERS_PER_KM; // In kilometers
+  double h      = ground_alt / METERS_PER_KM; // Height of target point over surface in km
+  double h_diff = H - h;
+  double p1     = (2335.0 / h_diff)*pow(1.0 - 0.02257*h, 5.256);
+  double p2     = pow(0.8540, H-11.0) * (82.2 - 521.0/h_diff);
+  double K      = (p1 - p2) * pow(10.0,-6.0);
+
+  double delta_alpha = K * tan(alpha);
+  return delta_alpha;
+}
+
+// WARNING: This currently only works for Earth!
+Vector3 LinescanModel::
+apply_atmospheric_refraction_correction(Vector2 const& pixel,
+                                        Vector3 const& uncorrected_vector) const {
+  // Correct for atmospheric refraction
+  // - From Saastamoinen, J. (1972), Atmospheric correction for the 
+  //   troposphere and stratosphere in radio ranging of satellites.
+
+  // Get some information
+  vw::Vector3 cam_ctr          = camera_center(pixel); // ECF camera coords
+  vw::Vector3 cam_ctr_norm     = normalize(cam_ctr);
+  vw::Vector3 cam_to_earth_center_unit = -1.0 * cam_ctr_norm;
+  double  earth_ctr_to_cam     = norm_2(cam_ctr);    // Distance in meters from cam to earth center
+  double  cam_to_earth_surface = earth_ctr_to_cam - m_mean_earth_radius;
+
+  // Compute angle alpha and correction angle
+  vw::Vector3 u     = normalize(uncorrected_vector);
+  double      alpha = acos(dot_prod(cam_to_earth_center_unit,u)); // Both get angle of normalized vectors.
+
+  // There are more sophisticated correction methods but this one is simple and does help.
+  double delta_alpha = saastamoinen_atmosphere_correction(cam_to_earth_surface,
+                                                          m_mean_surface_elevation, alpha);
+
+  // Rotate the vector by delta_alpha
+  vw::Vector3 rotation_axis = normalize(cross_prod(u, cam_to_earth_center_unit));
+  vw::Quaternion<double> refraction_rotation(rotation_axis, delta_alpha);
+  vw::Vector3 u_prime = refraction_rotation.rotate(u);
+
+  return u_prime;
 }
 
 Vector3 LinescanModel::pixel_to_vector(Vector2 const& pixel) const {
@@ -101,12 +148,15 @@ Vector3 LinescanModel::pixel_to_vector(Vector2 const& pixel) const {
     // - m_detector_origin and m_focal_length have been converted into units of pixels
     Vector3 local_vec = get_local_pixel_vector(pixel);
     // Put the local vector in world coordinates using the pose information.
-    Vector3 uncorrected_vector = camera_pose(pixel).rotate(local_vec);
+    Vector3 output_vector = camera_pose(pixel).rotate(local_vec);
+
+    if (!m_correct_atmospheric_refraction) 
+      output_vector = apply_atmospheric_refraction_correction(pixel, output_vector);
 
     if (!m_correct_velocity_aberration) 
-      return uncorrected_vector;
+      return output_vector;
     else
-      return apply_velocity_aberration_correction(pixel, uncorrected_vector);
+      return apply_velocity_aberration_correction(pixel, output_vector);
       
   } catch(const vw::Exception &e) {
     // Repackage any of our exceptions thrown below this point as a 
