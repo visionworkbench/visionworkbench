@@ -48,7 +48,6 @@ using namespace vw::ip;
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
 
 template <class ImageT, class ValueT>
 void draw_line( ImageViewBase<ImageT>& image,
@@ -69,11 +68,65 @@ void draw_line( ImageViewBase<ImageT>& image,
   }
 }
 
-static void write_debug_image( std::string const& out_file_name,
-                               std::string const& input_file_name,
-                               InterestPointList const& ip ) {
-  vw_out() << "Writing debug image: " << out_file_name << "\n";
+// TODO: Move this to the IP library, then remove from ASP.
+/// Remove all pixels within a radius of the border or nodata.
+// Note: A nodata pixel is one for which pixel <= nodata.
+template <class ImageT>
+void remove_ip_near_nodata( vw::ImageViewBase<ImageT> const& image,   double nodata,
+                            vw::ip::InterestPointList      & ip_list, int    radius ){
 
+  size_t prior_ip = ip_list.size();
+  
+  typedef ImageView<typename ImageT::pixel_type> CropImageT;
+  const int width = 2*radius+1;
+  CropImageT subsection(width,width);   
+  
+  // Get shrunk bounding box
+  BBox2i bound = bounding_box( image.impl() );
+  bound.contract(radius); 
+  // Loop through all the points
+  for ( ip::InterestPointList::iterator ip = ip_list.begin(); ip != ip_list.end(); ++ip ) {
+    
+    // Remove the point if it was too close to the image borders
+    if ( !bound.contains( Vector2i(ip->ix,ip->iy) ) ) {
+      ip = ip_list.erase(ip);
+      ip--;
+      continue;
+    }
+
+    // Remove the point if any invalid pixels are too close to it
+    subsection = crop( image.impl(), ip->ix-radius, ip->iy-radius, width, width );
+    for ( typename CropImageT::iterator pixel = subsection.begin();
+          pixel != subsection.end(); pixel++ ) {
+      if (*pixel <= nodata) {
+        ip = ip_list.erase(ip);
+        ip--;
+        break;
+      }
+    }
+  }
+  VW_OUT( DebugMessage, "asp" ) << "Removed " << prior_ip - ip_list.size()
+			  << " interest points due to their proximity to nodata values."
+			  << std::endl << "Nodata value used " << nodata << std::endl;
+} // End function remove_ip_near_nodata
+
+// TODO: This should be merged with the debug functions in ASP
+template <typename ImageT>
+void write_debug_image( std::string const& out_file_name,
+                        vw::ImageViewBase<ImageT> const& image,
+                        InterestPointList const& ip,
+                        bool has_nodata, double nodata,
+                        bool force_full_res=false) {
+
+  // Scale the images to keep the size down below 1500x1500 so they draw quickly.
+  float sub_scale  = sqrt(1500.0 * 1500.0 / float(image.impl().cols() * image.impl().rows()));
+	sub_scale /= 2;
+  if ((sub_scale > 1) || force_full_res)
+    sub_scale = 1;
+
+  vw_out() << "Writing debug image: " << out_file_name << " with downsample: "<< sub_scale << "\n";
+  
+  // Get the min and max point intensity
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
   for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
@@ -84,16 +137,17 @@ static void write_debug_image( std::string const& out_file_name,
   }
   float diff = max - min;
 
-  vw_out(InfoMessage,"interest_point") << "\t > Drawing raster:\n";
+  // Create a muted version of the input image
   ImageView<PixelRGB<uint8> > oimage;
-  boost::shared_ptr<vw::DiskImageResource> irsrc( vw::DiskImageResourcePtr(input_file_name) );
-  if ( irsrc->has_nodata_read() ) {
-    oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >( *irsrc ),
-                                                                                   irsrc->nodata_read()))) * 0.5 );
+  const double IMAGE_FADE_PERCENTAGE = 0.7;
+  if ( has_nodata ) {
+    ImageView<PixelMask<float> > gray = resample(create_mask(image, nodata), sub_scale);
+    oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(gray) * IMAGE_FADE_PERCENTAGE));
   } else {
-    oimage = pixel_cast_rescale<PixelRGB<uint8> >(normalize(DiskImageView<PixelGray<float> >( *irsrc )) * 0.5);
+    oimage = pixel_cast_rescale<PixelRGB<uint8> >(normalize(resample(image, sub_scale)) * IMAGE_FADE_PERCENTAGE);
   }
 
+  // Draw each of the interest points on to the muted input image.
   for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
     float norm_i = (point->interest - min)/diff;
     PixelRGB<uint8> color(0,0,0);
@@ -108,18 +162,22 @@ static void write_debug_image( std::string const& out_file_name,
     }
 
     // Marking point w/ Dot
-    oimage(point->ix,point->iy) = color;
+    int ix = point->ix*sub_scale;
+    int iy = point->iy*sub_scale;
+    int x  = point->x*sub_scale;
+    int y  = point->y*sub_scale;
+    oimage(ix,iy) = color;
 
     // Circling point based on the scale
     for (float a = 0; a < 6; a+=.392 ) {
-      float a_d = a + .392;
-      Vector2i start( int(2*point->scale*cos(a  )+point->x),
-                      int(2*point->scale*sin(a  )+point->y) );
-      Vector2i end(   int(2*point->scale*cos(a_d)+point->x),
-                      int(2*point->scale*sin(a_d)+point->y) );
+      float a_d = a + .392; // ?
+      Vector2i start( int(2*point->scale*cos(a  )+x),
+                      int(2*point->scale*sin(a  )+y) );
+      Vector2i end(   int(2*point->scale*cos(a_d)+x),
+                      int(2*point->scale*sin(a_d)+y) );
       draw_line( oimage, color, start, end );
     }
-  }
+  } // End loop through interest points
 
   boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create(out_file_name,
                                                                        oimage.format() ) );
@@ -128,18 +186,15 @@ static void write_debug_image( std::string const& out_file_name,
                      TerminalProgressCallback( "tools.ipfind","\t : ") );
 }
 
-
-// TODO: Refactor tool to more closely match our IP code
-
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
-  std::string interest_operator, descriptor_generator;
+  std::string output_folder, interest_operator, descriptor_generator;
   float  ip_gain;
   uint32 max_points;
-  int    tile_size, num_threads, print_num_ip;
+  int    tile_size, num_threads, nodata_radius, print_num_ip, debug_image;
   ImageView<double> integral;
   bool   no_orientation;
-  bool opencv_normalize = false;
+  bool   opencv_normalize = false;
 
   const float IDEAL_LOG_THRESHOLD    = .03;
   const float IDEAL_OBALOG_THRESHOLD = .07;
@@ -147,32 +202,37 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("help,h", "Display this help message")
-    ("num-threads", po::value(&num_threads)->default_value(0), 
-          "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
-    ("tile-size,t", po::value(&tile_size), 
-          "Specify the tile size for processing interest points. (Useful when working with large images).")
+    ("help,h",        "Display this help message")
+    ("output-folder",  po::value(&output_folder)->default_value(""), 
+                      "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Orb, Sift]")
+    ("num-threads",          po::value(&num_threads)->default_value(0), 
+                      "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
+    ("tile-size,t",          po::value(&tile_size), 
+                      "Specify the tile size for processing interest points. (Useful when working with large images).")
     ("lowe,l",        "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
     ("opencv-normalize",     "Apply per-tile openCV normalization.")
-    ("debug-image,d", "Write out debug images.")
-    ("print-ip", po::value(&print_num_ip)->default_value(0), 
-          "Print information for this many detected IP")
+    ("nodata-radius,", po::value(&nodata_radius)->default_value(1), 
+                      "Don't detect IP within this many pixels of image borders or nodata.")
+    ("debug-image,d", po::value(&debug_image)->default_value(0), 
+                      "Write out debug images (1), write out full res debug images (2).")
+    ("print-ip",             po::value(&print_num_ip)->default_value(0), 
+                      "Print information for this many detected IP")
 
     // Interest point detector options
-    ("interest-operator", po::value(&interest_operator)->default_value("IAGD"), 
-          "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Brisk, Orb, Sift, Surf]")
-    ("gain,g", po::value(&ip_gain)->default_value(1.0), 
-          "Increasing this number will increase the gain at which interest points are detected.")
-    ("max-points", po::value(&max_points)->default_value(0), 
-          "Set the maximum number of interest points you want returned per tile.")
+    ("interest-operator",    po::value(&interest_operator)->default_value("Sift"), 
+                      "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Orb, Sift]")
+    ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
+                      "Increasing this number will increase the gain at which interest points are detected.")
+    ("max-points",           po::value(&max_points)->default_value(0), 
+                      "Set the maximum number of interest points you want returned per tile.")
     ("single-scale", 
-          "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
-    ("no-orientation", po::bool_switch(&no_orientation), "Shutoff rotational invariance")
+                      "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
+    ("no-orientation",       po::bool_switch(&no_orientation), "Shutoff rotational invariance")
 
     // Descriptor generator options
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), 
-          "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2, brisk, orb]");
+                      "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2, orb]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -185,7 +245,7 @@ int main(int argc, char** argv) {
   p.add("input-files", -1);
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <filenames>..." << std::endl << std::endl;
+  usage << "Usage: ipfind [options] <filenames>...\n\n";
   usage << general_options << std::endl;
 
   po::variables_map vm;
@@ -210,6 +270,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if( nodata_radius < 1 ) {
+    vw_out() << "Error: nodata-radius must be >= 1!" << std::endl << std::endl;
+    vw_out() << usage.str();
+    return 1;
+  }
+
   if ( num_threads > 0 )
     vw_settings().set_default_num_threads(num_threads);
   if ( vm.count("tile-size"))
@@ -218,17 +284,24 @@ int main(int argc, char** argv) {
   // Checking strings
   boost::to_lower( interest_operator );
   boost::to_lower( descriptor_generator );
+
+  // The OpenCV detector types are handled differently than the custom detector types.  
+  const bool detector_is_opencv = ( (interest_operator == "brisk") ||
+                                    (interest_operator == "surf" ) ||
+                                    (interest_operator == "orb"  ) ||
+                                    (interest_operator == "sift" )   );
+  
   // Determine if interest_operator is legitimate
   if ( !( interest_operator == "iagd"   ||
           interest_operator == "harris" ||
           interest_operator == "log"    ||
           interest_operator == "obalog" || 
-          interest_operator == "brisk"  ||
+          //interest_operator == "brisk"  ||
           interest_operator == "orb"    ||
-          interest_operator == "sift"   ||
-          interest_operator == "surf"     ) ) {
+          //interest_operator == "surf"   ||
+          interest_operator == "sift"     ) ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Brisk, Orb, Sift, Surf ]\n";
+             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Orb, Sift ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -236,12 +309,12 @@ int main(int argc, char** argv) {
           descriptor_generator == "pca"    ||
           descriptor_generator == "sgrad"  ||
           descriptor_generator == "sgrad2" ||
-          descriptor_generator == "brisk"  ||
+          //descriptor_generator == "brisk"  ||
           descriptor_generator == "orb"    ||
-          descriptor_generator == "sift"    ||
-          descriptor_generator == "surf"    ) ) {
+          //descriptor_generator == "surf"   ||
+          descriptor_generator == "sift"    ) ) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
-             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Brisk, Orb, Sift, Surf ]\n";
+             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Orb, Sift ]\n";
     exit(0);
   }
 
@@ -252,29 +325,44 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < input_file_names.size(); ++i) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
-    std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
+    std::string file_prefix = boost::filesystem::path(input_file_names[i]).replace_extension().string();
+    if (output_folder != "") {
+      // Write the output files to the specified output folder.
+      boost::filesystem::path of(output_folder);
+      of /= boost::filesystem::path(file_prefix).filename();
+      file_prefix = of.string();
+    }
 
     // Get reference to the file and convert to floating point
     boost::shared_ptr<vw::DiskImageResource> image_rsrc( vw::DiskImageResourcePtr( input_file_names[i] ) );
     DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
-    ImageViewRef<PixelGray<float> >  image = raw_image;
+    ImageViewRef<PixelGray<float> >  image;
+    ImageViewRef<PixelMask<PixelGray<float> > >  masked_image;
 
-    if ( vm.count("normalize") && image_rsrc->has_nodata_read() ) {
-      double nodata = image_rsrc->nodata_read();
-      image = apply_mask(normalize(create_mask(raw_image, nodata)));
-    } else if ( vm.count("normalize") )
-      image = normalize(raw_image);
+    // Load nodata value if present.
+    double nodata = 0;
+    bool   has_nodata = image_rsrc->has_nodata_read();
+    if (has_nodata)
+      nodata = image_rsrc->nodata_read();
+
+    if ( vm.count("normalize") && has_nodata ) {
+      masked_image = normalize(create_mask(raw_image, nodata));
+      image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
+    } else {
+      if ( vm.count("normalize") )
+        image = normalize(raw_image);
+      else
+        image = raw_image;
+    }
 
     // Potentially mask image on a no data value
-    if ( image_rsrc->has_nodata_read() )
-      vw_out(DebugMessage,"interest_point") << "Image has a nodata value: "
-                                            << image_rsrc->nodata_read() << "\n";
-                                            
-    std::cout << "IP finder: " << interest_operator << std::endl;
+    if (has_nodata)
+      vw_out(DebugMessage,"interest_point") << "Image has a nodata value: " << nodata << "\n";
 
     const bool describeInDetect = true;
 
     // Detecting Interest Points
+    // - Note that only the OpenCV detectors handle masks.
     InterestPointList ip;
     if ( interest_operator == "harris" ) {
       // Harris threshold is inversely proportional to gain.
@@ -308,74 +396,23 @@ int main(int argc, char** argv) {
       IntegralAutoGainDetector detector( max_points );
       ip = detect_interest_points(image, detector, max_points);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+    } else if (detector_is_opencv) {
 
-    // Floats don't work here
-    // TODO: Don't always apply nodata mask.
-    } else if ( interest_operator == "brisk") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, opencv_normalize, describeInDetect, max_points);
-      ip = detect_interest_points(create_mask(image), detector, max_points);
-    } else if ( interest_operator == "orb") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, opencv_normalize, describeInDetect, max_points);
-      ip = detect_interest_points(create_mask(image), detector, max_points);
-    } else if ( interest_operator == "sift") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, opencv_normalize, describeInDetect, max_points);
-      ip = detect_interest_points(create_mask(image), detector, max_points);
-/*
-      ImageView<PixelGray<unsigned char> >  buffer_image;
-      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-      boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump8.tif",
-                                                                           buffer_image.format() ) );
-      write_image( *rsrc, buffer_image);
-
-  std::cout << "dump80 format = " << image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump80.tif",
-                                                                       image.format() ) );
-  write_image( *rsrc2, image);
-
-      cv::initModule_nonfree();
-      cv::SIFT m_detector(1000);
-
-
-      // Detect features
-      std::vector<cv::KeyPoint> keypoints;
-      cv::Mat cvDescriptors;
-      //m_detector.detect(cv_image, keypoints);
-      m_detector(cv_image, cv::Mat(), keypoints, cvDescriptors);
-
-      std::cout << "Detected " << keypoints.size() << " raw keypoints!\n";
-
-      // Convert back to our output format
-      ip.clear();
-      for (size_t i=0; i<keypoints.size(); ++i) {
-        InterestPoint thisIp;
-        thisIp.setFromCvKeypoint(keypoints[i]);
-        ip.push_back(thisIp);
+      OpenCvIpDetectorType ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
+      if ( interest_operator == "brisk") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_BRISK;
+      } else if ( interest_operator == "orb") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_ORB;
+      } else if ( interest_operator == "sift") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
+      } else if ( interest_operator == "surf") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_SURF;
       }
-
-      size_t descriptor_length = cvDescriptors.cols;
-      std::cout << "Descriptor length = " << descriptor_length << std::endl;
-      if (static_cast<size_t>(cvDescriptors.rows) != ip.size())
-        vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
-
-      // Copy the data to the output iterator
-      // - Each IP needs the descriptor (a vector of floats) updated
-      size_t ip_index = 0;
-      for (InterestPointList::iterator iter = ip.begin(); iter != ip.end(); ++iter) {
-        // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
-        // The workaround is to convert each element to a float here, and then convert back to
-        //   the correct type when matching is performed.
-
-        // TODO: Make sure all descriptor types work here!
-        iter->descriptor.set_size(descriptor_length);
-        for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
-        ++ip_index;
-      }
-*/
-
-    } else if ( interest_operator == "surf") {
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, opencv_normalize, describeInDetect, max_points);
-      ip = detect_interest_points(create_mask(image), detector, max_points);
+      OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, max_points);
+      if (has_nodata)
+        ip = detect_interest_points(masked_image, detector, max_points);
+      else
+        ip = detect_interest_points(image, detector, max_points);
     }
 #else // End OpenCV section
     } else {
@@ -385,74 +422,16 @@ int main(int argc, char** argv) {
 #endif
 
     std::cout << "Detected " << ip.size() << " raw keypoints!\n";
-/*
-{
-  ImageView<PixelGray<unsigned char> > buffer_image;
-  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-  std::cout << "dump format = " << buffer_image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump1.tif",
-                                                                       buffer_image.format() ) );
-  write_image( *rsrc, buffer_image);
-
-  std::cout << "dump90 format = " << image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump10.tif",
-                                                                       image.format() ) );
-  write_image( *rsrc2, image);
-  printf("Wrote dump image\n");
-}
-*/
 
     // Removing Interest Points on nodata or within 1/px
-    if ( image_rsrc->has_nodata_read() ) {
-      ImageViewRef<PixelMask<PixelGray<float> > > image_mask =
-        create_mask(raw_image,image_rsrc->nodata_read());
-      BBox2i bound = bounding_box( image_mask );
-      bound.contract(1);
-      int before_size = ip.size();
-      for ( InterestPointList::iterator point = ip.begin(); point != ip.end(); ++point ) {
-
-        // To Avoid out of index issues
-        if ( !bound.contains( Vector2i(point->ix, point->iy ))) {
-          point = ip.erase(point);
-          point--;
-          continue;
-        }
-
-        if ( !image_mask(point->ix,  point->iy  ).valid() ||
-             !image_mask(point->ix+1,point->iy+1).valid() ||
-             !image_mask(point->ix+1,point->iy  ).valid() ||
-             !image_mask(point->ix+1,point->iy-1).valid() ||
-             !image_mask(point->ix,  point->iy+1).valid() ||
-             !image_mask(point->ix,  point->iy-1).valid() ||
-             !image_mask(point->ix-1,point->iy+1).valid() ||
-             !image_mask(point->ix-1,point->iy  ).valid() ||
-             !image_mask(point->ix-1,point->iy-1).valid() ) {
-          point = ip.erase(point);
-          point--;
-          continue;
-        }
-      }
+    if (has_nodata) {
+      size_t before_size = ip.size();
+      remove_ip_near_nodata(raw_image, nodata, ip, nodata_radius );
+      
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
     } // End clearing IP's near nodata
 
     vw_out() << "\t Found " << ip.size() << " points.\n";
-
-/*
-{
-  ImageView<PixelGray<unsigned char> > buffer_image;
-  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-  std::cout << "dump format = " << buffer_image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump2.tif",
-                                                                       buffer_image.format() ) );
-  write_image( *rsrc, buffer_image);
-
-  std::cout << "dump90 format = " << image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump20.tif",
-                                                                       image.format() ) );
-  write_image( *rsrc2, image);
-  printf("Wrote dump image\n");
-}
-*/
 
     // Delete the orientation value if requested
     if ( no_orientation ) {
@@ -460,22 +439,7 @@ int main(int argc, char** argv) {
         i.orientation = 0;
       }
     }
-/*
-{
-  ImageView<PixelGray<unsigned char> > buffer_image;
-  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-  std::cout << "dump format = " << buffer_image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump3.tif",
-                                                                       buffer_image.format() ) );
-  write_image( *rsrc, buffer_image);
 
-  std::cout << "dump90 format = " << image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump30.tif",
-                                                                       image.format() ) );
-  write_image( *rsrc2, image);
-  printf("Wrote dump image\n");
-}
-*/
     // Generate descriptors for interest points.
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
@@ -492,84 +456,10 @@ int main(int argc, char** argv) {
       describe_interest_points( image, descriptor, ip );
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     // Nothing happens here because we compute the descriptors at the same time we detect IPs.
-
-    } else if (descriptor_generator == "brisk") {
-      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_BRISK);
-      //describe_interest_points( image, descriptor, ip );
-    } else if (descriptor_generator == "orb") {
-      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_ORB);
-      //describe_interest_points( image, descriptor, ip );
-
-/*
-  // Convert the image into a plain uint8 image buffer wrapped by OpenCV
-  ImageView<PixelGray<unsigned char> > buffer_image;
-  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-  std::cout << "dump format = " << buffer_image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump9.tif",
-                                                                       buffer_image.format() ) );
-  write_image( *rsrc, buffer_image);
-
-  std::cout << "dump90 format = " << image.format() << std::endl;
-  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump90.tif",
-                                                                       image.format() ) );
-  write_image( *rsrc2, image);
-  printf("Wrote dump image\n");
-
-return 0;
-//    cv::initModule_nonfree();
-    cv::ORB extractor;
-
-  // Count the number of IPs
-  size_t num_ips = 0;
-  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i)
-    ++num_ips;
-
-  // Loop through input IP's and convert to the OpenCV IP structure
-  std::vector<cv::KeyPoint> cvIpList;
-  cvIpList.reserve(num_ips);
-  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i)
-    cvIpList.push_back(i->makeOpenCvKeypoint());
-
-
-
-  // Call the OpenCV function to describe all of the points
-  cv::Mat cvDescriptors;
-  extractor.compute(cv_image, cvIpList, cvDescriptors);
-  size_t descriptor_length = cvDescriptors.cols;
-  if (static_cast<size_t>(cvDescriptors.rows) != num_ips)
-    vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
-
-  printf("Converting descriptions...\n");
-
-  // Copy the data to the output iterator
-  // - Each IP needs the descriptor (a vector of floats) updated
-  size_t ip_index = 0;
-  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i) {
-    // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
-    // The workaround is to convert each element to a float here, and then convert back to
-    //   the correct type when matching is performed.
-
-    // TODO: Make sure all descriptor types work here!
-    i->descriptor.set_size(descriptor_length);
-    for (size_t d=0; d<descriptor_length; ++d)
-      i->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
-    ++ip_index;
-  }
-*/
-
-
-
-
-    } else if (descriptor_generator == "sift") {
-      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_SIFT);
-      //describe_interest_points( image, descriptor, ip );
-    } else if (descriptor_generator == "surf") {
-      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_SURF);
-      //describe_interest_points( image, descriptor, ip );
     }
 #else
-    } else if ((descriptor_generator == "brisk") ||  (descriptor_generator == "orb")) {
-      vw_out() << "Error: Cannot use ORB or BRISK if not compiled with OpenCV!" << std::endl;
+    } else {
+      vw_out() << "Error: Cannot use SIFT, SURF, ORB or BRISK if not compiled with OpenCV!" << std::endl;
       exit(0); 
     }
 #endif
@@ -584,16 +474,22 @@ return 0;
     }
 
     // If ASCII output was requested, write it out.  Otherwise stick with binary output.
-    if (vm.count("lowe"))
+    if (vm.count("lowe")) {
+      vw_out << "Writing output file " << file_prefix + ".key" << std::endl;
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
-    else
+    } else {
+      vw_out << "Writing output file " << file_prefix + ".vwip" << std::endl;
       write_binary_ip_file(file_prefix + ".vwip", ip);
+    }
 
     // Write Debug image
-    if (vm.count("debug-image"))
-      write_debug_image( file_prefix + "_debug.jpg",
-                         input_file_names[i],
-                         ip );
+    if (debug_image > 0) {
+      const int WRITE_FULL_RES_DEBUG = 2;
+      write_debug_image(file_prefix + "_debug.png",
+                        raw_image, ip, has_nodata, nodata,
+                        (debug_image==WRITE_FULL_RES_DEBUG));
+    }
+                         
   } // End loop through input files
 
   return 0;

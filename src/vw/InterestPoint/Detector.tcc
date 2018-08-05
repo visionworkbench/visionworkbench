@@ -619,7 +619,7 @@ void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
     if (ip_index == num_ip_descriptors)
       vw_throw( LogicErr() << "copy_opencv_descriptor_matrix: IP sizes do not match!\n");
 
-    // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
+    // OpenCV descriptors can be of varying types, but InterestPoint only stores floats.
     // The workaround is to convert each element to a float here, and then convert back to
     //   the correct type when matching is performed.
 
