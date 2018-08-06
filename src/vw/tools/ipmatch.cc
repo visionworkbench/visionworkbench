@@ -18,9 +18,8 @@
 
 /// \file ipmatch.cc
 ///
-/// Finds the interest points in an image and outputs them an Binary
-/// (default) or ASCII format.  The ASCII format is compatible with
-/// the popular Lowe-SIFT toolchain.
+/// Loads the previously saved interest points for images from files
+///  and then computes a set of matches between each input pair.
 ///
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
@@ -104,7 +103,9 @@ static void write_match_image(std::string const& out_file_name,
   // Rasterize the composite so that we can draw on it.
   ImageView<PixelRGB<uint8> > comp = composite;
 
-  // Draw a red line between matching interest points in the two images (in the composite)
+  srand(time(NULL));
+
+  // Draw a line between matching interest points in the two images (in the composite)
   for (size_t k = 0; k < matched_ip1.size(); ++k) {
 
     Vector2f start(matched_ip1[k].x, matched_ip1[k].y);
@@ -113,12 +114,17 @@ static void write_match_image(std::string const& out_file_name,
     end   *= sub_scale;
     float inc_amt = 1/norm_2(end-start);
 
+    // Use a random color for each line
+    PixelRGB<uint8> line_color((unsigned char)(rand() % 255),
+                               (unsigned char)(rand() % 255),
+                               (unsigned char)(rand() % 255));
+
     for (float r=0; r<1.0; r+=inc_amt ){
 
       int i = (int)(0.5 + start.x() + r*(end.x()-start.x()));
       int j = (int)(0.5 + start.y() + r*(end.y()-start.y()));
       if (i >=0 && j >=0 && i < comp.cols() && j < comp.rows())
-        comp(i,j) = PixelRGB<uint8>(255, 0, 0);
+        comp(i,j) = line_color;
     }
   }
 
@@ -129,19 +135,20 @@ static void write_match_image(std::string const& out_file_name,
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   double      matcher_threshold;
-  std::string ransac_constraint;
-  std::string distance_metric_in;
+  std::string ransac_constraint, distance_metric_in, output_prefix;
   float       inlier_threshold;
   int         ransac_iterations;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h",              "Display this help message")
+    ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
+                            "Write output files using this prefix.")
     ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), 
                             "Threshold for the seperation between closest and next closest interest points.")
     ("non-kdtree",          "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
-    ("distance-metric,m", po::value(&distance_metric_in)->default_value("L2"), 
-                            "Distance metric to use.  Choose one of: [L2 (default), Hamming].")
+    ("distance-metric,m",   po::value(&distance_metric_in)->default_value("L2"), 
+                            "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), 
                             "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
     ("inlier-threshold,i",  po::value(&inlier_threshold)->default_value(10), 
@@ -180,7 +187,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // Make this lower case
   std::string distance_metric = distance_metric_in;
   boost::algorithm::to_lower(distance_metric);
   if ((distance_metric != "l2") && (distance_metric != "hamming")) {
@@ -314,12 +320,15 @@ int main(int argc, char** argv) {
         final_ip2.push_back(matched_ip2[index]);
       }
 
-      std::string output_prefix =
-        fs::path(image_paths[i]).replace_extension().string() + "__" +
-        fs::path(image_paths[j]).stem().string();
+      if (output_prefix == "") {
+        output_prefix = fs::path(image_paths[i]).replace_extension().string() + "__" +
+                        fs::path(image_paths[j]).stem().string();
+      }
+      vw_out() << "Writing match file: " << output_prefix+".match" << std::endl;
       write_binary_match_file(output_prefix+".match", final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
+        vw_out() << "Writing debug image: " << output_prefix+".tif" << std::endl;
         write_match_image(output_prefix+".tif",
                           image_paths[i], image_paths[j],
                           final_ip1, final_ip2);

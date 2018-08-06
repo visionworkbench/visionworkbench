@@ -659,7 +659,10 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type, i
       vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
       //return cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
     case OPENCV_IP_DETECTOR_TYPE_ORB:
-      return cv::ORB::create(max_points);
+      if (max_points > 0)
+        return cv::ORB::create(max_points);
+      else
+        return cv::ORB::create(100); // Unlike SIFT this will not work with a zero points input value
     case OPENCV_IP_DETECTOR_TYPE_SIFT:
       return cv::xfeatures2d::SIFT::create(max_points);
     case OPENCV_IP_DETECTOR_TYPE_SURF:
@@ -714,7 +717,6 @@ InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT
     detector->detectAndCompute (cv_image, cv_mask, keypoints, cvDescriptors);
   else // Don't add descriptions
     detector->detect(cv_image, keypoints, cv_mask);
-
 
   // Convert back to our output format
   InterestPointList ip_list;

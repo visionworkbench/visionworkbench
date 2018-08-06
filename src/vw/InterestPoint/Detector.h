@@ -215,14 +215,14 @@ namespace ip {
   // TODO: Make an OpenCV interface file for this stuff
 
   enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
-			     OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
-			     OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
-			     OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
+                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
+                             OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
+                             OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
   /// Struct to convert a basic type to a single channel OpenCV type
-  template <typename T> struct GetOpenCvPixelType                 { static const int type=CV_8UC1; };
+  template <typename T> struct GetOpenCvPixelType                 { static const int type=CV_8UC1;  };
   template <>           struct GetOpenCvPixelType<short         > { static const int type=CV_16SC1; };
   template <>           struct GetOpenCvPixelType<unsigned short> { static const int type=CV_16UC1; };
   template <>           struct GetOpenCvPixelType<int           > { static const int type=CV_32SC1; };

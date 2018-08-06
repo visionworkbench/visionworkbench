@@ -111,12 +111,16 @@ void remove_ip_near_nodata( vw::ImageViewBase<ImageT> const& image,   double nod
 } // End function remove_ip_near_nodata
 
 // TODO: This should be merged with the debug functions in ASP
+
+/// Draw a helpful image showing where IPs are detected in an image.
+/// - If reduce_scale is set the IP circle markers will be smaller.
 template <typename ImageT>
 void write_debug_image( std::string const& out_file_name,
                         vw::ImageViewBase<ImageT> const& image,
                         InterestPointList const& ip,
                         bool has_nodata, double nodata,
-                        bool force_full_res=false) {
+                        bool force_full_res=false,
+                        bool reduce_scale=false) {
 
   // Scale the images to keep the size down below 1500x1500 so they draw quickly.
   float sub_scale  = sqrt(1500.0 * 1500.0 / float(image.impl().cols() * image.impl().rows()));
@@ -167,14 +171,18 @@ void write_debug_image( std::string const& out_file_name,
     int x  = point->x*sub_scale;
     int y  = point->y*sub_scale;
     oimage(ix,iy) = color;
+    
+    double scale = point->scale;
+    if (reduce_scale)
+      scale = 0.12*scale;
 
     // Circling point based on the scale
     for (float a = 0; a < 6; a+=.392 ) {
       float a_d = a + .392; // ?
-      Vector2i start( int(2*point->scale*cos(a  )+x),
-                      int(2*point->scale*sin(a  )+y) );
-      Vector2i end(   int(2*point->scale*cos(a_d)+x),
-                      int(2*point->scale*sin(a_d)+y) );
+      Vector2i start( int(2*scale*cos(a  )+x),
+                      int(2*scale*sin(a  )+y) );
+      Vector2i end(   int(2*scale*cos(a_d)+x),
+                      int(2*scale*sin(a_d)+y) );
       draw_line( oimage, color, start, end );
     }
   } // End loop through interest points
@@ -204,12 +212,12 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("help,h",        "Display this help message")
     ("output-folder",  po::value(&output_folder)->default_value(""), 
-                      "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Orb, Sift]")
+                      "Write output files to this location.")
     ("num-threads",          po::value(&num_threads)->default_value(0), 
                       "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
     ("tile-size,t",          po::value(&tile_size), 
                       "Specify the tile size for processing interest points. (Useful when working with large images).")
-    ("lowe,l",        "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
+    ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
     ("opencv-normalize",     "Apply per-tile openCV normalization.")
     ("nodata-radius,", po::value(&nodata_radius)->default_value(1), 
@@ -220,19 +228,19 @@ int main(int argc, char** argv) {
                       "Print information for this many detected IP")
 
     // Interest point detector options
-    ("interest-operator",    po::value(&interest_operator)->default_value("Sift"), 
+    ("interest-operator",    po::value(&interest_operator)->default_value("sift"), 
                       "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Orb, Sift]")
     ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
                       "Increasing this number will increase the gain at which interest points are detected.")
-    ("max-points",           po::value(&max_points)->default_value(0), 
+    ("max-points",           po::value(&max_points)->default_value(250), 
                       "Set the maximum number of interest points you want returned per tile.")
     ("single-scale", 
                       "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
     ("no-orientation",       po::bool_switch(&no_orientation), "Shutoff rotational invariance")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), 
-                      "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2, orb]");
+    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sift"), 
+                      "Choose a descriptor generator from [patch, pca, sgrad, sift, sgrad2, orb]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -421,7 +429,11 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    std::cout << "Detected " << ip.size() << " raw keypoints!\n";
+    vw_out() << "Detected " << ip.size() << " raw keypoints!\n";
+    if (ip.size() == 0) {
+      vw_out() << "No IP, quitting this image!\n";
+      continue;
+    }
 
     // Removing Interest Points on nodata or within 1/px
     if (has_nodata) {
@@ -475,10 +487,10 @@ int main(int argc, char** argv) {
 
     // If ASCII output was requested, write it out.  Otherwise stick with binary output.
     if (vm.count("lowe")) {
-      vw_out << "Writing output file " << file_prefix + ".key" << std::endl;
+      vw_out() << "Writing output file " << file_prefix + ".key" << std::endl;
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
     } else {
-      vw_out << "Writing output file " << file_prefix + ".vwip" << std::endl;
+      vw_out() << "Writing output file " << file_prefix + ".vwip" << std::endl;
       write_binary_ip_file(file_prefix + ".vwip", ip);
     }
 
@@ -487,7 +499,8 @@ int main(int argc, char** argv) {
       const int WRITE_FULL_RES_DEBUG = 2;
       write_debug_image(file_prefix + "_debug.png",
                         raw_image, ip, has_nodata, nodata,
-                        (debug_image==WRITE_FULL_RES_DEBUG));
+                        (debug_image==WRITE_FULL_RES_DEBUG),
+                        (interest_operator == "orb")); // Orb has large scale values so shrink them.
     }
                          
   } // End loop through input files
