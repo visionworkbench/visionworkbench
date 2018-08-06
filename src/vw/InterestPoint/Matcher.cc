@@ -41,38 +41,60 @@ namespace ip {
     return dist;
   }
 
-
-  /// Simple, unoptimized code for computing the hamming distance of two bytes.
-  size_t hamming_helper(unsigned char a, unsigned char b) {
-      int dist = 0;
-      unsigned char val = a ^ b; // XOR
-
-      // Count the number of bits set
-      while (val != 0) {
-          // A bit is set, so increment the count and clear the bit
-          dist++;
-          val &= val - 1;
-      }
-      return dist; // Return the number of differing bits
-  }
-
-  // This is a very slow Hamming distance implementation which can be replaced if needed.
+  // This could be simplified a lot if the description length was constant!
   float HammingMetric::operator()( InterestPoint const& ip1, 
                                    InterestPoint const& ip2,
                                    float maxdist ) const {
     float dist = 0.0;
-    for (size_t i = 0; i < ip1.descriptor.size(); i++) {
-      // Cast the two elements to bytes which they should have originally been
-      unsigned char desc1 = static_cast<unsigned char>(ip1.descriptor[i]);
-      unsigned char desc2 = static_cast<unsigned char>(ip2.descriptor[i]);
-
-      // Compute the hamming distance between just these two bytes
-      size_t dist_int = hamming_helper(desc1, desc2);
+    
+    // To use optimized code, first break the descriptor into units of 8, then 4, then 1.
+    const int desc_len = static_cast<int>(ip1.descriptor.size());
+    int d = desc_len;
+    const int uint64_len = 8;
+    const int uint32_len = 4;
+    const int num_64 = d / uint64_len;
+    d -= num_64*uint64_len;
+    const int num_32 = d / uint32_len;
+    
+    // Pack the date into vectors as raw bytes (instead of integer values casted as floats)
+    uint8 packed1[desc_len];
+    uint8 packed2[desc_len];
+    for (int k=0; k<desc_len; ++k) {
+      packed1[k] = static_cast<uint8>(ip1.descriptor[k]);
+      packed2[k] = static_cast<uint8>(ip2.descriptor[k]);
+    }
+    
+    int i=0;  // Never reset this.
+    for (int i64=0; i64<num_64; ++i64) {
+      // Compute the hamming distance between the next 8 bytes
+      uint64 desc1    = *reinterpret_cast<uint64*>(&packed1[i]);
+      uint64 desc2    = *reinterpret_cast<uint64*>(&packed2[i]);
+      size_t dist_int = hamming_distance(desc1, desc2);
+      i += uint64_len;
 
       // Accumulate the floating point distance
       dist += static_cast<float>(dist_int);
+      if (dist > maxdist) return dist;  // abort calculation if distance exceeds upper bound
+    }
 
-      if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
+    for (int i32=0; i32<num_32; ++i32) {
+      // Compute the hamming distance between the next 4 bytes
+      uint32 desc1    = *reinterpret_cast<uint32*>(&packed1[i]);
+      uint32 desc2    = *reinterpret_cast<uint32*>(&packed2[i]);
+      size_t dist_int = hamming_distance(desc1, desc2);
+      i += uint32_len;
+
+      // Accumulate the floating point distance
+      dist += static_cast<float>(dist_int);
+      if (dist > maxdist) return dist;  // abort calculation if distance exceeds upper bound
+    }
+    
+    for (i=i; i<desc_len; ++i) {
+      // Compute the hamming distance between any remaining bytes
+      size_t dist_int = hamming_distance(packed1[i], packed2[i]);
+
+      // Accumulate the floating point distance
+      dist += static_cast<float>(dist_int);
     }
     return dist;
   }
