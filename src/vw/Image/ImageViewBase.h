@@ -357,6 +357,27 @@ namespace vw {
     return !vw::equal(m1, m2);
   }
 
+  // Is there a better place to put this function?
+  /// Draw a line of a single pixel in an image.
+  template <class ImageT, class ValueT>
+  void draw_line( ImageViewBase<ImageT>& image,
+                  ValueT const& value,
+                  Vector2i const& start,
+                  Vector2i const& end ) {
+
+    BBox2i bound = bounding_box(image.impl());
+    if ( !bound.contains( start ) ||
+         !bound.contains( end ) )
+      return;
+    Vector2i delta = end - start;
+    float inc_amt = 1/norm_2(delta);
+    for ( float r=0; r<1.0; r+=inc_amt ) {
+      int i = (int)(0.5 + start.x() + r*float(delta.x()) );
+      int j = (int)(0.5 + start.y() + r*float(delta.y()) );
+      image.impl()(i,j) = value;
+    }
+  }
+
   /// Dumps a matrix to a std::ostream
   template <class ImageT>
   inline std::ostream& operator<<( std::ostream& os, ImageViewBase<ImageT> const& m ) {
