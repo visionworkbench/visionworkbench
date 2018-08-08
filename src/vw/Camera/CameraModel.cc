@@ -111,7 +111,7 @@ Quat AdjustedCameraModel::camera_pose(Vector2 const& pix) const {
   return m_rotation*m_camera->camera_pose(m_scale*pix + m_pixel_offset);
 }
 
-// Modify the adjustments by applying on top of them a rotation + translation
+// Modify the adjustments by applying on top of them a scale*rotation + translation
 // transform with the origin at the center of the planet (such as output
 // by pc_align's forward or inverse computed alignment transform). 
 void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
@@ -121,6 +121,11 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
   for (int r = 0; r < 3; r++) 
     T[r] = M(r, 3);
 
+  double scale = pow(det(R), 1.0/3.0);
+  for (size_t r = 0; r < R.rows(); r++)
+    for (size_t c = 0; c < R.cols(); c++)
+      R(r, c) /= scale;
+  
   // The logic is the following. A point on the camera body gets transformed
   // by the given adjustments as:
   // x -> m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation.
@@ -130,9 +135,9 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
   // which is same as
   // (R*m_rotation).rotate(x-m_rotation_center) + m_rotation_center +
   // R*(m_rotation_center + m_translation) + T - m_rotation_center.
-
+  // Note that below we also incorporated the scale.
   m_rotation    = Quat(R)*m_rotation;
-  m_translation = R*(m_rotation_center + m_translation) + T - m_rotation_center;
+  m_translation = R*scale*(m_rotation_center + m_translation) + T - m_rotation_center;
 }
 
 void AdjustedCameraModel::write(std::string const& filename) {
