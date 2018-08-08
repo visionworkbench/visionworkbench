@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
                             "Write output files using this prefix.")
     ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), 
-                            "Threshold for the seperation between closest and next closest interest points.")
+                            "Threshold for the separation between closest and next closest interest points.")
     ("non-kdtree",          "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("distance-metric,m",   po::value(&distance_metric_in)->default_value("L2"), 
                             "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
