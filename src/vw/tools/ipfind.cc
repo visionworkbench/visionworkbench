@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file ipfind.cc
 ///
 /// Finds the interest points in an image and outputs them an Binary
@@ -53,7 +52,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string output_folder, interest_operator, descriptor_generator;
   float  ip_gain;
-  uint32 max_points;
+  uint32 ip_per_image = 0, ip_per_tile;
   int    tile_size, num_threads, nodata_radius, print_num_ip, debug_image;
   ImageView<double> integral;
   bool   no_orientation;
@@ -65,38 +64,36 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("help,h",        "Display this help message")
-    ("output-folder",  po::value(&output_folder)->default_value(""), 
-                      "Write output files to this location.")
-    ("num-threads",          po::value(&num_threads)->default_value(0), 
-                      "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
-    ("tile-size,t",          po::value(&tile_size), 
-                      "Specify the tile size for processing interest points. (Useful when working with large images).")
-    ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
-    ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
-    ("per-tile-normalize",     "Apply per-tile normalization.")
-    ("nodata-radius,", po::value(&nodata_radius)->default_value(1), 
-                      "Don't detect IP within this many pixels of image borders or nodata.")
-    ("debug-image,d", po::value(&debug_image)->default_value(0), 
-                      "Write out debug images (1), write out full res debug images (2).")
-    ("print-ip",             po::value(&print_num_ip)->default_value(0), 
-                      "Print information for this many detected IP")
-
-    // Interest point detector options
     ("interest-operator",    po::value(&interest_operator)->default_value("sift"), 
-                      "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Orb, Sift]")
-    ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
-                      "Increasing this number will increase the gain at which interest points are detected.")
-    ("max-points",           po::value(&max_points)->default_value(250), 
-                      "Set the maximum number of interest points you want returned per tile.")
-    ("single-scale", 
-                      "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
-    ("no-orientation",       po::bool_switch(&no_orientation), "Shutoff rotational invariance")
-
-    // Descriptor generator options
+     "Choose an interest point detector from: sift (default), orb, OBALoG, LoG, Harris, IAGD.")
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sift"), 
-                      "Choose a descriptor generator from [patch, pca, sgrad, sift, sgrad2, orb]");
-
+     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators.")
+    ("ip-per-image",           po::value(&ip_per_image), 
+     "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
+    ("tile-size,t",  po::value(&tile_size), 
+     "The tile size for processing interest points. Useful when working with large images. Default: 256.")
+    ("ip-per-tile",           po::value(&ip_per_tile)->default_value(250), 
+     "Set the maximum number of IP to find in each tile. Default: 250.")
+    ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
+     "Increasing this number will increase the gain at which interest points are detected. Default: 1.")
+    ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
+    ("no-orientation",       po::bool_switch(&no_orientation), "Turn off rotational invariance.")
+    ("normalize",     "Normalize the input. Use for images that have non-standard values such as ISIS cube files.")
+    ("per-tile-normalize",     "Individually normalize each processing tile.")
+    ("nodata-radius", po::value(&nodata_radius)->default_value(1), 
+     "Don't detect IP within this many pixels of image borders or nodata. Default: 1.")
+    ("output-folder",  po::value(&output_folder)->default_value(""), 
+     "Write output files to this location.")
+    ("num-threads",          po::value(&num_threads)->default_value(0), 
+     "Set the number of threads for interest point detection. If set to 0 (default), use the visionworkbench default number of threads.")
+    ("help,h",        "Display this help message.")
+    // Debug options
+    ("debug-image,d", po::value(&debug_image)->default_value(0), 
+     "Write out a low-resolution or full-resolution debug image with interest points on it if the value of this flag is respectively 1 or 2. Default: 0 (do nothing).")
+    ("print-ip",             po::value(&print_num_ip)->default_value(0), 
+     "Print information for this many detected IP. Default: 0.")
+    ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
+  
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value(&input_file_names));
@@ -108,7 +105,7 @@ int main(int argc, char** argv) {
   p.add("input-files", -1);
 
   std::ostringstream usage;
-  usage << "Usage: ipfind [options] <filenames>...\n\n";
+  usage << "Usage: ipfind [options] <images>\n\n";
   usage << general_options << std::endl;
 
   po::variables_map vm;
@@ -168,7 +165,7 @@ int main(int argc, char** argv) {
           //interest_operator == "surf"   ||
           interest_operator == "sift"     ) ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Orb, Sift ]\n";
+             << ". Options are: sift, orb, OBALoG, LoG, Harris, IAGD.\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -181,7 +178,7 @@ int main(int argc, char** argv) {
           //descriptor_generator == "surf"   ||
           descriptor_generator == "sift"    ) ) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
-             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Orb, Sift ]\n";
+             << ". Options are: sift, orb, sgrad, sgrad2, patch, pca.\n";
     exit(0);
   }
 
@@ -197,6 +194,16 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < input_file_names.size(); ++i) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
+
+    if (vm.count("ip-per-image")) {
+      tile_size = vw_settings().default_tile_size();
+      Vector2 image_size = vw::file_image_size(input_file_names[i]);
+      double num_tiles = image_size[0]*image_size[1]/(double(tile_size*tile_size));
+      ip_per_tile = (int)ceil(ip_per_image / num_tiles);
+      ip_per_tile = std::max(uint32(1), ip_per_tile);
+      vw_out() << "Computing " << ip_per_tile << " ip per tile.\n";
+    }
+    
     std::string file_prefix = boost::filesystem::path(input_file_names[i]).replace_extension().string();
     if (output_folder != "") {
       // Write the output files to the specified output folder.
@@ -240,11 +247,11 @@ int main(int argc, char** argv) {
       // Harris threshold is inversely proportional to gain.
       HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, max_points);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, ip_per_tile);
+        ip = detect_interest_points(image, detector, ip_per_tile);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, max_points);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, ip_per_tile);
+        ip = detect_interest_points(image, detector, ip_per_tile);
       }
     } else if ( interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -252,21 +259,21 @@ int main(int argc, char** argv) {
       // LoG threshold is inversely proportional to gain..
       LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, max_points);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, ip_per_tile);
+        ip = detect_interest_points(image, detector, ip_per_tile);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, max_points);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, ip_per_tile);
+        ip = detect_interest_points(image, detector, ip_per_tile);
       }
     } else if ( interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, max_points );
-      ip = detect_interest_points(image, detector, max_points);
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, ip_per_tile );
+      ip = detect_interest_points(image, detector, ip_per_tile);
     } else if ( interest_operator == "iagd") {
       // This is the default ASP implementation
-      IntegralAutoGainDetector detector( max_points );
-      ip = detect_interest_points(image, detector, max_points);
+      IntegralAutoGainDetector detector( ip_per_tile );
+      ip = detect_interest_points(image, detector, ip_per_tile);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (detector_is_opencv) {
 
@@ -280,11 +287,11 @@ int main(int argc, char** argv) {
       } else if ( interest_operator == "surf") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SURF;
       }
-      OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, max_points);
+      OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, ip_per_tile);
       if (has_nodata)
-        ip = detect_interest_points(masked_image, detector, max_points);
+        ip = detect_interest_points(masked_image, detector, ip_per_tile);
       else
-        ip = detect_interest_points(image, detector, max_points);
+        ip = detect_interest_points(image, detector, ip_per_tile);
     }
 #else // End OpenCV section
     } else {
