@@ -180,26 +180,26 @@ namespace ip {
     // By default, uses find_peaks in Extrema.h
     template <class DataT, class ViewT>
     inline int find_extrema(InterestPointList& points,
-			    std::vector<DataT> const& img_data,
-			    ImageOctave<ViewT> const& octave) const {
+                            std::vector<DataT> const& img_data,
+                            ImageOctave<ViewT> const& octave) const {
       return find_peaks(points, img_data, octave);
     }
 
     // By default, uses fit_peak in Localize.h
     template <class DataT, class ViewT>
     inline int localize(InterestPointList& points,
-			std::vector<DataT> const& img_data,
-			ImageOctave<ViewT> const& octave) const;
+                        std::vector<DataT> const& img_data,
+                        ImageOctave<ViewT> const& octave) const;
 
     template <class DataT, class ViewT>
     inline void threshold(InterestPointList& points,
-			 std::vector<DataT> const& img_data,
-			 ImageOctave<ViewT> const& octave) const;
+                          std::vector<DataT> const& img_data,
+                          ImageOctave<ViewT> const& octave) const;
 
     template <class DataT, class ViewT>
     void assign_orientations(InterestPointList& points,
-			     std::vector<DataT> const& img_data,
-			     ImageOctave<ViewT> const& octave) const;
+                             std::vector<DataT> const& img_data,
+                             ImageOctave<ViewT> const& octave) const;
 
     /// This method dumps the various images internal to the detector out
     /// to files for visualization and debugging.  The images written out
@@ -246,8 +246,8 @@ namespace ip {
   public:
 
     OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_SIFT,
-				bool normalize=true,
-				bool add_descriptions=false, int max_points = 1000);
+                                bool normalize=true,
+                                bool add_descriptions=false, int max_points = 1000);
 
     /// Detect interest points in the source image.
     template <class ViewT>
@@ -271,8 +271,8 @@ namespace ip {
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
     OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK,
-				bool normalize=true,
-				bool add_descriptions=false, int max_points = 1000){
+                                bool normalize=true,
+                                bool add_descriptions=false, int max_points = 1000){
       vw_throw( ArgumentErr() << "Can't use OpenCV IP detection functions if VW is not built with OpenCV!\n");
     }
 
@@ -301,7 +301,7 @@ namespace ip {
 
   public:
     InterestPointWriteTask( InterestPointList  local_points,
-			    InterestPointList& global_points ) :
+                            InterestPointList& global_points ) :
       m_points(local_points), m_global_points(global_points) {}
 
     virtual ~InterestPointWriteTask(){}

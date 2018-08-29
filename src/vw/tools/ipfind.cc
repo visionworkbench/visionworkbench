@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
     ("no-orientation",       po::bool_switch(&no_orientation), "Turn off rotational invariance.")
     ("normalize",     "Normalize the input. Use for images that have non-standard values such as ISIS cube files.")
-    ("per-tile-normalize",     "Individually normalize each processing tile.")
+    ("per-tile-normalize",     "Individually normalize each processing tile (only with OpenCV).")
     ("nodata-radius", po::value(&nodata_radius)->default_value(1), 
      "Don't detect IP within this many pixels of image borders or nodata. Default: 1.")
     ("output-folder",  po::value(&output_folder)->default_value(""), 
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     ("print-ip",             po::value(&print_num_ip)->default_value(0), 
      "Print information for this many detected IP. Default: 0.")
     ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
-  
+
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value(&input_file_names));
@@ -140,6 +140,8 @@ int main(int argc, char** argv) {
     vw_settings().set_default_num_threads(num_threads);
   if ( vm.count("tile-size"))
     vw_settings().set_default_tile_size(tile_size);
+  if ( vm.count("per-tile-normalize"))
+    opencv_normalize = true;
 
   // Checking strings
   boost::to_lower( interest_operator );
@@ -154,7 +156,12 @@ int main(int argc, char** argv) {
                                       (descriptor_generator == "surf" ) ||
                                       (descriptor_generator == "orb"  ) ||
                                       (descriptor_generator == "sift" )   );
-        
+
+  if (opencv_normalize && !detector_is_opencv) {
+    vw_out() << "Cannot use per-tile normalize with a non-OpenCV detector!\n";
+    exit(0);
+  }
+
   // Determine if interest_operator is legitimate
   if ( !( interest_operator == "iagd"   ||
           interest_operator == "harris" ||
@@ -187,9 +194,6 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  if ( vm.count("opencv-normalize"))
-    opencv_normalize = true;
-
   // Iterate over the input files and find interest points in each.
   for (size_t i = 0; i < input_file_names.size(); ++i) {
 
@@ -221,15 +225,24 @@ int main(int argc, char** argv) {
     // Load nodata value if present.
     double nodata = 0;
     bool   has_nodata = image_rsrc->has_nodata_read();
-    if (has_nodata)
+    if (has_nodata) {
       nodata = image_rsrc->nodata_read();
+      vw_out() << "Read in nodata value: " << nodata << std::endl;
+    }
 
-    if ( vm.count("normalize") && has_nodata ) {
-      masked_image = normalize(create_mask(raw_image, nodata));
-      image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
-    } else {
-      if ( vm.count("normalize") )
+    if (vm.count("normalize")) {
+      vw_out() << "Normalizing the input image...\n";
+      if (has_nodata) {
+        masked_image = normalize(create_mask(raw_image, nodata));
+        image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
+      }
+      else
         image = normalize(raw_image);
+    } else { // Not normalizing
+      if (has_nodata) {
+        masked_image = create_mask(raw_image, nodata);
+        image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
+      }
       else
         image = raw_image;
     }

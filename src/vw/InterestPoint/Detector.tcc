@@ -502,7 +502,7 @@ void ScaledInterestPointDetector<InterestT>::assign_orientations(InterestPointLi
   for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
     int k = octave.scale_to_plane_index(i->scale);
     i->orientation = get_orientation(img_data[k].gradient_x(), img_data[k].gradient_y(),
-				     i->x, i->y, octave.sigma[k]/octave.sigma[1]);
+                                     i->x, i->y, octave.sigma[k]/octave.sigma[1]);
   }
 }
 
@@ -686,7 +686,6 @@ OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType de
 template <class ViewT>
 InterestPointList OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image,
                                                              int desired_num_ip) const {
-
   // If the image is too small to use, don't return any interest points.
   const int MIN_DETECTOR_SIZE = 32;
   if ( (image.impl().cols() < MIN_DETECTOR_SIZE) || (image.impl().rows() < MIN_DETECTOR_SIZE))
