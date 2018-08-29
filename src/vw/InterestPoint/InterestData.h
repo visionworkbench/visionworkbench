@@ -65,9 +65,9 @@ namespace ip {
     // TODO: There is no way to enforce that ix be in sync with x or
     // iy with y.
     InterestPoint(float x = 0, float y = 0, float scale=1.0, float interest=0.0, float ori=0.0,
-		  bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0)
+                  bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0)
       : x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), interest(interest),
-	polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
+        polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
 
 
     /// Subpixel (col,row) location of point
@@ -345,17 +345,18 @@ void remove_ip_near_nodata( vw::ImageViewBase<ImageT> const& image,   double nod
                             vw::ip::InterestPointList      & ip_list, int    radius ){
 
   size_t prior_ip = ip_list.size();
-  
+
   typedef ImageView<typename ImageT::pixel_type> CropImageT;
   const int width = 2*radius+1;
   CropImageT subsection(width,width);   
-  
+
   // Get shrunk bounding box
   BBox2i bound = bounding_box( image.impl() );
-  bound.contract(radius); 
+  bound.contract(radius);
+
   // Loop through all the points
   for ( ip::InterestPointList::iterator ip = ip_list.begin(); ip != ip_list.end(); ++ip ) {
-    
+
     // Remove the point if it was too close to the image borders
     if ( !bound.contains( Vector2i(ip->ix,ip->iy) ) ) {
       ip = ip_list.erase(ip);
@@ -375,8 +376,8 @@ void remove_ip_near_nodata( vw::ImageViewBase<ImageT> const& image,   double nod
     }
   }
   VW_OUT( DebugMessage, "asp" ) << "Removed " << prior_ip - ip_list.size()
-			  << " interest points due to their proximity to nodata values."
-			  << std::endl << "Nodata value used " << nodata << std::endl;
+                                << " interest points due to their proximity to nodata values."
+                                << std::endl << "Nodata value used " << nodata << std::endl;
 } // End function remove_ip_near_nodata
 
 /// Draw a helpful image showing where IPs are detected in an image.

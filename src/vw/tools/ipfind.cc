@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
     }
 
     // Removing Interest Points on nodata or within 1/px
-    if (has_nodata) {
+    if (nodata_radius > 0) {
       size_t before_size = ip.size();
       remove_ip_near_nodata(raw_image, nodata, ip, nodata_radius );
       
