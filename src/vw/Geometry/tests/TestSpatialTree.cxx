@@ -22,7 +22,6 @@
 #include <vw/Geometry/SpatialTree.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
-#include <vw/Core.h>
 #include <boost/foreach.hpp>
 #include <sstream>
 

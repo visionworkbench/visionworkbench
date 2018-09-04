@@ -19,12 +19,19 @@
 #ifndef __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW__
 #define __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW__
 
+#include <vw/Math/Matrix.h>
+#include <vw/Math/LinearAlgebra.h>
+#include <vw/Image/Filter.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/PixelMask.h>
+#include <vw/Image/ImageMath.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Math.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/Transform.h>
+#include <vw/Stereo/AffineMixtureComponent.h>
+#include <vw/Stereo/GaussianMixtureComponent.h>
+
 #include <ostream>
 
 // For the PixelDisparity math.

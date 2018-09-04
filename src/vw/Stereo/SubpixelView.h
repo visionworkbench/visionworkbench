@@ -19,7 +19,7 @@
 #ifndef __VW_STEREO_SUBPIXEL_VIEW__
 #define __VW_STEREO_SUBPIXEL_VIEW__
 
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/PreFilter.h>

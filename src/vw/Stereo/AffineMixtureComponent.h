@@ -22,10 +22,8 @@
 #include "MixtureComponent.h"
 
 #include <vw/Core/Stopwatch.h>
-#include <vw/Image.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Math.h>
 #include <iostream>
 #include <cmath>
 

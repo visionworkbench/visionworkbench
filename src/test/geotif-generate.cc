@@ -16,9 +16,9 @@
 // __END_LICENSE__
 
 
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Math/BresenhamLine.h>
-#include <vw/Cartography.h>
+#include <vw/Cartography/GeoReference.h>
 using namespace vw;
 
 void grow_bbox( math::BresenhamLine l,

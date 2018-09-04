@@ -22,7 +22,6 @@
 #include <vw/Stereo/CorrelationView.h>
 #include <boost/random/linear_congruential.hpp>
 
-#include <vw/Image.h>
 
 using namespace vw;
 using namespace vw::stereo;

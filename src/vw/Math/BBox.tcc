@@ -110,7 +110,8 @@ void BBox<RealT, DimN>::grow( VectorBase<VectorT> const& point ) {
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
 void BBox<RealT, DimN>::grow( BBox<RealT1, DimN1> const& bbox ){
-  if (bbox.empty()) return; // this is a bugfix
+  if (bbox.empty())
+    return;
   grow(bbox.min()); grow(bbox.max());
 }
 

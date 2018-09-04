@@ -29,6 +29,7 @@
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 
+
 namespace vw {
 
   // *******************************************************************

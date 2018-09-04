@@ -177,10 +177,14 @@ namespace vw {
       if ( !m_valid ) {
         m_min = m_max = arg;
         m_valid = true;
-      } else
+      } else {
         for ( size_t i = 0; i < CompoundNumChannels<ValT>::value; i++ )
-          if ( arg[i] < m_min[i] ) m_min[i] = arg[i];
-          else if ( arg[i] > m_max[i] ) m_max[i] = arg[i];
+          if ( arg[i] < m_min[i] )
+            m_min[i] = arg[i];
+          else
+            if ( arg[i] > m_max[i] )
+              m_max[i] = arg[i];
+      }
     }
 
     bool is_valid() const { return m_valid; }

@@ -22,9 +22,7 @@
 #include <vw/Stereo/MixtureComponent.h>
 #include <vw/Stereo/AffineMixtureComponent.h>
 
-#include <vw/Image.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Math.h>
 
 namespace vw {
 namespace stereo {

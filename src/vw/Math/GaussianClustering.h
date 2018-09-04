@@ -19,10 +19,8 @@
 #ifndef __VW_MATH_GAUSSIAN_CLUSTERING_H__
 #define __VW_MATH_GAUSSIAN_CLUSTERING_H__
 
-#include <vw/Core.h>
-#include <vw/Math.h>
 #include <vector>
-
+#include <vw/Math/Statistics.h>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 

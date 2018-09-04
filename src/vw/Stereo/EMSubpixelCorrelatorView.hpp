@@ -23,7 +23,6 @@
 #include <vw/Stereo/GammaMixtureComponent.h>
 #include <vw/Stereo/DisparityMap.h>
 
-#include <vw/Math.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <iostream>
 

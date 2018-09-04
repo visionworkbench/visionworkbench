@@ -22,6 +22,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/PixelAccessors.h>
 #include <vw/Stereo/StereoModel.h>
 #include <limits>
 

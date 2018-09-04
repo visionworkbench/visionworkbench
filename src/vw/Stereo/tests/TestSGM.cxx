@@ -18,7 +18,7 @@
 
 #include <test/Helpers.h>
 #include <vw/Image/EdgeExtension.h>
-#include <vw/FileIO.h>
+#include <vw/FileIO/DiskImageView.h>
 #include <vw/Stereo/SGM.h>
 
 using namespace vw;

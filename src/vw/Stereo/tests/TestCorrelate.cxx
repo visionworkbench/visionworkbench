@@ -20,7 +20,6 @@
 #include <test/Helpers.h>
 
 #include <vw/Stereo/Correlate.h>
-#include <vw/Image.h>
 
 using namespace vw;
 using namespace vw::stereo;

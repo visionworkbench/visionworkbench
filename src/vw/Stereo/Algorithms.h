@@ -20,6 +20,7 @@
 #define __VW_STEREO_ALGORITHMS_H__
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Filter.h>
 #include <vw/Image/EdgeExtension.h>
 #include <numeric>
 #include <valarray>

@@ -17,7 +17,11 @@
 
 
 // TestMaskedPixelMath.h
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/PixelMath.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/Interpolation.h>
 #include <test/Helpers.h>
 
 using namespace vw;

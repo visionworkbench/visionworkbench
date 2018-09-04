@@ -22,90 +22,62 @@
 
 if MAKE_MODULE_CORE
 core_subdirs = Core
-core_headers = Core.h
 endif
 
 if MAKE_MODULE_MATH
 math_subdirs = Math
-math_headers = Math.h
 endif
 
 if MAKE_MODULE_IMAGE
 image_subdirs = Image
-image_headers = Image.h
 endif
 
 if MAKE_MODULE_FILEIO
 fileio_subdirs = FileIO
-fileio_headers = FileIO.h
 endif
 
 if MAKE_MODULE_CAMERA
 camera_subdirs = Camera
-camera_headers = Camera.h
 endif
 
 if MAKE_MODULE_MOSAIC
 mosaic_subdirs = Mosaic
-mosaic_headers = Mosaic.h
 endif
 
 if MAKE_MODULE_STEREO
 stereo_subdirs = Stereo
-stereo_headers = Stereo.h
 endif
 
 if MAKE_MODULE_CARTOGRAPHY
 cartography_subdirs = Cartography
-cartography_headers = Cartography.h
 endif
 
 if MAKE_MODULE_INTERESTPOINT
 interestpoint_subdirs = InterestPoint
-interestpoint_headers = InterestPoint.h
 endif
 
 if MAKE_MODULE_HDR
 hdr_subdirs = HDR
-hdr_headers = HDR.h
 endif
 
 if MAKE_MODULE_GEOMETRY
 geometry_subdirs = Geometry
-geometry_headers = Geometry.h
 endif
 
 
 if MAKE_MODULE_BUNDLEADJUSTMENT
 bundleadjustment_subdirs = BundleAdjustment
-bundleadjustment_headers = BundleAdjustment.h
 endif
 
 if MAKE_MODULE_TOOLS
 tools_subdirs = tools
-tools_headers = tools.h
 endif
 
 if MAKE_MODULE_PYTHON
 python_subdirs = Python
 endif
 
-include_HEADERS = \
-  $(core_headers) \
-  $(math_headers) \
-  $(image_headers) \
-  $(fileio_headers) \
-  $(camera_headers) \
-  $(mosaic_headers) \
-  $(stereo_headers) \
-  $(cartography_headers) \
-  $(interestpoint_headers) \
-  $(hdr_headers) \
-  $(geometry_headers) \
-  $(bundleadjustment_headers) \
-  $(tools_headers) \
-  vw.h \
-  config.h
+include_HEADERS = config.h
 
 
 SUBDIRS = \

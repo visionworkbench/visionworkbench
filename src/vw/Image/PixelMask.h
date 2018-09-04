@@ -32,7 +32,7 @@
 #include <boost/static_assert.hpp>
 
 #include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelTypes.h>
 
 namespace vw {
 

@@ -25,7 +25,8 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ErodeView.h>
 #include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/FileIO.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/FileIO/DiskImageView.h>
 #include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/DisparityMap.h>

@@ -25,7 +25,10 @@
 #include <test/Helpers.h>
 
 #include <vw/Camera/PinholeModel.h>
-#include <vw/BundleAdjustment.h>
+#include <vw/BundleAdjustment/AdjustRef.h>
+#include <vw/BundleAdjustment/AdjustRobustRef.h>
+#include <vw/BundleAdjustment/AdjustSparse.h>
+#include <vw/BundleAdjustment/AdjustRobustSparse.h>
 
 // This test is for non robust bundle adjustment.
 

@@ -19,9 +19,10 @@
 // TestCorrelator.h
 #include <test/Helpers.h>
 
-#include <vw/Image.h>
+#include <vw/Image/Transform.h>
+#include <vw/Image/EdgeExtension.h>
+#include <vw/Image/PixelMask.h>
 #include <vw/Stereo/SubpixelView.h>
-#include <vw/FileIO.h>
 #include <boost/foreach.hpp>
 #include <boost/random/linear_congruential.hpp>
 

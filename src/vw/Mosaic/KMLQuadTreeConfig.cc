@@ -18,7 +18,7 @@
 
 #include <vw/Mosaic/KMLQuadTreeConfig.h>
 
-#include <vw/Image.h>
+#include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 
 #include <iomanip>

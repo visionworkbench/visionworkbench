@@ -20,7 +20,7 @@
 # sources
 ########################################################################
 
-SUBDIRS = vw test
+SUBDIRS = vw
 
 EXTRA_DIST = Doxyfile
 

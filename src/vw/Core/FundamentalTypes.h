@@ -51,12 +51,6 @@
 #endif
 
 #include <boost/version.hpp>
-#if BOOST_VERSION==103200
-namespace boost {
-  template <class B, class D> struct is_base_of : public is_base_and_derived<B,D> {};
-  template <class T> struct is_floating_point : public is_float<T> {};
-}
-#endif
 
 // ssize_t is not in the c++ spec (just POSIX) but it's important. If you've
 // arrived here due to a compile error, something else has previously defined

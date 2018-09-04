@@ -69,7 +69,6 @@
 #include <vw/Core/FundamentalTypes.h>
 
 #include <typeinfo>
-#include <sstream>
 #include <stddef.h>
 #include <string>
 

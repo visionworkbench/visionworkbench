@@ -19,9 +19,9 @@
 #ifndef __VW_IMAGE_ANTIALIASING_H__
 #define __VW_IMAGE_ANTIALIASING_H__
 
-#include <vw/Core.h>
-#include <vw/Image.h>
-
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Transform.h>
+#include <vw/Image/PerPixelAccessorViews.h>
 #include <boost/foreach.hpp>
 
 namespace vw {

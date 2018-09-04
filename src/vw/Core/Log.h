@@ -48,7 +48,7 @@
 #include <map>
 #include <iostream>
 
-// STD Headers for defininog our own ostream subclass
+// STD Headers for defining our own ostream subclass
 #include <streambuf>
 #include <ostream>
 #include <fstream>
@@ -64,13 +64,13 @@ namespace vw {
 
   // Lower number -> higher priority
   enum MessageLevel {
-    NoMessage = -1,
-    ErrorMessage = 0,
-    WarningMessage = 10,
-    InfoMessage = 20,
-    DebugMessage = 30,
+    NoMessage           = -1,
+    ErrorMessage        =  0,
+    WarningMessage      = 10,
+    InfoMessage         = 20,
+    DebugMessage        = 30,
     VerboseDebugMessage = 40,
-    EveryMessage = 100
+    EveryMessage        = 100
   };
 
   /// \cond INTERNAL
