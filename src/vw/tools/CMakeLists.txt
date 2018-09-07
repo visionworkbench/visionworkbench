@@ -90,11 +90,34 @@ add_executable(undistort_image undistort_image.cc)
 target_link_libraries(undistort_image ${FULL_LIBRARY_LIST}) 
 install (TARGETS undistort_image DESTINATION bin)
 
-#TODO: Replicate multi-library thing?
-# Generates a quadtree of some sort from a georeferenced image
-#add_executable(image2qtree image2qtree.cc image2qtree_help.cc) 
-#target_link_libraries(image2qtree ${FULL_LIBRARY_LIST}) 
-#install(TARGETS image2qtree DESTINATION bin)
+# image2qtree - Generates a quadtree of some sort from a georeferenced image
+# - It takes forever to compile due to templating
+#   so we split it up into multiple targets for parallelization.
+add_library(libimage2qtree_grayau8  STATIC image2qtree_help.cc)
+add_library(libimage2qtree_grayau16 STATIC image2qtree_help.cc)
+add_library(libimage2qtree_grayai16 STATIC image2qtree_help.cc)
+add_library(libimage2qtree_grayaf32 STATIC image2qtree_help.cc)
+add_library(libimage2qtree_rgbau8   STATIC image2qtree_help.cc)
+add_library(libimage2qtree_rgbau16  STATIC image2qtree_help.cc)
+add_library(libimage2qtree_rgbai16  STATIC image2qtree_help.cc)
+add_library(libimage2qtree_rgbaf32  STATIC image2qtree_help.cc)
+target_compile_definitions(libimage2qtree_grayau8  PRIVATE -DPIXEL_TYPE=PixelGrayA -DCHANNEL_TYPE=uint8  )
+target_compile_definitions(libimage2qtree_grayau16 PRIVATE -DPIXEL_TYPE=PixelGrayA -DCHANNEL_TYPE=uint16 )
+target_compile_definitions(libimage2qtree_grayai16 PRIVATE -DPIXEL_TYPE=PixelGrayA -DCHANNEL_TYPE=int16  )
+target_compile_definitions(libimage2qtree_grayaf32 PRIVATE -DPIXEL_TYPE=PixelGrayA -DCHANNEL_TYPE=float32)
+target_compile_definitions(libimage2qtree_rgbau8   PRIVATE -DPIXEL_TYPE=PixelRGBA  -DCHANNEL_TYPE=uint8  )
+target_compile_definitions(libimage2qtree_rgbau16  PRIVATE -DPIXEL_TYPE=PixelRGBA  -DCHANNEL_TYPE=uint16 )
+target_compile_definitions(libimage2qtree_rgbai16  PRIVATE -DPIXEL_TYPE=PixelRGBA  -DCHANNEL_TYPE=int16  )
+target_compile_definitions(libimage2qtree_rgbaf32  PRIVATE -DPIXEL_TYPE=PixelRGBA  -DCHANNEL_TYPE=float32)
+# Now that we have defined the individual static library files, link the executable to all of them.
+add_executable(image2qtree image2qtree.cc)
+target_link_libraries(image2qtree ${FULL_LIBRARY_LIST}
+                      libimage2qtree_grayau8  libimage2qtree_grayau16
+                      libimage2qtree_grayai16 libimage2qtree_grayaf32
+                      libimage2qtree_rgbau8   libimage2qtree_rgbau16
+                      libimage2qtree_rgbai16  libimage2qtree_rgbaf32 )
+install(TARGETS image2qtree DESTINATION bin)
+
 
 #======================================================
 # Legacy tools - these have not been used for years.

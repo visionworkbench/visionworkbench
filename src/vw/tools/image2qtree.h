@@ -411,6 +411,8 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   quadtree.generate(*progress);
 }
 
+// Define all of the function instantiations here, they are defined in
+//  image2qtree_help.cc.
 #define PROTOTYPE_ALL_CHANNEL_TYPES( PIXELTYPE )        \
   void do_mosaic_##PIXELTYPE##_uint8(const Options&, const vw::ProgressCallback*); \
   void do_mosaic_##PIXELTYPE##_int16(const Options&, const vw::ProgressCallback*); \

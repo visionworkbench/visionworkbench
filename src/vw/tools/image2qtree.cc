@@ -39,6 +39,7 @@ using std::endl;
 
 namespace po = boost::program_options;
 
+// Call the correct version of the do_mosaic function based on pixel type.
 #define SWITCH_ON_CHANNEL_TYPE( PIXELTYPE )                             \
   switch (fmt.channel_type) {                                           \
   case VW_CHANNEL_UINT8:   do_mosaic_##PIXELTYPE##_uint8(opt,progress); break; \
@@ -292,6 +293,7 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
   return true;
 }
 
+/// This function picks the correct function call to do the work.
 void run(const Options& opt) {
   TerminalProgressCallback tpc( "tools.image2qtree", "");
   const ProgressCallback *progress = &tpc;
@@ -316,6 +318,7 @@ void run(const Options& opt) {
   }
 }
 
+/// Main, input parsing and error handling, calls run()
 int main(int argc, char **argv) {
   Options opt;
   if (!handle_options(argc, argv, opt))
