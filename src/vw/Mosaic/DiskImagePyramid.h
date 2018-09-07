@@ -41,10 +41,10 @@ namespace vw { namespace mosaic {
   namespace fs = boost::filesystem;
 
 
-  // TODO: Move to file utils!                         
+  // TODO: Move to file utils!
   /// Get a filename by simply replacing current extension with given suffix
   inline std::string filename_from_suffix1(std::string const& input_file,
-					   std::string const& suffix){
+                                           std::string const& suffix){
     std::string prefix = vw::prefix_from_filename(input_file);
     std::string output_file = prefix + suffix;
     return output_file;
@@ -53,14 +53,14 @@ namespace vw { namespace mosaic {
   /// Get a filename by  replacing current extension with given suffix,
   /// and making the file be in the current directory.
   inline std::string filename_from_suffix2(std::string const& input_file,
-					   std::string const& suffix){
+                                           std::string const& suffix){
     std::string prefix = vw::prefix_from_filename(input_file);
     boost::filesystem::path p(input_file);
     prefix = p.stem().string();
     std::string output_file = prefix + suffix;
     return output_file;
   }
-                                 
+
   // TODO: Clean up!
   /// Single-channel images are read into Image<double>, while
   /// multi-channel in Image<Vector>, and we skip reading extra channels.
@@ -80,14 +80,14 @@ namespace vw { namespace mosaic {
   // Gets called for PixelT == double
   template<class PixelT>
   typename boost::enable_if< boost::mpl::or_< boost::is_same<PixelT,double>, 
-					      boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
+                             boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
     return create_mask_less_or_equal(img, nodata_val);
   }
   // Gets called for PixelT == Vector<u8, 1> and Vector<u8, 3>
   template<class PixelT>
   typename boost::disable_if< boost::mpl::or_< boost::is_same<PixelT,double>, 
-					       boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
+                              boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
     PixelT mask_pixel;
     mask_pixel.set_all(nodata_val);
@@ -98,8 +98,8 @@ namespace vw { namespace mosaic {
   /// If output_file exists, is not older than input_file,
   /// and has given numbers of rows and columns, don't overwrite it.
   inline bool overwrite_if_no_good(std::string const& input_file,
-				   std::string const& output_file,
-				   int cols=-1, int rows=-1){
+                                   std::string const& output_file,
+                                   int cols=-1, int rows=-1){
 
     fs::path input_path(input_file);
     std::time_t input_time = fs::last_write_time(input_path);
@@ -107,26 +107,26 @@ namespace vw { namespace mosaic {
     bool overwrite = true;
     if (fs::exists(output_file)) {
       try{
-	DiskImageView<double> curr(output_file);
-	fs::path output_path(output_file);
-	std::time_t output_time = fs::last_write_time(output_path);
-	if (output_time < input_time){
-	  overwrite = true; // too old
-	  return overwrite;
-	}
+        DiskImageView<double> curr(output_file);
+        fs::path output_path(output_file);
+        std::time_t output_time = fs::last_write_time(output_path);
+        if (output_time < input_time){
+          overwrite = true; // too old
+          return overwrite;
+        }
 
-	if (cols >= 0 && rows >= 0) {
-	  if (curr.cols() == cols && curr.rows() == rows){
-	    overwrite = false;
-	  }else{
-	    overwrite = true;
-	  }
-	}else{
-	  overwrite = false;
-	}
+        if (cols >= 0 && rows >= 0) {
+          if (curr.cols() == cols && curr.rows() == rows){
+            overwrite = false;
+          }else{
+            overwrite = true;
+          }
+        }else{
+          overwrite = false;
+        }
 
       }catch(...){
-	overwrite = true;
+        overwrite = true;
       }
     }
 
@@ -254,9 +254,9 @@ namespace vw { namespace mosaic {
 
   template <class PixelT>
   DiskImagePyramid<PixelT>::DiskImagePyramid(std::string const& base_file,
-					     cartography::GdalWriteOptions const& opt,
-					     int top_image_max_pix,
-					     int subsample):
+                                             cartography::GdalWriteOptions const& opt,
+                                             int top_image_max_pix,
+                                             int subsample):
     m_opt(opt), m_subsample(subsample),
     m_top_image_max_pix(top_image_max_pix),
     m_nodata_val(std::numeric_limits<double>::quiet_NaN()) {
@@ -287,7 +287,7 @@ namespace vw { namespace mosaic {
     int level = 0;
     int scale = 1;
     while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows())
-	   > m_top_image_max_pix ){
+           > m_top_image_max_pix ){
 
       // The name of the file at the current scale
       std::ostringstream os;
@@ -296,12 +296,12 @@ namespace vw { namespace mosaic {
       std::string suffix = os.str();
 
       if (level == 0) {
-	vw_out() << "Detected large image: " << base_file  << "." << std::endl;
-	vw_out() << "Will construct an image pyramid on disk."  << std::endl;
+        vw_out() << "Detected large image: " << base_file  << "." << std::endl;
+        vw_out() << "Will construct an image pyramid on disk."  << std::endl;
       }
 
       ImageViewRef< PixelMask<PixelT> > masked
-	= create_custom_mask(m_pyramid[level], m_nodata_val);
+        = create_custom_mask(m_pyramid[level], m_nodata_val);
       double sub_scale   = 1.0/subsample;
       int    tile_size   = 256;
       int    sub_threads = 1;
@@ -314,51 +314,51 @@ namespace vw { namespace mosaic {
       PixelT nodata_pixel;
       set_all(nodata_pixel, m_nodata_val);
       ImageViewRef<PixelT> unmasked
-	= block_rasterize
-	(cache_tile_aware_render
-	 (pixel_cast<PixelT>
-	  (apply_mask
-	   (resample_aa
-	    (channel_cast<double>(masked), sub_scale),
-	    nodata_pixel
-	    )),
-	  Vector2i(tile_size,tile_size) * sub_scale
-	  ), Vector2i(tile_size,tile_size), sub_threads
-	 );
+        = block_rasterize
+        (cache_tile_aware_render
+          (pixel_cast<PixelT>
+          (apply_mask
+            (resample_aa
+            (channel_cast<double>(masked), sub_scale),
+            nodata_pixel
+            )),
+          Vector2i(tile_size,tile_size) * sub_scale
+          ), Vector2i(tile_size,tile_size), sub_threads
+        );
       
       // Write the current image.
       cartography::GeoReference sub_georef;
       if (has_georef)
-	sub_georef = resample(georef, sub_scale);
+        sub_georef = resample(georef, sub_scale);
 
       // If the file exists, and has the right size, and is not too old,
       // don't write it again
       std::string curr_file = filename_from_suffix1(base_file, suffix);
       bool will_write = overwrite_if_no_good(base_file, curr_file,
-					     unmasked.cols(), unmasked.rows());
+                                             unmasked.cols(), unmasked.rows());
 
       if (will_write) {
-	TerminalProgressCallback tpc("vw", ": ");
-	vw_out() << "Writing: " << curr_file << std::endl;
-	try{
-	  cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
-					      has_nodata, m_nodata_val, opt, tpc);
-	}catch(...){
-	  vw_out() << "Failed to write: " << curr_file << "\n";
-	  curr_file = filename_from_suffix2(base_file, suffix);
-	  will_write = overwrite_if_no_good(base_file, curr_file,
-					    unmasked.cols(), unmasked.rows());
-	  if (will_write) {
-	    vw_out() << "Writing: " << curr_file << std::endl;
-	    cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
-						has_nodata, m_nodata_val, opt, tpc);
-	  }
-	}
+        TerminalProgressCallback tpc("vw", ": ");
+        vw_out() << "Writing: " << curr_file << std::endl;
+        try{
+          cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
+                      has_nodata, m_nodata_val, opt, tpc);
+        }catch(...){
+          vw_out() << "Failed to write: " << curr_file << "\n";
+          curr_file = filename_from_suffix2(base_file, suffix);
+          will_write = overwrite_if_no_good(base_file, curr_file,
+                    unmasked.cols(), unmasked.rows());
+          if (will_write) {
+            vw_out() << "Writing: " << curr_file << std::endl;
+            cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
+                  has_nodata, m_nodata_val, opt, tpc);
+          }
+        }
       }
 
 
       if (!will_write)
-	vw_out() << "Using existing subsampled image: " << curr_file << std::endl;
+        vw_out() << "Using existing subsampled image: " << curr_file << std::endl;
 
       // Note that m_pyramid contains a handle to DiskImageView.
       // DiskImageView's implementation will make it possible to
@@ -377,8 +377,8 @@ namespace vw { namespace mosaic {
 
   template <class PixelT>
   void DiskImagePyramid<PixelT>::get_image_clip(double scale_in, BBox2i region_in,
-						ImageView<PixelT> & clip,
-						double & scale_out, BBox2i & region_out) const {
+                                                ImageView<PixelT> & clip,
+                                                double & scale_out, BBox2i & region_out) const {
 
     if (m_pyramid.empty())
       vw_throw( ArgumentErr() << "Uninitialized image pyramid.\n");

@@ -133,7 +133,7 @@ namespace math {
   /// through the sequence of euler angles, [phi, theta, kappa].  The
   /// euler angles are defined according to the convention specified
   /// in variable 'sequence'.  Sequence is a string containing any
-  /// combination of the characters 'x', 'y', and 'z' (thoug the
+  /// combination of the characters 'x', 'y', and 'z' (though the
   /// sequence must always be three characters long) that defines the
   /// axes of rotation for phi, theta, and kappa respectively.  For
   /// example, the sequence "XYZ" would create a rotation of phi

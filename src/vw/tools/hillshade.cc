@@ -47,18 +47,20 @@ struct Options {
   double azimuth, elevation, scale;
   double nodata_value;
   double blur_sigma;
+  bool   align_to_georef;
 };
 
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
-    ("input-file", po::value(&opt.input_file_name), "Explicitly specify the input file")
-    ("output-file,o", po::value(&opt.output_file_name), "Specify the output file")
-    ("azimuth,a", po::value(&opt.azimuth)->default_value(300), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
-    ("elevation,e", po::value(&opt.elevation)->default_value(20), "Set the elevation of the light source (in degrees).")
-    ("scale,s", po::value(&opt.scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
-    ("nodata-value", po::value(&opt.nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("blur", po::value(&opt.blur_sigma), "Pre-blur the DEM with the specified sigma.")
+    ("input-file",      po::value(&opt.input_file_name ), "Explicitly specify the input file")
+    ("output-file,o",   po::value(&opt.output_file_name), "Specify the output file")
+    ("azimuth,a",       po::value(&opt.azimuth)->default_value(300), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
+    ("elevation,e",     po::value(&opt.elevation)->default_value(20), "Set the elevation of the light source (in degrees).")
+    ("scale,s",         po::value(&opt.scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
+    ("nodata-value",    po::value(&opt.nodata_value), "Remap the DEM default value to the min altitude value.")
+    ("blur",            po::value(&opt.blur_sigma  ), "Pre-blur the DEM with the specified sigma.")
+    ("align-to-georef", po::bool_switch(&opt.align_to_georef), "The azimuth is relative to East instead of +x in the image.")
     ("help,h", "Display this help message");
 
   po::positional_options_description p;
@@ -94,7 +96,7 @@ int main( int argc, char *argv[] ) {
     do_multitype_hillshade(opt.input_file_name,
                            opt.output_file_name,
                            opt.azimuth, opt.elevation, opt.scale,
-                           opt.nodata_value, opt.blur_sigma);
+                           opt.nodata_value, opt.blur_sigma, opt.align_to_georef);
 
   } catch ( const ArgumentErr& e ) {
     vw_out() << e.what() << std::endl;
