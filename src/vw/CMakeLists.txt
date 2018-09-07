@@ -41,17 +41,19 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 #==================================================================================
 # Find dependencies
 
+# TODO: Create a cmake folder to contain the various find files.
+
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
 # Define boost requirements
-set(BOOST_MIN_VERSION "1.55.0")
+set(BOOST_MIN_VERSION "1.59.0")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_55")
+  set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_59")
   set(BOOST_LIBRARYDIR "${BINARYBUILDER_INSTALL_DIR}/lib")
-  set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_55/boost")
+  set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_59/boost")
   set(Boost_NO_SYSTEM_PATHS ON) #This does not seem to work
 endif()  
 # Now search for Boost using the available information
@@ -71,17 +73,18 @@ endif(Boost_FOUND)
 message("--------------------------------------------------------------")
 
 
-message("--------------------------------------------------------------")
-message("Searching for Google Protocol Buffers...")
+# --> We don't use this annymore!
+#message("--------------------------------------------------------------")
+#message("Searching for Google Protocol Buffers...")
 
-find_package(Protobuf REQUIRED)
-if(PROTOBUF_FOUND)
-    set(VW_HAVE_PKG_PROTOBUF 1)
-    message("Successfully found Google Protocol Buffers")
-    message("---Protobuf library file = ${PROTOBUF_LIBRARIES}")
-    message("---Protobuf Include Dir  = ${PROTOBUF_INCLUDE_DIR}")
-    include_directories(${PROTOBUF_INCLUDE_DIR})
-endif()
+#find_package(Protobuf REQUIRED)
+#if(PROTOBUF_FOUND)
+#    set(VW_HAVE_PKG_PROTOBUF 1)
+#    message("Successfully found Google Protocol Buffers")
+#    message("---Protobuf library file = ${PROTOBUF_LIBRARIES}")
+#    message("---Protobuf Include Dir  = ${PROTOBUF_INCLUDE_DIR}")
+#    include_directories(${PROTOBUF_INCLUDE_DIR})
+#endif()
 
 #set(PROTOBUF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include   )
 #set(PROTOBUF_LIBRARY     ${BINARYBUILDER_INSTALL_DIR}/lib/libprotobuf.so)
@@ -93,6 +96,8 @@ message("--------------------------------------------------------------")
 
 # These packages are included in BinaryBuilder so look for them there.
 # - If there is no BinaryBuilder directory the user may need to specify a path.
+
+# TODO: More use of find_package?
 
 # Get NAIF includes (Needed for reading/writing SPICE data)
 if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
@@ -197,6 +202,20 @@ else()
   message("Failed to find TIFF")
 endif()
 
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(Z_FOUND 1)
+  set(Z_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libz.so)
+  set(Z_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else()
+  find_package(Z REQUIRED)
+endif()
+if(Z_FOUND)
+  set(VW_HAVE_PKG_Z 1)
+  message("-- Found Z " ${Z_LIBRARIES})
+  include_directories("${Z_INCLUDE_DIR}")
+else()
+  message("Failed to find Z")
+endif()
 
 if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
   set(GDAL_FOUND 1)
@@ -229,6 +248,36 @@ if(PROJ4_FOUND)
 else()
   message("Failed to find Proj4")
 endif()  
+
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(OPENCV_FOUND 1)
+  set(OPENCV_LIB_NAMES libopencv_calib3d.so     libopencv_reg.so
+                       libopencv_core.so        libopencv_shape.so
+                       libopencv_features2d.so  libopencv_stitching.so
+                       libopencv_flann.so       libopencv_superres.so
+                       libopencv_hdf.so         libopencv_surface_matching.so
+                       libopencv_highgui.so     libopencv_videoio.so
+                       libopencv_imgcodecs.so   libopencv_video.so
+                       libopencv_imgproc.so     libopencv_xfeatures2d.so
+                       libopencv_ml.so          libopencv_ximgproc.so
+                       libopencv_objdetect.so   libopencv_xobjdetect.so
+                       libopencv_photo.so       libopencv_xphoto.so)
+  set(OPENCV_LIBRARIES "")                     
+  foreach(name ${OPENCV_LIB_NAMES})
+    set(OPENCV_LIBRARIES   ${OPENCV_LIBRARIES} ${BINARYBUILDER_INSTALL_DIR}/lib/${name})
+  endforeach()
+  set(OPENCV_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else()
+  find_package(OpenCV REQUIRED)
+endif()
+if(OPENCV_FOUND)
+  set(VW_HAVE_PKG_OPENCV 1)
+  message("-- Found OpenCV at " ${OPENCV_INCLUDE_DIR})
+  include_directories(${OPENCV_INCLUDE_DIR})
+else()
+  message("Failed to find OpenCV")
+endif()
 
 
 if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
@@ -292,14 +341,6 @@ else()
 endif()
 
 
-find_package(OpenCV)
-if(OPENCV_FOUND)
-  set(VW_HAVE_PKG_OPENCV 1)
-  #message("Found OPENCV " ${OPENCV_LIBRARIES})
-  include_directories("${OPENCV_INCLUDE_DIR}")
-else()
-endif()
-
 find_package(SigC++)
 if(SigC++_FOUND)
   #message("-- Found SigC++ "  ${SigC++_LIBRARIES})
@@ -342,10 +383,37 @@ endif()
 #set(VW_HAVE_PKG_HDF 0)
 
 
+###########################################################################
+# These are some options that the user might like to set manually
+
+set(VW_DEFAULT_CACHE_SIZE_MB 768)
+
+# set the default number of processing threads for multi-threaded operations
+set(VW_NUM_THREADS 4)
+
+# enable image bounds checking (SLOW!) 
+set(VW_ENABLE_BOUNDS_CHECK 0)
+
+# ~/.vwrc support
+set(VW_ENABLE_CONFIG_FILE 1) 
+
+# enable the C++ exception mechanism 
+set(VW_ENABLE_EXCEPTIONS 1) 
+
+# enable SSE optimizations in some places (development) 
+set(VW_ENABLE_SSE 1) 
+if (VW_ENABLE_SSE)
+  set(CXXFLAGS "${CXXFLAGS} -msse4.1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+endif()
+
+# Define to `int' if <sys/types.h> does not define. 
+#define VW_ssize_t
 
 # TODO: What is this for?
 set(ENABLE_EXCEPTIONS True)
 
+###########################################################################
 
 # Now that we have found all our external dependencies, generate a config.h file
 include("GenerateConfig.cmake")
@@ -372,7 +440,7 @@ endforeach()
 # --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
 get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
 get_all_source_files( "BundleAdjustment/tests" VW_BUNDLEADJUSTMENT_TEST_FILES)
-set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMosaic VwCartography)
+set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMosaic VwCartography VwFileIO)
 
 # --- VW_CAMERA ------------------------------------------------------------
 get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
@@ -387,7 +455,7 @@ set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera)
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
 get_all_source_files( "Core/tests" VW_CORE_TEST_FILES)
-set(VW_CORE_LIB_DEPENDENCIES )
+set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES})
 
 # --- VW_FILEIO ------------------------------------------------------------
 # This is a complicated folder so we need to select files manually
@@ -407,9 +475,8 @@ get_all_source_files( "HDR/tests" VW_HDR_TEST_FILES)
 set(VW_HDR_LIB_DEPENDENCIES VwFileIO VwCamera)
 
 # --- VW_IMAGE ------------------------------------------------------------
-# This is a complicated folder so we need to select files manually
-#get_all_source_files( "Image" VW_IMAGE_SRC_FILES)
-#get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
+get_all_source_files( "Image"       VW_IMAGE_SRC_FILES)
+get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
 set(VW_IMAGE_LIB_DEPENDENCIES VwMath)
 
 # --- VW_INTERESTPOINT ------------------------------------------------------------
@@ -420,7 +487,7 @@ set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_IMAGE_LIB_DEPENDENCIES VwCore)
+set(VW_IMAGE_LIB_DEPENDENCIES VwCore ${Z_LIBRARIES} ${FLANN_LIBRARIES} ${LAPACK_LIBRARIES})
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
@@ -440,15 +507,16 @@ set(VW_STEREO_LIB_DEPENDENCIES VwMath VwImage VwCamera VwGeometry)
 
 # TODO: Don't just use this for all tools
 set(FULL_LIBRARY_LIST
-      ${LAPACK_LIBRARIES} 
-      ${JPEG_LIBRARIES} 
+      ${LAPACK_LIBRARIES}
+      ${JPEG_LIBRARIES}
       ${GDAL_LIBRARIES}
       ${TIFF_LIBRARIES}
       ${PNG_LIBRARIES}
       ${PROJ4_LIBRARIES}
       ${OPENEXR_LIBRARIES}
       ${OPENCV_LIBRARIES}
-      ${PROTOBUF_LIBRARIES}
+      ${FLANN_LIBRARIES}
+      ${Z_LIBRARIES}
       ${SigC++_LIBRARIES}
       ${CAIRO_LIBRARIES}
       ${CAIROMM_LIBRARIES}

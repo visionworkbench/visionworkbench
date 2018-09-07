@@ -38,7 +38,7 @@ namespace math {
 // (lacking standard installation of lapack headers) is to use the type most
 // appropriate for the bloodline.
 
-#if defined(VW_HAVE_PKG_INTEL_LAPACK)
+#if (defined(VW_HAVE_PKG_INTEL_LAPACK) && VW_HAVE_PKG_INTEL_LAPACK==1)
 #  include <mkl_lapack.h>
 // MKL headers pollute the macro space. #define P4 breaks boost. Clean up after Intel.
 #  undef ITP

@@ -9,33 +9,6 @@ include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
 
 
-###########################################################################
-# These are some options that the user might like to set manually
-
-#TODO: Where does all this get set?
-set(VW_DEFAULT_CACHE_SIZE_MB 768)
-
-# set the default number of processing threads for multi-threaded operations
-set(VW_NUM_THREADS 4)
-
-# enable image bounds checking (SLOW!) 
-set(VW_ENABLE_BOUNDS_CHECK 0)
-
-# ~/.vwrc support
-set(VW_ENABLE_CONFIG_FILE 1) 
-
-# enable the C++ exception mechanism 
-set(VW_ENABLE_EXCEPTIONS 1) 
-
-# enable SSE optimizations in some places (development) 
-set(VW_ENABLE_SSE 1) 
-
-
-# Define to `int' if <sys/types.h> does not define. 
-#define VW_ssize_t
-
-
-
 
 
 ###########################################################################
@@ -93,7 +66,6 @@ CHECK_CXX_SOURCE_COMPILES("
 # Determine which libraries we can build
 
 # If we made it to here we can build these modules
-# TODO: Do we need to check any other dependencies here?
 set(VW_HAVE_PKG_CORE 1)
 set(VW_HAVE_PKG_MATH 1)
 set(VW_HAVE_PKG_IMAGE 1)
@@ -104,27 +76,10 @@ set(VW_HAVE_PKG_CAMERA 1)
 set(VW_HAVE_PKG_INTERESTPOINT 1)
 set(VW_HAVE_PKG_CARTOGRAPHY 1)
 set(VW_HAVE_PKG_MOSAIC 1)
-set(VW_HAVE_PKG_HDR 1)
+set(VW_HAVE_PKG_HDR 0) # This never gets built anymore
 set(VW_HAVE_PKG_STEREO 1)
 set(VW_HAVE_PKG_GEOMETRY 1)
 set(VW_HAVE_PKG_BUNDLEADJUSTMENT 1)
-
-# The next few libraries are deprecated!
-if (false)
-#if (${VW_HAVE_PKG_RABBITMQ_C} and ${VW_HAVE_PKG_ZEROMQ} and ${VW_HAVE_PKG_LIBKML})
-  set(VW_HAVE_PKG_PLATE 1)
-endif()
-
-if (false)
-#if (${VW_HAVE_PKG_PLATE} and ${VW_HAVE_PKG_QT})
-  set(VW_HAVE_PKG_GUI 1)
-endif()
-
-if (false)
-#if (${VW_HAVE_PKG_GL} and ${VW_HAVE_PKG_GLEW})
-  set(VW_HAVE_PKG_GPU 1)
-endif()
-
 
 set(VW_HAVE_PKG_TOOLS 1)
 
@@ -157,9 +112,6 @@ configure_file(${CMAKE_SOURCE_DIR}/src/vw/config.h.in ${CMAKE_SOURCE_DIR}/src/vw
 ##define VW_HAVE_PKG_CG @HAVE_PKG_CG@
 
 
-#/* Define to 1 if the HDR module is available. */
-##define VW_HAVE_PKG_HDR @HAVE_PKG_HDR@
-
 #/* Define to 1 if the HDF package is available */
 ##define VW_HAVE_PKG_HDF @HAVE_PKG_HDF@
 
@@ -183,10 +135,6 @@ configure_file(${CMAKE_SOURCE_DIR}/src/vw/config.h.in ${CMAKE_SOURCE_DIR}/src/vw
 #//#define VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS
 
 
-## Needed for plate
-#///* Define to 1 if the RABBITMQ_C package is available. */
-#//#define VW_HAVE_PKG_RABBITMQ_C
-
 #/* Define to 1 if the LIBKML package is available. */
 ##define VW_HAVE_PKG_LIBKML @VW_HAVE_PKG_LIBKML@
 
@@ -199,10 +147,6 @@ configure_file(${CMAKE_SOURCE_DIR}/src/vw/config.h.in ${CMAKE_SOURCE_DIR}/src/vw
 #//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #///* Define to 1 if the THREADS package is available. */
 #//#define VW_HAVE_PKG_THREADS
-
-
-#/* Define to 1 if the ZEROMQ package is available. */
-##define VW_HAVE_PKG_ZEROMQ @VW_HAVE_PKG_ZEROMQ@
 
 
 

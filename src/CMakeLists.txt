@@ -2,6 +2,8 @@
 cmake_minimum_required (VERSION 2.8)
 
 
+# TODO: Move everything up a directory!
+
 # Define functions --> Move these to another file
 
 
@@ -40,44 +42,6 @@ endmacro()
 
 
 
-function(generate_protobuf_files PROTO_GEN_OUT)
-
-  # Finds all .proto files in the current dir
-  file(GLOB PROTO_INPUT RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
-
-  # Protobuf compiler
-  find_program(PROTOC protoc)
-  set(PROTOC_C_OUT_FLAG --cpp_out)
-
-  # Set where generated files go to and add that directory to the include path
-  set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR})
-  include_directories(${PROTO_GEN_DIR})
-
-  # For each input protobuf file
-  foreach(PROTO_FILE ${PROTO_INPUT})
-    # Get the name of the file without extension
-    get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-    
-    # Add the two generated files to PROTO_GEN variable
-    set(PROTO_GEN ${PROTO_GEN}
-        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.h
-        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.cc)
-  endforeach()
-
-  # Add the custom command that will generate all the files
-  # - The generated files will be put in the CMake build directory, not the source tree.
-  #message("Output files: ${PROTO_GEN}")
-  add_custom_command(OUTPUT   ${PROTO_GEN}
-                     COMMAND  ${PROTOC} ${PROTO_INPUT} ${PROTOC_C_OUT_FLAG} ${CMAKE_CURRENT_BINARY_DIR}
-                     DEPENDS  ${PROTO_INPUT}
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                     COMMENT "Generating Protocol Buffers...")
-
-  set(${PROTO_GEN_OUT} ${PROTO_GEN} PARENT_SCOPE) # Set up output variable
-endfunction(generate_protobuf_files)
-
-
-
 # Function to add a library to the project.
 # - This is called in each library folder directory.
 function(add_library_wrapper libName fileList testFileList dependencyList)
@@ -91,7 +55,7 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
   target_link_libraries(${libName} "${dependencyList}")
 
   install(TARGETS ${libName} DESTINATION lib)
-  
+
   # Set all the header files to be installed to the include directory
   foreach(f ${fileList})
     get_filename_component(extension ${f} EXT) # Get file extension  
@@ -99,20 +63,20 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
     if( extensionLower STREQUAL ".h" OR extensionLower STREQUAL ".hpp" OR extensionLower STREQUAL ".tcc")
       set(fullPath "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
       STRING(REGEX MATCH "vw/.*/" dir ${fullPath})
-      INSTALL(FILES ${f} DESTINATION include/${dir})      
+      INSTALL(FILES ${f} DESTINATION include/${dir})
     endif()
   endforeach(f)
-  
+
 
   # Add unit test for each test file given
   set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/src/test/test_main.cc")
   foreach(f ${testFileList})
-  
+
     get_filename_component(filename ${f} NAME_WE) # Get file name without extension
     set(executableName "${libName}_${filename}")   # Generate a name for the executable   
-    
+
     #message("Adding test target ${executableName}")
-    
+
     # Add executable with shared main file and this file
     add_executable( ${executableName}   ${TEST_MAIN_PATH} ./tests/${f} )      
 
@@ -120,15 +84,15 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
     #target_link_libraries(${executableName} gtest "${libName}" ${GTEST_BOTH_LIBRARIES})
     target_link_libraries(${executableName} gtest gtest_main ${FULL_LIBRARY_LIST})
 
-    
+
     # These variables need to be set for each test directory
     set_property (TARGET ${executableName} APPEND PROPERTY COMPILE_DEFINITIONS "TEST_OBJDIR=\"${CMAKE_CURRENT_SOURCE_DIR}/tests\"")
     set_property (TARGET ${executableName} APPEND PROPERTY COMPILE_DEFINITIONS "TEST_SRCDIR=\"${CMAKE_CURRENT_SOURCE_DIR}/tests\"")
-    
+
     add_test(${executableName} ${executableName}) 
     add_to_custom_test_target(${executableName})  # Add to the verbose test make target.
   endforeach(f)
-  
+
 endfunction( add_library_wrapper )
 
 
@@ -137,8 +101,21 @@ endfunction( add_library_wrapper )
 #===============================================================================
 # Project information
 
-project (VisionWorkbench)
+# Need this to make sure we get the compiler from PATH.
+# - cc and c++ both need to be on the PATH.
+find_program(CMAKE_C_COMPILER   NAMES $ENV{CC}  gcc PATHS ENV PATH NO_DEFAULT_PATH)
+find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
 
+project (VisionWorkbench C CXX)
+
+# Verify that we have a new enough compiler.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.3")
+    message(FATAL_ERROR "GCC version >= 4.9.3 is required!")
+  endif()
+else()
+  message(FATAL_ERROR "TODO: Get MacOS compiler version!")
+endif()
 
 # Short and long name of this package
 set(PACKAGE            "VisionWorkbench")
@@ -208,6 +185,49 @@ add_subdirectory(vw)
 
 
 
+
+
+
+
+#========================================================================================
+
+
+# Deprecated - We no longer use protobuf files!
+function(generate_protobuf_files PROTO_GEN_OUT)
+
+  # Finds all .proto files in the current dir
+  file(GLOB PROTO_INPUT RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
+
+  # Protobuf compiler
+  find_program(PROTOC protoc)
+  set(PROTOC_C_OUT_FLAG --cpp_out)
+
+  # Set where generated files go to and add that directory to the include path
+  set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR})
+  include_directories(${PROTO_GEN_DIR})
+
+  # For each input protobuf file
+  foreach(PROTO_FILE ${PROTO_INPUT})
+    # Get the name of the file without extension
+    get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
+    
+    # Add the two generated files to PROTO_GEN variable
+    set(PROTO_GEN ${PROTO_GEN}
+        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.h
+        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.cc)
+  endforeach()
+
+  # Add the custom command that will generate all the files
+  # - The generated files will be put in the CMake build directory, not the source tree.
+  #message("Output files: ${PROTO_GEN}")
+  add_custom_command(OUTPUT   ${PROTO_GEN}
+                     COMMAND  ${PROTOC} ${PROTO_INPUT} ${PROTOC_C_OUT_FLAG} ${CMAKE_CURRENT_BINARY_DIR}
+                     DEPENDS  ${PROTO_INPUT}
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                     COMMENT "Generating Protocol Buffers...")
+
+  set(${PROTO_GEN_OUT} ${PROTO_GEN} PARENT_SCOPE) # Set up output variable
+endfunction(generate_protobuf_files)
 
 
 

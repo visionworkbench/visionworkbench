@@ -7,25 +7,25 @@
 #define VW_CACHE_SIZE @VW_DEFAULT_CACHE_SIZE_MB@
 
 /* does the compiler support function __attribute__((deprecated))? */
-#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED
+#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED 1
 
 /* does the compiler support function __attribute__((noreturn))? */
-#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_NORETURN
+#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_NORETURN 1
 
 /* does the compiler support function __attribute__((warn_unused_result))? */
-#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT
+#cmakedefine VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT 1
 
 /* enable image bounds checking (SLOW!) */
-#cmakedefine VW_ENABLE_BOUNDS_CHECK
+#cmakedefine VW_ENABLE_BOUNDS_CHECK 1
 
 /* ~/.vwrc support */
-#cmakedefine VW_ENABLE_CONFIG_FILE
+#cmakedefine VW_ENABLE_CONFIG_FILE 1
 
 /* enable the C++ exception mechanism */
-#cmakedefine VW_ENABLE_EXCEPTIONS
+#cmakedefine VW_ENABLE_EXCEPTIONS 1
 
 /* enable SSE optimizations in some places (development) */
-#cmakedefine VW_ENABLE_SSE
+#cmakedefine VW_ENABLE_SSE 1
 
 //TODO: Do we need this one?
 ///* Define to 1 if VW has BigTIFF support */
@@ -36,34 +36,34 @@
 //#define VW_HAVE_DLFCN_H
 
 /* Define to 1 if you have the `exp2' function. */
-#cmakedefine VW_HAVE_EXP2
+#cmakedefine VW_HAVE_EXP2 1
 
 /* Define to 1 if you have the <ext/stdio_filebuf.h> header file. */
-#cmakedefine VW_HAVE_EXT_STDIO_FILEBUF_H
+#cmakedefine VW_HAVE_EXT_STDIO_FILEBUF_H 1
 
 /* Define to 1 if you have the `fabsl' function. */
-#cmakedefine VW_HAVE_FABSL
+#cmakedefine VW_HAVE_FABSL 1
 
 /* Define to 1 if you have the `feenableexcept' function. */
-#cmakedefine VW_HAVE_FEENABLEEXCEPT
+#cmakedefine VW_HAVE_FEENABLEEXCEPT 1
 
 /* Define to 1 if you have the <fenv.h> header file. */
-#cmakedefine VW_HAVE_FENV_H
+#cmakedefine VW_HAVE_FENV_H 1
 
 ///* Define to 1 if you have the `getpid' function. */
-#cmakedefine VW_HAVE_GETPID
+#cmakedefine VW_HAVE_GETPID 1
 
 /* Define to 1 if you have the `getpwuid' function. */
-#cmakedefine VW_HAVE_GETPWUID
+#cmakedefine VW_HAVE_GETPWUID 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
-#cmakedefine VW_HAVE_INTTYPES_H
+#cmakedefine VW_HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `llabs' function. */
-#cmakedefine VW_HAVE_LLABS
+#cmakedefine VW_HAVE_LLABS 1
 
 /* Define to 1 if you have the `log2' function. */
-#cmakedefine VW_HAVE_LOG2
+#cmakedefine VW_HAVE_LOG2 1
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to 1 if you have the <memory.h> header file. */
@@ -116,60 +116,43 @@
 //#define VW_HAVE_PKG_BUNDLEADJUSTMENT
 
 /* Define to 1 if the CAIROMM package is available. */
-#cmakedefine VW_HAVE_PKG_CAIROMM
+#cmakedefine VW_HAVE_PKG_CAIROMM 1
 
 /* Define to 1 if the CAMERA module is available. */
-#cmakedefine VW_HAVE_PKG_CAMERA
+#cmakedefine VW_HAVE_PKG_CAMERA 1
 
 /* Define to 1 if the CARTOGRAPHY module is available. */
-#cmakedefine VW_HAVE_PKG_CARTOGRAPHY
+#cmakedefine VW_HAVE_PKG_CARTOGRAPHY 1
 
 /* Define to 1 if the CG package is available. */
-#cmakedefine VW_HAVE_PKG_CG
+#cmakedefine VW_HAVE_PKG_CG 1
 
 /* Define to 1 if the CLAPACK package is available. */
-#cmakedefine VW_HAVE_PKG_CLAPACK
+#cmakedefine VW_HAVE_PKG_CLAPACK 1
 
 /* Define to 1 if the CORE module is available. */
-#cmakedefine VW_HAVE_PKG_CORE
+#cmakedefine VW_HAVE_PKG_CORE 1
 
 /* Define to 1 if the FILEIO module is available. */
-#cmakedefine VW_HAVE_PKG_FILEIO
+#cmakedefine VW_HAVE_PKG_FILEIO 1
 
 /* Define to 1 if the FLANN package is available. */
-#cmakedefine VW_HAVE_PKG_FLANN
+#cmakedefine VW_HAVE_PKG_FLANN 1
 
 /* Define to 1 if the FLAPACK package is available. */
-#cmakedefine VW_HAVE_PKG_FLAPACK
+#cmakedefine VW_HAVE_PKG_FLAPACK 1
 
 /* Define to 1 if the GDAL package is available. */
-#cmakedefine VW_HAVE_PKG_GDAL
+#cmakedefine VW_HAVE_PKG_GDAL 1
 
 /* Define to 1 if the GEOMETRY module is available. */
-#cmakedefine VW_HAVE_PKG_GEOMETRY
+#cmakedefine VW_HAVE_PKG_GEOMETRY 1
 
 /* Define to 1 if the pkg package is available */
-#cmakedefine VW_HAVE_PKG_GL
+#cmakedefine VW_HAVE_PKG_GL 1
 
 ///* Define to 1 if the GLEW package is available. */
 //##define VW_HAVE_PKG_GLEW
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the GOOGLE_PROFILER package is available. */
-//#define VW_HAVE_PKG_GOOGLE_PROFILER
-
-///* Define to 1 if the GPU module is available. */
-//#define VW_HAVE_PKG_GPU @HAVE_PKG_GPU@ 
-
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_GUESS_QT
-
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the GUI module is available. */
-//#define VW_HAVE_PKG_GUI
 
 /* Define to 1 if the pkg package is available */
 #cmakedefine VW_HAVE_PKG_HDF
@@ -183,114 +166,64 @@
 //#define VW_HAVE_PKG_HDF_SUBDIR
 
 /* Define to 1 if the HDR module is available. */
-#cmakedefine VW_HAVE_PKG_HDR
+#cmakedefine VW_HAVE_PKG_HDR 1
 
 /* Define to 1 if the ILMBASE package is available. */
-#cmakedefine VW_HAVE_PKG_ILMBASE
+#cmakedefine VW_HAVE_PKG_ILMBASE 1
 
 /* Define to 1 if the IMAGE module is available. */
-#cmakedefine VW_HAVE_PKG_IMAGE
+#cmakedefine VW_HAVE_PKG_IMAGE 1
 
 /* Define to 1 if the INTEL_LAPACK package is available. */
-#cmakedefine VW_HAVE_PKG_INTEL_LAPACK
+#cmakedefine VW_HAVE_PKG_INTEL_LAPACK 1
 
 /* Define to 1 if the INTERESTPOINT module is available. */
-#cmakedefine VW_HAVE_PKG_INTERESTPOINT
+#cmakedefine VW_HAVE_PKG_INTERESTPOINT 1
 
 /* Define to 1 if the JPEG package is available. */
-#cmakedefine VW_HAVE_PKG_JPEG
+#cmakedefine VW_HAVE_PKG_JPEG 1
 
 /* Define to 1 if the pkg package is available */
-#cmakedefine VW_HAVE_PKG_LAPACK
+#cmakedefine VW_HAVE_PKG_LAPACK 1
 
 /* Define to 1 if the LIBKML package is available. */
 #cmakedefine VW_HAVE_PKG_LIBKML
 
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the LINUX_GL package is available. */
-//#define VW_HAVE_PKG_LINUX_GL
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_LINUX_QMAKE_QT
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to 1 if the M package is available. */
 //#define VW_HAVE_PKG_M
 
 /* Define to 1 if the MATH module is available. */
-#cmakedefine VW_HAVE_PKG_MATH
+#cmakedefine VW_HAVE_PKG_MATH 1
 
 /* Define to 1 if the MOSAIC module is available. */
-#cmakedefine VW_HAVE_PKG_MOSAIC
+#cmakedefine VW_HAVE_PKG_MOSAIC 1
 
 /* Define to 1 if the OPENCV package is available. */
-#cmakedefine VW_HAVE_PKG_OPENCV
+#cmakedefine VW_HAVE_PKG_OPENCV 1
 
 /* Define to 1 if the OPENEXR package is available. */
-#cmakedefine VW_HAVE_PKG_OPENEXR
+#cmakedefine VW_HAVE_PKG_OPENEXR 1
 
 /* Define to 1 if the PLATE module is available. */
-#cmakedefine VW_HAVE_PKG_PLATE
+#cmakedefine VW_HAVE_PKG_PLATE 1
 
 /* Define to 1 if the PNG package is available. */
-#cmakedefine VW_HAVE_PKG_PNG
+#cmakedefine VW_HAVE_PKG_PNG 1
 
 /* Define to 1 if the PROJ4 package is available. */
-#cmakedefine VW_HAVE_PKG_PROJ4
+#cmakedefine VW_HAVE_PKG_PROJ4 1
 
 /* Define to 1 if the PROTOBUF package is available. */
-#cmakedefine VW_HAVE_PKG_PROTOBUF
+#cmakedefine VW_HAVE_PKG_PROTOBUF 1
 
 /* Define to 1 if the PTHREADS package is available. */
-#cmakedefine VW_HAVE_PKG_PTHREADS
+#cmakedefine VW_HAVE_PKG_PTHREADS 1
 
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_QT
-
-///* Define to 1 if the QT_GUESS_BASE package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_BASE
-
-///* Define to 1 if the QT_GUESS_CORE package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_CORE
-
-///* Define to 1 if the QT_GUESS_GUI package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_GUI
-
-///* Define to 1 if the QT_GUESS_NETWORK package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_NETWORK
-
-///* Define to 1 if the QT_GUESS_OPENGL package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_OPENGL
-
-///* Define to 1 if the QT_GUESS_SQL package is available. */
-//#define VW_HAVE_PKG_QT_GUESS_SQL
-
-///* Define to 1 if the QT_QMAKE package is available. */
-//#define VW_HAVE_PKG_QT_QMAKE
-
-///* Define to 1 if the QT_QMAKE_GUI package is available. */
-//#define VW_HAVE_PKG_QT_QMAKE_GUI
-
-///* Define to 1 if the QT_QMAKE_NETWORK package is available. */
-//#define VW_HAVE_PKG_QT_QMAKE_NETWORK
-
-///* Define to 1 if the QT_QMAKE_OPENGL package is available. */
-//#define VW_HAVE_PKG_QT_QMAKE_OPENGL
-
-///* Define to 1 if the QT_QMAKE_SQL package is available. */
-//#define VW_HAVE_PKG_QT_QMAKE_SQL
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the RABBITMQ_C package is available. */
-//#define VW_HAVE_PKG_RABBITMQ_C
 
 /* Define to 1 if the SLAPACK package is available. */
-#cmakedefine VW_HAVE_PKG_SLAPACK
+#cmakedefine VW_HAVE_PKG_SLAPACK 1
 
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -318,7 +251,7 @@
 
 
 /* Define to 1 if the STEREO module is available. */
-#cmakedefine VW_HAVE_PKG_STEREO
+#cmakedefine VW_HAVE_PKG_STEREO 1
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to 1 if the TCMALLOC package is available. */
@@ -329,30 +262,24 @@
 //#define VW_HAVE_PKG_THREADS
 
 /* Define to 1 if the TIFF package is available. */
-#cmakedefine VW_HAVE_PKG_TIFF
+#cmakedefine VW_HAVE_PKG_TIFF 1
 
 ///* Define to 1 if the TOOLS module is available. */
-#cmakedefine VW_HAVE_PKG_TOOLS
+#cmakedefine VW_HAVE_PKG_TOOLS 1
 
 ///* Define to 1 if the VW module is available. */
-#cmakedefine VW_HAVE_PKG_VW
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the X11 package is available. */
-//#define VW_HAVE_PKG_X11
+#cmakedefine VW_HAVE_PKG_VW 1
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to 1 if the Z package is available. */
 //#define VW_HAVE_PKG_Z
 
-///* Define to 1 if the ZEROMQ package is available. */
-//#define VW_HAVE_PKG_ZEROMQ @VW_HAVE_PKG_ZEROMQ@
 
 /* Define to 1 if you have the <pwd.h> header file. */
-#cmakedefine VW_HAVE_PWD_H
+#cmakedefine VW_HAVE_PWD_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
-#cmakedefine VW_HAVE_STDINT_H
+#cmakedefine VW_HAVE_STDINT_H 1
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to 1 if you have the <stdlib.h> header file. */
@@ -371,13 +298,13 @@
 //#cmakedefine VW_HAVE_SYS_STAT_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
-#cmakedefine VW_HAVE_SYS_TYPES_H
+#cmakedefine VW_HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if you have the `tgamma' function. */
-#cmakedefine VW_HAVE_TGAMMA
+#cmakedefine VW_HAVE_TGAMMA 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#cmakedefine VW_HAVE_UNISTD_H
+#cmakedefine VW_HAVE_UNISTD_H 1
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ///* Define to the sub-directory in which libtool stores uninstalled libraries.

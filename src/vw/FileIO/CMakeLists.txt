@@ -37,33 +37,37 @@ endif()
  
  
 set(VW_FILEIO_SRC_FILES 
-                          DiskImageResource.h 
-                          DiskImageResourcePBM.h 
-                          DiskImageResourcePDS.h 
-                          DiskImageView.h 
-                          MemoryImageResource.h 
-                          KML.h 
-                          ScanlineIO.h 
-                          TemporaryFile.h 
-                          ${gdal_headers} 
-                          ${hdf_headers} 
-                          ${jpeg_headers} 
-                          ${openexr_headers} 
-                          ${png_headers} 
-                          ${tiff_headers}
-                          DiskImageResource.cc 
-                          DiskImageResourcePBM.cc 
-                          DiskImageResourcePDS.cc 
-                          KML.cc 
-                          MemoryImageResource.cc 
-                          ScanlineIO.cc 
-                          TemporaryFile.cc 
-                          ${gdal_sources} 
-                          ${hdf_sources} 
-                          ${jpeg_sources} 
-                          ${openexr_sources} 
-                          ${png_sources} 
-                          ${tiff_sources}
+    DiskImageResource.h 
+    DiskImageResourcePBM.h 
+    DiskImageResourcePDS.h 
+    DiskImageResourceRaw.h
+    DiskImageResourceRaw.cc
+    DiskImageView.h 
+    FileUtils.h
+    FileUtils.cc
+    MemoryImageResource.h 
+    KML.h 
+    ScanlineIO.h 
+    TemporaryFile.h 
+    ${gdal_headers} 
+    ${hdf_headers} 
+    ${jpeg_headers} 
+    ${openexr_headers} 
+    ${png_headers} 
+    ${tiff_headers}
+    DiskImageResource.cc 
+    DiskImageResourcePBM.cc 
+    DiskImageResourcePDS.cc 
+    KML.cc 
+    MemoryImageResource.cc 
+    ScanlineIO.cc 
+    TemporaryFile.cc 
+    ${gdal_sources} 
+    ${hdf_sources} 
+    ${jpeg_sources} 
+    ${openexr_sources} 
+    ${png_sources} 
+    ${tiff_sources}
     )
 
 
