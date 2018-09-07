@@ -25,7 +25,51 @@ function( get_all_source_files relativePath outputFileList)
   set(${outputFileList} ${fileList} PARENT_SCOPE) 
 endfunction(get_all_source_files)
 
+# Look for a library dependency, starting with the BinaryBuilder folder.
+function(find_external_library name bbIncludeFolder libNameList required)
 
+  # Define the variable names we will create
+  set(FOUND_NAME "${name}_FOUND")
+  set(LIB_NAME   "${name}_LIBRARIES")
+  set(INC_NAME   "${name}_INCLUDE_DIR")
+  set(VW_NAME    "VW_HAVE_PKG_${name}")
+
+  # Look in the BB directory if it was provided, otherwise
+  #  make halfhearted attempt to find the dependency.
+  if(BINARYBUILDER_INSTALL_DIR)
+    set(${FOUND_NAME} 1)
+
+    # Add each lib file that was provided.
+    set(${${LIB_NAME}} "")
+    foreach(lib ${libNameList})
+      set(${LIB_NAME}   ${${LIB_NAME}} ${BINARYBUILDER_INSTALL_DIR}/lib/${lib})
+    endforeach()
+    
+    set(${INC_NAME}   ${BINARYBUILDER_INSTALL_DIR}/include/${bbIncludeFolder})
+  else()
+    # TODO: Provide effective findX.cmake files to handle these.
+    find_package(${name} REQUIRED)
+  endif()
+  # Check and display our results
+  if(${FOUND_NAME})
+    set(${VW_NAME} 1)
+    message("-- Found ${name} at " ${${INC_NAME}})
+    include_directories("${${INC_NAME}}")
+  else()
+    if (${required})
+      message( FATAL_ERROR "Failed to find REQUIRED library ${name}." )
+    else()
+      message("Failed to find ${name}")
+    endif()
+  endif()
+
+  # Pass the results back up to the parent function
+  set(${FOUND_NAME} ${${FOUND_NAME}} PARENT_SCOPE)
+  set(${LIB_NAME}   ${${LIB_NAME}}   PARENT_SCOPE)
+  set(${INC_NAME}   ${${INC_NAME}}   PARENT_SCOPE)
+  set(${VW_NAME}    ${${VW_NAME}}    PARENT_SCOPE)
+
+endfunction(find_external_library)
 
 # Define a custom make target that will run all tests with normal gtest output.
 # - Normally you can run 'make test' to run all tests but the output is brief.
@@ -78,7 +122,7 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
     #message("Adding test target ${executableName}")
 
     # Add executable with shared main file and this file
-    add_executable( ${executableName}   ${TEST_MAIN_PATH} ./tests/${f} )      
+    add_executable( ${executableName} EXCLUDE_FROM_ALL  ${TEST_MAIN_PATH} ./tests/${f} )      
 
     # Link test executable against current library, gtest, and gtest_main
     #target_link_libraries(${executableName} gtest "${libName}" ${GTEST_BOTH_LIBRARIES})

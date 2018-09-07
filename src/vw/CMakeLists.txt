@@ -73,266 +73,59 @@ endif(Boost_FOUND)
 message("--------------------------------------------------------------")
 
 
-# --> We don't use this annymore!
-#message("--------------------------------------------------------------")
-#message("Searching for Google Protocol Buffers...")
 
-#find_package(Protobuf REQUIRED)
-#if(PROTOBUF_FOUND)
-#    set(VW_HAVE_PKG_PROTOBUF 1)
-#    message("Successfully found Google Protocol Buffers")
-#    message("---Protobuf library file = ${PROTOBUF_LIBRARIES}")
-#    message("---Protobuf Include Dir  = ${PROTOBUF_INCLUDE_DIR}")
-#    include_directories(${PROTOBUF_INCLUDE_DIR})
-#endif()
+# TODO: More use of find_package to find things not in BB?
 
-#set(PROTOBUF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include   )
-#set(PROTOBUF_LIBRARY     ${BINARYBUILDER_INSTALL_DIR}/lib/libprotobuf.so)
-##include_directories("${PROTOBUF_INCLUDE_DIR}")
-#include_directories(${PROTOBUF_INCLUDE_DIR})
+set(REQUIRED     True )
+set(NOT_REQUIRED False)
 
-message("--------------------------------------------------------------")
+# TODO: Only needed for ASP!!!
+## Get NAIF includes (Needed for reading/writing SPICE data)
+#find_external_library(NAIF "naif" "" REQUIRED)
 
-
-# These packages are included in BinaryBuilder so look for them there.
-# - If there is no BinaryBuilder directory the user may need to specify a path.
-
-# TODO: More use of find_package?
-
-# Get NAIF includes (Needed for reading/writing SPICE data)
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(NAIF_FOUND 1)
-  set(NAIF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/naif/)
-else() # The user needs to specify this!
-  set(NAIF_INCLUDE_DIR "" CACHE FILEPATH "Path to NAIF include files")
-endif()
-if (NAIF_FOUND)
-  message("-- Found NAIF at " ${NAIF_INCLUDE_DIR})
-  include_directories("${NAIF_INCLUDE_DIR}")
-else()
-  message("Failed to find Naif")
-endif()
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(LAPACK_FOUND 1)
-  set(LAPACK_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/liblapack.so
-                         ${BINARYBUILDER_INSTALL_DIR}/lib/libblas.so)
-#  set(LAPACK_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)
-else() # The user needs to specify this!
-  #set(LAPACK_INCLUDE_DIR "" CACHE FILEPATH "Path to LAPACK include files")
-    find_package(LAPACK REQUIRED)
-endif()
+find_external_library(LAPACK "" "liblapack.so;libblas.so" REQUIRED)
 if(LAPACK_FOUND)
-  set(VW_HAVE_PKG_LAPACK 1)
-  message("-- Found LAPACK at " ${LAPACK_LIBRARIES})
-#  include_directories("${LAPACK_INCLUDE_DIR}")
-  
   set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
                              #      How to check this if the user provides Fortran?
-else()
-  message( FATAL_ERROR "Failed to find REQUIRED library Lapack." )
 endif()
 
 
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(FLANN_FOUND 1)
-  set(FLANN_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libflann_cpp.so)
-  set(FLANN_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)
-else() # The user needs to specify this!
-  set(FLANN_INCLUDE_DIR "" CACHE FILEPATH "Path to FLANN include files")
-  set(FLANN_LIBRARIES   "" CACHE FILEPATH "Path to FLANN library files")
-endif()
-if(FLANN_FOUND)
-  set(VW_HAVE_PKG_FLANN 1)
-  message("-- Found FLANN at " ${FLANN_LIBRARIES})
-  include_directories("${FLANN_INCLUDE_DIR}")
-else()
-  message("Failed to find FLANN")
-endif()
+find_external_library(FLANN "" "libflann_cpp.so" NOT_REQUIRED)
+
+find_external_library(JPEG "" "libjpeg.so" NOT_REQUIRED)
+find_external_library(PNG "" "libpng.so;libpng16.so" NOT_REQUIRED)
+find_external_library(TIFF "" "libtiff.so" NOT_REQUIRED)
+
+find_external_library(Z "" "libz.so" NOT_REQUIRED)
+find_external_library(GDAL "" "libgdal.so" NOT_REQUIRED)
+find_external_library(PROJ4 "" "libproj.so" NOT_REQUIRED)
+
+set(OPENCV_LIB_NAMES libopencv_calib3d.so     libopencv_reg.so
+                     libopencv_core.so        libopencv_shape.so
+                     libopencv_features2d.so  libopencv_stitching.so
+                     libopencv_flann.so       libopencv_superres.so
+                     libopencv_hdf.so         libopencv_surface_matching.so
+                     libopencv_highgui.so     libopencv_videoio.so
+                     libopencv_imgcodecs.so   libopencv_video.so
+                     libopencv_imgproc.so     libopencv_xfeatures2d.so
+                     libopencv_ml.so          libopencv_ximgproc.so
+                     libopencv_objdetect.so   libopencv_xobjdetect.so
+                     libopencv_photo.so       libopencv_xphoto.so)
+find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" NOT_REQUIRED)
 
 
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(JPEG_FOUND 1)
-  set(JPEG_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libjpeg.so)
-  #set(JPEG_LIBRARY     ${BINARYBUILDER_INSTALL_DIR}/lib/)
-  set(JPEG_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else() # The user needs to specify this!
-  #set(JPEG_INCLUDE_DIR "" CACHE FILEPATH "Path to JPEG include files")
-  find_package(JPEG REQUIRED)
-endif()
-if(JPEG_FOUND)
-  set(VW_HAVE_PKG_JPEG 1)
-  message("-- Found JPEG " ${JPEG_LIBRARIES})
-  include_directories("${JPEG_INCLUDE_DIR}")
-else()
-  message("Failed to find JPEG")
-endif()
+set(ILMBASE_LIB_NAMES libHalf.so libIex.so libImath.so libIlmThread.so libIexMath.so)
+find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" NOT_REQUIRED)
 
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(PNG_FOUND 1)
-  set(PNG_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libpng16.so
-                      ${BINARYBUILDER_INSTALL_DIR}/lib/libpng.so)
-  set(PNG_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else()
-  find_package(PNG REQUIRED)
-endif()
-if(PNG_FOUND)
-  set(VW_HAVE_PKG_PNG 1)
-  message("-- Found PNG " ${PNG_LIBRARIES})
-  include_directories("${PNG_INCLUDE_DIR}")
-else()
-  message("Failed to find PNG")
-endif()
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(TIFF_FOUND 1)
-  set(TIFF_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libtiff.so)
-  set(TIFF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else()
-  find_package(TIFF REQUIRED)
-endif()
-if(TIFF_FOUND)
-  set(VW_HAVE_PKG_TIFF 1)
-  message("-- Found TIFF " ${TIFF_LIBRARIES})
-  include_directories("${TIFF_INCLUDE_DIR}")
-else()
-  message("Failed to find TIFF")
-endif()
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(Z_FOUND 1)
-  set(Z_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libz.so)
-  set(Z_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else()
-  find_package(Z REQUIRED)
-endif()
-if(Z_FOUND)
-  set(VW_HAVE_PKG_Z 1)
-  message("-- Found Z " ${Z_LIBRARIES})
-  include_directories("${Z_INCLUDE_DIR}")
-else()
-  message("Failed to find Z")
-endif()
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(GDAL_FOUND 1)
-  set(GDAL_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libgdal.so)
-  set(GDAL_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else()
-  find_package(GDAL REQUIRED)
-endif()
-if(GDAL_FOUND)
-  set(VW_HAVE_PKG_GDAL 1)
-  message("-- Found GDAL at " ${GDAL_LIBRARIES})
-  include_directories(${GDAL_INCLUDE_DIR})
-else()
-  message("Failed to find GDAL")
-endif()
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(PROJ4_FOUND 1)  
-  set(PROJ4_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libproj.so)
-  set(PROJ4_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include)
-else()
-  set(PROJ4_INCLUDE_DIR "" CACHE FILEPATH "Path to OpenEXR include files")
-  set(PROJ4_LIBRARIES   "" CACHE FILEPATH "Path to OpenEXR libraries")  
-endif()
-if(PROJ4_FOUND)
-  set(VW_HAVE_PKG_PROJ4 1)
-  message("-- Found Proj4 at " ${PROJ4_LIBRARIES})
-  include_directories("${PROJ4_INCLUDE_DIR}")
-else()
-  message("Failed to find Proj4")
-endif()  
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(OPENCV_FOUND 1)
-  set(OPENCV_LIB_NAMES libopencv_calib3d.so     libopencv_reg.so
-                       libopencv_core.so        libopencv_shape.so
-                       libopencv_features2d.so  libopencv_stitching.so
-                       libopencv_flann.so       libopencv_superres.so
-                       libopencv_hdf.so         libopencv_surface_matching.so
-                       libopencv_highgui.so     libopencv_videoio.so
-                       libopencv_imgcodecs.so   libopencv_video.so
-                       libopencv_imgproc.so     libopencv_xfeatures2d.so
-                       libopencv_ml.so          libopencv_ximgproc.so
-                       libopencv_objdetect.so   libopencv_xobjdetect.so
-                       libopencv_photo.so       libopencv_xphoto.so)
-  set(OPENCV_LIBRARIES "")                     
-  foreach(name ${OPENCV_LIB_NAMES})
-    set(OPENCV_LIBRARIES   ${OPENCV_LIBRARIES} ${BINARYBUILDER_INSTALL_DIR}/lib/${name})
-  endforeach()
-  set(OPENCV_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
-else()
-  find_package(OpenCV REQUIRED)
-endif()
-if(OPENCV_FOUND)
-  set(VW_HAVE_PKG_OPENCV 1)
-  message("-- Found OpenCV at " ${OPENCV_INCLUDE_DIR})
-  include_directories(${OPENCV_INCLUDE_DIR})
-else()
-  message("Failed to find OpenCV")
-endif()
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(ILMBASE_FOUND 1)
-  set(ILMBASE_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libHalf.so
-                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIex.so
-                          ${BINARYBUILDER_INSTALL_DIR}/lib/libImath.so
-                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmThread.so 
-                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIexMath.so)
-  set(ILMBASE_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include) 
-else()
-  set(ILMBASE_INCLUDE_DIR "" CACHE FILEPATH "Path to ILMBase include files")
-  set(ILMBASE_LIB_DIR     "" CACHE FILEPATH "Path to ILMBase library files")
-  set(ILMBASE_LIBRARIES   ${ILMBASE_LIB_DIR}/lib/libHalf.so
-                          ${ILMBASE_LIB_DIR}/lib/libIex.so
-                          ${ILMBASE_LIB_DIR}/lib/libImath.so
-                          ${ILMBASE_LIB_DIR}/lib/libIlmThread.so 
-                          ${ILMBASE_LIB_DIR}/lib/libIexMath.so)                         
-endif()
-if(ILMBASE_FOUND)
-  set(VW_HAVE_PKG_ILMBASE 1)
-  message("-- Found ILMBase at " ${ILMBASE_LIBRARIES})
-  include_directories("${ILMBASE_INCLUDE_DIR}")
-else()
-  message("Failed to find ILMBase")
-endif()
-
-
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(OPENEXR_FOUND 1)
-  set(OPENEXR_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmImf.so
-                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmThread.so )
-  set(OPENEXR_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/OpenEXR) 
-else()
-  set(OPENEXR_INCLUDE_DIR "" CACHE FILEPATH "Path to OpenEXR include files")
-  set(OPENEXR_LIB_DIR     "" CACHE FILEPATH "Path to OpenEXR library files")
-  set(OPENEXR_LIBRARIES   ${OPENEXR_LIB_DIR}/libIlmImf.so
-                          ${OPENEXR_LIB_DIR}/libIlmThread.so )
-endif()
-if(OPENEXR_FOUND)
-  set(VW_HAVE_PKG_OPENEXR 1)
-  message("Found OpenEXR at " ${OPENEXR_LIBRARIES})
-  include_directories("${OPENEXR_INCLUDE_DIR}")
-else()
-  message("Failed to find OpenEXR")
-endif()  
-  
-
+find_external_library(OPENEXR "OpenEXR" "libIlmImf.so;libIlmThread.so" NOT_REQUIRED)
 
 
 # CMake will try to find these packages,
 #  they are not included with BinaryBuilder.
 
+message("CMAKE_CURRENT_SOURCE_PATH = ${CMAKE_CURRENT_SOURCE_PATH}")
 
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs)
 if(PYTHONLIBS_FOUND)
   set(VW_HAVE_PKG_PYTHONLIBS 1)
   message("-- Found PYTHONLIBS " ${PYTHON_LIBRARIES})
@@ -564,9 +357,6 @@ add_subdirectory(tools)
 
 #=========================================================================
 # Targets are defined in /tools/CMakeLists.txt
-
-
-
 
 
 
