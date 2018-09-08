@@ -12,8 +12,6 @@ add_subdirectory(src)
 
 # TODO: Better conditional building!
 
-# TODO: Streamline library dependencies!
-
 # TODO: Should probably do more at this top level
 
 # TODO: Compare ninja speed to make

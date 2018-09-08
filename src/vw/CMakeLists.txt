@@ -123,8 +123,6 @@ find_external_library(OPENEXR "OpenEXR" "libIlmImf.so;libIlmThread.so" NOT_REQUI
 # CMake will try to find these packages,
 #  they are not included with BinaryBuilder.
 
-message("CMAKE_CURRENT_SOURCE_PATH = ${CMAKE_CURRENT_SOURCE_PATH}")
-
 find_package(PythonLibs)
 if(PYTHONLIBS_FOUND)
   set(VW_HAVE_PKG_PYTHONLIBS 1)
@@ -233,7 +231,7 @@ endforeach()
 # --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
 get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
 get_all_source_files( "BundleAdjustment/tests" VW_BUNDLEADJUSTMENT_TEST_FILES)
-set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMosaic VwCartography VwFileIO)
+set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwMosaic VwFileIO VwInterestPoint VwStereo)
 
 # --- VW_CAMERA ------------------------------------------------------------
 get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
@@ -243,7 +241,7 @@ set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage)
 # --- VW_CARTOGRAPHY ------------------------------------------------------------
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
-set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera)
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES})
 
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
@@ -254,23 +252,23 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES})
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
-set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage)
+set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
 get_all_source_files( "Geometry/tests" VW_GEOMETRY_TEST_FILES)
 set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 
-
 # --- VW_HDR ------------------------------------------------------------
 get_all_source_files( "HDR"       VW_HDR_SRC_FILES)
 get_all_source_files( "HDR/tests" VW_HDR_TEST_FILES)
-set(VW_HDR_LIB_DEPENDENCIES VwFileIO VwCamera)
+set(VW_HDR_LIB_DEPENDENCIES VwFileIO VwCamera )
 
 # --- VW_IMAGE ------------------------------------------------------------
 get_all_source_files( "Image"       VW_IMAGE_SRC_FILES)
 get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
-set(VW_IMAGE_LIB_DEPENDENCIES VwMath)
+set(VW_IMAGE_LIB_DEPENDENCIES VwMath ${OPENCV_LIBRARIES})
 
 # --- VW_INTERESTPOINT ------------------------------------------------------------
 get_all_source_files( "InterestPoint"       VW_INTERESTPOINT_SRC_FILES)
@@ -280,7 +278,7 @@ set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_IMAGE_LIB_DEPENDENCIES VwCore ${Z_LIBRARIES} ${FLANN_LIBRARIES} ${LAPACK_LIBRARIES})
+set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${LAPACK_LIBRARIES})
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
@@ -294,44 +292,6 @@ set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera VwCartography)
 get_all_source_files( "Stereo"       VW_STEREO_SRC_FILES)
 get_all_source_files( "Stereo/tests" VW_STEREO_TEST_FILES)
 set(VW_STEREO_LIB_DEPENDENCIES VwMath VwImage VwCamera VwGeometry)
-
-#=========================================================================
-
-
-# TODO: Don't just use this for all tools
-set(FULL_LIBRARY_LIST
-      ${LAPACK_LIBRARIES}
-      ${JPEG_LIBRARIES}
-      ${GDAL_LIBRARIES}
-      ${TIFF_LIBRARIES}
-      ${PNG_LIBRARIES}
-      ${PROJ4_LIBRARIES}
-      ${OPENEXR_LIBRARIES}
-      ${OPENCV_LIBRARIES}
-      ${FLANN_LIBRARIES}
-      ${Z_LIBRARIES}
-      ${SigC++_LIBRARIES}
-      ${CAIRO_LIBRARIES}
-      ${CAIROMM_LIBRARIES}
-      VwBundleAdjustment
-      VwCamera
-      VwCartography
-      VwCore   
-      VwFileIO
-      VwGeometry
-      #VwGpu
-      #VwGui
-      VwHdr
-      VwImage
-      VwInterestPoint
-      VwMath
-      VwMosaic
-      #VwPlate
-      VwStereo
-      ${Boost_LIBRARIES} 
-)
-
-
 
 #=========================================================================
 # Add all of the library subdirectories

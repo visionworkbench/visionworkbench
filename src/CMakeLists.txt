@@ -90,12 +90,11 @@ endmacro()
 # - This is called in each library folder directory.
 function(add_library_wrapper libName fileList testFileList dependencyList)
 
-  #message("${CMAKE_CURRENT_SOURCE_DIR}")
-
   # Set up the library
   add_library(${libName} ${fileList})
 
   set_target_properties(${libName} PROPERTIES LINKER_LANGUAGE CXX)   
+  #message("For ${libName}, linking DEPS: ${dependencyList}")
   target_link_libraries(${libName} "${dependencyList}")
 
   install(TARGETS ${libName} DESTINATION lib)
@@ -122,6 +121,7 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
     #message("Adding test target ${executableName}")
 
     # Add executable with shared main file and this file
+    # - This executeable should not be built unless running tests.
     add_executable( ${executableName} EXCLUDE_FROM_ALL  ${TEST_MAIN_PATH} ./tests/${f} )      
 
     # Link test executable against current library, gtest, and gtest_main
