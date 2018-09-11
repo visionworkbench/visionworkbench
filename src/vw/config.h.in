@@ -1,4 +1,4 @@
-/* src/vw/config.h.pre.in.  Generated from configure.ac by autoheader.  */
+/* src/vw/config.h.in.  Used by CMake to generate config.h.  */
 
 /* The version of Boost with which the software built. */
 #define VW_BOOST_VERSION @Boost_VERSION@
@@ -316,19 +316,19 @@
 #define VW_NUM_THREADS @VW_NUM_THREADS@
 
 /* Name of package */
-#define VW_PACKAGE @PACKAGE@
+#define VW_PACKAGE "@PACKAGE@"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define VW_PACKAGE_BUGREPORT @PACKAGE_BUGREPORT@
+#define VW_PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
 
 /* Define to the full name of this package. */
-#define VW_PACKAGE_NAME
+#define VW_PACKAGE_NAME "@PACKAGE_NAME@"
 
 /* Define to the full name and version of this package. */
-#define VW_PACKAGE_STRING
+#define VW_PACKAGE_STRING "@PACKAGE_STRING@"
 
 /* Define to the one symbol short name of this package. */
-#define VW_PACKAGE_TARNAME
+#define VW_PACKAGE_TARNAME "VisionWorkbench"
 
 //DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 /* Define to the home page for this package. */

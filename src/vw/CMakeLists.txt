@@ -3,14 +3,20 @@
 
 # Add path for custom modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}" )
-message("Module path = ${CMAKE_MODULE_PATH}")
 
+include(Utilities) # Contains functions
 
 #===============================================================================
 # Configuration options
 
-# --- Directory paths ---
+# TODO: Change some of these to options?
 set(BINARYBUILDER_INSTALL_DIR "" CACHE FILEPATH "Path to Binary Builder installation directory")
+set(VW_ENABLE_SSE "1" CACHE BOOL "Allow SSE optimizations.")
+set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
+set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
+
+
+# --- Directory paths ---
 if(BINARYBUILDER_INSTALL_DIR)
   message("Looking for dependencies in BinaryBuilder directory: ${BINARYBUILDER_INSTALL_DIR}") 
   # Add BINARYBUILDER folders to CMAKE paths
@@ -28,6 +34,9 @@ foreach(dir ${dirs})
   message(STATUS "dir='${dir}'")
 endforeach()
 
+# Default this to empty
+SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
+
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
 
@@ -41,11 +50,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 #==================================================================================
 # Find dependencies
 
-# TODO: Create a cmake folder to contain the various find files.
-
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
+# TODO: Make into a function!
 # Define boost requirements
 set(BOOST_MIN_VERSION "1.59.0")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
@@ -79,94 +87,93 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
-# TODO: Only needed for ASP!!!
-## Get NAIF includes (Needed for reading/writing SPICE data)
-#find_external_library(NAIF "naif" "" REQUIRED)
-
-find_external_library(LAPACK "" "liblapack.so;libblas.so" REQUIRED)
+find_external_library(LAPACK "" "lapack;blas" REQUIRED)
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
                              #      How to check this if the user provides Fortran?
 endif()
 
 
-find_external_library(FLANN "" "libflann_cpp.so" NOT_REQUIRED)
+find_external_library(FLANN "" "flann_cpp" NOT_REQUIRED)
 
-find_external_library(JPEG "" "libjpeg.so" NOT_REQUIRED)
-find_external_library(PNG "" "libpng.so;libpng16.so" NOT_REQUIRED)
-find_external_library(TIFF "" "libtiff.so" NOT_REQUIRED)
+find_external_library(JPEG  "" "jpeg"      NOT_REQUIRED)
+find_external_library(PNG   "" "png;png16" NOT_REQUIRED)
+find_external_library(TIFF  "" "tiff"      NOT_REQUIRED)
+find_external_library(Z     "" "z"         NOT_REQUIRED)
+find_external_library(GDAL  "" "gdal"      NOT_REQUIRED)
+find_external_library(PROJ4 "" "proj"      NOT_REQUIRED)
 
-find_external_library(Z "" "libz.so" NOT_REQUIRED)
-find_external_library(GDAL "" "libgdal.so" NOT_REQUIRED)
-find_external_library(PROJ4 "" "libproj.so" NOT_REQUIRED)
-
-set(OPENCV_LIB_NAMES libopencv_calib3d.so     libopencv_reg.so
-                     libopencv_core.so        libopencv_shape.so
-                     libopencv_features2d.so  libopencv_stitching.so
-                     libopencv_flann.so       libopencv_superres.so
-                     libopencv_hdf.so         libopencv_surface_matching.so
-                     libopencv_highgui.so     libopencv_videoio.so
-                     libopencv_imgcodecs.so   libopencv_video.so
-                     libopencv_imgproc.so     libopencv_xfeatures2d.so
-                     libopencv_ml.so          libopencv_ximgproc.so
-                     libopencv_objdetect.so   libopencv_xobjdetect.so
-                     libopencv_photo.so       libopencv_xphoto.so)
+# TODO: Make a function?
+set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
+                     opencv_core        opencv_shape
+                     opencv_features2d  opencv_stitching
+                     opencv_flann       opencv_superres
+                     opencv_hdf         opencv_surface_matching
+                     opencv_highgui     opencv_videoio
+                     opencv_imgcodecs   opencv_video
+                     opencv_imgproc     opencv_xfeatures2d
+                     opencv_ml          opencv_ximgproc
+                     opencv_objdetect   opencv_xobjdetect
+                     opencv_photo       opencv_xphoto)
 find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" NOT_REQUIRED)
 
 
-set(ILMBASE_LIB_NAMES libHalf.so libIex.so libImath.so libIlmThread.so libIexMath.so)
+set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread IexMath)
 find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" NOT_REQUIRED)
 
-find_external_library(OPENEXR "OpenEXR" "libIlmImf.so;libIlmThread.so" NOT_REQUIRED)
+find_external_library(OPENEXR "OpenEXR" "IlmImf;IlmThread" NOT_REQUIRED)
 
 
-# CMake will try to find these packages,
+# CMake will try to find these packages if needed,
 #  they are not included with BinaryBuilder.
 
-find_package(PythonLibs)
-if(PYTHONLIBS_FOUND)
-  set(VW_HAVE_PKG_PYTHONLIBS 1)
-  message("-- Found PYTHONLIBS " ${PYTHON_LIBRARIES})
-else()
-  message("Failed to find PythonLibs")
+if (VW_ENABLE_PYTHON)
+  find_package(PythonLibs)
+  if(PYTHONLIBS_FOUND)
+    set(VW_HAVE_PKG_PYTHONLIBS 1)
+    message("-- Found PYTHONLIBS " ${PYTHON_LIBRARIES})
+  else()
+    message("Failed to find PythonLibs")
+  endif()
 endif()
 
+# These packages are only used for ancient VW tools which are not really supported
 
-find_package(SigC++)
-if(SigC++_FOUND)
-  #message("-- Found SigC++ "  ${SigC++_LIBRARIES})
-  #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
-  include_directories("${SigC++_INCLUDE_DIRS}")
-else()
-  message("Failed to find SIC++")
-endif()
+#find_package(SigC++)
+#if(SigC++_FOUND)
+#  #message("-- Found SigC++ "  ${SigC++_LIBRARIES})
+#  #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
+#  include_directories("${SigC++_INCLUDE_DIRS}")
+#else()
+#  message("Failed to find SIC++")
+#endif()
 
-find_package(FreeType)
-if(FREETYPE_FOUND)
-  message("-- Found FreeType " ${FREETYPE_LIBRARIES})
-  #message("Include dirs: "  ${FREETYPE_INCLUDE_DIRS})
-  include_directories("${FREETYPE_INCLUDE_DIRS}")
-else()
-  message("Failed to find FreeType")
-endif()
+#find_package(FreeType)
+#if(FREETYPE_FOUND)
+#  message("-- Found FreeType " ${FREETYPE_LIBRARIES})
+#  #message("Include dirs: "  ${FREETYPE_INCLUDE_DIRS})
+#  include_directories("${FREETYPE_INCLUDE_DIRS}")
+#else()
+#  message("Failed to find FreeType")
+#endif()
 
-find_package(Cairo)
-if(CAIRO_FOUND)
-  set(VW_HAVE_PKG_CAIRO 1)
-  message("-- Found Cairo " ${CAIRO_LIBRARIES})
-  include_directories("${CAIRO_INCLUDE_DIR}")
-else()
-  message("Failed to find Cairo")
-endif()
+#find_package(Cairo)
+#if(CAIRO_FOUND)
+#  set(VW_HAVE_PKG_CAIRO 1)
+#  message("-- Found Cairo " ${CAIRO_LIBRARIES})
+#  include_directories("${CAIRO_INCLUDE_DIR}")
+#else()
+#  message("Failed to find Cairo")
+#endif()
 
-find_package(Cairomm)
-if(CAIROMM_FOUND)
-  set(VW_HAVE_PKG_CAIROMM 1)
-  message("-- Found CairoMM " ${CAIROMM_LIBRARIES})
-  include_directories("${CAIROMM_INCLUDE_DIR}")
-else()
-  message("Failed to find CairoMM")
-endif()
+#find_package(Cairomm)
+#if(CAIROMM_FOUND)
+#  set(VW_HAVE_PKG_CAIROMM 1)
+#  message("-- Found CairoMM " ${CAIROMM_LIBRARIES})
+#  include_directories("${CAIROMM_INCLUDE_DIR}")
+#else()
+#  message("Failed to find CairoMM")
+#endif()
 
 
 #TODO: Look for each of these installations!
@@ -179,20 +186,20 @@ endif()
 
 set(VW_DEFAULT_CACHE_SIZE_MB 768)
 
-# set the default number of processing threads for multi-threaded operations
-set(VW_NUM_THREADS 4)
-
 # enable image bounds checking (SLOW!) 
 set(VW_ENABLE_BOUNDS_CHECK 0)
 
 # ~/.vwrc support
 set(VW_ENABLE_CONFIG_FILE 1) 
 
+# TODO: Remove this as an option!
 # enable the C++ exception mechanism 
 set(VW_ENABLE_EXCEPTIONS 1) 
 
+# Until it is needed we don't support this in CMake.
+set(VW_ENABLE_PYTHON 0)
+
 # enable SSE optimizations in some places (development) 
-set(VW_ENABLE_SSE 1) 
 if (VW_ENABLE_SSE)
   set(CXXFLAGS "${CXXFLAGS} -msse4.1")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
@@ -217,7 +224,7 @@ message("--------------------------------------------------------------")
 #endforeach()
 #message("--------------------------------------------------------------")
 
-
+# TODO: Remove this?
 # Add all the header files at the top level to the install command
 get_all_source_files("." MAIN_HEADER_FILES)
 foreach(f ${MAIN_HEADER_FILES})
@@ -285,9 +292,6 @@ get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
 get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
 set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera VwCartography)
 
-
-# PYTHON directory????
-
 # --- VW_STEREO ------------------------------------------------------------
 get_all_source_files( "Stereo"       VW_STEREO_SRC_FILES)
 get_all_source_files( "Stereo/tests" VW_STEREO_TEST_FILES)
@@ -296,28 +300,26 @@ set(VW_STEREO_LIB_DEPENDENCIES VwMath VwImage VwCamera VwGeometry)
 #=========================================================================
 # Add all of the library subdirectories
 
-add_subdirectory(BundleAdjustment)
+add_subdirectory(Core)
+add_subdirectory(Math)
+add_subdirectory(Geometry)
+add_subdirectory(FileIO)
 add_subdirectory(Camera)
 add_subdirectory(Cartography)
-add_subdirectory(Core)
-add_subdirectory(FileIO)
-add_subdirectory(Geometry)
-#add_subdirectory(GPU) # DEPRECATED
-#add_subdirectory(gui) # DEPRECATED
-add_subdirectory(HDR)
 add_subdirectory(Image)
 add_subdirectory(InterestPoint)
-add_subdirectory(Math)
 add_subdirectory(Mosaic)
-#add_subdirectory(Plate) # DEPRECATED
 add_subdirectory(Stereo)
+add_subdirectory(BundleAdjustment)
+if (${VW_ENABLE_HDR})
+  add_subdirectory(HDR)
+endif()
+if (${VW_ENABLE_PYTHON})
+  add_subdirectory(Python)
+endif()
+
+# Add the executable subdirectory
 add_subdirectory(tools)
-
-
-
-#=========================================================================
-# Targets are defined in /tools/CMakeLists.txt
-
 
 
 

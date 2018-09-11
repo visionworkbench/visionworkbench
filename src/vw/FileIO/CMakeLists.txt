@@ -37,11 +37,13 @@ endif()
  
  
 set(VW_FILEIO_SRC_FILES 
-    DiskImageResource.h 
+    DiskImageManager.h
+    DiskImageResource.h
+    DiskImageResource_internal.h
     DiskImageResourcePBM.h 
     DiskImageResourcePDS.h 
     DiskImageResourceRaw.h
-    DiskImageResourceRaw.cc
+    DiskImageUtils.h 
     DiskImageView.h 
     FileUtils.h
     FileUtils.cc
@@ -58,6 +60,7 @@ set(VW_FILEIO_SRC_FILES
     DiskImageResource.cc 
     DiskImageResourcePBM.cc 
     DiskImageResourcePDS.cc 
+    DiskImageResourceRaw.cc
     KML.cc 
     MemoryImageResource.cc 
     ScanlineIO.cc 

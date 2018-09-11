@@ -4,7 +4,9 @@
 # Define each of the tools to build
 
 
-INSTALL(FILES "Common.h" DESTINATION include/vw/tools)
+# A few header files from this folder are used by ASP.
+INSTALL(FILES "Common.h"    DESTINATION include/vw/tools)
+INSTALL(FILES "hillshade.h" DESTINATION include/vw/tools)
 
 set(COMMON_LIBS VwCore VwMath VwFileIO VwImage VwCartography)
 
@@ -47,7 +49,7 @@ add_executable(grassfirealpha grassfirealpha.cc)
 target_link_libraries(grassfirealpha ${COMMON_LIBS}) 
 install(TARGETS grassfirealpha DESTINATION bin)
 
-if (VW_HAVE_PKG_HDR)
+if (VW_ENABLE_HDR)
   # Merge multiple source images into an HDR image
   add_executable(hdr_merge hdr_merge.cc) 
   target_link_libraries(hdr_merge ${COMMON_LIBS}) 
@@ -60,36 +62,36 @@ if (VW_HAVE_PKG_HDR)
 endif()
 
 # Converts a DEM to a simple shaded-relief map
-add_executable(hillshade hillshade.cc Common.h Common.cc) 
-target_link_libraries(hillshade ${COMMON_LIBS}) 
+add_executable(hillshade hillshade.cc Common.h Common.cc)
+target_link_libraries(hillshade ${COMMON_LIBS})
 install(TARGETS hillshade DESTINATION bin)
 
-add_executable(ipalign ipalign.cc) 
-target_link_libraries(ipalign ${COMMON_LIBS} VwInterestPoint) 
+add_executable(ipalign ipalign.cc)
+target_link_libraries(ipalign ${COMMON_LIBS} VwInterestPoint)
 install(TARGETS ipalign DESTINATION bin)
 
-add_executable(ipfind ipfind.cc) 
-target_link_libraries(ipfind ${COMMON_LIBS} VwInterestPoint) 
+add_executable(ipfind ipfind.cc)
+target_link_libraries(ipfind ${COMMON_LIBS} VwInterestPoint)
 install(TARGETS ipfind DESTINATION bin)
 
-add_executable(ipmatch ipmatch.cc) 
-target_link_libraries(ipmatch ${COMMON_LIBS} VwInterestPoint) 
+add_executable(ipmatch ipmatch.cc)
+target_link_libraries(ipmatch ${COMMON_LIBS} VwInterestPoint)
 install(TARGETS ipmatch DESTINATION bin)
 
 # Prints out an image's EXIF headers
-add_executable(print_exif print_exif.cc) 
-target_link_libraries(print_exif ${COMMON_LIBS}) 
-install (TARGETS print_exif DESTINATION bin)
+add_executable(print_exif print_exif.cc)
+target_link_libraries(print_exif ${COMMON_LIBS})
+install(TARGETS print_exif DESTINATION bin)
 
 # Calculates aspect and gradient angle for DEM
-add_executable(slopemap slopemap.cc Common.h Common.cc) 
-target_link_libraries(slopemap ${COMMON_LIBS}) 
-install (TARGETS slopemap DESTINATION bin)
+add_executable(slopemap slopemap.cc Common.h Common.cc)
+target_link_libraries(slopemap ${COMMON_LIBS})
+install(TARGETS slopemap DESTINATION bin)
 
 # Undistorts a pinhole image.
-add_executable(undistort_image undistort_image.cc) 
-target_link_libraries(undistort_image ${COMMON_LIBS}) 
-install (TARGETS undistort_image DESTINATION bin)
+add_executable(undistort_image undistort_image.cc)
+target_link_libraries(undistort_image ${COMMON_LIBS})
+install(TARGETS undistort_image DESTINATION bin)
 
 # image2qtree - Generates a quadtree of some sort from a georeferenced image
 # - It takes forever to compile due to templating
