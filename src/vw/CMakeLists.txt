@@ -109,6 +109,8 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
+find_package(Threads REQUIRED)
+
 find_external_library(LAPACK "" "lapack;blas" REQUIRED)
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
@@ -122,8 +124,8 @@ find_external_library(JPEG  "" "jpeg"      NOT_REQUIRED)
 find_external_library(PNG   "" "png;png16" NOT_REQUIRED)
 find_external_library(TIFF  "" "tiff"      NOT_REQUIRED)
 find_external_library(Z     "" "z"         NOT_REQUIRED)
-find_external_library(GDAL  "" "gdal"      NOT_REQUIRED)
 find_external_library(PROJ4 "" "proj"      NOT_REQUIRED)
+find_external_library(GDAL  "" "gdal"      NOT_REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -140,10 +142,10 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
 find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" NOT_REQUIRED)
 
 
-set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread IexMath)
-find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" NOT_REQUIRED)
+set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
+find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" REQUIRED)
 
-find_external_library(OPENEXR "OpenEXR" "IlmImf;IlmThread" NOT_REQUIRED)
+find_external_library(OPENEXR "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 
 # CMake will try to find these packages if needed,
@@ -274,14 +276,14 @@ set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera ${GDAL_LIBRARIES} ${PROJ4_
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
 get_all_source_files( "Core/tests" VW_CORE_TEST_FILES)
-set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES})
+set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 
 # --- VW_FILEIO ------------------------------------------------------------
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES}
-    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
