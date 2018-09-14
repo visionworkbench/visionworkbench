@@ -6,6 +6,25 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}" )
 
 include(Utilities) # Contains functions
 
+# Use CCache if it is available.
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  message("Using ccache tool...")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
+
+if (UNIX AND NOT APPLE)
+  execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE ld_version)
+  if ("${ld_version}" MATCHES "GNU gold")
+    message("Using gold linker...")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold -Wl,--disable-new-dtags")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold -Wl,--disable-new-dtags")
+  endif()
+endif()
+
+
 #===============================================================================
 # Configuration options
 
@@ -227,7 +246,6 @@ message("--------------------------------------------------------------")
 #endforeach()
 #message("--------------------------------------------------------------")
 
-# TODO: Remove this?
 # Add all the header files at the top level to the install command
 get_all_source_files("." MAIN_HEADER_FILES)
 foreach(f ${MAIN_HEADER_FILES})
