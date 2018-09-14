@@ -28,6 +28,9 @@ endif()
 include_directories( ../ )
 include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
 
+# Look for libraries in both of these BB locations.
+link_directories(${BINARYBUILDER_INSTALL_DIR}/lib)
+link_directories(${BINARYBUILDER_INSTALL_DIR}/lib64)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})
@@ -238,7 +241,7 @@ endforeach()
 # --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
 get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
 get_all_source_files( "BundleAdjustment/tests" VW_BUNDLEADJUSTMENT_TEST_FILES)
-set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwMosaic VwFileIO VwInterestPoint VwStereo)
+set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwMosaic VwFileIO VwInterestPoint VwStereo VwCartography)
 
 # --- VW_CAMERA ------------------------------------------------------------
 get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
@@ -259,7 +262,7 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES})
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
-set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage
+set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
