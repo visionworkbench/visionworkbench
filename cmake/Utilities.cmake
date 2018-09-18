@@ -54,7 +54,7 @@ function(find_external_library name bbIncludeFolder libNameList required)
           continue()
         endif()
       endif()
-      set(${LIB_NAME}  ${${LIB_NAME}} ${FULL_NAME})
+      set(${LIB_NAME}  ${${LIB_NAME}} ${FULL_PATH})
       
     endforeach()
     
@@ -129,7 +129,7 @@ function(add_library_wrapper libName fileList testFileList dependencyList)
   add_library(${libName} SHARED ${fileList})
 
   set_target_properties(${libName} PROPERTIES LINKER_LANGUAGE CXX)   
-  #message("For ${libName}, linking DEPS: ${dependencyList}")
+  message("For ${libName}, linking DEPS: ${dependencyList}")
   target_link_libraries(${libName} "${dependencyList}")
 
   # All libraries share the same precompiled header.

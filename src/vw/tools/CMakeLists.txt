@@ -34,10 +34,10 @@ add_executable(correlate correlate.cc)
 target_link_libraries(correlate ${COMMON_LIBS} VwStereo VwInterestPoint) 
 install(TARGETS correlate DESTINATION bin)
 
-# Hole filling for an image
-add_executable(fill_holes fill_holes.cc) 
-target_link_libraries(fill_holes ${COMMON_LIBS}) 
-install(TARGETS fill_holes DESTINATION bin)
+## Hole filling for an image
+#add_executable(fill_holes fill_holes.cc) 
+#target_link_libraries(fill_holes ${COMMON_LIBS}) 
+#install(TARGETS fill_holes DESTINATION bin)
 
 # Adds or adjusts an image's georeferencing information
 add_executable(georef georef.cc) 

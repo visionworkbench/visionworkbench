@@ -9,9 +9,9 @@ include(Utilities) # Contains functions
 # Use CCache if it is available.
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
-  message("Using ccache tool...")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+  #message("Using ccache tool...")
+  #set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  #set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
 
@@ -48,8 +48,8 @@ include_directories( ../ )
 include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
 
 # Look for libraries in both of these BB locations.
-link_directories(${BINARYBUILDER_INSTALL_DIR}/lib)
-link_directories(${BINARYBUILDER_INSTALL_DIR}/lib64)
+#link_directories(${BINARYBUILDER_INSTALL_DIR}/lib)
+#link_directories(${BINARYBUILDER_INSTALL_DIR}/lib64)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})
@@ -58,6 +58,11 @@ endforeach()
 
 # Default this to empty
 SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
+
+#SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+#SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+#SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
@@ -118,14 +123,14 @@ if(LAPACK_FOUND)
 endif()
 
 
-find_external_library(FLANN "" "flann_cpp" NOT_REQUIRED)
+find_external_library(FLANN "" "flann_cpp" REQUIRED)
 
 find_external_library(JPEG  "" "jpeg"      NOT_REQUIRED)
 find_external_library(PNG   "" "png;png16" NOT_REQUIRED)
 find_external_library(TIFF  "" "tiff"      NOT_REQUIRED)
-find_external_library(Z     "" "z"         NOT_REQUIRED)
-find_external_library(PROJ4 "" "proj"      NOT_REQUIRED)
-find_external_library(GDAL  "" "gdal"      NOT_REQUIRED)
+find_external_library(Z     "" "z"         REQUIRED)
+find_external_library(PROJ4 "" "proj"      REQUIRED)
+find_external_library(GDAL  "" "gdal"      REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -139,12 +144,11 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_ml          opencv_ximgproc
                      opencv_objdetect   opencv_xobjdetect
                      opencv_photo       opencv_xphoto)
-find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" NOT_REQUIRED)
+find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" REQUIRED)
 
 
 set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
 find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-
 find_external_library(OPENEXR "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 
@@ -282,8 +286,9 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
-set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES}
-    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
+set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
+    ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
