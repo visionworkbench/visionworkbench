@@ -116,7 +116,12 @@ set(NOT_REQUIRED False)
 
 find_package(Threads REQUIRED)
 
-find_external_library(LAPACK "" "lapack;blas" REQUIRED)
+if (APPLE) # Use the system version
+  find_package(LAPACK)
+  find_package(BLAS)
+else() # Use our BB compiled version
+  find_external_library(LAPACK "" "lapack;blas" REQUIRED)
+endif()
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
                              #      How to check this if the user provides Fortran?
