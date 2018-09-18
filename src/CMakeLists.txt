@@ -22,8 +22,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.3")
     message(FATAL_ERROR "GCC version >= 4.9.3 is required!")
   endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.1.0")
+    message(FATAL_ERROR "Clang version >= 8.1.0 is required!")
+  endif()
 else()
-  message(FATAL_ERROR "TODO: Get MacOS compiler version!")
+  message(FATAL_ERROR "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
 # Short and long name of this package
@@ -51,7 +55,7 @@ set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nas
 
 # Set the install path if not specified by the user.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set (CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "default install path" FORCE )
+#BINARY BUILDER IGNORE 
 endif()
 message("Cmake install directory set to: ${CMAKE_INSTALL_PREFIX}")
 
@@ -85,6 +89,10 @@ include_directories(../thirdparty/gtest/include)
 add_library(gtest      ../thirdparty/gtest/src/gtest-all.cc)
 add_library(gtest_main ../thirdparty/gtest/src/gtest_main.cc)
 target_link_libraries(gtest_main gtest) 
+
+target_compile_definitions(gtest PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
+target_compile_definitions(gtest_main PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
+
 
 
 

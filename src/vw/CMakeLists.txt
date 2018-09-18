@@ -270,7 +270,7 @@ set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwMosaic VwFileIO VwInterestPoint VwSte
 # --- VW_CAMERA ------------------------------------------------------------
 get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
 get_all_source_files( "Camera/tests" VW_CAMERA_TEST_FILES)
-set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage)
+set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage VwFileIO)
 
 # --- VW_CARTOGRAPHY ------------------------------------------------------------
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
