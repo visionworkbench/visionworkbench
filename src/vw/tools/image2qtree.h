@@ -255,12 +255,10 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
     // Handle nodata values/mask
     if ( opt.nodata_set ) {
-      vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
-                                          << opt.nodata << "\n";
+      vw_out() << "Using nodata value: " << opt.nodata << "\n";
       source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(opt.nodata)));
     } else if ( file->has_nodata_read() ) {
-      vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
-                                          << file->nodata_read() << "\n";
+      vw_out() << "Using nodata value: " << file->nodata_read() << "\n";
       source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(file->nodata_read())));
     }
 
@@ -271,18 +269,15 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       (fabs(input_georef.lonlat_to_pixel(Vector2(   0,-90)).y() - source.rows()) < 1));
 
     // Do various modifications to the input image here.
-    if( opt.pixel_scale>0  ) {
-      vw_out(VerboseDebugMessage, "tool") << "Apply input scaling: "
-                                          << opt.pixel_scale << " offset: "
+    if( (opt.pixel_scale !=1.0) || (opt.pixel_offset != 0.0) ) {
+      vw_out() << "Apply input scaling: " << opt.pixel_scale << " offset: "
                                           << opt.pixel_offset << "\n";
-      source = channel_cast_rescale<ChannelT>( source * opt.pixel_scale + opt.pixel_offset );
+      source = channel_cast<ChannelT>( source * opt.pixel_scale + opt.pixel_offset );
     }
 
     // Normalize pixel intensity if desired
     if( opt.normalize ) {
-      vw_out(VerboseDebugMessage, "tool") << "Apply normalizing: ["
-                                          << lo_value << ", "
-                                          << hi_value << "]\n";
+      vw_out() << "Apply normalizing: [" << lo_value << ", " << hi_value << "]\n";
       typedef ChannelRange<ChannelT> range_type;
       source = normalize_retain_alpha(source, lo_value, hi_value,
                                       range_type::min(), range_type::max());
