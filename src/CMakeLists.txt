@@ -51,6 +51,15 @@ set(PACKAGE_TARNAME    "${PACKAGE_NAME}")
 set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nasa-vision-workbench/")
 
 
+# Fetch the Git hash and store in VW_COMMIT_ID
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE VW_COMMIT_ID
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+
 #===============================================================================
 
 # Set the install path if not specified by the user.

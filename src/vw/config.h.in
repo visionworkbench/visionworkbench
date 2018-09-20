@@ -350,6 +350,7 @@
 #error You are using a different version of Boost than you used to build VW_!
 #endif
 
+#define VW_COMMIT_ID "@VW_COMMIT_ID@"
 
 /* Define to `int' if <sys/types.h> does not define. */
 #ifndef HAVE_SSIZET
