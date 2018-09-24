@@ -64,7 +64,7 @@ execute_process(
 
 # Set the install path if not specified by the user.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-#BINARY BUILDER IGNORE 
+  set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/build/install" CACHE PATH "default install path" FORCE ) 
 endif()
 message("Cmake install directory set to: ${CMAKE_INSTALL_PREFIX}")
 

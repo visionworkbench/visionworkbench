@@ -29,7 +29,6 @@ TestCameraGeometry_SOURCES        = TestCameraGeometry.cxx
 TestExifData_SOURCES              = TestExifData.cxx
 TestExtrinsics_SOURCES            = TestExtrinsics.cxx
 TestPinholeModel_SOURCES          = TestPinholeModel.cxx
-TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.cxx
 TestAdjustedCamera_SOURCES        = TestAdjustedCamera.cxx
 TestLinescanModel_SOURCES         = TestLinescanModel.cxx
 
@@ -39,7 +38,7 @@ TestLinescanModel_SOURCES         = TestLinescanModel.cxx
 TESTS = TestCAHVModel TestCAHVORModel TestCAHVOREModel  \
         TestCameraGeometry TestExifData TestExtrinsics  \
         TestLinescanModel TestPinholeModel               \
-        TestPinholeModelCalibrate TestAdjustedCamera
+        TestAdjustedCamera
 
 #include $(top_srcdir)/config/instantiate.am
 

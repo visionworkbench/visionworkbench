@@ -28,8 +28,7 @@ lapack_headers = \
 	CameraSolve.h \
 	Extrinsics.h \
 	LensDistortion.h \
-	LinescanModel.h \
-	PinholeModelCalibrate.h
+	LinescanModel.h
 
 lapack_sources = \
 	CameraGeometry.cc \
