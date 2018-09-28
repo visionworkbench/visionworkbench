@@ -22,6 +22,7 @@
 #include <vw/Image/Transform.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Stereo/ParabolaSubpixelView.h>
 #include <vw/Stereo/SubpixelView.h>
 #include <boost/foreach.hpp>
 #include <boost/random/linear_congruential.hpp>
