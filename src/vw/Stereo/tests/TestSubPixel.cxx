@@ -16,13 +16,15 @@
 // __END_LICENSE__
 
 
-// TestCorrelator.h
+// TestSubPixel.h
 #include <test/Helpers.h>
 
 #include <vw/Image/Transform.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Stereo/ParabolaSubpixelView.h>
+#include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Stereo/SubpixelView.h>
 #include <boost/foreach.hpp>
 #include <boost/random/linear_congruential.hpp>
@@ -30,8 +32,9 @@
 using namespace vw;
 using namespace vw::stereo;
 
-
-
+// This setup creates two images, image1 and image2.  image1 contains a random noise
+//  pattern and image2 contains a copy that has been "squished" towards the center
+//  from both the left and the right sides.
 template <int32 istretch>
 class SubPixelCorrelateTest : public ::testing::Test {
   const int32 IMAGE_SIZE, HALF_IMAGE_SIZE;
@@ -119,10 +122,10 @@ TEST( ParabolaSubpixel, NullTest ) {
   }
 }
 
-typedef SubPixelCorrelateTest<95> SubPixelCorrelate95Test;
-typedef SubPixelCorrelateTest<90> SubPixelCorrelate90Test;
-typedef SubPixelCorrelateTest<80> SubPixelCorrelate80Test;
-typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
+//typedef SubPixelCorrelateTest<95> SubPixelCorrelate95Test;
+//typedef SubPixelCorrelateTest<90> SubPixelCorrelate90Test;
+//typedef SubPixelCorrelateTest<80> SubPixelCorrelate80Test;
+//typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 
 TEST_F( SubPixelCorrelate95Test, Parabola ) {
   ImageView<PixelMask<Vector2f> > disparity_map =
@@ -135,6 +138,42 @@ TEST_F( SubPixelCorrelate95Test, Parabola ) {
   EXPECT_LT(error, 0.6);
   EXPECT_LE(invalid_count, 0);
 }
+
+
+
+/// Test the low level phase correlation code.
+TEST_F( SubPixelCorrelate95Test, Phase) {
+
+  Vector2 offset;
+  BBox2 rect(25, 46, 13, 10);
+  int subpixel_accuracy=50;
+  vw::stereo::phase_correlation_subpixel(crop(image1,rect), 
+                             crop(image2,rect),
+                             offset, subpixel_accuracy); 
+  
+  write_image("/home/smcmich1/data/subpixel/crop1.tif", crop(image1,rect));
+  write_image("/home/smcmich1/data/subpixel/crop2.tif", crop(image2,rect));
+  
+  EXPECT_NEAR(-100, offset[0], 0.01);
+  EXPECT_NEAR(-100, offset[1], 0.01);
+  EXPECT_TRUE(false);
+
+}
+/*
+
+// TODO: Add more phase tests
+TEST_F( SubPixelCorrelate95Test, Phase ) {
+  ImageView<PixelMask<Vector2f> > disparity_map =
+    phase_subpixel( starting_disp, image1, image2,
+                       PREFILTER_LOG, 1.4,
+                       Vector2i(7,7) );
+
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  EXPECT_LT(error, 0.6);
+  EXPECT_LE(invalid_count, 0);
+}
+*/
 
 // Testing Bayes EM SubPixel
 //--------------------------------------------------------------
