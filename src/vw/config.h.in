@@ -76,7 +76,7 @@
 //#define VW_HAVE_PKG_APPLE_GL @VW_HAVE_PKG_APPLE_GL@
 
 ///* Define to 1 if the pkg package is available */
-#define VW_HAVE_PKG_APPLE_LAPACK @VW_HAVE_PKG_APPLE_LAPACK@
+#cmakedefine VW_HAVE_PKG_APPLE_LAPACK 1
 
 ///* Define to 1 if the pkg package is available */
 //#define VW_HAVE_PKG_APPLE_QMAKE_QT
