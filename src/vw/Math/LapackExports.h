@@ -94,6 +94,16 @@ namespace math {
                 f77_int *lwork, f77_int *info);
 
 
+    void sgesvd_(char    *jobu,  char    *jobvt, f77_int *m,    f77_int *n,
+                 float   *a,     f77_int *lda,   float   *s,    float   *u,
+                 f77_int *ldu,   float   *vt,    f77_int *ldvt, float   *work,
+                 f77_int *lwork, f77_int *info);
+
+    void dgesvd_(char    *jobu,  char    *jobvt, f77_int *m,    f77_int *n,
+                 double  *a,     f77_int *lda,   double  *s,    double  *u,
+                 f77_int *ldu,   double  *vt,    f77_int *ldvt, double  *work,
+                 f77_int *lwork, f77_int *info);
+
     void sgesdd_(char    *jobz,  f77_int *m,    f77_int *n,    float   *a,
                  f77_int *lda,   float   *s,    float   *u,    f77_int *ldu,
                  float   *vt,    f77_int *ldvt, float   *work, f77_int *lwork,
@@ -180,6 +190,15 @@ namespace math {
 
   void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
   void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);
+
+  void gesvd(char    jobu,  char    jobvt, f77_int m,    f77_int n,
+             float   *a,     f77_int lda,   float   *s,    float   *u,
+             f77_int ldu,   float   *vt,    f77_int ldvt, float   *work,
+             f77_int lwork, f77_int *info);
+  void gesvd(char    jobu,  char    jobvt, f77_int m,    f77_int n,
+             double  *a,     f77_int lda,   double  *s,    double  *u,
+             f77_int ldu,   double  *vt,    f77_int ldvt, double  *work,
+             f77_int lwork, f77_int *info);
 
   void gesdd(char jobz, f77_int m, f77_int n, float *a, f77_int lda, float *s, float *u, f77_int ldu, float *vt, f77_int ldvt, float *work, f77_int lwork, f77_int *iwork, f77_int *info);
   void gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info);

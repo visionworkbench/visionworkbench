@@ -73,10 +73,10 @@
 #cmakedefine VW_HAVE_MKSTEMPS
 
 ///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_APPLE_GL @HAVE_PKG_APPLE_GL@
+//#define VW_HAVE_PKG_APPLE_GL @VW_HAVE_PKG_APPLE_GL@
 
 ///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_APPLE_LAPACK @PKG_APPLE_LAPACK@
+#define VW_HAVE_PKG_APPLE_LAPACK @VW_HAVE_PKG_APPLE_LAPACK@
 
 ///* Define to 1 if the pkg package is available */
 //#define VW_HAVE_PKG_APPLE_QMAKE_QT

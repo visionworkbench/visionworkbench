@@ -123,8 +123,13 @@ else() # Use our BB compiled version
   find_external_library(LAPACK "" "lapack;blas" REQUIRED)
 endif()
 if(LAPACK_FOUND)
-  set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
-                             #      How to check this if the user provides Fortran?
+  set(VW_HAVE_PKG_LAPACK 1)
+  if (APPLE)
+    set(VW_HAVE_PKG_APPLE_LAPACK 1)
+  else()
+    set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
+                               #      How to check this if the user provides Fortran?
+  endif()
 endif()
 
 

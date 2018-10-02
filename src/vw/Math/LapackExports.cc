@@ -41,6 +41,15 @@ namespace math {
 D_geev(s, float);
 D_geev(d, double);
 
+#define D_gesvd(prefix, type)\
+  void gesvd(char jobu, char jobvt, f77_int m, f77_int n, type *a, f77_int lda, type *s, type *u, f77_int ldu, type *vt, f77_int ldvt, type *work, f77_int lwork, f77_int *info) {\
+    prefix ## gesvd_(&jobu, &jobvt, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, info); \
+    CHECK(); \
+  }
+
+D_gesvd(s, float);
+D_gesvd(d, double);
+
 #define D_gesdd(prefix, type)\
   void gesdd(char jobz, f77_int m, f77_int n, type *a, f77_int lda, type *s, type *u, f77_int ldu, type *vt, f77_int ldvt, type *work, f77_int lwork, f77_int *iwork, f77_int *info) {\
     prefix ## gesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info); \
