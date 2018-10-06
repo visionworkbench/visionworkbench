@@ -35,10 +35,9 @@
 #include <vw/Image/ImageResourceView.h>
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
+#include "opencv2/highgui.hpp" // DEBUG
 #include <boost/core/null_deleter.hpp>
   
-void null_deleter(cv::Mat *) {} // TODO: replace this
-
 namespace vw {
 
 
@@ -52,23 +51,28 @@ void get_dft(ImageViewBase<T> const& input_view, cv::Mat &output_image) {
   ImageView<vw::uint8> buffer_view;
   vw::ip::get_opencv_wrapper(input_view, I, buffer_view, cv_mask, true);
 
-  std::cout << "Input view size: rows = " << input_view.rows() <<
-                              ", cols = " << input_view.cols() << std::endl;
+  //std::cout << "Input view size: rows = " << input_view.rows() <<
+  //                            ", cols = " << input_view.cols() << std::endl;
   
   cv::Mat padded;                            //expand input image to optimal size
-  int m = cv::getOptimalDFTSize( I.rows );
-  int n = cv::getOptimalDFTSize( I.cols ); // on the border add zero values
+  //int m = cv::getOptimalDFTSize( I.rows );
+  //int n = cv::getOptimalDFTSize( I.cols ); // on the border add zero values
+  int m = I.rows; // TODO: Fix padding so it does not affect the results!
+  int n = I.cols;
   int pad_bottom = m - I.rows;
   int pad_right  = n - I.cols;
   cv::copyMakeBorder(I, padded, 0, pad_bottom, 0, pad_right, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+
+  //cv::imwrite("/home/smcmich1/data/subpixel/padded.tif", padded);
+
   
-  std::cout << "Padded image size: rows = " << padded.rows <<
-                                ", cols = " << padded.cols << std::endl;
+  //std::cout << "Padded image size: rows = " << padded.rows <<
+  //                              ", cols = " << padded.cols << std::endl;
   
   cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F)};
   cv::merge(planes, 2, output_image);         // Add to the expanded another plane with zeros
-  std::cout << "Computing DFT...\n";
-  cv::dft(output_image, output_image, I.rows);            // this way the result may fit in the source matrix
+  
+  cv::dft(output_image, output_image, 0, I.rows);            // this way the result may fit in the source matrix
 
   //std::cout << "Wrapping OCV image...\n";
   //cv::Mat I_left, cv_mask_left;
@@ -181,7 +185,7 @@ void save_mag_from_ft(cv::Mat const& input, std::string const& path, bool do_fft
   cv::Mat mag;
   get_magnitude(input, mag);
   get_pretty_magnitude(mag, do_fftshift);
-  boost::shared_ptr<cv::Mat> ocv_ptr(&mag, null_deleter);
+  boost::shared_ptr<cv::Mat> ocv_ptr(&mag, boost::null_deleter());
   ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
   write_image(path, ocv_view);
 }
