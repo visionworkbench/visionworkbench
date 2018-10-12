@@ -39,6 +39,7 @@ include_HEADERS = \
   ErodeView.h \
   Filter.h \
   Filter.tcc \
+  Fourier.h \
   ImageIO.h \
   ImageMath.h \
   ImageResource.h \

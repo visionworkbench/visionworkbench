@@ -72,82 +72,48 @@ cv::Mat partial_upsample_dft(cv::Mat const& input, int upsampled_height, int ups
   for (int i=0; i<upsampled_height; ++i)
     row_up_vector.at<c_type>(0,i) = static_cast<c_type>(i);
 
-
   const c_type neg_i(0, -1);
   float two_pi = 2.0*M_PI;
-  
-  //std::cout << "upsampled_height = " << upsampled_height << std::endl;
-  //std::cout << "upsampled_width  = " << upsampled_width << std::endl;
-  //std::cout << "upscale  = " << upscale << std::endl;
-  //std::cout << "row_offset  = " << row_offset << std::endl;
-  //std::cout << "col_offset  = " << col_offset << std::endl;
-  //std::cout << "input.size() = " << input.size() << std::endl;
-  //std::cout << "input.rows = " << input.rows << std::endl;
-  //std::cout << "input.cols = " << input.cols << std::endl;
-  
+
   cv::Mat col_kernel, row_kernel;
-  //std::cout << "col_vector = " << col_vector << std::endl;
   cv::Mat temp_vec = fftshift(col_vector, true).t();
-  //std::cout << "temp 1 = " << temp_vec << std::endl;
   cv::Mat v1 = temp_vec - floor(input.cols/2);
   cv::Mat v2 = col_up_vector - col_offset;
   cv::Mat m;
-  //std::cout << "v1.size() = " << v1.size() << std::endl;
-  //std::cout << "v2.size() = " << v2.size() << std::endl;
   cv::gemm(v1,v2,1.0, cv::Mat(), 0.0, m); //m  = v1*v2;
-  //std::cout << "m.size() = " << m.size() << std::endl;
-  //std::cout << "m = \n" << m << std::endl;
   c_type constant = neg_i*two_pi/static_cast<float>(input.cols*upscale);
-  //std::cout << "constant = " << constant << std::endl;
   // TODO: Improve!
   for (int i=0; i<m.rows; ++i)
     for (int j=0; j<m.cols; ++j)
       m.at<c_type>(i,j) = std::exp(m.at<c_type>(i,j)*constant);
-  //std::cout << "\n\nm2 = \n" << m << std::endl;
   //cv::exp( m, col_kernel ); // Does not work!
   col_kernel = m;
-  //std::cout << "col_kernel.size() = " << col_kernel.size() << std::endl;
 
   temp_vec = fftshift(row_vector, true);
-  //std::cout << "temp 2 = " << temp_vec << std::endl;
   v1 = row_up_vector.t() - row_offset;
   v2 = temp_vec - floor(input.rows/2);
-  //std::cout << "v1.size() = " << v1.size() << std::endl;
-  //std::cout << "v2.size() = " << v2.size() << std::endl;
   cv::gemm(v1,v2,1.0, cv::Mat(), 0.0, m); //m  = v1*v2;
-  //std::cout << "m.size() = " << m.size() << std::endl;
-  //std::cout << "m = " << m << std::endl;
   constant = neg_i*two_pi/static_cast<float>(input.rows*upscale);
-  //std::cout << "constant = " << constant << std::endl;
-  //std::cout << "m.type() = " << m.type() << std::endl;
   // TODO: Improve!
   for (int i=0; i<m.rows; ++i)
     for (int j=0; j<m.cols; ++j)
       m.at<c_type>(i,j) = std::exp(m.at<c_type>(i,j)*constant);
-  //std::cout << "\n\nm2 = \n" << m << std::endl;
   //cv::exp( m, row_kernel ); // Does not work!
   row_kernel = m;
-  //std::cout << "row_kernel.size() = " << row_kernel.size() << std::endl;
 
-  //std::cout << "row_kernel = \n" << row_kernel << std::endl;
-  //std::cout << "\n\n\ncol_kernel = \n" << col_kernel << std::endl;
   //save_mag_from_ft(row_kernel,  "/home/smcmich1/data/subpixel/row_kernel.tif", false);
   //save_mag_from_ft(col_kernel,  "/home/smcmich1/data/subpixel/col_kernel.tif", false);
-  
-  //std::cout << "input = \n" << input << std::endl << std::endl;
-  
+
   cv::Mat out = row_kernel*input*col_kernel;
-  
+
   //cv::Mat temp = complex_multiply(row_kernel, input);
   //cv::Mat out  = complex_multiply(temp, col_kernel);
-  
-  //std::cout << "out.size() = " << out.size() << std::endl;
-  //std::cout << "out = \n" << out << std::endl;
+
   return out;
 }
 
-/// Compute the subpixel offset between two images.
-/// - The images MUST be the same size!
+/// Compute the subpixel translation between two images using a two-pass frequency based method.
+/// - The images must be the same size!
 /// - Maximum accuracy is 1/subpixel_accuracy
 template <class T1, class T2>
 void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
@@ -158,94 +124,109 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
                                ) {
 
   if (left_image.get_size() != right_image.get_size()) {
-    vw_throw( ArgumentErr() 
-      << "phase_correlation_subpixel requires images to be the same size!\n" );
+    vw_throw( ArgumentErr() << "phase_correlation_subpixel requires images to be the same size!\n" );
   }
-  
-  // TODO: Make sure the result is not changed by padding!
+
+  // Fourier transform of the input images.
+  // TODO: Use padding for an optimal DFT size?
   cv::Mat complexI_left, complexI_right;
   get_dft(left_image,  complexI_left);
   get_dft(right_image, complexI_right);
 
+  // Some papers suggest filtering out high frequency image content prior to correlation
+  //  but that does not seem to help in all cases.
+  //const float BETA = 0.35;
+  ////save_mag_from_ft(complexI_left,  "/home/smcmich1/data/subpixel/magI_left_prefilter.tif");
+  ////save_mag_from_ft(complexI_right,  "/home/smcmich1/data/subpixel/magI_right_prefilter.tif");
+  //apply_raised_cosine_filter(complexI_left,  BETA);
+  //apply_raised_cosine_filter(complexI_right, BETA);
+  
+  // The first pass will try to find the best shift location at a low resolution, 
+  // then the second pass will try to refine the result nearby that location.
+  // By doing this we avoid doing full resolution computations over the entire image.
+
   // Compute convolution of the two images.
   cv::Mat initial_conj;
   cv::mulSpectrums(complexI_left, complexI_right, initial_conj, 0, true);
-  
+
+  // Pad the results to we get higher DFT accuracy.
   int pad_factor = subpixel_accuracy; // Controls maximum subpixel accuracy.
-  
+
   const int INITIAL_PAD_FACTOR = 2;
   int padded_width  = INITIAL_PAD_FACTOR*initial_conj.cols;
   int padded_height = INITIAL_PAD_FACTOR*initial_conj.rows;
   cv::Mat padded_conj = pad_fourier_transform(initial_conj, padded_width, padded_height);
 
+  // Inverse FFT to get back to image coordinates.
   cv::Mat conv;
-  cv::dft(padded_conj, conv, cv::DFT_INVERSE + cv::DFT_REAL_OUTPUT+ cv::DFT_SCALE, 0); // TODO: set NonZeroRows?
+  cv::dft(padded_conj, conv, cv::DFT_INVERSE + cv::DFT_REAL_OUTPUT+ cv::DFT_SCALE, 0);
 
+  // Find the peak.
   int width  = conv.cols;
   int height = conv.rows;
   double maxVal;
   cv::Point maxLoc;
-  cv::minMaxLoc(conv, NULL, &maxVal, NULL, &maxLoc); // TODO: magnitude(conv)??
+  cv::minMaxLoc(conv, NULL, &maxVal, NULL, &maxLoc);
 
-  // Unscramble the peak location and get the final shift answer.
+  // Convert peak location back to the input pixel coordinates.
   float initial_shift_x = (maxLoc.x<width /2) ? (maxLoc.x) : (maxLoc.x-width );
   float initial_shift_y = (maxLoc.y<height/2) ? (maxLoc.y) : (maxLoc.y-height);
   initial_shift_x /= static_cast<float>(INITIAL_PAD_FACTOR);
   initial_shift_y /= static_cast<float>(INITIAL_PAD_FACTOR);
-  
+
   if (debug) {
 
     std::cout << "padded_conj.size() = " << padded_conj.size() << std::endl;    
     std::cout << "maxLoc = " << maxLoc << std::endl;
     std::cout << "initial_shift_x = " << initial_shift_x << std::endl;
     std::cout << "initial_shift_y = " << initial_shift_y << std::endl;
-    
+
     save_mag_from_ft(complexI_left,  "/home/smcmich1/data/subpixel/magI_left.tif");
     save_mag_from_ft(complexI_right, "/home/smcmich1/data/subpixel/magI_right.tif");
     save_mag_from_ft(initial_conj, "/home/smcmich1/data/subpixel/initial_conj.tif");
     save_mag_from_ft(padded_conj, "/home/smcmich1/data/subpixel/padded_conj.tif");
-    
+
     boost::shared_ptr<cv::Mat> ocv_ptr(&conv, boost::null_deleter());
     ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
     write_image( "/home/smcmich1/data/subpixel/conv.tif", ocv_view);
   }
 
-  
+  // End of the first pass, stop here if the output resolution is low.
   if (pad_factor <= 2) {
     offset[0] = initial_shift_x;
     offset[1] = initial_shift_y;
     return;
   }
 
-  // Estimate refinement using a matrix multiply DFT
+  // No do a second pass to improve the answer resolution.
 
-  // TODO: Redo the comments!
+  // The size of the region (in units of input pixels) around the low-resolution
+  // peak where we will search for the high resolution peak.
+  const float UPSAMPLE_REGION_FACTOR = 1.5;
 
-  // TODO: Make sure there is not a one pixel offset!
-  
-  //% Initial shift estimate in upsampled grid
+  // Compute the location of interest to be upsampled.
   float shift_x = round(initial_shift_x*pad_factor)/pad_factor; 
   float shift_y = round(initial_shift_y*pad_factor)/pad_factor; 
-  const float UPSAMPLE_REGION_FACTOR = 1.5;
   float dft_shift = floor(ceil(pad_factor*UPSAMPLE_REGION_FACTOR)/2); //% Center of output array at dftshift+1
-  //% Matrix multiply DFT around the current shift estimate
+
+  // Use the matrix multiply trick to upsample the region of interest.
   int upsampled_height = ceil(pad_factor*UPSAMPLE_REGION_FACTOR);
   int upsampled_width  = ceil(pad_factor*UPSAMPLE_REGION_FACTOR);
   cv::Mat new_conj;
-  cv::mulSpectrums(complexI_right, complexI_left, new_conj, 0, true); // Order is reversed here.
+  cv::mulSpectrums(complexI_right, complexI_left, new_conj, 0, true); // Left/Right order is reversed here.
   cv::Mat partial_upsampled = partial_upsample_dft(new_conj, 
                                                    upsampled_height,
                                                    upsampled_width,
                                                    pad_factor,
                                                    dft_shift-shift_y*pad_factor,
                                                    dft_shift-shift_x*pad_factor);
-  //cv::Mat CC = conj(partial_upsampled); // TODO: Needed??
+
+  // Find the peak
   cv::Mat CC;
   get_magnitude(partial_upsampled, CC);
-
-  //% Locate maximum and map back to original pixel grid 
   cv::minMaxLoc(CC, NULL, &maxVal, NULL, &maxLoc); // TODO: magnitude(conv)??
-  //CCmax = CC(rloc,cloc); // Used for error calc
+
+  // Convert result into the final offset value
   maxLoc.y = maxLoc.y - dft_shift;
   maxLoc.x = maxLoc.x - dft_shift;
   shift_y = shift_y + static_cast<float>(maxLoc.y)/static_cast<float>(pad_factor);
@@ -260,7 +241,7 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
     std::cout << "maxLoc = " << maxLoc << std::endl;
     std::cout << "shift_x = " << shift_x << std::endl;
     std::cout << "shift_y = " << shift_y << std::endl;
-    
+
     save_mag_from_ft(partial_upsampled, "/home/smcmich1/data/subpixel/partial_upsampled.tif", false);
   }
 }
@@ -270,20 +251,16 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
 
 /// Update the values in disparity_map according to region_of_interest.
 /// - This function is set up to work with the PyramidSubpixelView class.
+/// - use_second_refinement improves results by repeating the computation.
 template<class ChannelT> void
 subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                   ImageView<ChannelT> const& left_image,
                   ImageView<ChannelT> const& right_image,
                   int32  kern_width, int32 kern_height,
                   BBox2i region_of_interest,
-                  int subpixel_accuracy = 20) {
+                  int  subpixel_accuracy = 20,
+                  bool use_second_refinement = true) {
 
-  //std::cout << "disparity_map size = " << disparity_map.get_size() << std::endl;
-  //std::cout << left_image.get_size() << std::endl;
-  //std::cout << right_image.get_size() << std::endl;
-  
-  //std::cout << "ROI = " << region_of_interest << std::endl;
-  
   VW_ASSERT( disparity_map.cols() == left_image.cols() &&
              disparity_map.rows() == left_image.rows(),
              ArgumentErr() << "subpixel_correlation: left image and "
@@ -300,8 +277,6 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
 
   const int32 kern_half_height    = kern_height/2;
   const int32 kern_half_width     = kern_width /2;
-  const int32 kern_pixels         = kern_height * kern_width;
-  const int32 min_num_good_pixels = kern_pixels/2;
 
   // Iterate over all of the pixels in the disparity map except for the outer edges.
   for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
@@ -313,6 +288,8 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                             region_of_interest.max().x()+1); ++x) {
 
       // Skip over pixels for which we have no initial disparity estimate
+      // - There is no check that the nearby image regions are valid, hopefully
+      //   if they are not then the disparity value is also invalid.
       if ( !is_valid(disparity_map(x,y)) )
         continue;
 
@@ -323,54 +300,49 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                             kern_width, kern_height);
       BBox2i right_window = current_window + Vector2i(disparity_map(x,y)[0], disparity_map(x,y)[1]);
 
-      //std::cout << "current_window = " << current_window << std::endl;
-      //std::cout << "right_window   = " << right_window   << std::endl;
-      
-
-      // TODO: Is this safe to do?
       // Compute the image patches
-      //ImageView<ChannelT> left_image_patch  = crop(left_image,         current_window);
-      //ImageView<ChannelT> right_image_patch = crop(right_interp_image, right_window);
+      ImageView<ChannelT> left_image_patch  = crop(left_image,         current_window);
+      ImageView<ChannelT> right_image_patch = crop(right_interp_image, right_window);
 
-      // TODO: How to handle invalid pixels in the input images?
-      // Skip over pixels for which there are very few good matches
-      // in the neighborhood.
-      //if (good_pixels < min_num_good_pixels) {
-      //  invalidate(disparity_map(x,y));
-      //  continue;
-      //}
-
-      //write_image("/home/smcmich1/data/subpixel/left_patch.tif", left_image_patch);
+      //write_image("/home/smcmich1/data/subpixel/left_patch.tif",  left_image_patch );
       //write_image("/home/smcmich1/data/subpixel/right_patch.tif", right_image_patch);
-      
+
       // We are just solving for a simple translation vector
       Vector2f d;
       bool debug = false;
-      phase_correlation_subpixel(crop(left_image,         current_window), 
-                                 crop(right_interp_image, right_window),
+      phase_correlation_subpixel(left_image_patch, right_image_patch,
                                  d, subpixel_accuracy, debug);
-      // TODO: Verify offset direction!
-      
-      //std::cout << "input disparity = " << disparity_map(x,y) << std::endl;
-      //std::cout << "OUTPUT DISPARITY OFFSET = " << d << std::endl;
-      
-      //if (norm_2(d) > 2) {
-      //  std::cout << "d = " << d << std::endl;
-      //  std::cout << "norm_2(d) = " << norm_2(d) << std::endl;
-      //  std::cout << "disparity_map(x,y) = " << disparity_map(x,y) << std::endl;
-      //}
-      
+
+      if (use_second_refinement) {
+        // Shift the right crop by the computed offset, then re-run
+        // phase correlation to get a final offset.
+        // - This improves the results at the cost of taking twice as long.
+
+        ImageView<ChannelT> shift_right_crop = crop(translate( right_image,
+                                                              d[0], d[1],
+                                                              ZeroEdgeExtension(),
+                                                              BicubicInterpolation()),
+                                                    right_window
+                                                  );
+        //write_image("/home/smcmich1/data/subpixel/right_patch_refined.tif", shift_right_crop);
+
+        Vector2f d2(0,0);
+        phase_correlation_subpixel(left_image_patch, shift_right_crop,
+                                  d2, subpixel_accuracy, debug);
+        d += d2; // The second translation adds to the first one.
+      }
+
       // If there is too much translation in our affine transform or we got NaNs, invalidate the pixel
       if ( norm_2(d) > SUBPIXEL_MAX_TRANSLATION ||
            std::isnan(d[0]) || std::isnan(d[1]) )
         invalidate(disparity_map(x,y));
       else
         remove_mask(disparity_map(x,y)) -= d; // TODO: Why is this subtracted?
-      
+
       //vw_throw( NoImplErr() << "DEBUG!!!!" );
     } // X increment
   } // Y increment
-  //std::cout << "SUBPIXEL_MAX_TRANSLATION = " << SUBPIXEL_MAX_TRANSLATION << std::endl;
+
 }
 
 

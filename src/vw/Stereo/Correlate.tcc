@@ -915,6 +915,10 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
              ArgumentErr() << "subpixel_correlation: left image and "
              << "disparity map do not have the same dimensions.");
 
+  // It seems like Bicubic interpolation should help here, but when tested it produced undetectable
+  //  changes in the results and significantly increased the run time.  This is true for both the pyramid
+  //  and non-pyramid version of this algorithm.
+
   // Interpolated Input Images
   InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
          interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());

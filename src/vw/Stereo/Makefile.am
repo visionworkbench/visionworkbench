@@ -24,7 +24,7 @@ if MAKE_MODULE_STEREO
 
 include_HEADERS = AffineMixtureComponent.h Algorithms.h Correlate.h	\
         Correlate.tcc Correlation.h CorrelationView.h	CorrelationView.tcc		\
-        CostFunctions.h	\
+        CostFunctions.h	PhaseSubpixelView.h \
         DisparityMap.h EMSubpixelCorrelatorView.h			\
         EMSubpixelCorrelatorView.hpp GammaMixtureComponent.h		\
         GaussianMixtureComponent.h MixtureComponent.h PreFilter.h	\

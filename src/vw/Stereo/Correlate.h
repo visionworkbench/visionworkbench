@@ -40,6 +40,7 @@ namespace stereo {
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
                       ImageView<float> const& weight_template);
 
+
   namespace detail {
     ImageView<float>
     compute_spatial_weight_image(int32 kern_width, int32 kern_height,

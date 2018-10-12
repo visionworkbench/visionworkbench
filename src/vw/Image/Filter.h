@@ -84,6 +84,20 @@ namespace vw {
     return result;
   }
 
+  /// Make a smoothing kernel for smoothing images before downsampling in an image pyramid.
+  inline std::vector<float> generate_pyramid_smoothing_kernel() {
+    // Build a smoothing kernel to use before downsampling.
+    // Szeliski's book recommended this simple kernel. This
+    // operation is quickly becoming a time sink, we might
+    // possibly want to write an integer optimized version.
+    std::vector<float> kernel(5);
+    kernel[0] = kernel[4] = 1.0/16.0;
+    kernel[1] = kernel[3] = 4.0/16.0;
+    kernel[2] = 6.0/16.0;
+    return kernel;
+  }
+  
+  
   /// \endcond
 
   // General 2D convolution filter functions

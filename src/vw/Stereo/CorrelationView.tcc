@@ -157,14 +157,9 @@ build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
   vw_out(DebugMessage, "stereo") << "Left  pyramid mask base size = " << bbox       << std::endl;
   vw_out(DebugMessage, "stereo") << "Right pyramid mask base size = " << right_mask << std::endl;
 
-  // Build a smoothing kernel to use before downsampling.
-  // Szeliski's book recommended this simple kernel. This
-  // operation is quickly becoming a time sink, we might
-  // possibly want to write an integer optimized version.
-  std::vector<typename DefaultKernelT<typename Image1T::pixel_type>::type > kernel(5);
-  kernel[0] = kernel[4] = 1.0/16.0;
-  kernel[1] = kernel[3] = 4.0/16.0;
-  kernel[2] = 6.0/16.0;
+  // Set up smoothing kernel used before downsampling.
+  std::vector<typename DefaultKernelT<typename Image1T::pixel_type>::type > kernel = 
+    generate_pyramid_smoothing_kernel();
   std::vector<uint8> mask_kern(max(m_kernel_size));
   std::fill(mask_kern.begin(), mask_kern.end(), 1 );
 

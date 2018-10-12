@@ -170,11 +170,10 @@ namespace stereo {
       // levels is 0, which is a valid situation.
       d_subpatch = disparity_map_patch;
 
-// TODO: This sounds bad!!!
-      // I'd like for image subsampling to use a gaussian when
-      // downsampling however it was introducing some edge effects
-      // that I couldn't figure out within a reasonable time frame.
-      std::cout << "Input bbox = " << bbox << std::endl;
+      // In general we should blur our images when downsampling, but when tested in
+      //  this code it produced a small benefit in the unit tests but no benefit in any
+      //  of the real images it was tested with.  Because of this it was deemed not
+      //  worth the computation time to include it here.
       
       BBox2i full_res_roi( m_kernel_size[0], m_kernel_size[1],
                            bbox.width(), bbox.height() );
@@ -197,7 +196,7 @@ namespace stereo {
         }
       }
 
-      const int PHASE_SUBPIXEL_ACCURACY = 20; // Accurate to 1/20 of a pixel (hopefully!).
+      const int PHASE_SUBPIXEL_ACCURACY = 40; // Theoretically accurate to 1/N of a pixel.
       
       // Loop through all but final pyramid levels.
       for ( int32 i = m_max_pyramid_levels-1; i >= 0; i-- ) {
@@ -222,13 +221,12 @@ namespace stereo {
                                           rois[i], true, true, false );
           break;
         case SUBPIXEL_PHASE:
-          std::cout << "Calling phase with roi: " << rois[i] << std::endl;
           subpixel_phase_2d(d_subpatch,
                             l_patches[i], r_patches[i],
                             m_kernel_size[0], m_kernel_size[1],
                             rois[i], PHASE_SUBPIXEL_ACCURACY);
-          write_image("/home/smcmich1/data/subpixel/disp_subpix_x.tif",
-              select_channel(d_subpatch,0));
+          //write_image("/home/smcmich1/data/subpixel/disp_subpix_x.tif",
+          //    select_channel(d_subpatch,0));
           break;
         default:
           vw_throw(NoImplErr() << "Invalid algorithm selection passed to PyramidSubpixelView.");
@@ -270,7 +268,6 @@ namespace stereo {
                                         true, true, false );
         break;
       case SUBPIXEL_PHASE:
-        std::cout << "Final phase call.\n";
         subpixel_phase_2d(disparity_map_patch,
                          left_image_patch, right_image_patch,
                          m_kernel_size[0], m_kernel_size[1],
@@ -358,6 +355,8 @@ namespace stereo {
                         max_pyramid_levels,  SUBPIXEL_BAYES_EM);
   }
 
+  // Phase subpixel seems to work better without multi-resolution, so
+  //  the default number of pyramid levels is zero.
   template <class ImageT1, class ImageT2, class DisparityT>
   PyramidSubpixelView<ImageT1, ImageT2, DisparityT>
   phase_subpixel( ImageViewBase<DisparityT> const& disparity_map,
@@ -365,10 +364,9 @@ namespace stereo {
                   ImageViewBase<ImageT2   > const& right_image,
                   PrefilterModeType prefilter_mode, float prefilter_width,
                   Vector2i const& kernel_size,
-                  int max_pyramid_levels = 2 ) {
+                  int max_pyramid_levels = 0 ) {
     typedef PyramidSubpixelView<ImageT1,ImageT2,DisparityT> result_type;
 
-    std::cout << "Starting phase_subpixel\n";
     return result_type( disparity_map.impl(), left_image.impl(),
                         right_image.impl(),
                         prefilter_mode, prefilter_width,
