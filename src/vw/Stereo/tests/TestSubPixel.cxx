@@ -140,25 +140,189 @@ TEST_F( SubPixelCorrelate95Test, Parabola ) {
 }
 
 
-
+/*
 /// Test the low level phase correlation code.
-TEST_F( SubPixelCorrelate95Test, Phase) {
+TEST_F( SubPixelCorrelate95Test, phase_simple) {
 
-  Vector2 offset;
-  BBox2 rect(25, 46, 13, 10);
+  Vector2f offset;
+  BBox2 rect(25, 46, 15, 15);
   int subpixel_accuracy=50;
-  vw::stereo::phase_correlation_subpixel(crop(image1,rect), 
-                             crop(image2,rect),
-                             offset, subpixel_accuracy); 
-  
-  write_image("/home/smcmich1/data/subpixel/crop1.tif", crop(image1,rect));
-  write_image("/home/smcmich1/data/subpixel/crop2.tif", crop(image2,rect));
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+  vw::stereo::phase_correlation_subpixel(left_crop, right_crop,
+                                         offset, subpixel_accuracy, true); 
   
   EXPECT_NEAR(-100, offset[0], 0.01);
   EXPECT_NEAR(-100, offset[1], 0.01);
   EXPECT_TRUE(false);
 
 }
+*/
+
+TEST_F( SubPixelCorrelate80Test, Phase) {
+  
+  //const BBox2 rect(2, 20, 90, 50);
+  const BBox2 rect = bounding_box(image1);
+  const int kern_size = 15; // Optimal size is products of 2's, 3's, and 5's
+  const int subpixel_accuracy = 50;
+  
+  ImageView<PixelMask<Vector2f> > disparity_map = crop(starting_disp, rect);
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+  /*
+  ImageView<PixelMask<Vector2f> > disparity_map(rect.width(), rect.height());
+  for(int r=0; r<rect.height(); ++r) {
+    for(int c=0; c<rect.width(); ++c) {
+      remove_mask(disparity_map(c,r)) = Vector2f(0,0);
+      validate(disparity_map(c,r));
+    }
+  }
+  */
+  //write_image("/home/smcmich1/data/subpixel/crop1.tif", left_crop);
+  //write_image("/home/smcmich1/data/subpixel/crop2.tif", right_crop);
+
+  //write_image("/home/smcmich1/data/subpixel/starting_disp_x.tif",
+  //            select_channel(disparity_map,0));
+  //write_image("/home/smcmich1/data/subpixel/starting_disp_y.tif",
+  //            select_channel(disparity_map,1));
+  
+  /*
+  // The basic, single resolution call.
+  subpixel_phase_2d(disparity_map,
+                    left_crop, right_crop,
+                    kern_size, kern_size,
+                    bounding_box(left_crop),
+                    subpixel_accuracy);
+  write_image("/home/smcmich1/data/subpixel/disparity_map_out_x.tif",
+              select_channel(disparity_map,0));
+  */
+  std::cout << "Starting test!\n";
+  int max_pyramid_levels = 0;
+  ImageView<PixelMask<Vector2f> > output_disp =
+  phase_subpixel(disparity_map,
+                 left_crop, right_crop,
+                 PREFILTER_LOG, 1.4,
+                 Vector2i(kern_size, kern_size),
+                 max_pyramid_levels);
+  
+  //write_image("/home/smcmich1/data/subpixel/disparity_map_out_pyr_x.tif",
+  //            select_channel(output_disp,0));
+  
+  
+  int32 invalid_count = 0;
+  //double error = check_error( disparity_map, invalid_count );
+  double error = check_error( output_disp, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.2);
+  EXPECT_LE(invalid_count, 0);
+  
+  //EXPECT_TRUE(false);
+}
+
+
+
+
+
+/*
+TEST_F( SubPixelCorrelate90Test, affine_pyr) {
+  
+  //const BBox2 rect(2, 20, 90, 50);
+  const BBox2 rect = bounding_box(image1);
+  const int kern_size = 15;
+
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+
+  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f> > disparity_map =
+    affine_subpixel( disp_copy, left_crop, right_crop,
+                       PREFILTER_LOG, 1.4,
+                       Vector2i(kern_size,kern_size) );
+  
+  //write_image("/home/smcmich1/data/subpixel/affine90_pyr_out_x.tif",
+  //            select_channel(disparity_map,0));
+  
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.35);
+  EXPECT_LE(invalid_count, 12);
+  //EXPECT_TRUE(false);
+}
+*/
+/*
+TEST_F( SubPixelCorrelate80Test, affine_pyr) {
+  
+  //const BBox2 rect(2, 20, 90, 50);
+  const BBox2 rect = bounding_box(image1);
+  const int kern_size = 15;
+
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+
+  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f> > disparity_map =
+    affine_subpixel( disp_copy, left_crop, right_crop,
+                       PREFILTER_LOG, 1.4,
+                       Vector2i(kern_size,kern_size) );
+  
+  //write_image("/home/smcmich1/data/subpixel/affine80_pyr_out_x.tif",
+  //            select_channel(disparity_map,0));
+
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.35);
+  EXPECT_LE(invalid_count, 12);
+  EXPECT_TRUE(false);
+}
+*/
+/*
+TEST_F( SubPixelCorrelate95Test, parab) {
+  
+  const BBox2 rect(2, 20, 90, 50);
+  //const BBox2 rect = bounding_box(image1);
+  const int kern_size = 9;
+
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+
+  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f> > disparity_map =
+    parabola_subpixel( disp_copy, left_crop, right_crop,
+                       PREFILTER_LOG, 1.4,
+                       Vector2i(kern_size,kern_size) );
+  
+  write_image("/home/smcmich1/data/subpixel/parabola_disparity_map_out_x.tif",
+              select_channel(disparity_map,0));
+  
+  EXPECT_TRUE(false);
+}
+*/
+/*
+TEST_F( SubPixelCorrelate80Test, Affine) {
+  
+  //const BBox2 rect(2, 20, 90, 50);
+  const BBox2 rect = bounding_box(image1);
+  const int kern_size = 15;
+
+  ImageView<PixelMask<Vector2f> > disparity_map = crop(starting_disp, rect);
+  //ImageView<PixelMask<Vector2f> > disparity_map = starting_disp;
+  ImageView<float> left_crop  = crop(image1,rect);
+  ImageView<float> right_crop = crop(image2,rect);
+
+  subpixel_optimized_affine_2d(disparity_map,
+                    left_crop, right_crop,
+                    kern_size, kern_size,
+                    bounding_box(left_crop), true, true, false);
+  
+  //write_image("/home/smcmich1/data/subpixel/affine80_out_x.tif",
+  //            select_channel(disparity_map,0));
+  
+  EXPECT_TRUE(false);
+}
+*/
+
 /*
 
 // TODO: Add more phase tests
@@ -184,11 +348,13 @@ TEST_F( SubPixelCorrelate95Test, BayesEM95 ) {
                        channel_cast_rescale<float>(image2),
                        PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
+
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.35);
   EXPECT_LE(invalid_count, 12);
+  //EXPECT_TRUE(false);
 }
 
 TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
@@ -198,11 +364,13 @@ TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
                        channel_cast_rescale<float>(image2),
                        PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
+
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.36);
   EXPECT_LE(invalid_count, 12);
+  //EXPECT_TRUE(false);
 }
 
 TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
@@ -212,11 +380,13 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
                        channel_cast_rescale<float>(image2),
                        PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
+
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.52);
   EXPECT_LE(invalid_count, 22);
+  //EXPECT_TRUE(false);
 }
 
 TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
@@ -226,9 +396,119 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
                        channel_cast_rescale<float>(image2),
                        PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
+    
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.9);
   EXPECT_LE(invalid_count, 48);
+  //EXPECT_TRUE(false);
 }
+/*
+TEST( SlipTest, Affine ) {
+  
+  ImageView<float> image1, image2;
+  read_image(image1, "/home/smcmich1/data/subpixel/landsat/l_crop.tif");
+  read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
+  
+  // Init the disparity image.
+  ImageView<PixelMask<Vector2f> > starting_disp(image1.cols(), image1.rows());
+  for(int r=0; r<starting_disp.rows(); ++r) {
+    for(int c=0; c<starting_disp.cols(); ++c) {
+      remove_mask(starting_disp(c,r)) = Vector2f(0,0);
+      validate(starting_disp(c,r));
+    }
+  }
+
+  ImageView<PixelMask<Vector2f> > disparity_map =
+      affine_subpixel( starting_disp,
+                       image1,
+                       image2,
+                       PREFILTER_LOG, 1.4, // Having a prefilter is important!
+                       Vector2i(35,35) );
+
+  //ImageView<PixelMask<Vector2f> > disparity_map = starting_disp;
+  //subpixel_optimized_affine_2d(disparity_map,
+  //                  image1, image2,
+  //                  35, 35,
+  //                  bounding_box(image1), true, true, false);
+
+  write_image("/home/smcmich1/data/subpixel/landsat/slip_affine.tif",
+              select_channel(disparity_map,0));
+  EXPECT_TRUE(false);
+}
+
+*/
+/*
+TEST( SlipTest, EM2) {
+
+  const int kern_size = 25;
+  
+  ImageView<float> image1, image2;
+  read_image(image1, "/home/smcmich1/data/subpixel/landsat/l_crop.tif");
+  read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
+  
+  // Init the disparity image.
+  ImageView<PixelMask<Vector2f> > disparity_map(image1.cols(), image1.rows());
+  for(int r=0; r<disparity_map.rows(); ++r) {
+    for(int c=0; c<disparity_map.cols(); ++c) {
+      remove_mask(disparity_map(c,r)) = Vector2f(0,0);
+      validate(disparity_map(c,r));
+    }
+  }
+
+  // The basic, single resolution call.
+  subpixel_optimized_affine_2d_EM(disparity_map,
+                    image1, image2,
+                    kern_size, kern_size,
+                    bounding_box(image1),
+                    true, true, false);
+  write_image("/home/smcmich1/data/subpixel/landsat/slip_EM2.tif",
+              select_channel(disparity_map,0));
+
+  
+  EXPECT_TRUE(false);
+}
+*/
+/*
+TEST( SlipTest, Phase) {
+
+  const int kern_size = 35; // Optimal size is products of 2's, 3's, and 5's
+  const int subpixel_accuracy = 20;
+  
+  ImageView<float> image1, image2;
+  read_image(image1, "/home/smcmich1/data/subpixel/landsat/l_crop.tif");
+  read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
+  
+  // Init the disparity image.
+  ImageView<PixelMask<Vector2f> > starting_disp(image1.cols(), image1.rows());
+  for(int r=0; r<starting_disp.rows(); ++r) {
+    for(int c=0; c<starting_disp.cols(); ++c) {
+      remove_mask(starting_disp(c,r)) = Vector2f(0,0);
+      validate(starting_disp(c,r));
+    }
+  }
+
+  //// The basic, single resolution call.
+  //subpixel_phase_2d(disparity_map,
+  //                  image1, image2,
+  //                  kern_size, kern_size,
+  //                  bounding_box(image1),
+  //                  subpixel_accuracy);
+  //write_image("/home/smcmich1/data/subpixel/landsat/slip_phase.tif",
+  //            select_channel(disparity_map,0));
+
+  
+  ImageView<PixelMask<Vector2f> > disparity_map =
+      phase_subpixel( starting_disp,
+                       image1,
+                       image2,
+                       PREFILTER_LOG, 1.4, // Having a prefilter is important!
+                       Vector2i(35,35) );
+      
+  write_image("/home/smcmich1/data/subpixel/landsat/slip_phase_pyr.tif",
+              select_channel(disparity_map,0));
+
+  EXPECT_TRUE(false);
+}
+*/
