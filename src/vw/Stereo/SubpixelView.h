@@ -196,8 +196,8 @@ namespace stereo {
         }
       }
 
-      const int PHASE_SUBPIXEL_ACCURACY = 40; // Theoretically accurate to 1/N of a pixel.
-      
+      const int PHASE_SUBPIXEL_ACCURACY = 20; // Theoretically accurate to 1/N of a pixel.
+
       // Loop through all but final pyramid levels.
       for ( int32 i = m_max_pyramid_levels-1; i >= 0; i-- ) {
 

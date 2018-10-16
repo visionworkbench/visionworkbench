@@ -79,32 +79,32 @@ cv::Mat partial_upsample_dft(cv::Mat const& input, int upsampled_height, int ups
   cv::Mat temp_vec = fftshift(col_vector, true).t();
   cv::Mat v1 = temp_vec - floor(input.cols/2);
   cv::Mat v2 = col_up_vector - col_offset;
-  cv::Mat m;
-  cv::gemm(v1,v2,1.0, cv::Mat(), 0.0, m); //m  = v1*v2;
+  
+  cv::Mat dummy;
+  cv::gemm(v1,v2,1.0, dummy, 0.0, col_kernel); //m  = v1*v2;
+  
   c_type constant = neg_i*two_pi/static_cast<float>(input.cols*upscale);
-  // TODO: Improve!
-  for (int i=0; i<m.rows; ++i)
-    for (int j=0; j<m.cols; ++j)
-      m.at<c_type>(i,j) = std::exp(m.at<c_type>(i,j)*constant);
-  //cv::exp( m, col_kernel ); // Does not work!
-  col_kernel = m;
+  for (int i=0; i<col_kernel.rows; ++i)
+    for (int j=0; j<col_kernel.cols; ++j)
+      col_kernel.at<c_type>(i,j) = std::exp(col_kernel.at<c_type>(i,j)*constant);
 
   temp_vec = fftshift(row_vector, true);
   v1 = row_up_vector.t() - row_offset;
   v2 = temp_vec - floor(input.rows/2);
-  cv::gemm(v1,v2,1.0, cv::Mat(), 0.0, m); //m  = v1*v2;
+  
+  cv::gemm(v1,v2,1.0, dummy, 0.0, row_kernel); //m  = v1*v2;
+  
   constant = neg_i*two_pi/static_cast<float>(input.rows*upscale);
-  // TODO: Improve!
-  for (int i=0; i<m.rows; ++i)
-    for (int j=0; j<m.cols; ++j)
-      m.at<c_type>(i,j) = std::exp(m.at<c_type>(i,j)*constant);
-  //cv::exp( m, row_kernel ); // Does not work!
-  row_kernel = m;
+  for (int i=0; i<row_kernel.rows; ++i)
+    for (int j=0; j<row_kernel.cols; ++j)
+      row_kernel.at<c_type>(i,j) = std::exp(row_kernel.at<c_type>(i,j)*constant);
 
   //save_mag_from_ft(row_kernel,  "/home/smcmich1/data/subpixel/row_kernel.tif", false);
   //save_mag_from_ft(col_kernel,  "/home/smcmich1/data/subpixel/col_kernel.tif", false);
 
-  cv::Mat out = row_kernel*input*col_kernel;
+  // These muliplications are the slowest part of the phase correlation method.
+  cv::Mat o1  = row_kernel*input;
+  cv::Mat out = o1*col_kernel;
 
   //cv::Mat temp = complex_multiply(row_kernel, input);
   //cv::Mat out  = complex_multiply(temp, col_kernel);
@@ -310,8 +310,11 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
       // We are just solving for a simple translation vector
       Vector2f d;
       bool debug = false;
+      int initial_subpixel_accuracy = subpixel_accuracy;
+      if (use_second_refinement) // The first pass can be lower resolution.
+        initial_subpixel_accuracy /= 2;
       phase_correlation_subpixel(left_image_patch, right_image_patch,
-                                 d, subpixel_accuracy, debug);
+                                 d, initial_subpixel_accuracy, debug);
 
       if (use_second_refinement) {
         // Shift the right crop by the computed offset, then re-run
