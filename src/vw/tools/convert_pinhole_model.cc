@@ -95,28 +95,30 @@ int main( int argc, char *argv[] ) {
     
     printf("Loading camera model file: %s\n", camera_file_name.c_str());
     PinholeModel camera_model(camera_file_name);
+
+    bool force_conversion = true;
     
     //double error;
     if (output_model_type == "TsaiLensDistortion") {
       //error =
       update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>
-	(camera_model, image_size, sample_spacing);
+	(camera_model, image_size, sample_spacing, force_conversion);
     }else if (output_model_type == "BrownConradyDistortion") {
       //error =
       update_pinhole_for_fast_point2pixel<BrownConradyDistortion, BrownConradyDistortion::num_distortion_params>
-        (camera_model, image_size, sample_spacing);
+        (camera_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
-	(camera_model, image_size, sample_spacing);
+	(camera_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion5::class_name()) {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
-	(camera_model, image_size, sample_spacing);
+	(camera_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion6::class_name()) {
       //error =
       update_pinhole_for_fast_point2pixel<RPCLensDistortion6, RPCLensDistortion6::num_distortion_params>
-	(camera_model, image_size, sample_spacing);
+	(camera_model, image_size, sample_spacing, force_conversion);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";
       return 1;

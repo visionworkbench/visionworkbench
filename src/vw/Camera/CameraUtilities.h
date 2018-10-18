@@ -264,7 +264,8 @@ inline void update_rpc_undistortion(PinholeModel const& model){
 /// - Returns the approximation error.
 template<class DistModelT, int NumModelParamsT>
 double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
-                                           int sample_spacing=50) {
+                                           int sample_spacing=50,
+                                           bool force_conversion = false) {
 
   // Get info on existing distortion model
   const vw::camera::LensDistortion* input_distortion = pin_model.lens_distortion();
@@ -272,13 +273,13 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if ( (lens_name == "NULL")                           ||
-       (lens_name == "TSAI")                           ||
-       (lens_name == "AdjustableTSAI")                 ||
-       (lens_name == RPCLensDistortion::class_name())  ||
-       (lens_name == RPCLensDistortion5::class_name()) ||
-       (lens_name == RPCLensDistortion6::class_name())
-       ) {
+  if ( (!force_conversion) && 
+       (lens_name == "NULL"                           ||
+        lens_name == "TSAI"                           ||
+        lens_name == "AdjustableTSAI"                 ||
+        lens_name == RPCLensDistortion::class_name()  ||
+        lens_name == RPCLensDistortion5::class_name() ||
+        lens_name == RPCLensDistortion6::class_name())) {
     //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
     return 0;
   }
@@ -345,8 +346,9 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   // If the approximation is not very good, keep the original model and warn
   //  the user that things might take a long time.
   const double MAX_ERROR = 0.3;
-  if (diff > MAX_ERROR)
-    vw_out() << "Warning: Failed to approximate reverse pinhole lens distortion, using the original (slow) model.\n";
+  if ( (!force_conversion) && diff > MAX_ERROR)
+    vw_out() << "Warning: Failed to approximate reverse pinhole lens distortion, "
+             << "using the original (slow) model.\n";
   else {
 
     pin_model.set_lens_distortion(new_model);
