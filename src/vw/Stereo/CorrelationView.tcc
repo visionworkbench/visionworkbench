@@ -686,7 +686,7 @@ prerasterize(BBox2i const& bbox) const {
       
       if (m_write_debug_images) { // DEBUG
         vw_out() << "Writing DEBUG data...\n";
-        BBox2i scaled = bbox/2;
+        BBox2i scaled = bbox/1; // Why divide by 2??
         std::ostringstream ostr;
         ostr << "disparity_" << scaled.min()[0] << "_"
              << scaled.min()[1] << "_" << scaled.max()[0] << "_"

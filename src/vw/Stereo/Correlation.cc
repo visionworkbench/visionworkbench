@@ -28,6 +28,8 @@ namespace stereo {
 // which has on top the statement:
 // if (B.empty()) return;   
 BBox2 bad_grow(BBox2 A, BBox2 B){
+  if (B.empty())
+    return A;
   A.grow(B.min());
   A.grow(B.max());
   return A;
