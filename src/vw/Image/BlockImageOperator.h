@@ -119,7 +119,7 @@ namespace vw {
     }; // End class RunFunctor
 
     // Allows RasterizeFunctor to access cache-related members.
-    template <class DestT> friend class RunFunctor;
+    friend class RunFunctor;
 
     // We store this by shared pointer so it doesn't move when we copy
     // the BlockImageOperator, since the BlockGenerators point to it.
@@ -138,9 +138,9 @@ namespace vw {
   /// Create a BlockRasterizeView with no caching.
   /// - If each tile will only be accessed once then there is no need for a cache!
   template <class ImageT, class FuncT>
-  inline BlockRasterizeView<ImageT> block_op( ImageViewBase<ImageT> const& image,
-                                              FuncT & functor,
-                                              Vector2i const& block_size, int num_threads = 0 ) {
+  inline void block_op( ImageViewBase<ImageT> const& image,
+                        FuncT & functor,
+                        Vector2i const& block_size, int num_threads = 0 ) {
     BlockImageOperator<ImageT, FuncT> block_op(image.impl(), functor, block_size, num_threads);
     block_op.execute_func(bounding_box(image));
   }

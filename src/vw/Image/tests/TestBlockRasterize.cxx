@@ -93,10 +93,12 @@ TEST(BlockImageOperator, Basic) {
   size_t real_count = 0;
   ImageView<uint8> image(100,100);
   for (int i=0; i<100; ++i) {
-    uint8 value = i/7;
-    image(i,i) = value;
-    if (value >= threshold)
-      ++real_count;
+      for (int j=0; j<100; ++j) {
+      uint8 value = i/7;
+      image(i,j) = value;
+      if (value >= threshold)
+        ++real_count;
+    }
   }
 
   // Use BlockImageOperator to count thresholds in multiple threads.
