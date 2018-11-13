@@ -54,7 +54,7 @@ namespace ba {
     FeatureBase( size_t id ) : m_camera_id(id) {}
 
     // Access to derived type
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
     // Features use weak points as they can't be allowed to have
@@ -71,9 +71,10 @@ namespace ba {
 
     size_t m_camera_id;
 
-    // Returns a string identifying feature type
+    /// Returns a string identifying feature type
     std::string type() { return impl().type(); }
-    // Connects this feature to another
+
+    /// Connects this feature to another
     void connection( w_ptr con, bool check=true ) {
       if (check) {
         BOOST_FOREACH( w_ptr connection, m_connections )
@@ -82,6 +83,7 @@ namespace ba {
       }
       m_connections.push_back( con );
     }
+    
     // List all features connected to this one. This will traverse all
     // connections and append them to the provided list.
     void list_connections( std::list<w_ptr>& listing ) {
@@ -99,6 +101,7 @@ namespace ba {
         }
       }
     }
+
     void build_map() {
       m_map.clear();
       BOOST_FOREACH( w_ptr connection, m_connections )
@@ -107,7 +110,7 @@ namespace ba {
 
     // Interface to aid conversion with Control Network
     ControlMeasure control_measure() const { return impl().control_measure(); }
-  };
+  }; // End class FeatureBase
 
   // Interest Point Feature
   // - Intended for fast insertion of IP matches
@@ -115,24 +118,22 @@ namespace ba {
     ip::InterestPoint m_ip;
 
     // Standard Constructor
-    IPFeature ( ip::InterestPoint const& ip,
-                size_t const& id ) :
-    FeatureBase<IPFeature>(id), m_ip(ip) {}
+    IPFeature ( ip::InterestPoint const& ip, size_t const& id ) :
+          FeatureBase<IPFeature>(id), m_ip(ip) {}
+
     // For building from control networks
-    IPFeature( ControlMeasure const& cmeas,
-               size_t const& /*point_id*/ ) :
-      FeatureBase<IPFeature>( cmeas.image_id() ) {
-      m_ip =
-        ip::InterestPoint( cmeas.position()[0], cmeas.position()[1],
-                           cmeas.sigma()[0] );
+    IPFeature( ControlMeasure const& cmeas, size_t const& /*point_id*/ ) :
+          FeatureBase<IPFeature>( cmeas.image_id() ) {
+      m_ip = ip::InterestPoint( cmeas.position()[0], cmeas.position()[1],
+                                cmeas.sigma()[0] );
     }
+
     IPFeature( ControlMeasure const& cmeas,
                size_t const& /*point_id*/,
                size_t image_id ) :
-    FeatureBase<IPFeature>( image_id ) {
-      m_ip =
-        ip::InterestPoint( cmeas.position()[0], cmeas.position()[1],
-                           cmeas.sigma()[0] );
+          FeatureBase<IPFeature>( image_id ) {
+      m_ip = ip::InterestPoint( cmeas.position()[0], cmeas.position()[1],
+                                cmeas.sigma()[0] );
     }
 
     std::string type() { return "IP"; }
@@ -146,19 +147,19 @@ namespace ba {
   struct JFeature : public FeatureBase<JFeature> {
     Matrix<double> m_w, m_y; // W = product of Jacobians, Y = product of W
 
-    size_t m_point_id;
+    size_t   m_point_id;
     Vector2f m_location;
     Vector2f m_scale;
 
     // Standard Constructor
     JFeature ( size_t const& point_id, size_t const& camera_id ) :
-    FeatureBase<JFeature>(camera_id), m_point_id(point_id) {}
+        FeatureBase<JFeature>(camera_id), m_point_id(point_id) {}
+
     // For building from control networks
-    JFeature ( ControlMeasure const& cmeas,
-               size_t const& point_id ) :
-    FeatureBase<JFeature>( cmeas.image_id() ), m_point_id(point_id) {
+    JFeature ( ControlMeasure const& cmeas, size_t const& point_id ) :
+        FeatureBase<JFeature>( cmeas.image_id() ), m_point_id(point_id) {
       m_location = cmeas.position();
-      m_scale = cmeas.sigma();
+      m_scale    = cmeas.sigma();
     }
 
     std::string type() { return "J"; }
@@ -171,7 +172,7 @@ namespace ba {
   template <class FeatureT>
   struct CameraNode {
     typedef boost::shared_ptr<FeatureT> f_ptr;
-    size_t id;
+    size_t      id;
     std::string name;
     std::list<f_ptr> relations;
     std::multimap< size_t, f_ptr> map; // Provides alternative access
@@ -180,40 +181,44 @@ namespace ba {
     // to find all features in this camera that connect to camera x.
 
     CameraNode ( size_t tid, std::string tname ) :
-    id(tid), name(tname) {}
+      id(tid), name(tname) {}
 
     // Iterator access (saves a section for me the monkey)
     typedef typename std::list<f_ptr>::iterator iterator;
     typedef typename std::list<f_ptr>::const_iterator const_iterator;
-    iterator begin() { return relations.begin(); }
-    iterator end()   { return relations.end();   }
+    iterator       begin()       { return relations.begin(); }
+    iterator       end  ()       { return relations.end();   }
     const_iterator begin() const { return relations.begin(); }
-    const_iterator end()   const { return relations.end();   }
+    const_iterator end  () const { return relations.end();   }
   };
 
-  // Base of the Camera Relation Network
+  /// Alternate storage method of the information in a ControlNetwork object.
+  /// - See the description at the top of the file.
   template <class FeatureT>
   class CameraRelationNetwork {
     typedef CameraNode<FeatureT> cnode;
-    std::vector<cnode> m_nodes;
+    std::vector<cnode> m_nodes; // One for each image/camera instance.
 
   public:
 
     // Iterator access
-    typedef typename std::vector<cnode>::iterator iterator;
+    typedef typename std::vector<cnode>::iterator       iterator;
     typedef typename std::vector<cnode>::const_iterator const_iterator;
+
     size_t size() const { return m_nodes.size(); }
+
     cnode& operator[]( int32 const& i ) { return m_nodes[i]; }
-    iterator begin() { return m_nodes.begin(); }
-    iterator end()   { return m_nodes.end();   }
+
+    iterator       begin()       { return m_nodes.begin(); }
+    iterator       end  ()       { return m_nodes.end();   }
     const_iterator begin() const { return m_nodes.begin(); }
-    const_iterator end()   const { return m_nodes.end();   }
+    const_iterator end  () const { return m_nodes.end();   }
 
     // Complex functions
     void add_node( cnode const& node );
     void build_map();
-    void read_controlnetwork( ControlNetwork const& cnet );
-    bool write_controlnetwork( ControlNetwork & cnet ) const;
+    void read_controlnetwork ( ControlNetwork const& cnet );
+    bool write_controlnetwork( ControlNetwork      & cnet ) const;
   };
 
 

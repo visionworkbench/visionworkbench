@@ -62,10 +62,10 @@ namespace ba {
 
   template <class FeatureT>
   void CameraRelationNetwork<FeatureT>::build_map() {
-    typedef boost::shared_ptr<FeatureT> f_ptr;
-    typedef boost::weak_ptr<FeatureT> w_ptr;
-    typedef typename std::list<f_ptr>::iterator list_it;
-    typedef typename std::list<f_ptr>::const_iterator list_cit;
+    typedef          boost::shared_ptr<FeatureT>            f_ptr;
+    typedef          boost::weak_ptr<FeatureT>              w_ptr;
+    typedef typename std::list<f_ptr>::iterator             list_it;
+    typedef typename std::list<f_ptr>::const_iterator       list_cit;
     typedef typename std::map<size_t,w_ptr>::const_iterator map_cit;
 
     for ( size_t j = 0; j < m_nodes.size(); j++ ) {
@@ -92,27 +92,26 @@ namespace ba {
   template <class FeatureT>
   void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& cnet ) {
     typedef boost::shared_ptr<FeatureT> f_ptr;
-    typedef boost::weak_ptr<FeatureT> w_ptr;
+    typedef boost::weak_ptr<FeatureT>   w_ptr;
     m_nodes.clear();
 
-    for ( size_t cp_i = 0; cp_i < cnet.size(); cp_i++ ) {
+    for ( size_t point_id = 0; point_id < cnet.size(); point_id++ ) {
       std::vector<f_ptr> features_added;
       // Building up features to be added and linking to camera nodes
-      BOOST_FOREACH( ControlMeasure const& cm, cnet[cp_i] ) {
+      BOOST_FOREACH( ControlMeasure const& cm, cnet[point_id] ) {
         // Seeing if a camera node exists for this measure
         if ( cm.image_id() >= this->size() ) {
-          for ( size_t i = this->size();
-                i <= cm.image_id(); i++ ) {
+          for ( size_t i = this->size(); i <= cm.image_id(); i++ ) {
             this->add_node( CameraNode<FeatureT>( i, "" ) );
           }
         }
 
         // Appending to list
-        features_added.push_back( f_ptr( new FeatureT(cm, cp_i) ) );
+        features_added.push_back( f_ptr( new FeatureT(cm, point_id) ) );
 
         // Attaching to camera node
         (*this)[cm.image_id()].relations.push_back( features_added.back() );
-      }
+      } // End loop through ControlMeasures
 
       // Doubly Linking features together
       typedef typename std::vector<f_ptr>::iterator fvi_ptr;
@@ -150,10 +149,10 @@ namespace ba {
       progress.report_progress(0);
       for ( size_t i = 0; i < crn.size() - 1; i++ ) {
         progress.report_progress(float(i)/float(crn.size()-1));
-        typedef boost::weak_ptr<FeatureT> w_ptr;
-        typedef boost::shared_ptr<FeatureT> f_ptr;
-        typedef typename std::list<f_ptr>::iterator f_list_iter;
-        typedef typename std::list<w_ptr>::iterator w_list_iter;
+        typedef          boost::weak_ptr<FeatureT>   w_ptr;
+        typedef          boost::shared_ptr<FeatureT> f_ptr;
+        typedef typename std::list<f_ptr>::iterator  f_list_iter;
+        typedef typename std::list<w_ptr>::iterator  w_list_iter;
 
         // Iterating over matched relations inside a camera node and
         // building control points for them.
@@ -212,9 +211,8 @@ namespace ba {
       } // end of iteration over camera nodes
       progress.report_finished();
       if ( spiral_error_count != 0 )
-        vw_out(WarningMessage,"ba") << "\t"
-                                        << spiral_error_count
-                                        << " control points removed due to spiral errors.\n";
+        vw_out(WarningMessage,"ba") << "\t" << spiral_error_count
+                                    << " control points removed due to spiral errors.\n";
     }
     if ( cnet.size() == 0) {
       vw_out(WarningMessage,"ba")

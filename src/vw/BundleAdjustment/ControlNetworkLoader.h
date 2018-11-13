@@ -29,6 +29,8 @@
 
 /// \file ControlNetworkLoader.h Functions for generating control networks
 
+// TODO: Move in to ControlNetwork functions?
+
 namespace vw {
 namespace ba {
 
@@ -39,7 +41,7 @@ namespace ba {
   bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
                              std::vector<boost::shared_ptr<camera::CameraModel> >
-			     const& camera_models,
+                             const& camera_models,
                              std::vector<std::string> const& image_files,
                              std::map< std::pair<int, int>, std::string> const& match_files,
                              size_t min_matches,
@@ -48,26 +50,26 @@ namespace ba {
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
   double triangulate_control_point(ControlPoint& cp,
-				   std::vector<boost::shared_ptr<camera::CameraModel> >
-				   const& camera_models,
-				   double const& min_angle_radians );
+                                   std::vector<boost::shared_ptr<camera::CameraModel> >
+                                   const& camera_models,
+                                   double const& min_angle_radians );
 
   /// Adds ground control points from GCP files to an already built
-  /// Control Network. The vector image_files serves as a look up chart
-  /// for relating image names in GCP files to CNET's internal
-  /// indexing.  Each GCP is a line in the file, containing the point
+  /// Control Network. The image names in the GCP files must match the image
+  /// names that were loaded into the CNET's internal indexing.  Each 
+  /// GCP is a line in the file, containing the point
   /// id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
   /// for each image, the image file name, pixel measurements, and their sigmas.
   void add_ground_control_points(ControlNetwork& cnet,
-				 std::vector<std::string> const& image_files,
-				 std::vector<std::string> const& gcp_files,
-				 cartography::Datum const& datum);
+                                 std::vector<std::string> const& gcp_files,
+                                 cartography::Datum const& datum);
     
   template <class IterT>
   void add_ground_control_cnets( ControlNetwork& cnet,
-                                 std::vector<std::string> const& image_files,
                                  IterT gcpcnet_start, IterT gcpcnet_end ) {
     namespace fs = boost::filesystem;
+
+    std::vector<std::string> const& image_files = cnet.get_image_list();
 
     // Creating a version of image_files that doesn't contain the path
     typedef std::map<std::string,size_t> LookupType;

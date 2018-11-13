@@ -69,9 +69,10 @@ namespace ba {
     // Recording time
     m_date_time = isis_style_time_string();
 
-    m_serialNumber = "Null";
-    m_description = "Null";
-    m_ignore = false;
+    m_serialNumber    = "Null";
+    m_description     = "Null";
+    m_chooserName     = "Null";
+    m_ignore          = false;
     m_pixels_dominant = true;
 
     m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
@@ -83,12 +84,19 @@ namespace ba {
     // Recording time
     m_date_time = isis_style_time_string();
 
-    m_serialNumber = "Null";
-    m_description = "Null";
-    m_ignore = false;
+    m_serialNumber    = "Null";
+    m_description     = "Null";
+    m_chooserName     = "Null";
+    m_ignore          = false;
     m_pixels_dominant = true;
 
     m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
+  }
+
+  std::string ControlMeasure::get_image_name(ControlNetwork const& net) const {
+    if (net.get_image_list().size() <= m_image_id)
+      return "";
+    return net.get_image_list()[m_image_id];
   }
 
   /// Write a compressed binary style of measure
@@ -97,18 +105,18 @@ namespace ba {
     f << m_serialNumber << char(0) << m_date_time << char(0)
       << m_description << char(0) << m_chooserName << char(0);
     // Writing the binary data
-    f.write((char*)&(m_col), sizeof(m_col));
-    f.write((char*)&(m_row), sizeof(m_row));
-    f.write((char*)&(m_col_sigma), sizeof(m_col_sigma));
-    f.write((char*)&(m_row_sigma), sizeof(m_row_sigma));
-    f.write((char*)&(m_diameter), sizeof(m_diameter));
-    f.write((char*)&(m_focalplane_x), sizeof(m_focalplane_x));
-    f.write((char*)&(m_focalplane_y), sizeof(m_focalplane_y));
-    f.write((char*)&(m_ephemeris_time), sizeof(m_ephemeris_time));
-    f.write((char*)&(m_image_id), sizeof(m_image_id));
-    f.write((char*)&(m_ignore), sizeof(m_ignore));
+    f.write((char*)&(m_col),             sizeof(m_col));
+    f.write((char*)&(m_row),             sizeof(m_row));
+    f.write((char*)&(m_col_sigma),       sizeof(m_col_sigma));
+    f.write((char*)&(m_row_sigma),       sizeof(m_row_sigma));
+    f.write((char*)&(m_diameter),        sizeof(m_diameter));
+    f.write((char*)&(m_focalplane_x),    sizeof(m_focalplane_x));
+    f.write((char*)&(m_focalplane_y),    sizeof(m_focalplane_y));
+    f.write((char*)&(m_ephemeris_time),  sizeof(m_ephemeris_time));
+    f.write((char*)&(m_image_id),        sizeof(m_image_id));
+    f.write((char*)&(m_ignore),          sizeof(m_ignore));
     f.write((char*)&(m_pixels_dominant), sizeof(m_pixels_dominant));
-    f.write((char*)&(m_type), sizeof(m_type));
+    f.write((char*)&(m_type),            sizeof(m_type));
   }
 
   /// Reading a compressed binary style of measure
@@ -312,6 +320,56 @@ namespace ba {
     }
   }
 
+  /// Write to a CSV stream
+  void ControlMeasure::write_csv( std::ostream &f ) const {
+    // TODO: Handle spaces and other formatting in the data!
+    // Just write everything out to a single comma delimited line.
+    
+    const std::string delim = ", ";
+    f << m_serialNumber   << delim << m_date_time       << delim
+      << m_description    << delim 
+      << m_chooserName    << delim
+      << m_col            << delim << m_row             << delim
+      << m_col_sigma      << delim << m_row_sigma       << delim
+      << m_diameter       << delim 
+      << m_focalplane_x   << delim << m_focalplane_y    << delim
+      << m_ephemeris_time << delim << m_image_id        << delim
+      << (int)m_ignore    << delim << (int)m_pixels_dominant << delim
+      << (int)m_type;
+  }
+
+  /// Read from a CSV stream
+  void ControlMeasure::read_csv( std::istream &f ) {
+    // TODO: Handle more formatting possibilities.
+    // Grab all of the elements from the input stream.
+    std::string str;
+    std::getline( f, str ); // Read in one line.
+
+    const std::string delim = ",";
+    std::vector<std::string> parts;
+    boost::split(parts, str, boost::is_any_of(delim));
+    const size_t EXPECTED_SIZE = 16;
+    if (parts.size() != EXPECTED_SIZE)
+      vw_throw( vw::IOErr() << "Error reading Control Measure, on line: " << str );
+
+    m_serialNumber    = parts[0];
+    m_date_time       = parts[1];
+    m_description     = parts[2];
+    m_chooserName     = parts[3];
+    m_col             = atof(parts[ 4].c_str());
+    m_row             = atof(parts[ 5].c_str());
+    m_col_sigma       = atof(parts[ 6].c_str());
+    m_row_sigma       = atof(parts[ 7].c_str());
+    m_diameter        = atof(parts[ 8].c_str());
+    m_focalplane_x    = atof(parts[ 9].c_str());
+    m_focalplane_y    = atof(parts[10].c_str());
+    m_ephemeris_time  = atof(parts[11].c_str());
+    m_image_id        = atoi(parts[12].c_str());
+    m_ignore          = atoi(parts[13].c_str());
+    m_pixels_dominant = atoi(parts[14].c_str());
+    m_type            = static_cast<ControlMeasureType>(atoi(parts[15].c_str()));
+  }
+
   ////////////////////////////
   // Control Point          //
   ////////////////////////////
@@ -357,16 +415,16 @@ namespace ba {
     // Writing out the string first
     f << m_id << char(0);
     // Writing the binary data
-    f.write((char*)&(m_ignore), sizeof(m_ignore));
+    f.write((char*)&(m_ignore),      sizeof(m_ignore));
     f.write((char*)&(m_position[0]), sizeof(m_position[0]));
     f.write((char*)&(m_position[1]), sizeof(m_position[1]));
     f.write((char*)&(m_position[2]), sizeof(m_position[2]));
-    f.write((char*)&(m_sigma[0]), sizeof(m_sigma[0]));
-    f.write((char*)&(m_sigma[1]), sizeof(m_sigma[1]));
-    f.write((char*)&(m_sigma[2]), sizeof(m_sigma[2]));
-    f.write((char*)&(m_type), sizeof(m_type));
+    f.write((char*)&(m_sigma[0]),    sizeof(m_sigma[0]));
+    f.write((char*)&(m_sigma[1]),    sizeof(m_sigma[1]));
+    f.write((char*)&(m_sigma[2]),    sizeof(m_sigma[2]));
+    f.write((char*)&(m_type),        sizeof(m_type));
     int size = m_measures.size();
-    f.write((char*)&(size), sizeof(size));
+    f.write((char*)&(size),          sizeof(size));
     // Rolling through the measures
     BOOST_FOREACH( ControlMeasure const& cm, m_measures )
       cm.write_binary( f );
@@ -386,7 +444,7 @@ namespace ba {
     f.read((char*)&(m_sigma[2]),    sizeof (m_sigma[2]));
     f.read((char*)&(m_type),        sizeof (m_type));
     int size;
-    f.read((char*)&(size),             sizeof (size));
+    f.read((char*)&(size),          sizeof (size));
     m_measures.clear();
     m_measures.reserve(size);
     // Reading in all the measures
@@ -396,7 +454,7 @@ namespace ba {
   }
 
   /// Write an isis style point
-  void ControlPoint::write_isis( std::ostream &f ) {
+  void ControlPoint::write_isis( std::ostream &f ) const {
     f << "  Object = ControlPoint\n";
     f << "    PointType = ";
     if ( m_type == ControlPoint::GroundControlPoint ) {
@@ -499,6 +557,57 @@ namespace ba {
     }
   }
 
+  /// Write a CSV style of point
+  void ControlPoint::write_csv( std::ostream &f ) const {
+    const std::string delimiter = ", ";
+
+    // Writing out the header on one line.
+    f << m_id << delimiter << (int)m_ignore << delimiter
+      << m_position[0] << delimiter << m_position[1] << delimiter << m_position[2] << delimiter
+      << m_sigma[0] << delimiter << m_sigma[1] << delimiter << m_sigma[2] << delimiter
+      << (int)m_type << delimiter << m_measures.size() << std::endl;
+
+    // Write each measure on its own line.
+    BOOST_FOREACH( ControlMeasure const& cm, m_measures ) {
+      cm.write_csv( f );
+      f << std::endl;
+    }
+  }
+
+  /// Reading a CSV style of point
+  void ControlPoint::read_csv( std::istream &f ) {
+
+    std::string str;
+    std::getline( f, str ); // Read in one line.
+
+    const std::string delim = ",";
+    std::vector<std::string> parts;
+    boost::split(parts, str, boost::is_any_of(delim));
+    const size_t EXPECTED_SIZE = 10;
+    if (parts.size() != EXPECTED_SIZE)
+      vw_throw( vw::IOErr() << "Error reading Control Point, on line: " << str );
+
+    int size;
+    m_id          = atoi(parts[0].c_str());
+    m_ignore      = atoi(parts[1].c_str());
+    m_position[0] = atof(parts[2].c_str());
+    m_position[1] = atof(parts[3].c_str());
+    m_position[2] = atof(parts[4].c_str());
+    m_sigma[0]    = atof(parts[5].c_str());
+    m_sigma[1]    = atof(parts[6].c_str());
+    m_sigma[2]    = atof(parts[7].c_str());
+    m_type        = static_cast<ControlPointType>(atoi(parts[8].c_str()));
+    size          = atoi(parts[9].c_str());
+
+    // Read in each of the control measures
+    m_measures.clear();
+    m_measures.reserve(size);
+    // Reading in all the measures
+    for ( int m = 0; m < size; m++ ) {
+      m_measures.push_back( ControlMeasure(f, FmtCsv) );
+    }
+  }
+
   ////////////////////////////
   // Control Network        //
   ////////////////////////////
@@ -573,7 +682,7 @@ namespace ba {
     vw_out() << "Writing: " << filename << std::endl;
     
     // Opening file
-    std::ofstream f( filename.c_str() );
+    std::ofstream f( filename.c_str(), std::ofstream::binary );
 
     // Writing out the strings first
     f << m_targetName << char(0) << m_networkId << char(0)
@@ -766,6 +875,131 @@ namespace ba {
     }
     f.close();
   }
+
+  /// Write a csv style control network
+  void ControlNetwork::write_csv( std::string filename ) const {
+
+    // Recording the modified time
+    m_modified = isis_style_time_string();
+
+    // Forcing file extension type
+    filename = filename.substr(0,filename.rfind("."));
+    filename += ".csv";
+
+    vw_out() << "Writing: " << filename << std::endl;
+    
+    // Opening file
+    std::ofstream f( filename.c_str() );
+
+    // Writing out the strings first
+    const std::string delimiter = ", ";
+    f << m_targetName << delimiter << m_networkId << delimiter
+      << m_created << delimiter << m_modified << delimiter
+      << m_description << delimiter << m_userName << delimiter
+      << (int)m_type << delimiter << m_control_points.size() << std::endl;
+
+    // Write each control point
+    BOOST_FOREACH( ControlPoint const& cp, m_control_points )
+      cp.write_csv( f );
+
+    f.close();
+  }
+
+  /// Reading a csv style control network
+  void ControlNetwork::read_csv( std::string const& filename ) {
+
+    // Opening file
+    std::ifstream f( filename.c_str() );
+    if ( !f.is_open() )
+      vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
+
+    std::string str;
+    std::getline( f, str ); // Read in one line.
+
+    const std::string delim = ",";
+    std::vector<std::string> parts;
+    boost::split(parts, str, boost::is_any_of(delim));
+    const size_t EXPECTED_SIZE = 8;
+    if (parts.size() != EXPECTED_SIZE)
+      vw_throw( vw::IOErr() << "Error reading Control Network, on line: " << str );
+
+    int size;
+    m_targetName  = parts[0];
+    m_networkId   = parts[1];
+    m_created     = parts[2];
+    m_modified    = parts[3];
+    m_description = parts[4];
+    m_userName    = parts[5];
+    m_type        = static_cast<ControlNetworkType>(atoi(parts[6].c_str()));
+    size          = atoi(parts[7].c_str());
+
+    // Clearing anything left in this control network
+    m_control_points.clear();
+    m_control_points.reserve( size );
+
+    // Reading in all the control points
+    for ( int p = 0; p < size; p++ )
+      m_control_points.push_back( ControlPoint( f, FmtCsv ) );
+
+    f.close();
+  }
+
+void ControlNetwork::write_in_gcp_format(std::string const& filename, cartography::Datum const& d) const{
+
+  const std::string UNSPECIFIED_DATUM = "unspecified_datum";
+  if (d.name() == UNSPECIFIED_DATUM)
+    vw_throw( ArgumentErr() << "FATAL: No datum was specified. "
+                            << "Cannot save control network as csv.\n" );
+
+  std::ofstream ofs(filename.c_str());
+  ofs.precision(18);
+
+  int count = 0;
+  for ( const_iterator iter = begin(); iter != end(); ++iter ) {
+
+    // If to dump only gcp
+    //if ( (*iter).type() != ControlPoint::GroundControlPoint ) continue;
+
+    count++;
+
+    // lon,lat,height
+    Vector3 llr = d.cartesian_to_geodetic((*iter).position());
+
+    // convert to lat,lon,height
+    std::swap(llr[0], llr[1]);
+
+    Vector3 sigma = (*iter).sigma();
+    for (size_t ipt = 0; ipt < sigma.size(); ipt++) {
+      if (sigma[ipt] <= 0)
+        sigma[ipt] = 1;
+    }
+    
+    ofs << count     << ' ' << llr  [0] << ' ' << llr  [1] << ' ' << llr[2] << ' ';
+    ofs << sigma[0]  << ' ' << sigma[1] << ' ' << sigma[2] << ' ';
+
+    for ( ControlPoint::const_iterator measure = (*iter).begin();
+          measure != (*iter).end(); ++measure ) {
+
+      if (measure->image_id() >= m_image_names.size())
+        vw_throw( ArgumentErr() << "ControlNetwork::write_in_gcp_format: Measure image ID "
+                                << measure->image_id() << " exceeds image count: " << m_image_names.size());
+
+      std::string image_name = m_image_names[measure->image_id()];
+      
+      ofs << image_name << ' '
+          << measure->position()[0] << ' ' << measure->position()[1] << ' '
+          << measure->sigma()[0]    << ' ' << measure->sigma()[1];
+
+      if ( measure+1 != (*iter).end())
+        ofs << ' ';
+      else
+        ofs << std::endl;
+    }
+  }
+  ofs.close();
+  return;
+}
+
 
   ////////////////////////////
   // Generic Ostream        //

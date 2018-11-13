@@ -18,6 +18,9 @@
 
 /// \file ControlNetwork.h
 ///
+/// This file contains useful classes storing bundle adjustment information.
+/// The classes are more complicated to give them some compatibility with
+/// the ISIS bundle adjustment tool.
 
 #ifndef __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__
 #define __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__
@@ -30,6 +33,7 @@
 
 // VW
 #include <vw/Math/Vector.h>
+#include <vw/Cartography/Datum.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -37,7 +41,10 @@
 namespace vw {
 namespace ba {
 
-  enum ControlStorageFmt { FmtBinary, FmtIsisPvl };
+  class ControlNetwork;
+
+  /// Possible ways to store a control network on disk.
+  enum ControlStorageFmt { FmtBinary, FmtIsisPvl, FmtCsv };
 
   /// A ControlMeasure identifies a pixel in an image that corresponds
   /// to a control point.  In addition to the location of the pixel, the
@@ -67,8 +74,8 @@ namespace ba {
     ///                      human.
     /// ValidatedAutomatic - Created by a computer and has been validated by
     ///                      a human.
-    enum ControlMeasureType { Unmeasured, Manual, Estimated, Automatic,
-                              ValidatedManual, ValidatedAutomatic };
+    enum ControlMeasureType { Unmeasured=0, Manual=1, Estimated=2, Automatic=3,
+                              ValidatedManual=4, ValidatedAutomatic=5 };
     ControlMeasureType m_type;
 
     /// Constructor
@@ -79,6 +86,7 @@ namespace ba {
       switch (fmt) {
         case FmtBinary:  this->read_binary(f); break;
         case FmtIsisPvl: this->read_isis(f);   break;
+        case FmtCsv:     this->read_csv(f);    break;
       }
     }
 
@@ -176,11 +184,17 @@ namespace ba {
     double ephemeris_time() const { return m_ephemeris_time; }
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
 
+    /// Get the image name associated with this point in a control network.
+    /// - Returns an empty string if there is no associated image name.
+    std::string get_image_name(ControlNetwork const& net) const;
+
     /// File I/O
     void read_binary ( std::istream& f );
     void read_isis   ( std::istream& f );
+    void read_csv    ( std::istream& f );
     void write_binary( std::ostream& f ) const;
     void write_isis  ( std::ostream& f ) const;
+    void write_csv   ( std::ostream& f ) const;
 
   }; // End class ControlMeasure
 
@@ -205,7 +219,7 @@ namespace ba {
   class ControlPoint {
 
     std::string m_id;
-    std::vector<ControlMeasure> m_measures;
+    std::vector<ControlMeasure> m_measures; ///< List of sightings of this point.
     bool    m_ignore;
     Vector3 m_position;
     Vector3 m_sigma;
@@ -229,6 +243,7 @@ namespace ba {
       switch (fmt) {
         case FmtBinary:  this->read_binary(f); break;
         case FmtIsisPvl: this->read_isis(f);   break;
+        case FmtCsv:     this->read_csv(f);    break;
       }
     }
 
@@ -261,7 +276,7 @@ namespace ba {
           ControlMeasure& operator[] (size_t index)       { return m_measures[index]; }
     const ControlMeasure& operator[] (size_t index) const { return m_measures[index]; }
 
-    /// Vector access methods
+    /// Accessors for the list of measures (sightings)
     void clear     ()                { m_measures.clear();           }
     void resize    (size_t sz)       { m_measures.resize( sz );      }
     size_t capacity()          const { return m_measures.capacity(); }
@@ -291,8 +306,10 @@ namespace ba {
     /// File I/O
     void read_binary ( std::istream& f );
     void read_isis   ( std::istream& f );
+    void read_csv    ( std::istream& f );
     void write_binary( std::ostream& f ) const;
-    void write_isis  ( std::ostream& f );
+    void write_isis  ( std::ostream& f ) const;
+    void write_csv   ( std::ostream& f ) const;
 
   }; // End class ControlPoint
 
@@ -306,7 +323,9 @@ namespace ba {
   /// - assoc. with image list/serial number
   ///
   class ControlNetwork {
+    /// 3D points, each with a list of observations.
     std::vector<ControlPoint> m_control_points;
+
     std::string m_targetName;         // Name of the target
     std::string m_networkId;          // Network Id
     std::string m_created;            // Creation Date
@@ -314,15 +333,30 @@ namespace ba {
     std::string m_description;        // Text description of network
     std::string m_userName;           // The user who created the network
 
+    // TODO: Incorporate these into the read/write functions!
+    /// Stores a list of image names in the order matching the image
+    ///  ID's stored in the control measures.
+    std::vector<std::string> m_image_names;
+
   public:
 
-    /// Iterators
+    /// Iterators through the list of points.
     typedef std::vector<ControlPoint>::iterator             iterator;
     typedef std::vector<ControlPoint>::const_iterator const_iterator;
           iterator begin()       { return m_control_points.begin(); }
           iterator end  ()       { return m_control_points.end  (); }
     const_iterator begin() const { return m_control_points.begin(); }
     const_iterator end  () const { return m_control_points.end  (); }
+
+    // Simple access to the image list.
+    std::vector<std::string>      & get_image_list()       {return m_image_names;}
+    std::vector<std::string> const& get_image_list() const {return m_image_names;}
+
+    /// Add a new image and return the index associated with it.
+    size_t add_image_name(std::string const& name) {
+      m_image_names.push_back(name);
+      return m_image_names.size()-1;
+    }
 
     /// Control Network Type
     ///
@@ -344,6 +378,7 @@ namespace ba {
       switch (fmt) {
         case FmtBinary:  this->read_binary(f); break;
         case FmtIsisPvl: this->read_isis(f);   break;
+        case FmtCsv:     this->read_csv(f);    break;
       }
     }
 
@@ -351,12 +386,10 @@ namespace ba {
     ControlNetworkType type() const { return m_type; }
     void set_type( ControlNetworkType type ) { m_type = type; }
 
-    /// Returns the number of control measures associated with this
-    /// control point.
+    /// Returns the number of 3D points in the control network.
     size_t size() const { return m_control_points.size(); }
 
-    /// Return the number of Control Points that are Ground Control
-    /// Points (GCPs)
+    /// Return the number of Control Points that are Ground Control Points (GCPs)
     size_t num_ground_control_points() const {
       if ( m_type != ControlNetwork::ImageToGround )
         return 0;
@@ -370,7 +403,7 @@ namespace ba {
     }
 
     /// Return the number of Control Points that are of the generic
-    /// image tie points
+    /// image tie points (not GCP's)
     size_t num_tie_points() const {
       size_t count=0;
       for (size_t i=0; i<this->size(); ++i) {
@@ -389,28 +422,31 @@ namespace ba {
     /// Remove the control point at the specified index.
     void delete_control_point(size_t index);
 
-    /// Access a specific control measure that is associated with this
-    /// control point.
+    /// Access a specific control point that is associated with this control network.
           ControlPoint& operator[] (size_t index)       { return m_control_points[index]; }
     const ControlPoint& operator[] (size_t index) const { return m_control_points[index]; }
 
-    /// Vector capacity interface
+    /// Vector access to the control points.
     void   clear   ()                { m_control_points.clear();           }
     void   resize  (size_t sz)       { m_control_points.resize(sz);        }
     size_t capacity()          const { return m_control_points.capacity(); }
     bool   empty   ()          const { return m_control_points.empty();    }
     void   reserve (size_t sz)       { m_control_points.reserve(sz);       }
 
-    /// Locate a control point that contains the control measure that
-    /// is equal to the query.  Returns this->size() if no match is
-    /// found.
+    /// Locate a control point that contains the control measure (sighting) that
+    /// is equal to the query.  Returns this->size() if no match is found.
     size_t find_measure(ControlMeasure const& query);
 
     /// File I/O
     void read_binary ( std::string const& filename );
     void read_isis   ( std::string const& filename );
+    void read_csv    ( std::string const& filename );
     void write_binary( std::string        filename ) const;
     void write_isis  ( std::string        filename );
+    void write_csv   ( std::string        filename ) const;
+
+    /// Write to a csv file in the same format used for ground control points.
+    void write_in_gcp_format( std::string const& filename, cartography::Datum const& d) const;
 
   }; // End class ControlNetwork
 
@@ -421,5 +457,8 @@ namespace ba {
                           std::vector< std::string >& tokens );
 
 }} // namespace vw::ba
+
+
+
 
 #endif // __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__

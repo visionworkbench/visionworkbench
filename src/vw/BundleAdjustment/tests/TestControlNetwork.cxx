@@ -81,7 +81,27 @@ TEST( ControlNetwork, Construction ) {
   ostr.clear();
   ostr << cnet;
   EXPECT_GT( ostr.str().size(), 100u );
+  
+  // Do some basic read/write checks.
+  std::string test_file = "temp_ControlNetwork.csv";
 
+  EXPECT_NO_THROW(cnet.write_csv(test_file));
+
+  ControlNetwork cnet_csv(test_file);
+  //cnet_csv.read_csv(test_file);
+  EXPECT_NO_THROW(cnet_csv.read_csv(test_file));
+
+  EXPECT_EQ(cnet.num_tie_points(),            cnet_csv.num_tie_points());
+  EXPECT_EQ(cnet.num_ground_control_points(), cnet_csv.num_ground_control_points());
+  
+  //EXPECT_NO_THROW(cnet_csv.write_in_gcp_format("cn_gcp_format.csv", cartography::Datum("WGS84")));
+  cnet_csv.add_image_name("image1.tif");
+  cnet_csv.add_image_name("image2.tif");
+  cnet_csv.add_image_name("image3.tif");
+  cnet_csv.add_image_name("image4.tif");
+  cnet_csv.write_in_gcp_format("cn_gcp_format.csv", cartography::Datum("WGS84"));
+  
+  
   // Check clearing
   cnet[0].clear();
   ASSERT_EQ( cnet[0].size(), 0u );

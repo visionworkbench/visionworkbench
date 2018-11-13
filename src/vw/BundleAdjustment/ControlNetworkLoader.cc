@@ -47,7 +47,7 @@ void safe_measurement( ip::InterestPoint& ip ) {
 double vw::ba::triangulate_control_point( ControlPoint& cp,
                                           std::vector<boost::shared_ptr<camera::CameraModel> >
                                           const& camera_models,
-					  double const& min_angle_radians ) {
+                                          double const& min_angle_radians ) {
   Vector3 position_sum;
   double error = 0, error_sum = 0;
   size_t count = 0;
@@ -61,14 +61,14 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
                  camera_models[k_cam_id]->camera_center( cp[k].position() ) ) > 1e-6 ) {
       try {
 
-	double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
+        double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
 
-	bool least_squares = false;
+        bool least_squares = false;
         stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
                                 camera_models[ k_cam_id ].get(), least_squares,
-				angle_tol );
+                                angle_tol );
 
-	Vector3 pt = sm( cp[j].position(), cp[k].position(), error );
+        Vector3 pt = sm( cp[j].position(), cp[k].position(), error );
         if (pt != Vector3() ){
           count++;
           position_sum += pt;
@@ -128,6 +128,7 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     image_prefix_map[file_path.replace_extension().string()] = count;
     crn.add_node( ba::CameraNode<ba::IPFeature>( count,
                                                  file_path.stem().string() ) );
+    cnet.add_image_name(file);
     count++;
   }
 
@@ -258,11 +259,12 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
 }
 
 void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
-				       std::vector<std::string> const& image_files,
-				       std::vector<std::string> const& gcp_files,
-				       cartography::Datum const& datum){
+                                       std::vector<std::string> const& gcp_files,
+                                       cartography::Datum const& datum){
   
   namespace fs = boost::filesystem;
+  
+  std::vector<std::string> const& image_files = cnet.get_image_list();
 
   // Creating a version of image_files that doesn't contain the path
   typedef std::map<std::string,size_t> LookupType;
@@ -303,10 +305,10 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       // First elements in the line are the point id, location in
       // the world, and its sigmas
       if (!(is >> point_id >> world_location[0] >> world_location[1]
-	    >> world_location[2] >> world_sigma[0]
-	    >> world_sigma[1] >> world_sigma[2])){
+            >> world_location[2] >> world_sigma[0]
+            >> world_sigma[1] >> world_sigma[2])){
         vw_out(WarningMessage) << "Could not parse a ground control point "
-			       << "from line: " << line << std::endl;
+                               << "from line: " << line << std::endl;
         continue;
       }
 
@@ -318,18 +320,18 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
             >> temp_loc[2] >> temp_loc[3]){
           if (temp_loc[2] <= 0 || temp_loc[3] <= 0) {
             vw_throw( ArgumentErr() << "Standard deviations must be positive "
-	                                  << "when loading ground control points." );
+                                    << "when loading ground control points." );
           }
           measure_locations.push_back( temp_loc );
           measure_cameras.push_back( temp_name );
         }else{
-	        break;
+                break;
         }
       }
 
       if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
         vw_throw( ArgumentErr() << "Standard deviations must be positive "
-		                            << "when loading ground control points." );
+                                            << "when loading ground control points." );
 
       // Make lat,lon into lon,lat
       std::swap(world_location[0], world_location[1]);
@@ -339,23 +341,23 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
       vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: " << xyz << std::endl;
       ControlPoint cpoint(ControlPoint::GroundControlPoint);
-      cpoint.set_position(xyz[0],xyz[1],xyz[2]);
-      cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
+      cpoint.set_position(xyz[0],         xyz[1],         xyz[2]        );
+      cpoint.set_sigma   (world_sigma[0], world_sigma[1], world_sigma[2]);
 
       // Adding measures
-      std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
+      std::vector<Vector4    >::iterator m_iter_loc  = measure_locations.begin();
       std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
       while ( m_iter_loc != measure_locations.end() ) {
         LookupType::iterator it = image_lookup.find(*m_iter_name);
         if ( it != image_lookup.end() ) {
           vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
-			            << " #" << it->second << std::endl;
+                                    << " #" << it->second << std::endl;
           ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
-		             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
+                             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
           cpoint.add_measure( cm );
         } else {
           vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
-			              << *m_iter_name << std::endl;
+                                      << *m_iter_name << std::endl;
         }
         m_iter_loc++;
         m_iter_name++;
