@@ -28,9 +28,6 @@ using namespace vw::ba;
 using namespace vw::test;
 
 TEST( ControlNetworkLoad, LoadingGCPNET ) {
-  std::vector<std::string> image_names;
-  image_names.push_back("image1");
-  image_names.push_back("image2");
 
   // Creating GCP net
   UnlinkName gcpnet("test.cnet");
@@ -72,8 +69,9 @@ TEST( ControlNetworkLoad, LoadingGCPNET ) {
   EXPECT_EQ( 1u, net.size() );
   EXPECT_EQ( 1u, gcpnets.size() );
 
-  add_ground_control_cnets( net, image_names,
-                            gcpnets.begin(), gcpnets.end() );
+  net.add_image_name("image1");
+  net.add_image_name("image2");
+  add_ground_control_cnets( net, gcpnets.begin(), gcpnets.end() );
 
   ASSERT_EQ( 2u, net.size() );
   EXPECT_EQ( ControlPoint::GroundControlPoint, net[1].type() );
@@ -82,18 +80,17 @@ TEST( ControlNetworkLoad, LoadingGCPNET ) {
 TEST( GCPLoad, LoadingGCP ) {
 
   ControlNetwork cnet("testing");
-  std::vector<std::string> image_files;
   std::vector<std::string> gcp_files;
   cartography::Datum datum;
 
-  image_files.push_back("170lo.tif");
-  image_files.push_back("171lo.tif");
-  image_files.push_back("172lo.tif");
-  image_files.push_back("173lo.tif");
-  image_files.push_back("174lo.tif");
+  cnet.add_image_name("170lo.tif");
+  cnet.add_image_name("171lo.tif");
+  cnet.add_image_name("172lo.tif");
+  cnet.add_image_name("173lo.tif");
+  cnet.add_image_name("174lo.tif");
   gcp_files.push_back("sample.gcp");
 
-  vw::ba::add_ground_control_points(cnet, image_files, gcp_files, datum);
+  vw::ba::add_ground_control_points(cnet, gcp_files, datum);
   EXPECT_EQ(27, cnet.size());
 }
 
