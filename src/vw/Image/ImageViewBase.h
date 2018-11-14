@@ -82,6 +82,14 @@ namespace vw {
     inline int32 rows  () const { return impl().rows();   }
     inline int32 planes() const { return impl().planes(); }
 
+    /// Return true if the pixel falls inside the image bounds.
+    bool pixel_in_bounds(int col, int row) const {
+      return ((col >= 0) && (row >= 0) && (col <= cols()-1) && (row <= rows()-1)); 
+    }
+    bool pixel_in_bounds(Vector2i pixel) const {
+      pixel_in_bounds(pixel[0], pixel[1]);
+    }
+
     /// Returns the format ID of the image's pixel type.
     inline PixelFormatEnum pixel_format() const { return PixelFormatID<typename ImplT::pixel_type>::value; }
 
@@ -111,7 +119,7 @@ namespace vw {
     ImageViewBase(ImageViewBase const&) {}
     ImageViewBase& operator=(ImageViewBase const&) { return *this; }
     /// \endcond
-  };
+  }; // End class ImageViewBase
 
 
   // *******************************************************************
