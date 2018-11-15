@@ -87,7 +87,7 @@ namespace vw {
       return ((col >= 0) && (row >= 0) && (col <= cols()-1) && (row <= rows()-1)); 
     }
     bool pixel_in_bounds(Vector2i pixel) const {
-      pixel_in_bounds(pixel[0], pixel[1]);
+      return pixel_in_bounds(pixel[0], pixel[1]);
     }
 
     /// Returns the format ID of the image's pixel type.
