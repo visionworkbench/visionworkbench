@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file ImageComposte.h
+/// \file ImageComposite.h
 ///
 /// A view class that represents a composite mosaic of images.
 ///
@@ -327,9 +327,8 @@ namespace vw { namespace mosaic {
         );
       
       // Write the current image.
-      cartography::GeoReference sub_georef;
       if (has_georef)
-        sub_georef = resample(georef, sub_scale);
+        georef = resample(georef, sub_scale);
 
       // If the file exists, and has the right size, and is not too old,
       // don't write it again
@@ -341,7 +340,7 @@ namespace vw { namespace mosaic {
         TerminalProgressCallback tpc("vw", ": ");
         vw_out() << "Writing: " << curr_file << std::endl;
         try{
-          cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
+          cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
                       has_nodata, m_nodata_val, opt, tpc);
         }catch(...){
           vw_out() << "Failed to write: " << curr_file << "\n";
@@ -350,7 +349,7 @@ namespace vw { namespace mosaic {
                     unmasked.cols(), unmasked.rows());
           if (will_write) {
             vw_out() << "Writing: " << curr_file << std::endl;
-            cartography::block_write_gdal_image(curr_file, unmasked, has_georef, sub_georef,
+            cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
                   has_nodata, m_nodata_val, opt, tpc);
           }
         }
