@@ -179,16 +179,18 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
 
   // Make a copy of the model
   boost::shared_ptr<LensDistortion> dist_copy = input_distortion->copy();
-  DistModelT new_model = *((DistModelT*)(dist_copy.get()));
+  DistModelT* new_model = dynamic_cast<DistModelT*>(dist_copy.get()); // Child class access to dist_copy
+  if (new_model == NULL) 
+    vw_throw( ArgumentErr() << "PinholeModel::expecting an " + DistModelT::class_name() + " model." );
 
   // Set the new undistortion params
-  new_model.set_undistortion_parameters(undist_params);
-  new_model.set_image_size(image_size);
+  new_model->set_undistortion_parameters(undist_params);
+  new_model->set_image_size(image_size);
   
   // Check the error
   double diff = 0;
   for (size_t i=0; i < distorted_coords.size(); ++i) {
-    Vector2 undistorted        = new_model.undistorted_coordinates(pin_model, distorted_coords[i]);
+    Vector2 undistorted        = new_model->undistorted_coordinates(pin_model, distorted_coords[i]);
     Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
     //std::cout << "New: " << undistorted << " ---- Actual: " << actual_undistorted
     //          << " error: " << norm_2(undistorted - actual_undistorted) << std::endl;
@@ -198,7 +200,7 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   vw_out() << DistModelT::class_name() << " undistortion approximation mean error: "
            << diff << ".\n";
   
-  pin_model.set_lens_distortion(new_model);
+  pin_model.set_lens_distortion(new_model); // Set updated distortion model
   return diff;
 } 
   
@@ -351,7 +353,7 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
              << "using the original (slow) model.\n";
   else {
 
-    pin_model.set_lens_distortion(new_model);
+    pin_model.set_lens_distortion(&new_model);
 
     // This must be invoked here, when we know the image size
     if (new_model.name() == RPCLensDistortion::class_name()) 

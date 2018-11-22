@@ -41,8 +41,7 @@ TEST( PinholeModel, StandardConstruct ) {
   PinholeModel pinhole( Vector3(0,0,0), // camera center
                         pose,           // camera pose
                         500,500,        // fx, fy
-                        500,500,        // cx, cy
-                        NullLensDistortion());
+                        500,500);       // cx, cy
 
   EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,0,10)),
                      Vector2(500,500), 1e-6);
@@ -70,11 +69,10 @@ TEST( PinholeModel, CoordinateFrame ) {
   PinholeModel pinhole( Vector3(0,0,0), // camera center
                         pose,           // camera pose
                         500,500,        // fx, fy
-                        500,500,
+                        500,500,        // cx, cy
                         Vector3(0, 1, 0),
                         Vector3(1, 0, 0),
-                        Vector3(0, 0, -1),
-                        NullLensDistortion());       // cx, cy
+                        Vector3(0, 0, -1));
 
   EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,0,-10)),
                      Vector2(500,500), 1e-5);
@@ -89,16 +87,17 @@ TEST( PinholeModel, CoordinateFrame ) {
 }
 
 TEST( PinholeModel, TsaiDistortion ) {
+  TsaiLensDistortion lens(Vector<double, TsaiLensDistortion::num_distortion_params>
+                          (-0.2805362343788147,
+                          0.1062035113573074,
+                          -0.0001422458299202845,
+                          0.00116333004552871));
   // Create an imaginary 1000x1000 pixel imager
   PinholeModel pinhole( Vector3(0,0,0),                 // camera center
                         math::identity_matrix<3>(),     // camera pose
                         500,500,                        // fx, fy
                         500,500,                        // cx, cy
-                        TsaiLensDistortion(Vector<double, TsaiLensDistortion::num_distortion_params>
-					   (-0.2805362343788147,
-					    0.1062035113573074,
-					    -0.0001422458299202845,
-					    0.00116333004552871)));
+                        &lens);
   const LensDistortion* distortion = pinhole.lens_distortion();
 
 #if defined(VW_HAVE_PKG_LAPACK)
@@ -116,6 +115,11 @@ TEST( PinholeModel, TsaiDistortion ) {
 
 TEST( PinholeModel, ScalePinhole ) {
   Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
+  TsaiLensDistortion lens(Vector<double, TsaiLensDistortion::num_distortion_params>
+                          (-0.2796604335308075,
+                            0.1031486615538597,
+                            -0.0007824968779459596,
+                            0.0009675505571067333));
   PinholeModel pinhole4(Vector3(-0.329, 0.065, -0.82),
                         rot,
                         605.320556640625,
@@ -125,11 +129,7 @@ TEST( PinholeModel, ScalePinhole ) {
                         Vector3(1, 0, 0),
                         Vector3(0, -1, 0),
                         Vector3(0, 0, 1),
-                        TsaiLensDistortion(Vector<double, TsaiLensDistortion::num_distortion_params>
-					   (-0.2796604335308075,
-					    0.1031486615538597,
-					    -0.0007824968779459596,
-					    0.0009675505571067333)));
+                        &lens);
   PinholeModel scaled = scale_camera(pinhole4, .1);
 
   Vector3 point = Vector3(2,-1,1) +
@@ -150,15 +150,13 @@ TEST( PinholeModel, ProjectiveMatrix ) {
   // Create an imaginary 1000x1000 pixel imager
   PinholeModel control_pinhole( Vector3(0,4,-10),
                                 pose, 600, 700,
-                                500, 500,
-                                NullLensDistortion() );
+                                500, 500);
 
   // Make solve control camera (w/ random input for now)
   pose.set_identity();
   PinholeModel solved_pinhole( Vector3(-5,-2,5),
                                pose, 833, 544,
-                               400, 700,
-                               NullLensDistortion() );
+                               400, 700);
 
   // Create Measurements used to solve for camera matrix
   std::vector<Vector<double> > world_m, image_m;
@@ -274,12 +272,12 @@ TEST_F( PinholeTest, NullLensDistortion ) {
 }
 
 TEST_F( PinholeTest, TsaiLensDistortion ) {
-  pinhole.set_lens_distortion(TsaiLensDistortion
-                                (Vector<double, TsaiLensDistortion::num_distortion_params>
-                                 (-0.2796604335308075,
-                                   0.1031486615538597,
-                                  -0.0007824968779459596,
-                                   0.0009675505571067333) ) );
+  TsaiLensDistortion lens(Vector<double, TsaiLensDistortion::num_distortion_params>
+                          (-0.2796604335308075,
+                            0.1031486615538597,
+                          -0.0007824968779459596,
+                            0.0009675505571067333) );
+  pinhole.set_lens_distortion(&lens);
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif
@@ -288,14 +286,14 @@ TEST_F( PinholeTest, TsaiLensDistortion ) {
 }
 
 TEST_F( PinholeTest, BrownConradyDistortion ) {
-  pinhole.set_lens_distortion(
-    BrownConradyDistortion(Vector2(-0.6,-0.2),
-                           Vector3(.1336185e-8,
-                                   -0.5226175e-12,
-                                   0),
-                           Vector2(.5495819e-9,
-                                   0),
-                           0.201) );
+  BrownConradyDistortion lens(Vector2(-0.6,-0.2),
+                              Vector3(.1336185e-8,
+                                      -0.5226175e-12,
+                                      0),
+                              Vector2(.5495819e-9,
+                                      0),
+                              0.201);
+  pinhole.set_lens_distortion(&lens);
 #if defined(VW_HAVE_PKG_LAPACK)
   projection_test(1e-4);
 #endif
@@ -311,8 +309,8 @@ TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
   distort_coeff[3] = -2.98092556225311e-05;  // p1
   distort_coeff[4] = -1.339089765674149e-05; // p2
   distort_coeff[5] = -1.221974557659228e-05; // alpha = skew
-  pinhole.set_lens_distortion(
-     AdjustableTsaiLensDistortion( distort_coeff ) );
+  AdjustableTsaiLensDistortion lens(distort_coeff);
+  pinhole.set_lens_distortion(&lens);
 #if defined(VW_HAVE_PKG_LAPACK)
   projection_test(1e-4);
 #endif

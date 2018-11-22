@@ -36,8 +36,7 @@ TEST( AdjustedCameraModel, StandardConstruct ) {
       new PinholeModel( Vector3(0,0,0), // camera center
                         pose,           // camera pose
                         500,500,        // fx, fy
-                        500,500,        // cx, cy
-                        NullLensDistortion()) );
+                        500,500) );     // cx, cy
 
   AdjustedCameraModel adjcam( pinhole );
   EXPECT_STREQ( "Adjusted", adjcam.type().c_str() );
@@ -68,8 +67,7 @@ TEST( AdjustedCameraModel, AdjustedConstruct ) {
       new PinholeModel( Vector3(0,0,0), // camera center
                         pose,           // camera pose
                         500,500,        // fx, fy
-                        500,500,        // cx, cy
-                        NullLensDistortion()) );
+                        500,500) );     // cx, cy
 
   AdjustedCameraModel adjcam( pinhole, Vector3(1,0,0), Quat(1,0,0,0) );
   EXPECT_VECTOR_NEAR( Vector3(1,0,0), adjcam.camera_center(Vector2()) -

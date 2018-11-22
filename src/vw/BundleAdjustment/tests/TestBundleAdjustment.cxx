@@ -137,10 +137,10 @@ inline void generate_camera_data( std::vector<boost::shared_ptr<PinholeModel> > 
                                                             1.4,"xyz");
 
   cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(-10,-12,20), pose1, 600, 600, 500, 500) ) );
-  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(-17,19,22), pose2, 600, 600, 500, 500) ) );
-  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(0,0,19), pose3, 500, 450, 500, 500) ) );
-  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(21,-17,21), pose1, 600, 600, 500, 500) ) );
-  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(12,10,18), pose2, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(-17, 19,22), pose2, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(  0,  0,19), pose3, 500, 450, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3( 21,-17,21), pose1, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3( 12, 10,18), pose2, 600, 600, 500, 500) ) );
 
   BBox2i image(0,0,1000,1000);
   cnet = boost::shared_ptr<ControlNetwork>( new ControlNetwork("Test case:") );

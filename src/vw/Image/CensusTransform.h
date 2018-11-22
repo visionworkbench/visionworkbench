@@ -50,13 +50,6 @@ inline uint64 get_census_value_ternary_5x5(ImageView<uint8> const& image, int co
 inline uint64 get_census_value_ternary_7x7(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
 inline uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int row, int diff_threshold=2);
 
-// TODO: Consolidate with code in Matcher.h!
-
-/// Simple, unoptimized code for computing the hamming distance of two integers.
-inline size_t hamming_distance(uint8  a, uint8  b);
-inline size_t hamming_distance(uint16 a, uint16 b);
-inline size_t hamming_distance(uint32 a, uint32 b);
-inline size_t hamming_distance(uint64 a, uint64 b);
 
 // If we need a function to compute the costs of an entire image, this is a good
 //  location for it!

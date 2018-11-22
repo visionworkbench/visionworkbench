@@ -76,48 +76,37 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                            double f_u, double f_v, double c_u, double c_v,
                            Vector3 u_direction, Vector3 v_direction,
                            Vector3 w_direction,
-                           LensDistortion const& distortion_model,
-                           double pixel_pitch) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                 m_camera_center(camera_center),  
+                           LensDistortion const* distortion_model,
+                           double pixel_pitch) : m_camera_center(camera_center),  
                                                  m_rotation(rotation),
                                                  m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                  m_u_direction(u_direction),
                                                  m_v_direction(v_direction),
                                                  m_w_direction(w_direction),
                                                  m_pixel_pitch(pixel_pitch) {
+  if (distortion_model)
+    m_distortion = distortion_model->copy();
+  else
+    m_distortion = DistortPtr(new NullLensDistortion);
   this->rebuild_camera_matrix();
 }
 
 PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                            double f_u, double f_v, double c_u, double c_v,
-                           LensDistortion const& distortion_model,
-                           double pixel_pitch) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                 m_camera_center(camera_center),
+                           LensDistortion const* distortion_model,
+                           double pixel_pitch) : m_camera_center(camera_center),
                                                  m_rotation(rotation),
                                                  m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                  m_u_direction(Vector3(1,0,0)),
                                                  m_v_direction(Vector3(0,1,0)),
                                                  m_w_direction(Vector3(0,0,1)),
                                                  m_pixel_pitch(pixel_pitch) {
+  if (distortion_model)
+    m_distortion = distortion_model->copy();
+  else
+    m_distortion = DistortPtr(new NullLensDistortion);
   rebuild_camera_matrix();
 }
-
-
-/// Construct a basic pinhole model with no lens distortion
-PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
-                           double f_u, double f_v,
-                           double c_u, double c_v,
-                           double pixel_pitch) : m_distortion(DistortPtr(new NullLensDistortion)),
-                                                 m_camera_center(camera_center),
-                                                 m_rotation(rotation),
-                                                 m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                                 m_u_direction(Vector3(1,0,0)),
-                                                 m_v_direction(Vector3(0,1,0)),
-                                                 m_w_direction(Vector3(0,0,1)),
-                                                 m_pixel_pitch(pixel_pitch) {
-  rebuild_camera_matrix();
-}
-
 
 
 void PinholeModel::read(std::string const& filename) {
@@ -440,8 +429,9 @@ Vector3 PinholeModel::coordinate_frame_v_direction() const { return m_v_directio
 Vector3 PinholeModel::coordinate_frame_w_direction() const { return m_w_direction; }
 
 const LensDistortion* PinholeModel::lens_distortion() const { return m_distortion.get(); };
-void PinholeModel::set_lens_distortion(LensDistortion const& distortion) {
-  m_distortion = distortion.copy();
+
+void PinholeModel::set_lens_distortion(LensDistortion const* distortion) {
+  m_distortion = distortion->copy();
 }
 
 void PinholeModel::intrinsic_parameters(double& f_u, double& f_v,
@@ -604,7 +594,7 @@ PinholeModel scale_camera(PinholeModel const& camera_model, double scale) {
                        camera_model.coordinate_frame_u_direction(),
                        camera_model.coordinate_frame_v_direction(),
                        camera_model.coordinate_frame_w_direction(),
-                       *lens,
+                       lens.get(),
                        camera_model.pixel_pitch()/scale);
 }
 
@@ -619,7 +609,7 @@ PinholeModel strip_lens_distortion(PinholeModel const& camera_model) {
                       camera_model.coordinate_frame_u_direction(),
                       camera_model.coordinate_frame_v_direction(),
                       camera_model.coordinate_frame_w_direction(),
-                      distortion, camera_model.pixel_pitch());
+                      &distortion, camera_model.pixel_pitch());
 }
 
 
@@ -669,14 +659,15 @@ void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
   double  pixel_pitch  = (src_camera0.pixel_pitch () + src_camera1.pixel_pitch ()) / 2.0;
 
   // Set up the two output cameras.  Everything is the same except the positions.
+  NullLensDistortion lens;
   dst_camera0 = PinholeModel(center0, new_rot,
                              focal_length [0], focal_length [1],
                              point_offset[0], point_offset[1],
-                             pixel_pitch);
+                             &lens, pixel_pitch);
   dst_camera1 = PinholeModel(center1, new_rot,
                              focal_length [0], focal_length [1],
                              point_offset[0], point_offset[1],
-                             pixel_pitch);
+                             &lens, pixel_pitch);
 }
 
 

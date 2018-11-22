@@ -155,7 +155,7 @@ namespace camera {
                  double f_u, double f_v, double c_u, double c_v,
                  Vector3 u_direction, Vector3 v_direction,
                  Vector3 w_direction,
-                 LensDistortion const& distortion_model,
+                 LensDistortion const* distortion_model = 0,
                  double pixel_pitch = 1.0);
 
     /// Initialize the pinhole model with explicit parameters.
@@ -186,13 +186,7 @@ namespace camera {
     ///
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v, double c_u, double c_v,
-                 LensDistortion const& distortion_model,
-                 double pixel_pitch = 1.0);
-
-    /// Construct a basic pinhole model with no lens distortion
-    PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
-                 double f_u, double f_v,
-                 double c_u, double c_v,
+                 LensDistortion const* distortion_model = 0,
                  double pixel_pitch = 1.0);
 
     virtual std::string type() const { return "Pinhole"; }
@@ -254,8 +248,8 @@ namespace camera {
     Vector3 coordinate_frame_v_direction() const;
     Vector3 coordinate_frame_w_direction() const;
 
-    const LensDistortion* lens_distortion() const;
-    void set_lens_distortion(LensDistortion const& distortion);
+    LensDistortion const* lens_distortion() const;
+    void set_lens_distortion(LensDistortion const* distortion); // Makes a copy
 
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units

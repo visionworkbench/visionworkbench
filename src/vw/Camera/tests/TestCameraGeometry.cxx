@@ -37,7 +37,7 @@ protected:
     Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
     pinhole = PinholeModel( Vector3(-1,4,2),
                             pose, 600, 700,
-                            500, 500, NullLensDistortion() );
+                            500, 500);
 
     // Building measurements
     boost::minstd_rand random_gen(42u);
@@ -47,6 +47,7 @@ protected:
     for ( uint8 i = 0; i < 50; i++ ) {
       world_m.push_back( Vector4( generator(), generator(),
                                   generator() + 60.0, 1.0 ) );
+      //world_m.push_back( Vector4( i, i, i + 60.0, 1.0 ) );
       subvector(world_m.back(),0,3) = inverse(pose)*subvector(world_m.back(),0,3);
       Vector2 pixel = pinhole.point_to_pixel( subvector(world_m.back(),0,3) );
       image_m.push_back( Vector3( pixel[0], pixel[1], 1.0 ) );
@@ -80,6 +81,9 @@ TEST_F( CameraGeometryTest, LinearSolve ) {
   ASSERT_EQ( P.rows(), 3u );
   ASSERT_EQ( P.cols(), 4u );
 
+  std::cout << "LinearSolve Matrix P = " << P << std::endl;
+
+  
   for ( uint8 i = 0; i < 10; i++ ) {
     Vector3 p_result = P*noisy_world_m[i];
     p_result /= p_result[2];
@@ -100,15 +104,21 @@ TEST_F( CameraGeometryTest, IteratorSolve ) {
                                  noisy_image_m );
   ASSERT_EQ( P.rows(), 3u );
   ASSERT_EQ( P.cols(), 4u );
+  
+  std::cout << "IteratorSolve Matrix P = " << P << std::endl;
 
   for ( uint8 i = 0; i < 10; i++ ) {
     Vector3 p_result = P*world_m[i];
     p_result /= p_result[2];
     Vector2 cam_result =
       pinhole.point_to_pixel(subvector(world_m[i],0,3));
+    std::cout << "world_m[i] = " << world_m[i] << std::endl;
+    std::cout << "p_result = " << p_result << std::endl;
+    std::cout << "cam_result = " << cam_result << std::endl;
     EXPECT_VECTOR_NEAR( subvector(p_result,0,2),
                         cam_result, 20); //
   }
+//  EXPECT_FALSE(true);
 }
 
 TEST_F( CameraGeometryTest, DISABLED_RansacSolve ) {
@@ -168,13 +178,11 @@ protected:
     pinhole1 = PinholeModel( Vector3(), 
                              Matrix3x3(1,0,0,0,0,1,0,-1,0),
                              700, 700, 640, 480, Vector3(1,0,0),
-                             Vector3(0,1,0), Vector3(0,0,1),
-                             NullLensDistortion() );
+                             Vector3(0,1,0), Vector3(0,0,1));
     pinhole2 = PinholeModel( Vector3(-.7,-.7,0),
                              Matrix3x3(1,0,0,0,0,1,0,-1,0)*math::rotation_y_axis(M_PI/6),
                              700, 700, 640, 480, Vector3(1,0,0),
-                             Vector3(0,1,0), Vector3(0,0,1),
-                             NullLensDistortion() );
+                             Vector3(0,1,0), Vector3(0,0,1));
 
     // Getting measurements
     // - Project each hard coded world point to a pixel

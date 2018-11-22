@@ -47,7 +47,7 @@ TEST( CAHVModel, PinholeConversion ) {
   double f = 4210 * pixel_pitch;
   double c = 0;
   PinholeModel pinhole( Vector3( -57.315, 13.2, -106.947 ),
-                        pose, f, f, c, c, pixel_pitch );
+                        pose, f, f, c, c, 0, pixel_pitch );
 
   CAHVModel test_a(pinhole); // One routine
   CAHVModel test_b;
