@@ -48,6 +48,8 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/BlockImageOperator.h>
+#include <vw/Image/EdgeExtension.h>
 
 namespace vw {
 
@@ -439,8 +441,121 @@ namespace vw {
                                 double low_percentile=0.02, double high_percentile=0.98,
                                 int num_bins=256);
 
-#include <vw/Image/Statistics.tcc>
+  
+  
+  
+  
+  
+  
+  
+  
+  // TODO: Does this already exist somewhere in the code?
+  /// An adapter to let a functor handle a single channel image mask.
+  template <class AccumT>
+  class SingleChannelAccumulator {
+    AccumT * m_functor;
+  public:
+    
+    SingleChannelAccumulator(AccumT* ptr) : m_functor(ptr) {}
+    
+    template <class ArgT>
+    void operator()( ArgT const& pix ) {
+      if ( is_valid(pix) )
+        m_functor->operator()(remove_mask(pix));
+    }
+  };
 
+  // TODO: Replace!
+  template <typename T>
+  struct PixelCollector {
+    std::vector<T> m_vec;
+    
+    void operator()(T p) {
+      m_vec.push_back(p);
+    }
+  };
+  
+  /// Thread safe functor to accumulate CDF results on multiple single channel images.
+  /// - A CDF is computed for each image and they are then merged together.
+  template<typename T>
+  class ParallelCdfFunctor {
+
+    typedef vw::math::CDFAccumulator<T> CdfType;
+
+    CdfType * m_cdf_ptr;
+    int m_subsample_amt;
+    Mutex  m_mutex;
+
+  public:
+
+    /// Constructor takes a pointer to the CDF object that will be populated.
+    ParallelCdfFunctor(CdfType* ptr, int subsample_amt=1)
+      : m_cdf_ptr(ptr), m_subsample_amt(subsample_amt) {}
+
+    /// Process an image and incorporate it into the input CDF object.
+    template <class ImageT>
+    void operator()(ImageView<ImageT> const& image, BBox2i const& bbox) {
+
+      // Compute a CDF on just this input image.
+      //CdfType local_cdf;
+      //SingleChannelAccumulator<CdfType> accumulator(&local_cdf);
+
+      // TODO: The CDF class cannot merge properly, so use this alternative
+      //       method until it is fixed!
+      
+      typedef PixelCollector<float> PC; // TOD: Fix type!
+      PC pixel_accum;
+      float est_num_pixels = (image.rows()/m_subsample_amt)*(image.cols()/m_subsample_amt);
+      pixel_accum.m_vec.reserve(int(est_num_pixels * 1.2));
+      SingleChannelAccumulator<PC> accumulator(&pixel_accum);
+      
+      for_each_pixel( subsample( edge_extend(image, ConstantEdgeExtension()),
+                                 m_subsample_amt ),
+                      accumulator);
+      // Merge the local CDF with the main CDF.
+      m_mutex.lock();
+      /*
+      std::cout << "\nBLOCK val =";
+      std::cout << "\nval = " << local_cdf.quantile(0);
+      std::cout << "\nval = " << local_cdf.quantile(1); // Max
+      std::cout << "\nval = " << local_cdf.approximate_mean();
+      std::cout << "\nval = " << local_cdf.approximate_stddev();
+      std::cout << "\nval = " << local_cdf.quantile(0.02); // Percentile values
+      std::cout << "\nval = " << local_cdf.quantile(0.98) << std::endl;
+      */
+      //m_cdf_ptr->operator()(local_cdf);  // TODO: Fix this!
+      for (size_t i=0; i<pixel_accum.m_vec.size(); ++i)
+        m_cdf_ptr->operator()(pixel_accum.m_vec[i]);
+      /*
+      std::cout << "\nNEW val =";
+      std::cout << "\nval = " << m_cdf_ptr->quantile(0);
+      std::cout << "\nval = " << m_cdf_ptr->quantile(1); // Max
+      std::cout << "\nval = " << m_cdf_ptr->approximate_mean();
+      std::cout << "\nval = " << m_cdf_ptr->approximate_stddev();
+      std::cout << "\nval = " << m_cdf_ptr->quantile(0.02); // Percentile values
+      std::cout << "\nval = " << m_cdf_ptr->quantile(0.98) << std::endl;*/
+      m_mutex.unlock();
+    }
+  }; // End class ParallelCdfFunctor
+  
+
+  /// Compute the CDF of an image using multiple threads.
+  /// - The CDF object must be "fresh" when passed to this function.
+  /// - Consider initializing the CDFAccumulator object with a large buffer.
+  template <class ViewT>
+  void block_cdf_computation(ImageViewBase<ViewT> const& image,
+                             math::CDFAccumulator<float> &cdf,
+                             int      subsample_amt = 1,
+                             Vector2i block_size    = Vector2i(256,256)) {
+    // Set up the functor, then execute it in parallel.
+    ParallelCdfFunctor<float> cdf_functor(&cdf, subsample_amt);
+
+    // No need for a cache since each tile will be visited only once.
+    block_op(image, cdf_functor, block_size);
+  }
+
+
+#include <vw/Image/Statistics.tcc>
 
 }  // namespace vw
 

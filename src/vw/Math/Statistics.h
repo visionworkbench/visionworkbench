@@ -101,6 +101,9 @@ public:
   /// Function to merge to CDFs
   void operator()( CDFAccumulator<ValT>& other );
 
+  /// Make this object an exact copy of the other object
+  void duplicate(CDFAccumulator<ValT> const& other);
+  
   /// Extract a percentile
   ValT quantile( double const& arg ) const;
 

@@ -221,16 +221,16 @@ template <class ValT>
 void CDFAccumulator<ValT>::correct_pdf_integral_to_1( std::vector<double> const& quantile,
                                                       std::vector<double> & pdf,
                                                       double additional_scalar ) {
-  double pdf_error =
-    trapezoidal_rule( quantile.begin(), quantile.end(),
-                      pdf.begin() );
+
+  double pdf_error = trapezoidal_rule( quantile.begin(), quantile.end(), pdf.begin() );
+
   const double MAX_PDF_ERROR = 0.01;
   if ( pdf_error >= 1.0 - MAX_PDF_ERROR ) {
     double correction = (1.0 / pdf_error) * additional_scalar;
     for ( size_t i = 0; i < pdf.size(); i++ )
       pdf[i] *= correction;
   } else {
-    vw_throw( MathErr() << "CDFMathAccumuator: pdf_error < 0.99!" );
+    vw_throw( MathErr() << "CDFMathAccumulator: pdf_error < 0.99: " << pdf_error );
   }
 }
 
@@ -348,6 +348,14 @@ void CDFAccumulator<ValT>::operator()( ValT const& arg ) {
 
 template <class ValT>
 void CDFAccumulator<ValT>::operator()( CDFAccumulator<ValT>& other ) {
+  
+  // If this is an empty object we need duplicate the other CDF.
+  // -> This not be the ideal behavior but the code below will throw an exception.
+  if (m_num_samples == 0) {
+    duplicate(other);
+    return;
+  }
+  
   update();
   other.update();
 
@@ -448,6 +456,27 @@ void CDFAccumulator<ValT>::operator()( CDFAccumulator<ValT>& other ) {
     }
   }
   m_num_samples += other.m_num_samples;
+}
+
+template <class ValT>
+void CDFAccumulator<ValT>::duplicate(CDFAccumulator<ValT> const& other) {
+  
+  m_num_quantiles = other.m_num_quantiles;
+  m_buffer_idx    = other.m_buffer_idx;
+  m_num_samples   = other.m_num_samples;
+
+  m_cdf.resize(other.m_cdf.size());
+  for (size_t i=0; i<m_cdf.size(); ++i)
+    m_cdf[i] = other.m_cdf[i];
+  m_sample_buf.resize(other.m_sample_buf.size());
+  for (size_t i=0; i<m_sample_buf.size(); ++i)
+    m_sample_buf[i] = other.m_sample_buf[i];
+  m_quantile.resize(other.m_quantile.size());
+  for (size_t i=0; i<m_quantile.size(); ++i)
+    m_quantile[i] = other.m_quantile[i];
+
+  m_q0 = other.m_q0;
+  m_qm = other.m_qm;
 }
 
 template <class ValT>

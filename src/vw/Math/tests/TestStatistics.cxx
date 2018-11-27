@@ -133,7 +133,8 @@ TEST(Statistics, CDF_Merge ) {
   boost::variate_generator<boost::mt19937&, boost::normal_distribution<double> > generator1( random_gen, norm1 );
   boost::variate_generator<boost::mt19937&, boost::normal_distribution<double> > generator2( random_gen, norm2 );
 
-  CDFAccumulator<double> cdf1, cdf2, cdf3;
+  CDFAccumulator<double> cdf0, cdf1, cdf2, cdf3;
+  // 0 is not updated.
   // 1 will only see gen1 .. but will later be merged with 2.
   // 2 will only see gen2
   // 3 is our control and sees both gen1 and gen2;
@@ -155,4 +156,12 @@ TEST(Statistics, CDF_Merge ) {
   EXPECT_NEAR( cdf1.third_quartile(), cdf3.third_quartile(), 0.01 );
   EXPECT_NEAR( cdf1.approximate_mean(),
                cdf3.approximate_mean(), 0.01 );
+
+  // Check that this works for an unused CDF object.
+  cdf0(cdf1);
+  EXPECT_NEAR( cdf1.median(), cdf0.median(), 0.01 );
+
+  // Test the duplication function
+  cdf0.duplicate(cdf2);
+  EXPECT_NEAR( cdf2.median(), cdf0.median(), 0.01 );
 }

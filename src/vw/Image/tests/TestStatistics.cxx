@@ -526,3 +526,45 @@ TEST( Statistics, OptimalThreshold ) {
   double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)
   EXPECT_NEAR(t, t0, 1e-15);
 }
+
+
+
+
+
+TEST(BlockOperations, CDF) {
+
+  const Vector2i block_size(128, 128);
+  int sumsample_amount = 1;
+
+  // Generate a test image.
+  size_t real_count = 0;
+  const int size = 256;
+  ImageView<uint8> image(size,size);
+  for (int i=0; i<size; ++i) {
+    for (int j=0; j<size; ++j) {
+      uint8 value = i % 10;
+      image(i,j) = value;
+    }
+  }
+
+  // Compute the CDF in using a single thread.
+  ChannelAccumulator<vw::math::CDFAccumulator<float> > normal_cdf;
+  for_each_pixel( subsample( edge_extend(image, ConstantEdgeExtension()),
+                             sumsample_amount ),
+                  normal_cdf );
+
+  // Compute the CDF in parallel.
+  vw::math::CDFAccumulator<float> parallel_cdf;
+  block_cdf_computation(image, parallel_cdf, sumsample_amount, block_size);
+
+  // Check results.
+  const float EPS = 0.0001;
+  EXPECT_NEAR(normal_cdf.quantile(0),          parallel_cdf.quantile(0), EPS);
+  EXPECT_NEAR(normal_cdf.quantile(1),          parallel_cdf.quantile(1), EPS);
+  EXPECT_NEAR(normal_cdf.approximate_mean  (), parallel_cdf.approximate_mean  (), EPS);
+  EXPECT_NEAR(normal_cdf.approximate_stddev(), parallel_cdf.approximate_stddev(), EPS);
+  EXPECT_NEAR(normal_cdf.quantile(0.02),       parallel_cdf.quantile(0.02), EPS);
+  EXPECT_NEAR(normal_cdf.quantile(0.98),       parallel_cdf.quantile(0.98), EPS);
+  
+  EXPECT_TRUE(false);
+}
