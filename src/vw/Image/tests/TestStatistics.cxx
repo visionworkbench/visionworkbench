@@ -538,7 +538,7 @@ TEST(BlockOperations, CDF) {
 
   // Generate a test image.
   size_t real_count = 0;
-  const int size = 256;
+  const int size = 512;
   ImageView<uint8> image(size,size);
   for (int i=0; i<size; ++i) {
     for (int j=0; j<size; ++j) {
