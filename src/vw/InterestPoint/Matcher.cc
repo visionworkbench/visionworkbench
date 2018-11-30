@@ -202,6 +202,11 @@ namespace ip {
     return out_prefix + "-" + name1 + "__" + name2 + ".match";
   }
 
+  std::string ip_filename(std::string const& out_prefix,
+                          std::string const& input_file) {
+    return out_prefix + "-" + strip_path(out_prefix, input_file) + ".vwip";
+  }
+  
   void ip_filenames(std::string const& out_prefix,
                     std::string const& input_file1,
                     std::string const& input_file2,

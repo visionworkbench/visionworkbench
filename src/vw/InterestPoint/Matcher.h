@@ -233,13 +233,9 @@ namespace ip {
                              std::string const& input_file1,
                              std::string const& input_file2);
 
-  /// The names of IP files.
-  void ip_filenames(std::string const& out_prefix,
-                    std::string const& input_file1,
-                    std::string const& input_file2,
-                    std::string      & output_ip1,
-                    std::string      & output_ip2);
-
+  /// The name of an IP file.
+  std::string ip_filename(std::string const& out_prefix,
+                          std::string const& input_file);
 
 //==========================================================================
 // Fuction Definitions

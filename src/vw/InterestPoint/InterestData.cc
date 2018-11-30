@@ -105,8 +105,21 @@ namespace ip {
 
     std::ifstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
+    if ( !f.is_open() )
+      vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
 
-    // Error Handling
+    uint64 size;
+    f.read((char*)&size, sizeof(uint64));
+    for (size_t i = 0; i < size; ++i)
+      result.push_back( read_ip_record(f) );
+    f.close();
+    return result;
+  }
+  InterestPointList read_binary_ip_file_list(std::string ip_file) {
+    InterestPointList result;
+
+    std::ifstream f;
+    f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
 

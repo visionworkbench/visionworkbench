@@ -187,7 +187,8 @@ namespace ip {
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
   void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
-  std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
+  std::vector<InterestPoint> read_binary_ip_file     (std::string ip_file);
+  InterestPointList          read_binary_ip_file_list(std::string ip_file);
 
   // Routines for reading & writing interest point match files
   void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
