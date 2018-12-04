@@ -61,6 +61,7 @@ namespace mosaic {
     PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) 
       : m_cols(cols), m_rows(rows), image(image), bbox(bbox) {}
 
+    /// ?
     PositionedImage reduce() const {
       const int border = 1;
 
@@ -153,6 +154,7 @@ namespace mosaic {
       std::vector<PositionedImage<channel_type> > masks;
     };
 
+    /// ?
     class SourceGenerator {
       ImageViewRef<pixel_type> m_source;
     public:
@@ -227,24 +229,32 @@ namespace mosaic {
 
     void generate_masks( ProgressCallback const& progress_callback ) const;
 
+    /// Generates a full-resolution patch of the mosaic corresponding
+    /// to the given bounding box.
     ImageView<pixel_type> blend_patch( BBox2i const& patch_bbox ) const;
+
+    // Generates a full-resolution patch of the mosaic corresponding
+    // to the given bounding box WITHOUT blending.
     ImageView<pixel_type> draft_patch( BBox2i const& patch_bbox ) const;
 
   public:
     typedef pixel_type result_type;
 
-    ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_reuse_masks(false), m_cache(vw_system_cache()) {}
+    ImageComposite() : m_draft_mode (false), m_fill_holes(false),
+                       m_reuse_masks(false), m_cache(vw_system_cache()) {}
 
     void insert( ImageViewRef<pixel_type> const& image, int x, int y );
 
     void prepare( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
     void prepare( BBox2i const& total_bbox, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
 
+    /// Generate a section of the output image.
     ImageView<pixel_type> generate_patch( BBox2i const& patch_bbox ) const {
       if( m_draft_mode ) return draft_patch( patch_bbox );
       else return blend_patch( patch_bbox );
     }
 
+    /// If draft mode is on no image blending is performed.
     void set_draft_mode (bool draft_mode ) { m_draft_mode = draft_mode; }
 
     void set_fill_holes (bool fill_holes ) { m_fill_holes = fill_holes; }
@@ -466,7 +476,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
                                                bbox_pyr[l-1].min().y() / 2 ),
                                      Vector2i( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
                                                bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
-    sum_pyr[l] = ImageView<pixel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
+    sum_pyr [l] = ImageView<pixel_type  >( bbox_pyr[l].width(), bbox_pyr[l].height() );
     msum_pyr[l] = ImageView<channel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
   }
 
@@ -501,8 +511,8 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
     unsigned p = *ili;
     boost::shared_ptr<Pyramid> pyr = pyramids[p];
     for( int l=0; l<levels; ++l ) {
-      pyr->images[l].addto( sum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
-      pyr->masks[l].addto( msum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
+      pyr->images[l].addto( sum_pyr [l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
+      pyr->masks [l].addto( msum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
     }
     pyramids[p].release();
   }
@@ -568,7 +578,8 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox2i co
     if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
     BBox2i bbox = patch_bbox;
     bbox.crop( bboxes[p] );
-    PositionedImage<pixel_type> image( view_bbox.width(), view_bbox.height(), crop(sourcerefs[p],bbox-bboxes[p].min()), bbox );
+    PositionedImage<pixel_type> image( view_bbox.width(), view_bbox.height(),
+                                       crop(sourcerefs[p],bbox-bboxes[p].min()), bbox );
     image.addto( composite, patch_bbox.min().x(), patch_bbox.min().y(), true );
   }
 
