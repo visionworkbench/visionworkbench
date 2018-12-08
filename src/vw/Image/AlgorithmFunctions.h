@@ -68,9 +68,14 @@ namespace vw {
   ///  and horizontal centerlines of and image.
   /// - For images which are regular with no large holes this can work
   ///   better than using grassfire weights.
+  /// - fill_holes will assign a normal weight to holes in the image interior.
+  /// - use_min_weight creates more of a rectangular instead of a
+  ///   circular weight pattern.
   template <class ImageT>
   void centerline_weights( ImageT const& src, ImageView<double>& weights,
-                           BBox2i roi=BBox2i(), bool fill_holes = false );
+                           BBox2i roi=BBox2i(), bool fill_holes = false,
+                           bool use_min_weight=false );
+
 
   // *******************************************************************
   // bounding_box()

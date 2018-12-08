@@ -177,8 +177,7 @@ inline double compute_line_weights(Vector2 const& pix, bool horizontal,
 // If fill_holes is true, this will return positive weights inside holes.
 template<class ImageT>
 void centerline_weights(ImageT const& img, ImageView<double> & weights,
-                        BBox2i roi, bool fill_holes){
-
+                         BBox2i roi, bool fill_holes, bool use_min_weight){
   int numRows = img.rows();
   int numCols = img.cols();
 
@@ -207,18 +206,19 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
   for (int row = 0 ; row < numRows; row++) {
     for (int col = 0; col < numCols; col++) {
 
-      if ( !is_valid(img(col,row)) ) continue;
-      
+      if ( !is_valid(img(col,row)) )
+        continue;
+
       // Record the first and last valid column in each row
       if (col < minValInRow[row]) minValInRow[row] = col;
       if (col > maxValInRow[row]) maxValInRow[row] = col;
-      
+
       // Record the first and last valid row in each column
       if (row < minValInCol[col]) minValInCol[col] = row;
       if (row > maxValInCol[col]) maxValInCol[col] = row;   
     }
   }
-  
+
   // For each row, record central column and the column width
   for (int row = 0; row < numRows; row++) {
     hCenterLine   [row] = (minValInRow[row] + maxValInRow[row])/2.0;
@@ -244,7 +244,7 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
   // Compute the weighting for each pixel in the image
   weights.set_size(output_bbox.width(), output_bbox.height());
   fill(weights, 0);
-  
+
   for (int row = output_bbox.min().y(); row < output_bbox.max().y(); row++){
     for (int col = output_bbox.min().x(); col < output_bbox.max().x(); col++){
       Vector2 pix(col, row);
@@ -252,14 +252,17 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
       if (is_valid(img(col,row)) || fill_holes) {
         double weight_h = compute_line_weights(pix, true,  hCenterLine, hMaxDistArray);
         double weight_v = compute_line_weights(pix, false, vCenterLine, vMaxDistArray);
-        new_weight = weight_h*weight_v;
+        if (use_min_weight)
+          new_weight = std::min(weight_h, weight_v);
+        else
+          new_weight = weight_h*weight_v;
       }
       weights(col-output_bbox.min().x(), row-output_bbox.min().y()) = new_weight;
-      
+
     }
   }
 
-} // End function weights_from_centerline
+} // End function centerline_weights
 
 
 
