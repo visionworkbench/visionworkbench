@@ -23,8 +23,21 @@
 #include <sstream>
 #include <iostream>
 
-using namespace vw;
-using namespace vw::camera;
+
+std::ostream& vw::camera::operator<<(std::ostream& ostr,
+                                     vw::camera::AdjustedCameraModel const& cam ) {
+  ostr.precision(18);
+  ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
+       << " Rot:          " << cam.m_rotation
+       << " Pixel offset: " << cam.m_pixel_offset
+       << " Scale:        " << cam.m_scale
+       << " Cam:          " << cam.m_camera->type() << ")\n";
+  return ostr;
+}
+
+
+namespace vw {
+namespace camera {
 
 Quaternion<double>
 CameraModel::camera_pose(Vector2 const& pix) const {
@@ -175,21 +188,10 @@ void AdjustedCameraModel::read(std::string const& filename) {
     this->set_scale(scale);
 }
 
-std::ostream& camera::operator<<(std::ostream& ostr,
-                                 AdjustedCameraModel const& cam ) {
-  ostr.precision(18);
-  ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
-       << " Rot:          " << cam.m_rotation
-       << " Pixel offset: " << cam.m_pixel_offset
-       << " Scale:        " << cam.m_scale
-       << " Cam:          " << cam.m_camera->type() << ")\n";
-  return ostr;
-}
+CameraModel* unadjusted_model(CameraModel * cam){
 
-vw::camera::CameraModel* vw::camera::unadjusted_model(vw::camera::CameraModel * cam){
-
-  vw::camera::AdjustedCameraModel *acam
-    = dynamic_cast<vw::camera::AdjustedCameraModel*>(cam);
+  AdjustedCameraModel *acam
+    = dynamic_cast<AdjustedCameraModel*>(cam);
 
   if (acam != NULL)
     return acam->unadjusted_model().get();
@@ -197,13 +199,111 @@ vw::camera::CameraModel* vw::camera::unadjusted_model(vw::camera::CameraModel * 
   return cam;
 }
 
-const vw::camera::CameraModel* vw::camera::unadjusted_model(const vw::camera::CameraModel * cam){
+const CameraModel* unadjusted_model(const CameraModel * cam){
 
-  const vw::camera::AdjustedCameraModel *acam
-    = dynamic_cast<const vw::camera::AdjustedCameraModel*>(cam);
+  const AdjustedCameraModel *acam
+    = dynamic_cast<const AdjustedCameraModel*>(cam);
 
   if (acam != NULL)
     return acam->unadjusted_model().get();
 
   return cam;
 }
+
+//================================================================================================
+// Ray correction functions
+
+
+Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
+                                        Vector3 const& camera_velocity,
+                                        double mean_earth_radius,
+                                        Vector3 const& uncorrected_vector) {
+  
+  // 1. Find the distance from the camera to the first
+  // intersection of the current ray with the Earth surface.
+  double  earth_ctr_to_cam = norm_2(camera_center);
+  double  cam_angle_cos    = dot_prod(uncorrected_vector, -normalize(camera_center));
+  double  len_cos          = earth_ctr_to_cam*cam_angle_cos;
+  double  earth_rad        = mean_earth_radius;
+  double  cam_to_surface   = len_cos - sqrt(earth_rad*earth_rad
+                                            + len_cos*len_cos
+                                            - earth_ctr_to_cam*earth_ctr_to_cam);
+  // 2. Account for Earth's rotation  
+  const double SECONDS_PER_DAY = 86164.0905;
+  Vector3 earth_rotation_vec(0.0, 0.0, 2*M_PI/SECONDS_PER_DAY);
+  Vector3 cam_vel_corr = camera_velocity
+    - cam_to_surface * cross_prod(earth_rotation_vec, uncorrected_vector);
+  return cam_vel_corr;
+}
+
+
+Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
+                                             Vector3 const& camera_velocity,
+                                             double         mean_earth_radius,
+                                             Vector3 const& uncorrected_vector) {
+
+  // 1. Correct the camera velocity due to the fact that the Earth
+  // rotates around its axis.
+  Vector3 cam_vel_corr1 = get_rotation_corrected_velocity(camera_center, camera_velocity,
+                                                          mean_earth_radius, uncorrected_vector);
+
+  // 2. Find the component of the camera velocity orthogonal to the
+  // direction the camera is pointing to.
+  Vector3 cam_vel_corr2 = cam_vel_corr1
+    - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
+
+  // 3. Correct direction for velocity aberration due to the speed of light.
+  const double LIGHT_SPEED = 299792458.0;
+  Vector3 corrected_vector = uncorrected_vector - cam_vel_corr2/LIGHT_SPEED;
+  return normalize(corrected_vector);
+}
+
+
+/// Compute the ray correction for atmospheric refraction using the 
+///  Saastamoinen equation.
+double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha) {
+
+  const double METERS_PER_KM = 1000.0;
+  double H      = camera_alt / METERS_PER_KM; // In kilometers
+  double h      = ground_alt / METERS_PER_KM; // Height of target point over surface in km
+  double h_diff = H - h;
+  double p1     = (2335.0 / h_diff)*pow(1.0 - 0.02257*h, 5.256);
+  double p2     = pow(0.8540, H-11.0) * (82.2 - 521.0/h_diff);
+  double K      = (p1 - p2) * pow(10.0,-6.0);
+
+  double delta_alpha = K * tan(alpha);
+  return delta_alpha;
+}
+
+Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
+                                                double         mean_earth_radius,
+                                                double         mean_surface_elevation,
+                                                Vector3 const& uncorrected_vector) {
+  // Correct for atmospheric refraction
+  // - From Saastamoinen, J. (1972), Atmospheric correction for the 
+  //   troposphere and stratosphere in radio ranging of satellites.
+
+  // Get some information
+  vw::Vector3 cam_ctr_norm     = normalize(camera_center);
+  vw::Vector3 cam_to_earth_center_unit = -1.0 * cam_ctr_norm;
+  double  earth_ctr_to_cam     = norm_2(camera_center);   // Distance in meters from cam to earth center
+  double  cam_to_earth_surface = earth_ctr_to_cam - mean_earth_radius;
+
+  // Compute angle alpha and correction angle
+  vw::Vector3 u     = normalize(uncorrected_vector);
+  double      alpha = acos(dot_prod(cam_to_earth_center_unit,u)); // Both get angle of normalized vectors.
+
+  // There are more sophisticated correction methods but this one is simple and does help.
+  double delta_alpha = saastamoinen_atmosphere_correction(cam_to_earth_surface,
+                                                          mean_surface_elevation, alpha);
+
+  // Rotate the vector by delta_alpha
+  vw::Vector3 rotation_axis = normalize(cross_prod(u, cam_to_earth_center_unit));
+  vw::Quaternion<double> refraction_rotation(rotation_axis, delta_alpha);
+  vw::Vector3 u_prime = refraction_rotation.rotate(u);
+
+  return u_prime;
+}
+
+} // End namespace camera
+} // End namespace vw

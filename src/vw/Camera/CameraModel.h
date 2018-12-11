@@ -208,6 +208,9 @@ namespace camera {
 
   std::ostream& operator<<(std::ostream&, AdjustedCameraModel const&);
 
+  //-------------------------------------------------------------------------------------
+  // Helper functions
+
   // If this is an adjusted model, get the unadjusted one.
         CameraModel* unadjusted_model(      CameraModel * cam);
   const CameraModel* unadjusted_model(const CameraModel * cam);
@@ -228,6 +231,34 @@ namespace camera {
   }
 
 
+  //========================================================================================
+  // Ray correction functions
+
+  // WARNING: These currently only work for Earth!
+
+  /// Returns the velocity corrected to account for the planetary rotation.
+  /// - For efficiency, requires the uncorrected look vector at this location.
+  Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
+                                          Vector3 const& camera_velocity,
+                                          double         mean_earth_radius,
+                                          Vector3 const& uncorrected_vector);
+
+  /// Account for velocity aberration.
+  /// - Set earth_rotation_in_velocity if the camera velocity already includes
+  ///   correction for the Earth's rotation.
+  Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
+                                               Vector3 const& camera_velocity,
+                                               double         mean_earth_radius,
+                                               Vector3 const& uncorrected_vector);
+
+  /// Simple atmospheric atmospheric correction method.
+  double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha);
+
+  /// Account for atmospheric refraction.
+  Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
+                                                  double         mean_earth_radius,
+                                                  double         mean_surface_elevation,
+                                                  Vector3 const& uncorrected_vector);
 
 }} // namespace vw::camera
 

@@ -147,24 +147,6 @@ namespace camera {
     /// Returns the radius of the Earth under the current camera position.
     double get_earth_radius() const;
 
-    /// Returns the velocity corrected to account for the planetary rotation.
-    /// - For efficiency, requires the uncorrected look vector at this location.
-    virtual Vector3 get_rotation_corrected_velocity(Vector2 const& pixel,
-                                                    Vector3 const& uncorrected_vector) const;
-  
-    /// Account for velocity aberration.
-    /// - Set earth_rotation_in_velocity if the camera velocity already includes
-    ///   correction for the Earth's rotation.
-    Vector3 apply_velocity_aberration_correction(Vector2 const& pixel,
-                                                 Vector3 const& uncorrected_vector) const;
-
-    /// Simple atmospheric atmospheric correction method.
-    static double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha);
-
-    /// Account for atmospheric refraction.
-    Vector3 apply_atmospheric_refraction_correction(Vector2 const& pixel,
-                                                    Vector3 const& uncorrected_vector) const;
-
   }; // End class LinescanModel
   
 /*
