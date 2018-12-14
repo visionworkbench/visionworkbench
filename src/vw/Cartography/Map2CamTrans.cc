@@ -29,10 +29,12 @@ namespace vw { namespace cartography {
                               GeoReference const& dem_georef,
                               std::string const& dem_file,
                               vw::Vector2i const& image_size,
-                              bool call_from_mapproject):
+                              bool call_from_mapproject,
+                              bool nearest_neighbor):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem(dem_file), m_image_size(image_size),
-    m_call_from_mapproject(call_from_mapproject), m_has_nodata(false),
+    m_call_from_mapproject(call_from_mapproject), 
+    m_nearest_neighbor(nearest_neighbor), m_has_nodata(false),
     m_nodata(std::numeric_limits<double>::quiet_NaN()){
 
     boost::shared_ptr<vw::DiskImageResource>
@@ -58,6 +60,8 @@ namespace vw { namespace cartography {
     }
 
     int b = BicubicInterpolation::pixel_buffer;
+    if (m_nearest_neighbor)
+      b = NearestPixelInterpolation::pixel_buffer;
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
@@ -117,7 +121,10 @@ namespace vw { namespace cartography {
     // box, and if in doubt, better expand more rather than less.
     dbox.expand(1);
     m_dem_cache_box = grow_bbox_to_int(dbox);
-    m_dem_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interp
+    if (m_nearest_neighbor)
+      m_dem_cache_box.expand(NearestPixelInterpolation::pixel_buffer); // for interp
+    else
+      m_dem_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interp
     m_dem_cache_box.crop(bounding_box(m_dem));
 
     // Read the dem in memory for speed in the region of the expanded bounding box.
@@ -129,7 +136,10 @@ namespace vw { namespace cartography {
       m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
     }
     // Set up interpolation interface to the data we loaded into memory
-    m_interp_dem = interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
+    if (m_nearest_neighbor)
+      m_interp_dem = interpolate(m_masked_dem, NearestPixelInterpolation(), ZeroEdgeExtension());
+    else
+      m_interp_dem = interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
 
   } // End function cache_dem
 
@@ -148,7 +158,11 @@ namespace vw { namespace cartography {
 
     m_img_cache_box = BBox2i();
     BBox2i local_cache_box = bbox;
-    local_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
+    if (m_nearest_neighbor)
+      local_cache_box.expand(NearestPixelInterpolation::pixel_buffer); // for interpolation
+    else
+      local_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
+    
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
     for( int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
@@ -164,8 +178,12 @@ namespace vw { namespace cartography {
     // Must happen after all calls to reverse finished.
     m_img_cache_box = local_cache_box;
 
-    m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
-                                      BicubicInterpolation(), ZeroEdgeExtension());
+    if (m_nearest_neighbor)
+      m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
+                                        NearestPixelInterpolation(), ZeroEdgeExtension());
+    else
+      m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
+                                        BicubicInterpolation(), ZeroEdgeExtension());
 
     // Need the check below as to not try to create images with
     // negative dimensions.
@@ -175,7 +193,7 @@ namespace vw { namespace cartography {
     m_cached_rv_box = out_box;
     return m_cached_rv_box;
   }
-
+/*
   std::ostream& operator<<( std::ostream& os, Map2CamTrans const& trans ) {
     std::ostringstream oss; // To use custom precision
     oss.precision(17);
@@ -183,5 +201,73 @@ namespace vw { namespace cartography {
     os << oss.str();
     return os;
   }
+*/
+//=======================================================================
+  
 
+  Datum2CamTrans::Datum2CamTrans( camera::CameraModel const* cam,
+                                  GeoReference const& image_georef,
+                                  GeoReference const& dem_georef,
+                                  float dem_height,
+                                  Vector2i const& image_size,
+                                  bool call_from_mapproject,
+                                  bool nearest_neighbor):
+    m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
+    m_dem_height(dem_height), m_image_size(image_size),
+    m_call_from_mapproject(call_from_mapproject),
+    m_nearest_neighbor(nearest_neighbor){
+
+    m_invalid_pix = camera::CameraModel::invalid_pixel();
+  }
+
+  Vector2 Datum2CamTrans::reverse(const Vector2 &p) const{
+
+    Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
+    Vector3 lonlatAlt(lonlat[0], lonlat[1], m_dem_height);
+    Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian(lonlatAlt);
+    
+    int b = BicubicInterpolation::pixel_buffer;
+    if (m_nearest_neighbor)
+      b = NearestPixelInterpolation::pixel_buffer;
+    Vector2 pt;
+    try{
+      pt = m_cam->point_to_pixel(xyz);
+      if ( m_call_from_mapproject &&
+          (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
+          ){
+        // Won't be able to interpolate into image in transform(...)
+        return m_invalid_pix;
+      }
+    }catch(...){ // If a point failed to project
+      return m_invalid_pix;
+    }
+
+    return pt;
+  }
+
+  BBox2i Datum2CamTrans::reverse_bbox( BBox2i const& bbox ) const {
+
+    BBox2 out_box;      
+    for( int32 y=bbox.min().y(); y<bbox.max().y(); ++y ){
+      for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x ){
+      
+        Vector2 p = reverse( Vector2(x,y) );
+        if (p == m_invalid_pix) 
+          continue;
+        out_box.grow( p );
+      }
+    }
+    out_box = grow_bbox_to_int( out_box );
+
+    // Need the check below as to not try to create images with negative dimensions.
+    if (out_box.empty())
+      out_box = BBox2i(0, 0, 0, 0);
+
+    return out_box;
+  }
+
+
+  
+  
 }} // namespace vw::cartography

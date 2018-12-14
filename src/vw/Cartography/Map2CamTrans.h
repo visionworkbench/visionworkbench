@@ -44,46 +44,74 @@ namespace vw { namespace camera{
 
 namespace vw { namespace cartography {
 
-  class Map2CamTrans : public vw::TransformBase<Map2CamTrans> {
-    vw::camera::CameraModel const* m_cam;
-    GeoReference m_image_georef, m_dem_georef;
-    vw::DiskImageView<float> m_dem;
-    vw::Vector2i m_image_size;
-    bool         m_call_from_mapproject;
-    bool         m_has_nodata;
-    double       m_nodata;
-    Vector2      m_invalid_pix;
+  class Map2CamTrans : public TransformBase<Map2CamTrans> {
+    camera::CameraModel const* m_cam;
+    GeoReference         m_image_georef, m_dem_georef;
+    DiskImageView<float> m_dem;
+    Vector2i             m_image_size;
+    bool                 m_call_from_mapproject, m_nearest_neighbor;
+    bool                 m_has_nodata;
+    double               m_nodata;
+    Vector2              m_invalid_pix;
 
 
     // We will always be modifying these
-    mutable vw::BBox2i                         m_dem_cache_box;
-    mutable vw::ImageView<float>               m_cropped_dem;
+    mutable BBox2i                             m_dem_cache_box;
+    mutable ImageView<float>                   m_cropped_dem;
     mutable ImageViewRef< PixelMask<float> >   m_masked_dem;
     mutable ImageViewRef< PixelMask<float> >   m_interp_dem;
     mutable ImageView<Vector2>                 m_cache;
     mutable ImageViewRef< PixelMask<Vector2> > m_cache_interp_mask;
-    mutable vw::BBox2i                         m_img_cache_box;
-    mutable vw::BBox2i                         m_cached_rv_box;
+    mutable BBox2i                             m_img_cache_box;
+    mutable BBox2i                             m_cached_rv_box;
 
   public:
-    Map2CamTrans( vw::camera::CameraModel const* cam,
+    Map2CamTrans( camera::CameraModel const* cam,
                   GeoReference const& image_georef,
                   GeoReference const& dem_georef,
                   std::string  const& dem_file,
-                  vw::Vector2i const& image_size,
-                  bool call_from_mapproject
-                  );
+                  Vector2i     const& image_size,
+                  bool                call_from_mapproject,
+                  bool                nearest_neighbor = false); // Default is bicubic
 
     /// Convert Map Projected Coordinate to camera coordinate
-    vw::Vector2 reverse(const vw::Vector2 &p) const;
+    Vector2 reverse(const Vector2 &p) const;
 
     // Not thread safe ... you must copy this object
-    void       cache_dem   ( vw::BBox2i const& bbox ) const;
-    vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
-  };
-  
-  std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
+    void       cache_dem   ( BBox2i const& bbox ) const;
+    BBox2i reverse_bbox( BBox2i const& bbox ) const;
+  }; // End class Map2CamTrans
 
+  //std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
+
+
+
+  /// Variant of Map2CamTrans that accepts a constant elevation instead of a DEM.
+  class Datum2CamTrans : public TransformBase<Map2CamTrans> {
+    camera::CameraModel const* m_cam;
+    GeoReference m_image_georef, m_dem_georef;
+    float        m_dem_height;
+    Vector2i m_image_size;
+    bool         m_call_from_mapproject, m_nearest_neighbor;
+    Vector2      m_invalid_pix;
+
+  public:
+    Datum2CamTrans( camera::CameraModel const* cam,
+                    GeoReference const& image_georef,
+                    GeoReference const& dem_georef,
+                    float               dem_height,
+                    Vector2i     const& image_size,
+                    bool                call_from_mapproject,
+                    bool                nearest_neighbor = false ); // Default is bicubic
+
+    /// Convert Map Projected pixel to camera pixel
+    Vector2 reverse(const Vector2 &p) const;
+
+    BBox2i reverse_bbox( BBox2i const& bbox ) const;
+  }; // End class Datum2CamTrans
+
+
+  
 
 }} // namespace vw::cartography
 
