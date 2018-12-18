@@ -616,10 +616,17 @@ RPCLensDistortion::undistortion_parameters() const {
 }
 
 void RPCLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  if (params.size() != num_distortion_params) 
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  // If the distortion parameters changed, one cannot undistort until the undistortion
+  // coefficients are computed.
+  for (size_t it = 0; it < num_distortion_params; it++) {
+    if (m_distortion[it] != params[it]) {
+      m_can_undistort = false;
+      break;
+    }
+  }
   m_distortion = params;
-  m_can_undistort = false; // Need to update the undistortion
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << "RPCLensDistortion: Incorrect number of parameters was passed in.");
 }
 
 void RPCLensDistortion::set_undistortion_parameters(Vector<double> const& params) {
@@ -807,10 +814,17 @@ RPCLensDistortion5::undistortion_parameters() const {
 }
 
 void RPCLensDistortion5::set_distortion_parameters(Vector<double> const& params) {
+  if (params.size() != num_distortion_params) 
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  // If the distortion parameters changed, one cannot undistort until the undistortion
+  // coefficients are computed.
+  for (size_t it = 0; it < num_distortion_params; it++) {
+    if (m_distortion[it] != params[it]) {
+      m_can_undistort = false;
+      break;
+    }
+  }
   m_distortion = params;
-  m_can_undistort = false; // Need to update the undistortion
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << "RPCLensDistortion5: Incorrect number of parameters was passed in.");
 }
 
 void RPCLensDistortion5::set_undistortion_parameters(Vector<double> const& params) {
@@ -997,7 +1011,7 @@ void RPCLensDistortion5::read(std::istream & is) {
   read_param_vec("distortion_coeffs", num_distortion_params, is, m_distortion);
   read_param_vec("undistortion_coeffs", num_distortion_params, is, m_undistortion);
 
-  m_can_undistort = true; 
+  m_can_undistort = true;
 }
 
 void RPCLensDistortion5::scale( double scale ) {
@@ -1031,10 +1045,17 @@ RPCLensDistortion6::undistortion_parameters() const {
 }
 
 void RPCLensDistortion6::set_distortion_parameters(Vector<double> const& params) {
+  if (params.size() != num_distortion_params) 
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  // If the distortion parameters changed, one cannot undistort until the undistortion
+  // coefficients are computed.
+  for (size_t it = 0; it < num_distortion_params; it++) {
+    if (m_distortion[it] != params[it]) {
+      m_can_undistort = false;
+      break;
+    }
+  }
   m_distortion = params;
-  m_can_undistort = false; // Need to update the undistortion
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << "RPCLensDistortion6: Incorrect number of parameters was passed in.");
 }
 
 void RPCLensDistortion6::set_undistortion_parameters(Vector<double> const& params) {

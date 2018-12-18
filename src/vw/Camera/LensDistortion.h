@@ -271,7 +271,10 @@ namespace camera {
     void init_distortion_param_names();
   };
   
-
+  // TODO: This family of RPC distortion classes must be unified with
+  // a shared base class. Tests need to be developed before any of
+  // this takes place.
+  
   // RPC lens distortion, ratio of polynomials of degree 4 with certain coeffcients.
   // Note that undistortion is done analogously using a second set of coefficients.
   // The function compute_undistortion() which also has access to the Pinhole
