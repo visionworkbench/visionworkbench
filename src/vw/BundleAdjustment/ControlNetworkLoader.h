@@ -99,15 +99,17 @@ namespace ba {
           if ( it != image_lookup.end() )
             cm.set_image_id(it->second);
           else
-            vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+            vw_out(WarningMessage,"ba") << "No input image found matching "
                                         << cm.serial() << std::endl;
         }
 
         if ( failed_to_index )
           continue;
         cp.set_type( ControlPoint::GroundControlPoint );
-        cnet.add_control_point(cp);
-        vw_out(DebugMessage,"ba") << "\t\tAdded GCP: " << cp.position() << "\n";
+        if (cp.size() > 0) {
+          cnet.add_control_point(cp);
+          vw_out(DebugMessage,"ba") << "\t\tAdded GCP: " << cp.position() << "\n";
+        }
       }
 
       gcpcnet_start++;

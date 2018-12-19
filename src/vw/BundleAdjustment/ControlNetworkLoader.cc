@@ -356,15 +356,17 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                              (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
           cpoint.add_measure( cm );
         } else {
-          vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+          vw_out(WarningMessage,"ba") << "No input image found matching "
                                       << *m_iter_name << std::endl;
         }
         m_iter_loc++;
         m_iter_name++;
       }
 
-      // Appended GCP
-      cnet.add_control_point(cpoint);
+      // Append the GCP
+      if (cpoint.size() > 0) 
+        cnet.add_control_point(cpoint);
+      
     } // End line loop
     ifile.close();
 
