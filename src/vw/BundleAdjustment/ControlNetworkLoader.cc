@@ -47,7 +47,9 @@ void safe_measurement( ip::InterestPoint& ip ) {
 double vw::ba::triangulate_control_point( ControlPoint& cp,
                                           std::vector<boost::shared_ptr<camera::CameraModel> >
                                           const& camera_models,
-                                          double const& min_angle_radians ) {
+                                          double min_angle_radians,
+                                          double forced_triangulation_distance) {
+
   Vector3 position_sum;
   double error = 0, error_sum = 0;
   size_t count = 0;
@@ -67,16 +69,21 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
         stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
                                 camera_models[ k_cam_id ].get(), least_squares,
                                 angle_tol );
-
+        
         Vector3 pt = sm( cp[j].position(), cp[k].position(), error );
+        // TODO: When forced_triangulation_distance > 0, one can check
+        // if the triangulated point is behind the camera, and if yes,
+        // to replace it with an artificial point in front of the camera.
+        // This will need a good test.
         if (pt != Vector3() ){
           count++;
           position_sum += pt;
           error_sum += error;
-        }else{
+        }else if (forced_triangulation_distance <= 0){
           vw_out(WarningMessage,"ba") << "\nCould not triangulate point. If too many such errors, "
                                       << "perhaps your baseline is too small, "
-                                      << "or consider decreasing --min-triangulation-angle.\n";
+                                      << "or consider decreasing --min-triangulation-angle "
+                                      << "or using --forced-triangulation-distance.\n";
         }
       } catch ( std::exception const& e) {
         /* Just let it go */
@@ -86,18 +93,23 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
   }
 
   // 4.2.) Summing, averaging, and storing
-  if ( !count ) {
+  if ( count == 0) {
     // vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
     // At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
+    double dist = 10.0; // for backward compatibility
+    if (forced_triangulation_distance > 0) 
+      dist = forced_triangulation_distance;
     try {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
-                       camera_models[j]->pixel_to_vector(cp[0].position())*10 );
+                       camera_models[j]->pixel_to_vector(cp[0].position())*dist );
     } catch ( const camera::PixelToRayErr& ) {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
-                       camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,10)) );
+                       camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,dist)) );
     }
+    if (forced_triangulation_distance > 0)
+      return 1; // mark triangulation as successful
     return 0;
   } else {
     error_sum /= double(count);
@@ -114,10 +126,11 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     std::vector<std::string> const& image_files,
                                     std::map< std::pair<int, int>, std::string> const& match_files,
                                     size_t min_matches,
-                                    double min_angle_radians) {
+                                    double min_angle_radians,
+                                    double forced_triangulation_distance) {
 
   cnet.clear();
-
+  
   // We can't guarantee that image_files is sorted, so we make a
   // std::map to give ourselves a sorted list and access to a binary search.
   std::map<std::string,size_t> image_prefix_map;
@@ -251,7 +264,8 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress(inc_prog );
-      ba::triangulate_control_point( cpoint, camera_models, min_angle_radians );
+      ba::triangulate_control_point( cpoint, camera_models, min_angle_radians,
+                                     forced_triangulation_distance);
     }
     progress.report_finished();
   }
