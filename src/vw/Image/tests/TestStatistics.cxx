@@ -558,7 +558,7 @@ TEST(BlockOperations, CDF) {
   block_cdf_computation(image, parallel_cdf, sumsample_amount, block_size);
 
   // Check results.
-  const float EPS = 0.10; // Larger sample sizes reduce this error
+  const float EPS = 0.11; // Larger sample sizes reduce this error
   EXPECT_NEAR(normal_cdf.quantile(0),          parallel_cdf.quantile(0), EPS);
   EXPECT_NEAR(normal_cdf.quantile(1),          parallel_cdf.quantile(1), EPS);
   EXPECT_NEAR(normal_cdf.approximate_mean  (), parallel_cdf.approximate_mean  (), EPS);
