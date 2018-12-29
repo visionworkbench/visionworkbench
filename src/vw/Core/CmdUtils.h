@@ -26,6 +26,10 @@ namespace vw {
   // Execute a command and capture its output in a string
   std::string exec_cmd(const char* cmd);
 
+  // Find the full path to a program in a given search directory based on the
+  // path to the calling program. If not there, find it using the system PATH.
+  std::string program_path(std::string const& prog_name, std::string const& curr_exec_path);
+  
   // Look up the full path to prog_name in PATH
   std::string find_executable_in_path(std::string const& prog_name);
 

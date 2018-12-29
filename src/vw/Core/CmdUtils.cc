@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <vw/Core/CmdUtils.h>
+#include <boost/filesystem.hpp>
 
 namespace vw {
 
@@ -44,6 +45,28 @@ namespace vw {
     return result;
   }
 
+  // Find the full path to a program in a given search directory based on the
+  // path to the calling program. If not there, find it using the system PATH.
+  std::string program_path(std::string const& prog_name, std::string const& curr_exec_path){
+    
+    boost::filesystem::path search_dir = boost::filesystem::path(curr_exec_path).parent_path();
+    if (search_dir.filename() == ".libs")
+      search_dir = search_dir.parent_path(); // strip .libs
+    
+    boost::filesystem::path full_path = search_dir / boost::filesystem::path(prog_name);
+    if (boost::filesystem::exists(full_path)) {
+      // This is for the release build
+    }else{
+      // This is for the local build
+      full_path = vw::find_executable_in_path(prog_name);
+      if (!boost::filesystem::exists(full_path)) {
+        throw "Cannot find the program: " + prog_name;
+      }
+    }
+    
+    return full_path.string();
+  }
+  
   // Look up the full path to prog_name in PATH.
   // TODO: There is a boost function for this, but in a header
   // which we don't ship.
