@@ -123,11 +123,18 @@ void PinholeModel::read(std::string const& filename) {
   std::getline(cam_file, line);
   if (line.find("VERSION") != std::string::npos) {
     sscanf(line.c_str(),"VERSION_%d", &file_version); // Parse the version of the input file
-    
-    // Right now there is only one version (VERSION_3) so if we find the version
-    //  we just skip it and move on to the next line.  If the version is changed,
-    //  handler logic needs to be implemented here.
-    std::getline(cam_file, line);
+
+    std::getline(cam_file, line); // Go ahead and get the next line
+
+    // If we get version 3, continue on to the rest of the file.
+    if (file_version == 4) {
+      // Version 4 added support for multiple camera types.
+      if (line.find("PINHOLE") == std::string::npos)
+        vw_throw( ArgumentErr() << "PinholeModel::read_file: Expected PINHOLE type, but got type "
+                                << line );
+      std::getline(cam_file, line); // Grab the following line
+    }
+
   }else{
     // Check if the first line is correct
     if (sscanf(line.c_str(),"fu = %lf", &m_fu) != 1)
@@ -299,12 +306,8 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
 }
 
 void PinholeModel::write(std::string const& filename) const {
-  
-  update_rpc_undistortion(*this);
 
-  // Update this field whenever there is a significant change to the file.
-  // - It can be used to keep backwards compatibility with future plain text changes.
-  const std::string PINHOLE_VERSION = "VERSION_3";
+  update_rpc_undistortion(*this);
 
   // Set the path an open the output file for writing
   std::string file_path = fs::path(filename).replace_extension(".tsai").string();
@@ -316,7 +319,8 @@ void PinholeModel::write(std::string const& filename) const {
   //   # digits to survive double->text->double conversion
   const size_t ACCURATE_DIGITS = 17; // = std::numeric_limits<double>::max_digits10
   cam_file << std::setprecision(ACCURATE_DIGITS); 
-  cam_file << PINHOLE_VERSION << "\n";
+  cam_file << "VERSION_4\n";
+  cam_file << "PINHOLE\n";
   cam_file << "fu = " << m_fu << "\n";
   cam_file << "fv = " << m_fv << "\n";
   cam_file << "cu = " << m_cu << "\n";
@@ -325,7 +329,9 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file << "v_direction = " << m_v_direction[0] << " " << m_v_direction[1] << " " << m_v_direction[2] << "\n";
   cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " << m_w_direction[2] << "\n";
   cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " << m_camera_center[2] << "\n";
-  cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " " << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " " << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
+  cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " "
+                     << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " "
+                     << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
   cam_file << "pitch = " << m_pixel_pitch << "\n";
 
   // Write the name of the distortion model, then use the distortion model
@@ -333,7 +339,6 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file << m_distortion->name() << std::endl;
   cam_file << *m_distortion;
   cam_file.close();
-
 }
 
 
