@@ -94,31 +94,36 @@ int main( int argc, char *argv[] ) {
     Vector2i image_size(image_in->format().cols, image_in->format().rows);
     
     printf("Loading camera model file: %s\n", camera_file_name.c_str());
-    PinholeModel camera_model(camera_file_name);
 
+    // Here we will accept an optical bar model too,
+    // then in_ptr will be a pointer to either that or to pinhole
+    PinholeModel input_model(camera_file_name);
+    CameraModel * in_model = &input_model;
+
+    PinholeModel out_model;
     bool force_conversion = true;
     
     //double error;
     if (output_model_type == "TsaiLensDistortion") {
       //error =
-      update_pinhole_for_fast_point2pixel<TsaiLensDistortion, TsaiLensDistortion::num_distortion_params>
-	(camera_model, image_size, sample_spacing, force_conversion);
+      create_approx_pinhole_model<TsaiLensDistortion>
+	(in_model, out_model, image_size, sample_spacing, force_conversion);
     }else if (output_model_type == "BrownConradyDistortion") {
       //error =
-      update_pinhole_for_fast_point2pixel<BrownConradyDistortion, BrownConradyDistortion::num_distortion_params>
-        (camera_model, image_size, sample_spacing, force_conversion);
+      create_approx_pinhole_model<BrownConradyDistortion>
+        (in_model, out_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
-      update_pinhole_for_fast_point2pixel<RPCLensDistortion, RPCLensDistortion::num_distortion_params>
-	(camera_model, image_size, sample_spacing, force_conversion);
+      create_approx_pinhole_model<RPCLensDistortion>
+	(in_model, out_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion5::class_name()) {
       //error =
-      update_pinhole_for_fast_point2pixel<RPCLensDistortion5, RPCLensDistortion5::num_distortion_params>
-	(camera_model, image_size, sample_spacing, force_conversion);
+      create_approx_pinhole_model<RPCLensDistortion5>
+	(in_model, out_model, image_size, sample_spacing, force_conversion);
     } else if (output_model_type == RPCLensDistortion6::class_name()) {
       //error =
-      update_pinhole_for_fast_point2pixel<RPCLensDistortion6, RPCLensDistortion6::num_distortion_params>
-	(camera_model, image_size, sample_spacing, force_conversion);
+      create_approx_pinhole_model<RPCLensDistortion6>
+	(in_model, out_model, image_size, sample_spacing, force_conversion);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";
       return 1;
@@ -126,7 +131,7 @@ int main( int argc, char *argv[] ) {
     
     //std::cout << "Approximation error = " << error << std::endl;
     printf("Writing output model: %s\n", output_file_name.c_str());
-    camera_model.write(output_file_name);
+    out_model.write(output_file_name);
   }
   catch (const Exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
