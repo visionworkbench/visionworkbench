@@ -328,7 +328,10 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   
   int index = 0;
   for (int r=0; r<num_rows; ++r) {
+
+    // TODO: This does not sample well close to num_rows
     int row = r*sample_spacing;
+    
     for (int c=0; c<num_cols; ++c) {
 
       // TODO: This does not sample well close to num_cols
@@ -350,6 +353,9 @@ double create_approx_pinhole_model(CameraModel * const input_model,
         Vector3 xyz = out_model->camera_center(pix) + dist_to_ground*out_model->pixel_to_vector(pix);
         dist_pixel = opb_model->point_to_pixel(xyz);
         dist_pixel *= pixel_pitch; // Distortion is in units of pixel_pitch
+
+        // TODO: Verify that the set of obtained dist_pixel
+        // fully sample the image domain.
       }
 #endif
       
