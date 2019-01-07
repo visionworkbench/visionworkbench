@@ -95,8 +95,8 @@ int main( int argc, char *argv[] ) {
     
     printf("Loading camera model file: %s\n", camera_file_name.c_str());
 
-    // Here we will accept an optical bar model too,
-    // then in_ptr will be a pointer to either that or to pinhole
+    // Here we will accept an optical bar model too, then in_model
+    // will be a pointer to either that or to pinhole.
     PinholeModel input_model(camera_file_name);
     CameraModel * in_model = &input_model;
 
