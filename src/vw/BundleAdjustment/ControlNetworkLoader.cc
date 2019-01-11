@@ -129,6 +129,8 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     double min_angle_radians,
                                     double forced_triangulation_distance) {
 
+  // Note that this statement does not clear the network fully.
+  // TODO: Clear all items here. 
   cnet.clear();
   
   // We can't guarantee that image_files is sorted, so we make a

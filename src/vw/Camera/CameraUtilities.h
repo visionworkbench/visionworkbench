@@ -30,6 +30,7 @@
 #include <vw/Camera/CameraTransform.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Image/Transform.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -154,7 +155,6 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
       // - Note that the pixel pairs need to be corrected for pitch here.
       Vector2 undist_pixel = Vector2(col, row) * pixel_pitch;
       Vector2 dist_pixel   = input_distortion->distorted_coordinates(pin_model, undist_pixel);
-      //std::cout << "Undist: " << undist_pixel << " ---- Distorted: " << dist_pixel << std::endl;
 
       distorted_coords[index] = dist_pixel;
       // Pack these points into 1D vector alternating col,row      
@@ -191,12 +191,11 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   for (size_t i=0; i < distorted_coords.size(); ++i) {
     Vector2 undistorted        = new_model->undistorted_coordinates(pin_model, distorted_coords[i]);
     Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
-    //std::cout << "New: " << undistorted << " ---- Actual: " << actual_undistorted
-    //          << " error: " << norm_2(undistorted - actual_undistorted) << std::endl;
     diff += norm_2(undistorted - actual_undistorted);
   }
   diff /= static_cast<double>(distorted_coords.size());
-  vw_out() << DistModelT::class_name() << " undistortion approximation mean error: "
+  diff /= pixel_pitch; // convert to pixels
+  vw_out() << DistModelT::class_name() << " undistortion approximation mean pixel error: "
            << diff << ".\n";
   
   pin_model.set_lens_distortion(new_model); // Set updated distortion model
@@ -228,8 +227,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion>
-        (*pin_ptr, rpc_dist->image_size());
+      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size());
   }
 
   if (lens_name == RPCLensDistortion5::class_name()) {
@@ -241,8 +239,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion5>
-        (*pin_ptr, rpc_dist->image_size());
+      compute_undistortion<RPCLensDistortion5>(*pin_ptr, rpc_dist->image_size());
   }
   
   if (lens_name == RPCLensDistortion6::class_name()) {
@@ -254,8 +251,7 @@ inline void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion6>
-        (*pin_ptr, rpc_dist->image_size());
+      compute_undistortion<RPCLensDistortion6>(*pin_ptr, rpc_dist->image_size());
   }
 
 }
@@ -269,30 +265,10 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
   double pixel_pitch;
   std::string lens_name;
-
-#define OPTICAL_BAR (0)
-#if OPTICAL_BAR
-  // Handle the case when the input model is OpticalBarModel
   OpticalBarModel * opb_model = dynamic_cast<OpticalBarModel*>(input_model);
-  if (opb_model != NULL) {
-    
-    pixel_pitch = opb_model->get_pixel_size();
-    Vector2 C = opb_model->get_optical_center();
-    C *= pitch; // because OpticalBarModel optical center is in pixels
-    out_model = PinholeModel(opb_model->camera_center(),
-                             opb_model->camera_pose().rotation_matrix(),
-                             opb_model->get_focal_length(),
-                             opb_model->get_focal_length(),
-                             C[0], C[1], // optical center
-                             );
+  PinholeModel    * pin_model = dynamic_cast<PinholeModel*>(input_model);
 
-    out_model.set_pixel_pitch(pitch);
-    lens_name = "OpticalBar";
-  }
-#endif
-  
   // Handle the case when the input model is Pinhole
-  PinholeModel * pin_model = dynamic_cast<PinholeModel*>(input_model);
   if (pin_model != NULL) {
     
     out_model   = *pin_model;
@@ -313,6 +289,23 @@ double create_approx_pinhole_model(CameraModel * const input_model,
       //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
       return 0;
     }
+  }
+
+  // Handle the case when the input model is OpticalBarModel
+  if (opb_model != NULL) {
+    
+    pixel_pitch = opb_model->get_pixel_size();
+    double  f = opb_model->get_focal_length(); 
+    Vector2 c = opb_model->get_optical_center();
+    c *= pixel_pitch; // because OpticalBarModel optical center is in pixels
+
+    // Cook up a pinhole model copying the optical center, focal length,
+    // pitch, and orientation. This has no distortion, on purpose.
+    out_model = PinholeModel(opb_model->camera_center(),
+                             opb_model->camera_pose().rotation_matrix(),
+                             f, f, c[0], c[1]);
+    out_model.set_pixel_pitch(pixel_pitch);
+    lens_name = "OpticalBar";
   }
   
   // We will try to approximate the input lens with a lens model of type DistModelT.
@@ -336,36 +329,38 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
       // TODO: This does not sample well close to num_cols
       int col = c*sample_spacing;
-
+      
       // Generate an undistorted/distorted point pair using the input model.
       // - Note that the pixel pairs need to be corrected for pitch here.
       Vector2 pix(col, row);
-      Vector2 undist_pixel = pix * pixel_pitch;
-      Vector2 dist_pixel;
-#if OPTICAL_BAR
-      if (opb_model != NULL) {
-        // TODO: For optical bar we may want to sample beyond the range
-        // [0, num_cols] x [0, num_rows]
-        
-        // Compute the distorted pixel for the optical bar camera
-        // TODO: Test this
-        double dist_to_ground = 100000; // 100 km 
-        Vector3 xyz = out_model->camera_center(pix) + dist_to_ground*out_model->pixel_to_vector(pix);
-        dist_pixel = opb_model->point_to_pixel(xyz);
-        dist_pixel *= pixel_pitch; // Distortion is in units of pixel_pitch
+      Vector2 undist_pixel, dist_pixel;
 
-        // TODO: Verify that the set of obtained dist_pixel
-        // fully sample the image domain.
-      }
-#endif
-      
       // Compute the distorted pixel for the pinhole camera
-      if (pin_model != NULL) 
-        dist_pixel = pin_model->lens_distortion()->distorted_coordinates(*pin_model, undist_pixel);
+      if (pin_model != NULL) {
 
-      undistorted_coords[index    ] = undist_pixel;
+        undist_pixel = pix * pixel_pitch;
+        dist_pixel   = pin_model->lens_distortion()->distorted_coordinates(*pin_model, undist_pixel);
+        
+      }else if (opb_model != NULL) {
+
+        // We will sample the image, which has distorted pixels. Then
+        // we will determine the undistorted pixels.
+        // The same logic may need to be used for pinhole too.
+        
+        dist_pixel = pix * pixel_pitch; // Distortion is in units of pixel_pitch
+
+        // Find a point on the ray emanating from the current pixel
+        double dist_to_ground = 100000; // 100 km 
+        Vector3 xyz = opb_model->camera_center(pix) + dist_to_ground*opb_model->pixel_to_vector(pix);
+
+        // Project into the output pinhole model. For now, it has no distortion.
+        undist_pixel = out_model.point_to_pixel(xyz);
+        undist_pixel *= pixel_pitch; // Undistortion is in units of pixel pitch
+      }
+      
+      undistorted_coords[index] = undist_pixel;
       // Pack these points into 1D vector alternating col,row
-      distorted_coords  [2*index  ] = dist_pixel[0];
+      distorted_coords  [2*index]   = dist_pixel[0];
       distorted_coords  [2*index+1] = dist_pixel[1];
       ++index;
     }
@@ -389,12 +384,13 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   for (size_t i=0; i<undistorted_coords.size(); ++i) {
     Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
     Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
-    //std::cout << "New: " << distorted << " ---- Actual: " << actual_distorted << std::endl;
     diff += norm_2(distorted - actual_distorted);
   }
   diff /= static_cast<double>(undistorted_coords.size());
-  vw_out() << "Approximated " << lens_name << " distortion model using a model of type " <<
-    new_model.name() <<  " with a " << diff << " mean error.\n";
+  diff /= pixel_pitch; // convert the errors to pixels
+  
+  vw_out() << "Approximated an " << lens_name << " distortion model using a model of type " <<
+    new_model.name() <<  " with a " << diff << " mean pixel error.\n";
 
   // If the approximation is not very good, keep the original model and warn
   //  the user that things might take a long time.

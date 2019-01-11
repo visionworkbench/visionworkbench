@@ -93,13 +93,34 @@ int main( int argc, char *argv[] ) {
     boost::shared_ptr<vw::DiskImageResource> image_in(vw::DiskImageResource::open(image_file_name));
     Vector2i image_size(image_in->format().cols, image_in->format().rows);
     
-    printf("Loading camera model file: %s\n", camera_file_name.c_str());
+    vw_out() << "Loading camera model file: " << camera_file_name.c_str() << "\n";
 
     // Here we will accept an optical bar model too, then in_model
     // will be a pointer to either that or to pinhole.
-    PinholeModel input_model(camera_file_name);
-    CameraModel * in_model = &input_model;
+    CameraModel * in_model;
+    OpticalBarModel opb;
+    PinholeModel    pin;
 
+    bool success = false;
+    try{
+      pin.read(camera_file_name);
+      in_model = &pin;
+      success = true;
+      vw_out() << "Read a Pinhole camera model.\n";
+    }catch(...){}
+
+    if (!success) {
+      try {
+        opb.read(camera_file_name);
+        in_model = &opb;
+        success = true;
+        vw_out() << "Read an OpticalBarModel camera model.\n";
+      }catch(...){}
+    }
+    
+    if (!success) 
+      vw_throw(ArgumentErr() << "Could not read the camera model\n");
+    
     PinholeModel out_model;
     bool force_conversion = true;
     
