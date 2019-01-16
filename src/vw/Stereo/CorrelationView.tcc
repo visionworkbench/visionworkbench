@@ -523,8 +523,8 @@ prerasterize(BBox2i const& bbox) const {
           SearchParam params(left_region, zone.disparity_range());
           double next_elapsed = m_seconds_per_op * params.search_volume();
           if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-            vw_out(DebugMessage,"stereo") << "Tile: " << bbox << " reached timeout: "
-                                          << m_corr_timeout << " s" << std::endl;
+            vw_out() << "Tile: " << bbox << " reached timeout: "
+                     << m_corr_timeout << " s" << std::endl;
             break;
           }else
             estim_elapsed += next_elapsed;
@@ -558,8 +558,8 @@ prerasterize(BBox2i const& bbox) const {
             SearchParam params2(right_region, zone.disparity_range());
             double next_elapsed = m_seconds_per_op * params2.search_volume();
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-              vw_out(DebugMessage,"stereo") << "Tile: " << bbox << " reached timeout: "
-                                            << m_corr_timeout << " s" << std::endl;
+              vw_out() << "Tile: " << bbox << " reached timeout: "
+                       << m_corr_timeout << " s" << std::endl;
               break;
             }else{
               estim_elapsed += next_elapsed;
