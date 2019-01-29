@@ -60,6 +60,7 @@ struct Options {
   Options() :
     output_file_type(""),
     module_name(""),
+    nudge_x(0), nudge_y(0),
     tile_size(0),
     jpeg_quality(-9999),
     png_compression(99999),
@@ -246,7 +247,6 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     const std::string & filename     = opt.input_files[i];
     const GeoReference& input_georef = georeferences[i];
 
-
     // Load the image and georef from the file
     boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
     GeoTransform geotx( input_georef, output_georef );
@@ -320,7 +320,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     if( bbox.min().x() < xresolution ) {
       composite.insert( source, bbox.min().x(), bbox.min().y() );
     }
-  }
+  } // End loop through input files
 
   // This box represents the entire input data set, in pixels, in the output
   // projection space. This should NOT include the extra data used to hide seams and such.
