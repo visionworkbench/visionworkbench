@@ -635,6 +635,13 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     OGRSpatialReference gdal_spatial_ref;
     gdal_spatial_ref.importFromWkt(wkt_ptr);
 
+    // If there is a PROJCS name, record it.
+    const char * projcs = gdal_spatial_ref.GetAttrValue("PROJCS");
+    if (projcs != NULL) {
+      // Careful here, to avoid a segfault
+      m_projcs_name = std::string(projcs);
+    }
+
     // Create the datum. We will modify it later on.
     Datum datum;
     datum.set_datum_from_spatial_ref(gdal_spatial_ref);
@@ -650,8 +657,6 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
     std::string proj4_str = proj_str_tmp;
     CPLFree( proj_str_tmp );
-    
-    // TODO: set m_projcs_name if possible from WKT string.
 
     std::vector<std::string> input_strings, output_strings, datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
@@ -673,11 +678,13 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
                  boost::starts_with(key, "+lon") ||
                  boost::starts_with(key, "+lat") ||
                  boost::starts_with(key, "+k=") ||
+                 boost::starts_with(key, "+k_0=") ||
                  boost::starts_with(key, "+lat_ts=") ||
                  boost::starts_with(key, "+ns") ||
                  boost::starts_with(key, "+no_cut") ||
                  boost::starts_with(key, "+h=") ||
                  boost::starts_with(key, "+W=") ||
+                 boost::starts_with(key, "+towgs84=") ||
                  boost::starts_with(key, "+units=") ||
                  boost::starts_with(key, "+zone=")) {
         output_strings.push_back(key);
@@ -721,20 +728,27 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     //  generate the WKT string.
 
     OGRSpatialReference gdal_spatial_ref;
-    Datum const& datum = this->datum();      
+    Datum const& datum = this->datum();
     gdal_spatial_ref.importFromProj4(this->proj4_str().c_str());
-    
+
     // Apply projcs override if it was specified
     std::string projcs_name = this->get_projcs_name();
     if (!projcs_name.empty())
       gdal_spatial_ref.SetProjCS(projcs_name.c_str());
-    
+
     // For perfect spheres, we set the inverse flattening to
     // zero. This is making us compliant with OpenGIS Implementation
     // Specification: CTS 12.3.10.2. In short, we are not allowed to
     // write infinity as most tools, like ArcGIS, can't read that.
 
-    gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
+    // TODO: Test this some more. This is a fix for PROJCS "CH1903 / LV03"
+    std::string geog_name;
+    if (projcs_name != "")
+      geog_name = datum.name();
+    else
+      geog_name = "Geographic Coordinate System";
+
+    gdal_spatial_ref.SetGeogCS( geog_name.c_str(),
                                 datum.name().c_str(),
                                 datum.spheroid_name().c_str(),
                                 datum.semi_major_axis(),
