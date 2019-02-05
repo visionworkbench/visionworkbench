@@ -741,6 +741,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     // Specification: CTS 12.3.10.2. In short, we are not allowed to
     // write infinity as most tools, like ArcGIS, can't read that.
 
+    // TODO: PROJCS is still not written correctly sometimes, see
+    // StereoPipelineTest/ss_mapproject_ctx_bug.
+
+    // We also cannot handle: 
+    
     // TODO: Test this some more. This is a fix for PROJCS "CH1903 / LV03"
     std::string geog_name;
     if (projcs_name != "")
