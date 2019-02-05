@@ -356,7 +356,18 @@ Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
   // Apply the lens distortion model
   // - Divide by pixel pitch to convert from metric units to pixels if the intrinsic
   //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
-  return m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
+  Vector2 final_pixel = m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
+
+  // Go back from the pixel to the vector and see how much difference there is.
+  // - If there is too much error, the lens distortion model must have bugged out
+  //   on this coordinate and it means we failed to project the point.
+  // - Doing this slows things down but it is important to catch these failures.
+  const double ERROR_THRESHOLD = 0.01;
+  Vector3 pixel_vector = pixel_to_vector(final_pixel);
+  Vector3 phys_vector  = normalize(point - this->camera_center());
+  double  diff         = norm_2(pixel_vector - phys_vector);
+  VW_ASSERT(diff < ERROR_THRESHOLD, vw::camera::PointToPixelErr());
+  return final_pixel;
 }
 
 Vector2 PinholeModel::point_to_pixel_no_distortion(Vector3 const& point) const {

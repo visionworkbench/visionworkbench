@@ -163,7 +163,14 @@ namespace stereo {
       m_sgm_search_buffer(sgm_search_buffer),
       m_memory_limit_mb(memory_limit_mb),
       m_write_debug_images(write_debug_images){
-      
+
+      // Quit if an invalid area was passed in
+      double area = search_region.area();
+      if (area != area) {
+        vw_throw( ArgumentErr() << "PyramidCorrelationView: Invalid search region: "
+                                << search_region.min() << ", " << search_region.max());
+      }
+
       if (algorithm != CORRELATION_WINDOW)
         m_prefilter_mode = PREFILTER_NONE; // SGM/MGM works best with no prefilter
       

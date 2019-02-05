@@ -164,11 +164,14 @@ TEST( PinholeModel, ProjectiveMatrix ) {
   boost::normal_distribution<double> normal(0,20);
   boost::variate_generator<boost::minstd_rand&,
     boost::normal_distribution<double> > generator( random_gen, normal );
-  for ( uint8 i = 0; i < 6; i++ ) {
-    Vector3 point( generator(), generator(), generator()+60.0 );
-    world_m.push_back( Vector4(point[0],point[1],point[2],1) );
-    Vector2 pixel = control_pinhole.point_to_pixel(point);
-    image_m.push_back( Vector3(pixel[0],pixel[1],1) );
+  while(world_m.size() < 6) {
+    try {
+      Vector3 point( generator(), generator(), generator()+60.0 );
+      Vector2 pixel = control_pinhole.point_to_pixel(point);
+
+      world_m.push_back( Vector4(point[0],point[1],point[2],1) );
+      image_m.push_back( Vector3(pixel[0],pixel[1],1) );
+    } catch(vw::camera::PointToPixelErr) {}
   }
 
   // Building Camera Matrix
