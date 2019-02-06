@@ -45,16 +45,17 @@ protected:
     boost::variate_generator<boost::minstd_rand&,
       boost::normal_distribution<double> > generator( random_gen, normal );
     for ( uint8 i = 0; i < 50; i++ ) {
-      world_m.push_back( Vector4( generator(), generator(),
-                                  generator() + 60.0, 1.0 ) );
-      //world_m.push_back( Vector4( i, i, i + 60.0, 1.0 ) );
-      subvector(world_m.back(),0,3) = inverse(pose)*subvector(world_m.back(),0,3);
-      Vector2 pixel = pinhole.point_to_pixel( subvector(world_m.back(),0,3) );
-      image_m.push_back( Vector3( pixel[0], pixel[1], 1.0 ) );
+      try{
+        Vector4 coord(generator(), generator(), generator() + 60.0, 1.0 );
+        subvector(coord,0,3) = inverse(pose)*subvector(coord,0,3);
+        Vector2 pixel = pinhole.point_to_pixel( subvector(coord,0,3) );
+        world_m.push_back(coord);
+        image_m.push_back( Vector3( pixel[0], pixel[1], 1.0 ) );
+      } catch(vw::camera::PointToPixelErr){} // Skip points that don't project
     }
 
     // Building even noiser data
-    for ( uint8 i = 0; i < 50; i++ ) {
+    for ( uint8 i = 0; i < world_m.size(); i++ ) {
       Vector4 noise( generator()*0.025, generator()*0.025,
                      generator()*0.025, 0.0 );
       if ( norm_2( noise ) > 1 )
