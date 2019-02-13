@@ -423,9 +423,8 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
   }
 
   bool GeoReference::extract_proj4_value(std::string const& proj4_string, std::string const& key,
-                                         double &value) {
+                                         std::string &s) {
     // Try to find the key
-    value = 0.0;
     size_t key_pos = proj4_string.find(key);
     if (key_pos == std::string::npos)
       return false;
@@ -441,9 +440,15 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
       space_pos = proj4_string.size();
     size_t start  = eq_pos + 1;
     size_t length = space_pos - start;
-    std::string num_string = proj4_string.substr(eq_pos+1, length);
-    value = atof(num_string.c_str());
+    s = proj4_string.substr(eq_pos+1, length);
     return true;
+  }
+  bool GeoReference::extract_proj4_value(std::string const& proj4_string, std::string const& key,
+                                         double &value) {
+    std::string s;
+    if (!extract_proj4_value(proj4_string, key, s))
+      return false;
+    value = atof(s.c_str());
   }
 
   // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
@@ -684,11 +689,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
                  boost::starts_with(key, "+no_cut") ||
                  boost::starts_with(key, "+h=") ||
                  boost::starts_with(key, "+W=") ||
-                 boost::starts_with(key, "+towgs84=") ||
                  boost::starts_with(key, "+units=") ||
                  boost::starts_with(key, "+zone=")) {
         output_strings.push_back(key);
       } else if (boost::starts_with(key, "+ellps=") ||
+                 boost::starts_with(key, "+towgs84=") ||
                  boost::starts_with(key, "+datum=")) {
         // We put these in the proj4_str for the Datum class.
         datum_strings.push_back(key);
@@ -720,6 +725,21 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     set_datum(datum);
   }
 
+  
+  std::vector<double> GeoReference::get_towgs84_values(std::string const& s) {
+    std::vector<double> o;
+    std::string sub;
+    if (!extract_proj4_value(s, "+towgs84", sub))
+      return o;
+
+    o.resize(6);
+    int count = sscanf(sub.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf",
+                       &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
+    if (count != 6)
+      vw_throw(LogicErr() << "Error parsing +towgs84 from string: " << s);
+    return o;
+  }
+  
   // Get the wkt string from the georef. It only has projection and datum information.
   std::string GeoReference::get_wkt() const {
 
@@ -729,7 +749,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
     OGRSpatialReference gdal_spatial_ref;
     Datum const& datum = this->datum();
-    gdal_spatial_ref.importFromProj4(this->proj4_str().c_str());
+    const std::string proj_string = this->overall_proj4_str();
+    gdal_spatial_ref.importFromProj4(proj_string.c_str());
 
     // Apply projcs override if it was specified
     std::string projcs_name = this->get_projcs_name();
@@ -762,6 +783,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
                                 datum.meridian_name().c_str(),
                                 datum.meridian_offset() );
 
+    // Make sure that this gets set properly
+    std::vector<double> vals = get_towgs84_values(proj_string);
+    if (vals.size() == 6)
+      gdal_spatial_ref.SetTOWGS84(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5]);
+    
     char* wkt_str_tmp;
     gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
     std::string wkt_str = wkt_str_tmp;

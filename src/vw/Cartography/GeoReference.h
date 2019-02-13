@@ -142,8 +142,14 @@ namespace cartography {
 
     /// Attempts to extract the value of a key= part of the proj4 string.
     static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
+                                    std::string &s);
+    /// Attempts to extract the value of a key= part of the proj4 string and converts to double.
+    static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
                                     double &value);
 
+    /// Parse out a six element +towgs84 value, or an empty vector if it is not found.
+    static std::vector<double> get_towgs84_values(std::string const& s);
+    
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the
     /// center of the top left pixel.  If pixel_interpretation() is
