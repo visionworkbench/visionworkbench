@@ -429,7 +429,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     if (key_pos == std::string::npos)
       return false;
     size_t key_end = key_pos + key.size();
-    
+
     // Figure out the bounds of the number
     size_t eq_pos    = proj4_string.find("=", key_pos);
     size_t space_pos = proj4_string.find(" ", eq_pos);
@@ -449,6 +449,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     if (!extract_proj4_value(proj4_string, key, s))
       return false;
     value = atof(s.c_str());
+    return true;
   }
 
   // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
@@ -519,7 +520,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     if (m_proj_projection_str.find("+proj=aea") != std::string::npos){
       // This seems to work best with the -180 to 180 center, so
       //  use that unless the commanded center lon is outside that range.
-      double lon0=0;
+      double lon0 = 0;
       m_center_lon_zero = true;
       if (extract_proj4_value(m_proj_projection_str, "+lon_0", lon0)) {
         if (lon0 > 180) {
