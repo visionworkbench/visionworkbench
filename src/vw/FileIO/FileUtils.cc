@@ -36,8 +36,10 @@
 
 namespace fs = boost::filesystem;
 
+namespace vw {
+
 // Make the specified file to be relative to the specified directory.
-fs::path vw::make_file_relative_to_dir(fs::path const file, fs::path const dir) {
+fs::path make_file_relative_to_dir(fs::path const file, fs::path const dir) {
   if (file.has_root_path()){
     if (file.root_path() != dir.root_path()) {
       return file;
@@ -68,8 +70,8 @@ fs::path vw::make_file_relative_to_dir(fs::path const file, fs::path const dir) 
   }
 }
 
-// Remove file name extension
-std::string vw::prefix_from_filename(std::string const& filename) {
+
+std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
   if (index != -1)
@@ -77,8 +79,7 @@ std::string vw::prefix_from_filename(std::string const& filename) {
   return result;
 }
 
-// Return lower-case extension, such as .cub (so the dot is also present).
-std::string vw::get_extension( std::string const& input, bool make_lower) {
+std::string get_extension( std::string const& input, bool make_lower) {
   boost::filesystem::path ipath( input );
   std::string ext = ipath.extension().string();
   if (make_lower)
@@ -87,7 +88,7 @@ std::string vw::get_extension( std::string const& input, bool make_lower) {
 }
 
 // If prefix is "dir/out", create directory "dir"
-void vw::create_out_dir(std::string out_prefix){
+void create_out_dir(std::string out_prefix){
 
   fs::path out_prefix_path(out_prefix);
   if (out_prefix_path.has_parent_path()) {
@@ -101,7 +102,7 @@ void vw::create_out_dir(std::string out_prefix){
   return;
 }
 
-bool vw::has_spot5_extension(std::string const& image_file, std::string const& camera_file){
+bool has_spot5_extension(std::string const& image_file, std::string const& camera_file){
   // First check the image file
   std::string image_ext = vw::get_extension(image_file);
   boost::algorithm::to_lower(image_ext);
@@ -115,3 +116,75 @@ bool vw::has_spot5_extension(std::string const& image_file, std::string const& c
   return ((camera_ext == ".DIM") || (camera_ext == ".dim"));
 }
 
+std::string strip_directory( std::string const& input){
+ boost::filesystem::path p(input);
+ return p.filename().string();
+}
+
+std::string strip_directory_and_extension( std::string const& input){
+ boost::filesystem::path p(input);
+ return p.stem().string();
+}
+
+
+std::string get_folder(std::string const& input) {
+  boost::filesystem::path p(input);
+  if (boost::filesystem::is_directory(p)) // Handle inputs like "/usr/local"
+    return input;
+  return p.parent_path().string();
+}
+
+size_t get_files_in_folder(std::string              const& folder,
+                           std::vector<std::string>      & output,
+                           std::string              const& ext)
+{
+  output.clear();
+  
+  // Handle invalid inputs
+  if(!boost::filesystem::exists(folder) || !boost::filesystem::is_directory(folder)) 
+    return 0;
+
+  boost::filesystem::directory_iterator it(folder);
+  boost::filesystem::directory_iterator endit;
+
+  if (ext != ""){ // Check the extension
+    while(it != endit) {
+        if(boost::filesystem::is_regular_file(*it) && it->path().extension() == ext) 
+          output.push_back(it->path().filename().string());
+        ++it;
+    }
+  }
+  else{ // No extension check
+    while(it != endit) {
+        if(boost::filesystem::is_regular_file(*it)) 
+          output.push_back(it->path().filename().string());
+        ++it;
+    }
+  }
+  return output.size();
+}
+
+
+size_t get_files_with_prefix(std::string              const& prefix,
+                               std::vector<std::string>    & output) {
+  output.clear();
+  
+  // Get a list of all the files in the same folder
+  std::string folder = get_folder(prefix);
+  std::vector<std::string> all_files;
+  get_files_in_folder(folder, all_files);
+
+  std::string name = strip_directory(prefix);
+
+  // Find all the files that match the prefix
+  for (size_t i=0; i<all_files.size(); ++i) {
+    if (all_files[i].find(name) == 0) {
+      fs::path p(folder);
+      p /= all_files[i]; // Return the full path to the file
+      output.push_back(p.string());
+    }
+  }
+  return output.size();
+}
+
+} // End namespace vw
