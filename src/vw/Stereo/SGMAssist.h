@@ -1288,27 +1288,6 @@ private: // Functions - one per direction
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 } // End namespace stereo
 } // End namespace vw
 

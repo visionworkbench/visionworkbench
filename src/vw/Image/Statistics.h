@@ -441,14 +441,19 @@ namespace vw {
                                 double low_percentile=0.02, double high_percentile=0.98,
                                 int num_bins=256);
 
-  
-  
-  
-  
-  
-  
-  
-  
+  /// Converts a single channel image into a uint8 image using a simple stretch between the min and max values.
+  template <class ViewT>
+  void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &output_image) {
+    // First get the min and max values
+    double min_val, max_val;
+    find_image_min_max(input_image, min_val, max_val);
+
+    // Scale the image using the computed values and convert to uint8
+    output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, min_val, max_val),
+                                                    min_val, max_val, 0.0, 255.0 ));
+  }
+
+
   // TODO: Does this already exist somewhere in the code?
   /// An adapter to let a functor handle a single channel image mask.
   template <class AccumT>
@@ -497,21 +502,20 @@ namespace vw {
     void operator()(ImageView<ImageT> const& image, BBox2i const& bbox) {
 
       // Compute a CDF on just this input image.
-      //CdfType local_cdf;
+      //CdfType local_cdf(1000, 20);
       //SingleChannelAccumulator<CdfType> accumulator(&local_cdf);
 
       // TODO: The CDF class cannot merge properly, so use this alternative
       //       method until it is fixed!
-      
-      typedef PixelCollector<float> PC; // TOD: Fix type!
+      typedef PixelCollector<float> PC; // TODO: Fix type!
       PC pixel_accum;
       float est_num_pixels = (image.rows()/m_subsample_amt)*(image.cols()/m_subsample_amt);
       pixel_accum.m_vec.reserve(int(est_num_pixels * 1.2));
       SingleChannelAccumulator<PC> accumulator(&pixel_accum);
-      
       for_each_pixel( subsample( edge_extend(image, ConstantEdgeExtension()),
                                  m_subsample_amt ),
                       accumulator);
+
       // Merge the local CDF with the main CDF.
       m_mutex.lock();
       /*

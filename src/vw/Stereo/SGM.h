@@ -145,23 +145,23 @@ private: // Variables
     int m_min_row, m_max_row;
     int m_min_col, m_max_col;
     int m_num_output_cols, m_num_output_rows;
-    
+
     // Algorithm parameters
     AccumCostType m_p1;
     AccumCostType m_p2;
-    
+
     // Derived parameters for convenience
     int m_num_disp_x, m_num_disp_y, m_num_disp;
-    
+
     // The two main memory buffers that must be allocated.
     boost::shared_array<CostType     > m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
     size_t                             m_buffer_lengths;
-    
+
     /// Image containing the inclusive disparity bounds for each pixel.
     /// - Stored as min_col, min_row, max_col, max_row.
     ImageView<Vector4i> m_disp_bound_image;
-    
+
     /// Lookup table of the adjacent disparities for each disparity
     /// - For each disparity index, store the disparity indices of the 
     ///   eight adjacent disparities.
@@ -210,7 +210,7 @@ private: // Functions
 
   /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
   void allocate_large_buffers();
-  
+
   /// Return a bad accumulation value used to fill locations we don't visit
   AccumCostType get_bad_accum_val() const { return std::numeric_limits<CostType>::max() + m_p2; }
 
@@ -224,9 +224,9 @@ private: // Functions
   /// Populates m_cost_buffer with all the disparity costs 
   void compute_disparity_costs(ImageView<uint8> const& left_image,
                                ImageView<uint8> const& right_image);
-                               
+
   // The following functions are called from inside compute_disparity_costs()
-  
+
   /// Compute mean of differences within a block of pixels.
   void fill_costs_block    (ImageView<uint8> const& left_image,
                             ImageView<uint8> const& right_image);
@@ -252,13 +252,13 @@ private: // Functions
                     ImageView<uint8> const& right_image,
                     double mean_left, double std_left,
                     int left_x, int left_y, int right_x, int right_y, bool debug) const;
-  
+
   /// Get a pointer to a cost vector
   CostType * get_cost_vector(int col, int row) {
     size_t start_index = m_buffer_starts(col, row);
     return m_cost_buffer.get() + start_index;
   };
-  
+
   /// Get a pointer to an accumulated cost vector
   AccumCostType* get_accum_vector(int col, int row) {
     size_t start_index = m_buffer_starts(col, row);
@@ -267,14 +267,6 @@ private: // Functions
 
   /// Generate the output disparity view from the accumulated costs.
   DisparityImage create_disparity_view();
-  
-  // DEPRECATED
-  /// Get the value and index of the smallest element in an accumulation vector
-  AccumCostType get_accum_vector_min(int col, int row,
-                                     DisparityType &dx, DisparityType &dy,
-                                     AccumCostType &second,
-                                     double &mean,
-                                     int &count, int& worst);
 
   /// Select the best disparity index in the accumulation vector.
   /// - If needed, applies smoothing to the values in order to yield a single minimum value.
@@ -346,17 +338,6 @@ private: // Functions
     dx = min_index - (dy*d_width) + bounds[0];
     dy += bounds[1];
   }
-  
-  
-
-  //// Print out a disparity vector
-  //template <typename T>
-  //void print_disparity_vector(T* const vec){
-  //  std::cout << "V: ";
-  //  for (int i=0; i<m_num_disp; ++i)
-  //    std::cout << vec[i] << " ";
-  //  std::cout << std::endl;
-  //}
 
   // The following functions are inlined for speed
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
@@ -377,10 +358,10 @@ private: // Functions
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
                                  bool left_bound=false, bool right_bound=false, bool debug=false);
-  
+
   /// Crude two-element subpixel estimation.
   double two_value_subpixel(AccumCostType primary, AccumCostType other);
-  
+
   ///// Function to help with developing subpixel functions
   //double compute_subpixel_ratio(AccumCostType prev, AccumCostType center, AccumCostType next);
 
@@ -467,16 +448,10 @@ void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d
                                                AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
                                                int sse_index, int &output_index,
                                                AccumCostType*       output) {
-  //std::cout << "dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]\n";      
-  //for (int i=0; i<sse_index; ++i) {
-  //  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", 
-  //      dL[i], d0[i], d1[i], d2[i], d3[i], d4[i], d5[i], d6[i], d7[i], d8[i]);
-  //}
-
   // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
 
   for (int i=0; i<sse_index; ++i){
-  
+
     uint16 minAdj = std::min(d1[i], d2[i]);
     minAdj = std::min(minAdj, d3[i]);
     minAdj = std::min(minAdj, d4[i]);
@@ -485,7 +460,7 @@ void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d
     minAdj = std::min(minAdj, d7[i]);
     minAdj = std::min(minAdj, d8[i]);
     minAdj += dp1;
-    
+
     uint16 minVal = std::min(minAdj, d0[i]);
            minVal = std::min(minVal, dJ);
     output[output_index++] = minVal + (dL[i] - dP);
@@ -509,37 +484,21 @@ void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_bina
     for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
       int output_col = c - m_min_col;
       int binary_col = c - half_kernel;
-      
+
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
-    
+
       for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
         for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
-          
+
           CostType cost = hamming_distance(left_binary_image (binary_col   , binary_row   ), 
                                            right_binary_image(binary_col+dx, binary_row+dy) );
           m_cost_buffer[cost_index] = cost;
           ++cost_index;
-        }    
+        }
       } // End disparity loops   
     } // End x loop
   }// End y loop 
-                      
 }
-
-
-//TODO: Move this function!
-/// Converts a single channel image into a uint8 image with percentile based intensity scaling.
-template <class ViewT>
-void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &output_image, int num_bins=256) {
-  // First get the min and max values
-  double min_val, max_val;
-  find_image_min_max(input_image, min_val, max_val);
-
-  // Scale the image using the computed values and convert to uint8
-  output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, min_val, max_val),
-					    min_val, max_val, 0.0, 255.0 ));
-}
-
 
 
 template <class ImageT1, class ImageT2>
@@ -559,7 +518,6 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    ImageView<uint8>       const* right_mask_ptr,
                    SemiGlobalMatcher::DisparityImage  const* prev_disparity){ 
 
-    
     // Sanity check the input:
     VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
                      ArgumentErr() << "calc_disparity_sgm: Kernel input not sized with odd values." );
@@ -576,26 +534,22 @@ calc_disparity_sgm(CostFunctionType cost_type,
     // Rasterize input so that we can do a lot of processing on it.
     BBox2i right_region = left_region;
     right_region.max() += search_volume_inclusive;
-    
+
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: left  region  = " << left_region   << std::endl;
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
     vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: search_volume_inclusive = " << search_volume_inclusive << std::endl;
-    
+
     // TODO: Ignore masked values when computing this!
     // Convert the input image to uint8
+    // - Any "smart" stretching here can cause problems.
     ImageView<PixelGray<vw::uint8> > left, right;
-    //ip::percentile_scale_convert(crop(left_in.impl(),  left_region),  left,  0.00, 1.00); // Any stretching seems to cause problems!
-    //ip::percentile_scale_convert(crop(right_in.impl(), right_region), right, 0.00, 1.00);
     u8_convert(crop(left_in.impl(),  left_region),  left);
-    u8_convert(crop(right_in.impl(), right_region), right);    
-    
-    //write_image("final_left.tif", left);
-    //write_image("final_right.tif", right);
-    
+    u8_convert(crop(right_in.impl(), right_region), right);
+
     matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
                       search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb));
     return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
-    
+
   } // End function calc_disparity
 
 
