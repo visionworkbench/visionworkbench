@@ -92,51 +92,42 @@ m = [1 1  1 -1 -1 1;
     z_vec[3] = z4;  z_vec[4] = z5;  z_vec[5] = z6;
     z_vec[6] = z7;  z_vec[7] = z8;  z_vec[8] = z9;
     Vector<double,6> vals(m_fit_params * z_vec);
-    
+
     //  Max is at [x,y] where:
     //   dz/dx = 2ax + cy + d = 0
     //   dz/dy = 2by + cx + e = 0
     double denom = 4.0 * vals[0] * vals[1] - ( vals[2] * vals[2] ); // = 4ab - c^2
     if (fabs(denom) < 0.01) {
-      //std::cout << "DENOM DEBUG!!!\n";
-      //std::cout << "vals  = " << vals << std::endl;
-      //std::cout << "denom = " << denom << std::endl;
       return false;
     }
     Vector2f offset( ( vals[2] * vals[4] - 2.0 * vals[1] * vals[3] ) / denom,   // ce - 2bd
                      ( vals[2] * vals[3] - 2.0 * vals[0] * vals[4] ) / denom ); // cd - 2ae
     /*
     if ( norm_2(offset) > 0.99 ) {
-      //std::cout << "DEBUG!!!\n";
-      //std::cout << "offset  = " << offset << std::endl;
-      //std::cout << "vals  = " << vals << std::endl;
-      //std::cout << "denom = " << denom << std::endl;
       //vw_throw( NoImplErr() << "DEBUG!\n" );
       return false;
     }
     dx = offset[0];
     dy = offset[1];*/
-    
-    
+
+
     dx = offset[0];
     dy = offset[1];
-        
+
     // APPLY CORRECTION
     double sX = 0.34574;
     double sY = 0.38944;
     dx = erf(dx/(sX*sqrt(2.0))) / 2.0;
     dy = erf(dy/(sY*sqrt(2.0))) / 2.0;
-    
-    //std::cout << offset << " -F-> " << dx << ", " << dy << std::endl;
-    
+
     if ( norm_2(Vector2(dx, dy)) >= 0.5 ) {
       double scale = norm_2(Vector2(dx, dy)) / 0.5;
       dx /= scale;
       dy /= scale;
     }
-    
-    
-    
+
+
+
 // TODO: Check afterwards.
     //if ( norm_2(offset) > 0.99 ) {
     if ( norm_2(Vector2(dx, dy)) >= 1.0 ) {
@@ -147,8 +138,7 @@ m = [1 1  1 -1 -1 1;
       //vw_throw( NoImplErr() << "DEBUG!\n" );
       return false;
     }
-    
-    
+
     return true;
   } // End find_peak()
 
@@ -182,7 +172,7 @@ public:
     m_box_area = box_size[0]*box_size[1];
     m_curr_sum = 0;
   }
-  
+
   /// Compute the percentage of valid pixels from the next column over.
   double next_pixel() {
     // Handle the first pixel in each column
@@ -192,12 +182,11 @@ public:
     }
     // Handle other pixels
     m_curr_pos[0] += 1;
-    
+
     // Account for column we are "losing"
     m_curr_sum -= m_column_sums.front(); 
-    //std::cout << "Pop " << m_column_sums.front() << ", sum = " << m_curr_sum << std::endl;
     m_column_sums.pop();
-    
+
     // Sum values from the new column
     int new_col_sum = 0;
     int col = m_curr_pos[0] + m_box_size[0] - 1;
@@ -208,11 +197,10 @@ public:
     }
     m_column_sums.push(new_col_sum);
     m_curr_sum += new_col_sum;
-    //std::cout << "Push " << new_col_sum << ", sum = " << m_curr_sum << std::endl;
-    
+
     return static_cast<double>(m_curr_sum) / m_box_area;
   }
-  
+
   /// Move to the next row of pixels.
   void advance_row() {
     // Update pixel position and set recompute flag
@@ -228,7 +216,7 @@ private:
   double m_box_area;
   Vector2i m_box_size;
   Vector2i m_curr_pos;
-  
+
   /// Init counts from scratch at the current position.
   /// - Returns the fraction of active pixels at this position.
   double recompute() {
@@ -246,7 +234,7 @@ private:
     }
     return static_cast<double>(m_curr_sum) / m_box_area;
   }
-  
+
 }; // End class IterativeMaskBoxCounter
 
 
@@ -297,16 +285,16 @@ public:
     //    initialized to be the maximum possible size.
     const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
     size_t buffer_size = line_size*buffer_pixel_size;
-       
+
     // No reason for the buffer size to be larger than the entire accumulator!
     if (buffer_size > parent_ptr->m_buffer_lengths)
       buffer_size = parent_ptr->m_buffer_lengths;
-    
+
     // If the buffer is over 128 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
-    
+
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
       if (buffer_size < SAFE_BUFFER_SIZE)
@@ -324,7 +312,7 @@ public:
     m_parent_ptr        = parent_ptr;  
     m_num_paths_in_pass = num_paths_in_pass;
     m_vertical          = vertical;
-    
+
     const int num_rows = m_parent_ptr->m_num_output_rows;
     m_line_size = m_parent_ptr->m_num_output_cols;
     if (vertical)
@@ -332,10 +320,10 @@ public:
 
     m_buffer_size       = get_buffer_size(parent_ptr, num_paths_in_pass, vertical);
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
-   
+
     vw_out(DebugMessage, "stereo") << "MultiAccumRowBuffer - allocating buffer size (MB): " 
                                    << m_buffer_size_bytes/(1024*1024) << std::endl;
-   
+
     // Allocate buffers that store accumulation scores
     m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
     m_bufferB.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
@@ -396,7 +384,7 @@ public:
   /// - The scores from each pass are added.
   void add_lead_buffer_to_accum() {
     Mutex::Lock locker(m_mutex); // Scoped lock so this function can't be run simultaneously
-  
+
     size_t buffer_index = 0;
     SemiGlobalMatcher::AccumCostType* out_ptr = m_parent_ptr->m_accum_buffer.get();
     if (!m_vertical) { // horizontal
@@ -439,7 +427,7 @@ public:
 
     // The first thing to do is to record the results from the last row
     add_lead_buffer_to_accum();
-  
+
     if (trip_finished) // Quit early if the current trip is finished
       return;
 
@@ -463,7 +451,7 @@ public:
     std::swap(m_trail_buffer, m_lead_buffer);
     //std::fill(m_lead_buffer, m_lead_buffer+m_buffer_size, m_parent_ptr->get_bad_accum_val());
     memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
-    
+
     // Swap offset buffer pointers and init the lead buffer
     std::swap(m_offsets_trail, m_offsets_lead);
     fill_lead_offset_buffer();
@@ -471,7 +459,7 @@ public:
 
   /// Call after the first trip is finished before the second pass.
   void switch_trips() {
-    
+
     if (!m_vertical) { // horizontal
       // Second trip is from bottom right to top left
       m_current_col = m_parent_ptr->m_num_output_cols - 1;
@@ -490,14 +478,16 @@ public:
     memset(m_lead_buffer, 0, m_buffer_size_bytes);    
     fill_lead_offset_buffer();
   }
-  
+
   /// Get the pointer to write the output of the current pass to
   SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
     int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
     size_t pass_offset = num_disps*pass;
-    size_t offset      = (m_offsets_lead[m_current_col] + pass_offset);
+    size_t offset      = 0;
     if (m_vertical)
       offset = (m_offsets_lead[m_current_row] + pass_offset);
+    else
+      offset = (m_offsets_lead[m_current_col] + pass_offset);
 
     // Make sure there is enough memory left to support this location.
     if (offset + num_disps > m_buffer_size)
@@ -505,7 +495,7 @@ public:
 
     return m_lead_buffer + offset;
   }
-  
+
   /// Gets the pointer to the accumulation buffer for the indicated pixel/pass
   SemiGlobalMatcher::AccumCostType * get_trailing_pixel_accum_ptr(int col_offset, int row_offset, PassIndex pass) {
  
@@ -513,7 +503,6 @@ public:
     int    row         = m_current_row + row_offset;
     int    num_disps   = m_parent_ptr->get_num_disparities(col, row);
     size_t pass_offset = num_disps*pass;
-
 
     // Just get the index of the column in the correct buffer, then add an offset for the selected pass.
     size_t offset = 0;
@@ -539,13 +528,13 @@ public:
         output_ptr = m_trail_buffer;
       }
     }
-    
+
     // Make sure there is enough memory left to support this location.
     if (offset + num_disps > m_buffer_size)
       vw_throw( ArgumentErr() << "Insufficient memory in small buffers, disparity image may be degenerate.\n" );
-    
+
     return output_ptr + offset;
-    
+
   } // End function get_trailing_pixel_accum_ptr
 
 private:
@@ -562,7 +551,7 @@ private:
   size_t m_buffer_size, m_buffer_size_bytes;
   int    m_current_col, m_current_row; ///< The current position as we iterate through the pixels
   int    m_col_advance, m_row_advance; ///< These are set according to the current trip
-  
+
   // These point to m_buffer_starts for the leading and trailing row respectively.
   // - Since there are N passes per pixel, the offsets are different than in the main class
   //   accumulation buffer.
@@ -604,7 +593,7 @@ public:
 
   /// Returns the size it elements of the buffer.
   static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr) {
-  
+
     // Figure out the max possible line length (diagonal line down the center)    
     const int num_cols = parent_ptr->m_num_output_cols;
     const int num_rows = parent_ptr->m_num_output_rows;
@@ -616,16 +605,16 @@ public:
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
     size_t buffer_size = line_size*parent_ptr->m_num_disp;
-    
+
     // No reason for the buffer size to be larger than the entire accumulator!
     if (buffer_size > parent_ptr->m_buffer_lengths)
       buffer_size = parent_ptr->m_buffer_lengths;
-    
+
     // If the buffer is over 64 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
     const size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.02;
-    
+
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
       if (buffer_size < SAFE_BUFFER_SIZE)
@@ -643,13 +632,13 @@ public:
     m_num_disp          = parent_ptr->m_num_disp;
     m_buffer_size       = get_buffer_size(parent_ptr);
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
-   
+
     vw_out(DebugMessage, "stereo") << "OneLineBuffer - allocating buffer size (MB): " 
                                    << m_buffer_size_bytes/(1024*1024) << std::endl;
-   
+
     // Allocate the accumulation buffer
     m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
-    
+
     // Set up the small buffer
     m_bad_disp_value = parent_ptr->get_bad_accum_val();
     m_full_prior_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_num_disp]);
@@ -658,7 +647,7 @@ public:
   /// Clear both buffers
   void clear_buffers() {
     memset(m_buffer.get(), 0, m_buffer_size_bytes);
-    
+
     for (size_t i=0; i<m_num_disp; ++i)
       m_full_prior_buffer[i] = m_bad_disp_value;
   }
@@ -678,13 +667,13 @@ private: // Variables
 
   SemiGlobalMatcher::AccumCostType m_bad_disp_value;
   size_t m_buffer_size, m_buffer_size_bytes, m_num_disp;
-  
+
   /// Buffer which store the accumulated cost info before it is dumped to the main accum buffer
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_buffer;
-  
+
   /// Much smaller buffer needed by the pixel evaluation function
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_full_prior_buffer;
-  
+
 }; // End class OneLineBuffer
 
 
@@ -705,7 +694,7 @@ public:
       m_busy_vec  [i] = false;
     }
   }
- 
+
   // Request the ID of a free buffer
   size_t get_free_buffer_id() {
     Mutex::Lock locker(m_main_mutex); // Scoped lock so this function can't be run simultaneously
@@ -719,20 +708,20 @@ public:
     }
     vw_throw( LogicErr() << "Error: Should always be a free buffer!\n" );
   }
-  
+
   /// Once we have an ID, get the actual buffer
   OneLineBuffer* get_line_buffer(size_t id) {
     // Clear the buffers before we hand it off
     m_buffer_vec[id].clear_buffers();
     return &(m_buffer_vec[id]);
   }
-  
+
   /// Notify the manager that we are finished using a buffer.
   void release_buffer(size_t id) {
     Mutex::Lock locker(m_main_mutex); // Scoped lock so this function can't be run simultaneously
     m_busy_vec[id] = false; // Mark the buffer as no longer in use
   }
-  
+
 private:
   Mutex m_main_mutex; ///< Control access to this class
   std::vector<OneLineBuffer> m_buffer_vec; ///< Available pre-allocated memory buffers.
@@ -773,7 +762,7 @@ public:
     //const bool debug = false;
     int last_pixel_val = -1;
     int col_prev = -1, row_prev = -1; // Previous row and column
-    
+
     // Get the start of the output accumulation buffer
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
     size_t buffer_size   = 0;
@@ -786,7 +775,7 @@ public:
       // Get current location in output image
       const int col = pixel_loc_iter_copy.col();
       const int row = pixel_loc_iter_copy.row();
-      
+
       // Get corresponding location in the input image
       const int input_col = col + m_parent_ptr->m_min_col;
       const int input_row = row + m_parent_ptr->m_min_row;
@@ -805,10 +794,10 @@ public:
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
       int pixel_diff     = abs(curr_pixel_val - last_pixel_val);
-      
+
       //printf("Loc %d, %d, diff = %d, num_disp = %d\n", col, row, pixel_diff, num_disp);
       //std::cout << "DEBUG " << m_parent_ptr->m_disp_bound_image(col,row) << std::endl;
-      
+
       if (last_pixel_val >= 0) { // All pixels after the first
         m_parent_ptr->evaluate_path( col, row, col_prev, row_prev,
                                     prior_accum_ptr, full_prior_ptr, local_cost_ptr, computed_accum_ptr, 
@@ -853,9 +842,7 @@ public:
 
       // Get information about the current pixel location from the parent
       int num_disp = m_parent_ptr->get_num_disparities(col, row);
-      
-      //printf("Loc %d, %d, num_disp = %d\n", col, row, num_disp);
-      
+
       AccumCostType* output_accum_ptr = m_parent_ptr->get_accum_vector(col, row);
 
       // Add the computed values to the output accumulation location      
@@ -867,7 +854,7 @@ public:
       m_pixel_loc_iter++;
     }
   } // End update_accum_buffer() function
-  
+
 private:
 
   typedef SemiGlobalMatcher::AccumCostType AccumCostType;
@@ -898,7 +885,7 @@ public:
                       ImageView<uint8>  const* image_ptr,
                       Direction dir)
     : m_buffer_ptr(buffer_ptr), m_parent_ptr(parent_ptr), m_image_ptr(image_ptr), m_dir(dir) {
-    
+
     // Init this buffer to bad scores representing disparities that were
     //  not in the search range for the given pixel. 
     m_full_prior_buffer.reset(new AccumCostType[parent_ptr->m_num_disp]);
@@ -907,7 +894,7 @@ public:
 
     // Allocate a buffer for the "perpendicular direction" results to be written to
     m_temp_buffer.reset(new AccumCostType[parent_ptr->m_num_disp]);
-   
+
     m_last_column = parent_ptr->m_num_output_cols - 1;
     m_last_row    = parent_ptr->m_num_output_rows - 1;
   }
@@ -935,12 +922,12 @@ private: // Variables
   SemiGlobalMatcher      * m_parent_ptr; ///< Pointer to the main SGM class
   ImageView<uint8>  const* m_image_ptr;
   Direction m_dir;                       ///< Direction of this task
-  
+
   int m_last_column, m_last_row;
-  
+
   boost::shared_array<AccumCostType> m_full_prior_buffer; ///< Working buffer needed for evaluate_task() function
   boost::shared_array<AccumCostType> m_temp_buffer;       ///< Buffer for storing the smoothed-in result.
-  
+
 private: // Functions - one per direction
 
   /// Helper function to save some lines.
@@ -954,13 +941,13 @@ private: // Functions - one per direction
   void task_L() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-  
+
     // Loop through all pixels in the output image for the L trip, top-left to bottom-right.
     for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
       for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
-      
+
         //printf("Accum pass 1 col = %d, row = %d\n", col, row);
-      
+
         // TODO: Do we need to skip these pixels in the two-pass SGM function above?
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
@@ -977,7 +964,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col-1, row,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                                       
+
           // Compute accumulation from the values in the above pixel
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col, row-1,
@@ -992,28 +979,28 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(row==m_last_row);
     } // End row loop
   } // End task_TL
-  
+
   void task_TL() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-  
+
     // Loop through all pixels in the output image for the TL trip, top-left to bottom-right.
     for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
       for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
-      
+
         //printf("Accum pass 1 col = %d, row = %d\n", col, row);
-      
+
         // TODO: Do we need to skip these pixels in the two-pass SGM function above?
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-          
+
         // Top left
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row > 0) && (col > 0) && (col < m_last_column)) {
@@ -1023,7 +1010,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col-1, row-1,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col+1, row-1,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1036,19 +1023,19 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(row==m_last_row);
     } // End row loop
   } // End task_TL
-  
+
   void task_R() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image for the R trip, bottom-right to top-left.
     for (int row = m_last_row; row >= 0; --row) {
       for (int col = m_last_column; col >= 0; --col) {
-      
+
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
@@ -1063,7 +1050,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col+1, row,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col, row+1,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1076,25 +1063,25 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(row==0);    
     } // End row loop
   } // End task_R
-  
+
   void task_BR() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image for the second trip, bottom-right to top-left.
     for (int row = m_last_row; row >= 0; --row) {
       for (int col = m_last_column; col >= 0; --col) {
-      
+
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-        
+
         // Bottom right
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row < m_last_row) && (col > 0) && (col < m_last_column)) {
@@ -1117,25 +1104,25 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(row==0);    
     } // End row loop 
   } // End task_BR
-  
+
   void task_B() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image for the third trip, bottom-left to top-right.
     for (int col = 0; col < m_parent_ptr->m_num_output_cols; ++col) {
       for (int row = m_last_row; row >= 0; --row) {
-      
+
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-        
+
         // Bottom
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row < m_last_row) && (col > 0)) {
@@ -1144,7 +1131,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col, row+1,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col-1, row,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1157,25 +1144,25 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(col==m_last_column);    
     } // End row loop 
   } // End task_B
-  
+
   void task_BL() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image for the third trip, bottom-left to top-right.
     for (int col = 0; col < m_parent_ptr->m_num_output_cols; ++col) {
       for (int row = m_last_row; row >= 0; --row) {
-      
+
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-       
+
         // Bottom left
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row > 0) && (row < m_last_row) && (col > 0)) {
@@ -1184,7 +1171,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col-1, row+1,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col-1, row-1,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1194,29 +1181,29 @@ private: // Functions - one per direction
         }
         else // Just init to the local cost
           for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
-        
+
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(col==m_last_column);    
     } // End row loop 
   } // End task_BL
-  
+
   void task_T() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image top-right to bottom-left.
     for (int col=m_last_column; col>=0; --col) {
       for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
-      
+
         //printf("Accum pass 1 col = %d, row = %d\n", col, row);
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-        
+
         // Top
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row > 0) && (col < m_last_column)) {
@@ -1225,7 +1212,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col, row-1,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col+1, row,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1238,26 +1225,26 @@ private: // Functions - one per direction
 
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(col==0);
     } // End row loop
   } // End task_T
-  
+
   void task_TR() {
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
-    
+
     // Loop through all pixels in the output image top-right to bottom-left.
     for (int col=m_last_column; col>=0; --col) {
       for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
-      
+
         //printf("Accum pass 1 col = %d, row = %d\n", col, row);
         int num_disp = get_num_disp(col, row);
         if (num_disp == 0)
           continue;
         CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
         bool debug = false;//((row == 244) && (col == 341));
-        
+
         // Top right
         output_accum_ptr = m_buffer_ptr->get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
         if ((row > 0) && (row < m_last_row) && (col < m_last_column)) {
@@ -1266,7 +1253,7 @@ private: // Functions - one per direction
           m_parent_ptr->evaluate_path( col, row, col+1, row-1,
                                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                                        pixel_diff, debug );
-                         
+
           AccumCostType* const prior_accum_ptr2 = m_buffer_ptr->get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_ONE);
           m_parent_ptr->evaluate_path( col, row, col+1, row+1,
                                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, m_temp_buffer.get(), 
@@ -1276,10 +1263,10 @@ private: // Functions - one per direction
         }
         else // Just init to the local cost
           for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
-        
+
         m_buffer_ptr->next_pixel();
       } // End col loop
-      
+
       m_buffer_ptr->next_row(col==0);
     } // End row loop
   } // End task_TR
