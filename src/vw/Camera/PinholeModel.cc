@@ -342,7 +342,8 @@ void PinholeModel::write(std::string const& filename) const {
 }
 
 
-Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
+
+Vector2 PinholeModel::point_to_pixel_no_check(Vector3 const& point) const {
 
   // Multiply the pixel location by the 3x4 camera matrix.
   // - The pixel coordinate is de-homogenized by dividing by the denominator.
@@ -357,6 +358,15 @@ Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
   // - Divide by pixel pitch to convert from metric units to pixels if the intrinsic
   //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
   Vector2 final_pixel = m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
+
+  return final_pixel;
+}
+
+
+Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
+
+  // Get the pixel using the no check version, then perform the check.
+  Vector2 final_pixel = point_to_pixel_no_check(point);
 
   // Go back from the pixel to the vector and see how much difference there is.
   // - If there is too much error, the lens distortion model must have bugged out

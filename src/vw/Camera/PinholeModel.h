@@ -205,7 +205,10 @@ namespace camera {
     //  image plane.  Returns a pixel location (col, row) where the
     //  point appears in the image.
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
-    
+
+    /// Skips the pixel_to_vector call used for a sanity check in point_to_pixel.
+    Vector2 point_to_pixel_no_check(Vector3 const& point) const;
+
     /// As point_to_pixel, but ignoring any lens distortion.
     Vector2 point_to_pixel_no_distortion(Vector3 const& point) const;
 
