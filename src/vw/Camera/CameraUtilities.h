@@ -301,8 +301,9 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
     // Cook up a pinhole model copying the optical center, focal length,
     // pitch, and orientation. This has no distortion, on purpose.
-    out_model = PinholeModel(opb_model->camera_center(),
-                             opb_model->camera_pose().rotation_matrix(),
+    Vector2i image_size = opb_model->get_image_size();
+    out_model = PinholeModel(opb_model->camera_center(image_size/2.0),
+                             opb_model->camera_pose(image_size/2.0).rotation_matrix(),
                              f, f, c[0], c[1]);
     out_model.set_pixel_pitch(pixel_pitch);
     lens_name = "OpticalBar";
