@@ -40,6 +40,8 @@
 namespace vw {
 namespace camera {
 
+// These functions are defined in the .cc file:
+
 /// Load a pinhole camera model of any supported type
 boost::shared_ptr<vw::camera::CameraModel> load_pinhole_camera_model(std::string const& path);
 
@@ -47,7 +49,28 @@ boost::shared_ptr<vw::camera::CameraModel> load_pinhole_camera_model(std::string
 boost::shared_ptr<vw::camera::CAHVModel>
 load_cahv_pinhole_camera_model(std::string const& image_path,
                                std::string const& camera_path);
- 
+
+/// Compute a good sample spacing for the given input image so that 
+/// the undistortion functions below won't take too long.
+int auto_compute_sample_spacing(Vector2i const image_size);
+
+// For RPC, must always ensure the undistortion coefficients are up to date.
+// This function will be used before saving or displaying a pinhole model.
+// This function is not in the .cc file as it is related to the above.
+void update_rpc_undistortion(PinholeModel const& model);
+
+
+/// Adjust a pair of epipolar-aligned cameras so that the input images are fully
+/// contained in the transformed images.
+void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
+                                    PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
+                                    BBox2i       const& roi1,      BBox2i       const& roi2,
+                                    Vector2i          & epi_size1, Vector2i          & epi_size2);
+
+
+// These template functions are defined inline:
+
+
 /// Class to use with the LevenbergMarquardt solver to optimize the parameters of a desired lens
 ///  to match the passed in pairs of undistorted (input) and distorted (output) points.
 template <class DistModelT>
@@ -111,6 +134,7 @@ struct UndistortionOptimizeFunctor :  public math::LeastSquaresModelBase< Undist
     return out_vec;
   }
 }; // End class LensOptimizeFunctor
+
 
 // A very analogous function to
 // update_pinhole_for_fast_point2pixel. This one computes the
@@ -201,61 +225,7 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   pin_model.set_lens_distortion(new_model); // Set updated distortion model
   return diff;
 } 
-  
-// For RPC, must always ensure the undistortion coefficients are up to date.
-// This function will be used before saving or displaying a pinhole model.
-// This function is not in the .cc file as it is related to the above.
-inline void update_rpc_undistortion(PinholeModel const& model){
 
-  const vw::camera::LensDistortion* distortion = model.lens_distortion();
-  std::string lens_name = distortion->name();
-  if (lens_name != RPCLensDistortion::class_name()  &&
-      lens_name != RPCLensDistortion5::class_name() &&
-      lens_name != RPCLensDistortion6::class_name())
-    return;
-  
-  // Have to cast away the const-ness. Not nice. Only happens for RPC
-  // distortion.
-  PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
-
-  if (lens_name == RPCLensDistortion::class_name()) {
-    RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size());
-  }
-
-  if (lens_name == RPCLensDistortion5::class_name()) {
-    RPCLensDistortion5 * rpc_dist = dynamic_cast<RPCLensDistortion5*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion5::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion5>(*pin_ptr, rpc_dist->image_size());
-  }
-  
-  if (lens_name == RPCLensDistortion6::class_name()) {
-    RPCLensDistortion6 * rpc_dist = dynamic_cast<RPCLensDistortion6*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion6::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion6>(*pin_ptr, rpc_dist->image_size());
-  }
-
-}
-  
 ///  Given a camera model (pinhole or optical bar), create an approximate pinhole model
 /// of the desired type.
 template<class DistModelT>
@@ -514,48 +484,6 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
 
 }
 
-/// Adjust a pair of epipolar-aligned cameras so that the input images are fully
-/// contained in the transformed images.
-inline void 
-resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
-                               PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
-                               BBox2i       const& roi1,      BBox2i       const& roi2,
-                               Vector2i          & epi_size1, Vector2i          & epi_size2) {
-  // Get transforms from input images to epipolar images
-  CameraTransform<PinholeModel, PinholeModel> in_to_epi1(cam1, epi_cam1);
-  CameraTransform<PinholeModel, PinholeModel> in_to_epi2(cam2, epi_cam2);
-  
-  // Figure out the bbox needed to contain the transformed image
-  // - This just uses the ROIs for the two input images so the cameras can be shifted to align with 0,0.
-  BBox2 epi_bbox1 = compute_transformed_bbox_fast(roi1, in_to_epi1);
-  BBox2 epi_bbox2 = compute_transformed_bbox_fast(roi2, in_to_epi2);
-
-  // Figure out leftmost and uppermost pixel coordinates in resampled images 
-  double min_col = std::min(epi_bbox1.min().x(), epi_bbox2.min().x());
-  double min_row = std::min(epi_bbox1.min().y(), epi_bbox2.min().y());
-  
-  // Compute an adjustment of the camera center point (CCD point below focal point)
-  //  such that leftmost and uppermost pixels fall at col 0 and row 0 respectively.
-  // - Shift the center by the number of pixels converted to physical CCD units.
-  // - We can freely adjust the intrinsic portions of the epipolar cameras as long as
-  //   we do the same modification to both cameras.
-  Vector2 point_offset  = epi_cam1.point_offset();
-  Vector2 center_adjust = Vector2(min_col, min_row)*epi_cam1.pixel_pitch();
-
-  // Apply the adjustments to the input epipolar cameras and recompute the bounding boxes  
-  epi_cam1.set_point_offset(point_offset - center_adjust);
-  epi_cam2.set_point_offset(point_offset - center_adjust);
-  CameraTransform<PinholeModel, PinholeModel> in_to_epi1_new(cam1, epi_cam1);
-  CameraTransform<PinholeModel, PinholeModel> in_to_epi2_new(cam2, epi_cam2);
-  
-  // Recompute the bounding boxes to be sure
-  epi_bbox1 = compute_transformed_bbox_fast(roi1, in_to_epi1_new);
-  epi_bbox2 = compute_transformed_bbox_fast(roi2, in_to_epi2_new);
- 
-  // Return the size required to contain all of the transformed image data.
-  epi_size1 = epi_bbox1.max();
-  epi_size2 = epi_bbox2.max();
-} // End resize_epipolar_cameras_to_fit
 
 
 template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
