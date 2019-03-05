@@ -104,9 +104,7 @@ void update_rpc_undistortion(PinholeModel const& model){
 
   const vw::camera::LensDistortion* distortion = model.lens_distortion();
   std::string lens_name = distortion->name();
-  if (lens_name != RPCLensDistortion::class_name()  &&
-      lens_name != RPCLensDistortion5::class_name() &&
-      lens_name != RPCLensDistortion6::class_name())
+  if (lens_name != RPCLensDistortion6::class_name())
     return;
   
   // Have to cast away the const-ness. Not nice. Only happens for RPC
@@ -114,32 +112,6 @@ void update_rpc_undistortion(PinholeModel const& model){
   PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
   int sample_spacing;
 
-  if (lens_name == RPCLensDistortion::class_name()) {
-    RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    int sample_spacing = auto_compute_sample_spacing(rpc_dist->image_size());
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size(), sample_spacing);
-  }
-
-  if (lens_name == RPCLensDistortion5::class_name()) {
-    RPCLensDistortion5 * rpc_dist = dynamic_cast<RPCLensDistortion5*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion5::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    int sample_spacing = auto_compute_sample_spacing(rpc_dist->image_size());
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion5>(*pin_ptr, rpc_dist->image_size(), sample_spacing);
-  }
-  
   if (lens_name == RPCLensDistortion6::class_name()) {
     RPCLensDistortion6 * rpc_dist = dynamic_cast<RPCLensDistortion6*>
       (const_cast<LensDistortion*>(distortion));

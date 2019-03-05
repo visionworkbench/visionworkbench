@@ -275,26 +275,19 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line,
     return true;
   }
 
-  // Match RPC6 before matching RPC
-  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion6::class_name())) 
-        != std::string::npos) ) {
-    m_distortion.reset(new RPCLensDistortion6());
-    return true;
-  }
-
   // Match RPC5 before matching RPC
   if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion5::class_name())) 
         != std::string::npos) ) {
-    m_distortion.reset(new RPCLensDistortion5());
+    m_distortion.reset(new RPCLensDistortion5()); // old model of degree 5
     return true;
   }
   
   if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
        != std::string::npos) ) {
-    if (camera_version <= 3)
-      m_distortion.reset(new RPCLensDistortion()); // old model
+    if (camera_version >= 4)
+      m_distortion.reset(new RPCLensDistortion6()); // currrent model of any degree
     else
-      m_distortion.reset(new RPCLensDistortion6()); // currrent model
+      m_distortion.reset(new RPCLensDistortion()); // old model of degree 4
     return true;
   }
   
@@ -327,7 +320,7 @@ void PinholeModel::write(std::string const& filename) const {
   //   # digits to survive double->text->double conversion
   const size_t ACCURATE_DIGITS = 17; // = std::numeric_limits<double>::max_digits10
   cam_file << std::setprecision(ACCURATE_DIGITS); 
-  cam_file << "VERSION_4\n";
+  cam_file << PINHOLE_VERSION << "\n";
   cam_file << "PINHOLE\n";
   cam_file << "fu = " << m_fu << "\n";
   cam_file << "fv = " << m_fv << "\n";
@@ -708,8 +701,6 @@ void epipolar(PinholeModel const &src_camera0, PinholeModel const &src_camera1,
 std::ostream& operator<<(std::ostream& str,
                                  PinholeModel const& model) {
 
-  update_rpc_undistortion(model);
-  
   str << "Pinhole camera: \n";
   str << "\tCamera Center: " << model.camera_center() << "\n";
   str << "\tRotation Matrix: " << model.camera_pose() << "\n";

@@ -276,17 +276,66 @@ namespace camera {
     virtual void scale( double scale );
     void init_distortion_param_names();
   };
+
+  // RPC lens distortion of arbitrary degree.  Undistortion is done
+  // analogously using a second set of coefficients.  undistortion
+  // parameters are computed.
+  // TODO: Make undistortion computation a member of this class.
+  class RPCLensDistortion6 : public LensDistortion {
+    int m_rpc_degree;
+    Vector2i m_image_size;
+    Vector<double> m_distortion, m_undistortion;
+    
+    // This variable signals that the coefficients needed to perform undistortion
+    // have been computed.
+    bool m_can_undistort;
+
+    // Compute the RPC model with given coeffcient at the given point
+    Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
+  public:
+    
+    RPCLensDistortion6();
+    RPCLensDistortion6(Vector<double> const& params);
+    void reset(int rpc_degree);  // Form the identity transform
+    static int rpc_degree(int num_dist_params) {
+      return int(round(sqrt(2.0*num_dist_params + 5.0)/2.0 - 1.5));
+    }
+    int rpc_degree() const { return m_rpc_degree; }
+    virtual Vector<double> distortion_parameters() const;
+    Vector<double> undistortion_parameters() const;
+    void set_image_size(Vector2i const& image_size);
+    Vector2i image_size() const { return m_image_size; } 
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    void set_undistortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
+    static int num_dist_params(int rpc_degree) { return 2*(rpc_degree+1)*(rpc_degree+2)-2; }
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& os); 
+
+    static  std::string class_name()       { return "RPC"; }
+    virtual std::string name      () const { return class_name();  }
+
+    virtual void scale( double scale );
+    
+    bool can_undistort() const { return m_can_undistort; }
+    static void init_as_identity(Vector<double> & params);
+  private:
+    static void validate_distortion_params(Vector<double> const& params);
+    static void unpack_params(Vector<double> const& params,
+                              Vector<double> & num_x, Vector<double> & den_x,
+                              Vector<double> & num_y, Vector<double> & den_y);
+    static void pack_params(Vector<double> & params,
+                            Vector<double> const& num_x, Vector<double> const& den_x,
+                            Vector<double> const& num_y, Vector<double> const& den_y);
+  };
   
-  // TODO: This family of RPC distortion classes must be unified with
-  // a shared base class. Tests need to be developed before any of
-  // this takes place.
-  
-  // RPC lens distortion, ratio of polynomials of degree 4 with certain coeffcients.
-  // Note that undistortion is done analogously using a second set of coefficients.
-  // The function compute_undistortion() which also has access to the Pinhole
-  // class computes this approximation. It has great fitting power. To avoid
-  // over-fitting if optimizing these coefficients, need to use a lot of
-  // data, ideally also lidar or some kind of ground truth.
+  // Old RPC distortion of degree 5. It is deprecated but still
+  // supported as it was used in Icebridge.
   class RPCLensDistortion : public LensDistortion {
     Vector2i m_image_size;
     Vector<double> m_distortion, m_undistortion;
@@ -319,7 +368,7 @@ namespace camera {
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
 
-    static  std::string class_name()       { return "RPC"; }
+    static  std::string class_name()       { return "RPC4"; }
     virtual std::string name      () const { return class_name();  }
 
     virtual void scale( double scale );
@@ -327,6 +376,8 @@ namespace camera {
     bool can_undistort() const { return m_can_undistort; }
   };
 
+  // Old RPC distortion of degree 5. It is deprecated but still
+  // supported as it was used in Icebridge.
   class RPCLensDistortion5 : public LensDistortion {
     Vector2i m_image_size;
     Vector<double> m_distortion, m_undistortion;
@@ -367,61 +418,6 @@ namespace camera {
     bool can_undistort() const { return m_can_undistort; }
   };
 
-  // This class is not fully formed until both distortion and
-  // undistortion parameters are computed.
-  // TODO: Make undistortion computation a member of this class.
-  class RPCLensDistortion6 : public LensDistortion {
-    int m_rpc_degree;
-    Vector2i m_image_size;
-    Vector<double> m_distortion, m_undistortion;
-    
-    // This variable signals that the coefficients needed to perform undistortion
-    // have been computed.
-    bool m_can_undistort;
-
-    // Compute the RPC model with given coeffcient at the given point
-    Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
-  public:
-    
-    RPCLensDistortion6();
-    RPCLensDistortion6(Vector<double> const& params);
-    void reset(int rpc_degree);  // Form the identity transform
-    static int rpc_degree(int num_dist_params) {
-      return int(round(sqrt(2.0*num_dist_params + 5.0)/2.0 - 1.5));
-    }
-    int rpc_degree() const { return m_rpc_degree; }
-    virtual Vector<double> distortion_parameters() const;
-    Vector<double> undistortion_parameters() const;
-    void set_image_size(Vector2i const& image_size);
-    Vector2i image_size() const { return m_image_size; } 
-    virtual void set_distortion_parameters(Vector<double> const& params);
-    void set_undistortion_parameters(Vector<double> const& params);
-    virtual int num_dist_params() const { return m_distortion.size(); }
-    static int num_dist_params(int rpc_degree) { return 2*(rpc_degree+1)*(rpc_degree+2)-2; }
-    virtual boost::shared_ptr<LensDistortion> copy() const;
-
-    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
-    virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os); 
-
-    static  std::string class_name()       { return "RPC6"; }
-    virtual std::string name      () const { return class_name();  }
-
-    virtual void scale( double scale );
-    
-    bool can_undistort() const { return m_can_undistort; }
-    static void init_as_identity(Vector<double> & params);
-  private:
-    static void validate_distortion_params(Vector<double> const& params);
-    static void unpack_params(Vector<double> const& params,
-                              Vector<double> & num_x, Vector<double> & den_x,
-                              Vector<double> & num_y, Vector<double> & den_y);
-    static void pack_params(Vector<double> & params,
-                            Vector<double> const& num_x, Vector<double> const& den_x,
-                            Vector<double> const& num_y, Vector<double> const& den_y);
-  };
   
 }} // namespace vw::camera
 

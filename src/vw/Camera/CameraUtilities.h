@@ -105,7 +105,7 @@ struct DistortionOptimizeFunctor:
   }
 }; // End class LensOptimizeFunctor
 
-/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion.
+/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion6.
 template <class DistModelT>
 struct UndistortionOptimizeFunctor:
     public math::LeastSquaresModelBase< UndistortionOptimizeFunctor<DistModelT> > {
@@ -161,9 +161,7 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
 
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if (lens_name != RPCLensDistortion::class_name()  &&
-      lens_name != RPCLensDistortion5::class_name() &&
-      lens_name != RPCLensDistortion6::class_name())  
+  if (lens_name != RPCLensDistortion6::class_name())  
     vw_throw(ArgumentErr() << "Undistortion can only be computed for RPC models.\n");
   
   // Get input camera information
@@ -292,8 +290,6 @@ double create_approx_pinhole_model(CameraModel * const input_model,
          (lens_name == "NULL"                           ||
           lens_name == "TSAI"                           ||
           lens_name == "AdjustableTSAI"                 ||
-          lens_name == RPCLensDistortion::class_name()  ||
-          lens_name == RPCLensDistortion5::class_name() ||
           lens_name == RPCLensDistortion6::class_name())) {
       //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
       return 0;
@@ -429,10 +425,6 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     out_model.set_lens_distortion(&new_model);
 
     // This must be invoked here, when we know the image size
-    if (new_model.name() == RPCLensDistortion::class_name()) 
-      compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing);
-    if (new_model.name() == RPCLensDistortion5::class_name()) 
-      compute_undistortion<RPCLensDistortion5>(out_model, image_size, sample_spacing);
     if (new_model.name() == RPCLensDistortion6::class_name()) 
       compute_undistortion<RPCLensDistortion6>(out_model, image_size, sample_spacing);
   }
