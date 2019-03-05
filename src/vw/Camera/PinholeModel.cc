@@ -231,7 +231,7 @@ void PinholeModel::read(std::string const& filename) {
   this->rebuild_camera_matrix();
 
   // This creates m_distortion but we still need to read the parameters.
-  bool found_name = construct_lens_distortion(line);
+  bool found_name = construct_lens_distortion(line, file_version);
 
   if (!found_name && (file_version > 2)){
     cam_file.close();
@@ -249,7 +249,8 @@ void PinholeModel::read(std::string const& filename) {
   cam_file.close();
 }
 
-bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
+bool PinholeModel::construct_lens_distortion(std::string const& config_line,
+                                               int camera_version) {
 
   // Check if the passed in string contains the string for any of the
   //  recognized lens distortion models.
@@ -288,9 +289,12 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
     return true;
   }
   
-  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
-        != std::string::npos) ) {
-    m_distortion.reset(new RPCLensDistortion());
+  if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
+       != std::string::npos) ) {
+    if (camera_version <= 3)
+      m_distortion.reset(new RPCLensDistortion()); // old model
+    else
+      m_distortion.reset(new RPCLensDistortion6()); // currrent model
     return true;
   }
   
@@ -308,6 +312,10 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line) {
 void PinholeModel::write(std::string const& filename) const {
 
   update_rpc_undistortion(*this);
+
+  // Update this field whenever there is a significant change to the file.
+  // - It can be used to keep backwards compatibility with future plain text changes.
+  const std::string PINHOLE_VERSION = "VERSION_4";
 
   // Set the path an open the output file for writing
   std::string file_path = fs::path(filename).replace_extension(".tsai").string();

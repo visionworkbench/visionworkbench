@@ -287,7 +287,7 @@ namespace camera {
     ///  model depending on a string from an input .tsai file.
     /// - Returns true if it found a name or false if it did not and
     ///   just created the default TSAI distortion model.
-    bool construct_lens_distortion(std::string const& config_line);
+    bool construct_lens_distortion(std::string const& config_line, int camera_version);
   };
 
   // TODO: Any use for an epipolar alignment function that operates on pinhole cameras?

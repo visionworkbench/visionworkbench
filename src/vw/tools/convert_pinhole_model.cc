@@ -45,9 +45,7 @@ using namespace vw::camera;
 int main( int argc, char *argv[] ) {
 
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
-  int sample_spacing;
-  
-  std::string output_types = std::string("Specify the output distortion model. Options: TsaiLensDistortion, BrownConradyDistortion, ") + RPCLensDistortion::class_name() + ", " + RPCLensDistortion5::class_name() + ", " + RPCLensDistortion6::class_name() + ".";
+  int sample_spacing, rpc_degree;
   
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
@@ -59,7 +57,9 @@ int main( int argc, char *argv[] ) {
     ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
                        "Pick one out of this many consecutive pixels to sample.")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
-     output_types.c_str())
+     "The output model type. Options: TsaiLensDistortion, BrownConradyDistortion, RPC.")
+    ("rpc-degree", po::value(&rpc_degree)->default_value(3),    
+                       "The degree of the polynomials, if the output distortion model is RPC.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
      "Specify the output file. It is expected to have the .tsai extension.");
   
@@ -87,7 +87,12 @@ int main( int argc, char *argv[] ) {
     std::cout << desc << std::endl;
     return 1;
   }
-  
+
+  if (rpc_degree <= 0) {
+    std::cout << "Error: The RPC degree must be positive." << std::endl;
+    std::cout << desc << std::endl;
+
+  }
   try {
     // Get the size of the input image
     boost::shared_ptr<vw::DiskImageResource> image_in(vw::DiskImageResource::open(image_file_name));
@@ -101,6 +106,11 @@ int main( int argc, char *argv[] ) {
     OpticalBarModel opb;
     PinholeModel    pin;
 
+    pin.read(camera_file_name);
+    std::cout << "---writing " << output_file_name << std::endl;
+    pin.write(output_file_name);
+    exit(0);
+    
     bool success = false;
     try{
       pin.read(camera_file_name);
@@ -119,7 +129,7 @@ int main( int argc, char *argv[] ) {
     }
     
     if (!success) 
-      vw_throw(ArgumentErr() << "Could not read the camera model\n");
+      vw_throw(ArgumentErr() << "Could not read the camera model.\n");
     
     PinholeModel out_model;
     bool force_conversion = true;
@@ -128,23 +138,15 @@ int main( int argc, char *argv[] ) {
     if (output_model_type == "TsaiLensDistortion") {
       //error =
       create_approx_pinhole_model<TsaiLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion);
+	(in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
     }else if (output_model_type == "BrownConradyDistortion") {
       //error =
       create_approx_pinhole_model<BrownConradyDistortion>
-        (in_model, out_model, image_size, sample_spacing, force_conversion);
-    } else if (output_model_type == RPCLensDistortion::class_name()) {
-      //error =
-      create_approx_pinhole_model<RPCLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion);
-    } else if (output_model_type == RPCLensDistortion5::class_name()) {
-      //error =
-      create_approx_pinhole_model<RPCLensDistortion5>
-	(in_model, out_model, image_size, sample_spacing, force_conversion);
+        (in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
     } else if (output_model_type == RPCLensDistortion6::class_name()) {
       //error =
       create_approx_pinhole_model<RPCLensDistortion6>
-	(in_model, out_model, image_size, sample_spacing, force_conversion);
+	(in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";
       return 1;

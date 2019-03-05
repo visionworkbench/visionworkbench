@@ -27,7 +27,6 @@
 
 #include <iosfwd>
 #include <string>
-
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
@@ -37,7 +36,8 @@ namespace camera {
   class PinholeModel;
 
   /// Base class which all distortion models inherit from.
-  /// - Trivia: Back in 2009 this was implemented using CRTP.  See commit e2749b36d3db37f3176acd8907434dbf4ab29096.
+  /// Trivia: Back in 2009 this was implemented using CRTP. See commit
+  /// e2749b36d3db37f3176acd8907434dbf4ab29096.
   class LensDistortion {
   protected:
     std::vector<std::string> m_distortion_param_names;
@@ -74,13 +74,16 @@ namespace camera {
     /// Initialize the object from a set of distortion parameters.
     virtual void set_distortion_parameters(Vector<double> const& params);
 
+    // Number of distortion parameters
+    virtual int num_dist_params() const = 0;
+
     /// Each derived model needs to have a string name.
     virtual std::string name() const = 0;
     
-    /// Used to scale distortion w/ image size
+    /// Used to scale distortion with image size
     virtual void scale(double scale) = 0;
     
-    /// Used to scale distortion w/ image size
+    /// Used to scale distortion with image size
     std::vector<std::string> distortion_param_names() const { return m_distortion_param_names; }
   }; // End class LensDistortion
 
@@ -96,6 +99,7 @@ namespace camera {
   struct NullLensDistortion : public LensDistortion {
     virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const& v) const { return v; }
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
+    virtual int num_dist_params() const { return 0; };
 
     virtual boost::shared_ptr<LensDistortion> copy() const;
     virtual void write(std::ostream& os) const;
@@ -137,6 +141,7 @@ namespace camera {
     TsaiLensDistortion(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return num_distortion_params; }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
@@ -175,6 +180,7 @@ namespace camera {
 
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return num_distortion_params; }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
@@ -211,6 +217,7 @@ namespace camera {
     AdjustableTsaiLensDistortion(Vector<double> params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
@@ -222,8 +229,6 @@ namespace camera {
     virtual std::string name      () const { return class_name(); }
     virtual void scale( double /*scale*/ );
   };
-  
-  
   
   /// Photometrix Lens Distortion Model
   ///
@@ -257,6 +262,7 @@ namespace camera {
     PhotometrixLensDistortion(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
@@ -303,6 +309,7 @@ namespace camera {
     Vector2i image_size() const { return m_image_size;} 
     virtual void set_distortion_parameters(Vector<double> const& params);
     void set_undistortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return num_distortion_params; }
     void set_image_size(Vector2i const& image_size);
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
@@ -342,6 +349,7 @@ namespace camera {
     Vector2i image_size() const { return m_image_size;} 
     virtual void set_distortion_parameters(Vector<double> const& params);
     void set_undistortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return num_distortion_params; }
     void set_image_size(Vector2i const& image_size);
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
@@ -359,7 +367,11 @@ namespace camera {
     bool can_undistort() const { return m_can_undistort; }
   };
 
+  // This class is not fully formed until both distortion and
+  // undistortion parameters are computed.
+  // TODO: Make undistortion computation a member of this class.
   class RPCLensDistortion6 : public LensDistortion {
+    int m_rpc_degree;
     Vector2i m_image_size;
     Vector<double> m_distortion, m_undistortion;
     
@@ -369,33 +381,46 @@ namespace camera {
 
     // Compute the RPC model with given coeffcient at the given point
     Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
-
   public:
     
-    static const size_t num_distortion_params = 2*7*8-2; // 110; // 2*(n+1)*(n+2)-2, n=6
-
     RPCLensDistortion6();
     RPCLensDistortion6(Vector<double> const& params);
+    void reset(int rpc_degree);  // Form the identity transform
+    static int rpc_degree(int num_dist_params) {
+      return int(round(sqrt(2.0*num_dist_params + 5.0)/2.0 - 1.5));
+    }
+    int rpc_degree() const { return m_rpc_degree; }
     virtual Vector<double> distortion_parameters() const;
     Vector<double> undistortion_parameters() const;
-    Vector2i image_size() const { return m_image_size;} 
+    void set_image_size(Vector2i const& image_size);
+    Vector2i image_size() const { return m_image_size; } 
     virtual void set_distortion_parameters(Vector<double> const& params);
     void set_undistortion_parameters(Vector<double> const& params);
-    void set_image_size(Vector2i const& image_size);
+    virtual int num_dist_params() const { return m_distortion.size(); }
+    static int num_dist_params(int rpc_degree) { return 2*(rpc_degree+1)*(rpc_degree+2)-2; }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
+    virtual void read (std::istream& os); 
 
     static  std::string class_name()       { return "RPC6"; }
     virtual std::string name      () const { return class_name();  }
 
     virtual void scale( double scale );
-
+    
     bool can_undistort() const { return m_can_undistort; }
+    static void init_as_identity(Vector<double> & params);
+  private:
+    static void validate_distortion_params(Vector<double> const& params);
+    static void unpack_params(Vector<double> const& params,
+                              Vector<double> & num_x, Vector<double> & den_x,
+                              Vector<double> & num_y, Vector<double> & den_y);
+    static void pack_params(Vector<double> & params,
+                            Vector<double> const& num_x, Vector<double> const& den_x,
+                            Vector<double> const& num_y, Vector<double> const& den_y);
   };
   
 }} // namespace vw::camera
