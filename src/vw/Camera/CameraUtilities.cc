@@ -86,7 +86,7 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 
 int auto_compute_sample_spacing(Vector2i const image_size) {
   int DEFAULT_SPACING = 50;
-  int MIN_SIDE_POINTS = 50;
+  int MIN_SIDE_POINTS = 100;
   int MAX_SIDE_POINTS = 600;
   
   // Use the default spacing unless it gives too many points, then use the min spacing
