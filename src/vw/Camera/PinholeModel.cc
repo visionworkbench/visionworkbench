@@ -281,14 +281,26 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line,
     m_distortion.reset(new RPCLensDistortion5()); // old model of degree 5
     return true;
   }
-  
-  if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
+
+  // Match RPC4 or RPC. This code is a little confusing but was debugged carefully.
+  // In old cameras, RPC4 is simply named RPC.
+  if (camera_version < 4) {
+    // Old camera version
+    if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
        != std::string::npos) ) {
-    if (camera_version >= 4)
-      m_distortion.reset(new RPCLensDistortion6()); // currrent model of any degree
-    else
-      m_distortion.reset(new RPCLensDistortion()); // old model of degree 4
-    return true;
+      m_distortion.reset(new RPCLensDistortion4()); // old model of degree 4
+      return true;
+    }
+  }else{
+    // New camera version
+    if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion4::class_name())) 
+	 != std::string::npos) ) {
+      m_distortion.reset(new RPCLensDistortion4()); // old model of degree 4
+      return true;
+    } else if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) != std::string::npos) ) {
+      m_distortion.reset(new RPCLensDistortion()); // currrent model of any degree
+      return true;
+    }
   }
   
   // TSAI is the default model.  Older files which do not have a specifier string

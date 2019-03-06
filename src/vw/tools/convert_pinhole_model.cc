@@ -54,8 +54,8 @@ int main( int argc, char *argv[] ) {
                       "Explicitly specify the input file.")
     ("camera-file",    po::value<std::string>(&camera_file_name), 
                       "Explicitly specify the camera file.")
-    ("sample-spacing", po::value(&sample_spacing)->default_value(50),    
-                       "Pick one out of this many consecutive pixels to sample.")
+    ("sample-spacing", po::value(&sample_spacing)->default_value(0),    
+                       "Pick one out of this many consecutive pixels to sample. if not specified, it will be auto-computed.")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
      "The output model type. Options: TsaiLensDistortion, BrownConradyDistortion, RPC.")
     ("rpc-degree", po::value(&rpc_degree)->default_value(3),    
@@ -93,11 +93,17 @@ int main( int argc, char *argv[] ) {
     std::cout << desc << std::endl;
 
   }
+
   try {
     // Get the size of the input image
     boost::shared_ptr<vw::DiskImageResource> image_in(vw::DiskImageResource::open(image_file_name));
     Vector2i image_size(image_in->format().cols, image_in->format().rows);
     
+    if (sample_spacing <= 0) {
+      sample_spacing = auto_compute_sample_spacing(image_size);
+      vw_out() << "Sample the image by picking one in every " << sample_spacing << " pixels.\n";
+    }
+
     vw_out() << "Loading camera model file: " << camera_file_name.c_str() << "\n";
 
     // Here we will accept an optical bar model too, then in_model
@@ -105,12 +111,6 @@ int main( int argc, char *argv[] ) {
     CameraModel * in_model;
     OpticalBarModel opb;
     PinholeModel    pin;
-
-    pin.read(camera_file_name);
-    std::cout << "---writing " << output_file_name << std::endl;
-    pin.write(output_file_name);
-    exit(0);
-    
     bool success = false;
     try{
       pin.read(camera_file_name);
@@ -143,9 +143,9 @@ int main( int argc, char *argv[] ) {
       //error =
       create_approx_pinhole_model<BrownConradyDistortion>
         (in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
-    } else if (output_model_type == RPCLensDistortion6::class_name()) {
+    } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
-      create_approx_pinhole_model<RPCLensDistortion6>
+      create_approx_pinhole_model<RPCLensDistortion>
 	(in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";

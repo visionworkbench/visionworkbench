@@ -86,17 +86,21 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 
 int auto_compute_sample_spacing(Vector2i const image_size) {
   int DEFAULT_SPACING = 50;
+  int MIN_SIDE_POINTS = 50;
   int MAX_SIDE_POINTS = 600;
-
+  
   // Use the default spacing unless it gives too many points, then use the min spacing
   //  that hits our point estimate.
   int spacing    = DEFAULT_SPACING;
   int side_total = image_size[0] + image_size[1];
   int num_pts    = side_total / DEFAULT_SPACING;
-
+  
+  if (num_pts < MIN_SIDE_POINTS)
+    spacing = std::max(side_total / MIN_SIDE_POINTS, 1);
+  
   if (num_pts > MAX_SIDE_POINTS)
     spacing = side_total / MAX_SIDE_POINTS;
-
+  
   return spacing;
 }
 
@@ -104,7 +108,7 @@ void update_rpc_undistortion(PinholeModel const& model){
 
   const vw::camera::LensDistortion* distortion = model.lens_distortion();
   std::string lens_name = distortion->name();
-  if (lens_name != RPCLensDistortion6::class_name())
+  if (lens_name != RPCLensDistortion::class_name())
     return;
   
   // Have to cast away the const-ness. Not nice. Only happens for RPC
@@ -112,17 +116,17 @@ void update_rpc_undistortion(PinholeModel const& model){
   PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
   int sample_spacing;
 
-  if (lens_name == RPCLensDistortion6::class_name()) {
-    RPCLensDistortion6 * rpc_dist = dynamic_cast<RPCLensDistortion6*>
+  if (lens_name == RPCLensDistortion::class_name()) {
+    RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
       (const_cast<LensDistortion*>(distortion));
     if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion6::class_name() +
+      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion::class_name() +
                 " model." );
     
     // Only update this if we have to
     int sample_spacing = auto_compute_sample_spacing(rpc_dist->image_size());
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion6>(*pin_ptr, rpc_dist->image_size(), sample_spacing);
+      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size(), sample_spacing);
   }
 
 }

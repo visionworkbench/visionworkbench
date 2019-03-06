@@ -53,7 +53,7 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 /// Compute a good sample spacing for the given input image so that 
 /// the undistortion functions below won't take too long.
 int auto_compute_sample_spacing(Vector2i const image_size);
-
+ 
 // For RPC, must always ensure the undistortion coefficients are up to date.
 // This function will be used before saving or displaying a pinhole model.
 // This function is not in the .cc file as it is related to the above.
@@ -105,7 +105,7 @@ struct DistortionOptimizeFunctor:
   }
 }; // End class LensOptimizeFunctor
 
-/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion6.
+/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion.
 template <class DistModelT>
 struct UndistortionOptimizeFunctor:
     public math::LeastSquaresModelBase< UndistortionOptimizeFunctor<DistModelT> > {
@@ -144,7 +144,7 @@ struct UndistortionOptimizeFunctor:
 // A very analogous function to
 // update_pinhole_for_fast_point2pixel. This one computes the
 // undistortion coefficients.  Only applicable for RPC.
-// TODO: Move this to the class RPCLensDistortion6.
+// TODO: Move this to the class RPCLensDistortion.
 template<class DistModelT>
 double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
                             int sample_spacing=50) {
@@ -161,7 +161,7 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
 
   // Check for all of the models that currently support a fast distortion function.
   // - The other models use a solver for this function, greatly increasing the run time.
-  if (lens_name != RPCLensDistortion6::class_name())  
+  if (lens_name != RPCLensDistortion::class_name())  
     vw_throw(ArgumentErr() << "Undistortion can only be computed for RPC models.\n");
   
   // Get input camera information
@@ -225,10 +225,10 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
   int status;
   Vector<double> seed;
   seed.set_size(input_distortion->num_dist_params());
-  if (DistModelT::class_name() != "RPC6") 
+  if (DistModelT::class_name() != RPCLensDistortion::class_name()) 
     seed.set_all(0); // Start with all zeros (no distortion)
   else
-    RPCLensDistortion6::init_as_identity(seed); 
+    RPCLensDistortion::init_as_identity(seed); 
 
   // Solve for the best new model params that give us the undistorted
   // coordinates from the distorted coordinates.
@@ -290,7 +290,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
          (lens_name == "NULL"                           ||
           lens_name == "TSAI"                           ||
           lens_name == "AdjustableTSAI"                 ||
-          lens_name == RPCLensDistortion6::class_name())) {
+          lens_name == RPCLensDistortion::class_name())) {
       //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
       return 0;
     }
@@ -385,14 +385,14 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   DistModelT init_model;
   if (DistModelT::class_name() == "AdjustableTSAI")
     vw_throw(ArgumentErr() << "Cannot create an AdjustableTSAI pinhole model.\n");
-  else if (DistModelT::class_name() != "RPC6") {
+  else if (DistModelT::class_name() != RPCLensDistortion::class_name()) {
     num_distortion_params = init_model.num_dist_params();
     seed.set_size(num_distortion_params);
     seed.set_all(0);
   } else{
-    num_distortion_params = RPCLensDistortion6::num_dist_params(rpc_degree); 
+    num_distortion_params = RPCLensDistortion::num_dist_params(rpc_degree); 
     seed.set_size(num_distortion_params);
-    RPCLensDistortion6::init_as_identity(seed); 
+    RPCLensDistortion::init_as_identity(seed); 
   }
   
   // Solve for the best new model params that give us the distorted
@@ -425,8 +425,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     out_model.set_lens_distortion(&new_model);
 
     // This must be invoked here, when we know the image size
-    if (new_model.name() == RPCLensDistortion6::class_name()) 
-      compute_undistortion<RPCLensDistortion6>(out_model, image_size, sample_spacing);
+    if (new_model.name() == RPCLensDistortion::class_name()) 
+      compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing);
   }
   
   return diff;
@@ -439,9 +439,12 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 /// - Returns the approximation error.
 template<class DistModelT>
 double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i image_size,
-                                           int sample_spacing=50,
+                                           int sample_spacing = 0,
                                            bool force_conversion = false) {
-
+  
+  if (sample_spacing <= 0) 
+    sample_spacing = auto_compute_sample_spacing(image_size);
+  
   PinholeModel in_model = pin_model;
   int rpc_degree = 0;
   return create_approx_pinhole_model<DistModelT>

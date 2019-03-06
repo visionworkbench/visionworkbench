@@ -281,7 +281,7 @@ namespace camera {
   // analogously using a second set of coefficients.  undistortion
   // parameters are computed.
   // TODO: Make undistortion computation a member of this class.
-  class RPCLensDistortion6 : public LensDistortion {
+  class RPCLensDistortion : public LensDistortion {
     int m_rpc_degree;
     Vector2i m_image_size;
     Vector<double> m_distortion, m_undistortion;
@@ -294,8 +294,8 @@ namespace camera {
     Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
   public:
     
-    RPCLensDistortion6();
-    RPCLensDistortion6(Vector<double> const& params);
+    RPCLensDistortion();
+    RPCLensDistortion(Vector<double> const& params);
     void reset(int rpc_degree);  // Form the identity transform
     static int rpc_degree(int num_dist_params) {
       return int(round(sqrt(2.0*num_dist_params + 5.0)/2.0 - 1.5));
@@ -336,7 +336,7 @@ namespace camera {
   
   // Old RPC distortion of degree 5. It is deprecated but still
   // supported as it was used in Icebridge.
-  class RPCLensDistortion : public LensDistortion {
+  class RPCLensDistortion4 : public LensDistortion {
     Vector2i m_image_size;
     Vector<double> m_distortion, m_undistortion;
     
@@ -351,8 +351,8 @@ namespace camera {
     
     static const size_t num_distortion_params = 15 + 15 + 14 + 14; // 2*(n+1)*(n+2)-2, n=4
 
-    RPCLensDistortion();
-    RPCLensDistortion(Vector<double> const& params);
+    RPCLensDistortion4();
+    RPCLensDistortion4(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     Vector<double> undistortion_parameters() const;
     Vector2i image_size() const { return m_image_size;} 

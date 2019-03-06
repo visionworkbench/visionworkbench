@@ -614,20 +614,20 @@ void PhotometrixLensDistortion::scale( double scale ) {
   m_distortion *= scale;
 }
 
-// RPC lens distortion. Use a 4th degree polynomial in x and y.
 
 // ======== RPCLensDistortion ========
-
+// This class is not fully formed until both distortion and
+// undistortion parameters are computed.
+// One must always call set_undistortion_parameters()
+// only after set_distortion_parameters().
 RPCLensDistortion::RPCLensDistortion(){
-  m_distortion.set_size(num_distortion_params);
-  m_undistortion.set_size(num_distortion_params);
+  m_rpc_degree = 0;
   m_can_undistort = false;
 }
 
-RPCLensDistortion::RPCLensDistortion(Vector<double> const& params) 
-  : m_distortion(params) {
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << "RPCLensDistortion: Incorrect number of parameters was passed in.");
+RPCLensDistortion::RPCLensDistortion(Vector<double> const& params): m_distortion(params) {
+  validate_distortion_params(params);
+  m_rpc_degree = rpc_degree(params.size());
   m_can_undistort = false;
 }
 
@@ -642,26 +642,48 @@ RPCLensDistortion::undistortion_parameters() const {
 }
 
 void RPCLensDistortion::set_distortion_parameters(Vector<double> const& params) {
-  if (params.size() != num_distortion_params) 
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  validate_distortion_params(params);
+
   // If the distortion parameters changed, one cannot undistort until the undistortion
   // coefficients are computed.
-  for (size_t it = 0; it < num_distortion_params; it++) {
-    if (m_distortion[it] != params[it]) {
-      m_can_undistort = false;
-      break;
+  if (params.size() != m_distortion.size()) {
+    m_can_undistort = false;
+  } else{
+    for (size_t it = 0; it < params.size(); it++) {
+      if (m_distortion[it] != params[it]) {
+        m_can_undistort = false;
+        break;
+      }
     }
   }
   m_distortion = params;
+  m_rpc_degree = rpc_degree(params.size());
 }
 
 void RPCLensDistortion::set_undistortion_parameters(Vector<double> const& params) {
+  if (params.size() != num_dist_params()) 
+    vw_throw( IOErr() << class_name()
+              << ": The number of distortion and undistortion parameters must agree.");
   m_undistortion = params;
   m_can_undistort = true;
 }
 
 void RPCLensDistortion::set_image_size(Vector2i const& image_size){
   m_image_size = image_size;
+}
+
+// Form the identity transform
+void RPCLensDistortion::reset(int rpc_degree){
+  if (rpc_degree <= 0) 
+    vw_throw( IOErr() << class_name() << ": The RPC degree must be positive.");
+
+  m_rpc_degree = rpc_degree;
+  int num_params = num_dist_params(rpc_degree);
+  m_distortion.set_size(num_params);
+  m_undistortion.set_size(num_params);
+  init_as_identity(m_distortion);
+  init_as_identity(m_undistortion);
+  m_can_undistort = true;
 }
 
 boost::shared_ptr<LensDistortion>
@@ -677,18 +699,270 @@ RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector
 Vector2
 RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion: Undistorted coefficients are not up to date.\n" );
-  
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
   return RPCLensDistortion::compute_rpc(v, m_undistortion);
+}
+
+// Evaluate the RPC with given coefficients.
+Vector2
+RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
+  
+  if (num_dist_params() != (int)coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+
+  int rpc_deg = rpc_degree(coeffs.size());
+  double x = p[0];
+  double y = p[1];
+  
+  // Precompute x^n and y^m values
+  std::vector<double> powx(rpc_deg + 1), powy(rpc_deg + 1);
+  double valx = 1.0, valy = 1.0;
+  for (int deg = 0; deg <= rpc_deg; deg++) {
+    powx[deg] = valx; valx *= x; 
+    powy[deg] = valy; valy *= y; 
+  }
+
+  // Evaluate the RPC expression. The denominator always
+  // has a 1 as the 0th-coefficient.
+  int rpc_count = 0;
+  double vals[] = {0.0, 1.0, 0.0, 1.0};
+  for (int it = 0; it < 4; it++) {
+    int start = 0; // starting degree for numerator
+    if (it == 1 || it == 3)
+      start = 1; // starting degree for denominator
+
+    for (int deg = start; deg <= rpc_deg; deg++) { // start at 0
+      for (int degy = 0; degy <= deg; degy++) {
+        int degx = deg - degy;
+        vals[it] += coeffs[rpc_count] * powx[degx] * powy[degy];
+        rpc_count++;
+      }
+    }
+  }
+
+  if (rpc_count != (int)coeffs.size()) 
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+
+  return Vector2(vals[0]/vals[1], vals[2]/vals[3]);
+}
+
+void RPCLensDistortion::scale(double scale) {
+  m_distortion *= scale;
+  m_undistortion *= scale;
+}
+
+void RPCLensDistortion::validate_distortion_params(Vector<double> const& params) {
+  int num_params = params.size();
+  int deg = rpc_degree(num_params);
+  if (num_dist_params(deg) != num_params || deg <= 0 || deg != deg)
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in: "
+              << num_params << ".");
+}
+
+// Make RPC coefficients so that the RPC transform is the identity.
+// The vector params must already have the right size.
+void RPCLensDistortion::init_as_identity(Vector<double> & params){
+  RPCLensDistortion::validate_distortion_params(params);
+
+  params.set_all(0);
+  Vector<double> num_x, den_x, num_y, den_y;
+  unpack_params(params, num_x, den_x,  num_y, den_y);
+
+  // Initialize the transform (x, y) -> (x, y), which is 
+  // ( (0 + 1*x + 0*y)/(1 + 0*x + 0*y), (0 + 0*x + 1*y)/(1 + 0*x + 0*y) )
+  // hence set num_x and num_y accordingly. As always, we do not
+  // store the 1 values in the denominator.
+  num_x[1] = 1; num_y[2] = 1;
+  pack_params(params, num_x, den_x, num_y, den_y);
+}
+
+void RPCLensDistortion::unpack_params(Vector<double> const& params,
+                                       Vector<double> & num_x, Vector<double> & den_x,
+                                       Vector<double> & num_y, Vector<double> & den_y){
+  RPCLensDistortion::validate_distortion_params(params);
+  
+  int num_params = params.size();
+  int num_len = (num_params + 2)/4;
+  int den_len = num_len - 1; // because the denominator always starts with 1.
+  num_x = subvector(params, 0,                           num_len);
+  den_x = subvector(params, num_len,                     den_len);
+  num_y = subvector(params, num_len + den_len,           num_len);
+  den_y = subvector(params, num_len + den_len + num_len, den_len);
+}
+
+void RPCLensDistortion::pack_params(Vector<double> & params,
+                                     Vector<double> const& num_x, Vector<double> const& den_x,
+                                     Vector<double> const& num_y, Vector<double> const& den_y){
+
+  int num_len = num_x.size();
+  int den_len = den_x.size();
+
+  if (num_len != den_len + 1 || num_len != int(num_y.size()) || den_len != int(den_y.size()))
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+
+  params.set_size(2*num_len + 2*den_len);
+  
+  subvector(params, 0,                           num_len) = num_x; 
+  subvector(params, num_len,                     den_len) = den_x;
+  subvector(params, num_len + den_len,           num_len) = num_y;
+  subvector(params, num_len + den_len + num_len, den_len) = den_y;
+  RPCLensDistortion::validate_distortion_params(params);
+}
+
+namespace {
+  // Prepend a 1 to a vector
+  void prepend_1(Vector<double> & params) {
+    int len = params.size();
+    Vector<double> tmp_params = params;
+    params.set_size(len + 1);
+    params[0] = 1;
+    subvector(params, 1, len) = tmp_params;
+  }
+  // Remove 1 from first position in a vector
+  void remove_1(Vector<double> & params) {
+    int len = params.size();
+    if (len <= 0)
+      vw_throw( IOErr() << "Found an unexpected empty vector.\n" );
+    Vector<double> tmp_params = params;
+    params = subvector(tmp_params, 1, len - 1);
+  }
+}
+  
+void RPCLensDistortion::write(std::ostream & os) const {
+
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
+
+  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
+  // because otherwise the RPC model can return wrong results which confuses
+  // bundle adjustment. 
+  write_param("rpc_degree", os, m_rpc_degree);
+  write_param_vec("image_size", os, m_image_size);
+
+  // Write the distortion
+  Vector<double> num_x, den_x, num_y, den_y;
+  unpack_params(m_distortion, num_x, den_x, num_y, den_y);
+  prepend_1(den_x);
+  prepend_1(den_y);
+  // Leave spaces below so that it will display nicely
+  write_param_vec("distortion_num_x  ", os, num_x);
+  write_param_vec("distortion_den_x  ", os, den_x);
+  write_param_vec("distortion_num_y  ", os, num_y);
+  write_param_vec("distortion_den_y  ", os, den_y);
+  
+  // Write the undistortion
+  unpack_params(m_undistortion, num_x, den_x, num_y, den_y);
+  prepend_1(den_x);
+  prepend_1(den_y);
+  write_param_vec("undistortion_num_x", os, num_x);
+  write_param_vec("undistortion_den_x", os, den_x);
+  write_param_vec("undistortion_num_y", os, num_y);
+  write_param_vec("undistortion_den_y", os, den_y);
+}
+
+void RPCLensDistortion::read(std::istream & is) {
+
+  read_param("rpc_degree", is, m_rpc_degree);
+  read_param_vec("image_size", 2, is, m_image_size);
+
+  int num_params = num_dist_params(m_rpc_degree);
+  int quarter = (num_params+2)/4; // to account for the two 1's in the denominator
+
+  // Read the distortion
+  Vector<double> num_x, den_x, num_y, den_y;
+  read_param_vec("distortion_num_x", quarter, is, num_x);
+  read_param_vec("distortion_den_x", quarter, is, den_x);
+  read_param_vec("distortion_num_y", quarter, is, num_y);
+  read_param_vec("distortion_den_y", quarter, is, den_y);
+  remove_1(den_x);
+  remove_1(den_y);
+  pack_params(m_distortion, num_x, den_x, num_y, den_y);
+
+  // Read the undistortion
+  read_param_vec("undistortion_num_x", quarter, is, num_x);
+  read_param_vec("undistortion_den_x", quarter, is, den_x);
+  read_param_vec("undistortion_num_y", quarter, is, num_y);
+  read_param_vec("undistortion_den_y", quarter, is, den_y);
+  remove_1(den_x);
+  remove_1(den_y);
+  pack_params(m_undistortion, num_x, den_x, num_y, den_y);
+
+  m_can_undistort = true; 
+}
+
+// Old RPC lens distortion of degree 4.
+
+RPCLensDistortion4::RPCLensDistortion4(){
+  m_distortion.set_size(num_distortion_params);
+  m_undistortion.set_size(num_distortion_params);
+  m_can_undistort = false;
+}
+
+RPCLensDistortion4::RPCLensDistortion4(Vector<double> const& params) 
+  : m_distortion(params) {
+  if (m_distortion.size() != num_distortion_params)
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  m_can_undistort = false;
+}
+
+Vector<double>
+RPCLensDistortion4::distortion_parameters() const { 
+  return m_distortion; 
+}
+
+Vector<double>
+RPCLensDistortion4::undistortion_parameters() const { 
+  return m_undistortion; 
+}
+
+void RPCLensDistortion4::set_distortion_parameters(Vector<double> const& params) {
+  if (params.size() != num_distortion_params) 
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
+  // If the distortion parameters changed, one cannot undistort until the undistortion
+  // coefficients are computed.
+  for (size_t it = 0; it < num_distortion_params; it++) {
+    if (m_distortion[it] != params[it]) {
+      m_can_undistort = false;
+      break;
+    }
+  }
+  m_distortion = params;
+}
+
+void RPCLensDistortion4::set_undistortion_parameters(Vector<double> const& params) {
+  m_undistortion = params;
+  m_can_undistort = true;
+}
+
+void RPCLensDistortion4::set_image_size(Vector2i const& image_size){
+  m_image_size = image_size;
+}
+
+boost::shared_ptr<LensDistortion>
+RPCLensDistortion4::copy() const {
+  return boost::shared_ptr<RPCLensDistortion4>(new RPCLensDistortion4(*this));
+}
+
+Vector2
+RPCLensDistortion4::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+  return RPCLensDistortion4::compute_rpc(p, m_distortion);
+}
+
+Vector2
+RPCLensDistortion4::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+  if (!m_can_undistort) 
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
+  
+  return RPCLensDistortion4::compute_rpc(v, m_undistortion);
 }
 
 // Compute the RPC transform. Note that if the RPC coefficients are all zero,
 // the obtained transform is the identity.
 Vector2
-RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
+RPCLensDistortion4::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
   
   if (num_distortion_params != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion4.\n" );
 
   int i = 0;
   double a00 = coeffs[i]; i++;
@@ -754,7 +1028,7 @@ RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) c
   double d04 = coeffs[i]; i++;
 
   if (size_t(i) != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion4.\n" );
   
   double x = p[0];
   double y = p[1];
@@ -783,10 +1057,10 @@ RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) c
   return Vector2(x_corr, y_corr);
 }
 
-void RPCLensDistortion::write(std::ostream & os) const {
+void RPCLensDistortion4::write(std::ostream & os) const {
 
   if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion: Undistorted coefficients are not up to date.\n" );
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
 
   // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
   // because otherwise the RPC model can return wrong results which confuse
@@ -796,7 +1070,7 @@ void RPCLensDistortion::write(std::ostream & os) const {
   write_param_vec("undistortion_coeffs", os, m_undistortion);
 }
 
-void RPCLensDistortion::read(std::istream & is) {
+void RPCLensDistortion4::read(std::istream & is) {
 
   m_image_size.set_size(2);
   m_distortion.set_size(num_distortion_params);
@@ -809,12 +1083,12 @@ void RPCLensDistortion::read(std::istream & is) {
   m_can_undistort = true; 
 }
 
-void RPCLensDistortion::scale( double scale ) {
+void RPCLensDistortion4::scale( double scale ) {
   m_distortion *= scale;
   m_undistortion *= scale;
 }
 
-// ======== RPCLensDistortion5 ========
+// Old RPC lens distortion of degree 5.
 
 RPCLensDistortion5::RPCLensDistortion5(){
   m_distortion.set_size(num_distortion_params);
@@ -825,7 +1099,7 @@ RPCLensDistortion5::RPCLensDistortion5(){
 RPCLensDistortion5::RPCLensDistortion5(Vector<double> const& params) 
   : m_distortion(params) {
   if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << "RPCLensDistortion5: Incorrect number of parameters was passed in.");
+    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
   m_can_undistort = false;
 }
 
@@ -875,7 +1149,7 @@ RPCLensDistortion5::distorted_coordinates(const camera::PinholeModel& cam, Vecto
 Vector2
 RPCLensDistortion5::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion5: Undistorted coefficients are not up to date.\n" );
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
   
   return RPCLensDistortion5::compute_rpc(v, m_undistortion);
 }
@@ -1017,7 +1291,7 @@ RPCLensDistortion5::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) 
 void RPCLensDistortion5::write(std::ostream & os) const {
 
   if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion5: Undistorted coefficients are not up to date.\n" );
+    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
 
   // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
   // because otherwise the RPC model can return wrong results which confuse
@@ -1043,283 +1317,4 @@ void RPCLensDistortion5::read(std::istream & is) {
 void RPCLensDistortion5::scale( double scale ) {
   m_distortion *= scale;
   m_undistortion *= scale;
-}
-
-// ======== RPCLensDistortion6 ========
-// This class is not fully formed until both distortion and
-// undistortion parameters are computed.
-// One must always call set_undistortion_parameters()
-// only after set_distortion_parameters().
-RPCLensDistortion6::RPCLensDistortion6(){
-  m_rpc_degree = 0;
-  m_can_undistort = false;
-}
-
-RPCLensDistortion6::RPCLensDistortion6(Vector<double> const& params): m_distortion(params) {
-  validate_distortion_params(params);
-  m_rpc_degree = rpc_degree(params.size());
-  m_can_undistort = false;
-}
-
-Vector<double>
-RPCLensDistortion6::distortion_parameters() const { 
-  return m_distortion; 
-}
-
-Vector<double>
-RPCLensDistortion6::undistortion_parameters() const { 
-  return m_undistortion; 
-}
-
-void RPCLensDistortion6::set_distortion_parameters(Vector<double> const& params) {
-  
-  validate_distortion_params(params);
-
-  // If the distortion parameters changed, one cannot undistort until the undistortion
-  // coefficients are computed.
-  if (params.size() != m_distortion.size()) {
-    m_can_undistort = false;
-  } else{
-    for (size_t it = 0; it < params.size(); it++) {
-      if (m_distortion[it] != params[it]) {
-        m_can_undistort = false;
-        break;
-      }
-    }
-  }
-  m_distortion = params;
-  m_rpc_degree = rpc_degree(params.size());
-}
-
-void RPCLensDistortion6::set_undistortion_parameters(Vector<double> const& params) {
-  if (params.size() != num_dist_params()) 
-    vw_throw( IOErr() << class_name()
-              << ": The number of distortion and undistortion parameters must agree.");
-  m_undistortion = params;
-  m_can_undistort = true;
-}
-
-void RPCLensDistortion6::set_image_size(Vector2i const& image_size){
-  m_image_size = image_size;
-}
-
-// Form the identity transform
-void RPCLensDistortion6::reset(int rpc_degree){
-  if (rpc_degree <= 0) 
-    vw_throw( IOErr() << class_name() << ": The RPC degree must be positive.");
-
-  m_rpc_degree = rpc_degree;
-  int num_params = num_dist_params(rpc_degree);
-  m_distortion.set_size(num_params);
-  m_undistortion.set_size(num_params);
-  init_as_identity(m_distortion);
-  init_as_identity(m_undistortion);
-  m_can_undistort = true;
-}
-
-boost::shared_ptr<LensDistortion>
-RPCLensDistortion6::copy() const {
-  return boost::shared_ptr<RPCLensDistortion6>(new RPCLensDistortion6(*this));
-}
-
-Vector2
-RPCLensDistortion6::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  return RPCLensDistortion6::compute_rpc(p, m_distortion);
-}
-
-Vector2
-RPCLensDistortion6::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion6: Undistorted coefficients are not up to date.\n" );
-  return RPCLensDistortion6::compute_rpc(v, m_undistortion);
-}
-
-// Evaluate the RPC with given coefficients.
-Vector2
-RPCLensDistortion6::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
-  
-  if (num_dist_params() != (int)coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion6.\n" );
-
-  int rpc_deg = rpc_degree(coeffs.size());
-  double x = p[0];
-  double y = p[1];
-  
-  // Precompute x^n and y^m values
-  std::vector<double> powx(rpc_deg + 1), powy(rpc_deg + 1);
-  double valx = 1.0, valy = 1.0;
-  for (int deg = 0; deg <= rpc_deg; deg++) {
-    powx[deg] = valx; valx *= x; 
-    powy[deg] = valy; valy *= y; 
-  }
-
-  // Evaluate the RPC expression. The denominator always
-  // has a 1 as the 0th-coefficient.
-  int rpc_count = 0;
-  double vals[] = {0.0, 1.0, 0.0, 1.0};
-  for (int it = 0; it < 4; it++) {
-    int start = 0; // starting degree for numerator
-    if (it == 1 || it == 3)
-      start = 1; // starting degree for denominator
-
-    for (int deg = start; deg <= rpc_deg; deg++) { // start at 0
-      for (int degy = 0; degy <= deg; degy++) {
-        int degx = deg - degy;
-        vals[it] += coeffs[rpc_count] * powx[degx] * powy[degy];
-        rpc_count++;
-      }
-    }
-  }
-
-  if (rpc_count != (int)coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion6.\n" );
-
-  return Vector2(vals[0]/vals[1], vals[2]/vals[3]);
-}
-
-void RPCLensDistortion6::scale(double scale) {
-  m_distortion *= scale;
-  m_undistortion *= scale;
-}
-
-void RPCLensDistortion6::validate_distortion_params(Vector<double> const& params) {
-  int num_params = params.size();
-  int deg = rpc_degree(num_params);
-  if (num_dist_params(deg) != num_params || deg <= 0 || deg != deg)
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in: "
-              << num_params << ".");
-}
-
-// Make RPC coefficients so that the RPC transform is the identity.
-// The vector params must already have the right size.
-void RPCLensDistortion6::init_as_identity(Vector<double> & params){
-
-  RPCLensDistortion6::validate_distortion_params(params);
-
-  params.set_all(0);
-  Vector<double> num_x, den_x, num_y, den_y;
-  unpack_params(params, num_x, den_x,  num_y, den_y);
-
-  // Initialize the transform (x, y) -> (x, y), which is 
-  // ( (0 + 1*x + 0*y)/(1 + 0*x + 0*y), (0 + 0*x + 1*y)/(1 + 0*x + 0*y) )
-  // hence set num_x and num_y accordingly. As always, we do not
-  // store the 1 values in the denominator.
-  num_x[1] = 1; num_y[2] = 1;
-  pack_params(params, num_x, den_x, num_y, den_y);
-}
-
-void RPCLensDistortion6::unpack_params(Vector<double> const& params,
-                                       Vector<double> & num_x, Vector<double> & den_x,
-                                       Vector<double> & num_y, Vector<double> & den_y){
-
-  RPCLensDistortion6::validate_distortion_params(params);
-  
-  int num_params = params.size();
-  int num_len = (num_params + 2)/4;
-  int den_len = num_len - 1; // because the denominator always starts with 1.
-  num_x = subvector(params, 0,                           num_len);
-  den_x = subvector(params, num_len,                     den_len);
-  num_y = subvector(params, num_len + den_len,           num_len);
-  den_y = subvector(params, num_len + den_len + num_len, den_len);
-}
-
-void RPCLensDistortion6::pack_params(Vector<double> & params,
-                                     Vector<double> const& num_x, Vector<double> const& den_x,
-                                     Vector<double> const& num_y, Vector<double> const& den_y){
-
-  int num_len = num_x.size();
-  int den_len = den_x.size();
-
-  if (num_len != den_len + 1 || num_len != int(num_y.size()) || den_len != int(den_y.size()))
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion6.\n" );
-
-  params.set_size(2*num_len + 2*den_len);
-  
-  subvector(params, 0,                           num_len) = num_x; 
-  subvector(params, num_len,                     den_len) = den_x;
-  subvector(params, num_len + den_len,           num_len) = num_y;
-  subvector(params, num_len + den_len + num_len, den_len) = den_y;
-
-  RPCLensDistortion6::validate_distortion_params(params);
-}
-
-namespace {
-  // Prepend a 1 to a vector
-  void prepend_1(Vector<double> & params) {
-    int len = params.size();
-    Vector<double> tmp_params = params;
-    params.set_size(len + 1);
-    params[0] = 1;
-    subvector(params, 1, len) = tmp_params;
-  }
-  // Remove 1 from first position in a vector
-  void remove_1(Vector<double> & params) {
-    int len = params.size();
-    if (len <= 0)
-      vw_throw( IOErr() << "Found an unexpected empty vector.\n" );
-    Vector<double> tmp_params = params;
-    params = subvector(tmp_params, 1, len - 1);
-  }
-}
-  
-void RPCLensDistortion6::write(std::ostream & os) const {
-
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << "RPCLensDistortion6: Undistorted coefficients are not up to date.\n" );
-
-  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
-  // because otherwise the RPC model can return wrong results which confuses
-  // bundle adjustment. 
-  write_param("rpc_degree", os, m_rpc_degree);
-  write_param_vec("image_size", os, m_image_size);
-
-  // Write the distortion
-  Vector<double> num_x, den_x, num_y, den_y;
-  unpack_params(m_distortion, num_x, den_x, num_y, den_y);
-  prepend_1(den_x);
-  prepend_1(den_y);
-  // Leave spaces below so that it will display nicely
-  write_param_vec("distortion_num_x  ", os, num_x);
-  write_param_vec("distortion_den_x  ", os, den_x);
-  write_param_vec("distortion_num_y  ", os, num_y);
-  write_param_vec("distortion_den_y  ", os, den_y);
-  
-  // Write the undistortion
-  unpack_params(m_undistortion, num_x, den_x, num_y, den_y);
-  prepend_1(den_x);
-  prepend_1(den_y);
-  write_param_vec("undistortion_num_x", os, num_x);
-  write_param_vec("undistortion_den_x", os, den_x);
-  write_param_vec("undistortion_num_y", os, num_y);
-  write_param_vec("undistortion_den_y", os, den_y);
-}
-
-void RPCLensDistortion6::read(std::istream & is) {
-
-  read_param("rpc_degree", is, m_rpc_degree);
-  read_param_vec("image_size", 2, is, m_image_size);
-
-  int num_params = num_dist_params(m_rpc_degree);
-  int quarter = (num_params+2)/4; // to account for the two 1's in the denominator
-
-  // Read the distortion
-  Vector<double> num_x, den_x, num_y, den_y;
-  read_param_vec("distortion_num_x", quarter, is, num_x);
-  read_param_vec("distortion_den_x", quarter, is, den_x);
-  read_param_vec("distortion_num_y", quarter, is, num_y);
-  read_param_vec("distortion_den_y", quarter, is, den_y);
-  remove_1(den_x);
-  remove_1(den_y);
-  pack_params(m_distortion, num_x, den_x, num_y, den_y);
-
-  // Read the undistortion
-  read_param_vec("undistortion_num_x", quarter, is, num_x);
-  read_param_vec("undistortion_den_x", quarter, is, den_x);
-  read_param_vec("undistortion_num_y", quarter, is, num_y);
-  read_param_vec("undistortion_den_y", quarter, is, den_y);
-  remove_1(den_x);
-  remove_1(den_y);
-  pack_params(m_undistortion, num_x, den_x, num_y, den_y);
-
-  m_can_undistort = true; 
 }
