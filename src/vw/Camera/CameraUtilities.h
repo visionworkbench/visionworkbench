@@ -146,15 +146,8 @@ struct UndistortionOptimizeFunctor:
 // undistortion coefficients.  Only applicable for RPC.
 // TODO: Move this to the class RPCLensDistortion.
 template<class DistModelT>
-double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
-                            int sample_spacing=50) {
+double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sample_spacing) {
 
-  // Make the spacing denser for smaller images.
-  if (image_size[0] <= 1200 || image_size[1] <= 1200) 
-    sample_spacing = std::min(image_size[0]/24.0, image_size[1]/24.0);
-  if (sample_spacing < 1)
-    sample_spacing = 1; 
-  
   // Get info on existing distortion model
   const vw::camera::LensDistortion* input_distortion = pin_model.lens_distortion();
   std::string lens_name = input_distortion->name();

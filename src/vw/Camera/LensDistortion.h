@@ -334,7 +334,7 @@ namespace camera {
                             Vector<double> const& num_y, Vector<double> const& den_y);
   };
   
-  // Old RPC distortion of degree 5. It is deprecated but still
+  // Old RPC distortion of degree 4. It is deprecated but still
   // supported as it was used in Icebridge.
   class RPCLensDistortion4 : public LensDistortion {
     Vector2i m_image_size;
