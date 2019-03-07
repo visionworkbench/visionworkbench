@@ -62,8 +62,9 @@ Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
   Matrix3x3 pose = camera_pose(pixel).rotation_matrix();
 
   // Recover the satellite attitude relative to the tilted camera position
-  Matrix3x3 m = vw::math::rotation_x_axis(-m_forward_tilt_radians)*pose;
-
+  //Matrix3x3 m = vw::math::rotation_x_axis(-m_forward_tilt_radians)*pose;
+  Matrix3x3 m = pose*vw::math::rotation_x_axis(m_forward_tilt_radians);
+  
   return m*Vector3(0,m_speed,0);
 }
 
@@ -94,11 +95,11 @@ Vector3 OpticalBarModel::pixel_to_vector_uncorrected(Vector2 const& pixel) const
 
   // Distortion caused by compensation for the satellite's forward motion during the image.
   // - The film was actually translated underneath the lens to compensate for the motion.
-  double image_motion_compensation =
-                ((m_focal_length * m_speed) / (H*m_scan_rate_radians))
-                * sin(alpha) * m_use_motion_compensation;
+  double image_motion_compensation = ((m_focal_length * m_speed) / (H*m_scan_rate_radians))
+                                      * sin(alpha) * m_motion_compensation;
   if (!m_scan_left_to_right) // Sync alpha with motion compensation.
     image_motion_compensation *= -1.0;
+
 
   // This vector is ESD format, consistent with the linescan model.
   Vector3 r(m_focal_length * sin(alpha),
@@ -161,16 +162,16 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
 void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
                                       vw::Vector3   const & translation,
                                       double                scale) {
-
   // Extract current parameters
   vw::Vector3 position = this->camera_center();
   vw::Quat    pose     = this->camera_pose();
-  
+
   vw::Quat rotation_quaternion(rotation);
   
   // New position and rotation
   position = scale*rotation*position + translation;
   pose     = rotation_quaternion*pose;
+
   this->set_camera_center(position);
   this->set_camera_pose  (pose.axis_angle());
 }
@@ -302,12 +303,11 @@ void OpticalBarModel::read(std::string const& filename) {
   }
 
   std::getline(cam_file, line);
-  int temp_i;
-  if (!cam_file.good() || sscanf(line.c_str(),"use_motion_compensation = %d", &temp_i) != 1) {
+  if (!cam_file.good() || sscanf(line.c_str(),"motion_compensation_factor = %lf",
+                                 &m_motion_compensation) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read use motion compensation\n" );
+    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read motion compensation factor\n" );
   }
-  m_use_motion_compensation = temp_i;//(temp_i > 0);
 
   std::getline(cam_file, line);
   m_scan_left_to_right = line.find("scan_dir = left") == std::string::npos;
@@ -352,13 +352,9 @@ void OpticalBarModel::write(std::string const& filename) const {
                       << rot_mat(1,0) << " " << rot_mat(1,1) << " " << rot_mat(1,2) << " "
                       << rot_mat(2,0) << " " << rot_mat(2,1) << " " << rot_mat(2,2) << "\n";
   cam_file << "speed = " << m_speed << "\n";
-  cam_file << "mean_earth_radius = "      << m_mean_earth_radius      << "\n";
-  cam_file << "mean_surface_elevation = " << m_mean_surface_elevation << "\n";
-  cam_file << "use_motion_compensation = " << m_use_motion_compensation << "\n";
-  //if (m_use_motion_compensation)
-  //  cam_file << "use_motion_compensation = 1\n";
-  //else
-  //  cam_file << "use_motion_compensation = 0\n";
+  cam_file << "mean_earth_radius = "          << m_mean_earth_radius      << "\n";
+  cam_file << "mean_surface_elevation = "     << m_mean_surface_elevation << "\n";
+  cam_file << "motion_compensation_factor = " << m_motion_compensation << "\n";
   if (m_scan_left_to_right)
     cam_file << "scan_dir = right\n";
   else
@@ -370,22 +366,21 @@ void OpticalBarModel::write(std::string const& filename) const {
 
 std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model) {
   os << "\n------------------------ Optical Bar Model -----------------------\n\n";
-  os << " Image size :            " << camera_model.m_image_size             << "\n";
+  os << " Image size:             " << camera_model.m_image_size             << "\n";
   os << " Center loc (pixels):    " << camera_model.m_center_loc_pixels      << "\n";
-  os << " Pixel size (m) :        " << camera_model.m_pixel_size             << "\n";
-  os << " Focal length (m) :      " << camera_model.m_focal_length           << "\n";
+  os << " Pixel size (m):         " << camera_model.m_pixel_size             << "\n";
+  os << " Focal length (m):       " << camera_model.m_focal_length           << "\n";
   os << " Scan angle (rad):       " << camera_model.m_scan_angle_radians     << "\n";
   os << " Scan rate (rad/s):      " << camera_model.m_scan_rate_radians      << "\n";
-  os << " Scan left to right?:    " << camera_model.m_scan_left_to_right     << "\n";
+  os << " Left to right scan:     " << camera_model.m_scan_left_to_right     << "\n";
   os << " Forward tilt (rad):     " << camera_model.m_forward_tilt_radians   << "\n";
   os << " Initial position:       " << camera_model.m_initial_position       << "\n";
   os << " Initial pose:           " << camera_model.m_initial_orientation    << "\n";
   os << " Speed:                  " << camera_model.m_speed                  << "\n";
   os << " Mean earth radius:      " << camera_model.m_mean_earth_radius      << "\n";
   os << " Mean surface elevation: " << camera_model.m_mean_surface_elevation << "\n";
-  os << " Use motion comp:        " << camera_model.m_use_motion_compensation<< "\n";
+  os << " Motion comp factor:     " << camera_model.m_motion_compensation<< "\n";
   os << " Left to right scan:     " << camera_model.m_scan_left_to_right     << "\n";
-
   os << "\n------------------------------------------------------------------------\n\n";
   return os;
 }
