@@ -21,8 +21,8 @@
 /// A generic linescan camera model object
 ///
 ///
-#ifndef _ASP_CAMERA_OPTICALBAR_MODEL_H_
-#define _ASP_CAMERA_OPTICALBAR_MODEL_H_
+#ifndef _VW_CAMERA_OPTICALBAR_MODEL_H_
+#define _VW_CAMERA_OPTICALBAR_MODEL_H_
 
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/LevenbergMarquardt.h>
