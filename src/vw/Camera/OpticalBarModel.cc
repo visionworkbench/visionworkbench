@@ -386,5 +386,5 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
 }
 
 
-}} // namespace vw::camera
+}} // namespace asp::camera
 

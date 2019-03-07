@@ -49,7 +49,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   size_t size_check = m_num_disp_x * m_num_disp_y;;
   if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
     vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
-  m_num_disp   = m_num_disp_x * m_num_disp_y;   
+  m_num_disp   = m_num_disp_x * m_num_disp_y;
 
   if (p1 > 0) // User provided
     m_p1 = p1; 
@@ -1782,7 +1782,7 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
     case 5:  fill_costs_census5x5(left_image, right_image); break;
     case 7:  fill_costs_census7x7(left_image, right_image); break;
     case 9:  fill_costs_census9x9(left_image, right_image); break;
-    default: vw_throw( NoImplErr() << "Census transforms are only available in size 3, 5, and 7!\n"
+    default: vw_throw( NoImplErr() << "Census transforms are only available in size 3, 5, 7, and 9!\n"
                                    << "Other cost mode options do not have this restriction.");
     };
   }
