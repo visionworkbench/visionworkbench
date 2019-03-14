@@ -44,19 +44,21 @@ namespace vw {
   // grassfire()
   // *******************************************************************
 
-  // Computes the 4-connected grassfire image of an image.
-  // (Specifically, computes the Manhattan distance from each pixel to
-  // the nearest pixel with zero value, assuming the borders of the
-  // image are zero.)
+  /// Computes the 4-connected grassfire image of an image.
+  /// (Specifically, computes the Manhattan distance from each pixel to
+  /// the nearest pixel with zero value, assuming the borders of the
+  /// image are zero.)
+  /// - If ignore_borders is set, borders are not treated as zero value.
   template <class SourceT, class OutputT>
-  void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst );
+  void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst,
+                  bool ignore_borders=false);
 
   // Without destination given, return in a newly-created ImageView<int32>
   template <class SourceT>
-  ImageView<int32> grassfire( ImageViewBase<SourceT> const& src ) {
+  ImageView<int32> grassfire( ImageViewBase<SourceT> const& src, bool ignore_borders=false) {
     int32 cols = src.impl().cols(), rows = src.impl().rows();
     ImageView<int32> result( cols, rows );
-    grassfire( src, result );
+    grassfire( src, result, ignore_borders );
     return result;
   }
 

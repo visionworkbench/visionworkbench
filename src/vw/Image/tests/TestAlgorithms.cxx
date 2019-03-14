@@ -147,6 +147,26 @@ TEST( Algorithms, Grassfirealpha ) {
   EXPECT_EQ( 1, g(3,3) );
   EXPECT_EQ( 0, g(4,4) );
   EXPECT_EQ( 1, g(1,2) );
+
+  // Just make sure this compiles
+  ImageView<PixelGray<float> > im2(5,5);
+  fill(im2, 100.0);
+  ImageView<PixelGray<float> > g2;
+  grassfire(im2, g2);
+}
+
+TEST( Algorithms, Grassfire_no_border ) {
+  ImageView<uint16> im(5,5);
+  fill(im, 255);
+  im(2, 2) = 0; // Only the center pixel is zero
+  ImageView<uint16> g = grassfire(im, true);
+
+  for (size_t r=0; r<5; ++r) {
+    for (size_t c=0; c<5; ++c) {
+      uint16 ans = abs(2-r) + abs(2-c);
+      EXPECT_EQ( ans, g(c,r) );
+    }
+  }
 }
 
 TEST( Algorithms, CenterlineWeights ) {

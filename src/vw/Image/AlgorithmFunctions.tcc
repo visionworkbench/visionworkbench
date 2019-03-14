@@ -51,7 +51,8 @@ namespace vw {
   // the nearest pixel with zero value, assuming the borders of the
   // image are zero.)
   template <class SourceT, class OutputT>
-  void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst ) {
+  void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst,
+                  bool ignore_borders ) {
     int32 cols = src.impl().cols(), rows = src.impl().rows();
     dst.set_size( cols, rows );
 
@@ -68,58 +69,137 @@ namespace vw {
     dst_accessor drow = dst.origin();
     const typename SourceT::pixel_type zero = typename SourceT::pixel_type();
 
-    { // First row
-      src_accessor scol = srow;
-      dst_accessor dcol = drow;
-      for( int32 col=cols; col; --col ) {
+    if (!ignore_borders) {
+
+      { // First row
+        src_accessor scol = srow;
+        dst_accessor dcol = drow;
+        for( int32 col=cols; col; --col ) {
+          // Pixels on the edge can only be distance one or zero.
+          *dcol = ((*scol)==zero)?0:1;
+          scol.next_col();
+          dcol.next_col();
+        }
+        srow.next_row();
+        drow.next_row();
+      }
+
+      // Raster through the image down to the second last row.
+      for( int32 row=rows-2; row; --row ) {
+        src_accessor scol = srow;
+        dst_accessor dcol = drow;
+        // The first pixel in the row is one or zero.
         *dcol = ((*scol)==zero)?0:1;
         scol.next_col();
         dcol.next_col();
-      }
-      srow.next_row();
-      drow.next_row();
-    }
-    for( int32 row=rows-2; row; --row ) {
-      src_accessor scol = srow;
-      dst_accessor dcol = drow;
-      *dcol = ((*scol)==zero)?0:1;
-      scol.next_col();
-      dcol.next_col();
-      for( int32 col=cols-2; col; --col ) {
-        if( (*scol)==zero ) (*dcol)=0;
-        else {
-          dst_accessor s1 = dcol, s2 = dcol;
-          (*dcol) = 1 + std::min( *(s1.prev_col()), *(s2.prev_row()) );
+        // Loop through columns from col to the second last col
+        for( int32 col=cols-2; col; --col ) {
+          if( (*scol)==zero ) // Input pixel is zero, so is the output pixel.
+            (*dcol)=0;
+          else { // Output count is 1 + min of the left and upper values.
+            dst_accessor s1 = dcol, s2 = dcol;
+            (*dcol) = 1 + std::min( *(s1.prev_col()), *(s2.prev_row()) );
+          }
+          scol.next_col();
+          dcol.next_col();
         }
-        scol.next_col();
-        dcol.next_col();
-      }
-      *dcol = ((*scol)==zero)?0:1;
-      srow.next_row();
-      drow.next_row();
-    }
-    { // Last row
-      src_accessor scol = srow;
-      dst_accessor dcol = drow;
-      for( int32 col=cols; col; --col ) {
+        // The last pixel in the row is again one or zero.
         *dcol = ((*scol)==zero)?0:1;
-        scol.next_col();
-        dcol.next_col();
+        srow.next_row();
+        drow.next_row();
       }
-    }
-    drow.advance(cols-2,-1);
-    for( int32 row=rows-2; row; --row ) {
-      dst_accessor dcol = drow;
-      for( int32 col=cols-2; col; --col ) {
-        if( (*dcol)!=0 ) {
-          dst_accessor s1 = dcol, s2 = dcol;
-          int32 m = std::min( *(s1.next_col()), *(s2.next_row()) );
-          if( m < *dcol ) *dcol = m + 1;
+      { // Last row
+        src_accessor scol = srow;
+        dst_accessor dcol = drow;
+        for( int32 col=cols; col; --col ) {
+          // These locations on the edge can only be one or zero.
+          *dcol = ((*scol)==zero)?0:1;
+          scol.next_col();
+          dcol.next_col();
         }
-        dcol.prev_col();
       }
-      drow.prev_row();
-    }
+
+      // Raster through the image in reverse order.
+      drow.advance(cols-2,-1);
+      for( int32 row=rows-2; row; --row ) {
+        dst_accessor dcol = drow;
+        for( int32 col=cols-2; col; --col ) {
+          if( (*dcol)!=0 ) {
+            // If min(lower, right)+1 is less than the current value, update.
+            dst_accessor s1 = dcol, s2 = dcol;
+            int32 m = std::min( *(s1.next_col()), *(s2.next_row()) );
+            if( m < *dcol )
+              *dcol = m + 1;
+          }
+          dcol.prev_col();
+        } // End col loop
+        drow.prev_row();
+      } // End row loop
+
+    } else { // ignore_borders
+
+      // The largest possible distance in the image with no zeros.
+      OutputT init_val = cols + rows;
+
+      // Raster through the image
+      for( int32 row=0; row<rows; ++row ) {
+        src_accessor scol = srow;
+        dst_accessor dcol = drow;
+
+        // Loop through columns
+        for( int32 col=0; col<cols; ++col ) {
+          if( (*scol)==zero ) // Input pixel is zero, so is the output pixel.
+            (*dcol) = 0;
+          else { // Output count is 1 + min of the left and upper values.
+
+            dst_accessor s1 = dcol, s2 = dcol;
+            if (row > 0) {
+              if (col > 0)
+                (*dcol) = std::min( *(s1.prev_col()), *(s2.prev_row()) ) + 1;
+              else
+                (*dcol) = std::min(init_val, *(s2.prev_row())+1);
+            } else {
+              if (col > 0)
+                (*dcol) = std::min(init_val, *(s1.prev_col())+1);
+              else
+                (*dcol) = init_val;
+            }
+          }
+
+          scol.next_col();
+          dcol.next_col();
+        } // End loop through columns
+        srow.next_row();
+        drow.next_row();
+      }// End loop through rows
+
+      // Raster through the image in reverse order.
+      drow.advance(cols-1,-1);
+      for( int32 row=rows; row; --row ) {
+        dst_accessor dcol = drow;
+        for( int32 col=cols; col; --col ) {
+
+          if( (*dcol)!=0 ) {
+            // If min(lower, right)+1 is less than the current value, update.
+            dst_accessor s1 = dcol, s2 = dcol;
+            OutputT m = *dcol;
+            if (col < cols)
+              m = std::min( m, *(s1.next_col())+1 );
+            if (row < rows)
+              m = std::min( m, *(s2.next_row())+1 );
+
+            *dcol = m;
+            // When ignoring borders we need to enforce a cap on the output values.
+            if ( *dcol > init_val )
+              *dcol = init_val;
+          }
+
+          dcol.prev_col();
+        } // End col loop
+        drow.prev_row();
+      } // End row loop
+    } // End border ignore case
+
   }
 
 
