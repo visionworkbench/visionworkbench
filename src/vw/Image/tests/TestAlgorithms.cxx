@@ -161,8 +161,8 @@ TEST( Algorithms, Grassfire_no_border ) {
   im(2, 2) = 0; // Only the center pixel is zero
   ImageView<uint16> g = grassfire(im, true);
 
-  for (size_t r=0; r<5; ++r) {
-    for (size_t c=0; c<5; ++c) {
+  for (int r=0; r<5; ++r) {
+    for (int c=0; c<5; ++c) {
       uint16 ans = abs(2-r) + abs(2-c);
       EXPECT_EQ( ans, g(c,r) );
     }
