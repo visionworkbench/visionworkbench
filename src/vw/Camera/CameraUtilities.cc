@@ -114,7 +114,6 @@ void update_rpc_undistortion(PinholeModel const& model){
   // Have to cast away the const-ness. Not nice. Only happens for RPC
   // distortion.
   PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
-  int sample_spacing;
 
   if (lens_name == RPCLensDistortion::class_name()) {
     RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>

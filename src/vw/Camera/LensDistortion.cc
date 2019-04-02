@@ -693,14 +693,18 @@ RPCLensDistortion::copy() const {
 
 Vector2
 RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  return RPCLensDistortion::compute_rpc(p, m_distortion);
+  // Here, unlike in the older RPCLensDistortion4 and RPCLensDistortion5, we
+  // put the origin at the optical center.
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+  return RPCLensDistortion::compute_rpc(p - offset, m_distortion) + offset;
 }
 
 Vector2
-RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
   if (!m_can_undistort) 
     vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-  return RPCLensDistortion::compute_rpc(v, m_undistortion);
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+  return RPCLensDistortion::compute_rpc(p - offset, m_undistortion) + offset;
 }
 
 // Evaluate the RPC with given coefficients.
