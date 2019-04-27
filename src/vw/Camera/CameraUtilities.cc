@@ -189,15 +189,13 @@ resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const
                                           f, f, c[0], c[1]);
     out_model.set_pixel_pitch(pixel_pitch);
 
-    // return out_model;
-    
     // This model is very rough. We will improve it by making sure it
     // projects pixels in the camera as close as possible as the
     // original optical bar model.
 
-    // We will keep only the central region of the image
-    // with dimensions this number times the original image dimensions, to avoid
-    // areas with most distortion.
+    // We will keep only the central region of the image with
+    // dimensions this number times the original image dimensions, to
+    // avoid areas with most distortion.
     double keep_ratio = 1.0/3.0;
 
     // Since we will keep a smaller area, sample it more.
