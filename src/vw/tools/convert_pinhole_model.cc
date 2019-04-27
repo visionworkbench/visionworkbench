@@ -91,7 +91,7 @@ int main( int argc, char *argv[] ) {
   if (rpc_degree <= 0) {
     std::cout << "Error: The RPC degree must be positive." << std::endl;
     std::cout << desc << std::endl;
-
+    return 1;
   }
 
   try {

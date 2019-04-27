@@ -68,8 +68,78 @@ void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel 
                                     Vector2i          & epi_size1, Vector2i          & epi_size2);
 
 
+// Convert an optical model to a pinhole model without distortion
+// (The distortion will be taken care of later.)
+  PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing);
+  
 // These template functions are defined inline:
 
+// Pack a pinhole or optical bar model's rotation and camera center into a vector
+template <class CAM>
+void camera_to_vector(CAM const& P, Vector<double> & C){
+
+  Vector3 ctr = P.camera_center();
+  Vector3 axis_angle = P.camera_pose().axis_angle();
+  C.set_size(6);
+  subvector(C, 0, 3) = ctr;
+  subvector(C, 3, 3) = axis_angle;
+}
+
+// Pack a vector into a pinhole or optical bar model. We assume the model
+// already has set its optical center, focal length, etc. 
+template <class CAM>
+void vector_to_camera(CAM & P, Vector<double> const& C){
+
+  if (C.size() != 6) 
+    vw_throw( LogicErr() << "Expecting a vector of size 6.\n" );
+
+  Vector3 ctr      = subvector(C, 0, 3);
+  Quat    rotation = axis_angle_to_quaternion(subvector(C, 3, 3));
+  P.set_camera_center(ctr);
+  P.set_camera_pose(rotation);
+}
+
+
+/// Find the camera model that best projects given xyz points into given pixels
+template <class CAM>
+class CameraSolveLMA : public vw::math::LeastSquaresModelBase<CameraSolveLMA<CAM> > {
+  std::vector<vw::Vector3> const& m_xyz;
+  CAM m_camera_model;
+  mutable size_t m_iter_count;
+  
+public:
+
+  typedef vw::Vector<double>    result_type;   // pixel residuals
+  typedef vw::Vector<double, 6> domain_type;   // camera parameters (camera center and axis angle)
+  typedef vw::Matrix<double> jacobian_type;
+
+  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
+  CameraSolveLMA(std::vector<vw::Vector3> const& xyz,
+                 CAM const& camera_model):
+    m_xyz(xyz),
+    m_camera_model(camera_model), m_iter_count(0){}
+
+  /// Given the camera, project xyz into it
+  inline result_type operator()( domain_type const& C ) const {
+
+    // Create the camera model
+    CAM camera_model = m_camera_model; // make a copy local to this function
+    vector_to_camera(camera_model, C);      // update its parameters
+    
+    const size_t result_size = m_xyz.size() * 2;
+    result_type result;
+    result.set_size(result_size);
+    for (size_t i = 0; i < m_xyz.size(); i++) {
+      Vector2 pixel = camera_model.point_to_pixel(m_xyz[i]);
+      result[2*i  ] = pixel[0];
+      result[2*i+1] = pixel[1];
+    }
+  
+    ++m_iter_count;
+    
+    return result;
+  }
+}; // End class CameraSolveLMA
 
 /// Class to use with the LevenbergMarquardt solver to optimize the parameters of a desired lens
 ///  to match the passed in pairs of undistorted (input) and distorted (output) points.
@@ -162,15 +232,10 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   // Generate a set of point pairs between undistorted and distorted coordinates.
   std::vector<Vector2> distorted_coords;
   Vector<double> undistorted_coords;
-#if 0
   int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
   int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
   num_cols = std::max(num_cols, 2);
   num_rows = std::max(num_rows, 2);
-#else
-  int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
-  int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
-#endif
   int num_coords = num_rows*num_cols;
   
   distorted_coords.resize(num_coords);
@@ -180,11 +245,12 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   // TODO: The logic below will break down for huge distortion.
   int index = 0;
 #if 0
-  for (int r = 0; r <= num_rows - 1; r++) {
-    double row = (image_size[0] - 1) * double(r)/(num_rows - 1); // sample carefully
+  // TODO: Test carefully this functionality and use it.
+  for (int c = 0; c <= num_cols - 1; c++) {
+    double col = (image_size[0] - 1.0) * double(c)/(num_cols - 1.0); // sample carefully
 
-    for (int c = 0; c <= num_cols - 1; c++) {
-      double col = (image_size[1] - 1) * double(c)/(num_cols - 1); // sample carefully
+    for (int r = 0; r <= num_rows - 1; r++) {
+      double row = (image_size[1] - 1.0) * double(r)/(num_rows - 1.0); // sample carefully
 #else
   for (int r = 0; r < num_rows; r++) {
 
@@ -291,20 +357,9 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
   // Handle the case when the input model is OpticalBarModel
   if (opb_model != NULL) {
-    
-    pixel_pitch = opb_model->get_pixel_size();
-    double  f = opb_model->get_focal_length(); 
-    Vector2 c = opb_model->get_optical_center();
-    c *= pixel_pitch; // because OpticalBarModel optical center is in pixels
-
-    // Cook up a pinhole model copying the optical center, focal length,
-    // pitch, and orientation. This has no distortion, on purpose.
-    Vector2i image_size = opb_model->get_image_size();
-    out_model = PinholeModel(opb_model->camera_center(image_size/2.0),
-                             opb_model->camera_pose(image_size/2.0).rotation_matrix(),
-                             f, f, c[0], c[1]);
-    out_model.set_pixel_pitch(pixel_pitch);
     lens_name = "OpticalBar";
+    out_model = opticalbar2pinhole(*opb_model, sample_spacing);
+    pixel_pitch = out_model.pixel_pitch();
   }
   
   // We will try to approximate the input lens with a lens model of type DistModelT.
@@ -314,6 +369,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   Vector<double> distorted_coords;
   int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
   int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
+  num_cols = std::max(num_cols, 2);
+  num_rows = std::max(num_rows, 2);
   int num_coords = num_rows*num_cols;
   undistorted_coords.resize(num_coords);
   distorted_coords.set_size(num_coords*2);
