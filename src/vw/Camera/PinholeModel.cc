@@ -46,13 +46,15 @@ PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
                                m_fu(1), m_fv(1), m_cu(0), m_cv(0),
                                m_u_direction(Vector3(1,0,0)),
                                m_v_direction(Vector3(0,1,0)),
-                               m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1) {
+                               m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1),
+                               m_do_point_to_pixel_check(true) {
 
   m_rotation.set_identity();
   this->rebuild_camera_matrix();
 }
 
-PinholeModel::PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)) {
+PinholeModel::PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)),
+                                                          m_do_point_to_pixel_check(true) {
   read(filename);
 }
 
@@ -69,6 +71,7 @@ PinholeModel::PinholeModel(PinholeModel const& other) :
     m_v_direction  (other.m_v_direction),
     m_w_direction  (other.m_w_direction),
     m_pixel_pitch  (other.m_pixel_pitch),
+    m_do_point_to_pixel_check(other.m_do_point_to_pixel_check),
     m_inv_camera_transform(other.m_inv_camera_transform) {
 }
 
@@ -83,7 +86,8 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                                                  m_u_direction(u_direction),
                                                  m_v_direction(v_direction),
                                                  m_w_direction(w_direction),
-                                                 m_pixel_pitch(pixel_pitch) {
+                                                 m_pixel_pitch(pixel_pitch),
+                                                 m_do_point_to_pixel_check(true) {
   if (distortion_model)
     m_distortion = distortion_model->copy();
   else
@@ -100,7 +104,8 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                                                  m_u_direction(Vector3(1,0,0)),
                                                  m_v_direction(Vector3(0,1,0)),
                                                  m_w_direction(Vector3(0,0,1)),
-                                                 m_pixel_pitch(pixel_pitch) {
+                                                 m_pixel_pitch(pixel_pitch),
+                                                 m_do_point_to_pixel_check(true) {
   if (distortion_model)
     m_distortion = distortion_model->copy();
   else
@@ -380,6 +385,9 @@ Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
 
   // Get the pixel using the no check version, then perform the check.
   Vector2 final_pixel = point_to_pixel_no_check(point);
+  
+  if (!m_do_point_to_pixel_check)
+    return final_pixel;
 
   // Go back from the pixel to the vector and see how much difference there is.
   // - If there is too much error, the lens distortion model must have bugged out

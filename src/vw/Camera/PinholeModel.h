@@ -109,7 +109,11 @@ namespace camera {
     // - It is kind of anoying that m_cu and m_cv must be in the same units as 
     //   all the numbers in the lens distortion parameters.
     double m_pixel_pitch;
-    
+
+    /// If true, perform an additional check to make sure point_to_pixel
+    /// does not return erroneous results (but this can be slow).
+    /// - Default is true.
+    bool m_do_point_to_pixel_check;
 
     /// Cached values for pixel_to_vector
     Matrix<double,3,3> m_inv_camera_transform;
@@ -209,6 +213,9 @@ namespace camera {
     /// Skips the pixel_to_vector call used for a sanity check in point_to_pixel.
     Vector2 point_to_pixel_no_check(Vector3 const& point) const;
 
+    /// Option to turn off and on the point to pixel check (default is on).
+    void set_do_point_to_pixel_check(bool value) {m_do_point_to_pixel_check = value;}
+
     /// As point_to_pixel, but ignoring any lens distortion.
     Vector2 point_to_pixel_no_distortion(Vector3 const& point) const;
 
@@ -279,6 +286,7 @@ namespace camera {
     void apply_transform(vw::Matrix3x3 const & rotation,
                          vw::Vector3   const & translation,
                          double                scale);
+
   private:
     /// This must be called whenever camera parameters are modified.
     void rebuild_camera_matrix();
