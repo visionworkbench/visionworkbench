@@ -90,7 +90,7 @@ namespace math {
 
     /// \cond INTERNAL
     // Methods to access the derived type
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
 
@@ -136,7 +136,7 @@ namespace math {
     inline T difference( T const& a, T const& b ) const {
       return (a-b);
     }
-  };
+  }; // End LeastSquaresModelBase
 
   namespace optimization {
     enum LM_STATUS_CODES { eDidNotConverge = -1,
@@ -168,6 +168,7 @@ namespace math {
   /// function and its derivatives if we know the measurement function
   /// and its derivatives.
   ///
+  /// TODO: The VW_OUT statements can actually take a fair amount of time, even if logging is disabled!
 
 #define VW_MATH_LM_ABS_TOL (1e-16)
 #define VW_MATH_LM_REL_TOL (1e-16)
@@ -185,8 +186,8 @@ namespace math {
     status = optimization::eDidNotConverge;
 
     const ImplT& model = least_squares_model.impl();
-    bool done = false;
-    double Rinv = 10;
+    bool   done   = false;
+    double Rinv   = 10;
     double lambda = 0.1;
 
     typename ImplT::domain_type x_try, x = seed;
@@ -222,7 +223,7 @@ namespace math {
       // Difference between observed and predicted and error (2-norm of difference)
       error = model.difference(observation, h);
       norm_start = norm_2(error);
-      //VW_OUT(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
+      VW_OUT(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
 
       // Measurement Jacobian
       typename ImplT::jacobian_type J = model.jacobian(x);
@@ -272,8 +273,8 @@ namespace math {
         typename ImplT::result_type error_try = model.difference(observation, h_try);
         norm_try = norm_2(error_try);
 
-        //VW_OUT(VerboseDebugMessage, "math") << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
-        //VW_OUT(DebugMessage, "math") << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
+        VW_OUT(VerboseDebugMessage, "math") << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
+        VW_OUT(DebugMessage, "math") << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
 
         if (norm_try > norm_start)
           // Increase lambda and try again
@@ -281,11 +282,11 @@ namespace math {
 
         ++iterations; // Sanity check on iterations in this loop
         if (iterations > 5) {
-          //VW_OUT(DebugMessage, "math") << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
+          VW_OUT(DebugMessage, "math") << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
           shortCircuit = true;
-          norm_try = norm_start;
+          norm_try     = norm_start;
         }
-        //VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
+        VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
       }
 
       // Percentage change convergence criterion
@@ -319,13 +320,221 @@ namespace math {
 
       // Decrease lambda
       lambda /= 10;
-      //VW_OUT(DebugMessage, "math") << "lambda = " << lambda << std::endl;
-      //VW_OUT(DebugMessage, "math") << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
+      VW_OUT(DebugMessage, "math") << "lambda = " << lambda << std::endl;
+      VW_OUT(DebugMessage, "math") << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
     }
     VW_OUT(DebugMessage, "math") << "LM: finished with: " << outer_iter << "\n";
     return x;
-  }
+  } // End levenberg_marquardt
 
+
+  // ----- Speed optimized versions are below -----
+
+  /// As the similar class above, but with a fixed, square matrix type.
+  template <class ImplT, int N>
+  struct LeastSquaresModelBaseSQ {
+
+    /// \cond INTERNAL
+    // Methods to access the derived type
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
+    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+    /// \endcond
+
+    template <class DomainT>
+    inline Matrix<double, N, N> jacobian( DomainT const& x ) const {
+
+      // Get nominal function value
+      Vector<double, N> h0 = impl().operator()(x);
+
+      // Jacobian is #params x #outputs
+      Matrix<double, N, N> H(h0.size(), x.size());
+
+      // For each param dimension, add epsilon and re-evaluate h() to
+      // get numerical derivative w.r.t. that parameter
+      for ( unsigned i=0; i<x.size(); ++i ){
+        DomainT xi = x;
+
+        // Variable step size, depending on parameter value
+        double epsilon = 1e-7 + fabs(xi(i)*1e-7);
+        xi(i) += epsilon;
+
+        // Evaluate function with this step and compute the derivative w.r.t. parameter i
+        Vector<double, N> hi = impl().operator()(xi);
+        select_col(H,i) = this->difference(hi,h0)/epsilon;
+      }
+      return H;
+    }
+
+    template <class T>
+    inline T difference( T const& a, T const& b ) const {
+      return (a-b);
+    }
+  }; // End LeastSquaresModelBaseSQ
+
+
+  /// As the similar function above, but with a fixed, square matrix size.
+  /// - VW_OUT statements have also been disabled for speed.
+  template <class ImplT, int N>
+  typename ImplT::domain_type levenberg_marquardtSQ( LeastSquaresModelBaseSQ<ImplT, N> const& least_squares_model,
+                                                   typename ImplT::domain_type const& seed,
+                                                   typename ImplT::result_type const& observation,
+                                                   int &status,
+                                                   double abs_tolerance = VW_MATH_LM_ABS_TOL,
+                                                   double rel_tolerance = VW_MATH_LM_REL_TOL,
+                                                   double max_iterations = VW_MATH_LM_MAX_ITER) {
+
+    status = optimization::eDidNotConverge;
+
+    const ImplT& model = least_squares_model.impl();
+    bool   done   = false;
+    double Rinv   = 10;
+    double lambda = 0.1;
+
+    typename ImplT::domain_type x_try, x = seed;
+    typename ImplT::result_type h = model(x);
+    typename ImplT::result_type error = model.difference(observation, h);
+    double norm_start = norm_2(error);
+
+    //VW_OUT(DebugMessage, "math") << "LM: initial guess for the model is " << seed << std::endl;
+    //VW_OUT(VerboseDebugMessage, "math") << "LM: starting error " << error << std::endl;
+    //VW_OUT(DebugMessage, "math") << "LM: starting norm is: " << norm_start << std::endl;
+
+    // Solution may already be good enough
+    if (norm_start < abs_tolerance) {
+      status = optimization::eConvergedAbsTolerance;
+      //VW_OUT(DebugMessage, "math") << "CONVERGED TO ABSOLUTE TOLERANCE\n";
+      done = true;
+    }
+
+    int outer_iter = 0;
+    while (!done){
+
+      bool shortCircuit = false;
+      outer_iter++;
+      //VW_OUT(DebugMessage, "math") << "LM: outer iteration " << outer_iter << "   x = " << x << std::endl;
+
+      // Compute the value, derivative, and hessian of the cost function
+      // at the current point.  These remain valid until the parameter
+      // vector changes.
+
+      // expected measurement with new x
+      h = model(x);
+
+      // Difference between observed and predicted and error (2-norm of difference)
+      error = model.difference(observation, h);
+      norm_start = norm_2(error);
+      //VW_OUT(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
+
+      // Measurement Jacobian
+      typename ImplT::jacobian_type J = model.jacobian(x);
+
+      Vector<double, N> del_J = -1.0 * Rinv * (transpose(J) * error);
+
+      // Hessian of cost function (using Gauss-Newton approximation)
+      Matrix<double, N, N> hessian = Rinv * (transpose(J) * J);
+
+      int iterations = 0;
+      double norm_try = norm_start+1.0;
+      while (norm_try > norm_start){
+
+        // Increase diagonal elements to dynamically mix gradient
+        // descent and Gauss-Newton.
+        Matrix<double, N, N> hessian_lm = hessian;
+        for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
+          hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
+        }
+
+        // Solve for update
+        typename ImplT::domain_type delta_x;
+        if (hessian_lm.rows() <= 2 && det(hessian_lm) > 0.0){
+          // Direct method is more efficient for small matrices, also
+          // here we avoid calling LAPACK which we've seen misbehave
+          // in this situation in a multi-threaded environment.
+          delta_x = inverse(hessian_lm)*del_J;
+        }else{
+          try{
+            // By construction, hessian_lm is symmetric and
+            // positive-definite.
+            delta_x = solve_symmetric(hessian_lm, del_J);
+          }catch ( const ArgumentErr& e ) {
+            // If lambda is very small, the matrix becomes numerically
+            // singular. In that case use the more general
+            // least_squares solver.
+            delta_x = least_squares(hessian_lm, del_J);
+          }
+
+        }
+
+        // update parameter vector
+        x_try = x - delta_x;
+
+        typename ImplT::result_type h_try = model(x_try);
+
+        typename ImplT::result_type error_try = model.difference(observation, h_try);
+        norm_try = norm_2(error_try);
+
+        //VW_OUT(VerboseDebugMessage, "math") << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
+        //VW_OUT(DebugMessage, "math") << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
+
+        if (norm_try > norm_start)
+          // Increase lambda and try again
+          lambda *= 10;
+
+        ++iterations; // Sanity check on iterations in this loop
+        if (iterations > 5) {
+          //VW_OUT(DebugMessage, "math") << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
+          shortCircuit = true;
+          norm_try     = norm_start;
+        }
+        //VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
+      }
+
+      // Percentage change convergence criterion
+      if (((norm_start-norm_try)/norm_start) < rel_tolerance) {
+        status = optimization::eConvergedRelTolerance;
+        //VW_OUT(DebugMessage, "math") << "CONVERGED TO RELATIVE TOLERANCE\n";
+        done = true;
+      }
+
+      // Absolute error convergence criterion
+      if (norm_try < abs_tolerance) {
+        status = optimization::eConvergedAbsTolerance;
+        //VW_OUT(DebugMessage, "math") << "CONVERGED TO ABSOLUTE TOLERANCE\n";
+        done = true;
+      }
+
+      // Max iterations convergence criterion
+      if (outer_iter >= max_iterations) {
+        //VW_OUT(DebugMessage, "math") << "REACHED MAX ITERATIONS!";
+        done = true;
+      }
+
+      // Take trial parameters as new parameters
+      // If we short-circuited the inner loop, then we didn't actually find a
+      // better p, so don't update it.
+      if (!shortCircuit)
+        x = x_try;
+
+      // Take trial error as new error
+      norm_start = norm_try;
+
+      // Decrease lambda
+      lambda /= 10;
+      //VW_OUT(DebugMessage, "math") << "lambda = " << lambda << std::endl;
+      //VW_OUT(DebugMessage, "math") << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
+    }
+    //VW_OUT(DebugMessage, "math") << "LM: finished with: " << outer_iter << "\n";
+    return x;
+  } // End levenberg_marquardtSQ
+
+  
+  
+  
+  
+  
+  
+  
+  
 }} // namespace vw::math
 
 #endif // __VW_OPTIMIZATION_H__

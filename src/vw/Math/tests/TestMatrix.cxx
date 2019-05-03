@@ -491,3 +491,8 @@ TEST(Matrix, IndexingIterator) {
   EXPECT_NE(&j, &k);
   EXPECT_TRUE(j == k);
 }
+
+TEST(Matrix, Det) {
+  Matrix<double, 2, 2> m(1, 2, 3, 4);
+  EXPECT_EQ(det(m), -2.0);
+}

@@ -1757,6 +1757,13 @@ namespace math {
     return result;
   }
 
+  /// Optimize the 2x2 simple determinant case
+  template <typename T>
+  T det( Matrix<T, 2, 2> const& m ) {
+    T const* d = m.data();
+    return d[0]*d[3] - d[1]*d[2];
+  }
+  
   /// Matrix determinant
   template <class MatrixT>
   typename MatrixT::value_type det( MatrixBase<MatrixT> const& m ) {
@@ -2079,6 +2086,17 @@ namespace math {
     return result;
   }
 
+  // Make sure this simple case is fast
+  template <typename T>
+  Matrix<T, 2, 2> inverse(Matrix<T, 2, 2> const& m) {
+      T const* d = m.data();
+      T det = d[0]*d[3] - d[1]*d[2];
+      if (det == T(0))
+        vw_throw( MathErr() << "Matrix is singular in inverse()" );
+      Matrix<T, 2, 2> out(d[3]/det, -d[1]/det, -d[2]/det, d[0]/det);
+      return out;
+  }
+  
   /// Matrix inversion
   template <class MatrixT>
   inline Matrix<typename MatrixT::value_type> inverse( MatrixBase<MatrixT> const& m ) {
