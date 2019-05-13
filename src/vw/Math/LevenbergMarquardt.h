@@ -371,6 +371,7 @@ namespace math {
         //std::cout << "hi = " << hi << std::endl;
         select_col(H,i) = this->difference(hi,h0)/epsilon;
       }
+      //std::cout << "H = " << H << std::endl;
       return H;
     }
 
@@ -415,7 +416,9 @@ namespace math {
       done = true;
     }
 
-    typename ImplT::jacobian_type J, J_trans, J_trans_J;
+    typename ImplT::jacobian_type J;
+    Matrix<double, NI, NO> J_trans;
+    Matrix<double, NI, NI> J_trans_J;
     Vector<double, NI> del_J;
     Matrix<double, NI, NI> hessian, hessian_lm, hessian_lm_inv;
     
@@ -443,16 +446,17 @@ namespace math {
 
       // Measurement Jacobian
       J = model.jacobian(x);
-      J_trans = transpose(J);
-
       //std::cout << "J = " << J << std::endl;
-      
+      J_trans = transpose(J);
+      //std::cout << "J_trans = " << J_trans << std::endl;
+
       del_J = -1.0 * Rinv * (J_trans * error);
       //Vector<double> del_J = -1.0 * Rinv * (J_trans * error);
       //std::cout << "del_J = " << del_J << std::endl;
 
       // Hessian of cost function (using Gauss-Newton approximation)
       J_trans_J = J_trans * J;
+      //std::cout << "J_trans_J = " << J_trans_J << std::endl;
       hessian = Rinv * J_trans_J;
       //Matrix<double> hessian = Rinv * J_trans_J;
 
