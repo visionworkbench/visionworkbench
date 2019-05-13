@@ -330,9 +330,9 @@ namespace math {
 
   // ----- Speed optimized versions are below -----
 
-  /// As the similar class above, but with a fixed, square matrix type.
-  template <class ImplT, int N>
-  struct LeastSquaresModelBaseSQ {
+  /// As the similar class above, but with fixed matrix sizes and no loggin.
+  template <class ImplT, int NI, int NO>
+  struct LeastSquaresModelBaseFixed {
 
     /// \cond INTERNAL
     // Methods to access the derived type
@@ -341,16 +341,23 @@ namespace math {
     /// \endcond
 
     template <class DomainT>
-    inline Matrix<double, N, N> jacobian( DomainT const& x ) const {
+    inline Matrix<double, NO, NI> jacobian( DomainT const& x ) const {
 
       // Get nominal function value
-      Vector<double, N> h0 = impl().operator()(x);
+      //std::cout << "x; = " << x << std::endl;
+      //std::cout << "impl().operator()(x); = " << impl().operator()(x) << std::endl;
+      Vector<double, NO> h0 = impl().operator()(x);
+      //Vector<double> h0 = impl().operator()(x);
+      //std::cout << "h0 = " << h0 << std::endl;
 
       // Jacobian is #params x #outputs
-      Matrix<double, N, N> H(h0.size(), x.size());
+      Matrix<double, NO, NI> H(h0.size(), x.size());
+      //Matrix<double> H(h0.size(), x.size());
+      //std::cout << "H = " << H << std::endl;
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
+      Vector<double, NO> hi;
       for ( unsigned i=0; i<x.size(); ++i ){
         DomainT xi = x;
 
@@ -359,7 +366,9 @@ namespace math {
         xi(i) += epsilon;
 
         // Evaluate function with this step and compute the derivative w.r.t. parameter i
-        Vector<double, N> hi = impl().operator()(xi);
+        hi = impl().operator()(xi);
+        //Vector<double> hi = impl().operator()(xi);
+        //std::cout << "hi = " << hi << std::endl;
         select_col(H,i) = this->difference(hi,h0)/epsilon;
       }
       return H;
@@ -374,8 +383,8 @@ namespace math {
 
   /// As the similar function above, but with a fixed, square matrix size.
   /// - VW_OUT statements have also been disabled for speed.
-  template <class ImplT, int N>
-  typename ImplT::domain_type levenberg_marquardtSQ( LeastSquaresModelBaseSQ<ImplT, N> const& least_squares_model,
+  template <class ImplT, int NI, int NO>
+  typename ImplT::domain_type levenberg_marquardtFixed( LeastSquaresModelBaseFixed<ImplT, NI, NO> const& least_squares_model,
                                                    typename ImplT::domain_type const& seed,
                                                    typename ImplT::result_type const& observation,
                                                    int &status,
@@ -406,6 +415,11 @@ namespace math {
       done = true;
     }
 
+    typename ImplT::jacobian_type J, J_trans, J_trans_J;
+    Vector<double, NI> del_J;
+    Matrix<double, NI, NI> hessian, hessian_lm, hessian_lm_inv;
+    
+    //std::cout << "loop" << std::endl;
     int outer_iter = 0;
     while (!done){
 
@@ -419,27 +433,39 @@ namespace math {
 
       // expected measurement with new x
       h = model(x);
+      //std::cout << "h = " << h << std::endl;
 
       // Difference between observed and predicted and error (2-norm of difference)
       error = model.difference(observation, h);
+      //std::cout << "error = " << error << std::endl;
       norm_start = norm_2(error);
       //VW_OUT(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
 
       // Measurement Jacobian
-      typename ImplT::jacobian_type J = model.jacobian(x);
+      J = model.jacobian(x);
+      J_trans = transpose(J);
 
-      Vector<double, N> del_J = -1.0 * Rinv * (transpose(J) * error);
+      //std::cout << "J = " << J << std::endl;
+      
+      del_J = -1.0 * Rinv * (J_trans * error);
+      //Vector<double> del_J = -1.0 * Rinv * (J_trans * error);
+      //std::cout << "del_J = " << del_J << std::endl;
 
       // Hessian of cost function (using Gauss-Newton approximation)
-      Matrix<double, N, N> hessian = Rinv * (transpose(J) * J);
+      J_trans_J = J_trans * J;
+      hessian = Rinv * J_trans_J;
+      //Matrix<double> hessian = Rinv * J_trans_J;
 
+      //std::cout << "hessian = " << hessian << std::endl;
+      
       int iterations = 0;
       double norm_try = norm_start+1.0;
       while (norm_try > norm_start){
 
         // Increase diagonal elements to dynamically mix gradient
         // descent and Gauss-Newton.
-        Matrix<double, N, N> hessian_lm = hessian;
+        hessian_lm = hessian;
+        //Matrix<double> hessian_lm = hessian;
         for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
           hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
         }
@@ -450,7 +476,8 @@ namespace math {
           // Direct method is more efficient for small matrices, also
           // here we avoid calling LAPACK which we've seen misbehave
           // in this situation in a multi-threaded environment.
-          delta_x = inverse(hessian_lm)*del_J;
+          hessian_lm_inv = inverse(hessian_lm);
+          delta_x = hessian_lm_inv*del_J;
         }else{
           try{
             // By construction, hessian_lm is symmetric and
@@ -525,12 +552,7 @@ namespace math {
     }
     //VW_OUT(DebugMessage, "math") << "LM: finished with: " << outer_iter << "\n";
     return x;
-  } // End levenberg_marquardtSQ
-
-  
-  
-  
-  
+  } // End levenberg_marquardtFixed
   
   
   

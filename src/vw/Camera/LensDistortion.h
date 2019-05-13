@@ -59,6 +59,12 @@ namespace camera {
     ///   the PinholeModel class.
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
     
+    /// Return true if the distorted_coordinates() implementation does not use a solver.
+    virtual bool has_fast_distort  () const {return false;}
+    
+    /// Return true if the undistorted_coordinates() implementation does not use a solver.
+    virtual bool has_fast_undistort() const {return false;}
+    
     /// Write all the distortion parameters to the stream
     virtual void write(std::ostream & os) const = 0;
     
@@ -101,6 +107,9 @@ namespace camera {
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
     virtual int num_dist_params() const { return 0; };
 
+    virtual bool has_fast_distort  () const {return true;}
+    virtual bool has_fast_undistort() const {return true;}
+
     virtual boost::shared_ptr<LensDistortion> copy() const;
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
@@ -111,10 +120,7 @@ namespace camera {
 
   /// TSAI Lens Distortion Model
   ///
-  /// For a given set of observed (distorted) pixel coordinates, return the
-  /// location where the pixel would have appeared if there were no lens distortion.
-  ///
-  /// The equations which produce these are:
+  /// The equations for this model are:
   /// (u, v) = undistorted coordinates
   /// (u', v') = observed (distorted) coordinates
   /// (x, y) = object coordinates of projected point
@@ -145,6 +151,8 @@ namespace camera {
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    
+    virtual bool has_fast_distort  () const {return true;}
     
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
@@ -185,6 +193,8 @@ namespace camera {
 
     virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
 
+    virtual bool has_fast_undistort() const {return true;}
+    
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
     static  std::string class_name()       { return "BrownConrady"; }
@@ -222,9 +232,11 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
 
+    virtual bool has_fast_distort  () const {return true;}
+
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
-    
+
     static  std::string class_name()       { return "AdjustableTSAI"; }
     virtual std::string name      () const { return class_name(); }
     virtual void scale( double /*scale*/ );
@@ -266,7 +278,9 @@ namespace camera {
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
+
+    virtual bool has_fast_undistort() const {return true;}
+
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
 
@@ -313,7 +327,10 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
+
+    virtual bool has_fast_distort  () const {return true;}
+    virtual bool has_fast_undistort() const {return true;}
+
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os); 
 
@@ -364,7 +381,10 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
+
+    virtual bool has_fast_distort  () const {return true;}
+    virtual bool has_fast_undistort() const {return true;}
+
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
 
@@ -406,7 +426,10 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
+
+    virtual bool has_fast_distort  () const {return true;}
+    virtual bool has_fast_undistort() const {return true;}
+
     virtual void write(std::ostream& os) const;
     virtual void read (std::istream& os);
 

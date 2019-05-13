@@ -243,9 +243,7 @@ namespace camera {
                                           double         mean_earth_radius,
                                           Vector3 const& uncorrected_vector);
 
-  /// Account for velocity aberration.
-  /// - Set earth_rotation_in_velocity if the camera velocity already includes
-  ///   correction for the Earth's rotation.
+  /// Adjust a pixel vector to account for velocity aberration.
   Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
                                                Vector3 const& camera_velocity,
                                                double         mean_earth_radius,

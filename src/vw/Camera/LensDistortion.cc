@@ -28,7 +28,7 @@ using namespace camera;
 
 // Optimization functor for computing the undistorted coordinates
 // using levenberg marquardt.
-struct UndistortOptimizeFunctor : public math::LeastSquaresModelBaseSQ<UndistortOptimizeFunctor, 2> {
+struct UndistortOptimizeFunctor : public math::LeastSquaresModelBaseFixed<UndistortOptimizeFunctor, 2, 2> {
   typedef Vector2 result_type;
   typedef Vector2 domain_type;
   typedef Matrix<double, 2, 2> jacobian_type;
@@ -42,7 +42,7 @@ struct UndistortOptimizeFunctor : public math::LeastSquaresModelBaseSQ<Undistort
   }
 };
 
-struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseSQ<DistortOptimizeFunctor, 2> {
+struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseFixed<DistortOptimizeFunctor, 2, 2> {
   typedef Vector2 result_type;
   typedef Vector2 domain_type;
   typedef Matrix<double, 2, 2> jacobian_type;
@@ -178,7 +178,7 @@ LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2
 
   // Must push the solver really hard, to make sure bundle adjust gets accurate values
   // to play with.
-  Vector2 solution = math::levenberg_marquardtSQ( model, v, v, status, 1e-16, 1e-16, 100 );
+  Vector2 solution = math::levenberg_marquardtFixed( model, v, v, status, 1e-16, 1e-16, 100 );
 
   Vector2 dist = this->distorted_coordinates(cam, solution);
   double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
@@ -200,7 +200,7 @@ LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 c
   int status;
   // Must push the solver really hard, to make sure bundle adjust gets accurate values
   // to play with.
-  Vector2 solution = math::levenberg_marquardtSQ(model, v, v, status, 1e-16, 1e-16, 100);
+  Vector2 solution = math::levenberg_marquardtFixed(model, v, v, status, 1e-16, 1e-16, 100);
   //VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, 
   //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
 
