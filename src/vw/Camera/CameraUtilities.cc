@@ -104,6 +104,7 @@ int auto_compute_sample_spacing(Vector2i const image_size) {
   return spacing;
 }
 
+// TODO: Move this to RPCLensDistortion() as only that class needs it.
 void update_rpc_undistortion(PinholeModel const& model){
 
   const vw::camera::LensDistortion* distortion = model.lens_distortion();
@@ -172,9 +173,9 @@ resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const
 } // End resize_epipolar_cameras_to_fit
 
 
-// Convert an optical model to a pinhole model without distortion
+// Convert an optical model to a pinhole model without distortion.
 // (The distortion will be taken care of later.)
-  PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing){
+PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing){
 
     double pixel_pitch = opb_model.get_pixel_size();
     double  f = opb_model.get_focal_length(); 

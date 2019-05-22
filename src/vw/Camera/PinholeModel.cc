@@ -397,6 +397,7 @@ Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
   Vector3 pixel_vector = pixel_to_vector(final_pixel);
   Vector3 phys_vector  = normalize(point - this->camera_center());
   double  diff         = norm_2(pixel_vector - phys_vector);
+  
   VW_ASSERT(diff < ERROR_THRESHOLD, vw::camera::PointToPixelErr());
   return final_pixel;
 }

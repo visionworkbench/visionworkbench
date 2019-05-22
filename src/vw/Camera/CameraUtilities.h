@@ -43,10 +43,10 @@ namespace camera {
 // These functions are defined in the .cc file:
 
 /// Load a pinhole camera model of any supported type
-boost::shared_ptr<vw::camera::CameraModel> load_pinhole_camera_model(std::string const& path);
+boost::shared_ptr<CameraModel> load_pinhole_camera_model(std::string const& path);
 
 /// Load a pinhole, CAHV, CAHVOR, or CAHVORE model and convert to CAHV.
-boost::shared_ptr<vw::camera::CAHVModel>
+boost::shared_ptr<CAHVModel>
 load_cahv_pinhole_camera_model(std::string const& image_path,
                                std::string const& camera_path);
 
@@ -54,9 +54,9 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 /// the undistortion functions below won't take too long.
 int auto_compute_sample_spacing(Vector2i const image_size);
  
+// TODO: Move this to RPCLensDistortion() as only that class needs it.
 // For RPC, must always ensure the undistortion coefficients are up to date.
 // This function will be used before saving or displaying a pinhole model.
-// This function is not in the .cc file as it is related to the above.
 void update_rpc_undistortion(PinholeModel const& model);
 
 
@@ -175,6 +175,7 @@ struct DistortionOptimizeFunctor:
   }
 }; // End class LensOptimizeFunctor
 
+// TODO: Move this to RPCLensDistortion() as only that class needs it.
 /// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion.
 template <class DistModelT>
 struct UndistortionOptimizeFunctor:
@@ -219,7 +220,7 @@ template<class DistModelT>
 double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sample_spacing) {
 
   // Get info on existing distortion model
-  const vw::camera::LensDistortion* input_distortion = pin_model.lens_distortion();
+  const LensDistortion* input_distortion = pin_model.lens_distortion();
   std::string lens_name = input_distortion->name();
 
   // Check for all of the models that currently support a fast distortion function.
@@ -291,12 +292,18 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
 
   // Solve for the best new model params that give us the undistorted
   // coordinates from the distorted coordinates.
+  
+  // TODO: This is not good enough. for high enough degree of the RPC
+  // polynomial, simply starting with an identity undistortion won't
+  // lead to the best solution. Need to first compute a low-degree
+  // undistortion, then refine it gradually for each higher degree.
   Vector<double> undist_params = math::levenberg_marquardt(solver_model,
                                                            seed, undistorted_coords, status);
 
   // Make a copy of the model
   boost::shared_ptr<LensDistortion> dist_copy = input_distortion->copy();
-  DistModelT* new_model = dynamic_cast<DistModelT*>(dist_copy.get()); // Child class access to dist_copy
+  // Child class access to dist_copy
+  DistModelT* new_model = dynamic_cast<DistModelT*>(dist_copy.get());
   if (new_model == NULL) 
     vw_throw( ArgumentErr() << "PinholeModel::expecting an " +
               DistModelT::class_name() + " model." );
@@ -506,8 +513,8 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
 template <class ImageInT, class ImageOutT>
 void get_epipolar_transformed_images(std::string const& left_camera_file,
                                      std::string const& right_camera_file,
-                                     boost::shared_ptr<camera::CameraModel> const left_cahv_camera,
-                                     boost::shared_ptr<camera::CameraModel> const right_cahv_camera,
+                                     boost::shared_ptr<CameraModel> const left_cahv_camera,
+                                     boost::shared_ptr<CameraModel> const right_cahv_camera,
                                      ImageInT  const& left_image_in,
                                      ImageInT  const& right_image_in,
                                      ImageOutT      & left_image_out,
@@ -515,8 +522,8 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
                                      ValueEdgeExtension<typename ImageOutT::pixel_type> edge_ext) {
 
   // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
-  CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*left_cahv_camera )));
-  CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(vw::camera::unadjusted_model(&(*right_cahv_camera)));
+  CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(unadjusted_model(&(*left_cahv_camera )));
+  CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(unadjusted_model(&(*right_cahv_camera)));
   if (!left_epipolar_cahv || !right_epipolar_cahv) {
     vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: CAHVModel cast failed!\n");
   }
@@ -582,13 +589,11 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
 
 }
 
-
-
 template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
 void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file,
                                              std::string const& right_camera_file,
-                                             boost::shared_ptr<camera::CameraModel> const left_epi_cam,
-                                             boost::shared_ptr<camera::CameraModel> const right_epi_cam,
+                                             boost::shared_ptr<CameraModel> const left_epi_cam,
+                                             boost::shared_ptr<CameraModel> const right_epi_cam,
                                              ImageInT  const& left_image_in,
                                              ImageInT  const& right_image_in,
                                              BBox2i    const& left_image_in_roi,
@@ -611,8 +616,8 @@ void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file
   update_pinhole_for_fast_point2pixel<TsaiLensDistortion>(*right_pin, right_image_in_size);
  
   // Make sure there are no adjustments on the aligned camera models
-  PinholeModel* left_epi_pin  = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*left_epi_cam)));
-  PinholeModel* right_epi_pin = dynamic_cast<PinholeModel*>(vw::camera::unadjusted_model(&(*right_epi_cam)));
+  PinholeModel* left_epi_pin  = dynamic_cast<PinholeModel*>(unadjusted_model(&(*left_epi_cam)));
+  PinholeModel* right_epi_pin = dynamic_cast<PinholeModel*>(unadjusted_model(&(*right_epi_cam)));
   
   // If so, create an adjusted version of the input files from disk and then transform, otherwise just transform.
   Vector3 ZERO_TRANSLATION(0,0,0);
