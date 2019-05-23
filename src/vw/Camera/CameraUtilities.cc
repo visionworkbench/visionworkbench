@@ -140,16 +140,19 @@ void fit_camera_to_xyz(std::string const& camera_type,
     if (status < 1)
       vw_out() << "The Levenberg-Marquardt solver failed. Results may be inaccurate.\n";
 
-    vw_out() << "The error between the projection of each ground "
-	     << "corner point into the refined camera and its pixel value:\n";
-    for (size_t corner_it = 0; corner_it < num_pts; corner_it++) {
-      vw_out () << "Corner and error: ("
-		<< pixel_values[2*corner_it] << ' ' << pixel_values[2*corner_it+1]
-		<< ") " <<  norm_2(out_cam.get()->point_to_pixel(xyz_vec[corner_it]) -
-				   Vector2( pixel_values[2*corner_it],
-					    pixel_values[2*corner_it+1]))
-		<< std::endl;
+    if (verbose) {
+      vw_out() << "The error between the projection of each ground "
+	       << "corner point into the refined camera and its pixel value:\n";
+      for (size_t corner_it = 0; corner_it < num_pts; corner_it++) {
+	vw_out () << "Corner and error: ("
+		  << pixel_values[2*corner_it] << ' ' << pixel_values[2*corner_it+1]
+		  << ") " <<  norm_2(out_cam.get()->point_to_pixel(xyz_vec[corner_it]) -
+				     Vector2( pixel_values[2*corner_it],
+					      pixel_values[2*corner_it+1]))
+		  << std::endl;
+      }
     }
+    
   } // End camera refinement case
 }
   
