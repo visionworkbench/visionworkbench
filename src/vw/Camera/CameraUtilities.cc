@@ -21,10 +21,138 @@
 /// This file contains miscellaneous functions for working with camera models.
 ///
 #include <vw/Camera/CameraUtilities.h>
+#include <vw/Math/Geometry.h>
 
 namespace vw {
 namespace camera {
 
+// Unpack a vector into a rotation + translation + scale
+void vector_to_transform(Vector<double> const & C, 
+			 Matrix3x3            & rotation,
+			 Vector3              & translation,
+			 double               & scale){
+
+  if (C.size() != 7) 
+    vw_throw( LogicErr() << "Expecting a vector of size 7.\n" );
+  
+  translation = subvector(C, 0, 3);
+  rotation    = axis_angle_to_quaternion(subvector(C, 3, 3)).rotation_matrix();
+  scale       = C[6];
+  
+  return;
+}
+
+// Pack a rotation + translation + scale into a vector
+void transform_to_vector(Vector<double>  & C, 
+			 Matrix3x3 const & rotation,
+			 Vector3   const & translation,
+			 double    const & scale){
+  
+  Vector3 axis_angle = Quat(rotation).axis_angle();
+
+  C.set_size(7);
+  subvector(C, 0, 3) = translation;
+  subvector(C, 3, 3) = axis_angle;
+  C[6] = scale;
+  
+  return;
+}
+
+/// Find the best camera that fits the current GCP
+void fit_camera_to_xyz(std::string const& camera_type,
+		       bool refine_camera, 
+		       std::vector<Vector3> const& xyz_vec,
+		       std::vector<double> const& pixel_values,
+		       bool verbose, boost::shared_ptr<CameraModel> & out_cam){
+  
+  // Create fake points in space at given distance from this camera's
+  // center and corresponding actual points on the ground.  Use 500
+  // km, just some height not too far from actual satellite height.
+  const double ht = 500000; 
+  vw::Matrix<double> in, out;
+  int num_pts = pixel_values.size()/2;
+  in.set_size(3, num_pts);
+  out.set_size(3, num_pts);
+  for (int col = 0; col < in.cols(); col++) {
+    Vector3 a = out_cam->camera_center(Vector2(0, 0)) +
+      ht*out_cam->pixel_to_vector(Vector2(pixel_values[2*col], pixel_values[2*col+1]));
+    for (int row = 0; row < in.rows(); row++) {
+      in(row, col)  = a[row];
+      out(row, col) = xyz_vec[col][row];
+    }
+  }
+
+  // Apply a transform to the camera so that the fake points are on top of the real points
+  Matrix<double, 3, 3> rotation;
+  Vector3 translation;
+  double scale;
+  find_3D_affine_transform(in, out, rotation, translation, scale);
+  if (camera_type == "opticalbar")
+    ((vw::camera::OpticalBarModel*)out_cam.get())->apply_transform(rotation,
+								    translation, scale);
+  else
+    ((PinholeModel*)out_cam.get())->apply_transform(rotation, translation, scale);
+
+  // Print out some errors
+  if (verbose) {
+    vw_out() << "The error between the projection of each ground "
+	     << "corner point into the coarse camera and its pixel value:\n";
+    for (size_t corner_it = 0; corner_it < num_pts; corner_it++) {
+      vw_out () << "Corner and error: ("
+		<< pixel_values[2*corner_it] << ' ' << pixel_values[2*corner_it+1]
+		<< ") " <<  norm_2(out_cam.get()->point_to_pixel(xyz_vec[corner_it]) -
+				 Vector2( pixel_values[2*corner_it],
+					  pixel_values[2*corner_it+1]))
+		<< std::endl;
+    }
+  }
+  
+  // Solve a little optimization problem to make the points on the ground project
+  // as much as possible exactly into the image corners.
+  if (refine_camera) {
+    Vector<double> pixel_vec; // must copy to this structure
+    pixel_vec.set_size(pixel_values.size());
+    for (size_t corner_it = 0; corner_it < pixel_vec.size(); corner_it++) 
+      pixel_vec[corner_it] = pixel_values[corner_it];
+    const double abs_tolerance  = 1e-24;
+    const double rel_tolerance  = 1e-24;
+    const int    max_iterations = 2000;
+    int status = 0;
+    Vector<double> final_params;
+    Vector<double> seed;
+      
+    if (camera_type == "opticalbar") {
+      CameraSolveLMA<vw::camera::OpticalBarModel>
+	lma_model(xyz_vec, *((vw::camera::OpticalBarModel*)out_cam.get()));
+      camera_to_vector(*((vw::camera::OpticalBarModel*)out_cam.get()), seed);
+      final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
+					       status, abs_tolerance, rel_tolerance,
+					       max_iterations);
+      vector_to_camera(*((vw::camera::OpticalBarModel*)out_cam.get()), final_params);
+    } else {
+      CameraSolveLMA<PinholeModel> lma_model(xyz_vec, *((PinholeModel*)out_cam.get()));
+      camera_to_vector(*((PinholeModel*)out_cam.get()), seed);
+      final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
+					       status, abs_tolerance, rel_tolerance,
+					       max_iterations);
+      vector_to_camera(*((PinholeModel*)out_cam.get()), final_params);
+    }
+    if (status < 1)
+      vw_out() << "The Levenberg-Marquardt solver failed. Results may be inaccurate.\n";
+
+    vw_out() << "The error between the projection of each ground "
+	     << "corner point into the refined camera and its pixel value:\n";
+    for (size_t corner_it = 0; corner_it < num_pts; corner_it++) {
+      vw_out () << "Corner and error: ("
+		<< pixel_values[2*corner_it] << ' ' << pixel_values[2*corner_it+1]
+		<< ") " <<  norm_2(out_cam.get()->point_to_pixel(xyz_vec[corner_it]) -
+				   Vector2( pixel_values[2*corner_it],
+					    pixel_values[2*corner_it+1]))
+		<< std::endl;
+    }
+  } // End camera refinement case
+}
+  
 /// Load a pinhole camera model of any supported type
 boost::shared_ptr<vw::camera::CameraModel>
 load_pinhole_camera_model(std::string const& path){
