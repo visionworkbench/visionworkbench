@@ -110,7 +110,7 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
     }
     if (forced_triangulation_distance > 0)
       return 1; // mark triangulation as successful
-    return 0;
+    return -1;
   } else {
     error_sum /= double(count);
     cp.set_position( position_sum / double(count) );
