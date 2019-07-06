@@ -247,7 +247,7 @@ struct vector_dest_mgr {
     dest->pub.free_in_buffer = dest->vec->size();
     dest->vec->resize(dest->vec->capacity() * 2);
     dest->pub.next_output_byte = &(dest->vec->operator[](dest->pub.free_in_buffer));
-    return true;
+    return (boolean)true;
   }
   static void term_destination (j_compress_ptr cinfo) {
     vector_dest_mgr *dest = reinterpret_cast<vector_dest_mgr*>(cinfo->dest);
