@@ -1,7 +1,3 @@
-
-
-
-
 # TODO: Move everything up a directory!
 
 include(Utilities) # Contains functions
@@ -108,14 +104,7 @@ target_compile_definitions(gtest_main PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
 # Add all of our code
 add_subdirectory(vw)
 
-
-
-
-
-
-
 #========================================================================================
-
 
 # Deprecated - We no longer use protobuf files!
 function(generate_protobuf_files PROTO_GEN_OUT)

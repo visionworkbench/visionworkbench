@@ -45,57 +45,6 @@
 #include <boost/algorithm/string/trim.hpp>
 
 namespace {
-  typedef boost::function<vw::SrcMemoryImageResource*(const boost::shared_array<const vw::uint8>, size_t)> open_func;
-  typedef boost::function<vw::DstMemoryImageResource*(const vw::ImageFormat&)> create_func;
-
-  typedef std::map<std::string, open_func> open_map_t;
-  typedef std::map<std::string, create_func> create_map_t;
-
-#define OPEN(Name, Type) (Name, boost::lambda::new_ptr<vw::SrcMemoryImageResource ## Type>())
-#define CREAT(Name, Type) (Name, boost::lambda::new_ptr<vw::DstMemoryImageResource ## Type>())
-
-  open_map_t open_map = boost::assign::list_of<std::pair<std::string, open_func> >
-#if defined(VW_HAVE_PKG_JPEG)
-    OPEN("jpg",        JPEG)
-    OPEN("jpeg",       JPEG)
-    OPEN("image/jpeg", JPEG)
-#endif
-#if defined(VW_HAVE_PKG_PNG)
-    OPEN("png",        PNG)
-    OPEN("image/png",  PNG)
-#endif
-#if defined(VW_HAVE_PKG_GDAL)
-    OPEN("tif",        GDAL)
-    OPEN("tiff",       GDAL)
-    OPEN("image/tiff", GDAL)
-#endif
-#if defined(VW_HAVE_PKG_OPENEXR)
-    OPEN("exr",        OpenEXR)
-    OPEN("image/exr",  OpenEXR)
-#endif
-    ;
-
-  create_map_t create_map = boost::assign::list_of<std::pair<std::string, create_func> >
-#if defined(VW_HAVE_PKG_JPEG)
-    CREAT("jpg",        JPEG)
-    CREAT("jpeg",       JPEG)
-    CREAT("image/jpeg", JPEG)
-#endif
-#if defined(VW_HAVE_PKG_PNG)
-    CREAT("png",        PNG)
-    CREAT("image/png",  PNG)
-#endif
-#if defined(VW_HAVE_PKG_GDAL)
-    CREAT("tif",        GDAL)
-    CREAT("tiff",       GDAL)
-    CREAT("image/tiff", GDAL)
-#endif
-#if defined(VW_HAVE_PKG_OPENEXR)
-    CREAT("exr",        OpenEXR)
-    CREAT("image/exr",  OpenEXR)
-#endif
-    ;
-
    std::string clean_type(const std::string& type) {
      return boost::to_lower_copy(boost::trim_left_copy_if(type, boost::is_any_of(".")));
    }
@@ -109,17 +58,59 @@ namespace vw {
   }
 
   SrcMemoryImageResource* SrcMemoryImageResource::open( const std::string& type, boost::shared_array<const uint8> data, size_t len ) {
-    open_map_t::const_iterator i = open_map.find(clean_type(type));
-    if (i == open_map.end())
-      vw_throw( NoImplErr() << "Unsupported file format: " << type );
-    return i->second(data, len);
+
+    std::string ctype = clean_type(type);
+    
+#if defined(VW_HAVE_PKG_JPEG)
+    if (ctype == "jpg" || ctype == "jpeg" || ctype == "image/jpeg")
+      return new SrcMemoryImageResourceJPEG(data, len);
+#endif
+    
+#if defined(VW_HAVE_PKG_PNG)
+    if (ctype == "png" || ctype == "image/png")
+      return new SrcMemoryImageResourcePNG(data, len);
+#endif
+
+#if defined(VW_HAVE_PKG_GDAL)
+    if (ctype == "tif" || ctype == "tiff" || ctype == "image/tiff")
+      return new SrcMemoryImageResourceGDAL(data, len);
+#endif
+    
+#if defined(VW_HAVE_PKG_OPENEXR)
+    if (ctype == "exr" || ctype == "image/exr")
+      return new SrcMemoryImageResourceOpenEXR(data, len);
+#endif
+    
+    vw_throw( NoImplErr() << "Unsupported file format: " << type );
+    return NULL;
   }
 
   DstMemoryImageResource* DstMemoryImageResource::create( const std::string& type, const ImageFormat& format ) {
-    create_map_t::const_iterator i = create_map.find(clean_type(type));
-    if (i == create_map.end())
-      vw_throw( NoImplErr() << "Unsupported file format: " << type );
-    return i->second(format);
+
+    std::string ctype = clean_type(type);
+    
+#if defined(VW_HAVE_PKG_JPEG)
+    if (ctype == "jpg" || ctype == "jpeg" || ctype == "image/jpeg")
+      return new DstMemoryImageResourceJPEG(format);
+#endif
+    
+#if defined(VW_HAVE_PKG_PNG)
+    if (ctype == "png" || ctype == "image/png")
+      return new DstMemoryImageResourcePNG(format);
+#endif
+
+#if defined(VW_HAVE_PKG_GDAL)
+    if (ctype == "tif" || ctype == "tiff" || ctype == "image/tiff")
+      return new DstMemoryImageResourceGDAL(format);
+#endif
+    
+#if defined(VW_HAVE_PKG_OPENEXR)
+    if (ctype == "exr" || ctype == "image/exr")
+      return new DstMemoryImageResourceOpenEXR(format);
+#endif
+    
+    vw_throw( NoImplErr() << "Unsupported file format: " << type );
+    return NULL;
   }
 
 } // namespace vw

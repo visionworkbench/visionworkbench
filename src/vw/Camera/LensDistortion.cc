@@ -759,7 +759,7 @@ void RPCLensDistortion::scale(double scale) {
 void RPCLensDistortion::validate_distortion_params(Vector<double> const& params) {
   int num_params = params.size();
   int deg = rpc_degree(num_params);
-  if (num_dist_params(deg) != num_params || deg <= 0 || deg != deg)
+  if (num_dist_params(deg) != num_params || deg <= 0 || std::isnan(deg))
     vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in: "
               << num_params << ".");
 }

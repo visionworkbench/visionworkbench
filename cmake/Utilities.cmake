@@ -23,7 +23,7 @@ function( get_all_source_files relativePath outputFileList)
 endfunction(get_all_source_files)
 
 # Look for a library dependency, starting with the BinaryBuilder folder.
-function(find_external_library name bbIncludeFolder libNameList required)
+function(find_external_library name search_folder inc_subfolder libNameList required)
 
   # Define the variable names we will create
   set(FOUND_NAME "${name}_FOUND")
@@ -33,7 +33,7 @@ function(find_external_library name bbIncludeFolder libNameList required)
 
   # Look in the BB directory if it was provided, otherwise
   #  make halfhearted attempt to find the dependency.
-  if(BINARYBUILDER_INSTALL_DIR)
+  if(search_folder)
     set(${FOUND_NAME} 1)
 
     set(ext ".so")
@@ -45,9 +45,9 @@ function(find_external_library name bbIncludeFolder libNameList required)
     set(${${LIB_NAME}} "")
     foreach(lib ${libNameList})
       set(FULL_NAME "lib${lib}${ext}")
-      set(FULL_PATH "${BINARYBUILDER_INSTALL_DIR}/lib/${FULL_NAME}")
+      set(FULL_PATH "${search_folder}/lib/${FULL_NAME}")
       if (NOT EXISTS ${FULL_PATH})
-        set(FULL_PATH "${BINARYBUILDER_INSTALL_DIR}/lib64/${FULL_NAME}")
+        set(FULL_PATH "${search_folder}/lib64/${FULL_NAME}")
         if (NOT EXISTS ${FULL_PATH})
           message("Missing library file: ${FULL_NAME}")
           set(${FOUND_NAME} 0)
@@ -58,7 +58,7 @@ function(find_external_library name bbIncludeFolder libNameList required)
       
     endforeach()
     
-    set(${INC_NAME}   ${BINARYBUILDER_INSTALL_DIR}/include/${bbIncludeFolder})
+    set(${INC_NAME} ${search_folder}/include/${inc_subfolder})
   else()
     # TODO: Provide effective findX.cmake files to handle these.
     find_package(${name} REQUIRED)

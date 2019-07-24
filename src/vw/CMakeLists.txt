@@ -1,6 +1,3 @@
-
-
-
 # Add path for custom modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}" )
 
@@ -13,7 +10,6 @@ if(CCACHE_FOUND)
   #set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   #set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
-
 
 if (UNIX AND NOT APPLE)
   execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE ld_version)
@@ -43,6 +39,10 @@ if(BINARYBUILDER_INSTALL_DIR)
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
 endif()
 
+if("${ISIS3_DEPS_DIR}" STREQUAL "")
+  message(FATAL_ERROR "You need to set ISIS3_DEPS_DIR: ${ISIS3_DEPS_DIR}")
+endif()
+
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
 include_directories( ../ )
 include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
@@ -52,9 +52,9 @@ include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go 
 #link_directories(${BINARYBUILDER_INSTALL_DIR}/lib64)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-foreach(dir ${dirs})
-  message(STATUS "dir='${dir}'")
-endforeach()
+# foreach(dir ${dirs})
+#   message(STATUS "dir='${dir}'")
+# endforeach()
 
 # Default this to empty
 SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
@@ -70,7 +70,6 @@ option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
 # --- Fixed options ---
 set(Boost_USE_STATIC_LIBS   OFF)
 set(Boost_USE_MULTITHREADED ON )
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -82,32 +81,39 @@ message("Searching for boost...")
 
 # TODO: Make into a function!
 # Define boost requirements
-set(BOOST_MIN_VERSION "1.59.0")
+set(BOOST_MIN_VERSION "1.67")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
-if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_59")
-  set(BOOST_LIBRARYDIR "${BINARYBUILDER_INSTALL_DIR}/lib")
-  set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_59/boost")
-  set(Boost_NO_SYSTEM_PATHS ON) #This does not seem to work
+#if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+if(ISIS3_DEPS_DIR) # Look in BinaryBuilder directory
+  set(BOOST_ROOT       "${ISIS3_DEPS_DIR}")
+  set(BOOST_LIBRARYDIR "${ISIS3_DEPS_DIR}/lib")
+  set(BOOST_INCLUDEDIR "${ISIS3_DEPS_DIR}/include")
+
+  #DBoost_INCLUDE_DIR=$HOME/projects/BinaryBuilder/build_asp/install/include/boost-1_67
+
+  #set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}")
+  #set(BOOST_LIBRARYDIR "${BINARYBUILDER_INSTALL_DIR}/lib")
+  #set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_67")
+
+  set(Boost_DEBUG ON)
+  set(Boost_DETAILED_FAILURE_MSG ON)
+  set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "x64") # needed for pfe
+  #set(Boost_NO_SYSTEM_PATHS ON) #This seems to confuse boost
 endif()  
 # Now search for Boost using the available information
 find_package(Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS ${REQUIRED_BOOST_LIBS})
 
 if(Boost_FOUND)
-    message("Successfully found Boost version ${Boost_VERSION}!")
-    message("---Boost Include Dir = ${Boost_INCLUDE_DIR}")
     #set(Boost_LIBRARY_DIR ${BINARYBUILDER_INSTALL_DIR}/lib) # Override this value
-    message("---Boost Library Dir = ${Boost_LIBRARY_DIRS}")
-    message("---Boost libraries   = ${Boost_LIBRARIES}")
+    message("Successfully found Boost version ${Boost_VERSION}.")
+    message("Boost include dir = ${Boost_INCLUDE_DIR}")
+    message("Boost library dir = ${Boost_LIBRARY_DIRS}")
+    message("Boost libraries   = ${Boost_LIBRARIES}")
     include_directories(${Boost_INCLUDE_DIR})
-    #include_directories(${Boost_INCLUDE_DIRS})
-    link_directories(${Boost_LIBRARY_DIR})
-    #link_directories(${Boost_LIBRARY_DIRS})
+    link_directories(${Boost_LIBRARY_DIRS})
 endif(Boost_FOUND)
 message("--------------------------------------------------------------")
-
-
 
 # TODO: More use of find_package to find things not in BB?
 
@@ -120,7 +126,7 @@ if (APPLE) # Use the system version
   find_package(LAPACK)
   find_package(BLAS)
 else() # Use our BB compiled version
-  find_external_library(LAPACK "" "lapack;blas" REQUIRED)
+  find_external_library(LAPACK ${ISIS3_DEPS_DIR} "" "lapack;blas" REQUIRED)
 endif()
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
@@ -132,15 +138,13 @@ if(LAPACK_FOUND)
   endif()
 endif()
 
-
-find_external_library(FLANN "" "flann_cpp" REQUIRED)
-
-find_external_library(JPEG  "" "jpeg"      NOT_REQUIRED)
-find_external_library(PNG   "" "png;png16" NOT_REQUIRED)
-find_external_library(TIFF  "" "tiff"      NOT_REQUIRED)
-find_external_library(Z     "" "z"         REQUIRED)
-find_external_library(PROJ4 "" "proj"      REQUIRED)
-find_external_library(GDAL  "" "gdal"      REQUIRED)
+find_external_library(FLANN ${ISIS3_DEPS_DIR} "" "flann_cpp" REQUIRED)
+find_external_library(JPEG  ${ISIS3_DEPS_DIR} "" "jpeg"      NOT_REQUIRED)
+find_external_library(PNG   ${ISIS3_DEPS_DIR} "" "png;png16" NOT_REQUIRED)
+find_external_library(TIFF  ${ISIS3_DEPS_DIR} "" "tiff"      NOT_REQUIRED)
+find_external_library(Z     ${ISIS3_DEPS_DIR} "" "z"         REQUIRED)
+find_external_library(PROJ4 ${ISIS3_DEPS_DIR} "" "proj"      REQUIRED)
+find_external_library(GDAL  ${BINARYBUILDER_INSTALL_DIR} "" "gdal"      REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -154,22 +158,20 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_ml          opencv_ximgproc
                      opencv_objdetect   opencv_xobjdetect
                      opencv_photo       opencv_xphoto)
-find_external_library(OPENCV "" "${OPENCV_LIB_NAMES}" REQUIRED)
+find_external_library(OPENCV ${ISIS3_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
 
 
 set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-find_external_library(ILMBASE "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-find_external_library(OPENEXR "OpenEXR" "IlmImf;IlmThread" REQUIRED)
-
+find_external_library(ILMBASE ${BINARYBUILDER_INSTALL_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
+find_external_library(OPENEXR ${BINARYBUILDER_INSTALL_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 # CMake will try to find these packages if needed,
 #  they are not included with BinaryBuilder.
-
 if (VW_ENABLE_PYTHON)
   find_package(PythonLibs)
   if(PYTHONLIBS_FOUND)
     set(VW_HAVE_PKG_PYTHONLIBS 1)
-    message("-- Found PYTHONLIBS " ${PYTHON_LIBRARIES})
+    message("-- Found PythonLibs " ${PYTHON_LIBRARIES})
   else()
     message("Failed to find PythonLibs")
   endif()
@@ -241,7 +243,9 @@ set(VW_ENABLE_PYTHON 0)
 if (VW_ENABLE_SSE)
   set(CXXFLAGS "${CXXFLAGS} -msse4.1")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+   message(STATUS, "Enabling SSE")
 else() # Compatibility with older systems.
+  message(STATUS, "Disabling SSE")
   set(CXXFLAGS "${CXXFLAGS} -mno-sse4.1")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-sse4.1")
 endif()

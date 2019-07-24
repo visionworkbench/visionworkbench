@@ -82,7 +82,7 @@ void JpegIODecompress::read(uint8* buffer, size_t bufsize) {
 
 void JpegIODecompress::open() {
   bind();
-  jpeg_read_header(&m_ctx, TRUE);
+  jpeg_read_header(&m_ctx, (boolean)TRUE);
   jpeg_calc_output_dimensions(&m_ctx);
 
   m_fmt.cols = m_ctx.output_width;
@@ -143,7 +143,7 @@ void JpegIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
 
   m_ctx.image_width  = cols;
   m_ctx.image_height = rows;
-  jpeg_start_compress(&m_ctx, TRUE);
+  jpeg_start_compress(&m_ctx, (boolean)TRUE);
 
   JSAMPLE* jdata = reinterpret_cast<JSAMPLE*>(const_cast<uint8*>(data));
   while (m_ctx.next_scanline < m_ctx.image_height) {
@@ -182,7 +182,7 @@ void JpegIOCompress::open() {
   m_cstride = m_ctx.input_components;
 
   jpeg_set_defaults(&m_ctx);
-  jpeg_set_quality(&m_ctx, 95, TRUE); // XXX Make this settable
+  jpeg_set_quality(&m_ctx, 95, (boolean)TRUE); // XXX Make this settable
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -207,7 +207,7 @@ struct ptr_src_mgr {
 #endif
     // I think we should be more strict.
     vw_throw(IOErr() << "Damaged JPEG. No EOI? Cannot continue.");
-    return TRUE;
+    return (boolean)TRUE;
   }
 
   static void skip_input_data (j_decompress_ptr cinfo, long num_bytes_l)

@@ -21,6 +21,7 @@
 /// Provides sparse matrix support. This is made in mind for support
 /// of Bundle Adjustment
 ///
+// Wipe this, it uses ublas and it no longer compiles
 
 #ifndef __VW_MATH_SPARSE_SKYLINE_MATRIX_H__
 #define __VW_MATH_SPARSE_SKYLINE_MATRIX_H__
@@ -697,3 +698,4 @@ namespace math {
 }} // namespace vw::math
 
 #endif//__VW_MATH_SPARSE_SKYLINE_MATRIX_H__
+

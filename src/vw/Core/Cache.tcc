@@ -42,7 +42,7 @@ void Cache::CacheLine<GeneratorT>::invalidate() {
   VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
 
   Mutex::WriteLock line_lock(m_mutex); // Grab a lock until the function exits.
-  if( !m_value ) return; // Not in memory, don't need to do anything.
+  if (m_value.get() == NULL) return; // Not in memory, don't need to do anything.
 
   CacheLineBase::deallocate(); // Calls invalidate internally which redirects to the parent Cache class
   m_value.reset(); // After the base class function is done, delete the last shared pointer to the data.
@@ -53,7 +53,7 @@ bool Cache::CacheLine<GeneratorT>::try_invalidate() {
   bool have_lock = m_mutex.try_lock();
   if ( !have_lock ) 
     return false;
-  if ( !m_value ) { // Data is not loaded, unlock and quit.
+  if (m_value.get() == NULL) { // Data is not loaded, unlock and quit.
     m_mutex.unlock();
     return true;
   }
@@ -79,7 +79,7 @@ template <class GeneratorT>
 typename Cache::CacheLine<GeneratorT>::value_type const& Cache::CacheLine<GeneratorT>::value() {
 
   m_mutex.lock_shared(); // Grab a shared lock
-  bool hit = (bool)m_value;
+  bool hit = (m_value.get() != NULL);
   { // Grab a temporary mutex to update our cache statistics
     { // TODO: This should be abstracted into a call
       Mutex::WriteLock cache_lock( cache().m_stats_mutex );
@@ -114,7 +114,7 @@ void Cache::CacheLine<GeneratorT>::release() {
 template <class GeneratorT>
 bool Cache::CacheLine<GeneratorT>::valid() {
   Mutex::WriteLock line_lock(m_mutex);
-  return m_value;
+  return (m_value.get() != NULL);
 }
 
 template <class GeneratorT>
@@ -126,11 +126,7 @@ void Cache::CacheLine<GeneratorT>::deprioritize() {
   }
 }
 
-
-
 // =============== Start class Handle ========================================
-
-
 template <class GeneratorT>
 Cache::Handle<GeneratorT>::~Handle() {
   if (m_is_locked)

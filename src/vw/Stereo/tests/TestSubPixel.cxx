@@ -196,7 +196,6 @@ TEST_F( SubPixelCorrelate80Test, Phase) {
   write_image("/home/smcmich1/data/subpixel/disparity_map_out_x.tif",
               select_channel(disparity_map,0));
   */
-  std::cout << "Starting test!\n";
   int max_pyramid_levels = 0;
   ImageView<PixelMask<Vector2f> > output_disp =
   phase_subpixel(disparity_map,

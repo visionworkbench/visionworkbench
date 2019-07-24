@@ -15,6 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#if 0
+// This depends on ublas and no longer compiles
 
 #include <gtest/gtest_VW.h>
 #include <vw/Math/MatrixSparseSkyline.h>
@@ -450,3 +452,5 @@ TEST(SparseSkyline, ReorderConstCorrectness) {
 
   }
 }
+
+#endif

@@ -191,7 +191,7 @@ TEST(LinearAlgebra, SVDFloat) {
 
   ASSERT_EQ( 4u, s.size() );
   EXPECT_NEAR( 744.6187691721427, s[0], 1e-4 );
-  EXPECT_NEAR( 336.4697156808418, s[1], 1e-4 );
+  EXPECT_NEAR( 336.4697156808418, s[1], 1.1e-4 );
   EXPECT_NEAR( 262.4879718834515, s[2], 1e-4 );
   EXPECT_NEAR( 5.838119793980186, s[3], 1e-4 );
 
@@ -564,7 +564,7 @@ TEST(LinearAlgebra, PseudoInverse) {
 #if (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
 #else
   // moore-penrose pseudoinverse criteria
-  EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1e-4 );
+  EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1.1e-4 );
   EXPECT_MATRIX_NEAR( Ap,   Ap*A*Ap,         1e-8 );
   EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-5 );
   EXPECT_MATRIX_NEAR( Ap*A, transpose(Ap*A), 1e-5 );

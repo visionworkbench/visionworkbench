@@ -377,10 +377,10 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
   boost::to_lower(opt.align_method);
 
   if (opt.left_image_file.empty() || opt.right_image_file.empty())
-      vw_throw( ArgumentErr() << "Missing required image files.\n\n" << usage );
+    vw_throw( ArgumentErr() << "Missing required image files.\n\n" << usage.str() );
 
   if ((opt.align_method == "epipolar") && (opt.left_camera_file.empty() || opt.right_camera_file.empty()))
-      vw_throw( ArgumentErr() << "Missing required camera model files.\n\n" << usage );
+    vw_throw( ArgumentErr() << "Missing required camera model files.\n\n" << usage.str() );
 }
 
 

@@ -15,6 +15,10 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#if 0
+// We no longer use the homegrown bundle adjustment implementation.
+// This does not compile as it depends on ublas in boost which we no
+// longer patch.
 
 #include <gtest/gtest_VW.h>
 
@@ -363,3 +367,5 @@ TEST_F( ComparisonTest, DISABLED_RobustRef_VS_RobustSparse ) {
                         spr_solution[i],
                         1e-2 );
 }
+
+#endif

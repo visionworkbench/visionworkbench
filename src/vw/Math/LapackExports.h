@@ -76,7 +76,7 @@ namespace math {
 
 #   else
 // We're only installed if lapack is installed, so something is wrong at this point.
-#   error I don't know what lapack you're using
+#   error I do not know what lapack you are using
 #   endif
 
   /// \cond INTERNAL

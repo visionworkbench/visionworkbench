@@ -300,10 +300,10 @@ vw::BBox2i vw::cartography::ToastTransform::forward_bbox( vw::BBox2i const& bbox
     // The center of that cross will hopefully be the correct point.
     Vector2 a,b,c,d;
 
-    a = m_georef.lonlat_to_pixel(Vector2i(  0, -89.9));
-    b = m_georef.lonlat_to_pixel(Vector2i( 90, -89.9));
-    c = m_georef.lonlat_to_pixel(Vector2i(180, -89.9));
-    d = m_georef.lonlat_to_pixel(Vector2i(270, -89.9));
+    a = m_georef.lonlat_to_pixel(Vector2(  0, -89.9));
+    b = m_georef.lonlat_to_pixel(Vector2( 90, -89.9));
+    c = m_georef.lonlat_to_pixel(Vector2(180, -89.9));
+    d = m_georef.lonlat_to_pixel(Vector2(270, -89.9));
 
     south_pole_pixel = (a + b + c + d)/4.;
   }
