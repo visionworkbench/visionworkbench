@@ -30,7 +30,6 @@ set(VW_ENABLE_SSE "1" CACHE BOOL "Allow SSE optimizations.")
 set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
 set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
 
-
 # --- Directory paths ---
 if(BINARYBUILDER_INSTALL_DIR)
   message("Looking for dependencies in BinaryBuilder directory: ${BINARYBUILDER_INSTALL_DIR}") 
@@ -63,6 +62,9 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+# Make sure installed files can find installed libraries
+SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${CMAKE_INSTALL_PREFIX}/lib ${ISIS3_DEPS_DIR}/lib ${ISIS3_DEPS_DIR}/lib64)
+
 
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
@@ -81,7 +83,7 @@ message("Searching for boost...")
 
 # TODO: Make into a function!
 # Define boost requirements
-set(BOOST_MIN_VERSION "1.67")
+set(BOOST_MIN_VERSION "1.65")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 #if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
