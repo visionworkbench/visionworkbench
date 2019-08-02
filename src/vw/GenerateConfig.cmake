@@ -1,4 +1,3 @@
-
 # This file generates config.h from config.h.in
 
 include(CheckIncludeFiles)
@@ -7,9 +6,6 @@ include(CheckFunctionExists)
 include(CheckTypeSize)
 include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
-
-
-
 
 ###########################################################################
 
@@ -33,7 +29,6 @@ CHECK_INCLUDE_FILES(unistd.h            VW_HAVE_UNISTD_H)
 # Ignore, only used by plate.
 # Define to 1 if you have the ANSI C header files. 
 #define VW_STDC_HEADERS @STDC_HEADERS@
-
 
 ###########################################################################
 # Check if certain compiler features are available

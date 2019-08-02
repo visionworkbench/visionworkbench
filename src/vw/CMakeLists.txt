@@ -1,5 +1,5 @@
 # Add path for custom modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}" )
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include(Utilities) # Contains functions
 
@@ -368,6 +368,5 @@ endif()
 
 # Add the executable subdirectory
 add_subdirectory(tools)
-
 
 
