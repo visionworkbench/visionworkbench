@@ -282,7 +282,7 @@ private: // Functions
     // Take the offset between the output location and the input pixel coordinates.
     int a = left_image(col        +m_min_col, row        +m_min_row);
     int b = left_image((col-dir_x)+m_min_col, (row-dir_y)+m_min_row);
-    return abs(a - b);
+    return std::abs(a - b);
   }
 
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.

@@ -705,8 +705,8 @@ namespace stereo {
       // Compute difference of this pixel from the mean disparity
       double thisX = (*acc)[0];
       double thisY = (*acc)[1];
-      double errorX = abs(thisX - meanX);
-      double errorY = abs(thisY - meanY);
+      double errorX = std::abs(thisX - meanX);
+      double errorY = std::abs(thisY - meanY);
             
       if ((errorX > m_pixel_threshold*stdDevX) || 
           (errorY > m_pixel_threshold*stdDevY)   ){

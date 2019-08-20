@@ -350,7 +350,7 @@ namespace ba {
 
       double R = (SS - Splus)/dS; // Compute ratio
 
-      rel_tol = math::max(abs(epsilon) );
+      rel_tol = math::max(std::abs(epsilon) );
       abs_tol = Splus;
 
       if (R > 0) {

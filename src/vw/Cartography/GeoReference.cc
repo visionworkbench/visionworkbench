@@ -582,8 +582,8 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     // - In this situation, determine by where the center lon is closer to.
     if (negLon && overLon) {
       double centerLon = (minLon + maxLon) / 2.0;
-      double diff0     = abs(centerLon);
-      double diff180   = abs(centerLon - 180);
+      double diff0     = std::abs(centerLon);
+      double diff180   = std::abs(centerLon - 180.0);
       //printf("diff0 = %lf, diff180 = %lf\n", diff0, diff180);
       if (diff180 < diff0) { // 180 is closer, 
         m_center_lon_zero = false;

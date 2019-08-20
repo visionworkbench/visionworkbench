@@ -313,9 +313,9 @@ texture_measure(ImageT          const& input_image,
         for (int c=col-half_kernel; c<=col+half_kernel; ++c) {
           if (!is_valid(input_wrap(c,r)))
             continue;
-
-            gradient_total += abs(dx_image(c,r)) + abs(dy_image(c,r));
-            stddev_total   += pow(input_wrap(c,r) - mean_value, 2);
+          
+          gradient_total += std::abs(dx_image(c,r)) + std::abs(dy_image(c,r));
+          stddev_total   += pow(input_wrap(c,r) - mean_value, 2);
         }
       }
      

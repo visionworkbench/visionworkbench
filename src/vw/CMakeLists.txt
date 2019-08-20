@@ -124,20 +124,20 @@ set(NOT_REQUIRED False)
 
 find_package(Threads REQUIRED)
 
-if (APPLE) # Use the system version
+#if (APPLE) # Use the system version
   find_package(LAPACK)
   find_package(BLAS)
-else() # Use our BB compiled version
-  find_external_library(LAPACK ${ISIS3_DEPS_DIR} "" "lapack;blas" REQUIRED)
-endif()
+#else() # Use our BB compiled version
+#  find_external_library(LAPACK ${ISIS3_DEPS_DIR} "" "lapack;blas" REQUIRED)
+#endif()
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
-  if (APPLE)
-    set(VW_HAVE_PKG_APPLE_LAPACK 1)
-  else()
+  #if (APPLE)
+  #  set(VW_HAVE_PKG_APPLE_LAPACK 1)
+  #else()
     set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
                                #      How to check this if the user provides Fortran?
-  endif()
+  #endif()
 endif()
 
 find_external_library(FLANN ${ISIS3_DEPS_DIR} "" "flann_cpp" REQUIRED)

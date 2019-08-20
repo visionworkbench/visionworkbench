@@ -793,7 +793,7 @@ public:
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
-      int pixel_diff     = abs(curr_pixel_val - last_pixel_val);
+      int pixel_diff     = std::abs(curr_pixel_val - last_pixel_val);
 
       //printf("Loc %d, %d, diff = %d, num_disp = %d\n", col, row, pixel_diff, num_disp);
       //std::cout << "DEBUG " << m_parent_ptr->m_disp_bound_image(col,row) << std::endl;
