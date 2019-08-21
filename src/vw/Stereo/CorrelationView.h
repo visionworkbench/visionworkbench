@@ -106,10 +106,10 @@ namespace stereo {
 
 
   enum CorrelationAlgorithm {
-    CORRELATION_WINDOW    = 0, ///< Use a local sliding search window.
-    CORRELATION_SGM       = 1, ///< Use a Semi-Global Matching algorithm.
-    CORRELATION_MGM       = 2, ///< Use the More-Global Matching algorithm.
-    CORRELATION_FINAL_MGM = 3  ///< SGM until resolution level 0, then MGM.
+    VW_CORRELATION_BM    = 0, ///< Use a local sliding search window.
+    VW_CORRELATION_SGM       = 1, ///< Use a Semi-Global Matching algorithm.
+    VW_CORRELATION_MGM       = 2, ///< Use the More-Global Matching algorithm.
+    VW_CORRELATION_FINAL_MGM = 3  ///< SGM until resolution level 0, then MGM.
   };
 
   /// An image view for performing pyramid image correlation (Faster than CorrelationView).
@@ -140,7 +140,7 @@ namespace stereo {
                             int min_consistency_level,
                             int filter_half_kernel,
                             int32 max_pyramid_levels,
-                            CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
+                            CorrelationAlgorithm  algorithm = VW_CORRELATION_BM,
                             int   collar_size        = 0,
                             SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                             Vector2i  sgm_search_buffer = Vector2i(2,2),
@@ -171,7 +171,7 @@ namespace stereo {
                                 << search_region.min() << ", " << search_region.max());
       }
 
-      if (algorithm != CORRELATION_WINDOW)
+      if (algorithm != VW_CORRELATION_BM)
         m_prefilter_mode = PREFILTER_NONE; // SGM/MGM works best with no prefilter
       
       // Calculating max pyramid levels according to the supplied search region.
@@ -310,7 +310,7 @@ namespace stereo {
                      int min_consistency_level,
                      int filter_half_kernel,
                      int32 max_pyramid_levels,
-                     CorrelationAlgorithm  algorithm = CORRELATION_WINDOW,
+                     CorrelationAlgorithm  algorithm = VW_CORRELATION_BM,
                      int   collar_size        = 0,
                      SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                      Vector2i sgm_search_buffer=Vector2i(2,2),

@@ -301,13 +301,13 @@ prerasterize(BBox2i const& bbox) const {
     double prev_estim      = estim_elapsed;
 
     ImageView<result_type> subpixel_disparity;
-    const bool use_sgm = (m_algorithm != CORRELATION_WINDOW); // Anything but block matching
+    const bool use_sgm = (m_algorithm != VW_CORRELATION_BM); // Anything but block matching
 
     // Loop down through all of the pyramid levels, low res to high res.
     for ( int32 level = max_pyramid_levels; level >= 0; --level) {
 
-      const bool use_mgm = ( (m_algorithm == CORRELATION_MGM) || 
-                            ((m_algorithm == CORRELATION_FINAL_MGM) && (level == 0)));
+      const bool use_mgm = ( (m_algorithm == VW_CORRELATION_MGM) || 
+                            ((m_algorithm == VW_CORRELATION_FINAL_MGM) && (level == 0)));
 
       const bool on_last_level = (level == 0);    
       bool check_rl = false;
@@ -734,7 +734,7 @@ prerasterize(BBox2i const& bbox) const {
     // Also we need to correct for the offset we applied to the search region.
     // - At this point we either cast to floating point or run a subpixel refinement algorithm.
 
-    if (m_algorithm != CORRELATION_WINDOW) {
+    if (m_algorithm != VW_CORRELATION_BM) {
     
       // Copy the filtered out pixels to the subpixel view.
       for (int r=0; r<disparity.rows(); ++r){

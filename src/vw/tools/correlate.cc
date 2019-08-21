@@ -248,7 +248,7 @@ int main( int argc, char *argv[] ) {
     vw::Timer corr_timer("Correlation Time");
     cartography::GdalWriteOptions geo_opt;
     geo_opt.raster_tile_size = Vector2i(1024, 1024);
-    if (stereo_algorithm == CORRELATION_WINDOW) {
+    if (stereo_algorithm == VW_CORRELATION_BM) {
       block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
     }
     else { // SGM/MGM needs to be rasterized in a single tile.
