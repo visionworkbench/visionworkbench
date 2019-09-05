@@ -35,6 +35,14 @@ namespace {
   vw::Cache        *system_cache_ptr  = 0;
   vw::Log          *log_ptr           = 0;
 
+  extern "C" void openblas_set_num_threads(int num_threads);
+  
+  void init_blas (){
+    // Must use just one thread in BLAS in each thread
+    // of our software.
+    openblas_set_num_threads(1);
+  }
+  
   void init_settings() {
     settings_ptr = new vw::Settings();
   }
@@ -60,12 +68,14 @@ namespace {
 vw::Settings &vw::vw_settings() {
   system_cache_once.run( init_system_cache );
   settings_once.run( init_settings );
+  settings_once.run( init_blas );
   return *settings_ptr;
 }
 
 vw::Cache &vw::vw_system_cache() {
   system_cache_once.run( init_system_cache );
   settings_once.run( init_settings );
+  settings_once.run( init_blas );
   settings_ptr->reload_config();
   resize_once.run(resize_cache);
   return *system_cache_ptr;
