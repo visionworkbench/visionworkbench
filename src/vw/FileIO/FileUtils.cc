@@ -87,6 +87,15 @@ std::string get_extension( std::string const& input, bool make_lower) {
   return ext;
 }
 
+extern "C" void openblas_set_num_threads(int num_threads);
+
+void init_blas (){
+  // Must use just one thread in BLAS in each thread
+  // of our software.
+  openblas_set_num_threads(1);
+}
+  
+
 // If prefix is "dir/out", create directory "dir"
 void create_out_dir(std::string out_prefix){
 
@@ -99,6 +108,8 @@ void create_out_dir(std::string out_prefix){
     }
   }
 
+  init_blas();
+  
   return;
 }
 
