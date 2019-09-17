@@ -55,6 +55,7 @@ namespace stereo {
     // These two variables pick a prefilter which is applied to each pyramid level
     PrefilterModeType m_prefilter_mode; ///< See Prefilter.h for the types
     float m_prefilter_width;     ///< Preprocessing filter width
+    int m_phase_subpixel_accuracy;
 
 
   public:
@@ -68,12 +69,14 @@ namespace stereo {
                         PrefilterModeType prefilter_mode, float prefilter_width,
                         Vector2i const& kernel_size,
                         int32 max_pyramid_levels,
-                        PyramidSubpixelView_Algorithm algorithm) :
+                        PyramidSubpixelView_Algorithm algorithm,
+                        int32 phase_subpixel_accuracy = 20) :
       m_disparity_map(disparity_map.impl()),
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_kernel_size(kernel_size), 
       m_max_pyramid_levels(max_pyramid_levels), m_algorithm(algorithm),
-      m_prefilter_mode(prefilter_mode), m_prefilter_width(prefilter_width) {
+      m_prefilter_mode(prefilter_mode), m_prefilter_width(prefilter_width),
+      m_phase_subpixel_accuracy(phase_subpixel_accuracy) {
 
       // Basic assertions
       VW_ASSERT( m_disparity_map.cols() == m_left_image.cols() &&
@@ -224,7 +227,7 @@ namespace stereo {
           subpixel_phase_2d(d_subpatch,
                             l_patches[i], r_patches[i],
                             m_kernel_size[0], m_kernel_size[1],
-                            rois[i], PHASE_SUBPIXEL_ACCURACY);
+                            rois[i], m_phase_subpixel_accuracy);
           //write_image("/home/smcmich1/data/subpixel/disp_subpix_x.tif",
           //    select_channel(d_subpatch,0));
           break;
@@ -272,7 +275,7 @@ namespace stereo {
                          left_image_patch, right_image_patch,
                          m_kernel_size[0], m_kernel_size[1],
                          full_res_roi,
-                         PHASE_SUBPIXEL_ACCURACY);
+                         m_phase_subpixel_accuracy);
         break;
       default:
         vw_throw(NoImplErr() << "Invalid algorithm selection passed to PyramidSubpixelView.");
@@ -364,14 +367,16 @@ namespace stereo {
                   ImageViewBase<ImageT2   > const& right_image,
                   PrefilterModeType prefilter_mode, float prefilter_width,
                   Vector2i const& kernel_size,
-                  int max_pyramid_levels = 0 ) {
+                  int max_pyramid_levels = 0,
+                  int phase_subpixel_accuracy = 20) {
     typedef PyramidSubpixelView<ImageT1,ImageT2,DisparityT> result_type;
 
     return result_type( disparity_map.impl(), left_image.impl(),
                         right_image.impl(),
                         prefilter_mode, prefilter_width,
                         kernel_size,
-                        max_pyramid_levels,  SUBPIXEL_PHASE);
+                        max_pyramid_levels,  SUBPIXEL_PHASE,
+                        phase_subpixel_accuracy);
   }
 
   // End of components for Pyramid subpixel view
