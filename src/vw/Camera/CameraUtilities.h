@@ -54,7 +54,8 @@ void transform_to_vector(Vector<double>  & C,
 			 Vector3   const & translation,
 			 double    const & scale);
 
-  /// Find the best camera that fits the current GCP
+/// Adjust a given camera so that the xyz points project project to
+/// the pixel values.
 void fit_camera_to_xyz(std::string const& camera_type,
 		       bool refine_camera, 
 		       std::vector<Vector3> const& xyz_vec,
@@ -89,7 +90,8 @@ void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel 
 
 // Convert an optical model to a pinhole model without distortion
 // (The distortion will be taken care of later.)
-  PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing);
+PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing,
+                                double camera_to_ground_dist);
 
 // Apply a given rotation + translation + scale to a pinhole model. We
 // assume the model already has set its optical center, focal length,
@@ -219,48 +221,6 @@ void vector_to_camera(CAM & P, Vector<double> const& C){
   P.set_camera_center(ctr);
   P.set_camera_pose(rotation);
 }
-
-
-/// Find the camera model that best projects given xyz points into given pixels
-template <class CAM>
-class CameraSolveLMA : public vw::math::LeastSquaresModelBase<CameraSolveLMA<CAM> > {
-  std::vector<vw::Vector3> const& m_xyz;
-  CAM m_camera_model;
-  mutable size_t m_iter_count;
-  
-public:
-
-  typedef vw::Vector<double>    result_type;   // pixel residuals
-  typedef vw::Vector<double, 6> domain_type;   // camera parameters (camera center and axis angle)
-  typedef vw::Matrix<double> jacobian_type;
-
-  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
-  CameraSolveLMA(std::vector<vw::Vector3> const& xyz,
-                 CAM const& camera_model):
-    m_xyz(xyz),
-    m_camera_model(camera_model), m_iter_count(0){}
-
-  /// Given the camera, project xyz into it
-  inline result_type operator()( domain_type const& C ) const {
-
-    // Create the camera model
-    CAM camera_model = m_camera_model; // make a copy local to this function
-    vector_to_camera(camera_model, C);      // update its parameters
-    
-    const size_t result_size = m_xyz.size() * 2;
-    result_type result;
-    result.set_size(result_size);
-    for (size_t i = 0; i < m_xyz.size(); i++) {
-      Vector2 pixel = camera_model.point_to_pixel(m_xyz[i]);
-      result[2*i  ] = pixel[0];
-      result[2*i+1] = pixel[1];
-    }
-  
-    ++m_iter_count;
-    
-    return result;
-  }
-}; // End class CameraSolveLMA
 
 /// Class to use with the LevenbergMarquardt solver to optimize the parameters of a desired lens
 ///  to match the passed in pairs of undistorted (input) and distorted (output) points.
@@ -434,19 +394,23 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   new_model->set_image_size(image_size);
   
   // Check the error
-  double diff = 0;
-  for (size_t i=0; i < distorted_coords.size(); ++i) {
+  double mean_error = 0, max_error = 0;
+  for (size_t i = 0; i < distorted_coords.size(); i++) {
     Vector2 undistorted        = new_model->undistorted_coordinates(pin_model, distorted_coords[i]);
     Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
-    diff += norm_2(undistorted - actual_undistorted);
+    double error = norm_2(undistorted - actual_undistorted);
+    mean_error += error;
+    if (error > max_error)
+      max_error = error;
   }
-  diff /= static_cast<double>(distorted_coords.size());
-  diff /= pixel_pitch; // convert to pixels
-  vw_out() << DistModelT::class_name() << " undistortion approximation mean pixel error: "
-           << diff << ".\n";
+  mean_error /= static_cast<double>(distorted_coords.size());
+  mean_error /= pixel_pitch; // convert to pixels
+  max_error /= pixel_pitch; // convert to pixels
+  vw_out() << DistModelT::class_name() << " undistortion approximation mean pixel error is "
+           << mean_error << " and max pixel error is " << max_error << ".\n";
   
   pin_model.set_lens_distortion(new_model); // Set updated distortion model
-  return diff;
+  return mean_error;
 } 
 
 ///  Given a camera model (pinhole or optical bar), create an approximate pinhole model
@@ -455,7 +419,7 @@ template<class DistModelT>
 double create_approx_pinhole_model(CameraModel * const input_model,
                                    PinholeModel& out_model, Vector2i image_size,
                                    int sample_spacing, bool force_conversion,
-                                   int rpc_degree) {
+                                   int rpc_degree, double camera_to_ground_dist) {
 
   double pixel_pitch;
   std::string lens_name;
@@ -486,7 +450,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   // Handle the case when the input model is OpticalBarModel
   if (opb_model != NULL) {
     lens_name = "OpticalBar";
-    out_model = opticalbar2pinhole(*opb_model, sample_spacing);
+    out_model = opticalbar2pinhole(*opb_model, sample_spacing, camera_to_ground_dist);
     pixel_pitch = out_model.pixel_pitch();
   }
   
@@ -495,28 +459,37 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   // Generate a set of point pairs
   std::vector<Vector2> undistorted_coords;
   Vector<double> distorted_coords;
-  int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
-  int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
-  num_cols = std::max(num_cols, 2);
-  num_rows = std::max(num_rows, 2);
-  int num_coords = num_rows*num_cols;
+  // Grab point pairs for the solver at every
+  // interval of "sample_spacing"
+  int num_col_samples = image_size[0]/sample_spacing;
+  int num_row_samples = image_size[1]/sample_spacing;
+  num_col_samples = std::max(num_col_samples, 2);
+  num_row_samples = std::max(num_row_samples, 2);
+  int num_coords = num_row_samples*num_col_samples;
   undistorted_coords.resize(num_coords);
   distorted_coords.set_size(num_coords*2);
+
+  std::vector<Vector3> input_xyz;
+  std::vector<double> input_pixels;
   
   int index = 0;
-  for (int r = 0; r < num_rows; r++) {
+  for (int r = 0; r < num_row_samples; r++) {
 
-    // TODO: This does not sample well close to num_rows
-    int row = r*sample_spacing;
+    // sample the full interval [0, image_size[1]-1] uniformly
+    double row = (image_size[1] - 1.0) * double(r)/(num_row_samples - 1.0); 
     
-    for (int c = 0; c < num_cols; c++) {
+    for (int c = 0; c < num_col_samples; c++) {
 
-      // TODO: This does not sample well close to num_cols
-      int col = c*sample_spacing;
-      
+      // sample the full interval [0, image_size[0]-1] uniformly
+      double col = (image_size[0] - 1.0) * double(c)/(num_col_samples - 1.0);
+
       // Generate an undistorted/distorted point pair using the input model.
       // - Note that the pixel pairs need to be corrected for pitch here.
       Vector2 pix(col, row);
+
+      input_pixels.push_back(pix[0]);
+      input_pixels.push_back(pix[1]);
+      
       Vector2 undist_pixel, dist_pixel;
 
       // Compute the distorted pixel for the pinhole camera
@@ -534,9 +507,14 @@ double create_approx_pinhole_model(CameraModel * const input_model,
         dist_pixel = pix * pixel_pitch; // Distortion is in units of pixel_pitch
 
         // Find a point on the ray emanating from the current pixel
-        double dist_to_ground = 100000; // 100 km 
-        Vector3 xyz = opb_model->camera_center(pix) + dist_to_ground*opb_model->pixel_to_vector(pix);
+        //Vector3 xyz = vw::cartography::datum_intersection(datum, opb_model->camera_center(pix),
+        //                                                  opb_model->pixel_to_vector(pix));
+        
+        Vector3 xyz = opb_model->camera_center(pix)
+          + camera_to_ground_dist*opb_model->pixel_to_vector(pix);
 
+        input_xyz.push_back(xyz);
+        
         // Project into the output pinhole model. For now, it has no distortion.
         undist_pixel = out_model.point_to_pixel(xyz);
         undist_pixel *= pixel_pitch; // Undistortion is in units of pixel pitch
@@ -580,22 +558,28 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   
   // Check the error
   DistModelT new_model(model_params);
-  double diff = 0;
+  double mean_error = 0, max_error = 0;
   for (size_t i = 0; i < undistorted_coords.size(); ++i) {
     Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
     Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
-    diff += norm_2(distorted - actual_distorted);
+    double error = norm_2(distorted - actual_distorted);
+    mean_error += error;
+    if (error > max_error)
+      max_error = error;
   }
-  diff /= static_cast<double>(undistorted_coords.size());
-  diff /= pixel_pitch; // convert the errors to pixels
+  mean_error /= static_cast<double>(undistorted_coords.size());
+  max_error /= pixel_pitch; // convert the errors to pixels
+  mean_error /= pixel_pitch; // convert the errors to pixels
   
-  vw_out() << "Approximated an " << lens_name << " distortion model using a model of type " <<
-    new_model.name() <<  " with a " << diff << " mean pixel error.\n";
+  vw_out() << "Approximated an " << lens_name << " distortion model "
+           << "using a distortion model of type " << new_model.name()
+           << " with mean pixel error of " << mean_error
+           << " and max pixel error of " << max_error << ".\n";
 
   // If the approximation is not very good, keep the original model and warn
   //  the user that things might take a long time.
   const double MAX_ERROR = 0.3;
-  if ( (!force_conversion) && diff > MAX_ERROR)
+  if ( (!force_conversion) && mean_error > MAX_ERROR)
     vw_out() << "Warning: Failed to approximate reverse pinhole lens distortion, "
              << "using the original (slow) model.\n";
   else {
@@ -607,7 +591,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
       compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing);
   }
   
-  return diff;
+  return mean_error;
 } 
 
 /// If necessary, replace the lens distortion model in the pinhole camera model
@@ -625,8 +609,10 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
   
   PinholeModel in_model = pin_model;
   int rpc_degree = 0;
+  double camera_to_ground_dist = 0;
   return create_approx_pinhole_model<DistModelT>
-    (&in_model, pin_model, image_size, sample_spacing, force_conversion, rpc_degree);
+    (&in_model, pin_model, image_size, sample_spacing, force_conversion,
+     rpc_degree, camera_to_ground_dist);
 }
 
 // Given two epipolar rectified CAHV camera models and input images,

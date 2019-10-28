@@ -58,7 +58,63 @@ void transform_to_vector(Vector<double>  & C,
   return;
 }
 
-/// Find the best camera that fits the current GCP
+/// Find the camera model that best projects given xyz points into given pixels.
+/// If a positive camera weight is specified, use that as a constraint to not
+/// move the camera center too much during optimization.
+template <class CAM>
+class CameraSolveLMA : public vw::math::LeastSquaresModelBase<CameraSolveLMA<CAM> > {
+  std::vector<vw::Vector3> const& m_xyz;
+  vw::Vector3 m_camera_center;
+  double m_camera_weight;
+  CAM m_camera_model;
+  mutable size_t m_iter_count;
+  
+public:
+
+  typedef vw::Vector<double>    result_type;   // pixel residuals
+  typedef vw::Vector<double, 6> domain_type;   // camera parameters (camera center and axis angle)
+  typedef vw::Matrix<double> jacobian_type;
+
+  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
+  CameraSolveLMA(std::vector<vw::Vector3> const& xyz,
+                 CAM const& camera_model, double camera_weight):
+    m_xyz(xyz), m_camera_model(camera_model), m_iter_count(0),
+    m_camera_center(m_camera_model.camera_center()), m_camera_weight(camera_weight){}
+
+  /// Given the camera, project xyz into it
+  inline result_type operator()(domain_type const& C) const {
+
+    // Create the camera model
+    CAM camera_model = m_camera_model; // make a copy local to this function
+    vector_to_camera(camera_model, C);      // update its parameters
+    
+    size_t result_size = 2*m_xyz.size();
+    if (m_camera_weight > 0)
+      result_size += 3;
+
+    result_type result;
+    result.set_size(result_size);
+    for (size_t i = 0; i < m_xyz.size(); i++) {
+      Vector2 pixel = camera_model.point_to_pixel(m_xyz[i]);
+      result[2*i  ] = pixel[0];
+      result[2*i+1] = pixel[1];
+    }
+
+    if (m_camera_weight > 0){
+      for (size_t i = 0; i < 3; i++){
+        int j = 2*m_xyz.size() + i;
+        result[j] = m_camera_weight*(C[i] - m_camera_center[i]);
+      }
+    }
+    
+    ++m_iter_count;
+    
+    return result;
+  }
+}; // End class CameraSolveLMA
+  
+/// Adjust a given camera so that the xyz points project project to
+/// the pixel values.
 void fit_camera_to_xyz(std::string const& camera_type,
 		       bool refine_camera, 
 		       std::vector<Vector3> const& xyz_vec,
@@ -120,17 +176,19 @@ void fit_camera_to_xyz(std::string const& camera_type,
     int status = 0;
     Vector<double> final_params;
     Vector<double> seed;
-      
+    double camera_weight = 0; // if camera_weight > 0, need to add 3 zero values to pixel_vec
+    
     if (camera_type == "opticalbar") {
       CameraSolveLMA<vw::camera::OpticalBarModel>
-	lma_model(xyz_vec, *((vw::camera::OpticalBarModel*)out_cam.get()));
+	lma_model(xyz_vec, *((vw::camera::OpticalBarModel*)out_cam.get()), camera_weight);
       camera_to_vector(*((vw::camera::OpticalBarModel*)out_cam.get()), seed);
       final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
 					       status, abs_tolerance, rel_tolerance,
 					       max_iterations);
       vector_to_camera(*((vw::camera::OpticalBarModel*)out_cam.get()), final_params);
     } else {
-      CameraSolveLMA<PinholeModel> lma_model(xyz_vec, *((PinholeModel*)out_cam.get()));
+      CameraSolveLMA<PinholeModel> lma_model(xyz_vec, *((PinholeModel*)out_cam.get()),
+                                             camera_weight);
       camera_to_vector(*((PinholeModel*)out_cam.get()), seed);
       final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
 					       status, abs_tolerance, rel_tolerance,
@@ -306,7 +364,8 @@ resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const
 
 // Convert an optical model to a pinhole model without distortion.
 // (The distortion will be taken care of later.)
-PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing){
+PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing,
+                                double camera_to_ground_dist){
 
     double pixel_pitch = opb_model.get_pixel_size();
     double  f = opb_model.get_focal_length(); 
@@ -328,51 +387,66 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     // We will keep only the central region of the image with
     // dimensions this number times the original image dimensions, to
     // avoid areas with most distortion.
-    double keep_ratio = 1.0/3.0;
+    double keep_ratio = 1.0; // 1.0/3.0;
 
     // Since we will keep a smaller area, sample it more.
     double fine_sample_spacing = sample_spacing * keep_ratio; 
+
+    // Grab point pairs for the solver at every
+    // interval of "fine_sample_spacing"
+    int num_col_samples = image_size[0]/fine_sample_spacing;
+    int num_row_samples = image_size[1]/fine_sample_spacing;
+    num_col_samples = std::max(num_col_samples, 2);
+    num_row_samples = std::max(num_row_samples, 2);
     
-    int num_cols = image_size[0]/fine_sample_spacing; // Grab point pairs for the solver at every
-    int num_rows = image_size[1]/fine_sample_spacing; // interval of "fine_sample_spacing"
-    num_cols = std::max(num_cols, 2);
-    num_rows = std::max(num_rows, 2);
-    
-    std::vector<Vector3> xyz_vec;
-    std::vector<double> pixel_vec;
+    std::vector<Vector3> input_xyz;
+    std::vector<double> input_pixels;
     
     // Create pairs of pixels and xyz for the input camera
-    for (int c = 0; c <= num_cols - 1; c++) {
-      double col = (image_size[0] - 1.0) * double(c)/(num_cols - 1.0); // sample carefully
-
+    for (int c = 0; c <= num_col_samples - 1; c++) {
+      // sample the full interval [0, image_size[0]-1] uniformly
+      double col = (image_size[0] - 1.0) * double(c)/(num_col_samples - 1.0);
+      
       // See the comment earlier where keep_ratio is defined.
       if (std::abs(col - (image_size[0] - 1.0)/2.0) > (image_size[0] - 1.0)*keep_ratio/2.0)
 	continue;
       
-      for (int r = 0; r <= num_rows - 1; r++) {
-	double row = (image_size[1] - 1.0) * double(r)/(num_rows - 1.0); // sample carefully
+      for (int r = 0; r <= num_row_samples - 1; r++) {
+        // sample the full interval [0, image_size[1]-1] uniformly
+	double row = (image_size[1] - 1.0) * double(r)/(num_row_samples - 1.0); 
 
 	if (std::abs(row - (image_size[1] - 1.0)/2.0) > (image_size[1] - 1.0)*keep_ratio/2.0)
 	  continue;
       
         Vector2 pix(col, row);
+        Vector3 xyz = opb_model.camera_center(pix)
+          + camera_to_ground_dist*opb_model.pixel_to_vector(pix);
 
-        // Find a point on the ray emanating from the current pixel
-        double dist_to_ground = 100000.0; // 100 km 
-        Vector3 xyz = opb_model.camera_center(pix) + dist_to_ground*opb_model.pixel_to_vector(pix);
-
-	pixel_vec.push_back(pix[0]);
-	pixel_vec.push_back(pix[1]);
-        xyz_vec.push_back(xyz);
+	input_pixels.push_back(pix[0]);
+	input_pixels.push_back(pix[1]);
+        input_xyz.push_back(xyz);
       }
       
     }
 
-    // Copy pixel_vec to Vector<double> to please the API
-    Vector<double> pixel_vec2(pixel_vec.size());
-    for (size_t it = 0; it < pixel_vec.size(); it++) 
-      pixel_vec2[it] = pixel_vec[it];
-    
+    // Copy input_pixels to Vector<double> to please the API
+    // A value > 0 will make the camera center move less.
+    // This not give good results for optical bar, but it may be worth
+    // exploring later. Apparently the rays emanating from the optical
+    // camera are different than the ones from a pinhole camera
+    // (even with distortion), as the optical bar sensor surface
+    // is not planar, hence it is not possible to approximate
+    // well an optical bar camera with a pinhole cameras everywhere.
+    double camera_weight = 0.0; 
+    size_t extra = 0;
+    if (camera_weight > 0)
+      extra = 3;
+    Vector<double> reorg_pixels(input_pixels.size() + extra);
+    for (size_t it = 0; it < input_pixels.size(); it++) 
+      reorg_pixels[it] = input_pixels[it];
+    for (size_t it = input_pixels.size(); it < input_pixels.size() + extra; it++)
+      reorg_pixels[it] = 0;
+
     // Refine the camera position and orientation
     double abs_tolerance  = 1e-24;
     double rel_tolerance  = 1e-24;
@@ -380,9 +454,9 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     int status = 0;
     Vector<double> final_params;
     Vector<double> seed;
-    CameraSolveLMA<PinholeModel> lma_model(xyz_vec, out_model);
+    CameraSolveLMA<PinholeModel> lma_model(input_xyz, out_model, camera_weight);
     camera_to_vector(out_model, seed);
-    final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec2,
+    final_params = math::levenberg_marquardt(lma_model, seed, reorg_pixels,
                                              status, abs_tolerance, rel_tolerance,
                                              max_iterations);
 

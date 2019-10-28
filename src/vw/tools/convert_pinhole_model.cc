@@ -46,6 +46,7 @@ int main( int argc, char *argv[] ) {
 
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing, rpc_degree;
+  double camera_to_ground_dist;
   
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
@@ -60,6 +61,8 @@ int main( int argc, char *argv[] ) {
      "The output model type. Options: TsaiLensDistortion, BrownConradyDistortion, RPC.")
     ("rpc-degree", po::value(&rpc_degree)->default_value(3),    
                        "The degree of the polynomials, if the output distortion model is RPC.")
+    ("camera-to-ground-dist", po::value(&camera_to_ground_dist)->default_value(0),    
+     "The distance from the camera to the ground, in meters. This is necessary to convert an optical bar model to pinhole.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
      "Specify the output file. It is expected to have the .tsai extension.");
   
@@ -72,25 +75,25 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << desc;
+    vw_out() << "An error occured while parsing command line arguments.\n";
+    vw_out() << "\t" << e.what() << "\n\n";
+    vw_out() << desc;
     return 1;
   }
 
   if( vm.count("help") ) {
-    std::cout << desc << std::endl;
+    vw_out() << desc << std::endl;
     return 1;
   }
   if( (vm.count("input-file") != 1) || (vm.count("camera-file") != 1) ) {
-    std::cout << "Error: Must specify exactly one image file and one camera file!" << std::endl;
-    std::cout << desc << std::endl;
+    vw_out() << "Error: Must specify exactly one image file and one camera file!" << std::endl;
+    vw_out() << desc << std::endl;
     return 1;
   }
 
   if (rpc_degree <= 0) {
-    std::cout << "Error: The RPC degree must be positive." << std::endl;
-    std::cout << desc << std::endl;
+    vw_out() << "Error: The RPC degree must be positive." << std::endl;
+    vw_out() << desc << std::endl;
     return 1;
   }
 
@@ -125,6 +128,11 @@ int main( int argc, char *argv[] ) {
         in_model = &opb;
         success = true;
         vw_out() << "Read an OpticalBarModel camera model.\n";
+        if (camera_to_ground_dist <= 0){
+          vw_out() << "Must set the camera to ground distance "
+                   << "if the input is an optical bar model.\n";
+          return 1;
+        }
       }catch(...){}
     }
     
@@ -138,29 +146,30 @@ int main( int argc, char *argv[] ) {
     if (output_model_type == "TsaiLensDistortion") {
       //error =
       create_approx_pinhole_model<TsaiLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
+	(in_model, out_model, image_size, sample_spacing, force_conversion,
+         rpc_degree, camera_to_ground_dist);
     }else if (output_model_type == "BrownConradyDistortion") {
       //error =
       create_approx_pinhole_model<BrownConradyDistortion>
-        (in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
+        (in_model, out_model, image_size, sample_spacing, force_conversion,
+         rpc_degree, camera_to_ground_dist);
     } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
       create_approx_pinhole_model<RPCLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion, rpc_degree);
+	(in_model, out_model, image_size, sample_spacing, force_conversion,
+         rpc_degree, camera_to_ground_dist);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";
       return 1;
     }
     
-    //std::cout << "Approximation error = " << error << std::endl;
+    //vw_out() << "Approximation error = " << error << std::endl;
     printf("Writing output model: %s\n", output_file_name.c_str());
     out_model.write(output_file_name);
   }
   catch (const Exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    vw_out() << "Error: " << e.what() << std::endl;
   }
-
-  printf("Finished!\n");
 
   return 0;
 }

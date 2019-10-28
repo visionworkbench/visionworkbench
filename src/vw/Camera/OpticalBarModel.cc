@@ -20,8 +20,6 @@
 #include <vw/Camera/CameraSolve.h>
 #include <vw/Camera/OpticalBarModel.h>
 
-#include <vw/Cartography/Datum.h>  // DEBUG
-
 #include <iomanip>
 #include <boost/filesystem/convenience.hpp>
 
