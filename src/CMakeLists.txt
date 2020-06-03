@@ -2,9 +2,6 @@
 
 include(Utilities) # Contains functions
 
-#===============================================================================
-# Project information
-
 # Need this to make sure we get the compiler from PATH.
 # - cc and c++ both need to be on the PATH.
 find_program(CMAKE_C_COMPILER   NAMES $ENV{CC}  gcc PATHS ENV PATH NO_DEFAULT_PATH)
@@ -55,9 +52,6 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-
-#===============================================================================
-
 # Set the install path if not specified by the user.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set (CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "default install path" FORCE ) 
@@ -84,8 +78,6 @@ add_custom_target(doxygen doxygen
                   COMMAND ln -s ${CMAKE_SOURCE_DIR}/docs/doxygen/index.html ${CMAKE_SOURCE_DIR}/docs/doxygen-output.html
                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
-
-
 # Add external dependencies which still need to be built
 
 # Build GTest
@@ -98,50 +90,5 @@ target_link_libraries(gtest_main gtest)
 target_compile_definitions(gtest PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
 target_compile_definitions(gtest_main PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
 
-
-
-
 # Add all of our code
 add_subdirectory(vw)
-
-#========================================================================================
-
-# Deprecated - We no longer use protobuf files!
-function(generate_protobuf_files PROTO_GEN_OUT)
-
-  # Finds all .proto files in the current dir
-  file(GLOB PROTO_INPUT RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
-
-  # Protobuf compiler
-  find_program(PROTOC protoc)
-  set(PROTOC_C_OUT_FLAG --cpp_out)
-
-  # Set where generated files go to and add that directory to the include path
-  set(PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR})
-  include_directories(${PROTO_GEN_DIR})
-
-  # For each input protobuf file
-  foreach(PROTO_FILE ${PROTO_INPUT})
-    # Get the name of the file without extension
-    get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-    
-    # Add the two generated files to PROTO_GEN variable
-    set(PROTO_GEN ${PROTO_GEN}
-        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.h
-        ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.cc)
-  endforeach()
-
-  # Add the custom command that will generate all the files
-  # - The generated files will be put in the CMake build directory, not the source tree.
-  #message("Output files: ${PROTO_GEN}")
-  add_custom_command(OUTPUT   ${PROTO_GEN}
-                     COMMAND  ${PROTOC} ${PROTO_INPUT} ${PROTOC_C_OUT_FLAG} ${CMAKE_CURRENT_BINARY_DIR}
-                     DEPENDS  ${PROTO_INPUT}
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                     COMMENT "Generating Protocol Buffers...")
-
-  set(${PROTO_GEN_OUT} ${PROTO_GEN} PARENT_SCOPE) # Set up output variable
-endfunction(generate_protobuf_files)
-
-
-

@@ -38,8 +38,8 @@ if(BINARYBUILDER_INSTALL_DIR)
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
 endif()
 
-if("${ISIS3_DEPS_DIR}" STREQUAL "")
-  message(FATAL_ERROR "You need to set ISIS3_DEPS_DIR: ${ISIS3_DEPS_DIR}")
+if("${ISIS_DEPS_DIR}" STREQUAL "")
+  message(FATAL_ERROR "You need to set ISIS_DEPS_DIR: ${ISIS_DEPS_DIR}")
 endif()
 
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
@@ -63,7 +63,7 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Make sure installed files can find installed libraries
-SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${CMAKE_INSTALL_PREFIX}/lib ${ISIS3_DEPS_DIR}/lib ${ISIS3_DEPS_DIR}/lib64)
+SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${CMAKE_INSTALL_PREFIX}/lib ${ISIS_DEPS_DIR}/lib ${ISIS_DEPS_DIR}/lib64)
 
 
 # --- Custom options ---
@@ -87,10 +87,10 @@ set(BOOST_MIN_VERSION "1.65")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 #if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-if(ISIS3_DEPS_DIR) # Look in BinaryBuilder directory
-  set(BOOST_ROOT       "${ISIS3_DEPS_DIR}")
-  set(BOOST_LIBRARYDIR "${ISIS3_DEPS_DIR}/lib")
-  set(BOOST_INCLUDEDIR "${ISIS3_DEPS_DIR}/include")
+if(ISIS_DEPS_DIR) # Look in BinaryBuilder directory
+  set(BOOST_ROOT       "${ISIS_DEPS_DIR}")
+  set(BOOST_LIBRARYDIR "${ISIS_DEPS_DIR}/lib")
+  set(BOOST_INCLUDEDIR "${ISIS_DEPS_DIR}/include")
 
   #DBoost_INCLUDE_DIR=$HOME/projects/BinaryBuilder/build_asp/install/include/boost-1_67
 
@@ -128,7 +128,7 @@ find_package(Threads REQUIRED)
   find_package(LAPACK)
   find_package(BLAS)
 #else() # Use our BB compiled version
-#  find_external_library(LAPACK ${ISIS3_DEPS_DIR} "" "lapack;blas" REQUIRED)
+#  find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" REQUIRED)
 #endif()
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
@@ -140,12 +140,12 @@ if(LAPACK_FOUND)
   #endif()
 endif()
 
-find_external_library(FLANN ${ISIS3_DEPS_DIR} "" "flann_cpp" REQUIRED)
-find_external_library(JPEG  ${ISIS3_DEPS_DIR} "" "jpeg"      NOT_REQUIRED)
-find_external_library(PNG   ${ISIS3_DEPS_DIR} "" "png;png16" NOT_REQUIRED)
-find_external_library(TIFF  ${ISIS3_DEPS_DIR} "" "tiff"      NOT_REQUIRED)
-find_external_library(Z     ${ISIS3_DEPS_DIR} "" "z"         REQUIRED)
-find_external_library(PROJ4 ${ISIS3_DEPS_DIR} "" "proj"      REQUIRED)
+find_external_library(FLANN ${ISIS_DEPS_DIR} "" "flann_cpp" REQUIRED)
+find_external_library(JPEG  ${ISIS_DEPS_DIR} "" "jpeg"      NOT_REQUIRED)
+find_external_library(PNG   ${ISIS_DEPS_DIR} "" "png;png16" NOT_REQUIRED)
+find_external_library(TIFF  ${ISIS_DEPS_DIR} "" "tiff"      NOT_REQUIRED)
+find_external_library(Z     ${ISIS_DEPS_DIR} "" "z"         REQUIRED)
+find_external_library(PROJ4 ${ISIS_DEPS_DIR} "" "proj"      REQUIRED)
 find_external_library(GDAL  ${BINARYBUILDER_INSTALL_DIR} "" "gdal"      REQUIRED)
 
 # TODO: Make a function?
@@ -160,12 +160,12 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_ml          opencv_ximgproc
                      opencv_objdetect   opencv_xobjdetect
                      opencv_photo       opencv_xphoto)
-find_external_library(OPENCV ${ISIS3_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
+find_external_library(OPENCV ${ISIS_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
 
 
 set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-find_external_library(ILMBASE ${BINARYBUILDER_INSTALL_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-find_external_library(OPENEXR ${BINARYBUILDER_INSTALL_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
+find_external_library(ILMBASE ${ISIS_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
+find_external_library(OPENEXR ${ISIS_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 # CMake will try to find these packages if needed,
 #  they are not included with BinaryBuilder.
