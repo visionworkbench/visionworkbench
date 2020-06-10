@@ -66,9 +66,11 @@ double median(T const& values);
    Suggested values for the inputs:
    pct = 0.25, outlier_factor: 1.5.
    We expect 0 < pct < 0.5.
+   
+   Return true on success.
 */
 template<class T>
-void find_outlier_brackets(std::vector<T> const& p,
+bool find_outlier_brackets(std::vector<T> const& vec,
                            double pct, double outlier_factor,
                            double & b, double & e);
 
