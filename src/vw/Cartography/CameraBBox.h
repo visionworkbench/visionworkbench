@@ -464,15 +464,15 @@ namespace cartography {
   /// Compute the bounding box in points (georeference space) that is
   /// defined by georef. Scale is MPP as georeference space is in meters.
   /// - If coords is provided the intersection coordinates will be stored there.
-  BBox2 camera_bbox( GeoReference const& georef,
-                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                     int32 cols, int32 rows, float &scale,
-                     std::vector<Vector2> *coords=0 );
+  BBox2 camera_bbox(GeoReference const& georef,
+                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    int32 cols, int32 rows, float &scale,
+                    std::vector<Vector2> *coords=0 );
 
   /// Overload with no scale return
-  inline BBox2 camera_bbox( GeoReference const& dem_georef,
-                            boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                            int32 cols, int32 rows ) {
+  inline BBox2 camera_bbox(GeoReference const& dem_georef,
+                           boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                           int32 cols, int32 rows ) {
     float scale;
     return camera_bbox( dem_georef, camera_model, cols, rows, scale );
   }
@@ -487,15 +487,15 @@ namespace cartography {
   /// - If the quick option is enabled, only rays along the image borders will be used
   ///   to perform the computation.
   /// - If coords is provided the intersection coordinates will be stored there.
-  template< class DEMImageT >
-  BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem,
-                     GeoReference const& dem_georef,
-                     GeoReference const& target_georef, // return box in this projection
-                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                     int32 cols, int32 rows, float &mean_gsd,
-                     bool quick=false,
-                     std::vector<Vector3> *coords=0 ) {
-
+  template<class DEMImageT>
+  BBox2 camera_bbox(ImageViewBase<DEMImageT> const& dem,
+                    GeoReference const& dem_georef,
+                    GeoReference const& target_georef, // return box in this projection
+                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    int32 cols, int32 rows, float &mean_gsd,
+                    bool quick=false,
+                    std::vector<Vector3> *coords=0 ) {
+    
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
     Vector3 camera_llr = // Compute lon/lat/radius of camera center
@@ -589,41 +589,72 @@ namespace cartography {
           // Get the point for this DEM pixel and convert it to GCC coords
           dem_pix = dem_pixels[it];
           if (!is_valid(dem.impl()(dem_pix[0], dem_pix[1])))
-            continue; // redundant
+            continue;
+          
           lonlat = dem_georef.pixel_to_lonlat(dem_pix);
           height = dem.impl()(dem_pix[0], dem_pix[1]);
 
           point = target_georef.lonlat_to_point(lonlat);
           detail::recenter_point(center_on_zero, target_georef, point);
-          
+
           llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
 
           xyz = dem_georef.datum().geodetic_to_cartesian(llh);
           if (xyz == Vector3() || xyz != xyz) // watch for invalid values
             continue;
-
+          
           cam_pix = camera_model->point_to_pixel(xyz);
           if (cam_pix != cam_pix)
             continue; // watch for nan
-	
-          if (cam_pix[0] >= 0 && cam_pix[0] <= cols-1 &&
-              cam_pix[1] >= 0 && cam_pix[1] <= rows-1 ) {
 
-            // Finally a good point we can accept
-            cam_bbox.grow(point);
-            //vw_out() << "cam_pix: " << cam_pix << std::endl;
-            //vw_out() << "point: " << point << std::endl;
-            //vw_out() << "llh: " << llh << std::endl;
+          // Check if the point projects into the camera
+          if (!(cam_pix[0] >= 0 && cam_pix[0] <= cols-1 &&
+                cam_pix[1] >= 0 && cam_pix[1] <= rows-1))
+            continue;
 
-            // Add to cam_pixels from this different way of sampling
-            cam_pixels.push_back(cam_pix);
-          }
+          // This point looks good. Do more sanity checks
+
+          // Geometric check. If this dot product is non-negative,
+          // the point xyz is on the same side of the planet as the
+          // camera center. Otherwise throw out this xyz. This is a
+          // bugfix.
+          vw::Vector3 cam_ctr = camera_model->camera_center(cam_pix);
+          vw::Vector3 ray_vec = xyz - cam_ctr;
+          double dot = dot_prod(ray_vec, -xyz);
+          if (dot < 0.0) 
+            continue;
+
+          // Normalize the ray vector
+          double len = norm_2(ray_vec);
+          ray_vec /= len;
+
+          // If the ray from the pixel to the point on the ground
+          // does not agree with the camera direction, this point is
+          // spurious. The tolerance we use here is too lenient, it
+          // is meant to catch only large deviations. At the same
+          // time for some camera models the agreement between
+          // point_to_pixel and pixel_to_vector may not be too great
+          // perhaps if a numerical solver is used, hence the
+          // tolerance is not made too tight.
+          vw::Vector3 camera_dir = camera_model->pixel_to_vector(cam_pix);
+          double DIRECTION_TOLERANCE = 1e-3; 
+          if (norm_2(camera_dir - ray_vec) > DIRECTION_TOLERANCE) 
+            continue;
+          
+          // Finally a good point we can accept
+          cam_bbox.grow(point);
+          
+          // Add to cam_pixels from this different way of sampling
+          cam_pixels.push_back(cam_pix);
         }
+        
         catch(...) {
-          // It is possible to hit exceptions in here from coordinate transformation and such which
-          //  do not cause further problems, for example with points on large DEMs that do not fit
-          //  well into the target georef.  We can safely skip these since they probably don't intersect
-          //  the image anyways.
+          // It is possible to hit exceptions in here from coordinate
+          // transformation and such which do not cause further
+          // problems, for example with points on large DEMs that do
+          // not fit well into the target georef. We can safely skip
+          // these since they probably don't intersect the image
+          // anyways.
           continue;
         }  
       } // End loop through points on the DEM
@@ -646,9 +677,8 @@ namespace cartography {
                                                                 target_georef,  
                                                                 camera_model, center_on_zero,  
                                                                 ctr_point, // output
-                                                                xyz
-                                                               );
-      if ( !has_intersection )
+                                                                xyz);
+      if (!has_intersection)
         continue; 
       
       // Four neighboring pixels
@@ -668,9 +698,9 @@ namespace cartography {
                                                                   off_point, // output
                                                                   xyz
                                                                  );
-        if ( !has_intersection )
+        if (!has_intersection)
           continue; 
-
+        
         gsd.push_back(norm_2(ctr_point-off_point));
       }
     }
@@ -701,12 +731,14 @@ namespace cartography {
       VW_ASSERT(beg < end, ArgumentErr() << "Could not sample correctly the image.");
 
     mean_gsd /= num;
-    
+
+    std::cout << "final box " << cam_bbox << std::endl;
+
     return cam_bbox;
   }
 
   /// Overload of camera_bbox when we don't care about getting the mean_gsd back.
-  template< class DEMImageT >
+  template<class DEMImageT>
   inline BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem,
                             GeoReference const& dem_georef,
                             GeoReference const& target_georef,
