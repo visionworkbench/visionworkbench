@@ -81,7 +81,9 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   set(${LIB_NAME}   ${${LIB_NAME}}   PARENT_SCOPE)
   set(${INC_NAME}   ${${INC_NAME}}   PARENT_SCOPE)
   set(${VW_NAME}    ${${VW_NAME}}    PARENT_SCOPE)
-
+  
+  message("-- Found library ${name} at " ${${LIB_NAME}})
+  
 endfunction(find_external_library)
 
 # Define a custom make target that will run all tests with normal gtest output.
