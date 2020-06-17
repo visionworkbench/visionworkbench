@@ -23,6 +23,7 @@
 #include <vw/Image/ImageView.h>
 
 // Proj.4
+#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H // TODO(oalexan1): Remove deprecations
 #include <proj_api.h>
 
 // Macro for checking Proj.4 output, something we do a lot of.

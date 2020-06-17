@@ -124,12 +124,14 @@ set(NOT_REQUIRED False)
 
 find_package(Threads REQUIRED)
 
-#if (APPLE) # Use the system version
+if (APPLE) # Use the system version
   find_package(LAPACK)
   find_package(BLAS)
-#else() # Use our BB compiled version
-#  find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" REQUIRED)
-#endif()
+else() # Use the conda version
+    find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
+    set(LAPACK_FOUND 1)
+endif()
+    
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
   #if (APPLE)
