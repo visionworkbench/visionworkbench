@@ -78,6 +78,17 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 #==================================================================================
 # Find dependencies
 
+# assume built-in pthreads on MacOS
+IF(APPLE)
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+ENDIF()
+    
+find_package(Threads REQUIRED)
+
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
@@ -116,7 +127,6 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
-find_package(Threads REQUIRED)
 
 if (APPLE) # Use the system version
   find_package(LAPACK)
