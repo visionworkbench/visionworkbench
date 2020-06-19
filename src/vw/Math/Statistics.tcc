@@ -595,7 +595,9 @@ size_t Histogram::get_percentile(double percentile) const {
       return i;
   }
   vw_throw(LogicErr() << "get_histogram_percentile: Illegal histogram encountered!");
+  return 0;
 }
+
 inline
 void Histogram::write_to_disk(std::string const& path) const {
   std::ofstream f(path.c_str());

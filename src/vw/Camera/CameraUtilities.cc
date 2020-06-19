@@ -79,7 +79,7 @@ public:
   CameraSolveLMA(std::vector<vw::Vector3> const& xyz,
                  CAM const& camera_model, double camera_weight):
     m_xyz(xyz), m_camera_model(camera_model), m_iter_count(0),
-    m_camera_center(m_camera_model.camera_center()), m_camera_weight(camera_weight){}
+    m_camera_center(camera_model.camera_center()), m_camera_weight(camera_weight){}
 
   /// Given the camera, project xyz into it
   inline result_type operator()(domain_type const& C) const {

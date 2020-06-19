@@ -161,6 +161,7 @@ namespace vw {
       /// Gets the preferred block size/alignment for partial writes.
       virtual Vector2i block_write_size() const {
         vw_throw(NoImplErr() << "This ImageResource does not support block writes");
+        return Vector2i();
       }
 
       /// Sets the preferred block size/alignment for partial writes.
