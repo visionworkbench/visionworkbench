@@ -92,12 +92,6 @@ if(ISIS_DEPS_DIR) # Look in BinaryBuilder directory
   set(BOOST_LIBRARYDIR "${ISIS_DEPS_DIR}/lib")
   set(BOOST_INCLUDEDIR "${ISIS_DEPS_DIR}/include")
 
-  #DBoost_INCLUDE_DIR=$HOME/projects/BinaryBuilder/build_asp/install/include/boost-1_67
-
-  #set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}")
-  #set(BOOST_LIBRARYDIR "${BINARYBUILDER_INSTALL_DIR}/lib")
-  #set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_67")
-
   set(Boost_DEBUG ON)
   set(Boost_DETAILED_FAILURE_MSG ON)
   set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "x64") # needed for pfe
@@ -142,13 +136,14 @@ if(LAPACK_FOUND)
   #endif()
 endif()
 
-find_external_library(FLANN ${ISIS_DEPS_DIR} "" "flann_cpp" REQUIRED)
-find_external_library(JPEG  ${ISIS_DEPS_DIR} "" "jpeg"      NOT_REQUIRED)
-find_external_library(PNG   ${ISIS_DEPS_DIR} "" "png;png16" NOT_REQUIRED)
-find_external_library(TIFF  ${ISIS_DEPS_DIR} "" "tiff"      NOT_REQUIRED)
-find_external_library(Z     ${ISIS_DEPS_DIR} "" "z"         REQUIRED)
-find_external_library(PROJ4 ${ISIS_DEPS_DIR} "" "proj"      REQUIRED)
-find_external_library(GDAL  ${BINARYBUILDER_INSTALL_DIR} "" "gdal"      REQUIRED)
+find_external_library(FLANN   ${ISIS_DEPS_DIR} "" "flann_cpp" REQUIRED)
+find_external_library(JPEG    ${ISIS_DEPS_DIR} "" "jpeg"      REQUIRED)
+find_external_library(PNG     ${ISIS_DEPS_DIR} "" "png;png16" REQUIRED)
+find_external_library(TIFF    ${ISIS_DEPS_DIR} "" "tiff"      REQUIRED)
+find_external_library(GEOTIFF ${ISIS_DEPS_DIR} "" "geotiff"   REQUIRED)
+find_external_library(Z       ${ISIS_DEPS_DIR} "" "z"         REQUIRED)
+find_external_library(PROJ4   ${ISIS_DEPS_DIR} "" "proj"      REQUIRED)
+find_external_library(GDAL    ${ISIS_DEPS_DIR} "" "gdal"      REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -297,7 +292,9 @@ set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage VwFileIO)
 # --- VW_CARTOGRAPHY ------------------------------------------------------------
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
-set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES})
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera ${GDAL_LIBRARIES} 
+    ${PROJ4_LIBRARIES} ${GEOTIFF_LIBRARIES}
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
@@ -309,7 +306,7 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
-    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
+    ${GEOTIFF_LIBRARIES} ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
     ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
