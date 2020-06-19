@@ -132,8 +132,8 @@ set(NOT_REQUIRED False)
 #   find_package(LAPACK)
 #   find_package(BLAS)
 # else() # Use the conda version
-    find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
-    set(LAPACK_FOUND 1)
+find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
+set(LAPACK_FOUND 1)
 # endif()
     
 if(LAPACK_FOUND)
