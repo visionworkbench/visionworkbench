@@ -186,50 +186,6 @@ if (VW_ENABLE_PYTHON)
   endif()
 endif()
 
-# These packages are only used for ancient VW tools which are not really supported
-
-#find_package(SigC++)
-#if(SigC++_FOUND)
-#  #message("-- Found SigC++ "  ${SigC++_LIBRARIES})
-#  #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
-#  include_directories("${SigC++_INCLUDE_DIRS}")
-#else()
-#  message("Failed to find SIC++")
-#endif()
-
-#find_package(FreeType)
-#if(FREETYPE_FOUND)
-#  message("-- Found FreeType " ${FREETYPE_LIBRARIES})
-#  #message("Include dirs: "  ${FREETYPE_INCLUDE_DIRS})
-#  include_directories("${FREETYPE_INCLUDE_DIRS}")
-#else()
-#  message("Failed to find FreeType")
-#endif()
-
-#find_package(Cairo)
-#if(CAIRO_FOUND)
-#  set(VW_HAVE_PKG_CAIRO 1)
-#  message("-- Found Cairo " ${CAIRO_LIBRARIES})
-#  include_directories("${CAIRO_INCLUDE_DIR}")
-#else()
-#  message("Failed to find Cairo")
-#endif()
-
-#find_package(Cairomm)
-#if(CAIROMM_FOUND)
-#  set(VW_HAVE_PKG_CAIROMM 1)
-#  message("-- Found CairoMM " ${CAIROMM_LIBRARIES})
-#  include_directories("${CAIROMM_INCLUDE_DIR}")
-#else()
-#  message("Failed to find CairoMM")
-#endif()
-
-
-#TODO: Look for each of these installations!
-#set(VW_HAVE_PKG_BIGTIFF 1) 
-#set(VW_HAVE_PKG_HDF 0)
-
-
 ###########################################################################
 # These are some options that the user might like to set manually
 

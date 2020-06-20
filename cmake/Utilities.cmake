@@ -1,6 +1,4 @@
-
 # This file contains functions used in other parts of the project.
-
 
 # Obtains a file list with all the files in a directory properly formatted
 function( get_all_source_files relativePath outputFileList)
@@ -49,7 +47,7 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
       if (NOT EXISTS ${FULL_PATH})
         set(FULL_PATH "${search_folder}/lib64/${FULL_NAME}")
         if (NOT EXISTS ${FULL_PATH})
-          message("Missing library file: ${FULL_NAME}")
+          message(STATUS "Missing library file: ${FULL_NAME}")
           set(${FOUND_NAME} 0)
           continue()
         endif()
@@ -66,13 +64,13 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   # Check and display our results
   if(${FOUND_NAME})
     set(${VW_NAME} 1)
-    message("-- Found ${name} at " ${${INC_NAME}})
+    message(STATUS "Found include files for ${name} at ${${INC_NAME}}")
     include_directories("${${INC_NAME}}")
   else()
     if (${required})
-      message( FATAL_ERROR "Failed to find REQUIRED library ${name}." )
+      message(FATAL_ERROR "Failed to find REQUIRED library ${name}.")
     else()
-      message("Failed to find ${name}")
+      message(STATUS "Failed to find ${name}")
     endif()
   endif()
 
@@ -82,7 +80,7 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   set(${INC_NAME}   ${${INC_NAME}}   PARENT_SCOPE)
   set(${VW_NAME}    ${${VW_NAME}}    PARENT_SCOPE)
   
-  message("-- Found library ${name} at " ${${LIB_NAME}})
+  message(STATUS "Found libraries for ${name} at ${${LIB_NAME}}")
   
 endfunction(find_external_library)
 
