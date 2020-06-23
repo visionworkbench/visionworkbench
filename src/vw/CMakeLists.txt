@@ -39,7 +39,7 @@ if(BINARYBUILDER_INSTALL_DIR)
 endif()
 
 if("${ISIS_DEPS_DIR}" STREQUAL "")
-  message(FATAL_ERROR "You need to set ISIS_DEPS_DIR: ${ISIS_DEPS_DIR}")
+  message(FATAL_ERROR "You need to set ISIS_DEPS_DIR.")
 endif()
 
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
@@ -97,8 +97,7 @@ message("Searching for boost...")
 set(BOOST_MIN_VERSION "1.65")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
-#if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-if(ISIS_DEPS_DIR) # Look in BinaryBuilder directory
+if(ISIS_DEPS_DIR) # Look in the ISIS deps directory
   set(BOOST_ROOT       "${ISIS_DEPS_DIR}")
   set(BOOST_LIBRARYDIR "${ISIS_DEPS_DIR}/lib")
   set(BOOST_INCLUDEDIR "${ISIS_DEPS_DIR}/include")
@@ -112,7 +111,6 @@ endif()
 find_package(Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS ${REQUIRED_BOOST_LIBS})
 
 if(Boost_FOUND)
-    #set(Boost_LIBRARY_DIR ${BINARYBUILDER_INSTALL_DIR}/lib) # Override this value
     message("Successfully found Boost version ${Boost_VERSION}.")
     message("Boost include dir = ${Boost_INCLUDE_DIR}")
     message("Boost library dir = ${Boost_LIBRARY_DIRS}")
@@ -122,11 +120,8 @@ if(Boost_FOUND)
 endif(Boost_FOUND)
 message("--------------------------------------------------------------")
 
-# TODO: More use of find_package to find things not in BB?
-
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
-
 
 # if (APPLE) # Use the system version
 #   find_package(LAPACK)
@@ -174,8 +169,8 @@ set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
 find_external_library(ILMBASE ${ISIS_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
 find_external_library(OPENEXR ${ISIS_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
-# CMake will try to find these packages if needed,
-#  they are not included with BinaryBuilder.
+# CMake will try to find these packages if needed. They are not part
+# of the usual dependencies.
 if (VW_ENABLE_PYTHON)
   find_package(PythonLibs)
   if(PYTHONLIBS_FOUND)

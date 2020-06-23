@@ -16,7 +16,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-L${BINARYBUILDER_INSTALL_DIR}/lib -lm -pthread -lpt
 
 if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lrt")
-endif(APPLE)
+endif(NOT APPLE)
 
 set(CMAKE_BUILD_TYPE "Release")
 message("Setting CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
