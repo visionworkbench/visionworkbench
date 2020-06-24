@@ -1,4 +1,4 @@
-cmake_policy(SET CMP0025 NEW) # needed for conda build on OSX
+cmake_policy(SET CMP0025 NEW) # needed for conda build on OSX with conda
 
 cmake_minimum_required (VERSION 3.2)
 
