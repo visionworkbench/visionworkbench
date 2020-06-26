@@ -1,9 +1,5 @@
-
-
 namespace vw {
 namespace stereo {
-
-
 
 template <class Image1T, class Image2T, class PreFilterT>
 typename CorrelationView<Image1T, Image2T, PreFilterT>::prerasterize_type
