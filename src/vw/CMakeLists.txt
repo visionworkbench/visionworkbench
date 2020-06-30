@@ -38,8 +38,8 @@ if(BINARYBUILDER_INSTALL_DIR)
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
 endif()
 
-if("${ISIS_DEPS_DIR}" STREQUAL "")
-  message(FATAL_ERROR "You need to set ISIS_DEPS_DIR.")
+if("${ASP_DEPS_DIR}" STREQUAL "")
+  message(FATAL_ERROR "You need to set ASP_DEPS_DIR.")
 endif()
 
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
@@ -63,8 +63,7 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Make sure installed files can find installed libraries
-SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${CMAKE_INSTALL_PREFIX}/lib ${ISIS_DEPS_DIR}/lib ${ISIS_DEPS_DIR}/lib64)
-
+SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${CMAKE_INSTALL_PREFIX}/lib ${ASP_DEPS_DIR}/lib)
 
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
@@ -97,10 +96,10 @@ message("Searching for boost...")
 set(BOOST_MIN_VERSION "1.65")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
-if(ISIS_DEPS_DIR) # Look in the ISIS deps directory
-  set(BOOST_ROOT       "${ISIS_DEPS_DIR}")
-  set(BOOST_LIBRARYDIR "${ISIS_DEPS_DIR}/lib")
-  set(BOOST_INCLUDEDIR "${ISIS_DEPS_DIR}/include")
+if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
+  set(BOOST_ROOT       "${ASP_DEPS_DIR}")
+  set(BOOST_LIBRARYDIR "${ASP_DEPS_DIR}/lib")
+  set(BOOST_INCLUDEDIR "${ASP_DEPS_DIR}/include")
 
   set(Boost_DEBUG ON)
   set(Boost_DETAILED_FAILURE_MSG ON)
@@ -127,7 +126,7 @@ set(NOT_REQUIRED False)
 #   find_package(LAPACK)
 #   find_package(BLAS)
 # else() # Use the conda version
-find_external_library(LAPACK ${ISIS_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
+find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
 set(LAPACK_FOUND 1)
 # endif()
     
@@ -141,14 +140,14 @@ if(LAPACK_FOUND)
   #endif()
 endif()
 
-find_external_library(FLANN   ${ISIS_DEPS_DIR} "" "flann_cpp" REQUIRED)
-find_external_library(JPEG    ${ISIS_DEPS_DIR} "" "jpeg"      REQUIRED)
-find_external_library(PNG     ${ISIS_DEPS_DIR} "" "png;png16" REQUIRED)
-find_external_library(TIFF    ${ISIS_DEPS_DIR} "" "tiff"      REQUIRED)
-find_external_library(GEOTIFF ${ISIS_DEPS_DIR} "" "geotiff"   REQUIRED)
-find_external_library(Z       ${ISIS_DEPS_DIR} "" "z"         REQUIRED)
-find_external_library(PROJ4   ${ISIS_DEPS_DIR} "" "proj"      REQUIRED)
-find_external_library(GDAL    ${ISIS_DEPS_DIR} "" "gdal"      REQUIRED)
+find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
+find_external_library(JPEG    ${ASP_DEPS_DIR} "" "jpeg"      REQUIRED)
+find_external_library(PNG     ${ASP_DEPS_DIR} "" "png;png16" REQUIRED)
+find_external_library(TIFF    ${ASP_DEPS_DIR} "" "tiff"      REQUIRED)
+find_external_library(GEOTIFF ${ASP_DEPS_DIR} "" "geotiff"   REQUIRED)
+find_external_library(Z       ${ASP_DEPS_DIR} "" "z"         REQUIRED)
+find_external_library(PROJ4   ${ASP_DEPS_DIR} "" "proj"      REQUIRED)
+find_external_library(GDAL    ${ASP_DEPS_DIR} "" "gdal"      REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -162,12 +161,12 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_ml          opencv_ximgproc
                      opencv_objdetect   opencv_xobjdetect
                      opencv_photo       opencv_xphoto)
-find_external_library(OPENCV ${ISIS_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
+find_external_library(OPENCV ${ASP_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
 
 
 set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-find_external_library(ILMBASE ${ISIS_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-find_external_library(OPENEXR ${ISIS_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
+find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
+find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 # CMake will try to find these packages if needed. They are not part
 # of the usual dependencies.
