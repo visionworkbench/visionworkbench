@@ -21,6 +21,7 @@
 #include <vw/Core/FundamentalTypes.h>
 
 #include <boost/thread/condition.hpp>
+#include <boost/core/noncopyable.hpp>
 
 namespace vw {
 
