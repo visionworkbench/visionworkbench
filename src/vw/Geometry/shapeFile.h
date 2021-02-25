@@ -33,37 +33,45 @@
 
 namespace vw { namespace geometry {
 
-
+  // Convert a single polygon to OGR
   void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
 	     OGRLinearRing & R);
-  
+
+  // Convert a polygon set to OGR
   void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P);
-  
+
+  // Read a polygon set from OGR
   void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly);
   
+  // Read an OGR polygonal line (line string)
   void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly);
 
+  // Read polygons from OGR multipolygon
   void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append);
 
+  // Read polygons from OGR geometry
   void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append);
   
+  // Read a shapefile
   void read_shapefile(std::string const& file,
 		      std::string const& poly_color,
 		      bool & has_geo, 
 		      vw::cartography::GeoReference & geo,
 		      std::vector<vw::geometry::dPoly> & polyVec);
 
+  // Write a shapefile
   void write_shapefile(std::string const& file,
 		       bool has_geo,
 		       vw::cartography::GeoReference const& geo, 
 		       std::vector<vw::geometry::dPoly> const& polyVec);
   
+  // Bounding box of a shapefile
   void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
 		       // outputs
 		       double & xll, double & yll,

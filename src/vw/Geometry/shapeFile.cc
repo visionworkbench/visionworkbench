@@ -40,8 +40,6 @@ namespace vw { namespace geometry {
     for (int vIter = 0; vIter < numVerts; vIter++){
       double x = xv[startPos + vIter], y = yv[startPos + vIter];
       R.addPoint(x, y);
-      
-      std::cout << "--ogr add point " << x << ' ' << y << std::endl;
     }
   
     // An OGRLinearRing must end with the same point as what it starts with
@@ -60,10 +58,10 @@ namespace vw { namespace geometry {
       R = OGRLinearRing(); 
   
   }
-  
+
+  // Convert a set of polygons to OGR
   void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P){
 
-    std::cout << "--toogr 2 " << std::endl;
     P = OGRPolygon(); // reset
 
     const double * xv        = poly.get_xv();
@@ -89,11 +87,11 @@ namespace vw { namespace geometry {
   
     return;
   }
-  
+
+  // Extract a polygon from OGR
   void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly){
 
-    std::cout << "--from ogr!" << std::endl;
     bool isPolyClosed = true; // only closed polygons are supported
   
     poly.reset();
@@ -131,8 +129,6 @@ namespace vw { namespace geometry {
         ring->getPoint(iPt, &poPoint);
         x.push_back(poPoint.getX());
         y.push_back(poPoint.getY());
-
-        std::cout << "---read " << x.back() << ' ' << y.back() << std::endl;
       }
 
       // Don't record the last element if the same as the first
@@ -148,7 +144,8 @@ namespace vw { namespace geometry {
     
     }
   }
-
+  
+  // Extract a polygonal line (line string) from OGR
   void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly){
 
@@ -173,6 +170,7 @@ namespace vw { namespace geometry {
     
   }
 
+  // Extract a multi-polygon from OGR
   void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append){
@@ -191,7 +189,8 @@ namespace vw { namespace geometry {
       polyVec.push_back(poly);
     }
   }
-  
+
+  // Read polygons from OGR geometry
   void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append){
@@ -240,6 +239,7 @@ namespace vw { namespace geometry {
     
   }
 
+  // Read a shapefile
   void read_shapefile(std::string const& file,
                       std::string const& poly_color,
                       bool & has_geo, 
@@ -340,7 +340,8 @@ namespace vw { namespace geometry {
     }  
 
   }
-
+  
+  // Write a shapefile
   void write_shapefile(std::string const& file,
                        bool has_geo,
                        vw::cartography::GeoReference const& geo, 
@@ -408,6 +409,7 @@ namespace vw { namespace geometry {
     GDALClose( poDS );
   }
 
+  // Bounding box of a shapefile
   void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
                        // outputs
                        double & xll, double & yll,
