@@ -148,12 +148,12 @@ ContainerT StandardDeviationFunctor::operator() (std::vector<ContainerT> const& 
 // See the header file for the doc
 template<class T>
 bool find_outlier_brackets(std::vector<T> const& vec,
-                           double pct, double outlier_factor,
+                           double pct_factor, double outlier_factor,
                            double & b, double & e){
-  if (pct > 0.5)
-    pct = 1.0 - pct;
-  if (pct < 0)
-    pct = 0;
+  if (pct_factor > 0.5)
+    pct_factor = 1.0 - pct_factor;
+  if (pct_factor < 0)
+    pct_factor = 0;
     
   b = 0.0; e = 0.0; // initialize
   std::vector<T> q = vec;
@@ -165,8 +165,8 @@ bool find_outlier_brackets(std::vector<T> const& vec,
   b = q[0]; e = q[len-1];
   if (len <= 3) return false; // too few points for analysis
     
-  int bn = int(round(pct*len));
-  int en = int(round((1.0-pct)*len))-1;
+  int bn = int(round(pct_factor*len));
+  int en = int(round((1.0-pct_factor)*len))-1;
 
   // Adjust the bounds just in case
   bn = std::min(len-1, std::max(bn, 0));

@@ -58,20 +58,20 @@ double median(T const& values);
 
 /// Using the quartile range, determine the values b and e so that
 /// all elements in p outsize of [b, e] are outliers.
-/* If Q1 and Q3 are the percentiles for pct and 1-pct, the outlier brackets are:
+/* If Q1 and Q3 are the percentiles for pct_factor and 1-pct_factor, the outlier brackets are:
    b = Q1 - outlier_factor*(Q3-Q1)
    e = Q3 + outlier_factor*(Q3-Q1)
    This algorithm works best if the data is distributed rather uniformly.
 
    Suggested values for the inputs:
-   pct = 0.25, outlier_factor: 1.5.
-   We expect 0 < pct < 0.5.
+   pct_factor = 0.25, outlier_factor: 1.5.
+   We expect 0 < pct_factor < 0.5.
    
    Return true on success.
 */
 template<class T>
 bool find_outlier_brackets(std::vector<T> const& vec,
-                           double pct, double outlier_factor,
+                           double pct_factor, double outlier_factor,
                            double & b, double & e);
 
 
