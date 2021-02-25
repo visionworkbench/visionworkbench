@@ -33,6 +33,7 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/FileUtils.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Camera/CameraGeometry.h>
 #include <vw/InterestPoint/InterestData.h>
@@ -50,7 +51,7 @@ using namespace vw::ip;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
 // Draw the two images side by side with matching interest points shown with lines.
@@ -201,13 +202,21 @@ int main(int argc, char** argv) {
     vw_out() << usage.str();
     return 1;
   }
+
   // Split up the image and IP paths into two vectors
   const size_t num_input_images = input_file_names.size() / 2;
   std::vector<std::string> image_paths(num_input_images),
                            vwip_paths (num_input_images);
-  for (size_t i=0; i<num_input_images; ++i) {
+  for (size_t i = 0; i < num_input_images; ++i) {
     image_paths[i] = input_file_names[2*i  ];
     vwip_paths [i] = input_file_names[2*i+1];
+
+    if (fs::extension(vwip_paths[i]) != ".vwip") {
+      vw_out() << "Error: Incorrect order of files. Expecting a .vwip file. Got: "
+               << vwip_paths[i] << "\n";
+      vw_out() << usage.str();
+      return 1;
+    }
   }
 
   // Iterate over combinations of the input files and find interest points in each.
@@ -265,7 +274,7 @@ int main(int argc, char** argv) {
       try {
         // RANSAC is used to fit a transform between the matched sets
         // of points.  Points that don't meet this geometric
-        // contstraint are rejected as outliers.
+        // constraint are rejected as outliers.
         if (ransac_constraint == "similarity") {
           math::RandomSampleConsensus<math::SimilarityFittingFunctor, 
                                       math::InterestPointErrorMetric> 
@@ -324,12 +333,15 @@ int main(int argc, char** argv) {
         output_prefix = fs::path(image_paths[i]).replace_extension().string() + "__" +
                         fs::path(image_paths[j]).stem().string();
       }
-      vw_out() << "Writing match file: " << output_prefix+".match" << std::endl;
+
+      vw::create_out_dir(output_prefix);
+
+      vw_out() << "Writing match file: " << output_prefix + ".match" << std::endl;
       write_binary_match_file(output_prefix+".match", final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
-        vw_out() << "Writing debug image: " << output_prefix+".tif" << std::endl;
-        write_match_image(output_prefix+".tif",
+        vw_out() << "Writing debug image: " << output_prefix + ".tif" << std::endl;
+        write_match_image(output_prefix + ".tif", 
                           image_paths[i], image_paths[j],
                           final_ip1, final_ip2);
       }
