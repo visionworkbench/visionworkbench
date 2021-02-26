@@ -246,13 +246,6 @@ get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
 get_all_source_files( "Camera/tests" VW_CAMERA_TEST_FILES)
 set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage VwFileIO)
 
-# --- VW_CARTOGRAPHY ------------------------------------------------------------
-get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
-get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
-set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera ${GDAL_LIBRARIES} 
-    ${PROJ4_LIBRARIES} ${GEOTIFF_LIBRARIES}
-    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
-
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
 get_all_source_files( "Core/tests" VW_CORE_TEST_FILES)
@@ -270,6 +263,13 @@ set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIE
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
 get_all_source_files( "Geometry/tests" VW_GEOMETRY_TEST_FILES)
 set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
+
+# --- VW_CARTOGRAPHY ------------------------------------------------------------
+get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
+get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry
+    ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES} ${GEOTIFF_LIBRARIES}
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
 # --- VW_HDR ------------------------------------------------------------
 get_all_source_files( "HDR"       VW_HDR_SRC_FILES)

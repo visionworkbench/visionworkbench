@@ -1,7 +1,4 @@
-
-
 # List files manually for this complicated folder
- 
  
 if (VW_HAVE_PKG_PNG)
   SET(png_headers DiskImageResourcePNG.h  MemoryImageResourcePNG.h  PngIO.h)
@@ -73,11 +70,5 @@ set(VW_FILEIO_SRC_FILES
     ${tiff_sources}
     )
 
-
 # Use wrapper function at this level to avoid code duplication
 add_library_wrapper(VwFileIO "${VW_FILEIO_SRC_FILES}" "${VW_FILEIO_TEST_FILES}" "${VW_FILEIO_LIB_DEPENDENCIES}")
-
-
-
-
-

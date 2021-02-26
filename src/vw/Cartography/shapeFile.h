@@ -15,8 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#ifndef VW_GEOMETRY_SHAPEFILE_H
-#define VW_GEOMETRY_SHAPEFILE_H
+#ifndef VW_CARTOGRAPHY_SHAPEFILE_H
+#define VW_CARTOGRAPHY_SHAPEFILE_H
 
 #include <ogrsf_frmts.h>
 
@@ -79,4 +79,4 @@ namespace vw { namespace geometry {
   
 }}
 
-#endif // VW_GEOMETRY_SHAPEFILE_H
+#endif // VW_CARTOGRAPHY_SHAPEFILE_H

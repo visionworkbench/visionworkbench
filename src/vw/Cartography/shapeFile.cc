@@ -15,7 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/Geometry/shapeFile.h>
+#include <vw/Cartography/shapeFile.h>
 
 #include <vector>
 #include <algorithm>
