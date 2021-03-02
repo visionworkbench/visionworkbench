@@ -114,19 +114,20 @@ bool StereoModel::snells_law(Vector3 const& c, Vector3 const& d,
   // The intersection with the plane
   c2 = c + alpha * d;
 
-  // Let n be the plane normal pointing up, so first three components
-  // of the plane vector p. Let d2 be the outgoing vector after the
+  // Let n be the plane normal pointing up (the first three components
+  // of the plane vector p). Let d2 be the outgoing vector after the
   // ray hits the water, according to Snell's law, with d being the
   // incoming ray. Let a1 be the angles between -d and n, a2 be the
   // angle between d2 and -n.
   
-  // Then sin(a1) = refraction_index * sin(a2).
+  // Then sin(a1) = refraction_index * sin(a2) per Snell's law.
+  // Square this. Note that cos^2 (x) + sin^2 (x) = 1.
   // So, 1 - cos(a1)^2 = refraction_index^2 * (1 - cos(a2)^2).
   // But cos(a1) = dot_product(-d, n) = -dn.
   // So, cos(a2)^2 = 1 - (1 - dn^2)/refraction_index^2
-  // Call the left-hand value cosa2_sq.
+  // Call the left-hand value cos_sq.
 
-  double cosa2_sq = 1.0 - (1.0 - dn * dn)/refraction_index/refraction_index;
+  double cos_sq = 1.0 - (1.0 - dn * dn)/refraction_index/refraction_index;
   
   // The outgoing vector d2 will be a linear combination of -n and d1,
   // normalized to unit length. Let alpha > 0 be the value which will
@@ -135,14 +136,18 @@ bool StereoModel::snells_law(Vector3 const& c, Vector3 const& d,
   // But dot(d2, -n) = cos(a2). Hence, if we dot the above with n and square it,
   // we get 
   // cos(a2)^2 = (-1 + alpha * dn)^2 / dot( -n + alpha * d, -n + alpha * d)
-  // or:
-  // cosa2_sq * (1 - 2 * alpha * dn + alpha^2) = ( 1 - 2*alpha * dn + alpha^2 * dn^2)
-
-  // Move everything to the left and find the coefficients of the quadratic equation
-  // in alpha, so u*alpha^ + v * alpha + w = 0.
-  double u = cosa2_sq - dn * dn;  // this is cos(a2)^2 - cos(a1)^2 > 0 as a2 < a1
-  double v = -2 * dn * cosa2_sq + 2 * dn;
-  double w = cosa2_sq - 1;
+  // or 
+  // cos(a2)^2 * dot( -n + alpha * d, -n + alpha * d) = (-1 + alpha * dn)^2  
+  // or
+  // cos_sq * (1 - 2 * alpha * dn + alpha^2) = ( 1 - 2*alpha * dn + alpha^2 * dn^2)
+  //
+  // Note that we computed cos_sq from Snell's law above.
+  
+  // Move everything to the left and find the coefficients of the
+  // quadratic equation in alpha, so u * alpha^2 + v * alpha + w = 0.
+  double u = cos_sq - dn * dn;  // this is cos(a2)^2 - cos(a1)^2 > 0 as a2 < a1
+  double v = -2 * dn * cos_sq + 2.0 * dn;
+  double w = cos_sq - 1.0;
   double delta = v * v - 4 * u * w; // discriminant
   if (u <= 0.0 || delta < 0.0) 
     return false; // must not happen
