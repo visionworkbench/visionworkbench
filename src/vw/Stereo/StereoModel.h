@@ -70,7 +70,7 @@ namespace stereo {
     /// Apply a stereo model to multiple or just two image coordinates.
     /// Returns an xyz point. The error is set to 0 if triangulation
     /// did not succeed, otherwise it is the vector between the closest points on the rays.
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      Vector3& errorVec ) const;
+    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      Vector3& errorVec, bool do_bathy = false) const;
     virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      double & error    ) const;
     virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, Vector3& errorVec ) const;
     virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, double & error    ) const;
@@ -85,13 +85,24 @@ namespace stereo {
     // The default 1-cos(x) function does badly when x close to 0,
     // which then leads to incorrect angle tolerance.
     static double robust_1_minus_cos(double x);
-      
+
+    // Settings used for bathymetry correction
+    void set_bathy(double refraction_index, std::vector<double> const& bathy_plane);
+    
+    static bool snells_law(Vector3 const& c, Vector3 const& d, std::vector<double> const& p,
+                           double refraction_index, Vector3 & c2, Vector3 & d2);
+                    
   protected:
 
     std::vector<const camera::CameraModel *> m_cameras;
     bool m_least_squares;
     double m_angle_tol;
 
+    // Used for bathymetry
+    bool m_bathy_correct;              // If to do bathy correction
+    std::vector<double> m_bathy_plane; // the water plane
+    double m_refraction_index;         // Water refraction index
+    
     //------------------------------------------------------------------
     // Protected Methods
     //------------------------------------------------------------------
