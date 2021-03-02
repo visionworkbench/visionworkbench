@@ -270,12 +270,10 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     if (!(ht_val < 0)) // take into account also the NaN case
       return result;
 
-    // Find where the rays intersect the plane
-    // and how the water bends
-    // TODO(oalexan1): Make these into functions!
+    // Find where the rays intersect the plane and how the water bends
+    // them
     std::vector<Vector3> waterDirs(2), waterCtrs(2);
     for (size_t it = 0; it < 2; it++) {
-
       bool ans = snells_law(camCtrs[it], camDirs[it], m_bathy_plane,  
                             m_refraction_index,  
                             waterCtrs[it], waterDirs[it]);
