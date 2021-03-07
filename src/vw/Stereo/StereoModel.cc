@@ -192,19 +192,22 @@ bool StereoModel::are_nearly_parallel(bool least_squares,
 // Compute the rays intersection. Note that even if we are in bathymetry mode,
 // so m_bathy_correct is true, for this particular pair of rays
 // we may have do_bathy false, and then we won't do the correction.
+// Return also a flag saying if we did bathymetry correction or not.
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
-                                Vector3& errorVec, bool do_bathy) const {
+                                Vector3& errorVec, bool do_bathy, bool & did_bathy) const {
   
   // Note: Class RPCStereoModel inherits from this class and
   // re-implements this function.
 
+  // Initialize the outputs
+  did_bathy = false;
+  errorVec = Vector3();
+  
   int num_cams = m_cameras.size();
   VW_ASSERT((int)pixVec.size() == num_cams,
             vw::ArgumentErr() << "the number of rays must match "
             << "the number of cameras.\n");
   
-  errorVec = Vector3();
-
   try {
 
     vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
@@ -286,6 +289,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     // Re-triangulate with the new rays
     result = triangulate_point(waterDirs, waterCtrs, errorVec);
 
+    did_bathy = true;
     return result;
 
   } catch (const camera::PixelToRayErr& /*e*/) {
@@ -296,7 +300,8 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
                                 double& error) const {
   Vector3 errorVec;
-  Vector3 result = operator()(pixVec, errorVec);
+  bool do_bathy = false, did_bathy = false;
+  Vector3 result = operator()(pixVec, errorVec, do_bathy, did_bathy);
   error = norm_2(errorVec);
   return result;
 }
@@ -306,12 +311,13 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
   vector<Vector2> pixVec;
   pixVec.push_back(pix1);
   pixVec.push_back(pix2);
-  return operator()(pixVec, errorVec); 
+  bool do_bathy = false, did_bathy = false;
+  return operator()(pixVec, errorVec, do_bathy, did_bathy); 
 }
 
 
 Vector3 StereoModel::operator()(Vector2 const& pix1, Vector2 const& pix2,
-                                double& error ) const {
+                                double& error) const {
   Vector3 errorVec;
   Vector3 result = operator()(pix1, pix2, errorVec);
   error = norm_2(errorVec);
