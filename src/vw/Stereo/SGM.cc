@@ -1,4 +1,3 @@
-
 #include <queue>
 #include <math.h>
 #include <vw/Stereo/SGM.h>
@@ -107,8 +106,8 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
     };
   } // End p2 cases
 
-  vw_out(InfoMessage, "stereo") << "SGM m_p1 = " << m_p1 << std::endl;
-  vw_out(InfoMessage, "stereo") << "SGM m_p2 = " << m_p2 << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM m_p1 = " << m_p1 << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM m_p2 = " << m_p2 << std::endl;
 
 } // End set_parameters
 
@@ -350,9 +349,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   percent_masked  /= num_pixels;
   percent_trusted /= num_pixels;
 
-  vw_out(InfoMessage, "stereo") << "Percent masked pixels  = "            << percent_masked  << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
-  vw_out(InfoMessage, "stereo") << "Number missing prev disp = "          << missing_prev_disp_count << std::endl;
+  vw_out(DebugMessage, "stereo") << "Percent masked pixels  = "            << percent_masked  << std::endl;
+  vw_out(DebugMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
+  vw_out(DebugMessage, "stereo") << "Number missing prev disp = "          << missing_prev_disp_count << std::endl;
 
   // Next we attempt to refine the search ranges to stay within the memory usage limits.
   const int NO_CONSERVE  = 0;
@@ -360,7 +359,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   bool result = false;
   for (int conserve_level=NO_CONSERVE; conserve_level<=MAX_CONSERVE; ++conserve_level) {
     // Refine the disparity search ranges with the current conservation level.
-    vw_out(InfoMessage, "stereo") << "Refining search ranges with conservation level "
+    vw_out(DebugMessage, "stereo") << "Refining search ranges with conservation level "
                                   << conserve_level << std::endl;
     constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, 
                                percent_masked, area, conserve_level);
@@ -530,14 +529,14 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
   double initial_percent_full_range = 1.0 - (percent_trusted+percent_masked);
   double final_percent_full_range   = initial_percent_full_range - percent_shrunk;
-  vw_out(InfoMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
-  vw_out(InfoMessage, "stereo") << "Mean pixel search area (initial) = "  << area               << std::endl;
-  vw_out(InfoMessage, "stereo") << "Mean pixel search area (final  ) = "  << shrunk_area        << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
-  vw_out(InfoMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
+  vw_out(DebugMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
+  vw_out(DebugMessage, "stereo") << "Mean pixel search area (initial) = "  << area               << std::endl;
+  vw_out(DebugMessage, "stereo") << "Mean pixel search area (final  ) = "  << shrunk_area        << std::endl;
+  vw_out(DebugMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
+  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
+  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
   if (conserve_memory)
-    vw_out(InfoMessage, "stereo") << "Percent pixels conserved for memory = " << conserved << std::endl;
+    vw_out(DebugMessage, "stereo") << "Percent pixels conserved for memory = " << conserved << std::endl;
 
 
   // Return false if the image cannot be processed
@@ -2395,7 +2394,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   // Start up the thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out() << "Using " << thread_pool.max_threads() << " threads.\n";
+  vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads() << " threads.\n";
 
   // Initialize a number of line buffers equal to the number of threads
   OneLineBufferManager mem_buff_manager(num_threads, this);
@@ -2414,7 +2413,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << "."; // TODO: Use a proper processing time bar!
+  vw_out(DebugMessage, "stereo") << "."; // TODO: Use a proper processing time bar!
 
   // Add lines going up
   for (int i=0; i<width; ++i) { 
@@ -2424,7 +2423,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the left
   for (int i=0; i<height; ++i) { 
@@ -2434,7 +2433,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the right
   for (int i=0; i<height; ++i) {
@@ -2444,7 +2443,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the top left
   for (int i=0; i<width; ++i) {
@@ -2460,7 +2459,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the top right
   for (int i=0; i<width; ++i) {
@@ -2476,7 +2475,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the bottom left
   for (int i=0; i<width; ++i) {
@@ -2492,7 +2491,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << ".";
+  vw_out(DebugMessage, "stereo") << ".";
 
   // Add lines from the bottom right
   for (int i=0; i<width; ++i) {
@@ -2510,7 +2509,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   thread_pool.join_all(); // Wait for all tasks to complete
 
   // Finished!
-  vw_out() << "Finished multi-threaded accumulation!\n";
+  vw_out(DebugMessage, "stereo") << "Finished multi-threaded accumulation!\n";
 } // End function multi_thread_accumulation
 
 
@@ -2551,7 +2550,8 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
 
   // Start up thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out() << "Using " << thread_pool.max_threads() << " path accumulation threads.\n";
+  vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads()
+                                 << " path accumulation threads.\n";
 
   // Load all eight required passes as task in to the thread pool   
   typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
@@ -2574,7 +2574,7 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
   thread_pool.add_task(task_BL);
 
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out() << "Finished multi-threaded smooth accumulation.\n";  
+  vw_out(DebugMessage, "stereo") << "Finished multi-threaded smooth accumulation.\n";  
 
 } // End function smooth_path_accumulation_multithreaded
 
