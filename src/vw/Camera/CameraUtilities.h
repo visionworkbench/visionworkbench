@@ -252,6 +252,17 @@ struct DistortionOptimizeFunctor:
       out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
       out_vec[2*i+1] = loc[1];
     }
+
+    double cost = 0.0;
+    for (size_t it = 0; it < out_vec.size(); it++) {
+      //std::cout << "val is " << out_vec[it] << std::endl;
+      cost += out_vec[it] * out_vec[it];
+    }
+
+    std::cout.precision(18);
+    std::cout << "--cost is " << sqrt(cost) << std::endl;
+    std::cout << std::endl;
+    
     return out_vec;
   }
 }; // End class LensOptimizeFunctor
@@ -539,43 +550,62 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   // We don't handle AdjustableTSAI at all here.
   int num_distortion_params = 0;
   DistModelT init_model;
+  bool do_rpc = (DistModelT::class_name() == RPCLensDistortion::class_name());
+  int initial_rpc_degree = 1;
   if (DistModelT::class_name() == "AdjustableTSAI")
     vw_throw(ArgumentErr() << "Cannot create an AdjustableTSAI pinhole model.\n");
-  else if (DistModelT::class_name() != RPCLensDistortion::class_name()) {
+  else if (!do_rpc) {
     num_distortion_params = init_model.num_dist_params();
     seed.set_size(num_distortion_params);
     seed.set_all(0);
   } else{
-    num_distortion_params = RPCLensDistortion::num_dist_params(rpc_degree); 
+    // rpc model
+    num_distortion_params = RPCLensDistortion::num_dist_params(initial_rpc_degree); 
     seed.set_size(num_distortion_params);
     RPCLensDistortion::init_as_identity(seed); 
   }
+
+  // When desired to find RPC distortion of given degree, first find the distortion
+  // of degree 1, use that as a seed to find the distortion of degree 2, until
+  // arriving at the desired degree. This  produces better results than aiming
+  // right away for the desired degree, as in that case one gets stuck in a bad
+  // local minimum.
+  int num_passes = 1;
+  if (do_rpc) 
+    num_passes = std::max(rpc_degree, 1);
+  
   
   // Solve for the best new model params that give us the distorted
   // coordinates from the undistorted coordinates.
-  Vector<double> model_params = math::levenberg_marquardt(solver_model, seed,
-                                                          distorted_coords, status);
+  double mean_error = 0.0, max_error = 0.0;
+  DistModelT new_model;
+  Vector<double> model_params;
   
-  // Check the error
-  DistModelT new_model(model_params);
-  double mean_error = 0, max_error = 0;
-  for (size_t i = 0; i < undistorted_coords.size(); ++i) {
-    Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
-    Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
-    double error = norm_2(distorted - actual_distorted);
-    mean_error += error;
-    if (error > max_error)
-      max_error = error;
+  for (int pass = 1; pass <= num_passes; pass++) {
+    model_params = math::levenberg_marquardt(solver_model, seed,
+                                             distorted_coords, status);
+    // Check the error
+    new_model = DistModelT(model_params);
+    mean_error = 0.0;
+    max_error = 0.0;
+    for (size_t i = 0; i < undistorted_coords.size(); ++i) {
+      Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
+      Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
+      double error = norm_2(distorted - actual_distorted);
+      mean_error += error;
+      if (error > max_error)
+        max_error = error;
+    }
+    mean_error /= static_cast<double>(undistorted_coords.size());
+    max_error /= pixel_pitch; // convert the errors to pixels
+    mean_error /= pixel_pitch; // convert the errors to pixels
+    
+    vw_out() << "Approximated an " << lens_name << " distortion model "
+             << "using a distortion model of type " << new_model.name()
+             << " with mean pixel error of " << mean_error
+             << " and max pixel error of " << max_error << ".\n";
   }
-  mean_error /= static_cast<double>(undistorted_coords.size());
-  max_error /= pixel_pitch; // convert the errors to pixels
-  mean_error /= pixel_pitch; // convert the errors to pixels
   
-  vw_out() << "Approximated an " << lens_name << " distortion model "
-           << "using a distortion model of type " << new_model.name()
-           << " with mean pixel error of " << mean_error
-           << " and max pixel error of " << max_error << ".\n";
-
   // If the approximation is not very good, keep the original model and warn
   //  the user that things might take a long time.
   const double MAX_ERROR = 0.3;
@@ -587,7 +617,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     out_model.set_lens_distortion(&new_model);
 
     // This must be invoked here, when we know the image size
-    if (new_model.name() == RPCLensDistortion::class_name()) 
+    if (do_rpc) 
       compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing);
   }
   
