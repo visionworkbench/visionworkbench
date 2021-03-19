@@ -289,8 +289,9 @@ namespace math {
         VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
       }
 
-      // Percentage change convergence criterion
-      if (((norm_start-norm_try)/norm_start) < rel_tolerance) {
+      // Percentage change convergence criterion. Only if we did not do a short-circuit,
+      // as in that case the solution did not improve.
+      if (!shortCircuit && ((norm_start-norm_try)/norm_start) < rel_tolerance) {
         status = optimization::eConvergedRelTolerance;
         VW_OUT(DebugMessage, "math") << "CONVERGED TO RELATIVE TOLERANCE\n";
         done = true;
@@ -520,8 +521,9 @@ namespace math {
         //VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
       }
 
-      // Percentage change convergence criterion
-      if (((norm_start-norm_try)/norm_start) < rel_tolerance) {
+      // Percentage change convergence criterion. Only if we did not do a short-circuit,
+      // as in that case the solution did not improve.
+      if (!shortCircuit && ((norm_start-norm_try)/norm_start) < rel_tolerance) {
         status = optimization::eConvergedRelTolerance;
         //VW_OUT(DebugMessage, "math") << "CONVERGED TO RELATIVE TOLERANCE\n";
         done = true;
