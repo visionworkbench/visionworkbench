@@ -47,6 +47,8 @@ int main( int argc, char *argv[] ) {
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing, rpc_degree;
   double camera_to_ground_dist;
+  Vector2 image_size;
+  std::string image_size_str;
   
   po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
   desc.add_options()
@@ -64,7 +66,9 @@ int main( int argc, char *argv[] ) {
     ("camera-to-ground-dist", po::value(&camera_to_ground_dist)->default_value(0),    
      "The distance from the camera to the ground, in meters. This is necessary to convert an optical bar model to pinhole.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
-     "Specify the output file. It is expected to have the .tsai extension.");
+     "Specify the output file. It is expected to have the .tsai extension.")
+    ("image-size",        po::value(&image_size_str)->default_value(""),
+     "Image width and height, specified as two numbers in quotes and separated by a space, unless the input image file is provided.");
   
   po::positional_options_description p;
   p.add("input-file",  1);
@@ -75,7 +79,7 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    vw_out() << "An error occured while parsing command line arguments.\n";
+    vw_out() << "An error occurred while parsing command line arguments.\n";
     vw_out() << "\t" << e.what() << "\n\n";
     vw_out() << desc;
     return 1;
@@ -85,12 +89,47 @@ int main( int argc, char *argv[] ) {
     vw_out() << desc << std::endl;
     return 1;
   }
-  if( (vm.count("input-file") != 1) || (vm.count("camera-file") != 1) ) {
-    vw_out() << "Error: Must specify exactly one image file and one camera file!" << std::endl;
-    vw_out() << desc << std::endl;
-    return 1;
-  }
 
+  // Parse the image size from a string
+  if (image_size_str != "") {
+    std::istringstream iss(image_size_str);
+    if (! (iss >> image_size[0] >> image_size[1])) {
+      vw_out() << "Could not parse correctly the image size. "
+               << "The image dimensions must be in quotes.\n";
+      return 1;
+    }
+  }
+  
+  // Check if the image dimensions were specified
+  if (image_size[0] && image_size[1] > 0) {
+
+    // If the image size is specified, just the camera must be specified
+    if (camera_file_name != "") {
+      vw_out() << "If the image size is provided, the input image file must not be specified.\n";
+      return 1;
+    }
+
+    // If only the camera is specified, it will populate the image file field, as that's the
+    // first one.
+    if (image_file_name == "") {
+      vw_out() << "The input camera file is not specified.\n";
+      return 1;
+    } else {
+      camera_file_name = image_file_name;
+      image_file_name = "";
+    }
+    
+  } else {
+    // Must specify both the image and camera
+    if( (vm.count("input-file") != 1) || (vm.count("camera-file") != 1) ) {
+      vw_out() << "Error: Must specify exactly one image file and one camera file. "
+               << "At least provide the image size via the provided option "
+               << "if not the image itself." << std::endl;
+      vw_out() << desc << std::endl;
+      return 1;
+    }
+  }
+  
   if (rpc_degree <= 0) {
     vw_out() << "Error: The RPC degree must be positive." << std::endl;
     vw_out() << desc << std::endl;
@@ -98,9 +137,15 @@ int main( int argc, char *argv[] ) {
   }
 
   try {
-    // Get the size of the input image
-    boost::shared_ptr<vw::DiskImageResource> image_in(vw::DiskImageResource::open(image_file_name));
-    Vector2i image_size(image_in->format().cols, image_in->format().rows);
+    // Get the size of the input image, unless the dimensions were already specified
+    if (image_size[0] <=0 || image_size[1] <= 0) {
+      boost::shared_ptr<vw::DiskImageResource> image_in
+        (vw::DiskImageResource::open(image_file_name));
+      image_size = vw::Vector2(image_in->format().cols, image_in->format().rows);
+    }
+
+    std::cout << "image width and height are: " << image_size[0] << ' ' << image_size[1]
+              << std::endl;
     
     if (sample_spacing <= 0) {
       sample_spacing = auto_compute_sample_spacing(image_size);
@@ -127,7 +172,7 @@ int main( int argc, char *argv[] ) {
         opb.read(camera_file_name);
         in_model = &opb;
         success = true;
-        vw_out() << "Read an OpticalBarModel camera model.\n";
+        vw_out() << "Read an OpticalBarModel camera.\n";
         if (camera_to_ground_dist <= 0){
           vw_out() << "Must set the camera to ground distance "
                    << "if the input is an optical bar model.\n";
