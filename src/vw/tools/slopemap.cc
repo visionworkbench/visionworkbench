@@ -328,7 +328,7 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
+    std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
     std::cout << desc << std::endl;
     return 1;

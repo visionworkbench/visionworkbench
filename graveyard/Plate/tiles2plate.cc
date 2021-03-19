@@ -372,7 +372,7 @@ int main( int argc, char *argv[] ) {
     // update_read_cursor == true below.
     platefile->transaction_end( true );
   } catch (const vw::Exception& e) {
-    std::cout << "An error occured: " << e.what() << "\nExiting\n\n";
+    std::cout << "An error occurred: " << e.what() << "\nExiting\n\n";
     return 1;
   }
 

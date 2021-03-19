@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
     run(opt);
     return 0;
   } catch (const PlatefileErr& e) {
-    VW_OUT(ErrorMessage) << "A platefile error occured: " << e.what() << "\n";
+    VW_OUT(ErrorMessage) << "A platefile error occurred: " << e.what() << "\n";
   } catch (const Exception& e) {
     VW_OUT(ErrorMessage) << "Runtime Error: " << e.what() << "\n";
   }

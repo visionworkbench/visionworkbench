@@ -197,7 +197,7 @@ int main( int argc, char *argv[] ) {
       vw_throw(ArgumentErr() << "Image contains a pixel type not supported by snapshot.\n");
     }
   } catch ( const vw::Exception& e ) {
-    VW_OUT() << "An error occured: " << e.what() << "\nExiting.\n\n";
+    VW_OUT() << "An error occurred: " << e.what() << "\nExiting.\n\n";
     return 1;
   }
 

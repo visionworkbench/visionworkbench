@@ -305,7 +305,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   image_file.read((char*)image_data, bytes_per_pixel*total_pixels);
 
   if (image_file.bad())
-    vw_throw(IOErr() << "DiskImageResourcePDS: an unrecoverable error occured while reading the image data.");
+    vw_throw(IOErr() << "DiskImageResourcePDS: an unrecoverable error occurred while reading the image data.");
 
   // Convert the endian-ness of the data if the architecture of the
   // machine and the endianness of the file do not match.

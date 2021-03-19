@@ -404,7 +404,7 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    vw_out() << "An error occured while parsing command line arguments.\n";
+    vw_out() << "An error occurred while parsing command line arguments.\n";
     vw_out() << "\t" << e.what() << "\n\n";
     vw_out() << desc;
     return 1;

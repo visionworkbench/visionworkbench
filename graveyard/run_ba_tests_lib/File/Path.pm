@@ -622,7 +622,7 @@ An example usage looks like:
 
 Note that if no errors are encountered, C<$err> will reference an
 empty array.  This means that C<$err> will always end up TRUE; so you
-need to test C<@$err> to determine if errors occured.
+need to test C<@$err> to determine if errors occurred.
 
 =head2 NOTES
 

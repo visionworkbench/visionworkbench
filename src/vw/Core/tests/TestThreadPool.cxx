@@ -39,7 +39,7 @@ class TestTask : public Task, private boost::noncopyable {
     while( !terminate ) {
       Thread::sleep_ms(10);
       if (count++ > 500) {
-        std::cerr << "Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occured?" << std::endl;
+        std::cerr << "Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occurred?" << std::endl;
         exit(-1);
       }
     }

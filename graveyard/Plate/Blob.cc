@@ -50,7 +50,7 @@ namespace platefile {
 void ReadBlob::check_fail(const char* c1, const char* c2) const {
   if (m_fstream->fail()) {
     m_fstream->clear();
-    vw_throw(BlobIoErr() << "BlobIoErr occured on blob " << m_blob_filename << " while " << c1 << " " << c2);
+    vw_throw(BlobIoErr() << "BlobIoErr occurred on blob " << m_blob_filename << " while " << c1 << " " << c2);
   }
 }
 

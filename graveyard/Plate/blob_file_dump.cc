@@ -59,7 +59,7 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    VW_OUT() << "An error occured while parsing command line arguments.\n\n";
+    VW_OUT() << "An error occurred while parsing command line arguments.\n\n";
     VW_OUT() << usage.str();
     return 1;
   }
