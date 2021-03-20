@@ -771,7 +771,7 @@ void RPCLensDistortion::init_as_identity(Vector<double> & params){
 
   params.set_all(0);
   Vector<double> num_x, den_x, num_y, den_y;
-  unpack_params(params, num_x, den_x,  num_y, den_y);
+  unpack_params(params, num_x, den_x, num_y, den_y);
 
   // Initialize the transform (x, y) -> (x, y), which is 
   // ( (0 + 1*x + 0*y)/(1 + 0*x + 0*y), (0 + 0*x + 1*y)/(1 + 0*x + 0*y) )
@@ -779,6 +779,62 @@ void RPCLensDistortion::init_as_identity(Vector<double> & params){
   // store the 1 values in the denominator.
   num_x[1] = 1; num_y[2] = 1;
   pack_params(params, num_x, den_x, num_y, den_y);
+}
+
+namespace {
+
+  // A little function to append zeros to a Vector.
+  inline void append_zeros_to_vector(Vector<double> & vec, int num) {
+    
+    int len = vec.size();
+
+    Vector<double> out_vec;
+    out_vec.set_size(len + num);
+    for (int it = 0; it < len; it++) 
+      out_vec[it] = vec[it];
+
+    for (int it = len; it < len + num; it++) {
+      out_vec[it] = 0.0;
+    }
+
+    std::cout << "input vec " << vec << std::endl;
+    vec = out_vec;
+
+    std::cout << "output vec " << vec << std::endl;
+  }
+  
+}
+
+// Given the RPC coefficients corresponding to the four polynomials,
+// increase the degree of each polynomial by 1 and set the new
+// coefficients to 0.
+void RPCLensDistortion::increment_degree(Vector<double> & params){
+  RPCLensDistortion::validate_distortion_params(params);
+
+  std::cout << "--vec before " << params << std::endl;
+  Vector<double> num_x, den_x, num_y, den_y;
+  unpack_params(params, num_x, den_x, num_y, den_y);
+
+  int r = rpc_degree(params.size());
+
+  std::cout << "degree is " << r << std::endl;
+  
+  // The next monomials to add will be
+  // x^(r+1), x^r*y, ..., x*y^r, y^(r+1)
+  // and there are r + 2 of them.
+  // Set their coefficients to zero.
+  int num = r + 2;
+  
+  append_zeros_to_vector(num_x, num);
+  append_zeros_to_vector(den_x, num);
+  append_zeros_to_vector(num_y, num);
+  append_zeros_to_vector(den_y, num);
+
+  pack_params(params, num_x, den_x, num_y, den_y);
+
+  std::cout << "--vec after " << params << std::endl;
+
+  std::cout << "--degree after is " << rpc_degree(params.size()) << std::endl;
 }
 
 void RPCLensDistortion::unpack_params(Vector<double> const& params,

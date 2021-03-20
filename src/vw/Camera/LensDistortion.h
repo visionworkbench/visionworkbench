@@ -341,6 +341,7 @@ namespace camera {
     
     bool can_undistort() const { return m_can_undistort; }
     static void init_as_identity(Vector<double> & params);
+    static void increment_degree(Vector<double> & params);
   private:
     static void validate_distortion_params(Vector<double> const& params);
     static void unpack_params(Vector<double> const& params,

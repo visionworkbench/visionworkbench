@@ -541,9 +541,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
   // Now solve for a complementary lens distortion scheme
 
-  // Init solver object with the undistorted coordinates
-  DistortionOptimizeFunctor<DistModelT> solver_model(out_model, undistorted_coords);
-  int status;
+  int status = -1;
   Vector<double> seed; // Start with all zeros (no distortion)
 
   // For AdjustableTSAI and RPC, the number of distortion parameters is not fixed.
@@ -580,8 +578,24 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   double mean_error = 0.0, max_error = 0.0;
   DistModelT new_model;
   Vector<double> model_params;
+
+  if (do_rpc) 
+    vw_out() << "Compute the RPC distortion model starting at degree 1 "
+             << "and then refining it until reaching degree " << rpc_degree << std::endl;
   
   for (int pass = 1; pass <= num_passes; pass++) {
+
+    if (do_rpc && pass >= 2) {
+      // Use the previously solved model as a seed. Increment its degree by adding
+      // a new power with a zero coefficient in front.
+      seed = model_params;
+      RPCLensDistortion::increment_degree(seed);
+    }
+    
+    // Init solver object with the undistorted coordinates
+    DistortionOptimizeFunctor<DistModelT> solver_model(out_model, undistorted_coords);
+
+    // Find model_params by doing a best fit
     model_params = math::levenberg_marquardt(solver_model, seed,
                                              distorted_coords, status);
     // Check the error
@@ -601,8 +615,12 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     mean_error /= pixel_pitch; // convert the errors to pixels
     
     vw_out() << "Approximated an " << lens_name << " distortion model "
-             << "using a distortion model of type " << new_model.name()
-             << " with mean pixel error of " << mean_error
+             << "using a distortion model of type " << new_model.name();
+      
+    if (do_rpc)
+      vw_out() << " of degree " << pass;
+
+    vw_out() << " with mean pixel error of " << mean_error
              << " and max pixel error of " << max_error << ".\n";
   }
   
