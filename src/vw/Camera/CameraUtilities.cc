@@ -314,8 +314,10 @@ void update_rpc_undistortion(PinholeModel const& model){
     
     // Only update this if we have to
     int sample_spacing = auto_compute_sample_spacing(rpc_dist->image_size());
+    int rpc_degree = rpc_dist->rpc_degree();
     if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size(), sample_spacing);
+      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size(), sample_spacing,
+                                              rpc_degree);
   }
 
 }

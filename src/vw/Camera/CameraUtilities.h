@@ -253,16 +253,6 @@ struct DistortionOptimizeFunctor:
       out_vec[2*i+1] = loc[1];
     }
 
-    double cost = 0.0;
-    for (size_t it = 0; it < out_vec.size(); it++) {
-      //std::cout << "val is " << out_vec[it] << std::endl;
-      cost += out_vec[it] * out_vec[it];
-    }
-
-    std::cout.precision(18);
-    std::cout << "--cost is " << sqrt(cost) << std::endl;
-    std::cout << std::endl;
-    
     return out_vec;
   }
 }; // End class LensOptimizeFunctor
@@ -309,7 +299,8 @@ struct UndistortionOptimizeFunctor:
 // undistortion coefficients.  Only applicable for RPC.
 // TODO: Move this to the class RPCLensDistortion.
 template<class DistModelT>
-double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sample_spacing) {
+double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
+                            int sample_spacing, int rpc_degree) {
 
   // Get info on existing distortion model
   const LensDistortion* input_distortion = pin_model.lens_distortion();
@@ -325,8 +316,8 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   // Generate a set of point pairs between undistorted and distorted coordinates.
   std::vector<Vector2> distorted_coords;
   Vector<double> undistorted_coords;
-  int num_cols   = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
-  int num_rows   = image_size[1]/sample_spacing; // interval of "sample_spacing"
+  int num_cols = image_size[0]/sample_spacing; // Grab point pairs for the solver at every
+  int num_rows = image_size[1]/sample_spacing; // interval of "sample_spacing"
   num_cols = std::max(num_cols, 2);
   num_rows = std::max(num_rows, 2);
   int num_coords = num_rows*num_cols;
@@ -337,24 +328,15 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   // TODO: Need to get boxes of where the RPC model is valid.
   // TODO: The logic below will break down for huge distortion.
   int index = 0;
-#if 0
-  // TODO: Test carefully this functionality and use it.
+  // Create pairs of pixels and xyz for the input camera
   for (int c = 0; c <= num_cols - 1; c++) {
-    double col = (image_size[0] - 1.0) * double(c)/(num_cols - 1.0); // sample carefully
-
-    for (int r = 0; r <= num_rows - 1; r++) {
-      double row = (image_size[1] - 1.0) * double(r)/(num_rows - 1.0); // sample carefully
-#else
-  for (int r = 0; r < num_rows; r++) {
-
-    // TODO: This does not sample well close to num_rows
-    int row = r*sample_spacing;
+    // sample the full interval [0, image_size[0]-1] uniformly
+    double col = (image_size[0] - 1.0) * double(c)/(num_cols - 1.0);
     
-    for (int c = 0; c < num_cols; c++) {
-
-      // TODO: This does not sample well close to num_cols
-      int col = c*sample_spacing;
-#endif      
+    for (int r = 0; r <= num_rows - 1; r++) {
+      // sample the full interval [0, image_size[1]-1] uniformly
+      double row = (image_size[1] - 1.0) * double(r)/(num_rows - 1.0); 
+      
       // TODO: Need more care below to fill up the domain of validity.
       // Generate an distorted/undistorted point pair using the input model.
       // Note that the pixel pairs need to be corrected for pitch here.
@@ -369,29 +351,83 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
     }
   } // End loop through sampled pixels
 
-  
-  // Now solve for a complementary lens distortion scheme
-
-  // Init solver object with the distorted coordinates
-  UndistortionOptimizeFunctor<DistModelT> solver_model(pin_model, distorted_coords);
-  int status;
+  // When desired to find RPC undistortion of given degree, first find
+  // the undistortion of degree 1, use that as a seed to find the
+  // undistortion of degree 2, until arriving at the desired
+  // degree. This produces better results than aiming right away for
+  // the desired degree, as in that case one gets stuck in a bad local
+  // minimum.
+  int status = -1;
+  int initial_rpc_degree = 1;
+  int num_distortion_params = RPCLensDistortion::num_dist_params(initial_rpc_degree); 
   Vector<double> seed;
-  seed.set_size(input_distortion->num_dist_params());
-  if (DistModelT::class_name() != RPCLensDistortion::class_name()) 
-    seed.set_all(0); // Start with all zeros (no distortion)
-  else
-    RPCLensDistortion::init_as_identity(seed); 
-
-  // Solve for the best new model params that give us the undistorted
-  // coordinates from the distorted coordinates.
+  seed.set_size(num_distortion_params);
+  RPCLensDistortion::init_as_identity(seed); 
   
-  // TODO: This is not good enough. for high enough degree of the RPC
-  // polynomial, simply starting with an identity undistortion won't
-  // lead to the best solution. Need to first compute a low-degree
-  // undistortion, then refine it gradually for each higher degree.
-  Vector<double> undist_params = math::levenberg_marquardt(solver_model,
-                                                           seed, undistorted_coords, status);
-
+  int num_passes = std::max(rpc_degree, 1);
+  
+  Vector<double> undist_params;
+  double mean_error = 0.0;
+  vw_out() << "Will compute undistortion for degree 1 and then refine it.\n";
+  
+  for (int pass = 1; pass <= num_passes; pass++) {
+    
+    if (pass >= 2) {
+      // Use the previously undistortion as a seed. Increment its degree by adding
+      // a new power with a zero coefficient in front.
+      seed = undist_params;
+      RPCLensDistortion::increment_degree(seed);
+    }
+    
+    // Init solver object with the distorted coordinates
+    UndistortionOptimizeFunctor<DistModelT> solver_model(pin_model, distorted_coords);
+    
+    undist_params = math::levenberg_marquardt(solver_model,
+                                              seed, undistorted_coords, status);
+  
+    // Make a temporary copy of the model.  This will have the current
+    // undistortion. We will set its distortion to the
+    // undistortion. This will be wrong, but otherwise the model will
+    // complain as the undistortion for now has smaller length than
+    // the distortion. We won't use the wrong distortion though.
+    // After we exit this look we will do everything right.
+    
+    boost::shared_ptr<LensDistortion> dist_copy = input_distortion->copy();
+    // Child class access to dist_copy
+    DistModelT* temp_model = dynamic_cast<DistModelT*>(dist_copy.get());
+    if (temp_model == NULL) 
+      vw_throw( ArgumentErr() << "PinholeModel::expecting an " +
+                DistModelT::class_name() + " model." );
+    
+    // Set the new undistortion params
+    temp_model->set_distortion_parameters(undist_params); // wrong but we won't use it
+    temp_model->set_undistortion_parameters(undist_params);
+    temp_model->set_image_size(image_size);
+    
+    // Check the error
+    mean_error = 0;
+    double max_error = 0;
+    double norm = 0.0;
+    for (size_t i = 0; i < distorted_coords.size(); i++) {
+      Vector2 undistorted        = temp_model->undistorted_coordinates(pin_model,
+                                                                       distorted_coords[i]);
+      Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
+      double error = norm_2(undistorted - actual_undistorted);
+      mean_error += error;
+      if (error > max_error)
+        max_error = error;
+      norm += error * error;
+    }
+    mean_error /= static_cast<double>(distorted_coords.size());
+    mean_error /= pixel_pitch; // convert to pixels
+    max_error /= pixel_pitch; // convert to pixels
+    norm = sqrt(norm) / pixel_pitch; // take the square root and convert to pixels
+    vw_out() << DistModelT::class_name() << " undistortion approximation "
+             << "of degree " << temp_model->rpc_degree()
+             << " has mean, max, and norm of pixel error of "
+             << mean_error << ", " << max_error << ", and " << norm << ".\n";
+  }
+  
   // Make a copy of the model
   boost::shared_ptr<LensDistortion> dist_copy = input_distortion->copy();
   // Child class access to dist_copy
@@ -399,28 +435,13 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size, int sa
   if (new_model == NULL) 
     vw_throw( ArgumentErr() << "PinholeModel::expecting an " +
               DistModelT::class_name() + " model." );
-
+  
   // Set the new undistortion params
   new_model->set_undistortion_parameters(undist_params);
   new_model->set_image_size(image_size);
   
-  // Check the error
-  double mean_error = 0, max_error = 0;
-  for (size_t i = 0; i < distorted_coords.size(); i++) {
-    Vector2 undistorted        = new_model->undistorted_coordinates(pin_model, distorted_coords[i]);
-    Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
-    double error = norm_2(undistorted - actual_undistorted);
-    mean_error += error;
-    if (error > max_error)
-      max_error = error;
-  }
-  mean_error /= static_cast<double>(distorted_coords.size());
-  mean_error /= pixel_pitch; // convert to pixels
-  max_error /= pixel_pitch; // convert to pixels
-  vw_out() << DistModelT::class_name() << " undistortion approximation mean pixel error is "
-           << mean_error << " and max pixel error is " << max_error << ".\n";
-  
-  pin_model.set_lens_distortion(new_model); // Set updated distortion model
+  pin_model.set_lens_distortion(new_model); // Set the updated distortion model
+
   return mean_error;
 } 
 
@@ -507,7 +528,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
       if (pin_model != NULL) {
 
         undist_pixel = pix * pixel_pitch;
-        dist_pixel   = pin_model->lens_distortion()->distorted_coordinates(*pin_model, undist_pixel);
+        dist_pixel   = pin_model->lens_distortion()->distorted_coordinates(*pin_model,
+                                                                           undist_pixel);
         
       }else if (opb_model != NULL) {
 
@@ -571,17 +593,16 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   int num_passes = 1;
   if (do_rpc) 
     num_passes = std::max(rpc_degree, 1);
-  
-  
+    
   // Solve for the best new model params that give us the distorted
   // coordinates from the undistorted coordinates.
-  double mean_error = 0.0, max_error = 0.0;
+  double mean_error = 0.0, max_error = 0.0, norm = 0.0;
   DistModelT new_model;
   Vector<double> model_params;
 
   if (do_rpc) 
     vw_out() << "Compute the RPC distortion model starting at degree 1 "
-             << "and then refining it until reaching degree " << rpc_degree << std::endl;
+             << "and then refine it until reaching degree " << rpc_degree << ".\n";
   
   for (int pass = 1; pass <= num_passes; pass++) {
 
@@ -606,6 +627,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
       Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
       Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
       double error = norm_2(distorted - actual_distorted);
+      norm += error * error; 
       mean_error += error;
       if (error > max_error)
         max_error = error;
@@ -613,15 +635,16 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     mean_error /= static_cast<double>(undistorted_coords.size());
     max_error /= pixel_pitch; // convert the errors to pixels
     mean_error /= pixel_pitch; // convert the errors to pixels
+    norm = sqrt(norm) / pixel_pitch; // take the square root and convert to pixels
     
     vw_out() << "Approximated an " << lens_name << " distortion model "
              << "using a distortion model of type " << new_model.name();
-      
+    
     if (do_rpc)
       vw_out() << " of degree " << pass;
-
-    vw_out() << " with mean pixel error of " << mean_error
-             << " and max pixel error of " << max_error << ".\n";
+    
+    vw_out() << " with mean, max, and norm of pixel error of "
+             << mean_error << ", " << max_error << ", and " << norm << ".\n";
   }
   
   // If the approximation is not very good, keep the original model and warn
@@ -636,7 +659,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
 
     // This must be invoked here, when we know the image size
     if (do_rpc) 
-      compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing);
+      compute_undistortion<RPCLensDistortion>(out_model, image_size, sample_spacing, rpc_degree);
   }
   
   return mean_error;

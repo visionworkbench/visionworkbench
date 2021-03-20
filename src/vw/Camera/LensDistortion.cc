@@ -796,11 +796,7 @@ namespace {
     for (int it = len; it < len + num; it++) {
       out_vec[it] = 0.0;
     }
-
-    std::cout << "input vec " << vec << std::endl;
     vec = out_vec;
-
-    std::cout << "output vec " << vec << std::endl;
   }
   
 }
@@ -811,14 +807,11 @@ namespace {
 void RPCLensDistortion::increment_degree(Vector<double> & params){
   RPCLensDistortion::validate_distortion_params(params);
 
-  std::cout << "--vec before " << params << std::endl;
   Vector<double> num_x, den_x, num_y, den_y;
   unpack_params(params, num_x, den_x, num_y, den_y);
 
   int r = rpc_degree(params.size());
 
-  std::cout << "degree is " << r << std::endl;
-  
   // The next monomials to add will be
   // x^(r+1), x^r*y, ..., x*y^r, y^(r+1)
   // and there are r + 2 of them.
@@ -832,9 +825,6 @@ void RPCLensDistortion::increment_degree(Vector<double> & params){
 
   pack_params(params, num_x, den_x, num_y, den_y);
 
-  std::cout << "--vec after " << params << std::endl;
-
-  std::cout << "--degree after is " << rpc_degree(params.size()) << std::endl;
 }
 
 void RPCLensDistortion::unpack_params(Vector<double> const& params,
