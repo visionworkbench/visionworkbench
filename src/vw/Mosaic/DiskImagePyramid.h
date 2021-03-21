@@ -203,7 +203,7 @@ namespace vw { namespace mosaic {
 			ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out) const;
 
     vw::Vector2 get_approx_bounds() const {
-      return get_approx_bounds_noclass<PixelT>(m_pyramid_files.back());
+      return m_approx_bounds;
     }
     
     ~DiskImagePyramid() {}
@@ -245,9 +245,10 @@ namespace vw { namespace mosaic {
     std::vector<int> m_scales;
     
     /// Contains all the temporary image files we create
-    std::set<std::string> m_temporary_files; 
-  };
+    std::set<std::string> m_temporary_files;
 
+    vw::Vector2 m_approx_bounds;
+  };
 
   //#################################################################################
   // Function definitions
@@ -372,6 +373,8 @@ namespace vw { namespace mosaic {
       level++;
     } // End level creation loop
 
+    // This is very expensive, so cache it going forward
+    m_approx_bounds = get_approx_bounds_noclass<PixelT>(m_pyramid_files.back());
   }
 
   template <class PixelT>
