@@ -600,6 +600,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   DistModelT new_model;
   Vector<double> model_params;
 
+  vw_out() << "Approximating an " << lens_name << " distortion model.\n";
   if (do_rpc) 
     vw_out() << "Compute the RPC distortion model starting at degree 1 "
              << "and then refine it until reaching degree " << rpc_degree << ".\n";
@@ -637,8 +638,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     mean_error /= pixel_pitch; // convert the errors to pixels
     norm = sqrt(norm) / pixel_pitch; // take the square root and convert to pixels
     
-    vw_out() << "Approximated an " << lens_name << " distortion model "
-             << "using a distortion model of type " << new_model.name();
+    
+    vw_out() << "Using a distortion model of type " << new_model.name();
     
     if (do_rpc)
       vw_out() << " of degree " << pass;
