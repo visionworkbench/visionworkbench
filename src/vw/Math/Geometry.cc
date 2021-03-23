@@ -128,17 +128,19 @@ HomographyFittingFunctor::BasicDLT( std::vector<Vector3 > const& input,
 }
 
 void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec, 
-					vw::Matrix<double> const & out_vec,
-					vw::Matrix<double,3,3>   & rotation,
-					vw::Vector<double,3>     & translation,
-					double                   & scale,
-					std::string      const   & transform_type,
-					bool                       filter_outliers) {
+                                        vw::Matrix<double> const & out_vec,
+                                        vw::Matrix<double,3,3>   & rotation,
+                                        vw::Vector<double,3>     & translation,
+                                        double                   & scale,
+                                        std::string        const & transform_type,
+                                        bool                       filter_outliers,
+                                        vw::Vector2        const & outlier_removal_params) {
   
   std::vector<bool> is_outlier;
   if (!filter_outliers) {
     find_3D_affine_transform_aux(in_vec, out_vec, rotation, translation, scale,
-				 transform_type, filter_outliers, is_outlier);
+                                 transform_type, filter_outliers, outlier_removal_params,
+                                 is_outlier);
     return;
   }
 
@@ -152,8 +154,8 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
   // be good enough if outliers are not many or not large.
     
   int num_attempts      = 5;
-  double outlier_factor = 3.0;
-  double percentile     = 75.0;
+  double percentile     = outlier_removal_params[0];
+  double outlier_factor = outlier_removal_params[1];
   int num_pts           = in_vec.cols();
 
   // Start with no outliers
@@ -165,13 +167,14 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
   for (int attempt = 0; attempt < num_attempts; attempt++) {
       
     find_3D_affine_transform_aux(in_vec, out_vec,  rotation, translation,
-				 scale, transform_type, filter_outliers, is_outlier);
+                                 scale, transform_type, filter_outliers, outlier_removal_params,
+                                 is_outlier);
 
     for (int col = 0; col < num_pts; col++) {
       Vector3 src, ref;
       for (int row = 0; row < 3; row++) {
-	src[row] = in_vec(row, col);
-	ref[row] = out_vec(row, col);
+        src[row] = in_vec(row, col);
+        ref[row] = out_vec(row, col);
       }
       Vector3 trans_src = scale*rotation*src + translation;
       errors[col] = norm_2(ref - trans_src);
@@ -181,37 +184,39 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
 
     int cutoff = round(num_pts * (percentile/100.0)) - 1;
     if (cutoff < 0) cutoff = 0;
-	
-    double thresh = outlier_factor * errors[cutoff];
 
+    double thresh = outlier_factor * errors[cutoff];
+    
     // Flag the outliers. Must recompute the errors since they were sorted
     for (int col = 0; col < num_pts; col++) {
       Vector3 src, ref;
       for (int row = 0; row < 3; row++) {
-	src[row] = in_vec(row, col);
-	ref[row] = out_vec(row, col);
+        src[row] = in_vec(row, col);
+        ref[row] = out_vec(row, col);
       }
       Vector3 trans_src = scale*rotation*src + translation;
       errors[col] = norm_2(ref - trans_src);
-      is_outlier[col] = (errors[col] >= thresh);
+      is_outlier[col] = (errors[col] > thresh);
     }
   }
     
 }
   
 void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec, 
-					    vw::Matrix<double> const & out_vec,
-					    vw::Matrix<double,3,3>   & rotation,
-					    vw::Vector<double,3>     & translation,
-					    double                   & scale,
-					    std::string      const   & transform_type,
-					    bool                       filter_outliers,
-					    std::vector<bool>        & is_outlier) {
+                                            vw::Matrix<double> const & out_vec,
+                                            vw::Matrix<double,3,3>   & rotation,
+                                            vw::Vector<double,3>     & translation,
+                                            double                   & scale,
+                                            std::string        const & transform_type,
+                                            bool                       filter_outliers,
+                                            vw::Vector2        const & outlier_removal_params,
+                                            std::vector<bool>        & is_outlier) {
+
   
   if (transform_type != "similarity" && transform_type != "rigid" &&
       transform_type != "translation") {
     vw_throw( vw::ArgumentErr() << "find_3D_affine_transform_aux: Expecting to compute a "
-	      << "transform which is either similarity, or rigid, or translation." );
+              << "transform which is either similarity, or rigid, or translation." );
   }
     
   // Make copies that we can modify inline
@@ -224,10 +229,10 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   scale = 1.0;
     
   VW_ASSERT((in.rows() == 3) && (in.rows() == out.rows()) && (in.cols() == out.cols()), 
-	    vw::ArgumentErr() << "find_3D_affine_transform(): input data has incorrect size.\n");
+            vw::ArgumentErr() << "find_3D_affine_transform(): input data has incorrect size.\n");
   VW_ASSERT((in.cols() >= 3), 
-	    vw::ArgumentErr() << "find_3D_affine_transform(): Must have at least "
-	    << "three data points.\n");
+            vw::ArgumentErr() << "find_3D_affine_transform(): Must have at least "
+            << "three data points.\n");
     
   typedef vw::math::MatrixCol<vw::Matrix<double> > ColView;
 
@@ -236,23 +241,23 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   if (transform_type == "similarity") {
     double dist_in = 0, dist_out = 0;
     for (size_t col = 0; col < in.cols() - 1; col++) {
-        
+      
       if (filter_outliers && is_outlier[col]) continue;
-        
+      
       size_t next_col = col + 1;
       if (filter_outliers) {
-	// Find the next column that is not an outlier
-	bool success = false;
-	while (next_col < in.cols()){
-	  if (!is_outlier[next_col]) {
-	    success = true;
-	    break;
-	  }
-	  next_col++;
-	}
-	if (!success) continue;
+        // Find the next column that is not an outlier
+        bool success = false;
+        while (next_col < in.cols()){
+          if (!is_outlier[next_col]) {
+            success = true;
+            break;
+          }
+          next_col++;
+        }
+        if (!success) continue;
       }
-        
+      
       ColView inCol1 (in,  col), inCol2 (in,  next_col);
       ColView outCol1(out, col), outCol2(out, next_col);
       dist_in  += vw::math::norm_2(inCol2  - inCol1 );
@@ -265,7 +270,7 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
     scale = dist_out/dist_in;
     out /= scale;
   }
-    
+
   // Find the centroids then shift to the origin
   vw::Vector3 in_ctr;
   vw::Vector3 out_ctr;
@@ -302,17 +307,17 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
     for (size_t col = 0; col < in.cols(); col++) {
 
       if (filter_outliers && is_outlier[col]) continue;
-	
+        
       for (size_t row = 0; row < in.rows(); row++) {
-	in(row, good_col)  = in(row, col);
-	out(row, good_col) = out(row, col);
+        in(row, good_col)  = in(row, col);
+        out(row, good_col) = out(row, col);
       }
       good_col++;
     }
    
     VW_ASSERT((good_col >= 1), 
-	      vw::ArgumentErr() << "find_3D_affine_transform(): no data "
-	      << "left after outlier filtering.\n");
+              vw::ArgumentErr() << "find_3D_affine_transform(): no data "
+              << "left after outlier filtering.\n");
       
     in.set_size(in.rows(), good_col);
     out.set_size(out.rows(), good_col);
@@ -324,7 +329,7 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
     vw::Matrix<float> U, VT;
     vw::Vector<float> s;
     vw::math::svd(cov, U, s, VT);
-      
+    
     // Find the rotation
     double d = vw::math::det(vw::math::transpose(VT) * vw::math::transpose(U));
     if (d > 0)
@@ -336,7 +341,8 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
     I(2, 2) = d;
     rotation = vw::math::transpose(VT) * I * vw::math::transpose(U);
   }
-    
+  
   translation = scale*(out_ctr - rotation*in_ctr);
+
   return;
 }
