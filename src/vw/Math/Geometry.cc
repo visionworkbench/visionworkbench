@@ -165,7 +165,7 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
 
   std::vector<double> errors(num_pts);
   for (int attempt = 0; attempt < num_attempts; attempt++) {
-      
+    
     find_3D_affine_transform_aux(in_vec, out_vec,  rotation, translation,
                                  scale, transform_type, filter_outliers, outlier_removal_params,
                                  is_outlier);
@@ -181,13 +181,13 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
     }
 
     std::sort(errors.begin(), errors.end());
-
+    
     int cutoff = round(num_pts * (percentile/100.0)) - 1;
     if (cutoff < 0) cutoff = 0;
 
     double thresh = outlier_factor * errors[cutoff];
-    
-    // Flag the outliers. Must recompute the errors since they were sorted
+
+    // Flag the outliers. Must recompute the errors since they were sorted.
     for (int col = 0; col < num_pts; col++) {
       Vector3 src, ref;
       for (int row = 0; row < 3; row++) {
@@ -199,7 +199,7 @@ void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec,
       is_outlier[col] = (errors[col] > thresh);
     }
   }
-    
+
 }
   
 void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec, 
@@ -239,6 +239,7 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   // First find the scale, by finding the ratio of sums of some distances,
   // then bring the datasets to the same scale.
   if (transform_type == "similarity") {
+    int num_segments = 0;
     double dist_in = 0, dist_out = 0;
     for (size_t col = 0; col < in.cols() - 1; col++) {
       
@@ -258,15 +259,18 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
         if (!success) continue;
       }
       
+      num_segments++;
+      
       ColView inCol1 (in,  col), inCol2 (in,  next_col);
       ColView outCol1(out, col), outCol2(out, next_col);
       dist_in  += vw::math::norm_2(inCol2  - inCol1 );
       dist_out += vw::math::norm_2(outCol2 - outCol1);
     }
-      
-    if (dist_in <= 0 || dist_out <= 0)
-      return;
 
+    if (num_segments < 1 || dist_in <= 0 || dist_out <= 0) 
+      vw_throw(vw::ArgumentErr() << "find_3D_affine_transform(): not enough distinct points "
+               << "to find the scale.\n");
+    
     scale = dist_out/dist_in;
     out /= scale;
   }
@@ -294,9 +298,10 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   for (size_t col = 0; col < in.cols(); col++) { 
 
     if (filter_outliers && is_outlier[col]) continue;
-
+    
     ColView inCol (in,  col);
     ColView outCol(out, col);
+
     inCol  -= in_ctr;
     outCol -= out_ctr;
   }
@@ -312,15 +317,18 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
         in(row, good_col)  = in(row, col);
         out(row, good_col) = out(row, col);
       }
+
       good_col++;
     }
-   
-    VW_ASSERT((good_col >= 1), 
-              vw::ArgumentErr() << "find_3D_affine_transform(): no data "
-              << "left after outlier filtering.\n");
-      
-    in.set_size(in.rows(), good_col);
-    out.set_size(out.rows(), good_col);
+
+    if (good_col < 3)
+      vw_throw(vw::ArgumentErr() << "find_3D_affine_transform(): less than 3 points left "
+               << "after outlier filtering.\n");
+
+    // Shrink the data sets to the inliers
+    bool preserve_existing = true;
+    in.set_size(in.rows(), good_col, preserve_existing);
+    out.set_size(out.rows(), good_col, preserve_existing);
   }
 
   if (transform_type != "translation") {
