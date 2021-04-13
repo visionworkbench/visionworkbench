@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/PixelMath.h>
@@ -54,7 +53,7 @@ namespace vw { namespace stereo { namespace detail {
 StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
                          bool least_squares_refine, double angle_tol) :
   m_cameras(cameras),
-  m_least_squares(least_squares_refine), m_angle_tol(angle_tol), m_bathy_correct(false) {}
+  m_least_squares(least_squares_refine), m_angle_tol(angle_tol) {}
   
 // Constructor with two cameras
 StereoModel::StereoModel(camera::CameraModel const* camera_model1,
@@ -65,101 +64,7 @@ StereoModel::StereoModel(camera::CameraModel const* camera_model1,
   m_cameras.push_back(camera_model2);
   m_least_squares = least_squares_refine;
   m_angle_tol = angle_tol;
-  m_bathy_correct = false;
 }
-
-// Settings used for bathymetry correction
-void StereoModel::set_bathy(double refraction_index, std::vector<double> const& bathy_plane) {
-
-  m_bathy_correct = true;
-  m_refraction_index = refraction_index;
-  m_bathy_plane = bathy_plane;
-
-  if (m_refraction_index <= 1) 
-    vw::vw_throw(vw::ArgumentErr() << "The water refraction index must be bigger than 1.");
-
-  if (m_bathy_plane.size() != 4 || m_bathy_plane[3] >=0) 
-    vw::vw_throw(vw::ArgumentErr() << "The bathymetry plane must have 4 coefficients,"
-                 << " with the last one negative.");
-  
-}
-
-// Given a ray going down towards Earth, starting at point c and with
-// unit direction d, a plane 'p' to the water surface with four
-// coefficients such that the plane equation is p[0] * x + p[1] * y +
-// p[2] * z + p[3] = 0, with p[3] < 0, the normal (p[0], p[1],
-// p[2]) pointing upwards away from Earth, and water refraction index,
-// find where this ray meets the water plane named c2, and the ray
-// direction d2 after it bends according to Snell's law. Return true
-// on success.
-bool StereoModel::snells_law(Vector3 const& c, Vector3 const& d,
-                             std::vector<double> const& p,
-                             double refraction_index, 
-                             Vector3 & c2, Vector3 & d2) {
-
-  // The ray is given as c + alpha * d, where d > 0.
-  // See where it intersects the plane.
-  double cn = 0.0, dn = 0.0; // Dot product of c and d with plane normal n
-  for (size_t it = 0; it < 3; it++) {
-    cn += p[it] * c[it];
-    dn += p[it] * d[it];
-  }
-
-  // The ray must descend to the plane, or else something is not right
-  if (dn >= 0.0)
-    return false;
-    
-  double alpha = -(p[3] + cn)/dn;
-  
-  // The intersection with the plane
-  c2 = c + alpha * d;
-
-  // Let n be the plane normal pointing up (the first three components
-  // of the plane vector p). Let d2 be the outgoing vector after the
-  // ray hits the water, according to Snell's law, with d being the
-  // incoming ray. Let a1 be the angles between -d and n, a2 be the
-  // angle between d2 and -n.
-  
-  // Then sin(a1) = refraction_index * sin(a2) per Snell's law.
-  // Square this. Note that cos^2 (x) + sin^2 (x) = 1.
-  // So, 1 - cos(a1)^2 = refraction_index^2 * (1 - cos(a2)^2).
-  // But cos(a1) = dot_product(-d, n) = -dn.
-  // So, cos(a2)^2 = 1 - (1 - dn^2)/refraction_index^2
-  // Call the left-hand value cos_sq.
-
-  double cos_sq = 1.0 - (1.0 - dn * dn)/refraction_index/refraction_index;
-  
-  // The outgoing vector d2 will be a linear combination of -n and d1,
-  // normalized to unit length. Let alpha > 0 be the value which will
-  // produce the linear combination.  So,
-  // d2 = (-n + alpha * d)/norm(-n + alpha * d)
-  // But dot(d2, -n) = cos(a2). Hence, if we dot the above with n and square it,
-  // we get 
-  // cos(a2)^2 = (-1 + alpha * dn)^2 / dot( -n + alpha * d, -n + alpha * d)
-  // or 
-  // cos(a2)^2 * dot( -n + alpha * d, -n + alpha * d) = (-1 + alpha * dn)^2  
-  // or
-  // cos_sq * (1 - 2 * alpha * dn + alpha^2) = ( 1 - 2*alpha * dn + alpha^2 * dn^2)
-  //
-  // Note that we computed cos_sq from Snell's law above.
-  
-  // Move everything to the left and find the coefficients of the
-  // quadratic equation in alpha, so u * alpha^2 + v * alpha + w = 0.
-  double u = cos_sq - dn * dn;  // this is cos(a2)^2 - cos(a1)^2 > 0 as a2 < a1
-  double v = -2 * dn * cos_sq + 2.0 * dn;
-  double w = cos_sq - 1.0;
-  double delta = v * v - 4 * u * w; // discriminant
-  if (u <= 0.0 || delta < 0.0) 
-    return false; // must not happen
-  
-  alpha = (-v + sqrt(delta)) / (2.0 * u); // pick the positive quadratic root
-            
-  // The normalized direction after the ray is bent
-  d2 = -Vector3(p[0], p[1], p[2]) + alpha * d;
-  d2 = d2 / norm_2(d2);
-
-  return true;
-}  
 
 bool StereoModel::are_nearly_parallel(bool least_squares,
                                       double angle_tol,
@@ -189,18 +94,15 @@ bool StereoModel::are_nearly_parallel(bool least_squares,
   return are_par;
 }
 
-// Compute the rays intersection. Note that even if we are in bathymetry mode,
-// so m_bathy_correct is true, for this particular pair of rays
-// we may have do_bathy false, and then we won't do the correction.
-// Return also a flag saying if we did bathymetry correction or not.
+// Compute the rays intersection. We do no bathy in this class,
+// but have to use the bathy variables as part of the interface.
+
+// Note: Classes RPCStereoModel and BathyStereoModel inherit from this
+// class and re-implement this function.
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
                                 Vector3& errorVec, bool do_bathy, bool & did_bathy) const {
   
-  // Note: Class RPCStereoModel inherits from this class and
-  // re-implements this function.
-
   // Initialize the outputs
-  did_bathy = false;
   errorVec = Vector3();
   
   int num_cams = m_cameras.size();
@@ -243,58 +145,17 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     }
     
     // Reflect points that fall behind one of the two cameras.
-    // Do not do this when bathymetry mode is on, as then we surely
-    // have satellite images and there is no way a point would be behind
-    // the camera.
-    if (!m_bathy_correct) {
-      bool reflect = false;
-      for (int p = 0; p < (int)camCtrs.size(); p++)
-        if (dot_prod(result - camCtrs[p], camDirs[p]) < 0 ) reflect = true;
-      if (reflect)
-        result = -result + 2*camCtrs[0];
-    }
+    bool reflect = false;
+    for (int p = 0; p < (int)camCtrs.size(); p++)
+      if (dot_prod(result - camCtrs[p], camDirs[p]) < 0 ) reflect = true;
+    if (reflect)
+      result = -result + 2*camCtrs[0];
 
-    if (!do_bathy || camDirs.size() != 2) 
-      return result;
-    
-    // Continue with bathymetry correction
-      
-    if (!m_bathy_correct) 
-      vw::vw_throw(vw::ArgumentErr()
-                   << "Requested to do bathymetry correction while"
-                   << "this mode was not set up.");
-
-    // If the intersection point is above the water plane, don't do
-    // bathymetry correction.
-    double ht_val = 0.0;
-    for (size_t it = 0; it < 3; it++) 
-      ht_val += m_bathy_plane[it] * result[it];
-    ht_val += m_bathy_plane[3];
-    if (!(ht_val < 0)) // take into account also the NaN case
-      return result;
-
-    // Find where the rays intersect the plane and how the water bends
-    // them
-    std::vector<Vector3> waterDirs(2), waterCtrs(2);
-    for (size_t it = 0; it < 2; it++) {
-      bool ans = snells_law(camCtrs[it], camDirs[it], m_bathy_plane,  
-                            m_refraction_index,  
-                            waterCtrs[it], waterDirs[it]);
-
-      // If Snell's law failed to work, return the result before it
-      if (!ans)
-        return result;
-    }
-
-    // Re-triangulate with the new rays
-    result = triangulate_point(waterDirs, waterCtrs, errorVec);
-
-    did_bathy = true;
     return result;
-
+    
   } catch (const camera::PixelToRayErr& /*e*/) {
-    return Vector3();
   }
+  return Vector3();
 }
 
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
@@ -451,7 +312,8 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
   vw_out() << "StereoModel: Applying camera models\n";
   for (int32 y = 0; y < disparity_map.rows(); y++) {
     if (y % 100 == 0) {
-      printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
+      printf("\tStereoModel computing points: %0.2f%% complete.\r",
+             100.0f * float(y)/disparity_map.rows());
       fflush(stdout);
     }
     for (int32 x = 0; x < disparity_map.cols(); x++) {
@@ -488,6 +350,5 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
            << ",  Max error = " << max_error << endl;
     return xyz;
 }
-
   
 }} // vw::stereo

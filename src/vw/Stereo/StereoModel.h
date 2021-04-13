@@ -63,17 +63,20 @@ namespace stereo {
     ///
     /// Users really shouldn't use this method, the ideal method is
     /// the 'stereo_triangulate' in StereoView.h.
-    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const&
-                                  disparity_map,
+    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                   ImageView<double> &error ) const;
 
     /// Apply a stereo model to multiple or just two image coordinates.
     /// Returns an xyz point. The error is set to 0 if triangulation
     /// did not succeed, otherwise it is the vector between the closest points on the rays.
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      Vector3& errorVec, bool do_bathy, bool & did_bathy) const;
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      double & error    ) const;
-    virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, Vector3& errorVec ) const;
-    virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, double & error    ) const;
+    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,
+                               Vector3& errorVec, bool do_bathy, bool & did_bathy) const;
+    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,
+                               double & error) const;
+    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2,
+                               Vector3& errorVec) const;
+    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2,
+                               double & error) const;
 
     /// Returns the dot product of the two rays emanating from camera
     /// 1 and camera 2 through pix1 and pix2 respectively.  This can
@@ -86,23 +89,12 @@ namespace stereo {
     // which then leads to incorrect angle tolerance.
     static double robust_1_minus_cos(double x);
 
-    // Settings used for bathymetry correction
-    void set_bathy(double refraction_index, std::vector<double> const& bathy_plane);
-    
-    static bool snells_law(Vector3 const& c, Vector3 const& d, std::vector<double> const& p,
-                           double refraction_index, Vector3 & c2, Vector3 & d2);
-                    
   protected:
 
     std::vector<const camera::CameraModel *> m_cameras;
     bool m_least_squares;
     double m_angle_tol;
 
-    // Used for bathymetry
-    bool m_bathy_correct;              // If to do bathy correction
-    std::vector<double> m_bathy_plane; // the water plane
-    double m_refraction_index;         // Water refraction index
-    
     //------------------------------------------------------------------
     // Protected Methods
     //------------------------------------------------------------------
@@ -117,9 +109,7 @@ namespace stereo {
     static bool are_nearly_parallel(bool least_squares, double angle_tol,
                                     std::vector<Vector3> const& camDirs);
 
-    void refine_point( Vector2 const& pix1,
-                       Vector2 const& pix2,
-                       Vector3      & point ) const;
+    void refine_point(Vector2 const& pix1, Vector2 const& pix2, Vector3 & point ) const;
   };
 
 }}      // namespace vw::stereo
