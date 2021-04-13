@@ -20,9 +20,14 @@
 #define __VW_MATH_GAUSSIAN_CLUSTERING_H__
 
 #include <vector>
+
+// Can't do much about warnings in boost except to hide them
 #include <vw/Math/Statistics.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
+#pragma GCC diagnostic pop
 
 namespace vw {
 

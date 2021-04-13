@@ -349,8 +349,6 @@ namespace vw { namespace geometry {
 
     std::string layer_str = boost::filesystem::path(file).stem().string();
 
-    vw_out() << "Writing layer: " << layer_str << " to: " << file << "\n";
-
     const char *pszDriverName = "ESRI Shapefile";
     GDALDriver *poDriver;
     GDALAllRegister();
