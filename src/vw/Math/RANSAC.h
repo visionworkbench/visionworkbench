@@ -115,16 +115,25 @@ namespace math {
           bool          m_reduce_min_num_output_inliers_if_no_fit;
     
     /// \cond INTERNAL
-    // Utility Function: Pick N UNIQUE, random integers in the range [0, size]
+    // Utility function: Pick n unique, random integers in the range
+    // [0, size). The complexity of this is is O(N^2), but normally N
+    // is small, as the minimum number of elements needed for fit, so
+    // it is usually under 10, while 'size' is the total number of
+    // elements, which is arbitrary. So, this should not be a
+    // performance issue.
+          
+    // Note: We do not modify the initial random seed. As such, if a
+    // program uses RANSAC, repeatedly running this program will
+    // always return the same results. However, if that program calls
+    // RANSAC twice while within the same instance of the program, the
+    // second time the result of RANSAC will be different, since we
+    // keep on pulling new random numbers.
+
+    // This function is not thread-safe, as rand() is not thread-safe,
+    // which can be a potential problem.
+      
     inline void get_n_unique_integers(int size, std::vector<int> & samples) const {
 
-      // Note: We do not modify the initial random seed. As such, if
-      // a program uses RANSAC, repeatedly running this program will
-      // always return the same results. However, if that program
-      // calls RANSAC twice while within the same instance of the
-      // program, the second time the result of RANSAC will be
-      // different, since we keep on pulling new random numbers.
-        
       int n = samples.size();
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
 
