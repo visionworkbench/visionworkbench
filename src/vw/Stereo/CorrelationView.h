@@ -35,6 +35,7 @@
 #include <ctime>
 
 #include <vw/Stereo/SGM.h>
+#include <vw/Stereo/CorrelationAlgorithms.h>
 
 namespace vw {
 namespace stereo {
@@ -101,17 +102,6 @@ namespace stereo {
     return result_type( left.impl(), right.impl(), filter.impl(), search_region,
                         kernel_size, cost_type, consistency_threshold );
   }
-
-//=================================================================================
-
-
-  enum CorrelationAlgorithm {
-    VW_CORRELATION_BM        = 0, ///< Use a local sliding search window.
-    VW_CORRELATION_SGM       = 1, ///< Use a Semi-Global Matching algorithm.
-    VW_CORRELATION_MGM       = 2, ///< Use the More-Global Matching algorithm.
-    VW_CORRELATION_FINAL_MGM = 3, ///< SGM until resolution level 0, then MGM.
-    VW_CORRELATION_OTHER     = 4  ///< Some external 1D stereo algorithm.
-  };
 
   /// An image view for performing pyramid image correlation (Faster than CorrelationView).
   template <class Image1T, class Image2T, class Mask1T, class Mask2T>
