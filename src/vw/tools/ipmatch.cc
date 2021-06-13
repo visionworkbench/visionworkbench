@@ -78,24 +78,30 @@ static void write_match_image(std::string const& out_file_name,
   // Paste the two scaled input images into a composite image
   mosaic::ImageComposite<PixelRGB<uint8> > composite;
   if ( irsrc1->has_nodata_read() ) {
-    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc1),
-                                                                                                     irsrc1->nodata_read()))), 
-                                                                    sub_scale)),
+    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >
+                      (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >
+                                                                 (*irsrc1),
+                                                                 irsrc1->nodata_read()))), 
+                                sub_scale)),
                       0, 0 );
   } else {
-    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), 
-                                                                    sub_scale)),
+    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >
+                      (resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), 
+                                sub_scale)),
                       0, 0 );
   }
-
+  
   if ( irsrc2->has_nodata_read() ) {
-    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc2),
-                                                                                                    irsrc2->nodata_read()))), 
-                                                                   sub_scale)),
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
+                     (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >
+                                                                (*irsrc2),
+                                                                irsrc2->nodata_read()))), 
+                               sub_scale)),
                      int32(irsrc1->format().cols * sub_scale), 0 );
   } else {
-    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc2)), 
-                                                                   sub_scale)),
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
+                     (resample(normalize(DiskImageView<PixelGray<float> >(*irsrc2)), 
+                               sub_scale)),
                      int32(irsrc1->format().cols * sub_scale), 0 );
   }
   composite.set_draft_mode( true );
@@ -120,8 +126,7 @@ static void write_match_image(std::string const& out_file_name,
                                (unsigned char)(rand() % 255),
                                (unsigned char)(rand() % 255));
 
-    for (float r=0; r<1.0; r+=inc_amt ){
-
+    for (float r = 0; r < 1.0; r += inc_amt){
       int i = (int)(0.5 + start.x() + r*(end.x()-start.x()));
       int j = (int)(0.5 + start.y() + r*(end.y()-start.y()));
       if (i >=0 && j >=0 && i < comp.cols() && j < comp.rows())
@@ -329,22 +334,24 @@ int main(int argc, char** argv) {
         final_ip2.push_back(matched_ip2[index]);
       }
 
-      if (output_prefix == "") {
-        output_prefix = fs::path(image_paths[i]).replace_extension().string() + "__" +
-                        fs::path(image_paths[j]).stem().string();
-      }
+      std::string full_prefix = fs::path(image_paths[i]).stem().string() + "__" +
+        fs::path(image_paths[j]).stem().string();
 
-      vw::create_out_dir(output_prefix);
+      if (output_prefix != "") 
+        full_prefix = output_prefix + "-" + full_prefix;
+        
+      vw::create_out_dir(full_prefix);
 
-      vw_out() << "Writing match file: " << output_prefix + ".match" << std::endl;
-      write_binary_match_file(output_prefix+".match", final_ip1, final_ip2);
+      vw_out() << "Writing match file: " << full_prefix + ".match" << std::endl;
+      write_binary_match_file(full_prefix + ".match", final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
-        vw_out() << "Writing debug image: " << output_prefix + ".tif" << std::endl;
-        write_match_image(output_prefix + ".tif", 
+        vw_out() << "Writing debug image: " << full_prefix + ".tif" << std::endl;
+        write_match_image(full_prefix + ".tif", 
                           image_paths[i], image_paths[j],
                           final_ip1, final_ip2);
       }
+
     }
   }
 

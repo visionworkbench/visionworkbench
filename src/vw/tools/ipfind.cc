@@ -190,8 +190,11 @@ int main(int argc, char** argv) {
   }
 
   if (descriptor_is_opencv && (descriptor_generator != interest_operator)) {
-    vw_out() << "Error: Cannot use an OpenCV descriptor that does not match the interest operator.\n";
-    exit(0);
+    vw_out() <<"The value of --descriptor-generator is '" << descriptor_generator << "'. ";
+    descriptor_generator = interest_operator;
+    vw_out() << "Switching it to '" << descriptor_generator << "' to match --interest-operator.\n";
+    if (interest_operator == "obalog") 
+      vw_out() << "Also can use: 'sgrad', 'sgrad2', 'patch', 'pca'.\n";
   }
 
   // Iterate over the input files and find interest points in each.
@@ -315,7 +318,7 @@ int main(int argc, char** argv) {
 
     vw_out() << "Detected " << ip.size() << " raw keypoints!\n";
     if (ip.size() == 0) {
-      vw_out() << "No IP, quitting this image!\n";
+      vw_out() << "No IP, quitting this image. Perhaps the --normalize and/or --ip-per-tile options could be used.\n";
       continue;
     }
 
