@@ -32,6 +32,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/Transform.h>
 #include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/Matcher.h>
 #include <vw/Stereo/CorrelationView.h>
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/PreFilter.h>
@@ -134,13 +135,12 @@ int main( int argc, char *argv[] ) {
     vw::vw_settings().set_default_tile_size(tile_size);
 
   // If the user provided a match file, use it to align the images.
-  std::string match_filename = fs::path( left_file_name ).replace_extension().string() + "__" +
-                               fs::path( right_file_name ).stem().string() + ".match";
-  if ( fs::exists( match_filename ) ) {
+  std::string match_file = vw::ip::match_filename("", left_file_name, right_file_name);
+  if (fs::exists(match_file)) {
     vw_out() << "Found a match file. Using it to pre-align images.\n";
     std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
-    ip::read_binary_match_file( match_filename,
-                                matched_ip1, matched_ip2 );
+    ip::read_binary_match_file(match_file,
+                               matched_ip1, matched_ip2);
     std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
     vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 

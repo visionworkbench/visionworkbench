@@ -180,7 +180,8 @@ namespace ip {
     std::string ss = out_prefix + "-";
     size_t found = filename.find(ss);
 
-    if (found != std::string::npos)
+    // Check for out_prefix being non-empty, otherwise it gives a wrong answer
+    if (out_prefix != "" && found != std::string::npos)
       filename.erase(found, ss.length());
 
     filename = fs::path(filename).stem().string();
@@ -199,7 +200,12 @@ namespace ip {
     std::string name1 = strip_path(out_prefix, input_file1).substr(0, max_len);
     std::string name2 = strip_path(out_prefix, input_file2).substr(0, max_len);
 
-    return out_prefix + "-" + name1 + "__" + name2 + ".match";
+    std::string suffix = name1 + "__" + name2 + ".match";
+    
+    if (out_prefix == "")
+      return suffix;
+    
+    return out_prefix + "-" + suffix;
   }
 
   std::string ip_filename(std::string const& out_prefix,
@@ -211,8 +217,7 @@ namespace ip {
                     std::string const& input_file1,
                     std::string const& input_file2,
                     std::string & output_ip1,
-                    std::string & output_ip2
-                    ){
+                    std::string & output_ip2){
     output_ip1 = out_prefix + "-" + strip_path(out_prefix, input_file1) + ".vwip";
     output_ip2 = out_prefix + "-" + strip_path(out_prefix, input_file2) + ".vwip";
   }

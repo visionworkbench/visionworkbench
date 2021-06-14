@@ -329,26 +329,24 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
-      BOOST_FOREACH( size_t& index, indices ) {
+      BOOST_FOREACH(size_t& index, indices) {
         final_ip1.push_back(matched_ip1[index]);
         final_ip2.push_back(matched_ip2[index]);
       }
 
-      std::string full_prefix = fs::path(image_paths[i]).stem().string() + "__" +
-        fs::path(image_paths[j]).stem().string();
-
-      if (output_prefix != "") 
-        full_prefix = output_prefix + "-" + full_prefix;
+      std::string match_file = vw::ip::match_filename(output_prefix, image_paths[i],
+                                                      image_paths[j]);
         
-      vw::create_out_dir(full_prefix);
+      vw::create_out_dir(match_file);
 
-      vw_out() << "Writing match file: " << full_prefix + ".match" << std::endl;
-      write_binary_match_file(full_prefix + ".match", final_ip1, final_ip2);
+      vw_out() << "Writing match file: " << match_file << std::endl;
+      write_binary_match_file(match_file, final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
-        vw_out() << "Writing debug image: " << full_prefix + ".tif" << std::endl;
-        write_match_image(full_prefix + ".tif", 
-                          image_paths[i], image_paths[j],
+        std::string debug_image = fs::path(match_file).replace_extension(".tif").string();
+
+        vw_out() << "Writing debug image: " << debug_image << std::endl;
+        write_match_image(debug_image, image_paths[i], image_paths[j],
                           final_ip1, final_ip2);
       }
 
