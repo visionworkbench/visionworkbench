@@ -199,6 +199,12 @@ namespace camera {
     /// transform with the origin at the center of the planet (such as
     /// output by pc_align's forward or inverse computed alignment transform).
     void apply_transform(vw::Matrix4x4 const& M);
+
+    // Return the camera adjustment as a 4x4 rotation + translation
+    // transform (upper-left 3x3 block is the rotation, the first 3
+    // elements in last column is the translation, so the style of
+    // pc_align is used) as when applied around the planet center.
+    vw::Matrix4x4 ecef_transform(); 
     
     void write(std::string const&);
     void read (std::string const&);
@@ -214,6 +220,7 @@ namespace camera {
   // If this is an adjusted model, get the unadjusted one.
         CameraModel* unadjusted_model(      CameraModel * cam);
   const CameraModel* unadjusted_model(const CameraModel * cam);
+  boost::shared_ptr<CameraModel> unadjusted_model(boost::shared_ptr<CameraModel> cam);
 
   /// Error during projection of a 3D point onto the image plane.
   VW_DEFINE_EXCEPTION(PointToPixelErr, vw::Exception);

@@ -197,7 +197,7 @@ namespace cartography {
                               std::map<std::string, std::string> const& keywords) {
 
     boost::scoped_ptr<DiskImageResourceGDAL>
-      rsrc( build_gdal_rsrc( filename, image, opt ) );
+      rsrc(build_gdal_rsrc(filename, image, opt));
 
     if (has_nodata)
       rsrc->set_nodata_write(nodata);
@@ -209,7 +209,7 @@ namespace cartography {
     if (has_georef)
       cartography::write_georeference(*rsrc, georef);
 
-    block_write_image( *rsrc, image.impl(), progress_callback , opt.num_threads);
+    block_write_image(*rsrc, image.impl(), progress_callback, opt.num_threads);
   }
 
   // Block write image without georef and nodata.

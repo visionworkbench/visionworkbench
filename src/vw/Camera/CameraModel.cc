@@ -152,7 +152,30 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
   m_rotation    = Quat(R)*m_rotation;
   m_translation = R*scale*(m_rotation_center + m_translation) + T - m_rotation_center;
 }
+  
+// Return the camera adjustment as a 4x4 rotation + translation
+// transform (upper-left 3x3 block is the rotation, the first 3
+// elements in last column is the translation, so the style of
+// pc_align is used) as when applied around the planet center.
+vw::Matrix4x4 AdjustedCameraModel::ecef_transform() {
 
+  // Use the fact that the adjustment transform applied to a point x
+  // on the camera acts like m_rotation.rotate(x - m_rotation_center)
+  // + m_rotation_center + m_translation.
+
+  Matrix3x3 R = rotation_matrix();
+  Vector3   S = -R * m_rotation_center + m_rotation_center + m_translation;
+
+  Matrix4x4 T;
+  T.set_identity();
+    
+  submatrix(T, 0, 0, 3, 3) = R;
+  for (int row = 0; row < 3; row++) 
+    T(row, 3) = S[row];
+
+  return T;
+}
+  
 void AdjustedCameraModel::write(std::string const& filename) {
   std::ofstream ostr(filename.c_str());
   ostr.precision(18);
@@ -210,6 +233,17 @@ const CameraModel* unadjusted_model(const CameraModel * cam){
   return cam;
 }
 
+boost::shared_ptr<CameraModel> unadjusted_model(boost::shared_ptr<CameraModel> cam) {
+
+  AdjustedCameraModel *acam
+    = dynamic_cast<AdjustedCameraModel*>(cam.get());
+
+  if (acam != NULL)
+    return acam->unadjusted_model();
+
+  return cam;
+}
+  
 //================================================================================================
 // Ray correction functions
 
