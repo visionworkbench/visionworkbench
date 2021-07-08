@@ -140,6 +140,7 @@ namespace vw{
     ImageFormat fmt = vw::image_format(input_file);
 
     switch(fmt.pixel_format) {
+    case VW_PIXEL_SCALAR:
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
       switch (fmt.channel_type) {
