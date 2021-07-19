@@ -24,19 +24,9 @@ endif()
 #===============================================================================
 # Configuration options
 
-# TODO: Change some of these to options?
-set(BINARYBUILDER_INSTALL_DIR "" CACHE FILEPATH "Path to Binary Builder installation directory")
 set(VW_ENABLE_SSE "1" CACHE BOOL "Allow SSE optimizations.")
 set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
 set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
-
-# --- Directory paths ---
-if(BINARYBUILDER_INSTALL_DIR)
-  message("Looking for dependencies in BinaryBuilder directory: ${BINARYBUILDER_INSTALL_DIR}") 
-  # Add BINARYBUILDER folders to CMAKE paths
-  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BINARYBUILDER_INSTALL_DIR}")
-  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
-endif()
 
 if("${ASP_DEPS_DIR}" STREQUAL "")
   message(FATAL_ERROR "You need to set ASP_DEPS_DIR.")
@@ -45,10 +35,6 @@ endif()
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
 include_directories( ../ )
 include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
-
-# Look for libraries in both of these BB locations.
-#link_directories(${BINARYBUILDER_INSTALL_DIR}/lib)
-#link_directories(${BINARYBUILDER_INSTALL_DIR}/lib64)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 # foreach(dir ${dirs})
@@ -123,6 +109,7 @@ set(NOT_REQUIRED False)
 #   find_package(LAPACK)
 #   find_package(BLAS)
 # else() # Use the conda version
+find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
 find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
 set(LAPACK_FOUND 1)
 # endif()
@@ -141,7 +128,7 @@ find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
 find_external_library(JPEG    ${ASP_DEPS_DIR} "" "jpeg"      REQUIRED)
 find_external_library(PNG     ${ASP_DEPS_DIR} "" "png;png16" REQUIRED)
 find_external_library(TIFF    ${ASP_DEPS_DIR} "" "tiff"      REQUIRED)
-find_external_library(GEOTIFF ${ASP_DEPS_DIR} "" "geotiff"   REQUIRED)
+#find_external_library(GEOTIFF ${ASP_DEPS_DIR} "" "geotiff"   REQUIRED)
 find_external_library(Z       ${ASP_DEPS_DIR} "" "z"         REQUIRED)
 find_external_library(PROJ4   ${ASP_DEPS_DIR} "" "proj"      REQUIRED)
 find_external_library(GDAL    ${ASP_DEPS_DIR} "" "gdal"      REQUIRED)
@@ -256,7 +243,7 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
-    ${GEOTIFF_LIBRARIES} ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
     ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
@@ -268,7 +255,7 @@ set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
 set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry
-    ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES} ${GEOTIFF_LIBRARIES}
+    ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
 # --- VW_HDR ------------------------------------------------------------
@@ -289,7 +276,7 @@ set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${LAPACK_LIBRARIES})
+set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${OPENBLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)

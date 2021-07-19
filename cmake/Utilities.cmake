@@ -20,7 +20,7 @@ function( get_all_source_files relativePath outputFileList)
   set(${outputFileList} ${fileList} PARENT_SCOPE) 
 endfunction(get_all_source_files)
 
-# Look for a library dependency, starting with the BinaryBuilder folder.
+# Look for a library dependency, starting with the given folder.
 function(find_external_library name search_folder inc_subfolder libNameList required)
 
   # Define the variable names we will create
@@ -29,7 +29,7 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   set(INC_NAME   "${name}_INCLUDE_DIR")
   set(VW_NAME    "VW_HAVE_PKG_${name}") # TODO: Remove VW/ASP name!
 
-  # Look in the BB directory if it was provided, otherwise
+  # Look in the given folder if it was provided, otherwise
   #  make halfhearted attempt to find the dependency.
   if(search_folder)
     set(${FOUND_NAME} 1)
