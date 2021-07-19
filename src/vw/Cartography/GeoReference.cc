@@ -35,7 +35,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
-// Proj.4
+// Proj
 #define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H // TODO(oalexan1): Remove deprecations
 #include <proj_api.h>
 
@@ -45,77 +45,78 @@
 namespace vw {
 namespace cartography {
 
-  bool read_georeference( GeoReference& georef,
-                          ImageResource const& resource ) {
+  bool read_georeference(GeoReference& georef,
+                         ImageResource const& resource) {
 
 #if defined(VW_HAVE_PKG_GDAL)
+
     DiskImageResourceGDAL const* gdal =
-      dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-    if( gdal ) 
-      return read_gdal_georeference( georef, *gdal );
+      dynamic_cast<DiskImageResourceGDAL const*>(&resource);
+    if (gdal) 
+      return read_gdal_georeference(georef, *gdal);
 #endif
 
     DiskImageResourcePDS const* pds =
-      dynamic_cast<DiskImageResourcePDS const*>( &resource );
-    if( pds ) 
-      return read_pds_georeference( georef, *pds );
+      dynamic_cast<DiskImageResourcePDS const*>(&resource);
+    if(pds) 
+      return read_pds_georeference(georef, *pds);
     return false;
   }
 
   /// A convenience function to read georeferencing information from an image file.
-  bool read_georeference( GeoReference& georef, const std::string &filename ) {
+  bool read_georeference(GeoReference& georef, const std::string &filename) {
 
     // No image with a SPOT5 suffix can ever have georeference.
     if (vw::has_spot5_extension(filename)) return false;
 
-    boost::shared_ptr<DiskImageResource> r(DiskImageResourcePtr( filename ));
-    bool result = read_georeference( georef, *r );
+    boost::shared_ptr<DiskImageResource> r(DiskImageResourcePtr(filename));
+    bool result = read_georeference(georef, *r);
     
     return result;
   }
   
-  void write_georeference( ImageResource& resource,
-                           GeoReference const& georef ) {
+  void write_georeference(ImageResource& resource,
+                           GeoReference const& georef) {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-    DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>( &resource );
-    if ( gdal ) 
-      return write_gdal_georeference( *gdal, georef );
+    DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>(&resource);
+    if (gdal) 
+      return write_gdal_georeference(*gdal, georef);
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
-  bool read_header_string( ImageResource const& resource, std::string const& str_name,
-                           std::string & str_val ) {
+  bool read_header_string(ImageResource const& resource, std::string const& str_name,
+                           std::string & str_val) {
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-    if ( gdal ) 
-      return read_gdal_string( *gdal, str_name, str_val );
+    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>(&resource);
+    if (gdal) 
+      return read_gdal_string(*gdal, str_name, str_val);
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
-  bool read_header_strings( ImageResource const& resource, 
-                            std::map<std::string, std::string> & value_pairs ) {
+  bool read_header_strings(ImageResource const& resource, 
+                            std::map<std::string, std::string> & value_pairs) {
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-    if ( gdal ) 
-      return read_gdal_strings( *gdal, value_pairs );
+    DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>(&resource);
+    if (gdal) 
+      return read_gdal_strings(*gdal, value_pairs);
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
-  void write_header_string( ImageResource& resource, std::string const& str_name,
-                            std::string const& str_val ) {
+  void write_header_string(ImageResource& resource, std::string const& str_name,
+                            std::string const& str_val) {
 
 #if defined(VW_HAVE_PKG_GDAL)
     DiskImageResourceGDAL* gdal =
-      dynamic_cast<DiskImageResourceGDAL*>( &resource );
-    if ( gdal ) write_gdal_string( *gdal, str_name, str_val );
+      dynamic_cast<DiskImageResourceGDAL*>(&resource);
+    if (gdal) write_gdal_string(*gdal, str_name, str_val);
     return;
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
@@ -131,7 +132,7 @@ namespace cartography {
 size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) {
   std::vector<std::string> arg_strings;
   std::string trimmed_proj4_str = boost::trim_copy(str_in);
-  boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") );
+  boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));
   str_out = "";
   size_t num_kept = 0;
 
@@ -171,27 +172,27 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
   void GeoReference::init_proj() {
     // Update the projection context object with the current proj4 string, 
     //  then make sure the lon center is still correct.
-    m_proj_context = ProjContext( overall_proj4_str() );
+    m_proj_context = ProjContext(overall_proj4_str());
     update_lon_center_private();
   }
 
 
 
-  GeoReference::GeoReference() : m_pixel_interpretation( PixelAsArea ), m_projcs_name("") {
+  GeoReference::GeoReference() : m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum) :
-        m_pixel_interpretation( PixelAsArea ), m_datum(datum), m_projcs_name("") {
+        m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
-      : m_pixel_interpretation ( pixel_interpretation ), m_datum(datum), m_projcs_name("") {
+      : m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -199,7 +200,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
 
   GeoReference::GeoReference(Datum const& datum,
                              Matrix<double,3,3> const& transform) :
-                   m_pixel_interpretation( PixelAsArea ), m_datum(datum), m_projcs_name("") {
+                   m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
     set_transform(transform);
     set_geographic();
     init_proj();
@@ -239,14 +240,14 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
          m_datum.spheroid_name() == "WGS84"    ||
          m_datum.spheroid_name() == "WGS 84") &&
         (m_datum.proj4_str().find("+datum=") == std::string::npos ||
-         m_datum.name() == "unknown") ){
+         m_datum.name() == "unknown")){
       m_datum.name() = "WGS_1984";
       m_datum.proj4_str() += " +datum=WGS84";
     }
     init_proj();
   }
 
-  // Adjust the affine transform to the VW convention ( [0,0] is at
+  // Adjust the affine transform to the VW convention ([0,0] is at
   // the center of upper left pixel) if file is georeferenced
   // according to the convention that [0,0] is the upper left hand
   // corner of the upper left pixel.
@@ -376,8 +377,8 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     // Disable -180 to 180 longitude wrapping in proj4.
     // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
     // - We will make sure that the input longitudes are in a safe range.
-    if  ( (m_proj_projection_str.find("+over") == std::string::npos) &&
-          (m_proj_projection_str.find("+proj=utm") == std::string::npos) )
+    if  ((m_proj_projection_str.find("+over") == std::string::npos) &&
+          (m_proj_projection_str.find("+proj=utm") == std::string::npos))
       m_proj_projection_str.append(" +over");
 
     init_proj(); // Initialize m_proj_context
@@ -407,7 +408,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
       
     std::string proj = overall_proj4_str();
     if (proj.find("+proj=longlat") == std::string::npos)
-      vw_throw( NoImplErr() << "safe_set_georef_center is only defined for longlat projections!" );
+      vw_throw(NoImplErr() << "safe_set_georef_center is only defined for longlat projections!");
     
     // Shift the projection transform matrix to account for the new longitude center.
     Matrix3x3 affine = transform();
@@ -456,14 +457,14 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
   // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
   // - Used to strip an extra tag out of [-180,180] range images where it is not needed.
   void GeoReference::clear_proj4_over() {
-    
+
     // Clear out m_proj_projection_str, then recreate the ProjContext object.
     if (string_replace(m_proj_projection_str, "+over", "")) {
       // If we had to make any changes, strip out any double spaces and 
       //  trailing spaces and then update our ProjContext object.
       string_replace(m_proj_projection_str, "  ", " ");
       m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-      m_proj_context        = ProjContext( overall_proj4_str() );
+      m_proj_context        = ProjContext(overall_proj4_str());
     }
   }
 
@@ -478,7 +479,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
       //  trailing spaces and then update our ProjContext object.
       string_replace(m_proj_projection_str, "  ", " ");
       m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-      m_proj_context        = ProjContext( overall_proj4_str() );
+      m_proj_context        = ProjContext(overall_proj4_str());
     }
   }
 
@@ -487,11 +488,10 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
   
     // The goal of this function is to determine which of the two standard longitude ranges
     //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
-    
+
     // UTM projections always center on 0.
     if (m_proj_projection_str.find("+proj=utm") != std::string::npos) {
       m_center_lon_zero = true;
-      //std::cout << "UTM projections always center on 0.\n";
       clear_proj4_over();
       return;
     }
@@ -507,7 +507,6 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
         double diff0   = math::degree_diff(lon0,   0);
         double diff180 = math::degree_diff(lon0, 180);
         if (diff180 < diff0) {
-          //std::cout << "Setting ortho projection center around 180.\n";
           m_center_lon_zero = false;
           set_proj4_over();
         }
@@ -516,7 +515,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
         clear_proj4_over();
       return;
     }
-    
+
     // Albers equal-area conic
     if (m_proj_projection_str.find("+proj=aea") != std::string::npos){
       // This seems to work best with the -180 to 180 center, so
@@ -533,7 +532,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
         clear_proj4_over();
       return;
     }    
-    
+
     // See where the four corners of the image bbox project to
     std::vector<Vector2> corner_pixels;
     if (pixel_bbox.empty()) // No info, just use pixel 0,0
@@ -546,7 +545,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
       corner_pixels[2] = pixel_bbox.min() + Vector2(pixel_bbox.width()-1,0);
       corner_pixels[3] = pixel_bbox.min() + Vector2(0, pixel_bbox.height()-1);
     }
-    
+
     //std::cout << "Converting pixel corners...\n";
     bool negLon = false, overLon=false;
     double minLon=99999, maxLon=-99999;
@@ -598,7 +597,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     m_center_lon_zero = true;
     //std::cout << "Decreasing in shared zone, center on 0.\n";
     clear_proj4_over();      
-    
+
     return; 
   } // End function update_lon_center
 
@@ -626,7 +625,7 @@ bool GeoReference::check_projection_validity(Vector2i image_size) const {
 
 double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
  
-  Vector2 out_pixel = lonlat_to_pixel( pixel_to_lonlat(pixel) );
+  Vector2 out_pixel = lonlat_to_pixel(pixel_to_lonlat(pixel));
   Vector2 diff = out_pixel - pixel;
   double error = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
   return error;
@@ -636,11 +635,16 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 #if defined(VW_HAVE_PKG_GDAL)
 
   void GeoReference::set_wkt(std::string const& wkt) {
+#if 0
+    OGRSpatialReference gdal_spatial_ref;
+    gdal_spatial_ref.importFromWkt(wkt.c_str());
+#else
     const char *wkt_str = wkt.c_str();
     char **wkt_ptr = (char**)(&wkt_str);
-
+    
     OGRSpatialReference gdal_spatial_ref;
     gdal_spatial_ref.importFromWkt(wkt_ptr);
+#endif
 
     // If there is a PROJCS name, record it.
     const char * projcs = gdal_spatial_ref.GetAttrValue("PROJCS");
@@ -663,11 +667,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     char* proj_str_tmp;
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
     std::string proj4_str = proj_str_tmp;
-    CPLFree( proj_str_tmp );
+    CPLFree(proj_str_tmp);
 
     std::vector<std::string> input_strings, output_strings, datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-    boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") );
+    boost::split(input_strings, trimmed_proj4_str, boost::is_any_of(" "));
     BOOST_FOREACH(const std::string& key, input_strings) {
       // Pick out the parts of the projection string that pertain to
       // map projections.  We essentially want to eliminate all of
@@ -776,14 +780,14 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     else
       geog_name = "Geographic Coordinate System";
 
-    gdal_spatial_ref.SetGeogCS( geog_name.c_str(),
+    gdal_spatial_ref.SetGeogCS(geog_name.c_str(),
                                 datum.name().c_str(),
                                 datum.spheroid_name().c_str(),
                                 datum.semi_major_axis(),
                                 datum.semi_major_axis() == datum.semi_minor_axis() ?
                                 0 : datum.inverse_flattening(),
                                 datum.meridian_name().c_str(),
-                                datum.meridian_offset() );
+                                datum.meridian_offset());
 
     // Make sure that this gets set properly
     std::vector<double> vals = get_towgs84_values(proj_string);
@@ -793,7 +797,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     char* wkt_str_tmp;
     gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
     std::string wkt_str = wkt_str_tmp;
-    OGRFree(wkt_str_tmp);
+    CPLFree(wkt_str_tmp);
 
     return wkt_str;
   }
@@ -823,23 +827,32 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   }
 
 
+  // TODO(oalexan1): See if GDAL has any simpler wrappers for this,
+  // or use the new API in PROJ 6.
   /// For a point in the projected space, compute the position of
   /// that point in unprojected (Geographic) coordinates (lat,lon).
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
   
     Vector2 lon_lat;
-    if ( !m_is_projected ) {
+    if (!m_is_projected) {
       lon_lat = loc;
     } else {
 
+      // https://proj.org/development/migration.html
+
       projXY projected;
       projLP unprojected;
-
+      //PJ_UV projected, unprojected;
+      
       projected.u = loc[0]; // Store in proj4 object
       projected.v = loc[1];
 
       // Call proj4 to do the conversion and check for errors.
+      // https://proj.org/development/migration.html
       unprojected = pj_inv(projected, m_proj_context.proj_ptr());
+
+      //unprojected = proj_trans(m_proj_context, PJ_INV, projected);
+        
       CHECK_PROJ_ERROR(m_proj_context, loc);
 
       // Convert from radians to degrees.
@@ -853,7 +866,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
 
   Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 loc) const {
-    if ( !m_is_projected ) 
+    if (!m_is_projected) 
       return loc;
 
     projXY projected;
@@ -877,7 +890,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     // Get the longitude into the correct range for this georeference.    
     lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
 
-    if ( ! m_is_projected ) 
+    if (! m_is_projected) 
       return lon_lat;
 
     // This value is proj's internal limit
@@ -907,21 +920,21 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   /// Convert lon/lat/alt to projected x/y/alt 
   Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 
-    if ( boost::math::isnan(llh[2]) )
+    if (boost::math::isnan(llh[2]))
       return llh;
     
-    Vector2 xy = lonlat_to_point( vw::math::subvector(llh, 0, 2) );
-    return Vector3( xy[0], xy[1], llh[2] );
+    Vector2 xy = lonlat_to_point(vw::math::subvector(llh, 0, 2));
+    return Vector3(xy[0], xy[1], llh[2]);
   }
   
   /// Convert projected x/y/alt lon/lat/alt
   Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
 
-    if ( boost::math::isnan(point[2]) )
+    if (boost::math::isnan(point[2]))
       return point;
     
-    Vector2 ll = point_to_lonlat( vw::math::subvector( point, 0, 2 ) );
-    return Vector3( ll[0], ll[1], point[2] );
+    Vector2 ll = point_to_lonlat(vw::math::subvector(point, 0, 2));
+    return Vector3(ll[0], ll[1], point[2]);
   }
   
   //*****************************************************************
@@ -930,10 +943,10 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
     std::vector<std::string> arg_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-    boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") );
+    boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));
 
     char** strings = new char*[arg_strings.size()];
-    for ( size_t i = 0; i < arg_strings.size(); ++i ) {
+    for (size_t i = 0; i < arg_strings.size(); ++i) {
       strings[i] = new char[2048];
       strncpy(strings[i], arg_strings[i].c_str(), 2048);
     }
@@ -942,41 +955,58 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   }
 
 
-  ProjContext::ProjContext(std::string const& proj4_str ) : m_proj4_str(proj4_str) {
-    m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
+  // A temporary empty deallocator to deal with a crash from freeing
+  // an object multiple times. Using this may result in memory leaks.
+  template <class T>
+  static void temp_dealloc(T* ptr) {
+  }
+  
+  ProjContext::ProjContext(std::string const& proj4_str) : m_proj4_str(proj4_str) {
+    m_proj_ctx_ptr.reset(pj_ctx_alloc(),
+                         &temp_dealloc<void>
+                         // pj_ctx_free 
+                         );
     int num;
     char** proj_strings = split_proj4_string(m_proj4_str, num);
-    m_proj_ptr.reset(pj_init_ctx( m_proj_ctx_ptr.get(),
-                                  num, proj_strings ),
-                     pj_free);
+    m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
+                                 num, proj_strings),
+                     //&temp_dealloc<void>
+                     pj_free 
+                     );
 
-    VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " 
-                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
-
-    for ( int i = 0; i < num; i++ )
+    VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
+              InputErr() << "Proj.4 failed to initialize on string: "
+              << m_proj4_str << "\n\tError was: " 
+              << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())));
+    
+    for (int i = 0; i < num; i++)
       delete [] proj_strings[i];
     delete [] proj_strings;
   }
 
-  ProjContext::ProjContext( ProjContext const& other ) : m_proj4_str(other.m_proj4_str) {
-    m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
-    if ( m_proj4_str.empty() )
+  ProjContext::ProjContext(ProjContext const& other) : m_proj4_str(other.m_proj4_str) {
+    m_proj_ctx_ptr.reset(pj_ctx_alloc(),
+                         &temp_dealloc<void>
+                         //pj_ctx_free
+                         );
+    if (m_proj4_str.empty())
       return; // They've made a copy of an uninitialized
               // projcontext. Not an error .. since they can
               // initialize later.
 
     int num;
     char** proj_strings = split_proj4_string(m_proj4_str, num);
-    m_proj_ptr.reset(pj_init_ctx( m_proj_ctx_ptr.get(),
-                                  num, proj_strings ),
-                     pj_free);
+    m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
+                                  num, proj_strings),
+                     //&temp_dealloc<void>
+                     pj_free
+                     );
 
-    VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
+    VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
                InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " 
-                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
+                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())));
 
-    for ( int i = 0; i < num; i++ )
+    for (int i = 0; i < num; i++)
       delete [] proj_strings[i];
     delete [] proj_strings;
   }
@@ -1044,8 +1074,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     
     // Go along the perimeter of the pixel bbox.
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
-      try { lonlat_bbox.grow(pixel_to_lonlat( points[ptiter] )); }
-      catch ( const std::exception & e ) {}
+      try { lonlat_bbox.grow(pixel_to_lonlat(points[ptiter])); }
+      catch (const std::exception & e) {}
     }
     
     return lonlat_bbox;
@@ -1058,11 +1088,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     if (!m_is_projected) {
       return point_to_pixel_bbox(lonlat_bbox);
     }
-    BBox2 point_bbox = lonlat_to_point_bbox( lonlat_bbox, nsamples );
-    return point_to_pixel_bbox( point_bbox );
+    BBox2 point_bbox = lonlat_to_point_bbox(lonlat_bbox, nsamples);
+    return point_to_pixel_bbox(point_bbox);
   }
 
-  BBox2 GeoReference::lonlat_to_point_bbox( BBox2 const& lonlat_bbox, size_t nsamples ) const {
+  BBox2 GeoReference::lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
     // Alternatively this function could avoid the nsamples
     // option. The sample discrete step could just be this average
     // size of pixel in degrees.
@@ -1077,35 +1107,35 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
         // Walk the top & bottom (technically past the edge of pixel space) rows
         double x = lonlat_bbox.min().x() + double(i) * lower_fraction.x();
         try { point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.min().y()))); }
-        catch ( const std::exception& e ) {}
+        catch (const std::exception& e) {}
         
         try { point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.max().y()))); }
-        catch ( const std::exception& e ) {}
+        catch (const std::exception& e) {}
         
         
         // Walk the left & right (technically past the edge of pixel space) columns
         double y = lonlat_bbox.min().y() + double(i) * lower_fraction.y();
         try { point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.min().x(),y))); }
-        catch ( const std::exception& e ) {}
+        catch (const std::exception& e) {}
         try { point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.max().x(),y))); }
-        catch ( const std::exception& e ) {}
+        catch (const std::exception& e) {}
     }
 
     // It is possible that this may not required. However in the
     // cartography it seems better to be rigorous than sorry.
-    BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
-    while ( l1.is_good() ) {
+    BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+    while (l1.is_good()) {
       try {
-        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min() ) );
-      } catch ( const std::exception& e ) {}
+        point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min()));
+      } catch (const std::exception& e) {}
       ++l1;
     }
-    BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
-    while ( l2.is_good() ) {
+    BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+    while (l2.is_good()) {
       try {
-        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l2),lower_fraction)
-                                          + lonlat_bbox.min() ) );
-      } catch ( const std::exception& e ) {}
+        point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l2),lower_fraction)
+                                          + lonlat_bbox.min()));
+      } catch (const std::exception& e) {}
       ++l2;
     }
 
@@ -1118,39 +1148,39 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
     BBox2 lonlat_bbox;
 
-    Vector2 lower_fraction( point_bbox.width()/double(nsamples),
-                            point_bbox.height()/double(nsamples) );
+    Vector2 lower_fraction(point_bbox.width()/double(nsamples),
+                            point_bbox.height()/double(nsamples));
 
-    for (size_t i = 0; i < nsamples; i++ ) {
+    for (size_t i = 0; i < nsamples; i++) {
       double x = point_bbox.min().x() + double(i) * lower_fraction.x();
-      try { lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.min().y()))); }
-      catch ( const std::exception& e ) {}
-      try { lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.max().y()))); }
-      catch ( const std::exception& e ) {}
+      try { lonlat_bbox.grow(point_to_lonlat(Vector2(x,point_bbox.min().y()))); }
+      catch (const std::exception& e) {}
+      try { lonlat_bbox.grow(point_to_lonlat(Vector2(x,point_bbox.max().y()))); }
+      catch (const std::exception& e) {}
       
       double y = point_bbox.min().y() + double(i) * lower_fraction.y();
-      try { lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.min().x(),y))); }
-      catch ( const std::exception& e ) {}
-      try { lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.max().x(),y))); }
-      catch ( const std::exception& e ) {}
+      try { lonlat_bbox.grow(point_to_lonlat(Vector2(point_bbox.min().x(),y))); }
+      catch (const std::exception& e) {}
+      try { lonlat_bbox.grow(point_to_lonlat(Vector2(point_bbox.max().x(),y))); }
+      catch (const std::exception& e) {}
     }
     
     // This X pattern is to capture in crossing of the poles.
-    BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
-    while ( l1.is_good() ) {
+    BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+    while (l1.is_good()) {
       try {
-        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l1), lower_fraction)
-                                           + point_bbox.min() ) );
-      } catch ( const std::exception& e ) {}
+        lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l1), lower_fraction)
+                                           + point_bbox.min()));
+      } catch (const std::exception& e) {}
       ++l1;
     }
 
-    BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
-    while ( l2.is_good() ) {
+    BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+    while (l2.is_good()) {
       try {
-        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l2), lower_fraction)
-                                           + point_bbox.min() ) );
-      } catch ( const std::exception& e ) {}
+        lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l2), lower_fraction)
+                                           + point_bbox.min()));
+      } catch (const std::exception& e) {}
       ++l2;
     }
 
@@ -1191,11 +1221,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     if (pixel_bbox.empty()) return;
     
     // Go along the perimeter of the pixel bbox.
-    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
+    for (int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x) {
       points.push_back(Vector2(x,pixel_bbox.min().y()));
       points.push_back(Vector2(x,pixel_bbox.max().y()-1));
     }
-    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
+    for (int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y) {
       points.push_back(Vector2(pixel_bbox.min().x(),y));
       points.push_back(Vector2(pixel_bbox.max().x()-1,y));
     }
@@ -1205,17 +1235,17 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     // the pole. This will also help catch terminator boundaries from
     // orthographic projections. Note that pixel_bbox.max() is exclusive,
     // we stop on the line right before we reach this point.
-    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
-    while ( l1.is_good() ) {
+    BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
+    while (l1.is_good()) {
       points.push_back(*l1);
       ++l1;
     }
 
     // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
-    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
-                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),     1) );
-    while ( l2.is_good() ) {
-      points.push_back(*l2 );
+    BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
+                      pixel_bbox.max() - Vector2i(pixel_bbox.width(), 1));
+    while (l2.is_good()) {
+      points.push_back(*l2);
       ++l2;
     }
 

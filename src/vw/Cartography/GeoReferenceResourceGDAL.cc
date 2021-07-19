@@ -36,8 +36,8 @@
 namespace vw {
 namespace cartography {
 
-  bool read_gdal_georeference( GeoReference& georef,
-                               DiskImageResourceGDAL const& resource ) {
+  bool read_gdal_georeference(GeoReference& georef,
+                              DiskImageResourceGDAL const& resource) {
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
       vw_throw( LogicErr() << "read_gdal_georeference: Could not read georeference. No file has been opened." );
@@ -81,7 +81,6 @@ namespace cartography {
     int rows = resource.format().rows; 
     BBox2 image_bbox(0,0,cols, rows);
     georef.update_lon_center(image_bbox);
-    
 
     // Georeference functions need not be invertible.  When we perform
     // a reverse lookup (e.g. during a geotransformation) we rely on
@@ -114,7 +113,7 @@ namespace cartography {
           resource.filename() << " contains a non-normal georeference." << std::endl;
       }
     }
-    
+
     return true;
   }
 

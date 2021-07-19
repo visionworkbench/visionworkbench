@@ -27,7 +27,7 @@ using namespace vw;
 using namespace vw::ba;
 using namespace vw::test;
 
-TEST( ControlNetworkLoad, LoadingGCPNET ) {
+TEST( ControlNetworkLoad, LoadingGCPNET) {
 
   // Creating GCP net
   UnlinkName gcpnet("test.cnet");

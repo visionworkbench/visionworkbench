@@ -113,7 +113,6 @@ TEST( GeoReferenceUtils, gdal_read_checks) {
   //EXPECT_TRUE(georef.proj4_str().find("+over") != std::string::npos);
 
   // Handle an image that is larger than 360 degrees!
-  //EXPECT_TRUE(read_georeference(georef, "/home/smcmich1/repo/BinaryBuilder/build_root/install/share/geoids/egm96-5.jp2"));
   //EXPECT_FALSE(georef.is_lon_center_around_zero());
   //EXPECT_TRUE(georef.proj4_str().find("+over") != std::string::npos);
 }

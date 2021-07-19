@@ -79,8 +79,8 @@ namespace vw { namespace geometry {
       OGRLinearRing R;
       toOGR(xv, yv, startPos, numCurrPolyVerts, R);
 
-      if (R.getNumPoints() >= 4 ){
-        if (P.addRing(&R) != OGRERR_NONE )
+      if (R.getNumPoints() >= 4){
+        if (P.addRing(&R) != OGRERR_NONE)
           vw_throw(ArgumentErr() << "Failed add ring to polygon.\n");
       }
     }
@@ -197,11 +197,11 @@ namespace vw { namespace geometry {
   
     if (!append) polyVec.clear();
   
-    if( poGeometry == NULL) {
+    if (poGeometry == NULL) {
     
       // nothing to do
     
-    } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPoint ) {
+    } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPoint) {
     
       // Create a polygon with just one point
     
@@ -229,7 +229,7 @@ namespace vw { namespace geometry {
       fromOGR(poPolygon, poly_color, layer_str, poly);
       polyVec.push_back(poly);
     
-    } else if (wkbFlatten (poGeometry ->getGeometryType() ) == wkbLineString) {
+    } else if (wkbFlatten (poGeometry ->getGeometryType()) == wkbLineString) {
     
       OGRLineString *poLineString = (OGRLineString*)poGeometry;
       vw::geometry::dPoly poly;
@@ -262,7 +262,7 @@ namespace vw { namespace geometry {
       vw_throw(ArgumentErr() << "Could not open file: " << file << ".\n");
   
     OGRLayer  *poLayer;
-    poLayer = poDS->GetLayerByName( layer_str.c_str() );
+    poLayer = poDS->GetLayerByName(layer_str.c_str());
     if (poLayer == NULL)
       vw_throw(ArgumentErr() << "Could not find layer " << layer_str << " in file: "
                << file << ".\n");
@@ -271,12 +271,12 @@ namespace vw { namespace geometry {
     int nGeomFieldCount = poLayer->GetLayerDefn()->GetGeomFieldCount();
     char *pszWKT = NULL;
     if (nGeomFieldCount > 1) {
-      for(int iGeom = 0; iGeom < nGeomFieldCount; iGeom ++ ){
+      for(int iGeom = 0; iGeom < nGeomFieldCount; iGeom ++){
         OGRGeomFieldDefn* poGFldDefn =
           poLayer->GetLayerDefn()->GetGeomFieldDefn(iGeom);
         OGRSpatialReference* poSRS = poGFldDefn->GetSpatialRef();
-        if( poSRS == NULL )
-          pszWKT = CPLStrdup( "(unknown)" );
+        if (poSRS == NULL)
+          pszWKT = CPLStrdup("(unknown)");
         else {
           has_geo = true;
           poSRS->exportToPrettyWkt(&pszWKT);
@@ -285,8 +285,8 @@ namespace vw { namespace geometry {
         }
       }
     }else{
-      if( poLayer->GetSpatialRef() == NULL )
-        pszWKT = CPLStrdup( "(unknown)" );
+      if (poLayer->GetSpatialRef() == NULL)
+        pszWKT = CPLStrdup("(unknown)");
       else{
         has_geo = true;
         poLayer->GetSpatialRef()->exportToPrettyWkt(&pszWKT);
@@ -294,7 +294,7 @@ namespace vw { namespace geometry {
     }
     geo.set_wkt(pszWKT);
     if (pszWKT != NULL)
-      CPLFree( pszWKT );
+      CPLFree(pszWKT);
 
     // There is no georef per se, as there is no image. The below forces
     // that the map from projected coordinates to pixel coordinates (point_to_pixel())
@@ -303,7 +303,7 @@ namespace vw { namespace geometry {
 
     OGRFeature *poFeature;
     poLayer->ResetReading();
-    while ( (poFeature = poLayer->GetNextFeature()) != NULL ) {
+    while ((poFeature = poLayer->GetNextFeature()) != NULL) {
 
       OGRGeometry *poGeometry = poFeature->GetGeometryRef();
 
@@ -313,7 +313,7 @@ namespace vw { namespace geometry {
       OGRFeature::DestroyFeature(poFeature);
     }
 
-    GDALClose( poDS );
+    GDALClose(poDS);
 
     // See if the georef should have lon in [-180, 180], or in [0, 360]. This is fragile.
     if (!geo.is_projected()) {
@@ -353,11 +353,11 @@ namespace vw { namespace geometry {
     GDALDriver *poDriver;
     GDALAllRegister();
     poDriver = GetGDALDriverManager()->GetDriverByName(pszDriverName);
-    if (poDriver == NULL ) 
+    if (poDriver == NULL) 
       vw_throw(ArgumentErr() << "Could not find driver: " << pszDriverName << ".\n");
 
     GDALDataset *poDS;
-    poDS = poDriver->Create(file.c_str(), 0, 0, 0, GDT_Unknown, NULL );
+    poDS = poDriver->Create(file.c_str(), 0, 0, 0, GDT_Unknown, NULL);
     if (poDS == NULL) 
       vw_throw(ArgumentErr() << "Failed writing file: " << file << ".\n");
   
@@ -366,20 +366,20 @@ namespace vw { namespace geometry {
     OGRSpatialReference * spatial_ref_ptr = NULL;
     if (has_geo){
       std::string srs_string = geo.get_wkt();
-      if (spatial_ref.SetFromUserInput( srs_string.c_str() ))
-        vw_throw( ArgumentErr() << "Failed to parse: \"" << srs_string << "\"." );
+      if (spatial_ref.SetFromUserInput(srs_string.c_str()))
+        vw_throw(ArgumentErr() << "Failed to parse: \"" << srs_string << "\".");
       spatial_ref_ptr = &spatial_ref;
     }
   
     OGRLayer *poLayer = poDS->CreateLayer(layer_str.c_str(),
-                                          spatial_ref_ptr, wkbPolygon, NULL );
+                                          spatial_ref_ptr, wkbPolygon, NULL);
     if (poLayer == NULL)
       vw_throw(ArgumentErr() << "Failed creating layer: " << layer_str << ".\n");
 
 #if 0
-    OGRFieldDefn oField( "Name", OFTString );
+    OGRFieldDefn oField("Name", OFTString);
     oField.SetWidth(32);
-    if( poLayer->CreateField( &oField ) != OGRERR_NONE ) 
+    if (poLayer->CreateField(&oField) != OGRERR_NONE) 
       vw_throw(ArgumentErr() << "Failed creating name field for layer: " << layer_str
                << ".\n");
 #endif
@@ -389,22 +389,22 @@ namespace vw { namespace geometry {
       vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
       if (poly.get_totalNumVerts() == 0) continue;
       
-      OGRFeature *poFeature = OGRFeature::CreateFeature( poLayer->GetLayerDefn() );
+      OGRFeature *poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
 #if 0
-      poFeature->SetField( "Name", "ToBeFilledIn" );
+      poFeature->SetField("Name", "ToBeFilledIn");
 #endif
     
       OGRPolygon P;
       toOGR(poly, P);
       poFeature->SetGeometry(&P); 
     
-      if (poLayer->CreateFeature( poFeature ) != OGRERR_NONE)
+      if (poLayer->CreateFeature(poFeature) != OGRERR_NONE)
         vw_throw(ArgumentErr() << "Failed to create feature in shape file.\n");
     
-      OGRFeature::DestroyFeature( poFeature );
+      OGRFeature::DestroyFeature(poFeature);
     }
   
-    GDALClose( poDS );
+    GDALClose(poDS);
   }
 
   // Bounding box of a shapefile

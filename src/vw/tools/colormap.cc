@@ -112,12 +112,13 @@ void do_colormap(Options& opt) {
   vw_out() << "Creating color map.\n";
 
   cartography::GeoReference georef;
+
   cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
   boost::shared_ptr<vw::DiskImageResource>
     disk_img_rsrc( vw::DiskImageResourcePtr(opt.input_file_name) );
-  
+
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
   } else if ( disk_img_rsrc->has_nodata_read() ) {
@@ -183,12 +184,14 @@ void do_colormap(Options& opt) {
                 colorized_image);
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
+
     if ( r->has_block_write() )
       r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
                                          vw_settings().default_tile_size() ) );
     write_georeference( *r, georef );
     block_write_image( *r, shaded_image,
                        TerminalProgressCallback( "tools.colormap", "Writing:") );
+
   } else { // Not using a hillshade file
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
 
@@ -196,10 +199,14 @@ void do_colormap(Options& opt) {
     if ( r->has_block_write() )
       r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
                                          vw_settings().default_tile_size() ) );
+
     write_georeference( *r, georef );
+
     block_write_image( *r, colorized_image,
                        TerminalProgressCallback( "tools.colormap", "Writing:") );
+
   }
+
 }
 
 void save_legend( Options const& opt) {
@@ -610,8 +617,8 @@ int main( int argc, char *argv[] ) {
 
   Options opt;
   try {
-    handle_arguments( argc, argv, opt );
-
+    handle_arguments(argc, argv, opt);
+    
     // Decide legend
     if ( opt.colormap_style.empty() || opt.colormap_style == "jet" ) { // default
       opt.lut.clear();
@@ -680,7 +687,7 @@ int main( int argc, char *argv[] ) {
       }
       break;
     default:
-      vw_throw( ArgumentErr() << "Unsupported pixel format. The image must have only one channel." );
+      vw_throw(ArgumentErr() << "Unsupported pixel format. The image must have only one channel.");
     }
 
     // Draw legend
