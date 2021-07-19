@@ -380,10 +380,12 @@ void CDFAccumulator<ValT>::operator()( CDFAccumulator<ValT>& other ) {
   new_quantile.back() = m_qm;
   double distance = m_qm - m_q0;
   std::transform( m_cdf.begin() + 1, m_cdf.end() - 1, new_quantile.begin() + 1,
-                  std::bind1st( std::multiplies<double>(), distance ) );
+                  std::bind(std::multiplies<double>(), distance, std::placeholders::_1)
+                  );
+  
   std::transform( new_quantile.begin() + 1, new_quantile.end() - 1,
                   new_quantile.begin() + 1,
-                  std::bind1st( std::plus<double>(), m_q0 ) );
+                  std::bind(std::plus<double>(), m_q0, std::placeholders::_1));
 
   // Resampling PDFs to our new quantile range so that we may
   // later add these 2 PDFs together.

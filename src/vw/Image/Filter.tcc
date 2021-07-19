@@ -75,8 +75,8 @@ void vw::generate_gaussian_kernel(std::vector<KernelT>& kernel, double sigma, in
   // Normalize the result
   assert(sum >= 0.0);
   double norm = 1.0 / sum;
-  std::transform(kernel.begin(), kernel.end(), kernel.begin(),
-                 std::bind2nd(std::multiplies<KernelT>(), (KernelT)norm));
+  for (size_t it = 0; it < kernel.size(); it++) 
+    kernel[it] *= norm;
 }
 
 
