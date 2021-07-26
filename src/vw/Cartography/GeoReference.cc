@@ -636,9 +636,11 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
   void GeoReference::set_wkt(std::string const& wkt) {
 #if 0
+    // GDAL 3
     OGRSpatialReference gdal_spatial_ref;
     gdal_spatial_ref.importFromWkt(wkt.c_str());
 #else
+    // GDAL 2
     const char *wkt_str = wkt.c_str();
     char **wkt_ptr = (char**)(&wkt_str);
     
@@ -842,6 +844,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
       projXY projected;
       projLP unprojected;
+
+      // GDAL 3
       //PJ_UV projected, unprojected;
       
       projected.u = loc[0]; // Store in proj4 object
@@ -851,6 +855,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
       // https://proj.org/development/migration.html
       unprojected = pj_inv(projected, m_proj_context.proj_ptr());
 
+      // GDAL 3
       //unprojected = proj_trans(m_proj_context, PJ_INV, projected);
         
       CHECK_PROJ_ERROR(m_proj_context, loc);
