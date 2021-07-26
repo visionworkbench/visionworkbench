@@ -28,7 +28,7 @@ set(PACKAGE            "VisionWorkbench")
 set(PACKAGE_NAME       "NASA Vision Workbench")
 
 # Version number of the package
-set(VERSION            "2.7.0")
+set(VERSION            "3.0.0")
 #set(PACKAGE_VERSION "2.7.1-alpha")
 set(PACKAGE_VERSION    ${VERSION})
 
