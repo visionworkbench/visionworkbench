@@ -120,7 +120,7 @@ namespace cartography {
     if (bbox.empty()) return BBox2();
 
     std::vector<vw::Vector2> points;
-    gen_bd_and_diag_pts(bbox, points);
+    sample_int_box(bbox, points);
     
     BBox2 r;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
@@ -136,7 +136,7 @@ namespace cartography {
     if (bbox.empty()) return BBox2();
 
     std::vector<vw::Vector2> points;
-    gen_bd_and_diag_pts(bbox, points);
+    sample_int_box(bbox, points);
 
     BBox2 r;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
@@ -267,67 +267,54 @@ namespace cartography {
   }
 
 
-
-  BBox2 GeoTransform::lonlat_to_lonlat_bbox( BBox2 const& bbox ) const {
+  BBox2 GeoTransform::point_to_point_bbox(BBox2 const& point_bbox) const {
 
     // Ensure we don't get incorrect results for empty boxes with strange corners.
-    if (bbox.empty())
+    if (point_bbox.empty())
       return BBox2();
 
+    std::vector<vw::Vector2> points;
+    sample_float_box(point_bbox, points);
+
     BBox2 out_box;
-    
-    double minx = bbox.min().x(), maxx = bbox.max().x();
-    double miny = bbox.min().y(), maxy = bbox.max().y();
-    double rangex = maxx-minx;
-    double rangey = maxy-miny;
 
-    // At the poles this won't be enough, more thought is needed.
-    int num_steps = 100;
-    for (int i = 0; i <= num_steps; i++) {
-      double r = double(i)/num_steps;
-
-      // left edge
-      Vector2 P2 = Vector2(minx, miny + r*rangey);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // right edge
-      P2 = Vector2(maxx, miny + r*rangey);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // bottom edge
-      P2 = Vector2(minx + r*rangex, miny);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // top edge
-      P2 = Vector2(minx + r*rangex, maxy);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
-      
-      // diag1
-      P2 = Vector2(minx + r*rangex, miny + r*rangey);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // diag2
-      P2 = Vector2(maxx - r*rangex, miny + r*rangey);
-      try { out_box.grow(lonlat_to_lonlat(P2)); }
-      catch ( const std::exception & e ) {}
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
+      try {
+        out_box.grow(point_to_point(points[ptiter])); 
+      }catch (const std::exception & e) {}
     }
+    
+    return out_box;
+  }
 
+  BBox2 GeoTransform::lonlat_to_lonlat_bbox(BBox2 const& lonlat_bbox) const {
+
+    // Ensure we don't get incorrect results for empty boxes with strange corners.
+    if (lonlat_bbox.empty())
+      return BBox2();
+
+    std::vector<vw::Vector2> points;
+    sample_float_box(lonlat_bbox, points);
+
+    BBox2 out_box;
+
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
+      try {
+        out_box.grow(lonlat_to_lonlat(points[ptiter])); 
+      }catch (const std::exception & e) {}
+    }
+    
     return out_box;
   }
   
-  BBox2 GeoTransform::pixel_to_point_bbox( BBox2 const& pixel_bbox ) const {
+  BBox2 GeoTransform::pixel_to_point_bbox(BBox2 const& pixel_bbox) const {
 
     // Ensure we don't get incorrect results for empty boxes with strange corners.
     if (pixel_bbox.empty())
       return BBox2();
     
     std::vector<vw::Vector2> points;
-    gen_bd_and_diag_pts(pixel_bbox, points);
+    sample_int_box(pixel_bbox, points);
  
     BBox2 point_bbox;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
@@ -339,55 +326,23 @@ namespace cartography {
     return point_bbox;
   }
 
-  BBox2 GeoTransform::point_to_pixel_bbox( BBox2 const& point_bbox ) const {
+  BBox2 GeoTransform::point_to_pixel_bbox(BBox2 const& point_bbox) const {
 
     // Ensure we don't get incorrect results for empty boxes with strange corners.
     if (point_bbox.empty())
       return BBox2();
 
+    std::vector<vw::Vector2> points;
+    sample_float_box(point_bbox, points);
+
     BBox2 out_box;
 
-    double minx = point_bbox.min().x(), maxx = point_bbox.max().x();
-    double miny = point_bbox.min().y(), maxy = point_bbox.max().y();
-    double rangex = maxx-minx;
-    double rangey = maxy-miny;
-
-    // At the poles this won't be enough, more thought is needed.
-    int num_steps = 100;
-    for (int i = 0; i <= num_steps; i++) {
-      double r = double(i)/num_steps;
-
-      // left edge
-      Vector2 P2 = Vector2(minx, miny + r*rangey);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // right edge
-      P2 = Vector2(maxx, miny + r*rangey);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // bottom edge
-      P2 = Vector2(minx + r*rangex, miny);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // top edge
-      P2 = Vector2(minx + r*rangex, maxy);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
-      
-      // diag1
-      P2 = Vector2(minx + r*rangex, miny + r*rangey);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
-
-      // diag2
-      P2 = Vector2(maxx - r*rangex, miny + r*rangey);
-      try { out_box.grow(point_to_pixel(P2)); }
-      catch ( const std::exception & e ) {}
+    for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
+      try {
+        out_box.grow(point_to_pixel(points[ptiter]));
+      }catch (const std::exception & e) {}
     }
-
+    
     return grow_bbox_to_int(out_box);
   }
 

@@ -1023,11 +1023,99 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 //************** End functions for class ProjContext ******************
 //*********************************************************************
 
+using vw::math::BresenhamLine;
 
+  // Given an integer box, generate points on its boundary and the
+  // diagonal. It is important to note that the maximum is exclusive.
+  // This is used as a way of sampling the lon-lat values of all pixel values
+  // in this box.
+  void sample_int_box(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points) {
 
+    // Reset the output
+    points.clear();
 
+    // An empty box can have strange corners. For such, just return no points.
+    if (pixel_bbox.empty()) return;
+    
+    // Go along the perimeter of the pixel bbox.
+    for (int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x) {
+      points.push_back(Vector2(x,pixel_bbox.min().y()));
+      points.push_back(Vector2(x,pixel_bbox.max().y()-1));
+    }
+    for (int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y) {
+      points.push_back(Vector2(pixel_bbox.min().x(),y));
+      points.push_back(Vector2(pixel_bbox.max().x()-1,y));
+    }
+    
+    // Draw an X inside the bbox. This covers the poles. It will
+    // produce a lonlat boundary that is within at least one pixel of
+    // the pole. This will also help catch terminator boundaries from
+    // orthographic projections. Note that pixel_bbox.max() is exclusive,
+    // we stop on the line right before we reach this point.
+    BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
+    while (l1.is_good()) {
+      points.push_back(*l1);
+      ++l1;
+    }
 
-  using vw::math::BresenhamLine;
+    // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
+    BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
+                      pixel_bbox.max() - Vector2i(pixel_bbox.width(), 1));
+    while (l2.is_good()) {
+      points.push_back(*l2);
+      ++l2;
+    }
+
+  }
+
+  // Sample a float box on the edges and diagonal with 100 points
+  void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
+
+    // Reset the output
+    points.clear();
+
+    // An empty box can have strange corners. For such, just return no points.
+    if (box.empty()) return;
+
+    BBox2 out_box;
+
+    double minx = box.min().x(), maxx = box.max().x();
+    double miny = box.min().y(), maxy = box.max().y();
+    double rangex = maxx - minx;
+    double rangey = maxy - miny;
+
+    // At the poles this won't be enough, more thought is needed.
+    int num_steps = 100;
+    for (int i = 0; i <= num_steps; i++) {
+      double r = double(i)/num_steps;
+
+      // left edge
+      Vector2 P2 = Vector2(minx, miny + r*rangey);
+      points.push_back(P2);
+
+      // right edge
+      P2 = Vector2(maxx, miny + r*rangey);
+      points.push_back(P2);
+
+      // bottom edge
+      P2 = Vector2(minx + r*rangex, miny);
+      points.push_back(P2);
+
+      // top edge
+      P2 = Vector2(minx + r*rangex, maxy);
+      points.push_back(P2);
+      
+      // diag1
+      P2 = Vector2(minx + r*rangex, miny + r*rangey);
+      points.push_back(P2);
+
+      // diag2
+      P2 = Vector2(maxx - r*rangex, miny + r*rangey);
+      points.push_back(P2);
+    }
+    
+  }
+  
 
   /// For a bbox in projected space, return the corresponding bbox in
   /// pixels on the image
@@ -1075,7 +1163,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 
     // Need to worry about what happens around poles
     std::vector<vw::Vector2> points;
-    gen_bd_and_diag_pts(pixel_bbox, points);
+    sample_int_box(pixel_bbox, points);
     
     // Go along the perimeter of the pixel bbox.
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
@@ -1213,49 +1301,6 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return os;
   }
 
-  // Given an integer box, generate points on its boundary and the
-  // diagonal. It is important to note that the maximum is exclusive.
-  // This is used as a way of sampling the lon-lat values of all pixel values
-  // in this box.
-  void gen_bd_and_diag_pts(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points) {
-
-    // Reset the output
-    points.clear();
-
-    // An empty box can have strange corners. For such, just return no points.
-    if (pixel_bbox.empty()) return;
-    
-    // Go along the perimeter of the pixel bbox.
-    for (int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x) {
-      points.push_back(Vector2(x,pixel_bbox.min().y()));
-      points.push_back(Vector2(x,pixel_bbox.max().y()-1));
-    }
-    for (int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y) {
-      points.push_back(Vector2(pixel_bbox.min().x(),y));
-      points.push_back(Vector2(pixel_bbox.max().x()-1,y));
-    }
-    
-    // Draw an X inside the bbox. This covers the poles. It will
-    // produce a lonlat boundary that is within at least one pixel of
-    // the pole. This will also help catch terminator boundaries from
-    // orthographic projections. Note that pixel_bbox.max() is exclusive,
-    // we stop on the line right before we reach this point.
-    BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
-    while (l1.is_good()) {
-      points.push_back(*l1);
-      ++l1;
-    }
-
-    // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
-    BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
-                      pixel_bbox.max() - Vector2i(pixel_bbox.width(), 1));
-    while (l2.is_good()) {
-      points.push_back(*l2);
-      ++l2;
-    }
-
-  }
-  
 
 }} // vw::cartography
 

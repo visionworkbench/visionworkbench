@@ -83,26 +83,26 @@ namespace cartography {
     /// Convert a pixel bounding box in the source image to
     ///  a pixel bounding box in the destination image.
     /// - This function handles the case where the image crosses the poles.
-    BBox2i forward_bbox( BBox2i const& bbox ) const;
+    BBox2i forward_bbox(BBox2i const& bbox) const;
 
     /// As forward_bbox, but from destination to source.
-    BBox2i reverse_bbox( BBox2i const& bbox ) const;
+    BBox2i reverse_bbox(BBox2i const& bbox) const;
 
 
     //------------------------------------------------------------
     // These functions do not implement the Transform interface.
 
     /// Convert a pixel in the source to a pixel in the destination.
-    Vector2 pixel_to_pixel( Vector2 const& v ) const;
+    Vector2 pixel_to_pixel(Vector2 const& v) const;
 
     /// Convert a point in the source to a point (projected coords) in the destination.
-    Vector2 point_to_point( Vector2 const& v ) const;
+    Vector2 point_to_point(Vector2 const& v) const;
 
     /// Convert a pixel in the source to a point (projected coords) in the destination.
-    Vector2 pixel_to_point( Vector2 const& v ) const;
+    Vector2 pixel_to_point(Vector2 const& v) const;
 
     /// Convert a point in the source to a pixel in the destination.
-    Vector2 point_to_pixel( Vector2 const& v ) const;
+    Vector2 point_to_pixel(Vector2 const& v) const;
 
     /// Converts lonlat coords, taking the datums into account.
     /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
@@ -116,20 +116,22 @@ namespace cartography {
     ///  georeference, creating a very large bounding box.
     bool check_bbox_wraparound() const;
 
+    /// Convert a point bounding box in the source to a point bounding box in the destination.
+    BBox2 point_to_point_bbox(BBox2 const& pixel_bbox) const;
 
-    /// Convert a lonlat bounding box in the source to a lonlat in the destination.
-    BBox2 lonlat_to_lonlat_bbox( BBox2 const& pixel_bbox ) const;
-
-    /// Convert a pixel bounding box in the source to a point (projected coords)
-    ///  bounding box in the destination.
-    BBox2 pixel_to_pixel_bbox( BBox2 const& pixel_bbox ) const {return(forward_bbox(pixel_bbox));}
+    /// Convert a lonlat bounding box in the source to a lonlat bounding box in the destination.
+    BBox2 lonlat_to_lonlat_bbox(BBox2 const& pixel_bbox) const;
 
     /// Convert a pixel bounding box in the source to a point (projected coords)
     ///  bounding box in the destination.
-    BBox2 pixel_to_point_bbox( BBox2 const& pixel_bbox ) const;
+    BBox2 pixel_to_pixel_bbox(BBox2 const& pixel_bbox) const {return(forward_bbox(pixel_bbox));}
+
+    /// Convert a pixel bounding box in the source to a point (projected coords)
+    ///  bounding box in the destination.
+    BBox2 pixel_to_point_bbox(BBox2 const& pixel_bbox) const;
 
     /// Convert a point bounding box in the source to a pixel bounding box in the destination.
-    BBox2 point_to_pixel_bbox( BBox2 const& point_bbox ) const;
+    BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
 
     
     friend std::ostream& operator<<(std::ostream& os, const GeoTransform& trans);
@@ -151,11 +153,11 @@ namespace cartography {
   /// See the transform() function in Transform.h for more details.
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform> >::type
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
                     EdgeT const& edge_func,
-                    InterpT const& interp_func ) {
+                    InterpT const& interp_func) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
       (interpolate(v, interp_func, edge_func), GeoTransform(src_georef,dst_georef));
   }
@@ -164,10 +166,10 @@ namespace cartography {
   /// scheme of bilinear interpolation.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
-                    EdgeT const& edge_func ) {
+                    EdgeT const& edge_func) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef));
   }
@@ -176,9 +178,9 @@ namespace cartography {
   /// bilinear interpolation and zero edge extension.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
-                    GeoReference const& dst_georef ) {
+                    GeoReference const& dst_georef) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef));
   }
@@ -190,13 +192,13 @@ namespace cartography {
   /// arbitrary bounding box, use one of the transform methods defined below.
   template <class ImageT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
                     int32 width,
                     int32 height,
                     EdgeT const& edge_func,
-                    InterpT const& interp_func ) {
+                    InterpT const& interp_func) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
       (interpolate(v, interp_func, edge_func), GeoTransform(src_georef,dst_georef), width, height);
   }
@@ -206,12 +208,12 @@ namespace cartography {
   /// dimensions of the output image.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
                     int32 width,
                     int32 height,
-                    EdgeT const& edge_func ) {
+                    EdgeT const& edge_func) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef), width, height);
   }
@@ -221,11 +223,11 @@ namespace cartography {
   /// specify the dimensions of the output image.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
-  inline geo_transform( ImageViewBase<ImageT> const& v,
+  inline geo_transform(ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
                     int32 width,
-                    int32 height ) {
+                    int32 height) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef), width, height);
   }
