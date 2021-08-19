@@ -1023,12 +1023,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 //************** End functions for class ProjContext ******************
 //*********************************************************************
 
-using vw::math::BresenhamLine;
-
   // Given an integer box, generate points on its boundary and the
   // diagonal. It is important to note that the maximum is exclusive.
-  // This is used as a way of sampling the lon-lat values of all pixel values
-  // in this box.
   void sample_int_box(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points) {
 
     // Reset the output
@@ -1052,14 +1048,14 @@ using vw::math::BresenhamLine;
     // the pole. This will also help catch terminator boundaries from
     // orthographic projections. Note that pixel_bbox.max() is exclusive,
     // we stop on the line right before we reach this point.
-    BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
+    vw::math::BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
     while (l1.is_good()) {
       points.push_back(*l1);
       ++l1;
     }
 
     // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
-    BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
+    vw::math::BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
                       pixel_bbox.max() - Vector2i(pixel_bbox.width(), 1));
     while (l2.is_good()) {
       points.push_back(*l2);
@@ -1115,7 +1111,6 @@ using vw::math::BresenhamLine;
     }
     
   }
-  
 
   /// For a bbox in projected space, return the corresponding bbox in
   /// pixels on the image
@@ -1152,6 +1147,9 @@ using vw::math::BresenhamLine;
     return point_bbox;
   }
 
+  // Find the pixel box for a given lon-lat box. Since the transform from
+  // lon-lat to pixel is nonlinear, need to sample somewhat densely
+  // the edges and diagonals of the lon-lat box.
   BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
 
     if (pixel_bbox.empty()) return BBox2();
@@ -1161,11 +1159,10 @@ using vw::math::BresenhamLine;
       return pixel_to_point_bbox(pixel_bbox);
     }
 
-    // Need to worry about what happens around poles
     std::vector<vw::Vector2> points;
     sample_int_box(pixel_bbox, points);
     
-    // Go along the perimeter of the pixel bbox.
+    // Accumulate the results of sampling
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try { lonlat_bbox.grow(pixel_to_lonlat(points[ptiter])); }
       catch (const std::exception & e) {}
@@ -1185,6 +1182,10 @@ using vw::math::BresenhamLine;
     return point_to_pixel_bbox(point_bbox);
   }
 
+  // TODO(oalexan1): Integrate into one single function the two blocks
+  // having the same logic below which make use of BresenhamLine, and
+  // also with the function named sample_float_box().
+  
   BBox2 GeoReference::lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
     // Alternatively this function could avoid the nsamples
     // option. The sample discrete step could just be this average
@@ -1216,14 +1217,14 @@ using vw::math::BresenhamLine;
 
     // It is possible that this may not required. However in the
     // cartography it seems better to be rigorous than sorry.
-    BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+    vw::math::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
     while (l1.is_good()) {
       try {
         point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min()));
       } catch (const std::exception& e) {}
       ++l1;
     }
-    BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+    vw::math::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
     while (l2.is_good()) {
       try {
         point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l2),lower_fraction)
@@ -1259,7 +1260,7 @@ using vw::math::BresenhamLine;
     }
     
     // This X pattern is to capture in crossing of the poles.
-    BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+    vw::math::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
     while (l1.is_good()) {
       try {
         lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l1), lower_fraction)
@@ -1268,7 +1269,7 @@ using vw::math::BresenhamLine;
       ++l1;
     }
 
-    BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+    vw::math::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
     while (l2.is_good()) {
       try {
         lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l2), lower_fraction)
@@ -1279,8 +1280,6 @@ using vw::math::BresenhamLine;
 
     return lonlat_bbox;
   }
-
-
 
   std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
     os << "-- Proj.4 Geospatial Reference Object --\n";

@@ -430,8 +430,6 @@ namespace cartography {
 
   // Given an integer box, generate points on its boundary and the
   // diagonal. It is important to note that the maximum is exclusive.
-  // This is used as a way of sampling the lon-lat values of all pixel values
-  // in this box.
   void sample_int_box(BBox2i const& pixel_bbox, std::vector<Vector2> & points);
 
   // Sample a float box on the edges and diagonal with 100 points
