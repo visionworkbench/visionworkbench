@@ -103,7 +103,7 @@ void create_out_dir(std::string out_prefix){
   if (out_prefix_path.has_parent_path()) {
     if (!fs::is_directory(out_prefix_path.parent_path())) {
       vw_out() << "\nCreating output directory: "
-               << out_prefix_path.parent_path() << std::endl;
+               << out_prefix_path.parent_path() << ".\n";
       fs::create_directories(out_prefix_path.parent_path());
     }
   }

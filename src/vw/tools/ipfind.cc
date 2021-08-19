@@ -39,6 +39,7 @@
 #include <vw/InterestPoint/IntegralDetector.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 #include <vw/InterestPoint/InterestData.h>
+#include <vw/FileIO/FileUtils.h>
 
 using namespace vw;
 using namespace vw::ip;
@@ -217,6 +218,8 @@ int main(int argc, char** argv) {
       boost::filesystem::path of(output_folder);
       of /= boost::filesystem::path(file_prefix).filename();
       file_prefix = of.string();
+
+      vw::create_out_dir(file_prefix);
     }
 
     // Get reference to the file and convert to floating point
@@ -316,7 +319,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    vw_out() << "Detected " << ip.size() << " raw keypoints!\n";
+    vw_out() << "Detected " << ip.size() << " raw keypoints.\n";
     if (ip.size() == 0) {
       vw_out() << "No IP, quitting this image. Perhaps the --normalize and/or --ip-per-tile options could be used.\n";
       continue;
