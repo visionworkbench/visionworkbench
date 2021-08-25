@@ -64,16 +64,16 @@ struct Options {
   typedef std::vector<lut_element>        lut_type;
 
   lut_type lut;
-  std::map<float,Vector3u> lut_map;
+  std::map<float, Vector3u> lut_map;
 };
 
 // Colormap function
 class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<uint8> > > {
-  typedef std::map<float,Options::Vector3u> map_type;
+  typedef std::map<float, Options::Vector3u> map_type;
   map_type m_colormap;
 
 public:
-  ColormapFunc( std::map<float,Options::Vector3u> const& map) : m_colormap(map) {}
+  ColormapFunc(std::map<float, Options::Vector3u> const& map) : m_colormap(map) {}
 
   template <class PixelT>
   PixelMask<PixelRGB<uint8> > operator() (PixelT const& pix) const {
@@ -85,23 +85,23 @@ public:
     if (val < 0.0) val = 0.0;
 
     // Get locations on sparse colormap that bound this pixel value
-    map_type::const_iterator bot = m_colormap.upper_bound( val ); bot--;
-    map_type::const_iterator top = m_colormap.upper_bound( val );
+    map_type::const_iterator bot = m_colormap.upper_bound(val); bot--;
+    map_type::const_iterator top = m_colormap.upper_bound(val);
 
-    if ( top == m_colormap.end() ) // If this is above the top colormap value
+    if (top == m_colormap.end()) // If this is above the top colormap value
       return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use the max colormap value
 
     // Otherwise determine a proportional color between the bounding colormap values
     Options::Vector3u output = bot->second + // Lower colormap value
-                                ( ((val - bot->first)/(top->first - bot->first)) * // Fraction of distance to next colormap value
-                                  (Vector3i(top->second) - Vector3i(bot->second))  ); // Difference between successive colormap values
+                                (((val - bot->first)/(top->first - bot->first)) * // Fraction of distance to next colormap value
+                                  (Vector3i(top->second) - Vector3i(bot->second)) ); // Difference between successive colormap values
     return PixelRGB<uint8>(output[0], output[1], output[2]);
   }
 };
 
 template <class ViewT>
 UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view,
-                                                std::map<float,Options::Vector3u> const& map) {
+                                                std::map<float, Options::Vector3u> const& map) {
   return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc(map));
 }
 
@@ -112,16 +112,15 @@ void do_colormap(Options& opt) {
   vw_out() << "Creating color map.\n";
 
   cartography::GeoReference georef;
-
-  cartography::read_georeference(georef, opt.input_file_name);
+  bool has_georef = cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
   boost::shared_ptr<vw::DiskImageResource>
-    disk_img_rsrc( vw::DiskImageResourcePtr(opt.input_file_name) );
+    disk_img_rsrc(vw::DiskImageResourcePtr(opt.input_file_name));
 
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
-  } else if ( disk_img_rsrc->has_nodata_read() ) {
+  } else if (disk_img_rsrc->has_nodata_read()) {
     opt.nodata_value = disk_img_rsrc->nodata_read();
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
@@ -131,7 +130,7 @@ void do_colormap(Options& opt) {
   ImageViewRef<PixelGray<float> > input_image =
     pixel_cast<PixelGray<float> >(select_channel(disk_img_file,0));
   if (opt.min_val == 0 && opt.max_val == 0) {
-    min_max_channel_values( create_mask( input_image, opt.nodata_value),
+    min_max_channel_values(create_mask(input_image, opt.nodata_value),
                             opt.min_val, opt.max_val);
     vw_out() << "\t--> Image color map range: ["
              << opt.min_val << "  " << opt.max_val << "]\n";
@@ -140,30 +139,30 @@ void do_colormap(Options& opt) {
              << opt.min_val << "  " << opt.max_val << "]\n";
   }
 
-  // Convert lut to lut_map ( converts altitudes to relative percent )
+  // Convert lut to lut_map (converts altitudes to relative percent)
   opt.lut_map.clear();
-  BOOST_FOREACH( Options::lut_element const& pair, opt.lut ) {
+  BOOST_FOREACH(Options::lut_element const& pair, opt.lut) {
     try {
-      if ( boost::contains(pair.first,"%") ) {
+      if (boost::contains(pair.first,"%")) {
         float key = boost::lexical_cast<float>(boost::erase_all_copy(pair.first,"%"))/100.0;
         opt.lut_map[ key ] = pair.second;
       } else {
         float key = boost::lexical_cast<float>(pair.first);
-        opt.lut_map[ ( key - opt.min_val ) / ( opt.max_val - opt.min_val ) ] =
+        opt.lut_map[ (key - opt.min_val) / (opt.max_val - opt.min_val) ] =
           pair.second;
       }
-    } catch ( const boost::bad_lexical_cast& e ) {
+    } catch (const boost::bad_lexical_cast& e) {
       continue;
     }
   }
 
   // Mask input
   ImageViewRef<PixelMask<PixelGray<float> > > img;
-  if ( PixelHasAlpha<PixelT>::value )
-    img = alpha_to_mask(channel_cast<float>(disk_img_file) );
+  if (PixelHasAlpha<PixelT>::value)
+    img = alpha_to_mask(channel_cast<float>(disk_img_file));
   else if (opt.nodata_value != std::numeric_limits<float>::max()) {
     img = channel_cast<float>(create_mask(input_image, opt.nodata_value));
-  }else if ( disk_img_rsrc->has_nodata_read() ) {
+  }else if (disk_img_rsrc->has_nodata_read()) {
     img = create_mask(input_image, opt.nodata_value);
   }
   else
@@ -185,31 +184,35 @@ void do_colormap(Options& opt) {
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
 
-    if ( r->has_block_write() )
-      r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size() ) );
-    write_georeference( *r, georef );
-    block_write_image( *r, shaded_image,
-                       TerminalProgressCallback( "tools.colormap", "Writing:") );
+    if (r->has_block_write())
+      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
+                                         vw_settings().default_tile_size()));
+
+    if (has_georef) 
+      write_georeference(*r, georef);
+    
+    block_write_image(*r, shaded_image,
+                       TerminalProgressCallback("tools.colormap", "Writing:"));
 
   } else { // Not using a hillshade file
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
 
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
-    if ( r->has_block_write() )
-      r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size() ) );
+    if (r->has_block_write())
+      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
+                                         vw_settings().default_tile_size()));
 
-    write_georeference( *r, georef );
+    if (has_georef)
+      write_georeference(*r, georef);
 
-    block_write_image( *r, colorized_image,
-                       TerminalProgressCallback( "tools.colormap", "Writing:") );
+    block_write_image(*r, colorized_image,
+                      TerminalProgressCallback("tools.colormap", "Writing:"));
 
   }
 
 }
 
-void save_legend( Options const& opt) {
+void save_legend(Options const& opt) {
   ImageView<PixelGray<float> > img(100, 500);
   for (int j = 0; j < img.rows(); ++j) {
     float val = float(j) / img.rows();
@@ -223,7 +226,7 @@ void save_legend( Options const& opt) {
   write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
 }
 
-void handle_arguments( int argc, char *argv[], Options& opt ) {
+void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description general_options("");
   general_options.add_options()
     ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
@@ -257,30 +260,30 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(all_options).positional(positional_desc).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
-    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
-              << e.what() << general_options );
+    vw_throw(ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << general_options);
   }
 
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " [options] <input img> \n";
 
-  if ( vm.count("help") )
-    vw_throw( ArgumentErr() << usage.str() << general_options );
-  if ( opt.input_file_name.empty() )
-    vw_throw( ArgumentErr() << "Missing input file!\n"
-              << usage.str() << general_options );
-  if ( vm.count("moon") ) {
+  if (vm.count("help"))
+    vw_throw(ArgumentErr() << usage.str() << general_options);
+  if (opt.input_file_name.empty())
+    vw_throw(ArgumentErr() << "Missing input file!\n"
+              << usage.str() << general_options);
+  if (vm.count("moon")) {
     opt.min_val = -8499;
     opt.max_val = 10208;
   }
-  if ( vm.count("mars") ) {
+  if (vm.count("mars")) {
     opt.min_val = -8208;
     opt.max_val = 21249;
   }
-  if ( opt.output_file_name.empty() )
+  if (opt.output_file_name.empty())
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string()+"_CMAP.tif";
   opt.draw_legend = vm.count("legend");
@@ -599,68 +602,68 @@ void AddLutLine(std::string const& line, Options::lut_type & lut){
 
   try {
     // Parse a file having lines of four numbers, e.g., 75 255 0 0
-    if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+    if (iter == tokens.end()) vw_throw(IOErr() << "Unable to read input LUT");
     key = *iter; iter++;
-    if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+    if (iter == tokens.end()) vw_throw(IOErr() << "Unable to read input LUT");
     value[0] = boost::numeric_cast<uint8>(round(boost::lexical_cast<double>(*iter))); iter++;
-    if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+    if (iter == tokens.end()) vw_throw(IOErr() << "Unable to read input LUT");
           value[1] = boost::numeric_cast<uint8>(round(boost::lexical_cast<double>(*iter))); iter++;
-          if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+          if (iter == tokens.end()) vw_throw(IOErr() << "Unable to read input LUT");
           value[2] = boost::numeric_cast<uint8>(round(boost::lexical_cast<double>(*iter)));
-  } catch ( const boost::bad_lexical_cast& e ) {
+  } catch (const boost::bad_lexical_cast& e) {
     return;
   }
-  lut.push_back( Options::lut_element(key, value) );
+  lut.push_back(Options::lut_element(key, value));
 }
 
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
 
   Options opt;
   try {
     handle_arguments(argc, argv, opt);
     
     // Decide legend
-    if ( opt.colormap_style.empty() || opt.colormap_style == "jet" ) { // default
+    if (opt.colormap_style.empty() || opt.colormap_style == "jet") { // default
       opt.lut.clear();
-      opt.lut.push_back( Options::lut_element("0%",   Options::Vector3u(  0,   0,   0)) ); // Black
-      opt.lut.push_back( Options::lut_element("20.8%",Options::Vector3u(  0,   0, 255)) ); // Blue
-      opt.lut.push_back( Options::lut_element("25%",  Options::Vector3u(  0,   0, 255)) ); // Blue
-      opt.lut.push_back( Options::lut_element("37.5%",Options::Vector3u(  0, 191, 255)) ); // Light blue
-      opt.lut.push_back( Options::lut_element("41.7%",Options::Vector3u(  0, 255, 255)) ); // Teal
-      opt.lut.push_back( Options::lut_element("58.3%",Options::Vector3u(255, 255,  51)) ); // Yellow
-      opt.lut.push_back( Options::lut_element("62.5%",Options::Vector3u(255, 191,   0)) ); // Orange
-      opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,   0,   0)) ); // Red
-      opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,   0,   0)) ); // Red
-      opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(  0,   0,   0)) ); // Black
-    } else if ( opt.colormap_style == "binary-red-blue" ) {
+      opt.lut.push_back(Options::lut_element("0%",   Options::Vector3u(0,  0,   0))); // Black
+      opt.lut.push_back(Options::lut_element("20.8%",Options::Vector3u(0,  0, 255))); // Blue
+      opt.lut.push_back(Options::lut_element("25%",  Options::Vector3u(0,  0, 255))); // Blue
+      opt.lut.push_back(Options::lut_element("37.5%",Options::Vector3u(0,  191, 255))); // Light blue
+      opt.lut.push_back(Options::lut_element("41.7%",Options::Vector3u(0,  255,  255))); // Teal
+      opt.lut.push_back(Options::lut_element("58.3%",Options::Vector3u(255, 255, 51))); // Yellow
+      opt.lut.push_back(Options::lut_element("62.5%",Options::Vector3u(255, 191, 0))); // Orange
+      opt.lut.push_back(Options::lut_element("75%",  Options::Vector3u(255, 0,   0))); // Red
+      opt.lut.push_back(Options::lut_element("79.1%",Options::Vector3u(255, 0,   0))); // Red
+      opt.lut.push_back(Options::lut_element("100%", Options::Vector3u( 0,  0,   0))); // Black
+    } else if (opt.colormap_style == "binary-red-blue") {
       for (size_t count = 0; count < sizeof(BRB)/sizeof(std::string); count++) {
         AddLutLine(BRB[count], opt.lut);
       }
-    } else if ( opt.colormap_style == "cubehelix" ) {
+    } else if (opt.colormap_style == "cubehelix") {
       for (size_t count = 0; count < sizeof(CubeHelix)/sizeof(std::string); count++) {
         AddLutLine(CubeHelix[count], opt.lut);
       }
     } else {
       // Read input LUT
-      std::ifstream lut_file( opt.colormap_style.c_str() );
-      if ( !lut_file.is_open() )
-        vw_throw( IOErr() << "Unable to open colormap style file: "
-                  << opt.colormap_style );
+      std::ifstream lut_file(opt.colormap_style.c_str());
+      if (!lut_file.is_open())
+        vw_throw(IOErr() << "Unable to open colormap style file: "
+                  << opt.colormap_style);
       std::string line;
-      std::getline( lut_file, line );
-      while ( lut_file.good() ) {
+      std::getline(lut_file, line);
+      while (lut_file.good()) {
 
         // Skip lines containing spaces only
         bool only_spaces = true;
         for (unsigned s = 0; s < line.size(); s++) if (!isspace(line[s])) only_spaces = false;
         if (only_spaces){
-          std::getline( lut_file, line );
+          std::getline(lut_file, line);
           continue;
         }
 
         AddLutLine(line, opt.lut);
 
-        std::getline( lut_file, line );
+        std::getline(lut_file, line);
       }
 
       lut_file.close();
@@ -691,13 +694,13 @@ int main( int argc, char *argv[] ) {
     }
 
     // Draw legend
-    if ( opt.draw_legend )
+    if (opt.draw_legend)
       save_legend(opt);
 
-  } catch ( const ArgumentErr& e ) {
+  } catch (const ArgumentErr& e) {
     vw_out() << e.what() << std::endl;
     return 1;
-  } catch ( const Exception& e ) {
+  } catch (const Exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }
