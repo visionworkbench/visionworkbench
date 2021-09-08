@@ -324,6 +324,10 @@ int main(int argc, char** argv) {
         }
       } catch (const vw::math::RANSACErr& e ) {
         vw_out() << "RANSAC Failed: " << e.what() << "\n";
+        
+        vw_out() << "Consider re-running ipfind with a larger value of --ip-per-tile. "
+                 << "If ipfind was called with a binary detector, such as 'orb', ensure this "
+                 << "tool is called with '--distance-metric hamming'.\n";
         continue;
       }
       vw_out() << "Found " << indices.size() << " final matches.\n";
