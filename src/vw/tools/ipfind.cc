@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     ("interest-operator",    po::value(&interest_operator)->default_value("sift"), 
      "Choose an interest point detector from: sift (default), orb, OBALoG, LoG, Harris, IAGD.")
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sift"), 
-     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators.")
+     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch, and pca).")
     ("ip-per-image",           po::value(&ip_per_image), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
     ("tile-size,t",  po::value(&tile_size), 
@@ -114,9 +114,9 @@ int main(int argc, char** argv) {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
-    std::cout << "An error occurred while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << usage.str();
+    vw_out() << "An error occurred while parsing command line arguments.\n";
+    vw_out() << "\t" << e.what() << "\n\n";
+    vw_out() << usage.str();
     return 1;
   }
 
@@ -190,12 +190,18 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  if (descriptor_is_opencv && (descriptor_generator != interest_operator)) {
+  if ((detector_is_opencv && !descriptor_is_opencv) &&
+      (descriptor_generator != interest_operator)) {
     vw_out() <<"The value of --descriptor-generator is '" << descriptor_generator << "'. ";
     descriptor_generator = interest_operator;
     vw_out() << "Switching it to '" << descriptor_generator << "' to match --interest-operator.\n";
-    if (interest_operator == "obalog") 
-      vw_out() << "Also can use: 'sgrad', 'sgrad2', 'patch', 'pca'.\n";
+  }
+
+  if (!detector_is_opencv && descriptor_is_opencv) {
+    vw_out() <<"The value of --descriptor-generator is '" << descriptor_generator << "'. ";
+    descriptor_generator = "sgrad";
+    vw_out() << "Switching it to '" << descriptor_generator << "' to match --interest-operator.\n";
+    vw_out() << "Can use any of: 'sgrad', 'sgrad2', 'patch', 'pca'.\n";
   }
 
   // Iterate over the input files and find interest points in each.
@@ -371,7 +377,7 @@ int main(int argc, char** argv) {
     for (InterestPointList::const_iterator iter=ip.begin(); iter!=ip.end(); ++iter) {
       if (limit <= 0)
         break;
-      std::cout << iter->to_string() << "\n";  
+      vw_out() << iter->to_string() << "\n";  
       --limit;
     }
 
