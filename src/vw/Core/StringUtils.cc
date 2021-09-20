@@ -17,22 +17,22 @@
 
 
 #include <vw/Core/StringUtils.h>
-//#include <boost/algorithm/string.hpp>
 
 namespace vw {
-
 
 size_t string_replace(std::string &s, std::string const& find, std::string const& replace) {
   // Keep replacing the first match found until we don't find any more.
   size_t count = 0;
+
+  size_t pos = 0;
   while (true) {
-    size_t pos = s.find(find);
+    pos = s.find(find, pos);
     if (pos == std::string::npos)
       return count;
     s.replace(pos, find.length(), replace);
-    ++count;
+    pos++; // to not get stuck in an infinite loop
+    count++;
   }
 }
-
 
 } // End namespace vw

@@ -21,8 +21,7 @@ namespace vw{
 
   /// Extract a string into a Vector of given size.
   template<class VecT>
-  VecT str_to_vec(std::string const& str);
-
+  VecT str_to_vec(std::string const& str, std::string separators = "");
 
   /// Executes a find-replace operation in-place on a string.
   /// - Returns the number of instances replaced.
@@ -30,7 +29,6 @@ namespace vw{
 
   //=============================================================================
   // Function definitions
-
 
   template <typename T>
   std::string num_to_str(T val, size_t precision){
@@ -44,6 +42,7 @@ namespace vw{
   template <class VecT>
   std::string vec_to_str(VecT const& vec){
 
+    // TODO(oalexan1): Maybe the precision should be 17 here.
     std::ostringstream oss;
     oss.precision(16);
     for (int i = 0; i < (int)vec.size()-1; i++) oss << vec[i] << " ";
@@ -52,23 +51,37 @@ namespace vw{
     return oss.str();
   }
 
-
-  // When calling this, be user to invoke it as, for example
-  // Vector3 vals = str_to_vec<Vector3>(str);
-  // as simply doing vals = str_to_vec(str) won't work
+  // Invoke this, for example, as:
+  // Vector3 vals = str_to_vec(str);
+  // or:
+  // vals = str_to_vec<Vector3>(str);
+  // Optionally pass in several separators (by default use space
+  // as separator).
   template<class VecT>
-  VecT str_to_vec(std::string const& str){
+  VecT str_to_vec(std::string const& str, std::string separators){
 
+    std::istringstream iss;
+    if (separators == "") {
+      iss = std::istringstream(str);
+    } else {
+      // Replace the separators with space before tokenizing
+      std::string proc_str = str;
+      for (size_t it = 0; it < separators.size(); it++) {
+        std::string find;
+        find += separators[it];
+        std::string replace = " ";
+        string_replace(proc_str, find, replace);
+      }
+      iss = std::istringstream(proc_str);
+    }
+    
     VecT vec;
-    std::istringstream iss(str);
     for (int i = 0; i < (int)vec.size(); i++){
       if (! (iss >> vec[i]) )
         vw::vw_throw(vw::ArgumentErr() << "Failed to extract value from: " << str << "\n");
     }
     return vec;
   }
-
-
 
 } // namespace vw
 
