@@ -42,40 +42,45 @@ Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const
   const int    MAX_ITERATIONS = 1e+5;
 
   Vector3 objective(0, 0, 0);
-  Vector2 solution = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>(model, start, objective, status,
-                                               ABS_TOL, REL_TOL, MAX_ITERATIONS);
+  Vector2 solution
+    = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>(model, start, objective, status,
+                                                            ABS_TOL, REL_TOL, MAX_ITERATIONS);
   VW_ASSERT( status > 0,
 	     camera::PointToPixelErr() << "Unable to project point into Linescan model" );
 
   return solution;
 }
 
-
 Vector3 LinescanModel::pixel_to_vector(Vector2 const& pixel) const {
+
+  Vector3 output_vector;
+  
   try {
     // Compute local vector from the pixel out of the sensor
     // - m_detector_origin and m_focal_length have been converted into units of pixels
     Vector3 local_vec = get_local_pixel_vector(pixel);
+    
     // Put the local vector in world coordinates using the pose information.
-    Vector3 output_vector = camera_pose(pixel).rotate(local_vec);
-
+    output_vector = camera_pose(pixel).rotate(local_vec);
 
     Vector3 cam_ctr = camera_center(pixel);
-    if (!m_correct_atmospheric_refraction) 
-      output_vector = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
-                                                              m_mean_surface_elevation, output_vector);
-
-    if (!m_correct_velocity_aberration) 
-      return output_vector;
-    else
-      return apply_velocity_aberration_correction(cam_ctr, camera_velocity(pixel),
-                                                  m_mean_earth_radius, output_vector);
-
+    if (m_correct_atmospheric_refraction) 
+      output_vector
+        = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
+                                                  m_mean_surface_elevation, output_vector);
+    
+    if (m_correct_velocity_aberration) 
+      output_vector
+        = apply_velocity_aberration_correction(cam_ctr, camera_velocity(pixel),
+                                               m_mean_earth_radius, output_vector);
+    
   } catch(const vw::Exception &e) {
     // Repackage any of our exceptions thrown below this point as a 
     //  pixel to ray exception that other code will be able to handle.
     vw_throw(vw::camera::PixelToRayErr() << e.what());
   }
+
+  return output_vector;
 }
 
 /*

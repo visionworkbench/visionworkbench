@@ -129,25 +129,30 @@ Vector3 OpticalBarModel::pixel_to_vector_uncorrected(Vector2 const& pixel) const
 }
 
 Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
+
+  Vector3 output_vector;
+
   try {
-    Vector3 output_vector = pixel_to_vector_uncorrected(pixel);
+    output_vector = pixel_to_vector_uncorrected(pixel);
 
     Vector3 cam_ctr = camera_center(pixel);
-    if (!m_correct_atmospheric_refraction) 
-      output_vector = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
-                                                              m_mean_surface_elevation, output_vector);
-
-    if (!m_correct_velocity_aberration) 
-      return output_vector;
-    else
-      return apply_velocity_aberration_correction(cam_ctr, get_velocity(pixel),
-                                                  m_mean_earth_radius, output_vector);
-
+    if (m_correct_atmospheric_refraction) 
+      output_vector
+        = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
+                                                  m_mean_surface_elevation, output_vector);
+    
+    if (m_correct_velocity_aberration) 
+      output_vector
+        = apply_velocity_aberration_correction(cam_ctr, get_velocity(pixel),
+                                               m_mean_earth_radius, output_vector);
+    
   } catch(const vw::Exception &e) {
     // Repackage any of our exceptions thrown below this point as a 
     //  pixel to ray exception that other code will be able to handle.
     vw_throw(vw::camera::PixelToRayErr() << e.what());
   }
+  
+  return output_vector;
 }
 
 Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
