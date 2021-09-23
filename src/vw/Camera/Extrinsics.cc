@@ -270,7 +270,7 @@ Vector3 LagrangianInterpolation::operator()(double t) const {
   int    high_i   = low_i + 1;
 
   VW_ASSERT((low_i >= 0) && (high_i < static_cast<int>(m_samples.size())),
-	    ArgumentErr() << "Out of bounds in LagrangianInterpolation for time " << t << "\n" );
+	    ArgumentErr() << "Out of bounds in LagrangianInterpolation for time " << t << ".\n" );
 
   // Check that we have enough bordering points to interpolate
   int start = low_i  - (m_radius-1);
@@ -284,20 +284,23 @@ Vector3 LagrangianInterpolation::operator()(double t) const {
   }
 
   if (end >= static_cast<int>(m_samples.size())) {
+    // Have to use more points on the left
     int shift = end - static_cast<int>(m_samples.size()) + 1;
     start -= shift;
     end -= shift;
   }
 
   VW_ASSERT((start >= 0) && (end < static_cast<int>(m_samples.size())),
-	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n" );
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << ".\n" );
   
   // Compute the times of the points being used for interpolation
   m_times_temp[0] = m_start_time + start*m_time_delta;
   for (size_t k=1; k<m_times_temp.size(); ++k)
     m_times_temp[k] = m_times_temp[k-1] + m_time_delta;
     
-  // Perform the interpolation
+  // Perform the interpolation. The interval [start, end] has 2 *
+  // m_radius values.  We end up multiplying 2 * m_radius - 1 values
+  // for each numerator.
   Vector3 ans(0,0,0);
   for (int j=start; j<=end; ++j) {
   
