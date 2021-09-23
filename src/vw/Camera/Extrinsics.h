@@ -34,8 +34,7 @@
 #include <map>
 #include <vector>
 
-namespace vw {
-namespace camera {
+namespace vw { namespace camera {
 
   // --------------------------------------------------------------------------
   // POSITION INTERPOLATION - can also be used for velocity.
@@ -47,7 +46,7 @@ namespace camera {
 
   public:
     LinearPositionInterpolation(Vector3 const& initial_position,
-                        				Vector3 const& initial_velocity);
+                                Vector3 const& initial_velocity);
 
     Vector3 operator()(double t) const;
   };
@@ -58,10 +57,10 @@ namespace camera {
     double m_t0, m_dt, m_tend;
   public:
     LinearPiecewisePositionInterpolation(){}
-    LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
-					  double t0, double dt );
+    LinearPiecewisePositionInterpolation(std::vector<Vector3> const& position_samples,
+                                         double t0, double dt );
 
-    Vector3 operator()( double t ) const;
+    Vector3 operator()(double t ) const;
     double get_t0  () const { return m_t0;  }
     double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
@@ -77,8 +76,8 @@ namespace camera {
   public:
     SmoothPiecewisePositionInterpolation(){}
     SmoothPiecewisePositionInterpolation(std::vector<Vector3> const& pose_samples,
-					 double t0, double dt,
-					 int num_wts, double sigma);
+                                         double t0, double dt,
+                                         int num_wts, double sigma);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Vector3 operator()(double t) const;
@@ -96,6 +95,7 @@ namespace camera {
     std::vector<Vector3> m_samples;
     std::vector<double > m_times;
     int m_radius;
+    
   public:
     /// Construct with a set of data samples and times.
     /// - The radius is the number of points before and after time t used for interpolation.
@@ -106,7 +106,13 @@ namespace camera {
     Vector3 operator()(double t) const;
   };
 
-  /// Performs Lagrangian interpolation between data points with constant time intervals.
+  /// Performs Lagrangian interpolation between data points with
+  /// constant time intervals. Given the input radius, form the
+  /// polynomial of degree 2*radius - 1 which goes through the
+  /// 2*radius samples whose times are closest to the time at which
+  /// interpolation must happen.
+  /// TODO(oalexan1): What if is desired to use an odd number of
+  /// samples?
   class LagrangianInterpolation {
     std::vector<Vector3> m_samples;
     double m_start_time, m_time_delta, m_last_time;
@@ -119,7 +125,11 @@ namespace camera {
     LagrangianInterpolation(std::vector<Vector3> const& samples, 
                             double start_time, double time_delta, double last_time,
                             int radius=4);
-  
+
+    double get_t0  () const { return m_start_time; }
+    double get_dt  () const { return m_time_delta; }
+    double get_tend() const { return m_last_time;  }
+    
     /// Compute the interpolated value at a given time t.
     Vector3 operator()(double t) const;
   };
@@ -130,11 +140,11 @@ namespace camera {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
-    PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
-				     std::vector<Vector3> const& velocity_samples,
-				     double t0, double dt );
+    PiecewiseAPositionInterpolation(std::vector<Vector3> const& position_samples,
+                                    std::vector<Vector3> const& velocity_samples,
+                                    double t0, double dt );
 
-    Vector3 operator()( double t ) const;
+    Vector3 operator()(double t ) const;
     double get_t0  () const { return m_t0;  }
     double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
@@ -166,7 +176,7 @@ namespace camera {
     ///              | t^2 |
     ///
     Curve3DPositionInterpolation(std::vector<Vector3> const& position_samples,
-				 double t0, double dt);
+                                 double t0, double dt);
 
     /// The call operator evaluates the curve at the given time t.
     /// See the constructor documentation for a summary of the
@@ -180,11 +190,11 @@ namespace camera {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
   public:
-    HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
-				  std::vector<Vector3> const& velocity_samples,
-				  double t0, double dt );
+    HermitePositionInterpolation(std::vector<Vector3> const& position_samples,
+                                 std::vector<Vector3> const& velocity_samples,
+                                 double t0, double dt );
 
-    Vector3 operator()( double t ) const;
+    Vector3 operator()(double t ) const;
     double get_t0  () const { return m_t0;  }
     double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
@@ -235,7 +245,7 @@ namespace camera {
 
     // Careful here, pix[0] is a column, and pix[1] is a row,
     // so we'll access directions(pix[1], pix[0]).
-    Vector3 operator()( vw::Vector2 const& pix ) const;
+    Vector3 operator()(vw::Vector2 const& pix ) const;
     double get_row0    () const { return m_row0;    }
     double get_drow    () const { return m_drow;    }
     double get_row_end () const { return m_row_end; }
@@ -255,7 +265,7 @@ namespace camera {
   public:
     SmoothSLERPPoseInterpolation(){}
     SmoothSLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
-				 int num_wts, double sigma);
+                                 int num_wts, double sigma);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
@@ -274,9 +284,9 @@ namespace camera {
     double m_t0, m_dt;
 
   public:
-    LinearTimeInterpolation( double initial_time, double time_per_line );
+    LinearTimeInterpolation(double initial_time, double time_per_line );
 
-    double operator()( double line ) const;
+    double operator()(double line ) const;
   };
 
   ///
@@ -287,9 +297,10 @@ namespace camera {
   public:
     // TLC is straight from the IMG XML tag from Digital Globe
     // products. The pairings are expected to be <Line, Time>.
-    TLCTimeInterpolation( std::vector<std::pair<double, double> > const& tlc, double time_offset = 0 );
+    TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
+                         double time_offset = 0 );
 
-    double operator()( double line ) const;
+    double operator()(double line ) const;
   };
 
   
