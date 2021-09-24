@@ -732,8 +732,6 @@ namespace cartography {
 
     mean_gsd /= num;
 
-    std::cout << "final box " << cam_bbox << std::endl;
-
     return cam_bbox;
   }
 
