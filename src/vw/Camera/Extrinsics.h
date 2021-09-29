@@ -30,9 +30,18 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/LinearAlgebra.h>
 
+#include <boost/shared_ptr.hpp>
+
 #include <iostream>
 #include <map>
 #include <vector>
+
+namespace vw {
+  namespace math {
+    template <class Point>
+    class catmull_rom;
+  }
+}
 
 namespace vw { namespace camera {
 
@@ -220,10 +229,12 @@ namespace vw { namespace camera {
   class SLERPPoseInterpolation {
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
-
+    bool m_use_splines;
+    
   public:
     SLERPPoseInterpolation(){}
-    SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt);
+    SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
+                           bool use_splines = false);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
@@ -231,6 +242,7 @@ namespace vw { namespace camera {
     double get_t0  () const { return m_t0;  }
     double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
+    boost::shared_ptr<vw::math::catmull_rom<std::array<double, 4>>> m_spline_ptr;
   };
 
   /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
