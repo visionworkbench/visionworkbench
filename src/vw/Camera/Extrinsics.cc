@@ -26,6 +26,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <array>
 
 using namespace vw;
 using namespace vw::camera;
