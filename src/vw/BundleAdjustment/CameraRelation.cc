@@ -95,25 +95,23 @@ namespace ba {
     typedef boost::weak_ptr<FeatureT>   w_ptr;
     m_nodes.clear();
 
+    // Add a node for each camera we will encounter
+    for ( size_t i = 0; i < cnet.get_image_list().size(); i++ )
+      this->add_node( CameraNode<FeatureT>( i, "" ));
+    
     for ( size_t point_id = 0; point_id < cnet.size(); point_id++ ) {
       std::vector<f_ptr> features_added;
       // Building up features to be added and linking to camera nodes
       BOOST_FOREACH( ControlMeasure const& cm, cnet[point_id] ) {
-        // Seeing if a camera node exists for this measure
-        if ( cm.image_id() >= this->size() ) {
-          for ( size_t i = this->size(); i <= cm.image_id(); i++ ) {
-            this->add_node( CameraNode<FeatureT>( i, "" ) );
-          }
-        }
-
+        
         // Appending to list
         features_added.push_back( f_ptr( new FeatureT(cm, point_id) ) );
-
+        
         // Attaching to camera node
-        (*this)[cm.image_id()].relations.push_back( features_added.back() );
+        m_nodes[cm.image_id()].relations.push_back( features_added.back() );
       } // End loop through ControlMeasures
-
-      // Doubly Linking features together
+      
+      // Doubly-linking features together
       typedef typename std::vector<f_ptr>::iterator fvi_ptr;
       for ( fvi_ptr first = features_added.begin();
             first < features_added.end() - 1; first++ ) {
