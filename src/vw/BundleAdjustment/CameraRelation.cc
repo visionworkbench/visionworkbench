@@ -95,7 +95,7 @@ namespace ba {
     typedef boost::weak_ptr<FeatureT>   w_ptr;
     m_nodes.clear();
 
-    // Add a node for each camera we will encounter
+    // Add a node for each image in the list
     for ( size_t i = 0; i < cnet.get_image_list().size(); i++ )
       this->add_node( CameraNode<FeatureT>( i, "" ));
     
@@ -103,6 +103,15 @@ namespace ba {
       std::vector<f_ptr> features_added;
       // Building up features to be added and linking to camera nodes
       BOOST_FOREACH( ControlMeasure const& cm, cnet[point_id] ) {
+        
+        // Extra robustness, ensure nodes exist for all encountered
+        // indices. This is necessary since the cnet is sometimes
+        // created without populating the image list.
+        if ( cm.image_id() >= this->size() ) {
+          for ( size_t i = this->size(); i <= cm.image_id(); i++ ) {
+            this->add_node( CameraNode<FeatureT>( i, "" ) );
+          }
+        }
         
         // Appending to list
         features_added.push_back( f_ptr( new FeatureT(cm, point_id) ) );
