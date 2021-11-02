@@ -18,7 +18,7 @@
 
 /// \file Core/Cache.cc
 ///
-/// Types and functions to assist cacheing regeneratable data.
+/// Types and functions to assist caching regeneratable data.
 ///
 #include <vw/Core/Cache.h>
 
@@ -83,9 +83,9 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
     double factor = 1.5;
     if ( (m_size > m_max_size) && (m_size > factor*m_last_size)){
       VW_OUT(WarningMessage, "cache")
-        << "Cached a new object (" << size
-        << " B) and now we are larger than the requested maximum cache size (" << round(m_max_size/1.0e6)
-        << " MB). Current size = " << round(m_size/1.0e6) << " MB.\n";
+        << "Cache size (" << round(m_size/1.0e6)
+        << " MB) is larger than the requested maximum cache size (" << round(m_max_size/1.0e6)
+        << " MB). Consider increasing the cache in ~/.vwrc.\n";
       m_last_size = m_size;
     }
     
