@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <vw/FileIO/FileUtils.h>
 #include <vw/Cartography/shapeFile.h>
 
 #include <vector>
@@ -347,6 +348,8 @@ namespace vw { namespace geometry {
                        vw::cartography::GeoReference const& geo, 
                        std::vector<vw::geometry::dPoly> const& polyVec){
 
+    vw::create_out_dir(file);
+    
     std::string layer_str = boost::filesystem::path(file).stem().string();
 
     const char *pszDriverName = "ESRI Shapefile";
