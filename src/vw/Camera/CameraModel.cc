@@ -35,7 +35,6 @@ std::ostream& vw::camera::operator<<(std::ostream& ostr,
   return ostr;
 }
 
-
 namespace vw {
 namespace camera {
 
