@@ -33,11 +33,18 @@
 
 namespace vw { namespace geometry {
 
-  // Convert a single polygon to OGR
+  // Convert a single point to OGRPoint
+  void toOGR(double x, double y, OGRPoint & P);
+  
+  // Convert a polygonal line to OGRLineString
+  void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
+	     OGRLineString & L);
+
+  // Convert a single polygon to OGRLinearRing
   void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
 	     OGRLinearRing & R);
 
-  // Convert a polygon set to OGR
+  // Convert a polygon set to OGRPolygon
   void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P);
 
   // Read a polygon set from OGR

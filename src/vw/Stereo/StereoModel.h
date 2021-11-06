@@ -63,7 +63,7 @@ namespace stereo {
     ///
     /// Users really shouldn't use this method, the ideal method is
     /// the 'stereo_triangulate' in StereoView.h.
-    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
+    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f>> const& disparity_map,
                                   ImageView<double> &error ) const;
 
     /// Apply a stereo model to multiple or just two image coordinates.

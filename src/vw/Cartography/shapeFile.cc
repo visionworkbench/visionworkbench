@@ -17,6 +17,7 @@
 
 #include <vw/FileIO/FileUtils.h>
 #include <vw/Cartography/shapeFile.h>
+#include <vw/Core/Log.h>
 
 #include <vector>
 #include <algorithm>
@@ -32,7 +33,28 @@
 
 namespace vw { namespace geometry {
 
-  // Convert a single polygon in a set of polygons to an ORG ring.  
+  // Convert a single point to OGRPoint
+  void toOGR(double x, double y, OGRPoint & P){
+    P = OGRPoint(x, y);
+  }
+
+  // Convert a polygonal line to OGR
+  void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
+	     OGRLineString & L){
+
+    L = OGRLineString(); // init
+
+    for (int vIter = 0; vIter < numVerts; vIter++){
+      double x = xv[startPos + vIter], y = yv[startPos + vIter];
+      L.addPoint(x, y);
+    }
+  
+    // A line string must have at least 2 points
+    if (L.getNumPoints() <= 1) 
+      L = OGRLineString(); 
+  }
+
+  // Convert a single polygon in a set of polygons to an ORG ring  
   void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
 	     OGRLinearRing & R){
 
@@ -205,12 +227,11 @@ namespace vw { namespace geometry {
     } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPoint) {
     
       // Create a polygon with just one point
-    
       OGRPoint *poPoint = (OGRPoint*)poGeometry;
       std::vector<double> x, y;
       x.push_back(poPoint->getX());
       y.push_back(poPoint->getY());
-    
+      
       vw::geometry::dPoly poly;
       bool isPolyClosed = true; // only closed polygons are supported
       poly.setPolygon(x.size(), vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
@@ -218,26 +239,22 @@ namespace vw { namespace geometry {
       polyVec.push_back(poly);
     
     } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbMultiPolygon){
-    
       bool append = true; 
       OGRMultiPolygon *poMultiPolygon = (OGRMultiPolygon*)poGeometry;
       fromOGR(poMultiPolygon, poly_color, layer_str, polyVec, append);
     
     } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPolygon){
-    
       OGRPolygon *poPolygon = (OGRPolygon*)poGeometry;
       vw::geometry::dPoly poly;
       fromOGR(poPolygon, poly_color, layer_str, poly);
       polyVec.push_back(poly);
     
     } else if (wkbFlatten (poGeometry ->getGeometryType()) == wkbLineString) {
-    
       OGRLineString *poLineString = (OGRLineString*)poGeometry;
       vw::geometry::dPoly poly;
       fromOGR(poLineString, poly_color, layer_str, poly);
       polyVec.push_back(poly);
     }
-    
   }
 
   // Read a shapefile
@@ -254,7 +271,7 @@ namespace vw { namespace geometry {
   
     std::string layer_str = boost::filesystem::path(file).stem().string();
 
-    vw_out() << "Reading layer " << layer_str << " from " << file << "\n";
+    vw_out() << "Reading layer: " << layer_str << "\n";
   
     GDALAllRegister();
     GDALDataset * poDS;
@@ -305,12 +322,9 @@ namespace vw { namespace geometry {
     OGRFeature *poFeature;
     poLayer->ResetReading();
     while ((poFeature = poLayer->GetNextFeature()) != NULL) {
-
       OGRGeometry *poGeometry = poFeature->GetGeometryRef();
-
       bool append = true; 
       fromOGR(poGeometry, poly_color, layer_str, polyVec, append);
-    
       OGRFeature::DestroyFeature(poFeature);
     }
 
@@ -373,40 +387,104 @@ namespace vw { namespace geometry {
         vw_throw(ArgumentErr() << "Failed to parse: \"" << srs_string << "\".");
       spatial_ref_ptr = &spatial_ref;
     }
-  
-    OGRLayer *poLayer = poDS->CreateLayer(layer_str.c_str(),
-                                          spatial_ref_ptr, wkbPolygon, NULL);
-    if (poLayer == NULL)
+
+    // Peek at the polygons and see the min and max number of vertices for each.
+    int min_verts = 0, max_verts = 0;
+    for (size_t vecIter = 0; vecIter < polyVec.size(); vecIter++){
+      
+      vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
+
+      const double * xv        = poly.get_xv();
+      const double * yv        = poly.get_yv();
+      const int    * numVerts  = poly.get_numVerts();
+      int numPolys             = poly.get_numPolys();
+      
+      int startPos = 0;
+      for (int pIter = 0; pIter < numPolys; pIter++){
+        if (pIter > 0) startPos += numVerts[pIter - 1];
+        int num_curr_verts = numVerts[pIter];
+
+        if (min_verts == 0 && max_verts == 0) {
+          min_verts = num_curr_verts;
+          max_verts = num_curr_verts;
+        } else{
+          min_verts = std::min(min_verts, num_curr_verts); 
+          max_verts = std::max(max_verts, num_curr_verts);
+        }
+      }
+    }
+    
+    // Create either a layer of polygons, lines, or points. A
+    // shapefile cannot mix these.
+    OGRLayer *polyLayer = NULL;
+    if (min_verts == 1 && max_verts == 1) 
+      polyLayer = poDS->CreateLayer(layer_str.c_str(), spatial_ref_ptr, wkbPoint, NULL);
+    else if (min_verts == 2 && max_verts == 2)
+      polyLayer = poDS->CreateLayer(layer_str.c_str(), spatial_ref_ptr, wkbLineString, NULL);
+    else {
+      if (min_verts <= 2)
+        vw_out() << "Polygons with less than 3 vertices will not be saved.\n";
+      polyLayer = poDS->CreateLayer(layer_str.c_str(), spatial_ref_ptr, wkbPolygon, NULL);
+    }
+      
+    if (polyLayer == NULL)
       vw_throw(ArgumentErr() << "Failed creating layer: " << layer_str << ".\n");
 
-#if 0
-    OGRFieldDefn oField("Name", OFTString);
-    oField.SetWidth(32);
-    if (poLayer->CreateField(&oField) != OGRERR_NONE) 
-      vw_throw(ArgumentErr() << "Failed creating name field for layer: " << layer_str
-               << ".\n");
-#endif
-  
+    // Iterate over the vector of polygons
     for (size_t vecIter = 0; vecIter < polyVec.size(); vecIter++){
 
       vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
       if (poly.get_totalNumVerts() == 0) continue;
+
+      const double * xv        = poly.get_xv();
+      const double * yv        = poly.get_yv();
+      const int    * numVerts  = poly.get_numVerts();
+      int numPolys             = poly.get_numPolys();
       
-      OGRFeature *poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
-#if 0
-      poFeature->SetField("Name", "ToBeFilledIn");
-#endif
+      // Iterate over polygon rings, adding them one by one
+      int startPos = 0;
+      for (int pIter = 0; pIter < numPolys; pIter++){
+        
+        if (pIter > 0) startPos += numVerts[pIter - 1];
+        int numCurrPolyVerts = numVerts[pIter];
+
+        OGRFeature *poFeature = OGRFeature::CreateFeature(polyLayer->GetLayerDefn());
+        
+        if (numCurrPolyVerts >= 3) {  // Save a polygon
+          
+          OGRLinearRing R; // Form a ring
+          toOGR(xv, yv, startPos, numCurrPolyVerts, R);
+          OGRPolygon P; // Form a polygon with that ring
+          if (R.getNumPoints() >= 4){
+            if (P.addRing(&R) != OGRERR_NONE)
+              vw_throw(ArgumentErr() << "Failed add ring to polygon.\n");
+          }
+          poFeature->SetGeometry(&P); // Form the feature
+
+        } else if (min_verts == 2 && max_verts == 2) {
+
+          OGRLineString L;
+          toOGR(xv, yv, startPos, numCurrPolyVerts, L);
+          poFeature->SetGeometry(&L); // Form the feature
+          
+        } else if (min_verts == 1 && max_verts == 1) { // Save a point
+          
+          OGRPoint P;
+          toOGR(xv[startPos], yv[startPos], P);
+          poFeature->SetGeometry(&P); // Form the feature
+          
+        }
+        
+        // Add the feature to the layer
+        if (polyLayer->CreateFeature(poFeature) != OGRERR_NONE)
+          vw_throw(ArgumentErr() << "Failed to create feature in shape file.\n");
+        
+        // Wipe the feature
+        OGRFeature::DestroyFeature(poFeature);
     
-      OGRPolygon P;
-      toOGR(poly, P);
-      poFeature->SetGeometry(&P); 
-    
-      if (poLayer->CreateFeature(poFeature) != OGRERR_NONE)
-        vw_throw(ArgumentErr() << "Failed to create feature in shape file.\n");
-    
-      OGRFeature::DestroyFeature(poFeature);
+      }
     }
-  
+    
     GDALClose(poDS);
   }
 
