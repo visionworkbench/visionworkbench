@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
   p.add("input-files", -1);
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <image file> <IP file> ..." << std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <image files> <vwip files>" << std::endl << std::endl;
   usage << general_options << std::endl;
 
   po::variables_map vm;
@@ -201,28 +201,33 @@ int main(int argc, char** argv) {
     return 1;
   }    
 
-  if ((input_file_names.size() < 4) || (input_file_names.size() % 2 != 0)){
-    vw_out() << "Error: Must specify at least pairs of input files (image and .vwip for each)." 
-             << std::endl << std::endl;
-    vw_out() << usage.str();
+  // Separate the images from the .vwip files
+  std::vector<std::string> image_paths, vwip_paths;
+  for (size_t it = 0; it < input_file_names.size(); it++) {
+    if (fs::extension(input_file_names[it]) != ".vwip")
+      image_paths.push_back(input_file_names[it]);
+    else
+      vwip_paths.push_back(input_file_names[it]);
+  }
+
+  if (image_paths.size() < 2) {
+    vw_out() << "Error: Must specify at least two image files.\n\n" << usage.str();
+    return 1;
+  }
+  
+  // Auto-fill the .vwip files if not provided
+  if (vwip_paths.empty()) {
+    for (size_t it = 0; it < image_paths.size(); it++) {
+      vwip_paths.push_back(fs::path(image_paths[it]).replace_extension(".vwip").string());
+    }
+  }
+  
+  if (image_paths.size() != vwip_paths.size()) {
+    vw_out() << "Error: Must have as many .vwip files as images.\n\n" << usage.str();
     return 1;
   }
 
-  // Split up the image and IP paths into two vectors
-  const size_t num_input_images = input_file_names.size() / 2;
-  std::vector<std::string> image_paths(num_input_images),
-                           vwip_paths (num_input_images);
-  for (size_t i = 0; i < num_input_images; ++i) {
-    image_paths[i] = input_file_names[2*i  ];
-    vwip_paths [i] = input_file_names[2*i+1];
-
-    if (fs::extension(vwip_paths[i]) != ".vwip") {
-      vw_out() << "Error: Incorrect order of files. Expecting a .vwip file. Got: "
-               << vwip_paths[i] << "\n";
-      vw_out() << usage.str();
-      return 1;
-    }
-  }
+  size_t num_input_images = image_paths.size();
 
   // Iterate over combinations of the input files and find interest points in each.
   for (size_t i = 0; i < num_input_images; ++i) {
