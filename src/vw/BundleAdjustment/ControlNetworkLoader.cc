@@ -21,12 +21,14 @@
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/Math/RandomSet.h>
 
-using namespace vw;
-using namespace vw::ba;
-
+#include <mutex>
 #include <boost/filesystem/fstream.hpp>
 
+using namespace vw;
+using namespace vw::ba;
 namespace fs = boost::filesystem;
+
+const int MAX_TRI_FAILURE_WARNINGS = 100;
 
 struct ContainsEqualIP {
   ip::InterestPoint& m_compare;
@@ -49,8 +51,13 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
                                          std::vector<boost::shared_ptr<camera::CameraModel> >
                                          const& camera_models,
                                          double min_angle_radians,
-                                         double forced_triangulation_distance,
-                                         bool print_warning) {
+                                         double forced_triangulation_distance) {
+  
+  // Some shared variables, and a mutex to protect them
+  static int num_printed_warnings = 0;
+  static bool print_warning = true;
+  static std::mutex mutex;
+  
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
@@ -85,15 +92,36 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
                                       << "perhaps your baseline is too small, "
                                       << "or consider decreasing --min-triangulation-angle "
                                       << "or using --forced-triangulation-distance.\n";
+          
+          // lock mutex before accessing shared variable
+          std::lock_guard<std::mutex> lock(mutex);
+          num_printed_warnings++;
         }
       } catch ( std::exception const& e) {
         // Just let it go
-        if (print_warning) 
+        if (print_warning) {
           vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
+          // lock mutex before accessing shared variable
+          std::lock_guard<std::mutex> lock(mutex);
+          num_printed_warnings++;
+        }
       }
+
+      // See if we printed enough warnings
+      if (print_warning && MAX_TRI_FAILURE_WARNINGS > 0 &&
+          num_printed_warnings >= MAX_TRI_FAILURE_WARNINGS) {
+        vw_out(WarningMessage,"ba")
+          << "Encountered " << MAX_TRI_FAILURE_WARNINGS << " triangulation failures. Will stop "
+          << "printing warnings about that.\n";
+        
+        // lock mutex before accessing shared variable
+        std::lock_guard<std::mutex> lock(mutex); 
+        print_warning = false;
+      }
+      
     }
   }
-
+  
   // 4.2.) Summing, averaging, and storing
   if ( count == 0) {
     // vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
@@ -133,8 +161,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    size_t min_matches,
                                    double min_angle_radians,
                                    double forced_triangulation_distance,
-                                   int max_pairwise_matches,
-                                   int max_tri_failure_warnings) {
+                                   int max_pairwise_matches) {
   
   // Note that this statement does not clear the network fully.
   // TODO: Clear all items here. 
@@ -283,10 +310,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   }
 
   // Building control network
-  bool success = crn.write_controlnetwork( cnet );
-
-  int num_tri_failures = 0;
-  bool print_warning = true;
+  bool success = crn.write_controlnetwork(cnet);
   
   // Triangulating Positions
   if (triangulate_control_points){
@@ -295,20 +319,10 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress(inc_prog );
-      double ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
-                                                 forced_triangulation_distance,
-                                                 print_warning);
-      if (ans < 0) 
-        num_tri_failures++;
-
-      if (max_tri_failure_warnings > 0 && num_tri_failures > max_tri_failure_warnings &&
-          print_warning) {
-        vw_out(WarningMessage,"ba")
-          << "Encountered " << max_tri_failure_warnings << " triangulation failures. Will stop "
-          << "printing warnings about that.\n";
-        print_warning = false;
-      }
-      
+      ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
+                                    forced_triangulation_distance);
+      // TODO(oalexan1): Should we check here if the triangulation succeeded,
+      // that is, the return value of the above function?
     }
     progress.report_finished();
   }
