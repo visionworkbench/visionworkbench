@@ -304,8 +304,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       if (max_tri_failure_warnings > 0 && num_tri_failures > max_tri_failure_warnings &&
           print_warning) {
         vw_out(WarningMessage,"ba")
-          << "Printed " << max_tri_failure_warnings << " warnings about triangulation "
-          << "failure. Will not print any more.\n";
+          << "Encountered " << max_tri_failure_warnings << " triangulation failures. Will stop "
+          << "printing warnings about that.\n";
         print_warning = false;
       }
       
