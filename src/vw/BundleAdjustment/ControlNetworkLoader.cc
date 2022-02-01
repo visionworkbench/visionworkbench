@@ -88,21 +88,20 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
           position_sum += pt;
           error_sum += error;
         }else if (forced_triangulation_distance <= 0 && print_warning){
+          // lock mutex before accessing shared variable and before printing
+          std::lock_guard<std::mutex> lock(mutex);
           vw_out(WarningMessage,"ba") << "\nCould not triangulate point. If too many such errors, "
                                       << "perhaps your baseline is too small, "
                                       << "or consider decreasing --min-triangulation-angle "
                                       << "or using --forced-triangulation-distance.\n";
-          
-          // lock mutex before accessing shared variable
-          std::lock_guard<std::mutex> lock(mutex);
           num_printed_warnings++;
         }
       } catch ( std::exception const& e) {
         // Just let it go
         if (print_warning) {
-          vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
-          // lock mutex before accessing shared variable
+          // lock mutex before accessing shared variable and before printing
           std::lock_guard<std::mutex> lock(mutex);
+          vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
           num_printed_warnings++;
         }
       }
@@ -110,12 +109,11 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       // See if we printed enough warnings
       if (print_warning && MAX_TRI_FAILURE_WARNINGS > 0 &&
           num_printed_warnings >= MAX_TRI_FAILURE_WARNINGS) {
+        // lock mutex before accessing shared variable and before printing
+        std::lock_guard<std::mutex> lock(mutex); 
         vw_out(WarningMessage,"ba")
           << "Encountered " << MAX_TRI_FAILURE_WARNINGS << " triangulation failures. Will stop "
           << "printing warnings about that.\n";
-        
-        // lock mutex before accessing shared variable
-        std::lock_guard<std::mutex> lock(mutex); 
         print_warning = false;
       }
       
