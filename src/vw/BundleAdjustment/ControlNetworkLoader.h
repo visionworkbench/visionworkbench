@@ -46,15 +46,18 @@ namespace ba {
                              std::map< std::pair<int, int>, std::string> const& match_files,
                              size_t min_matches,
                              double min_angle_radians,
-                             double forced_triangulation_distance);
+                             double forced_triangulation_distance,
+                             int max_pairwise_matches = -1,
+                             int max_tri_failure_warnings = -1);
   
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
   double triangulate_control_point(ControlPoint& cp,
-                                   std::vector<boost::shared_ptr<camera::CameraModel> >
+                                   std::vector<boost::shared_ptr<camera::CameraModel>>
                                    const& camera_models,
                                    double min_angle_radians,
-                                   double forced_triangulation_distance);
+                                   double forced_triangulation_distance,
+                                   bool print_warning = true);
 
   /// Adds ground control points from GCP files to an already built
   /// Control Network. The image names in the GCP files must match the image

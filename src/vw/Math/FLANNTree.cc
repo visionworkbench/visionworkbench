@@ -103,9 +103,10 @@ namespace math {
     const int NUM_TREES = 4;
     switch(m_dist_type) {
     case FLANN_DistType_L2:
-      m_index_ptr = new flann::Index<flann::L2<float> >( flann::Matrix<float>( (float*)data_ptr, rows, cols ),
-                                                     flann::KDTreeIndexParams(NUM_TREES),
-                                                     flann::L2<float>() );
+      m_index_ptr = new flann::Index<flann::L2<float> >
+        (flann::Matrix<float>( (float*)data_ptr, rows, cols ),
+         flann::KDTreeIndexParams(NUM_TREES),
+         flann::L2<float>() );
       cast_index_ptr_L2_f(this->m_index_ptr)->buildIndex();
       return;
     default:

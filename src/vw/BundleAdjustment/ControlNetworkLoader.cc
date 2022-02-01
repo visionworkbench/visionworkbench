@@ -19,6 +19,7 @@
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/Math/RandomSet.h>
 
 using namespace vw;
 using namespace vw::ba;
@@ -44,13 +45,13 @@ void safe_measurement( ip::InterestPoint& ip ) {
   if ( ip.scale <= 0 ) ip.scale = 10;
 }
 
-double vw::ba::triangulate_control_point( ControlPoint& cp,
-                                          std::vector<boost::shared_ptr<camera::CameraModel> >
-                                          const& camera_models,
-                                          double min_angle_radians,
-                                          double forced_triangulation_distance) {
-
-  Vector3 position_sum;
+double vw::ba::triangulate_control_point(ControlPoint& cp,
+                                         std::vector<boost::shared_ptr<camera::CameraModel> >
+                                         const& camera_models,
+                                         double min_angle_radians,
+                                         double forced_triangulation_distance,
+                                         bool print_warning) {
+  Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
 
@@ -66,28 +67,29 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
         double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
 
         bool least_squares = false;
-        stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
+        stereo::StereoModel sm(camera_models[ j_cam_id ].get(),
                                 camera_models[ k_cam_id ].get(), least_squares,
-                                angle_tol );
+                                angle_tol);
         
-        Vector3 pt = sm( cp[j].position(), cp[k].position(), error );
+        Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
         // TODO: When forced_triangulation_distance > 0, one can check
         // if the triangulated point is behind the camera, and if yes,
         // to replace it with an artificial point in front of the camera.
         // This will need a good test.
-        if (pt != Vector3() ){
+        if (pt != Vector3()){
           count++;
           position_sum += pt;
           error_sum += error;
-        }else if (forced_triangulation_distance <= 0){
+        }else if (forced_triangulation_distance <= 0 && print_warning){
           vw_out(WarningMessage,"ba") << "\nCould not triangulate point. If too many such errors, "
                                       << "perhaps your baseline is too small, "
                                       << "or consider decreasing --min-triangulation-angle "
                                       << "or using --forced-triangulation-distance.\n";
         }
       } catch ( std::exception const& e) {
-        /* Just let it go */
-        vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
+        // Just let it go
+        if (print_warning) 
+          vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
       }
     }
   }
@@ -117,18 +119,23 @@ double vw::ba::triangulate_control_point( ControlPoint& cp,
 
     return error_sum;
   }
+
+  // Will not get here, but return something for clarity
+  return -1;
 }
 
-bool vw::ba::build_control_network( bool triangulate_control_points,
-                                    ba::ControlNetwork& cnet,
-                                    std::vector<boost::shared_ptr<camera::CameraModel> >
-                                    const& camera_models,
-                                    std::vector<std::string> const& image_files,
-                                    std::map< std::pair<int, int>, std::string> const& match_files,
-                                    size_t min_matches,
-                                    double min_angle_radians,
-                                    double forced_triangulation_distance) {
-
+bool vw::ba::build_control_network(bool triangulate_control_points,
+                                   ba::ControlNetwork& cnet,
+                                   std::vector<boost::shared_ptr<camera::CameraModel> >
+                                   const& camera_models,
+                                   std::vector<std::string> const& image_files,
+                                   std::map< std::pair<int, int>, std::string> const& match_files,
+                                   size_t min_matches,
+                                   double min_angle_radians,
+                                   double forced_triangulation_distance,
+                                   int max_pairwise_matches,
+                                   int max_tri_failure_warnings) {
+  
   // Note that this statement does not clear the network fully.
   // TODO: Clear all items here. 
   cnet.clear();
@@ -203,8 +210,27 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
       num_load_rejected += ip1.size();
       continue;
     }
-    vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
-                              << ip1.size() << " matches.\n";
+    vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
+
+    if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
+      vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
+
+      std::vector<int> subset;
+      vw::math::pick_random_indices_in_range(ip1.size(), max_pairwise_matches, subset);
+      std::sort(subset.begin(), subset.end()); // sort the indices; not strictly necessary
+      
+      std::vector<ip::InterestPoint> ip1_full, ip2_full;
+      ip1_full.swap(ip1);
+      ip2_full.swap(ip2);
+      
+      ip1.resize(max_pairwise_matches);
+      ip2.resize(max_pairwise_matches);
+      for (size_t it = 0; it < subset.size(); it++) {
+        ip1[it] = ip1_full[subset[it]];
+        ip2[it] = ip2_full[subset[it]];
+      }
+    }
+    
     num_loaded += ip1.size();
 
     // Remove descriptors from interest points and correct scale
@@ -259,6 +285,9 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
   // Building control network
   bool success = crn.write_controlnetwork( cnet );
 
+  int num_tri_failures = 0;
+  bool print_warning = true;
+  
   // Triangulating Positions
   if (triangulate_control_points){
     TerminalProgressCallback progress("ba", "Triangulating: ");
@@ -266,8 +295,20 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress(inc_prog );
-      ba::triangulate_control_point( cpoint, camera_models, min_angle_radians,
-                                     forced_triangulation_distance);
+      double ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
+                                                 forced_triangulation_distance,
+                                                 print_warning);
+      if (ans < 0) 
+        num_tri_failures++;
+
+      if (max_tri_failure_warnings > 0 && num_tri_failures > max_tri_failure_warnings &&
+          print_warning) {
+        vw_out(WarningMessage,"ba")
+          << "Printed " << max_tri_failure_warnings << " warnings about triangulation "
+          << "failure. Will not print any more.\n";
+        print_warning = false;
+      }
+      
     }
     progress.report_finished();
   }

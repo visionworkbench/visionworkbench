@@ -116,12 +116,14 @@ namespace math {
     
     /// \cond INTERNAL
     // Utility function: Pick n unique, random integers in the range
-    // [0, size). The complexity of this is is O(N^2), but normally N
-    // is small, as the minimum number of elements needed for fit, so
-    // it is usually under 10, while 'size' is the total number of
-    // elements, which is arbitrary. So, this should not be a
-    // performance issue.
+    // [0, size). 
           
+    // TODO(oalexan1): If we have to pick 999 random integers out of
+    // 1000, this algorithm will do quite badly, as it will take very
+    // many attempts to get this subset, apart from the quadratic
+    // complexity of each attempt. But if we have to pick as small
+    // subset out of a big set, this is fine.
+
     // Note: We do not modify the initial random seed. As such, if a
     // program uses RANSAC, repeatedly running this program will
     // always return the same results. However, if that program calls
@@ -131,7 +133,7 @@ namespace math {
 
     // This function is not thread-safe, as rand() is not thread-safe,
     // which can be a potential problem.
-      
+
     inline void get_n_unique_integers(int size, std::vector<int> & samples) const {
 
       int n = samples.size();
