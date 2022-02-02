@@ -428,9 +428,9 @@ namespace vw {
 
   // Another implementation of the Otsu threshold, from:
   // https://github.com/opencv/opencv/blob/master/modules/imgproc/src/thresh.cpp
-  // This gives the same result as the one above if the number of bins is 256,
-  // and number of samples of rows and columns equal to the full number of rows
-  // and columns.
+  // This gives the same result as the one above if the number of bins
+  // is 256, and num_sample_cols is same as number of cols, and
+  // num_sample_rows is same as number of rows.
   template <class ViewT>
   double otsu_threshold(const ImageViewBase<ViewT> &view,
                         int num_sample_rows, int num_sample_cols,
@@ -453,9 +453,8 @@ namespace vw {
     find_image_min_max(input_image, min_val, max_val);
 
     // Scale the image using the computed values and convert to uint8
-    // TODO(oalexan1): Enable the code below:
-    //if (max_val == min_val)
-    //  max_val = min_val + 1.0;
+    if (max_val == min_val)
+      max_val = min_val + 1.0;
     output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, min_val, max_val),
                                                     min_val, max_val, 0.0, 255.0 ));
   }
