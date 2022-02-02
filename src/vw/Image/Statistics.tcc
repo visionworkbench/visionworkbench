@@ -149,6 +149,9 @@ double otsu_threshold(const ImageViewBase<ViewT> &view,
       if (val > max_val) max_val = val;
     }
   }
+
+  if (max_val == min_val) 
+    max_val++;
   
   // Build the histogram
   std::vector<double> hBuf(num_bins, 0.0);
@@ -170,7 +173,7 @@ double otsu_threshold(const ImageViewBase<ViewT> &view,
   }
   
   // Note how we cast to double to avoid integer overflow when doing the product
-  double product = double(view.impl().rows()) * double(view.impl().cols());
+  double product = double(num_sample_rows) * double(num_sample_cols);
   double mu = 0, scale = 1.0/product;
   for(int i = 0; i < num_bins; i++ ) {
     mu += i*(double)hBuf[i];
