@@ -188,12 +188,6 @@ private: // Variables
 
 }; // End class histogram
 
-
-
-
-
-
-
 //---------------------------------------------------------------------------
 // The two functors in this class should not be confused with the similar
 // classes in Functors.h.  These two are only used in the Geometry.h file.

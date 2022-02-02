@@ -409,17 +409,11 @@ namespace vw {
     return mean_channel_value( weighted_mean_pixel_value( view ) );
   }
 
-  // Find the histogram of an image. 
-  template <class ViewT>
-  void histogram( const ImageViewBase<ViewT> &view, int num_bins, math::Histogram &hist);
-
-
   /// Find the min and max values in an image
-  /// - TODO: Why are there two methods for doing this?
   template <class ViewT>
   void find_image_min_max( const ImageViewBase<ViewT> &view, double &min_val, double &max_val);
 
-  /// Overload that takes precomputed min and max values
+  /// Find histogram
   template <class ViewT>
   void histogram( const ImageViewBase<ViewT> &view, int num_bins, double min_val, double max_val,
                   math::Histogram &hist);
@@ -432,8 +426,18 @@ namespace vw {
   // To find its value in pixel space, you may want to compute:
   // minImageVal + threshold*(maxImageVal - minImageVal).
   template <class ViewT>
-  double optimal_threshold( const ImageViewBase<ViewT> &view);
+  double otsu_threshold(const ImageViewBase<ViewT> &view);
 
+  // Another implementation of the Otsu threshold, from:
+  // https://github.com/opencv/opencv/blob/master/modules/imgproc/src/thresh.cpp
+  // This gives the same result as the one above if the number of bins is 256,
+  // and number of samples of rows and columns equal to the full number of rows
+  // and columns.
+  template <class ViewT>
+  double otsu_threshold(const ImageViewBase<ViewT> &view,
+                        int num_sample_rows, int num_sample_cols,
+                        int num_bins);
+  
   /// Converts a single channel image into a uint8 image with percentile based intensity scaling.
   template <class ViewT>
   void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
@@ -441,14 +445,19 @@ namespace vw {
                                 double low_percentile=0.02, double high_percentile=0.98,
                                 int num_bins=256);
 
-  /// Converts a single channel image into a uint8 image using a simple stretch between the min and max values.
+  /// Converts a single channel image into a uint8 image using a
+  /// simple stretch between the min and max values.
   template <class ViewT>
-  void u8_convert(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &output_image) {
+  void u8_convert(ImageViewBase<ViewT> const& input_image,
+                  ImageView<PixelGray<vw::uint8> > &output_image) {
     // First get the min and max values
     double min_val, max_val;
     find_image_min_max(input_image, min_val, max_val);
 
     // Scale the image using the computed values and convert to uint8
+    // TODO(oalexan1): Enable the code below:
+    //if (max_val == min_val)
+    //  max_val = min_val + 1.0;
     output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, min_val, max_val),
                                                     min_val, max_val, 0.0, 255.0 ));
   }

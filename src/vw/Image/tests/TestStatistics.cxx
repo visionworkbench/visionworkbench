@@ -513,7 +513,13 @@ TEST( Statistics, Histogram ) {
   
   vw::math::Histogram hist;
   int num_bins = 256;
-  histogram(im8b, num_bins, hist);
+  double min_val = -1.0, max_val = -1.0;
+
+  // First get the min and max values
+  find_image_min_max(im8mb, min_val, max_val);
+
+  // Calc the histogram
+  histogram(im8b, num_bins, min_val, max_val, hist);
 
   EXPECT_EQ(hist.get_bin_value(  0), 2);
   EXPECT_EQ(hist.get_bin_value( 24), 1);
@@ -522,7 +528,9 @@ TEST( Statistics, Histogram ) {
 }
 
 TEST( Statistics, OptimalThreshold ) {
-  double t  = optimal_threshold(im8b);
+  // TODO(oalexan1): This will fail. There is a nightly regression for this logic though.
+  // Fix this test when tests are enabled.
+  double t  = otsu_threshold(im8b);
   double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)
   EXPECT_NEAR(t, t0, 1e-15);
 }
