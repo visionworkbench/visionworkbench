@@ -421,10 +421,8 @@ namespace vw {
   // Find the optimal Otsu threshold for splitting a gray scale image
   // into black and white pixels.
   // Reference: http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html
-  // It agrees with Matlab for uint8 images.
-  // Note: The optimal threshold is normalized, so it is between 0 and 1.
-  // To find its value in pixel space, you may want to compute:
-  // minImageVal + threshold*(maxImageVal - minImageVal).
+  // This returns the scaled threshold, so 
+  // minImageVal + normalized_threshold*(maxImageVal - minImageVal).
   template <class ViewT>
   double otsu_threshold(const ImageViewBase<ViewT> &view);
 
