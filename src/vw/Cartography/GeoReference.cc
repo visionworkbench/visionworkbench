@@ -556,7 +556,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
       Vector2 point   = pixel_to_point(corner_pixels[i]);
       Vector2 lon_lat = point_to_lonlat_no_normalize(point);
       double lon = lon_lat[0]; 
-      
+
       //printf("%d = %lf\n", i, lon);
       if (lon < minLon) minLon = lon;
       if (lon > maxLon) maxLon = lon;
@@ -624,7 +624,7 @@ bool GeoReference::check_projection_validity(Vector2i image_size) const {
 */
 
 double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
- 
+
   Vector2 out_pixel = lonlat_to_pixel(pixel_to_lonlat(pixel));
   Vector2 diff = out_pixel - pixel;
   double error = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
@@ -832,7 +832,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   // TODO(oalexan1): See if GDAL has any simpler wrappers for this,
   // or use the new API in PROJ 6.
   /// For a point in the projected space, compute the position of
-  /// that point in unprojected (Geographic) coordinates (lat,lon).
+  /// that point in unprojected (Geographic) coordinates (lon,lat).
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
   
     Vector2 lon_lat;
@@ -888,7 +888,7 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return Vector2 (unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
   }
 
-  /// Given a position in geographic coordinates (lat,lon), compute
+  /// Given a position in geographic coordinates (lon,lat), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 
@@ -899,7 +899,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
       return lon_lat;
 
     // This value is proj's internal limit
-    static const double BOUND = 1.5707963267948966 - (1e-10) - std::numeric_limits<double>::epsilon();
+    static const double BOUND = 1.5707963267948966 - (1e-10)
+      - std::numeric_limits<double>::epsilon();
 
     projXY projected;
     projLP unprojected;

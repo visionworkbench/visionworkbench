@@ -77,7 +77,7 @@ namespace cartography {
   /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
   /// or possibly meters in a UTM grid cell, etc.).  It must also
   /// encode how to translate between this coordinate system and the
-  /// "Geographic" coordinate system (lat,lon)
+  /// "Geographic" coordinate system (lon,lat)
   class GeoReference{
   
   public:
@@ -297,10 +297,10 @@ namespace cartography {
     Vector2 point_to_pixel(Vector2 loc) const;
 
     /// For a point in the projected space, compute the position of
-    /// that point in unprojected (Geographic) coordinates (lat,lon).
+    /// that point in unprojected (Geographic) coordinates (lon,lat).
     Vector2 point_to_lonlat(Vector2 loc) const;
 
-    /// Given a position in geographic coordinates (lat,lon), compute
+    /// Given a position in geographic coordinates (lon,lat), compute
     /// the location in the projected coordinate system.
     Vector2 lonlat_to_point(Vector2 lon_lat) const;
 
@@ -323,16 +323,16 @@ namespace cartography {
     BBox2  point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsamples = 100) const;
     
     /// For a given pixel coordinate, compute the position of that
-    /// pixel in Geographic coordinates (lat,lon).
+    /// pixel in Geographic coordinates (lon, lat).
     Vector2 pixel_to_lonlat(Vector2 pix) const {
       return point_to_lonlat(pixel_to_point(pix));
     }
 
-    /// Given a position in geographic coordinates (lat,lon), compute
+    /// Given a position in geographic coordinates (lon, lat), compute
     /// the location in pixel coordinates in this image that
     /// corresponds to the given geographic coordinates.
-    Vector2 lonlat_to_pixel(Vector2 lat_lon) const {
-      return point_to_pixel(lonlat_to_point(lat_lon));
+    Vector2 lonlat_to_pixel(Vector2 lon_lat) const {
+      return point_to_pixel(lonlat_to_point(lon_lat));
     }
 
     /// For a given pixel bbox, return the corresponding bbox in projected space
