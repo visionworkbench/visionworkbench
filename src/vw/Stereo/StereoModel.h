@@ -69,10 +69,8 @@ namespace stereo {
     /// Apply a stereo model to multiple or just two image coordinates.
     /// Returns an xyz point. The error is set to 0 if triangulation
     /// did not succeed, otherwise it is the vector between the closest points on the rays.
-    // TODO(oalexan1): Wipe any mention of bathy from this interface.
-    // For bathy a class which inherits from this one will be used.
     virtual Vector3 operator()(std::vector<Vector2> const& pixVec,
-                               Vector3& errorVec, bool do_bathy, bool & did_bathy) const;
+                               Vector3& errorVec) const;
     virtual Vector3 operator()(std::vector<Vector2> const& pixVec,
                                double & error) const;
     virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2,

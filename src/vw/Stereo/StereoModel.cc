@@ -94,13 +94,12 @@ bool StereoModel::are_nearly_parallel(bool least_squares,
   return are_par;
 }
 
-// Compute the rays intersection. We do no bathy in this class,
-// but have to use the bathy variables as part of the interface.
+// Compute the rays intersection.
 
 // Note: Classes RPCStereoModel and BathyStereoModel inherit from this
 // class and re-implement this function.
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
-                                Vector3& errorVec, bool do_bathy, bool & did_bathy) const {
+                                Vector3& errorVec) const {
   
   // Initialize the outputs
   errorVec = Vector3();
@@ -161,8 +160,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
 Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
                                 double& error) const {
   Vector3 errorVec;
-  bool do_bathy = false, did_bathy = false;
-  Vector3 result = operator()(pixVec, errorVec, do_bathy, did_bathy);
+  Vector3 result = operator()(pixVec, errorVec);
   error = norm_2(errorVec);
   return result;
 }
@@ -172,8 +170,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
   vector<Vector2> pixVec;
   pixVec.push_back(pix1);
   pixVec.push_back(pix2);
-  bool do_bathy = false, did_bathy = false;
-  return operator()(pixVec, errorVec, do_bathy, did_bathy); 
+  return operator()(pixVec, errorVec); 
 }
 
 
