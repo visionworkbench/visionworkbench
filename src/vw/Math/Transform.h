@@ -126,7 +126,8 @@ namespace vw {
 
   }; // End class Transform
 
-
+  typedef boost::shared_ptr<vw::Transform> TransformPtr;
+  
   // The CRTP base class for all transform functors.
   //
   // Specific transform classes should derive from this class (or

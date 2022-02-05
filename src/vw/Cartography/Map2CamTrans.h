@@ -84,8 +84,6 @@ namespace vw { namespace cartography {
 
   //std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
 
-
-
   /// Variant of Map2CamTrans that accepts a constant elevation instead of a DEM.
   class Datum2CamTrans : public TransformBase<Map2CamTrans> {
     camera::CameraModel const* m_cam;
@@ -110,8 +108,8 @@ namespace vw { namespace cartography {
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
   }; // End class Datum2CamTrans
 
-
-  
+  // Make a copy of Map2CamTrans
+  TransformPtr mapproj_trans_copy(TransformPtr trans);
 
 }} // namespace vw::cartography
 

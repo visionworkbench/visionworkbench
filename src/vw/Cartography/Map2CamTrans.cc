@@ -24,7 +24,7 @@
 
 namespace vw { namespace cartography {
 
-  Map2CamTrans::Map2CamTrans( vw::camera::CameraModel const* cam,
+  Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
                               std::string const& dem_file,
@@ -38,7 +38,7 @@ namespace vw { namespace cartography {
     m_nodata(std::numeric_limits<double>::quiet_NaN()){
 
     boost::shared_ptr<vw::DiskImageResource>
-      dem_rsrc( vw::DiskImageResourcePtr(dem_file) );
+      dem_rsrc(vw::DiskImageResourcePtr(dem_file) );
 
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
@@ -59,6 +59,7 @@ namespace vw { namespace cartography {
       else             return m_invalid_pix;
     }
 
+    // No cached data
     int b = BicubicInterpolation::pixel_buffer;
     if (m_nearest_neighbor)
       b = NearestPixelInterpolation::pixel_buffer;
@@ -93,7 +94,7 @@ namespace vw { namespace cartography {
     Vector2 pt;
     try{
       pt = m_cam->point_to_pixel(xyz);
-      if ( m_call_from_mapproject &&
+      if (m_call_from_mapproject &&
            (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
             pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
            ){
@@ -112,10 +113,10 @@ namespace vw { namespace cartography {
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
     // the edges and diagonals of the box.
     BBox2 dbox;
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),   bbox.min().y()  ) ) )); // Top left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1, bbox.min().y()  ) ) )); // Top right
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),   bbox.max().y()-1) ) )); // Bottom left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1, bbox.max().y()-1) ) )); // Bottom right
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.min().y()  ) ) )); // Top left
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.min().y()  ) ) )); // Top right
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.max().y()-1) ) )); // Bottom left
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.max().y()-1) ) )); // Bottom right
 
     // A lot of care is needed here when going from real box to int
     // box, and if in doubt, better expand more rather than less.
@@ -147,7 +148,7 @@ namespace vw { namespace cartography {
   // transform in a tile. It computes and caches the point cloud at
   // each pixel in the tile, to be used later when we iterate over pixels.
   vw::BBox2i
-  Map2CamTrans::reverse_bbox( vw::BBox2i const& bbox ) const {
+  Map2CamTrans::reverse_bbox(vw::BBox2i const& bbox) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
     if (!m_cached_rv_box.empty()) return m_cached_rv_box;
@@ -165,15 +166,15 @@ namespace vw { namespace cartography {
     
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
-    for( int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
-      for( int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x ){
-        Vector2 p = reverse( Vector2(x,y) );
+    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
+      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x ){
+        Vector2 p = reverse(Vector2(x,y) );
         m_cache(x - local_cache_box.min().x(), y - local_cache_box.min().y()) = p;
         if (p == m_invalid_pix) continue;
-        if (bbox.contains(Vector2i(x, y))) out_box.grow( p );
+        if (bbox.contains(Vector2i(x, y))) out_box.grow(p );
       }
     }
-    out_box = grow_bbox_to_int( out_box );
+    out_box = grow_bbox_to_int(out_box );
 
     // Must happen after all calls to reverse finished.
     m_img_cache_box = local_cache_box;
@@ -194,7 +195,7 @@ namespace vw { namespace cartography {
     return m_cached_rv_box;
   }
 /*
-  std::ostream& operator<<( std::ostream& os, Map2CamTrans const& trans ) {
+  std::ostream& operator<<(std::ostream& os, Map2CamTrans const& trans ) {
     std::ostringstream oss; // To use custom precision
     oss.precision(17);
     oss << "TODO: Fill in Map2CamTrans printer!\n";
@@ -205,7 +206,7 @@ namespace vw { namespace cartography {
 //=======================================================================
   
 
-  Datum2CamTrans::Datum2CamTrans( camera::CameraModel const* cam,
+  Datum2CamTrans::Datum2CamTrans(camera::CameraModel const* cam,
                                   GeoReference const& image_georef,
                                   GeoReference const& dem_georef,
                                   float dem_height,
@@ -232,7 +233,7 @@ namespace vw { namespace cartography {
     Vector2 pt;
     try{
       pt = m_cam->point_to_pixel(xyz);
-      if ( m_call_from_mapproject &&
+      if (m_call_from_mapproject &&
           (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
             pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
           ){
@@ -246,19 +247,19 @@ namespace vw { namespace cartography {
     return pt;
   }
 
-  BBox2i Datum2CamTrans::reverse_bbox( BBox2i const& bbox ) const {
+  BBox2i Datum2CamTrans::reverse_bbox(BBox2i const& bbox ) const {
 
     BBox2 out_box;      
-    for( int32 y=bbox.min().y(); y<bbox.max().y(); ++y ){
-      for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x ){
+    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y ){
+      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x ){
       
-        Vector2 p = reverse( Vector2(x,y) );
+        Vector2 p = reverse(Vector2(x,y) );
         if (p == m_invalid_pix) 
           continue;
-        out_box.grow( p );
+        out_box.grow(p );
       }
     }
-    out_box = grow_bbox_to_int( out_box );
+    out_box = grow_bbox_to_int(out_box);
 
     // Need the check below as to not try to create images with negative dimensions.
     if (out_box.empty())
@@ -267,7 +268,12 @@ namespace vw { namespace cartography {
     return out_box;
   }
 
-
-  
+  // Make a copy of Map2CamTrans
+  TransformPtr mapproj_trans_copy(TransformPtr trans) {
+    Map2CamTrans* t_ptr = dynamic_cast<Map2CamTrans*>(trans.get());
+    if (!t_ptr)
+      vw_throw(vw::NoImplErr() << "Expecting a transform of type Map2CamTrans.");
+    return TransformPtr(new Map2CamTrans(*t_ptr));
+  }
   
 }} // namespace vw::cartography
