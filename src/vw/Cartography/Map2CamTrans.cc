@@ -38,7 +38,7 @@ namespace vw { namespace cartography {
     m_nodata(std::numeric_limits<double>::quiet_NaN()){
 
     boost::shared_ptr<vw::DiskImageResource>
-      dem_rsrc(vw::DiskImageResourcePtr(dem_file) );
+      dem_rsrc(vw::DiskImageResourcePtr(dem_file));
 
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
@@ -66,8 +66,7 @@ namespace vw { namespace cartography {
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
-        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)
-        ){
+        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)){
       // No DEM data
       return m_invalid_pix;
     }
@@ -75,8 +74,7 @@ namespace vw { namespace cartography {
     Vector2 sdem_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
     if (m_dem_cache_box.empty() ||
         (sdem_pix[0] < b - 1) || (sdem_pix[0] >= m_cropped_dem.cols() - b) ||
-        (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)
-        ){
+        (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)){
       // Cache miss. Will not happen often.
       BBox2i box;
       box.min() = floor(p) - Vector2(1, 1);
@@ -96,8 +94,7 @@ namespace vw { namespace cartography {
       pt = m_cam->point_to_pixel(xyz);
       if (m_call_from_mapproject &&
            (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
-            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
-           ){
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)){
         // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
@@ -113,10 +110,10 @@ namespace vw { namespace cartography {
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
     // the edges and diagonals of the box.
     BBox2 dbox;
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.min().y()  ) ) )); // Top left
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.min().y()  ) ) )); // Top right
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.max().y()-1) ) )); // Bottom left
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.max().y()-1) ) )); // Bottom right
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.min().y())))); // Top left
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.min().y())))); // Top right
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.max().y()-1)))); // Bottom left
+    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.max().y()-1)))); // Bottom right
 
     // A lot of care is needed here when going from real box to int
     // box, and if in doubt, better expand more rather than less.
@@ -166,15 +163,15 @@ namespace vw { namespace cartography {
     
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
-    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
-      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x ){
-        Vector2 p = reverse(Vector2(x,y) );
+    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y){
+      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x){
+        Vector2 p = reverse(Vector2(x,y));
         m_cache(x - local_cache_box.min().x(), y - local_cache_box.min().y()) = p;
         if (p == m_invalid_pix) continue;
-        if (bbox.contains(Vector2i(x, y))) out_box.grow(p );
+        if (bbox.contains(Vector2i(x, y))) out_box.grow(p);
       }
     }
-    out_box = grow_bbox_to_int(out_box );
+    out_box = grow_bbox_to_int(out_box);
 
     // Must happen after all calls to reverse finished.
     m_img_cache_box = local_cache_box;
@@ -195,7 +192,7 @@ namespace vw { namespace cartography {
     return m_cached_rv_box;
   }
 /*
-  std::ostream& operator<<(std::ostream& os, Map2CamTrans const& trans ) {
+  std::ostream& operator<<(std::ostream& os, Map2CamTrans const& trans) {
     std::ostringstream oss; // To use custom precision
     oss.precision(17);
     oss << "TODO: Fill in Map2CamTrans printer!\n";
@@ -235,8 +232,7 @@ namespace vw { namespace cartography {
       pt = m_cam->point_to_pixel(xyz);
       if (m_call_from_mapproject &&
           (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
-            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
-          ){
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)){
         // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
@@ -247,16 +243,16 @@ namespace vw { namespace cartography {
     return pt;
   }
 
-  BBox2i Datum2CamTrans::reverse_bbox(BBox2i const& bbox ) const {
+  BBox2i Datum2CamTrans::reverse_bbox(BBox2i const& bbox) const {
 
     BBox2 out_box;      
-    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y ){
-      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x ){
+    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y){
+      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x){
       
-        Vector2 p = reverse(Vector2(x,y) );
+        Vector2 p = reverse(Vector2(x,y));
         if (p == m_invalid_pix) 
           continue;
-        out_box.grow(p );
+        out_box.grow(p);
       }
     }
     out_box = grow_bbox_to_int(out_box);
