@@ -729,23 +729,28 @@ RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) c
 
   // Evaluate the RPC expression. The denominator always
   // has a 1 as the 0th-coefficient.
-  int rpc_count = 0;
+
+  // Loop four times, for output first coordinate numerator and
+  // denominator, then for output second coordinate numerator and
+  // denominator.
+  
+  int coeff_index = 0;
   double vals[] = {0.0, 1.0, 0.0, 1.0};
-  for (int it = 0; it < 4; it++) {
+  for (int count = 0; count < 4; count++) {
     int start = 0; // starting degree for numerator
-    if (it == 1 || it == 3)
+    if (count == 1 || count == 3)
       start = 1; // starting degree for denominator
 
     for (int deg = start; deg <= rpc_deg; deg++) { // start at 0
-      for (int degy = 0; degy <= deg; degy++) {
-        int degx = deg - degy;
-        vals[it] += coeffs[rpc_count] * powx[degx] * powy[degy];
-        rpc_count++;
+      for (int i = 0; i <= deg; i++) {
+        // Add coeff * x^(deg-i) * y^i
+        vals[count] += coeffs[coeff_index] * powx[deg - i] * powy[i];
+        coeff_index++;
       }
     }
   }
 
-  if (rpc_count != (int)coeffs.size()) 
+  if (coeff_index != (int)coeffs.size()) 
     vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
 
   return Vector2(vals[0]/vals[1], vals[2]/vals[3]);
