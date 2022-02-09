@@ -33,6 +33,13 @@ namespace vw {
 
 namespace stereo {
 
+  // Two-ray triangulation. Triangulate the point by finding the
+  // midpoint of the segment joining the closest points on the two
+  // rays emanating from the camera.
+  vw::Vector3 triangulate_pair(vw::Vector3 const& dir0, vw::Vector3 const& ctr0, 
+                               vw::Vector3 const& dir1, vw::Vector3 const& ctr1, 
+                               vw::Vector3& errorVec);
+  
   /// 
   class StereoModel {
 

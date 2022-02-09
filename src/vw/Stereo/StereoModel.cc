@@ -27,7 +27,27 @@
 #include <vw/Core/Exception.h>
 using namespace std;
 
-namespace vw { namespace stereo { namespace detail {
+namespace vw { namespace stereo {
+
+  // Two-ray triangulation. Triangulate the point by finding the
+  // midpoint of the segment joining the closest points on the two
+  // rays emanating from the camera.
+  vw::Vector3 triangulate_pair(vw::Vector3 const& dir0, vw::Vector3 const& ctr0, 
+                               vw::Vector3 const& dir1, vw::Vector3 const& ctr1, 
+                               vw::Vector3& errorVec){
+    
+    vw::Vector3 v12 = cross_prod(dir0, dir1);
+    vw::Vector3 v1 = cross_prod(v12, dir0);
+    vw::Vector3 v2 = cross_prod(v12, dir1);
+    
+    vw::Vector3 closestPoint1 = ctr0 + dot_prod(v2, ctr1-ctr0)/dot_prod(v2, dir0)*dir0;
+    vw::Vector3 closestPoint2 = ctr1 + dot_prod(v1, ctr0-ctr1)/dot_prod(v1, dir1)*dir1;
+
+    errorVec = closestPoint1 - closestPoint2;
+    return 0.5 * (closestPoint1 + closestPoint2);
+  }
+
+namespace detail {
   
   class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
     vector<const camera::CameraModel *> m_cameras;
@@ -47,7 +67,7 @@ namespace vw { namespace stereo { namespace detail {
       return output;
     }
   };
-}
+} // end namespace detail (still staying within namespace vw::stereo)
   
 // Constructor with n cameras
 StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
@@ -202,22 +222,8 @@ Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
 
   int num_cams = camDirs.size();
   if ( num_cams == 2 ){
-
-    // Two-ray triangulation. Triangulate the point by finding the
-    // midpoint of the segment joining the closest points on the two
-    // rays emanating from the camera.
-    
-    Vector3 v12 = cross_prod(camDirs[0], camDirs[1]);
-    Vector3 v1 = cross_prod(v12, camDirs[0]);
-    Vector3 v2 = cross_prod(v12, camDirs[1]);
-    
-    Vector3 closestPoint1 = camCtrs[0] + dot_prod(v2, camCtrs[1]-camCtrs[0])/dot_prod(v2, camDirs[0])*camDirs[0];
-    Vector3 closestPoint2 = camCtrs[1] + dot_prod(v1, camCtrs[0]-camCtrs[1])/dot_prod(v1, camDirs[1])*camDirs[1];
-    
-    errorVec = closestPoint1 - closestPoint2;
-
-    return 0.5 * (closestPoint1 + closestPoint2);
-    
+    // Two-ray triangulation
+    return triangulate_pair(camDirs[0], camCtrs[0], camDirs[1], camCtrs[1], errorVec);
   }
 
   // Multi-ray triangulation. Find the intersection of the rays in
