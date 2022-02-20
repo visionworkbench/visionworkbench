@@ -819,22 +819,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
   } // Y increment
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  namespace detail {
+namespace detail {
 
     inline double huber_robust_coefficient (double delta_norm, double b) {
       if (delta_norm < b)
@@ -882,8 +867,6 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
       return weight;
     }
   } // End namespace detail
-
-
 
 /// Affine subpixel correlation function
 /// - Similar to the _em function but about 5X faster and less accurate.
@@ -1240,8 +1223,6 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
     } // X increment
   } // Y increment
 }
-
-
 
 /// Lucas-Kanade subpixel correlation function
 /// - So far this one does not work that well.

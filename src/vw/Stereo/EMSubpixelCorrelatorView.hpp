@@ -57,61 +57,6 @@ namespace vw {
       return weight / sum;
     }
 
-    template<class WeightT, class DisparityT>
-    inline int adjust_weight_image(ImageViewBase<WeightT> &weight,
-                                   ImageViewBase<DisparityT> const& disparity_map_patch,
-                                   ImageViewBase<WeightT> const& weight_template) {
-
-      //    const float continuity_threshold_squared = 64;  // T = 8
-      int center_pix_x = weight_template.impl().cols()/2;
-      int center_pix_y = weight_template.impl().rows()/2;
-      typename DisparityT::pixel_type center_pix = disparity_map_patch.impl()(center_pix_x, center_pix_y);
-
-      float sum = 0;
-      int num_good_pix = 0;
-      typename WeightT::pixel_accessor weight_row_acc = weight.impl().origin();
-      typename WeightT::pixel_accessor template_row_acc = weight_template.impl().origin();
-      typename DisparityT::pixel_accessor disp_row_acc = disparity_map_patch.impl().origin();
-
-      for (int j = 0; j < weight_template.impl().rows(); ++j) {
-        typename WeightT::pixel_accessor weight_col_acc = weight_row_acc;
-        typename WeightT::pixel_accessor template_col_acc = template_row_acc;
-        typename DisparityT::pixel_accessor disp_col_acc = disp_row_acc;
-        for (int i = 0; i < weight_template.impl().cols(); ++i ) {
-
-          // Mask is zero if the disparity map's pixel is missing...
-          if (!(*disp_col_acc).valid())
-            *weight_col_acc = 0;
-
-          // ... or if there is a large discontinuity ...
-          //         if (pow( (*disp_col_acc).child().x()-center_pix.child().x(),2) + pow( (*disp_col_acc).child().y()-center_pix.child().y(),2) >= continuity_threshold_squared)
-          //           *weight_col_acc = 0;
-
-          // ... otherwise we use the weight from the weight template
-          else {
-            *weight_col_acc = *template_col_acc;
-            sum += *weight_col_acc;
-            ++num_good_pix;
-          }
-
-          disp_col_acc.next_col();
-          weight_col_acc.next_col();
-          template_col_acc.next_col();
-        }
-        disp_row_acc.next_row();
-        weight_row_acc.next_row();
-        template_row_acc.next_row();
-      }
-
-      // Normalize the weight image
-      if (sum == 0)
-        vw_throw(LogicErr() << "subpixel_weight: Sum of weight image was zero.  This isn't supposed to happen!");
-      else
-        weight /= sum;
-      return num_good_pix;
-    }
-
-
     // EMSubpixelCorrelator::EMSubpixelCorrelator( ... )
     template<class ImagePixelT>    template <class Image1T, class Image2T, class DisparityT>
     EMSubpixelCorrelatorView<ImagePixelT>::EMSubpixelCorrelatorView(ImageViewBase<Image1T> const& left_image, ImageViewBase<Image2T> const& right_image,
@@ -461,7 +406,6 @@ namespace vw {
             continue;
           }
 
-          //adjust_weight_image(w_gaussian,  crop(edge_extend(disparity_in.impl()), window_box), weight_template);
           w_gaussian = weight_template;
 
           pixel_timer.start();
