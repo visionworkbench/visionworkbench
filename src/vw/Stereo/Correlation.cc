@@ -23,11 +23,11 @@ namespace vw {
 namespace stereo {
 
  
-bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
-                        BBox2i const& current_bbox,
-                        std::vector<SearchParam>& list,
-                        Vector2i const& kernel_size,
-                        int32 fail_count ) {
+bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
+                       BBox2i const& current_bbox,
+                       std::vector<SearchParam>& list,
+                       Vector2i const& kernel_size,
+                       int32 fail_count) {
 
     // Looking at the 2d disparity vectors inside current_bbox
 

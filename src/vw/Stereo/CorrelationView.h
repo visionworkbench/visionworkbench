@@ -21,7 +21,6 @@
 #include <vw/Core/Exception.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageIO.h>
-#include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/SGM.h>
@@ -157,7 +156,7 @@ namespace vw { namespace stereo {
     
     CorrelationAlgorithm m_algorithm; ///< Store the algorithm choice
     int m_collar_size;     ///< Expand the size of the image for each tile before correlating
-    SemiGlobalMatcher::SgmSubpixelMode m_sgm_subpixel_mode; ///< Subpixel mode used by SGM algorithms
+    SemiGlobalMatcher::SgmSubpixelMode m_sgm_subpixel_mode; ///< Subpixel mode used by SGM
     Vector2i m_sgm_search_buffer;
     size_t m_memory_limit_mb;
 

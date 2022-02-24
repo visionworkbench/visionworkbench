@@ -22,6 +22,7 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ErodeView.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Stereo/Correlation.h>
 
 #include <boost/foreach.hpp>
 #include <ctime>
@@ -94,9 +95,9 @@ namespace vw { namespace stereo {
     typename PixelGrayImageRef::pixel_type right_mean;
     try {
       left_mean  = mean_pixel_value(subsample(copy_mask(left_pyramid [0],
-                                                        create_mask(left_mask_pyramid [0],0)),2));
+                                                        create_mask(left_mask_pyramid [0], 0)), 2));
       right_mean = mean_pixel_value(subsample(copy_mask(right_pyramid[0],
-                                                        create_mask(right_mask_pyramid[0],0)),2));
+                                                        create_mask(right_mask_pyramid[0], 0)), 2));
     } catch (const ArgumentErr& err) {
       // Mean pixel value will throw an argument error if there
       // are no valid pixels. If that happens, it means either the
@@ -104,9 +105,11 @@ namespace vw { namespace stereo {
       return false;
     }
     // Now paste the mean value into the masked pixels
-    left_pyramid [0] = apply_mask(copy_mask(left_pyramid[0],  create_mask(left_mask_pyramid [0], 0)),
+    left_pyramid [0] = apply_mask(copy_mask(left_pyramid[0],
+                                            create_mask(left_mask_pyramid [0], 0)),
                                   left_mean );
-    right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0], create_mask(right_mask_pyramid[0], 0)),
+    right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],
+                                            create_mask(right_mask_pyramid[0], 0)),
                                   right_mean);
 
     vw_out(DebugMessage, "stereo") << "Left  pyramid base size = "
@@ -114,13 +117,18 @@ namespace vw { namespace stereo {
     vw_out(DebugMessage, "stereo") << "Right pyramid base size = "
                                    << bounding_box(right_pyramid[0]) << std::endl;
 
-    // Reduce the mask images from the expanded-size region to the actual sized region.
-    // - The actual sized region is just the input bbox plus the search range, no expanded base
-    //   of support or anything.
-    // - The mask is not used in the expanded base of support region of the image, only the main region.
-    // - The larger mask size before is used to compute the mean color values.
-    // - Zero edge extension is used here so we don't treat the edge extended pixels as valid.
-    //   Currently this mainly affects the SGM algorithm which needs to know not to solve for those pixels.
+    // Reduce the mask images from the expanded-size region to the
+    //   actual sized region.
+    // - The actual sized region is just the input bbox plus the
+    //   search range, no expanded base of support or anything.
+    // - The mask is not used in the expanded base of support region
+    //   of the image, only the main region.
+    // - The larger mask size before is used to compute the mean color
+    //   values.
+    // - Zero edge extension is used here so we don't treat the edge
+    //   extended pixels as valid.
+    //   Currently this mainly affects the SGM algorithm which needs
+    //   to know not to solve for those pixels.
     BBox2i right_mask = bbox + m_search_region.min();
     right_mask.max() += m_search_region.size();
     left_mask_pyramid [0] = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), bbox);
@@ -138,8 +146,10 @@ namespace vw { namespace stereo {
     // Smooth and downsample to build the pyramid (don't smooth the masks)
     // TODO(oalexan1): Use a PixelMask rather handling the image and its mask separately!
     for (int32 i = 1; i <= max_pyramid_levels; i++) {
-      left_pyramid      [i] = subsample(separable_convolution_filter(left_pyramid [i-1],kernel,kernel),2);
-      right_pyramid     [i] = subsample(separable_convolution_filter(right_pyramid[i-1],kernel,kernel),2);
+      left_pyramid      [i] = subsample(separable_convolution_filter(left_pyramid [i-1],
+                                                                     kernel, kernel),2);
+      right_pyramid     [i] = subsample(separable_convolution_filter(right_pyramid[i-1],
+                                                                      kernel, kernel),2);
       left_mask_pyramid [i] = subsample_mask_by_two(left_mask_pyramid [i-1]);
       right_mask_pyramid[i] = subsample_mask_by_two(right_mask_pyramid[i-1]);
     
@@ -338,7 +348,8 @@ namespace vw { namespace stereo {
         // Note: The masks contain exactly the region of interests from the input masks,
         //       with the right mask containing the region offset by the search range.
         //       The left mask size should exactly equal the output size here.
-        // - To be fully accurate, should crop the right mask slightly but SGM does not require this.
+        // - To be fully accurate, should crop the right mask slightly
+        //   but SGM does not require this.
         
         boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
         crop(disparity, zone.image_region()) // This crop not needed in SGM case!
@@ -381,8 +392,10 @@ namespace vw { namespace stereo {
           //  input masks.
 
           BBox2i right_reverse_region = right_region;
-          BBox2i left_reverse_region = left_region - zone.disparity_range().size(); // Shift to right
-          left_reverse_region.max() += 2*zone.disparity_range().size(); // Enlarge to fit the search range
+          // Shift to right
+          BBox2i left_reverse_region = left_region - zone.disparity_range().size();
+          // Enlarge to fit the search range
+          left_reverse_region.max() += 2*zone.disparity_range().size();
 
           if (m_write_debug_images) { // DEBUG
             std::cout << "\n====== RL CHECK =====\n";
@@ -409,11 +422,13 @@ namespace vw { namespace stereo {
           ImageView<pixel_typeI> *prev_disp_ptr_rl=0; // Pass in upper level disparity
           if (level < max_pyramid_levels) {
             prev_disp_ptr_rl = &prev_disparity_rl;
-            vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size RL = " << bounding_box(prev_disparity_rl) << std::endl;
+            vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size RL = "
+                                                  << bounding_box(prev_disparity_rl) << std::endl;
           }
 
           
-          // Set the masks to the exact size needed and adjust the position of the left one to match the image shift.
+          // Set the masks to the exact size needed and adjust the
+          // position of the left one to match the image shift.
           BBox2i right_mask_bbox = BBox2i(0,0, right_reverse_region.width ()-2*half_kernel[0],
                                           right_reverse_region.height()-2*half_kernel[1]);
           BBox2i left_mask_bbox  = BBox2i(0,0, left_reverse_region.width  ()-2*half_kernel[0],
@@ -428,24 +443,29 @@ namespace vw { namespace stereo {
                                left_mask_bbox);
 
           if (m_write_debug_images) { // DEBUG
-            std::cout << "left mask input: "  << bounding_box(left_mask_pyramid [level]) << std::endl;
-            std::cout << "right mask input: " << bounding_box(right_mask_pyramid[level]) << std::endl;
+            std::cout << "left mask input: "
+                      << bounding_box(left_mask_pyramid [level]) << std::endl;
+            std::cout << "right mask input: "
+                      << bounding_box(right_mask_pyramid[level]) << std::endl;
             std::cout << "left mask: "  << left_mask_bbox << std::endl;
             std::cout << "right mask: " << right_mask_bbox << std::endl;
           }
 
           //write_image("lr_cropl.tif", crop(left_pyramid [level], left_region));
           //write_image("lr_cropr.tif", crop(right_pyramid[level], right_region));
-          //write_image("rl_cropl.tif", crop(edge_extend(left_pyramid[level]), left_reverse_region));
+          //write_image("rl_cropl.tif", crop(edge_extend(left_pyramid[level]),
+          // left_reverse_region));
           //write_image("rl_cropr.tif", crop(right_pyramid[level], right_reverse_region));
 
 
           // Write out masks with borders inserted - should line up with images!
           //right_mask_bbox.expand(half_kernel);
-          //write_image("rl_cropRmaskPad.tif", crop(edge_extend(right_rl_mask, ZeroEdgeExtension()), right_mask_bbox));
+          //write_image("rl_cropRmaskPad.tif", crop(edge_extend(right_rl_mask,
+          // ZeroEdgeExtension()), right_mask_bbox));
           //BBox2i temp = bounding_box(left_rl_mask);
           //temp.expand(half_kernel);
-          //write_image("rl_cropLmaskPad.tif", crop(edge_extend(left_rl_mask, ZeroEdgeExtension()), temp));
+          //write_image("rl_cropLmaskPad.tif", crop(edge_extend(left_rl_mask,
+          // ZeroEdgeExtension()), temp));
           //write_image("lr_result.tif", crop(disparity, zone.image_region()));
 
           boost::shared_ptr<SemiGlobalMatcher> sgm_right_matcher_ptr;
@@ -475,7 +495,8 @@ namespace vw { namespace stereo {
           // Find pixels where the disparity distance is greater than m_consistency_threshold
           //  and flag those pixels as invalid.
           const bool verbose = true;
-          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()), // Crop not needed for SGM!
+          // Crop not needed for SGM!
+          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()), 
                                                disparity_rl, m_consistency_threshold, verbose);
           
           //write_image("lr_result_cons.tif", crop(disparity, zone.image_region()));
@@ -497,16 +518,21 @@ namespace vw { namespace stereo {
         //   that we identified in previous iterations.
         // - Prioritize the zones which take less time so we don't miss
         //   a bunch of tiles because we spent all our time on a slow one.
-        std::sort(zones.begin(), zones.end(), SearchParamLessThan()); // Sort the zones, smallest to largest.
+        // Sort the zones, smallest to largest.
+        std::sort(zones.begin(), zones.end(), SearchParamLessThan()); 
         BOOST_FOREACH(SearchParam const& zone, zones) {
 
           // The input zone is in the normal pixel coordinates for this  level.
           // We need to convert it to a bbox in the expanded base of support image at this level.
           BBox2i left_region = zone.image_region() + region_offset; // Kernel width offset
           left_region.expand(half_kernel);
-          BBox2i right_region = left_region + zone.disparity_range().min(); // Make right region contain all of
-          right_region.max() += zone.disparity_range().size();              //  the needed match area.
-          // Setting up the ROIs in this way means that the range of disparities calculated is always >=0
+
+          // Make right region contain all of the needed match area.
+          BBox2i right_region = left_region + zone.disparity_range().min();
+          right_region.max() += zone.disparity_range().size();
+          
+          // Setting up the ROIs in this way means that the range of
+          // disparities calculated is always >=0
 
           // Check timing estimate to see if we should go ahead with this zone or quit.
           SearchParam params(left_region, zone.disparity_range());
@@ -688,7 +714,7 @@ namespace vw { namespace stereo {
         write_image(ostr.str() + ".tif", pixel_cast<PixelMask<Vector2f>>(disparity));
 
         if (use_sgm && check_rl)
-          write_image(ostr.str() + "_rl.tif", pixel_cast<PixelMask<Vector2f>>(disparity_rl));         
+          write_image(ostr.str() + "_rl.tif", pixel_cast<PixelMask<Vector2f>>(disparity_rl));
           
         if (!use_sgm) { // SGM does not use zones
           std::ofstream f((ostr.str() + "_zone.txt").c_str());
@@ -710,7 +736,8 @@ namespace vw { namespace stereo {
     } // End of the level loop
 
     VW_ASSERT(bbox.size() == bounding_box(disparity).size(),
-              MathErr() << "PyramidCorrelation: Solved disparity doesn't match requested bbox size.");
+              MathErr() << "PyramidCorrelation: Solved disparity "
+              << "doesn't match requested bbox size.");
 
 #if VW_DEBUG_LEVEL > 0
     watch.stop();

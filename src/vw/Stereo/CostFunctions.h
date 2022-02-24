@@ -186,7 +186,7 @@ namespace stereo {
     TERNARY_CENSUS_TRANSFORM
   };
 
-  template <class ImageT, bool IsInteger>
+  template <class ImageT>
   struct AbsoluteCost {
     typedef typename AbsAccumulatorType<ImageT>::type accumulator_type;
     typedef typename PixelChannelCast<typename ImageT::pixel_type, accumulator_type>::type pixel_accumulator_type;
@@ -215,7 +215,7 @@ namespace stereo {
     }
   };
 
-  template <class ImageT, bool IsInteger>
+  template <class ImageT>
   struct SquaredCost {
     typedef typename SqrDiffAccumulatorType<ImageT>::type accumulator_type;
     typedef typename PixelChannelCast<typename ImageT::pixel_type, accumulator_type>::type pixel_accumulator_type;
@@ -244,23 +244,23 @@ namespace stereo {
     }
   };
 
-  // The float version of Cross Correlation
-  template <class ImageT, bool IsInteger>
+  // Cross-correlation. Only float images are expected. 
+  template <class ImageT>
   struct NCCCost {
     typedef typename SqrDiffAccumulatorType<ImageT>::type accumulator_type;
     typedef typename PixelChannelCast<typename ImageT::pixel_type, accumulator_type>::type pixel_accumulator_type;
     ImageView<pixel_accumulator_type> left_precision, right_precision;
 
     template <class ImageT1, class ImageT2>
-    NCCCost( ImageViewBase<ImageT1> const& left,
-                                 ImageViewBase<ImageT2> const& right,
-                                 Vector2i const& kernel_size ) {
+    NCCCost(ImageViewBase<ImageT1> const& left,
+            ImageViewBase<ImageT2> const& right,
+            Vector2i const& kernel_size ) {
       left_precision = pixel_accumulator_type(1) /
         fast_box_sum<accumulator_type>(square(left.impl()), kernel_size);
       right_precision = pixel_accumulator_type(1) /
         fast_box_sum<accumulator_type>(square(right.impl()), kernel_size);
     }
-
+    
     template <class ImageT1, class ImageT2>
     BinaryPerPixelView<ImageT1,ImageT2,CrossCorrelationFunctor>
     operator()( ImageViewBase<ImageT1> const& left,
@@ -273,45 +273,6 @@ namespace stereo {
                                    Vector2i const& disparity ) const {
       cost_metric *= sqrt( left_precision * crop(right_precision,
                                                  bounding_box(left_precision)+disparity) );
-    }
-
-    inline bool quality_comparison( accumulator_type cost,
-                                    accumulator_type quality ) const {
-      return cost > quality;
-    }
-  };
-
-  // Specialization of the CrossCorrelation Cost Functor so that it
-  // avoids integer overflow.
-  template <class ImageT>
-  struct NCCCost<ImageT, true> {
-    typedef typename SqrDiffAccumulatorType<ImageT>::type accumulator_type;
-    typedef typename PixelChannelCast<typename ImageT::pixel_type, accumulator_type>::type pixel_accumulator_type;
-    ImageView<pixel_accumulator_type> left_variance, right_variance;
-
-    template <class ImageT1, class ImageT2>
-    NCCCost( ImageViewBase<ImageT1> const& left,
-                                 ImageViewBase<ImageT2> const& right,
-                                 Vector2i const& kernel_size ) {
-      left_variance =
-        fast_box_sum<accumulator_type>(square(pixel_cast<pixel_accumulator_type>(left.impl()))/256, kernel_size);
-      right_variance =
-        fast_box_sum<accumulator_type>(square(pixel_cast<pixel_accumulator_type>(right.impl()))/256, kernel_size);
-    }
-
-    template <class ImageT1, class ImageT2>
-    BinaryPerPixelView<ImageT1,ImageT2,CrossCorrelationFunctor>
-    operator()( ImageViewBase<ImageT1> const& left,
-                ImageViewBase<ImageT2> const& right ) const {
-      typedef BinaryPerPixelView<ImageT1,ImageT2,CrossCorrelationFunctor> result_type;
-      return result_type(left.impl(),right.impl());
-    }
-
-    inline void cost_modification( ImageView<pixel_accumulator_type>& cost_metric,
-                                   Vector2i const& disparity ) const {
-      cost_metric =
-        (64 * cost_metric) / ( sqrt( left_variance * crop(right_variance,
-                                                          bounding_box(left_variance)+disparity) ) / 64 );
     }
 
     inline bool quality_comparison( accumulator_type cost,

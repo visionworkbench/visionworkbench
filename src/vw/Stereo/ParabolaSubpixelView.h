@@ -71,7 +71,7 @@ namespace stereo {
       
       // TODO: Why is this hard-coded to a cost function that we did not use
       //       when we originally computed the integer correlation????
-      typedef AbsoluteCost<FImage1T,boost::is_integral<typename PixelChannelType<typename FImage1T::pixel_type>::type>::value> CostType;
+      typedef AbsoluteCost<FImage1T> CostType;
       
       typedef typename CostType::accumulator_type                      AccumChannelT;
       typedef typename PixelChannelCast<typename FImage1T::pixel_type,AccumChannelT>::type AccumT;
