@@ -36,13 +36,15 @@
 namespace vw {
 namespace stereo {
 
-  // TODO(oalexan1): This should be in .cc and use PixelGray<float> instead of PixelT.
+  // TODO(oalexan1): See if these can be detemplatized and if one can use
+  // float pixels only rather than int and some other types. 
+  // What a piece of excessive templatization.
   
   /// Lower level implementation function for calc_disparity.
   /// - The inputs must already be rasterized to safe sizes!
   /// - Since the inputs are rasterized, the input images must not be too big.
   template <template<class,bool> class CostFuncT, class PixelT>
-  ImageView<PixelMask<Vector2i> >
+  ImageView<PixelMask<Vector2i>>
   best_of_search_convolution(ImageView<PixelT> const& left_raster,
                              ImageView<PixelT> const& right_raster,
                              BBox2i            const& left_region,
