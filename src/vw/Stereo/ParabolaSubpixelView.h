@@ -66,16 +66,16 @@ namespace stereo {
       // Allocate a buffer to store the costs of the 9 nearest disparities for each 
       //  pixel in the integer disparity image.
       // - This will use 2.25 MB for a 256^2 pixel region
-      ImageView<Vector<float,9> > cost_patch( integer_disparity.cols(),
-                                              integer_disparity.rows() );
+      ImageView<Vector<float,9>> cost_patch( integer_disparity.cols(),
+                                             integer_disparity.rows() );
       
-      // TODO: Why is this hard-coded to a cost function that we did not use
+      // TODO(oalexan1): Why is this hard-coded to a cost function that we did not use
       //       when we originally computed the integer correlation????
-      typedef AbsoluteCost<FImage1T> CostType;
-      
+      typedef AbsoluteCost<ImageView<typename FImage2T::pixel_type>> CostType;
+        
       typedef typename CostType::accumulator_type                      AccumChannelT;
       typedef typename PixelChannelCast<typename FImage1T::pixel_type,AccumChannelT>::type AccumT;
-      typedef typename ImageView<Vector<float,9> >::pixel_accessor     PatchAcc;
+      typedef typename ImageView<Vector<float,9>>::pixel_accessor     PatchAcc;
       typedef typename ImageView<AccumT>::pixel_accessor               MetricAcc;
       typedef typename ImageView<PixelMask<Vector2i> >::pixel_accessor IDispAcc;
 
@@ -141,15 +141,14 @@ namespace stereo {
 
             Vector2i disparity_abs = disparity + zone.disparity_range().min(); // Absolute disparity
 
-
             // Compute the score for this disparity at each pixel in the current zone
             ImageView<typename FImage2T::pixel_type> left_raster_crop = 
               crop(left_raster,left_zone);
             ImageView<typename FImage2T::pixel_type> right_raster_crop = 
               crop(right_raster,left_zone+disparity_abs-search_range.min());
         
-            CostType cost_function( left_raster_crop, right_raster_crop, m_kernel_size );    
-            cost_metric = fast_box_sum<AccumChannelT>(cost_function( left_raster_crop,
+            CostType cost_function(left_raster_crop, right_raster_crop, m_kernel_size);    
+            cost_metric = fast_box_sum<AccumChannelT>(cost_function(left_raster_crop,
                                                          right_raster_crop),
                                                       m_kernel_size );
             //cost_function.cost_modification( cost_metric, disparity );

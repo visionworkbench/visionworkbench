@@ -201,16 +201,13 @@ namespace stereo {
     typedef typename PixelChannelCast<typename ImageT::pixel_type, accumulator_type>::type pixel_accumulator_type;
 
     // Does nothing
-    template <class ImageT1, class ImageT2>
-    AbsoluteCost( ImageViewBase<ImageT1> const& /*left*/,
-                        ImageViewBase<ImageT2> const& /*right*/,
-                        Vector2i const& /*kernel_size*/ ) {}
+    AbsoluteCost(ImageViewBase<ImageT> const& /*left*/,
+                 ImageViewBase<ImageT> const& /*right*/,
+                 Vector2i const& /*kernel_size*/ ) {}
 
-    template <class ImageT1, class ImageT2>
-    BinaryPerPixelView<ImageT1,ImageT2,AbsDifferenceFunctor>
-    operator()( ImageViewBase<ImageT1> const& left,
-                ImageViewBase<ImageT2> const& right ) const {
-      typedef BinaryPerPixelView<ImageT1,ImageT2,AbsDifferenceFunctor> result_type;
+    BinaryPerPixelView<ImageT, ImageT, AbsDifferenceFunctor>
+    operator()(ImageViewBase<ImageT> const& left, ImageViewBase<ImageT> const& right) const {
+      typedef BinaryPerPixelView<ImageT, ImageT, AbsDifferenceFunctor> result_type;
       return result_type(left.impl(),right.impl());
     }
 
@@ -231,16 +228,12 @@ namespace stereo {
                                       accumulator_type>::type pixel_accumulator_type;
 
     // Does nothing
-    template <class ImageT1, class ImageT2>
-    SquaredCost( ImageViewBase<ImageT1> const& /*left*/,
-                            ImageViewBase<ImageT2> const& /*right*/,
+    SquaredCost(ImageT const& /*left*/, ImageT const& /*right*/,
                             Vector2i const& /*kernel_size*/ ) {}
 
-    template <class ImageT1, class ImageT2>
-    BinaryPerPixelView<ImageT1,ImageT2,SquaredDifferenceFunctor>
-    operator()( ImageViewBase<ImageT1> const& left,
-                ImageViewBase<ImageT2> const& right ) const {
-      typedef BinaryPerPixelView<ImageT1,ImageT2,SquaredDifferenceFunctor> result_type;
+    BinaryPerPixelView<ImageT, ImageT, SquaredDifferenceFunctor>
+    operator()(ImageT const& left, ImageT const& right ) const {
+      typedef BinaryPerPixelView<ImageT, ImageT, SquaredDifferenceFunctor> result_type;
       return result_type(left.impl(),right.impl());
     }
 
@@ -262,9 +255,7 @@ namespace stereo {
                                       accumulator_type>::type pixel_accumulator_type;
     ImageView<pixel_accumulator_type> left_precision, right_precision;
 
-    template <class ImageT1, class ImageT2>
-    NCCCost(ImageViewBase<ImageT1> const& left,
-            ImageViewBase<ImageT2> const& right,
+    NCCCost(ImageT const& left, ImageT const& right,
             Vector2i const& kernel_size ) {
       left_precision = pixel_accumulator_type(1) /
         fast_box_sum<accumulator_type>(square(left.impl()), kernel_size);
@@ -272,11 +263,9 @@ namespace stereo {
         fast_box_sum<accumulator_type>(square(right.impl()), kernel_size);
     }
     
-    template <class ImageT1, class ImageT2>
-    BinaryPerPixelView<ImageT1,ImageT2,CrossCorrelationFunctor>
-    operator()( ImageViewBase<ImageT1> const& left,
-                ImageViewBase<ImageT2> const& right ) const {
-      typedef BinaryPerPixelView<ImageT1,ImageT2,CrossCorrelationFunctor> result_type;
+    BinaryPerPixelView<ImageT, ImageT, CrossCorrelationFunctor>
+    operator()( ImageT const& left, ImageT const& right ) const {
+      typedef BinaryPerPixelView<ImageT, ImageT, CrossCorrelationFunctor> result_type;
       return result_type(left.impl(),right.impl());
     }
 
