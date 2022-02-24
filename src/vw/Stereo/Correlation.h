@@ -36,6 +36,8 @@
 namespace vw {
 namespace stereo {
 
+  // TODO(oalexan1): This should be in .cc and use PixelGray<float> instead of PixelT.
+  
   /// Lower level implementation function for calc_disparity.
   /// - The inputs must already be rasterized to safe sizes!
   /// - Since the inputs are rasterized, the input images must not be too big.
@@ -49,10 +51,10 @@ namespace stereo {
 
     typedef ImageView<PixelT> ImageType;
     typedef typename CostFuncT<ImageType,
-      boost::is_integral<typename PixelChannelType<PixelT>::type>::value>::accumulator_type AccumChannelT;
+      boost::is_integral<typename PixelChannelType<PixelT>::type>::value>::accumulator_type
+      AccumChannelT;
     typedef typename PixelChannelCast<PixelT,AccumChannelT>::type AccumT;
     typedef typename std::pair<AccumT,AccumT> QualT;
-
 
     // Build cost function which sometimes has side car data
     CostFuncT<ImageType,boost::is_integral<typename PixelChannelType<PixelT>::type>::value> 
@@ -60,9 +62,9 @@ namespace stereo {
 
     // Result buffers
     Vector2i result_size = bounding_box(left_raster).size() - kernel_size + Vector2i(1,1);
-    ImageView<PixelMask<Vector2i> > disparity_map(result_size[0], result_size[1]);
-    std::fill( disparity_map.data(), disparity_map.data() + prod(result_size),
-               PixelMask<Vector2i>(Vector2i()) );
+    ImageView<PixelMask<Vector2i>> disparity_map(result_size[0], result_size[1]);
+    std::fill(disparity_map.data(), disparity_map.data() + prod(result_size),
+               PixelMask<Vector2i>(Vector2i()));
     // First channel is best, second is worst.
     ImageView<QualT > quality_map( result_size[0], result_size[1] );
     
