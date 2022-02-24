@@ -19,13 +19,10 @@
 #ifndef __VW_STEREO_CORRELATION_H__
 #define __VW_STEREO_CORRELATION_H__
 
-#include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Stopwatch.h>
-#include <vw/Image/AlgorithmFunctions.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Stereo/Algorithms.h>
 #include <vw/Stereo/CostFunctions.h>
+#include <vw/Image/ImageViewRef.h>
 
 #include <vector>
 #include <algorithm>
@@ -34,10 +31,6 @@
 namespace vw {
 namespace stereo {
 
-  // TODO(oalexan1): See if these can be detemplatized and if one can use
-  // float pixels only rather than int and some other types. 
-  // What a piece of excessive templatization.
-  
   /// Lower level implementation function for calc_disparity.
   /// - The inputs must already be rasterized to safe sizes!
   /// - Since the inputs are rasterized, the input images must not be too big.
@@ -62,7 +55,7 @@ namespace stereo {
     ImageView<PixelMask<Vector2i>> disparity_map(result_size[0], result_size[1]);
     std::fill(disparity_map.data(), disparity_map.data() + prod(result_size),
               PixelMask<Vector2i>(Vector2i()));
-    // First channel is best, second is worst.
+    // First channel is best, second is worst
     ImageView<QualT> quality_map(result_size[0], result_size[1]);
     
     // Storage buffers
@@ -71,8 +64,8 @@ namespace stereo {
     ImageView<PixelT> right_raster_crop(left_raster.cols(), left_raster.rows());
 
     // Loop across the disparity range we are searching over.
-    Vector2i disparity(0,0);
-    for (; disparity.y() != search_volume[1]; ++disparity.y()) {
+    Vector2i disparity (0, 0);
+    for (disparity.y() = 0; disparity.y() != search_volume[1]; ++disparity.y()) {
       for (disparity.x() = 0; disparity.x() != search_volume[0]; ++disparity.x()) {
       
         // Compute correlations quickly by shifting the right image by the
@@ -129,7 +122,6 @@ namespace stereo {
       } // End x loop
     } // End y loop
 
-
     // Determine validity of result (detects rare invalid cases)
     size_t invalid_count = 0;
     const QualT* quality_ptr      = quality_map.data();
@@ -149,7 +141,6 @@ namespace stereo {
   } // End function best_of_search_convolution
 
 
-
   /// This actually RASTERIZES/COPY the input images. It then makes an
   /// allocation to store current costs.
   ///
@@ -166,53 +157,14 @@ namespace stereo {
   /// calculated as follows:
   ///     right_region = left_region + search_volume - 1.
   ///
-  /// The pixel types on the input images need to be the same!
-  template <class ImageT1, class ImageT2>
-  ImageView<PixelMask<Vector2i>>
-  calc_disparity(CostFunctionType cost_type,
-                 ImageViewBase<ImageT1> const& left_in,
-                 ImageViewBase<ImageT2> const& right_in,
-                 // Valid region in the left image
-                 BBox2i                 const& left_region,
-                 // Max disparity to search in right image
-                 Vector2i               const& search_volume,
-                 Vector2i               const& kernel_size) {
-
-    // Sanity check the input:
-    VW_DEBUG_ASSERT(kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
-                    ArgumentErr() << "calc_disparity: Kernel input not sized with odd values.");
-    VW_DEBUG_ASSERT(kernel_size[0] <= left_region.width() &&
-                    kernel_size[1] <= left_region.height(),
-                    ArgumentErr() << "calc_disparity: Kernel size too large of active region.");
-    VW_DEBUG_ASSERT(search_volume[0] > 0 && search_volume[1] > 0,
-                    ArgumentErr() << "calc_disparity: Search volume must be greater than 0.");
-    VW_DEBUG_ASSERT(left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
-                    left_region.max().x() <= left_in.impl().cols() &&
-                    left_region.max().y() <= left_in.impl().rows(),
-                    ArgumentErr() << "calc_disparity: Region not inside left image.");
-
-    // Rasterize input so that we can do a lot of processing on it.
-    BBox2i right_region = left_region;
-    right_region.max() += search_volume - Vector2i(1,1);
-    ImageView<typename ImageT1::pixel_type> left (crop(left_in.impl(),  left_region));
-    ImageView<typename ImageT2::pixel_type> right(crop(right_in.impl(), right_region));
-
-    typedef typename ImageT1::pixel_type pix_type; // temporary
-    
-    // Call the lower level function with the appropriate cost function type
-    switch (cost_type) {
-    case CROSS_CORRELATION:
-      return best_of_search_convolution<NCCCost<ImageView<pix_type>>, pix_type>
-        (left, right, left_region, search_volume, kernel_size);
-    case SQUARED_DIFFERENCE:
-      return best_of_search_convolution<SquaredCost<ImageView<pix_type>>, pix_type>
-        (left, right, left_region, search_volume, kernel_size);
-    default: // case ABSOLUTE_DIFFERENCE:
-      return best_of_search_convolution<AbsoluteCost<ImageView<pix_type>>, pix_type>
-        (left, right, left_region, search_volume, kernel_size);
-    }
-    
-  } // End function calc_disparity
+  ImageView<PixelMask<Vector2i>> calc_disparity(CostFunctionType cost_type,
+                                                ImageViewRef<PixelGray<float>> const& left_in,
+                                                ImageViewRef<PixelGray<float>> const& right_in,
+                                                // Valid region in the left image
+                                                BBox2i                 const& left_region,
+                                                // Max disparity to search in right image
+                                                Vector2i               const& search_volume,
+                                                Vector2i               const& kernel_size);
 
   // TODO: Add some named accessors and functions to clean up our code!
   // These are useful for pyramid stereo correlation and several other
@@ -221,7 +173,6 @@ namespace stereo {
   // in the region defined by the first bbox.
   /// The first  BBox specifies a location in an image.
   /// The second BBox describes a 2D disparity range using the min and max.
-  //typedef std::pair<BBox2i,BBox2i> SearchParam;
   struct SearchParam : public std::pair<BBox2i,BBox2i> {
   
     SearchParam(BBox2i const& image_region, BBox2i const& disparity_range)
@@ -260,60 +211,8 @@ namespace stereo {
   /// by left region size times search box size. This will enable us
   /// to estimate how long disparity calculation takes for given cost
   /// function and kernel size.
-  template <class ImageT1, class ImageT2>
-  double calc_seconds_per_op(CostFunctionType cost_type,
-                             ImageViewBase<ImageT1> const& left,
-                             ImageViewBase<ImageT2> const& right,
-                             Vector2i const& kernel_size){
-
-    double elapsed = -1.0;
-    double seconds_per_op = -1.0;
-
-    // We don't know what sizes to use to get a reliable time estimate.
-    // So increase the size until the time estimate is a second.
-    int lsize = 100;
-    while (elapsed < 1.0){
-
-      // Below we add kernel_size to ensure the image exceeds the
-      // kernel size, for correlation to perform properly.
-      lsize = (int)ceil(lsize*1.2) + std::max(kernel_size[0], kernel_size[1]);
-
-      ImageView<typename ImageT1::pixel_type> fake_left(lsize, lsize);
-      for (int col = 0; col < fake_left.cols(); col++){
-        for (int row = 0; row < fake_left.rows(); row++){
-          fake_left(col, row) = col%2 + 2*(row%5); // some values
-        }
-      }
-
-      ImageView<typename ImageT2::pixel_type> fake_right(4*lsize, 4*lsize);
-      for (int col = 0; col < fake_right.cols(); col++){
-        for (int row = 0; row < fake_right.rows(); row++){
-          fake_right(col, row) = 3*(col%7) + row%3; // some values
-        }
-      }
-
-      BBox2i search_region(0, 0, lsize/5, lsize/5);
-      BBox2i left_region = bounding_box(fake_left);
-
-      Stopwatch watch;
-      watch.start();
-      ImageView<PixelMask<Vector2i> > disparity =
-        calc_disparity(cost_type, fake_left, fake_right,
-                       left_region, search_region.size(), kernel_size);
-      watch.stop();
-
-      // Note: We add an infinitesimal contribution of disparity, lest
-      // the compiler tries to optimize away the above calculation due
-      // to its result being unused.
-      elapsed = watch.elapsed_seconds() + 1e-40*disparity(0, 0).child().x();
-      SearchParam params(left_region, search_region);
-      seconds_per_op = elapsed/params.search_volume();
-    }
-
-    return seconds_per_op;
-  }
-
-
+  double calc_seconds_per_op(CostFunctionType cost_type, Vector2i const& kernel_size);
+  
   /// Given one large region of an image to search and disparity ranges
   ///  for each pixel, try to break the region up into smaller regions
   ///  which contain narrower disparity ranges.
@@ -326,7 +225,7 @@ namespace stereo {
   ///   PixelMask<Vector2i>. 
   /// - This should stay an image view as we'll be
   ///   accessing the image alot and randomly.
-  bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
+  bool subdivide_regions(ImageView<PixelMask<Vector2i>> const& disparity,
                          BBox2i const& current_bbox,
                          std::vector<SearchParam>& list, // Output goes here
                          Vector2i const& kernel_size,

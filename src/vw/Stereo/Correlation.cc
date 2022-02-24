@@ -17,7 +17,11 @@
 
 #include <vw/Math/BBox.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Core/Exception.h>
 #include <vw/Stereo/Correlation.h>
+#include <vw/Stereo/Algorithms.h>
+#include <vw/Core/Stopwatch.h>
+#include <vw/Image/AlgorithmFunctions.h>
 
 namespace vw {
 namespace stereo {
@@ -213,6 +217,107 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     }
     return true;
   }
+  
+  ImageView<PixelMask<Vector2i>>
+  calc_disparity(CostFunctionType cost_type,
+                 ImageViewRef<PixelGray<float>> const& left_in,
+                 ImageViewRef<PixelGray<float>> const& right_in,
+                 // Valid region in the left image
+                 BBox2i                 const& left_region,
+                 // Max disparity to search in right image
+                 Vector2i               const& search_volume,
+                 Vector2i               const& kernel_size) {
 
+    // Sanity check the input:
+    VW_DEBUG_ASSERT(kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
+                    ArgumentErr() << "calc_disparity: Kernel input not sized with odd values.");
+    VW_DEBUG_ASSERT(kernel_size[0] <= left_region.width() &&
+                    kernel_size[1] <= left_region.height(),
+                    ArgumentErr() << "calc_disparity: Kernel size too large of active region.");
+    VW_DEBUG_ASSERT(search_volume[0] > 0 && search_volume[1] > 0,
+                    ArgumentErr() << "calc_disparity: Search volume must be greater than 0.");
+    VW_DEBUG_ASSERT(left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
+                    left_region.max().x() <= left_in.impl().cols() &&
+                    left_region.max().y() <= left_in.impl().rows(),
+                    ArgumentErr() << "calc_disparity: Region not inside left image.");
 
+    typedef PixelGray<float> pix_type; // to save some typing
+
+    // Rasterize input so that we can do a lot of processing on it.
+    BBox2i right_region = left_region;
+    right_region.max() += search_volume - Vector2i(1,1);
+    ImageView<pix_type> left (crop(left_in.impl(),  left_region));
+    ImageView<pix_type> right(crop(right_in.impl(), right_region));
+    
+    // Call the lower level function with the appropriate cost function type
+    switch (cost_type) {
+    case CROSS_CORRELATION:
+      return best_of_search_convolution<NCCCost<ImageView<pix_type>>, pix_type>
+        (left, right, left_region, search_volume, kernel_size);
+    case SQUARED_DIFFERENCE:
+      return best_of_search_convolution<SquaredCost<ImageView<pix_type>>, pix_type>
+        (left, right, left_region, search_volume, kernel_size);
+    default: // case ABSOLUTE_DIFFERENCE:
+      return best_of_search_convolution<AbsoluteCost<ImageView<pix_type>>, pix_type>
+        (left, right, left_region, search_volume, kernel_size);
+    }
+
+    return ImageView<PixelMask<Vector2i>>(); // will not be reached
+    
+  } // End function calc_disparity
+
+  /// Create fake left and right images and search volume.  Do a fake
+  /// disparity calculation. Divide the run-time of this calculation
+  /// by left region size times search box size. This will enable us
+  /// to estimate how long disparity calculation takes for given cost
+  /// function and kernel size.
+  double calc_seconds_per_op(CostFunctionType cost_type, Vector2i const& kernel_size){
+     
+    double elapsed = -1.0;
+    double seconds_per_op = -1.0;
+
+    // We don't know what sizes to use to get a reliable time estimate.
+    // So increase the size until the time estimate is a second.
+    int lsize = 100;
+    while (elapsed < 1.0){
+
+      // Below we add kernel_size to ensure the image exceeds the
+      // kernel size, for correlation to perform properly.
+      lsize = (int)ceil(lsize*1.2) + std::max(kernel_size[0], kernel_size[1]);
+
+      ImageView<PixelGray<float>> fake_left(lsize, lsize);
+      for (int col = 0; col < fake_left.cols(); col++){
+        for (int row = 0; row < fake_left.rows(); row++){
+          fake_left(col, row) = col%2 + 2*(row%5); // some values
+        }
+      }
+
+      ImageView<PixelGray<float>> fake_right(4*lsize, 4*lsize);
+      for (int col = 0; col < fake_right.cols(); col++){
+        for (int row = 0; row < fake_right.rows(); row++){
+          fake_right(col, row) = 3*(col%7) + row%3; // some values
+        }
+      }
+
+      BBox2i search_region(0, 0, lsize/5, lsize/5);
+      BBox2i left_region = bounding_box(fake_left);
+
+      Stopwatch watch;
+      watch.start();
+      ImageView<PixelMask<Vector2i>> disparity =
+        calc_disparity(cost_type, fake_left, fake_right,
+                       left_region, search_region.size(), kernel_size);
+      watch.stop();
+
+      // Note: We add an infinitesimal contribution of disparity, lest
+      // the compiler tries to optimize away the above calculation due
+      // to its result being unused.
+      elapsed = watch.elapsed_seconds() + 1e-40*disparity(0, 0).child().x();
+      SearchParam params(left_region, search_region);
+      seconds_per_op = elapsed/params.search_volume();
+    }
+
+    return seconds_per_op;
+  }
+  
 }} // end namespace vw::stereo
