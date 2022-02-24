@@ -311,5 +311,3 @@ endif()
 
 # Add the executable subdirectory
 add_subdirectory(tools)
-
-

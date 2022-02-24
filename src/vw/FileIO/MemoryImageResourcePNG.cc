@@ -29,7 +29,7 @@ class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
   protected:
     virtual void bind() { png_set_read_fn(m_ctx, reinterpret_cast<png_voidp>(this), &SrcMemoryImageResourcePNG::Data::read_fn); }
   public:
-    Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_end-m_data.get())); r->open(); return r.release();}
+    Data* rewind() const {vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported");}
 
     static void read_fn( png_structp ctx, png_bytep data, png_size_t len ) {
       Data *mgr = reinterpret_cast<Data*>(png_get_io_ptr(ctx));

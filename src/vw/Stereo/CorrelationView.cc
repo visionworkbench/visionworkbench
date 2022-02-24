@@ -1,8 +1,36 @@
+// __BEGIN_LICENSE__
+//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
+//
+//  The NASA Vision Workbench is licensed under the Apache License,
+//  Version 2.0 (the "License"); you may not use this file except in
+//  compliance with the License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
+#include <vw/Core/Stopwatch.h>
+#include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/DisparityMap.h>
+#include <vw/Core/Thread.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ErodeView.h>
+#include <vw/FileIO/DiskImageView.h>
+
+#include <boost/foreach.hpp>
+#include <ctime>
+
 namespace vw { namespace stereo {
 
   //=========================================================================
   // Correlation with several pyramid levels
-  inline bool PyramidCorrelationView::
+  bool PyramidCorrelationView::
   build_image_pyramids
   (BBox2i const& bbox, int32 const max_pyramid_levels,
    std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
@@ -140,7 +168,7 @@ namespace vw { namespace stereo {
 
 
   /// Filter out small blobs of valid pixels (they are usually bad)
-  inline void PyramidCorrelationView::
+  void PyramidCorrelationView::
   disparity_blob_filter(ImageView<pixel_typeI> &disparity, int level,
                         int max_blob_area) const {
 
@@ -172,10 +200,8 @@ namespace vw { namespace stereo {
     disparity = filtered_image;
   }
 
-
-
-  inline PyramidCorrelationView::prerasterize_type
-  PyramidCorrelationView::prerasterize(BBox2i const& bbox) const {
+  PyramidCorrelationView::prerasterize_type
+  PyramidCorrelationView::prerasterize (BBox2i const& bbox) const {
 
     time_t start, end;
     if (m_corr_timeout){

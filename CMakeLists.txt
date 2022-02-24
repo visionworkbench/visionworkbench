@@ -33,4 +33,3 @@ message("Setting CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 project(visionworkbench)
 
 add_subdirectory(src)
-

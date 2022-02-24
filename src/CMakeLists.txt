@@ -73,7 +73,6 @@ add_custom_target(workbook rm -rf images/Walker.qtree
                   COMMAND pdflatex workbook.tex
                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/docs/workbook")
 
-
 # Add command to build doxygen files
 add_custom_target(doxygen doxygen
                   COMMAND ln -s ${CMAKE_SOURCE_DIR}/docs/doxygen/index.html ${CMAKE_SOURCE_DIR}/docs/doxygen-output.html

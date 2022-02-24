@@ -15,41 +15,29 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #ifndef __VW_STEREO_CORRELATION_VIEW_H__
 #define __VW_STEREO_CORRELATION_VIEW_H__
 
 #include <vw/Core/Exception.h>
-#include <vw/Core/Stopwatch.h>
-#include <vw/Core/Thread.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/ErodeView.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageIO.h>
-#include <vw/FileIO/DiskImageView.h>
 #include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/PreFilter.h>
-#include <boost/foreach.hpp>
-#include <ctime>
-
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/CorrelationAlgorithms.h>
 
-namespace vw {
-namespace stereo {
+namespace vw { namespace stereo {
 
-  typedef  ImageViewRef<PixelGray<float>> PixelGrayImageRef;
-  typedef  ImageViewRef<uint8>  Int8ImageRef;
+  typedef ImageViewRef<PixelGray<float>> PixelGrayImageRef;
+  typedef ImageViewRef<uint8> Int8ImageRef;
   
   /// An image view for performing pyramid image correlation
-  class PyramidCorrelationView: 
-      public ImageViewBase<PyramidCorrelationView> {
+  class PyramidCorrelationView: public ImageViewBase<PyramidCorrelationView> {
 
   public: // Definitions
   typedef PixelMask<Vector2i> pixel_typeI;
-  // TODO: Can we delete result_type from all image views???
+    // TODO: Can we delete result_type from all image views???
     typedef PixelMask<Vector2f> pixel_type; // TODO: Safe to ever have differ?
     typedef PixelMask<Vector2f> result_type;
     typedef ProceduralPixelAccessor<PyramidCorrelationView> pixel_accessor;
@@ -127,7 +115,7 @@ namespace stereo {
 
     /// Block rasterization section that does actual work
     typedef CropView<ImageView<result_type>> prerasterize_type;
-    inline prerasterize_type prerasterize(BBox2i const& bbox) const;
+    prerasterize_type prerasterize(BBox2i const& bbox) const;
 
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
@@ -211,7 +199,7 @@ namespace stereo {
 
     /// Create the image pyramids needed by the prerasterize function.
     /// - Most of this function is spent figuring out the correct ROIs to use.
-    inline bool build_image_pyramids
+    bool build_image_pyramids
     (BBox2i const& bbox, int32 const max_pyramid_levels,
      std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
      std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & right_pyramid,
@@ -220,7 +208,7 @@ namespace stereo {
     
     /// Filter out isolated blobs of valid disparity regions which are usually wrong.
     /// - Using this can decrease run time in images with lots of little disparity islands.
-    inline void disparity_blob_filter(ImageView<pixel_typeI > &disparity, int level,
+    void disparity_blob_filter(ImageView<pixel_typeI > &disparity, int level,
                                int max_blob_area) const;
 
   }; // End class PyramidCorrelationView
@@ -261,7 +249,5 @@ namespace stereo {
   }
   
 }} // namespace vw::stereo
-
-#include <vw/Stereo/CorrelationView.tcc>
 
 #endif//__VW_STEREO_CORRELATION_VIEW_H__

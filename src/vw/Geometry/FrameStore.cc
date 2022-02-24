@@ -281,8 +281,6 @@ namespace vw {
       VW_ASSERT (!is_member(node),
                  vw::LogicErr() << "Node already member of FrameStore instance.");
 
-      auto_ptr<FrameTreeNode> n(node);
-
       VW_ASSERT (node->data().name().length() != 0,
                  vw::LogicErr() << "None empty frame name required.");
       VW_ASSERT (parent.node == NULL || is_member(parent),
@@ -295,8 +293,6 @@ namespace vw {
         m_root_nodes.push_back(node);
 
       node->set_parent(parent.node);
-
-      n.release();
     }
 
     void
