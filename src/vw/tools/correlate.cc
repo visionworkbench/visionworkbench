@@ -182,30 +182,29 @@ int main( int argc, char *argv[] ) {
   if (mem_limit_gb > 0)
     memory_limit_mb = mem_limit_gb * 1024;
 
-  ImageViewRef<PixelMask<Vector2f> > disparity_map;
   int corr_timeout = 0;
   double seconds_per_op = 0.0;
   BBox2i search_range(Vector2i(h_corr_min, v_corr_min), 
                       Vector2i(h_corr_max, v_corr_max));
   Vector2i kernel_size(xkernel, ykernel);
   std::cout << "Correlate max search range = " << search_range << std::endl;
-  disparity_map =
-    stereo::pyramid_correlate( left,      right,
-                               left_mask, right_mask,
-                               stereo::PREFILTER_LOG, log,
-                               search_range, kernel_size,
-                               static_cast<vw::stereo::CostFunctionType>(cost_mode), 
-                               corr_timeout, seconds_per_op,
-                               lrthresh, min_lr_level,
-                               filter_radius, max_pyramid_levels, 
-                               static_cast<vw::stereo::CorrelationAlgorithm>(stereo_algorithm), 
-                               collar_size,
-                               sgm_subpixel_mode,
-                               sgm_search_buffer,
-                               memory_limit_mb,
-                               blob_filter_area,
-                               write_debug_images);
-
+  ImageViewRef<PixelMask<Vector2f>> disparity_map
+    = stereo::pyramid_correlate(left, right,
+                                left_mask, right_mask,
+                                stereo::PREFILTER_LOG, log,
+                                search_range, kernel_size,
+                                static_cast<vw::stereo::CostFunctionType>(cost_mode), 
+                                corr_timeout, seconds_per_op,
+                                lrthresh, min_lr_level,
+                                filter_radius, max_pyramid_levels, 
+                                static_cast<vw::stereo::CorrelationAlgorithm>(stereo_algorithm), 
+                                collar_size,
+                                sgm_subpixel_mode,
+                                sgm_search_buffer,
+                                memory_limit_mb,
+                                blob_filter_area,
+                                write_debug_images);
+  
   // TODO: Call the code used in stereo_fltr!
 
 /*

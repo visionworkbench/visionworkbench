@@ -40,77 +40,12 @@
 namespace vw {
 namespace stereo {
 
-  // TODO: Maybe delete this class, it is not used or maintained.
-  // See instead PyramidCorrelationView.
-  /// An image view for performing image correlation
-  /// - For each left image pixel, compute disparity vector to matching pixel in the right image.
-  template <class Image1T, class Image2T, class PreFilterT>
-  class CorrelationView : public ImageViewBase<CorrelationView<Image1T, Image2T, PreFilterT>> {
-
-    Image1T          m_left_image;
-    Image2T          m_right_image;
-    PreFilterT       m_prefilter;
-    BBox2i           m_search_region;
-    Vector2i         m_kernel_size;
-    CostFunctionType m_cost_type;
-    float            m_consistency_threshold; // 0 = means don't do a consistency check
-
-  public:
-    typedef PixelMask<Vector2i> pixel_type;
-    typedef PixelMask<Vector2i> result_type;
-    typedef ProceduralPixelAccessor<CorrelationView> pixel_accessor;
-
-    CorrelationView(ImageViewBase<Image1T>    const& left,
-                    ImageViewBase<Image2T>    const& right,
-                    PreFilterBase<PreFilterT> const& prefilter,
-                    BBox2i const& search_region, Vector2i const& kernel_size,
-                    CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                    float            consistency_threshold = -1):
-      m_left_image(left.impl()), m_right_image(right.impl()),
-      m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
-      m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {}
-
-    // Standard required ImageView interfaces
-    inline int32 cols  () const { return m_left_image.cols(); }
-    inline int32 rows  () const { return m_left_image.rows(); }
-    inline int32 planes() const { return 1; }
-
-    inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
-    inline pixel_type operator()(int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0) const {
-      vw_throw(NoImplErr() << "CorrelationView::operator()(....) has not been implemented.");
-      return pixel_type();
-    }
-
-    // Block rasterization section that does actual work
-    typedef CropView<ImageView<pixel_type>> prerasterize_type;
-    inline prerasterize_type prerasterize(BBox2i const& bbox) const;
-
-    template <class DestT>
-    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
-      vw::rasterize(prerasterize(bbox), dest, bbox);
-    }
-  }; // End class CorrelationView
-
-  // TODO(oalexan1): Likely this should not be templated. The image pixels are
-  // PixelGray<float> and masks are just int.
-  template <class Image1T, class Image2T, class PreFilterT>
-  CorrelationView<Image1T,Image2T,PreFilterT>
-  correlate(ImageViewBase<Image1T> const& left,
-            ImageViewBase<Image2T> const& right,
-            PreFilterBase<PreFilterT> const& filter,
-            BBox2i const& search_region, Vector2i const& kernel_size,
-            CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-            float consistency_threshold = -1) {
-    typedef CorrelationView<Image1T,Image2T,PreFilterT> result_type;
-    return result_type(left.impl(), right.impl(), filter.impl(), search_region,
-                        kernel_size, cost_type, consistency_threshold);
-  }
+  typedef  ImageViewRef<PixelGray<float>> PixelGrayImageRef;
+  typedef  ImageViewRef<uint8>  Int8ImageRef;
   
-  /// An image view for performing pyramid image correlation (faster
-  /// than CorrelationView because of that).
-  template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-  class PyramidCorrelationView : 
-      public ImageViewBase<PyramidCorrelationView<Image1T,Image2T, Mask1T, Mask2T>> {
+  /// An image view for performing pyramid image correlation
+  class PyramidCorrelationView: 
+      public ImageViewBase<PyramidCorrelationView> {
 
   public: // Definitions
   typedef PixelMask<Vector2i> pixel_typeI;
@@ -123,10 +58,10 @@ namespace stereo {
 
     /// Initialize the view
     /// - Set blob_filter_area > 0 to filter out disparity blobs.
-    PyramidCorrelationView(ImageViewBase<Image1T> const& left,
-                           ImageViewBase<Image2T> const& right,
-                           ImageViewBase<Mask1T > const& left_mask,
-                           ImageViewBase<Mask2T > const& right_mask,
+    PyramidCorrelationView(PixelGrayImageRef const& left,
+                           PixelGrayImageRef const& right,
+                           Int8ImageRef const& left_mask,
+                           Int8ImageRef const& right_mask,
                            PrefilterModeType prefilter_mode, float prefilter_width,
                            BBox2i const& search_region, Vector2i const& kernel_size,
                            stereo::CostFunctionType cost_type,
@@ -136,7 +71,7 @@ namespace stereo {
                            int filter_half_kernel,
                            int32 max_pyramid_levels,
                            CorrelationAlgorithm  algorithm = VW_CORRELATION_BM,
-                            int   collar_size        = 0,
+                           int   collar_size        = 0,
                            SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode
                            = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                            Vector2i  sgm_search_buffer = Vector2i(2,2),
@@ -208,14 +143,14 @@ namespace stereo {
 
   private: // Variables
 
-    Image1T m_left_image;
-    Image2T m_right_image;
-    Mask1T  m_left_mask;
-    Mask2T  m_right_mask;
+    PixelGrayImageRef m_left_image;
+    PixelGrayImageRef m_right_image;
+    Int8ImageRef      m_left_mask;
+    Int8ImageRef      m_right_mask;
     
     // These two variables pick a prefilter which is applied to each pyramid level
     PrefilterModeType m_prefilter_mode; ///< See Prefilter.h for the types
-    float m_prefilter_width;     ///< Preprocessing filter width
+    float m_prefilter_width;            ///< Preprocessing filter width
     
     BBox2i           m_search_region;
     Vector2i         m_kernel_size;
@@ -276,26 +211,25 @@ namespace stereo {
 
     /// Create the image pyramids needed by the prerasterize function.
     /// - Most of this function is spent figuring out the correct ROIs to use.
-    bool build_image_pyramids
+    inline bool build_image_pyramids
     (BBox2i const& bbox, int32 const max_pyramid_levels,
-     std::vector<ImageView<typename Image1T::pixel_type>> & left_pyramid,
-     std::vector<ImageView<typename Image2T::pixel_type>> & right_pyramid,
-     std::vector<ImageView<typename Mask1T::pixel_type>> & left_mask_pyramid,
-     std::vector<ImageView<typename Mask2T::pixel_type>> & right_mask_pyramid) const;
+     std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
+     std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & right_pyramid,
+     std::vector<ImageView<typename Int8ImageRef::pixel_type>> & left_mask_pyramid,
+     std::vector<ImageView<typename Int8ImageRef::pixel_type>> & right_mask_pyramid) const;
     
     /// Filter out isolated blobs of valid disparity regions which are usually wrong.
     /// - Using this can decrease run time in images with lots of little disparity islands.
-    void disparity_blob_filter(ImageView<pixel_typeI > &disparity, int level,
+    inline void disparity_blob_filter(ImageView<pixel_typeI > &disparity, int level,
                                int max_blob_area) const;
 
   }; // End class PyramidCorrelationView
 
-  template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-  PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T>
-  pyramid_correlate(ImageViewBase<Image1T> const& left,
-                    ImageViewBase<Image2T> const& right,
-                    ImageViewBase<Mask1T > const& left_mask,
-                    ImageViewBase<Mask2T > const& right_mask,
+  inline PyramidCorrelationView
+  pyramid_correlate(PixelGrayImageRef const& left,
+                    PixelGrayImageRef const& right,
+                    Int8ImageRef const& left_mask,
+                    Int8ImageRef const& right_mask,
                     PrefilterModeType prefilter_mode, float prefilter_width,
                     BBox2i const& search_region, Vector2i const& kernel_size,
                     stereo::CostFunctionType cost_type,
@@ -312,7 +246,7 @@ namespace stereo {
                     size_t memory_limit_mb = 6000,
                     int   blob_filter_area = 0,
                     bool  write_debug_images = false) {
-    typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T> result_type;
+    typedef PyramidCorrelationView result_type;
     return result_type(left.impl(), right.impl(), 
                        left_mask.impl(), right_mask.impl(),
                        prefilter_mode, prefilter_width,

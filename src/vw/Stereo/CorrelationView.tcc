@@ -1,80 +1,14 @@
 namespace vw { namespace stereo {
 
-  // This class is not used. See instead PyramidCorrelationView.
-  template <class Image1T, class Image2T, class PreFilterT>
-  typename CorrelationView<Image1T, Image2T, PreFilterT>::prerasterize_type
-  CorrelationView<Image1T, Image2T, PreFilterT>::
-  prerasterize(BBox2i const& bbox) const {
-
-#if VW_DEBUG_LEVEL > 0
-    Stopwatch watch;
-    watch.start();
-#endif
-
-    // 1.) Expand the left raster region by the kernel size.
-    Vector2i half_kernel = m_kernel_size/2;
-    BBox2i  left_region  = bbox;
-    left_region.min() -= half_kernel;
-    left_region.max() += half_kernel;
-
-    // 2.) Calculate the region of the right image that we're using.
-    BBox2i right_region = left_region + m_search_region.min();
-    right_region.max() += m_search_region.size();
-
-    // 3.) Calculate the disparity
-    ImageView<pixel_type> result
-      = calc_disparity(m_cost_type,
-                       crop(m_prefilter.filter(m_left_image),left_region),
-                       crop(m_prefilter.filter(m_right_image),right_region),
-                       left_region - left_region.min(),
-                       m_search_region.size() + Vector2i(1,1),
-                       m_kernel_size);
-
-    // 4.0) Consistency check
-    if (m_consistency_threshold >= 0) {
-      // Getting the crops correctly here is not important as we
-      // will re-crop later. The important bit is aligning up the origins.
-      ImageView<pixel_type> disparity_rl
-        = calc_disparity(m_cost_type,
-                         crop(m_prefilter.filter(m_right_image),right_region),
-                         crop(m_prefilter.filter(m_left_image),
-                              left_region - (m_search_region.size()+Vector2i(1,1))),
-                         right_region - right_region.min(),
-                         m_search_region.size() + Vector2i(1,1),
-                         m_kernel_size) -
-        pixel_type(m_search_region.size()+Vector2i(1,1));
-
-      stereo::cross_corr_consistency_check(result, disparity_rl,
-                                           m_consistency_threshold, false);
-    }
-    VW_ASSERT(bbox.size() == bounding_box(result).size(),
-              MathErr() << "CorrelationView::prerasterize got a bad return "
-              << "from best_of_search_convolution.");
-
-    // 5.) Convert back to original coordinates
-    result += pixel_type(m_search_region.min());
-
-#if VW_DEBUG_LEVEL > 0
-    watch.stop();
-    vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in "
-                                  << watch.elapsed_seconds() << " s\n";
-#endif
-
-    return prerasterize_type(result, -bbox.min().x(), -bbox.min().y(), cols(), rows());
-  } // End function prerasterize
-
-  // TODO(oalexan1): This should not be templated and should be moved to .cc.
-  
   //=========================================================================
   // Correlation with several pyramid levels
-  template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-  bool PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
+  inline bool PyramidCorrelationView::
   build_image_pyramids
   (BBox2i const& bbox, int32 const max_pyramid_levels,
-   std::vector<ImageView<typename Image1T::pixel_type>> & left_pyramid,
-   std::vector<ImageView<typename Image2T::pixel_type>> & right_pyramid,
-   std::vector<ImageView<typename Mask1T::pixel_type >> & left_mask_pyramid,
-   std::vector<ImageView<typename Mask2T::pixel_type >> & right_mask_pyramid) const {
+   std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
+   std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & right_pyramid,
+   std::vector<ImageView<typename Int8ImageRef::pixel_type >> & left_mask_pyramid,
+   std::vector<ImageView<typename Int8ImageRef::pixel_type >> & right_mask_pyramid) const {
   
     Vector2i half_kernel = m_kernel_size/2;
 
@@ -92,7 +26,8 @@ namespace vw { namespace stereo {
     // - Make sure that the kernel buffer size is large enough to support the kernel
     //   buffer at the lower resolution levels!
     Vector2i region_offset = half_kernel * max_upscaling;
-    vw_out(VerboseDebugMessage, "stereo") << "pyramid region offset = " << region_offset << std::endl;
+    vw_out(VerboseDebugMessage, "stereo") << "pyramid region offset = "
+                                          << region_offset << std::endl;
     left_global_region = bbox;
     left_global_region.expand(region_offset);
     // Region in the right image is the left region plus search range offsets
@@ -127,8 +62,8 @@ namespace vw { namespace stereo {
     // pixel value. This helps with the edge quality of a DEM.
     // - Note that this will not fill in the edge-extended values.
     // TODO(oalexan1): This is not accurate! Fill instead with avg from neighbhors
-    typename Image1T::pixel_type left_mean;
-    typename Image2T::pixel_type right_mean;
+    typename PixelGrayImageRef::pixel_type left_mean;
+    typename PixelGrayImageRef::pixel_type right_mean;
     try {
       left_mean  = mean_pixel_value(subsample(copy_mask(left_pyramid [0],
                                                         create_mask(left_mask_pyramid [0],0)),2));
@@ -167,7 +102,7 @@ namespace vw { namespace stereo {
     vw_out(DebugMessage, "stereo") << "Right pyramid mask base size = " << right_mask << std::endl;
 
     // Set up smoothing kernel used before downsampling.
-    std::vector<typename DefaultKernelT<typename Image1T::pixel_type>::type > kernel = 
+    std::vector<typename DefaultKernelT<typename PixelGrayImageRef::pixel_type>::type > kernel = 
       generate_pyramid_smoothing_kernel();
     std::vector<uint8> mask_kern(max(m_kernel_size));
     std::fill(mask_kern.begin(), mask_kern.end(), 1);
@@ -205,8 +140,7 @@ namespace vw { namespace stereo {
 
 
   /// Filter out small blobs of valid pixels (they are usually bad)
-  template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-  void PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
+  inline void PyramidCorrelationView::
   disparity_blob_filter(ImageView<pixel_typeI> &disparity, int level,
                         int max_blob_area) const {
 
@@ -240,10 +174,8 @@ namespace vw { namespace stereo {
 
 
 
-  template <class Image1T, class Image2T, class Mask1T, class Mask2T>
-  typename PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::prerasterize_type
-  PyramidCorrelationView<Image1T, Image2T, Mask1T, Mask2T>::
-  prerasterize(BBox2i const& bbox) const {
+  inline PyramidCorrelationView::prerasterize_type
+  PyramidCorrelationView::prerasterize(BBox2i const& bbox) const {
 
     time_t start, end;
     if (m_corr_timeout){
@@ -276,10 +208,10 @@ namespace vw { namespace stereo {
     // 2.0) Build the pyramids
     //      - Highest resolution image is stored at index zero.
     //      - Remember that these pyramid images are larger than just the input bbox!
-    std::vector<ImageView<typename Image1T::pixel_type>> left_pyramid;
-    std::vector<ImageView<typename Image2T::pixel_type>> right_pyramid;
-    std::vector<ImageView<typename Mask1T::pixel_type >> left_mask_pyramid;
-    std::vector<ImageView<typename Mask2T::pixel_type >> right_mask_pyramid;
+    std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> left_pyramid;
+    std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> right_pyramid;
+    std::vector<ImageView<typename Int8ImageRef::pixel_type >> left_mask_pyramid;
+    std::vector<ImageView<typename Int8ImageRef::pixel_type >> right_mask_pyramid;
 
     if (!build_image_pyramids(bbox, max_pyramid_levels, left_pyramid, right_pyramid, 
                               left_mask_pyramid, right_mask_pyramid)){
@@ -348,7 +280,7 @@ namespace vw { namespace stereo {
       vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
       vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
-      ImageView<typename Mask2T::pixel_type> right_rl_mask, left_rl_mask;
+      ImageView<typename Int8ImageRef::pixel_type> right_rl_mask, left_rl_mask;
 
       // SGM method
       if (use_sgm) {
