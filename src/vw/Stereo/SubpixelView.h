@@ -26,8 +26,12 @@
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/PhaseSubpixelView.h>
+#include <vw/Core/Stopwatch.h>
 
-//#include <boost/foreach.hpp>
+// TODO(oalexan1): Likely these are all used only with
+// PixelGray<float> image pixels and PixelMask<Vector2> disparities,
+// so there's no need at all for any template logic here, which just
+// slows down the compilation.
 
 namespace vw {
 namespace stereo {
@@ -380,14 +384,6 @@ namespace stereo {
   }
 
   // End of components for Pyramid subpixel view
-
-
-
-
-
-
-
-
 
 }} // namespace vw::stereo
 
