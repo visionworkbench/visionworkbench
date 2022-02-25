@@ -29,16 +29,44 @@
 
 namespace vw { namespace stereo {
 
+  /// Downsample a mask by two. If at least two mask pixels in a 2x2
+  /// region are on, the output pixel is on.
+  struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
+    BBox2i work_area() const { return BBox2i(0,0,2,2); }
+    
+    template <class PixelAccessorT>
+    typename boost::remove_reference<typename PixelAccessorT::pixel_type>::type
+    operator()(PixelAccessorT acc) const {
+      
+      typedef typename PixelAccessorT::pixel_type PixelT;
+      
+      uint8 count = 0;
+      if (*acc) count++;
+      acc.next_col();
+      if (*acc) count++;
+      acc.advance(-1,1);
+      if (*acc) count++;
+      acc.next_col();
+      if (*acc) count++;
+      if (count > 1)
+        return PixelT(ScalarTypeLimits<PixelT>::highest());
+      return PixelT();
+    }
+  }; // End struct SubsampleMaskByTwoFunc
+  
+  ImageView<uint8> subsample_mask_by_two(ImageView<uint8> const& input) {
+    return subsample(per_pixel_accessor_filter(input.impl(), SubsampleMaskByTwoFunc()), 2);
+  }
+  
   //=========================================================================
   // Correlation with several pyramid levels
   bool PyramidCorrelationView::
-  build_image_pyramids
-  (BBox2i const& bbox, int32 const max_pyramid_levels,
-   std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
-   std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & right_pyramid,
-   std::vector<ImageView<typename Int8ImageRef::pixel_type >> & left_mask_pyramid,
-   std::vector<ImageView<typename Int8ImageRef::pixel_type >> & right_mask_pyramid) const {
-  
+  build_image_pyramids(BBox2i const& bbox, int32 const max_pyramid_levels,
+                       std::vector<ImageView<PixelGray<float>>> & left_pyramid,
+                       std::vector<ImageView<PixelGray<float>>> & right_pyramid,
+                       std::vector<ImageView<uint8>>            & left_mask_pyramid,
+                       std::vector<ImageView<uint8>>            & right_mask_pyramid) const {
+    
     Vector2i half_kernel = m_kernel_size/2;
 
     // Init the pyramids: Highest resolution image is stored at index zero.
@@ -90,9 +118,9 @@ namespace vw { namespace stereo {
     // Fill in the nodata of the left and right images with a mean
     // pixel value. This helps with the edge quality of a DEM.
     // - Note that this will not fill in the edge-extended values.
-    // TODO(oalexan1): This is not accurate! Fill instead with avg from neighbhors
-    typename PixelGrayImageRef::pixel_type left_mean;
-    typename PixelGrayImageRef::pixel_type right_mean;
+    // TODO(oalexan1): This is not accurate! Fill instead with avg from neighbors
+    PixelGray<float> left_mean;
+    PixelGray<float> right_mean;
     try {
       left_mean  = mean_pixel_value(subsample(copy_mask(left_pyramid [0],
                                                         create_mask(left_mask_pyramid [0], 0)), 2));
@@ -106,8 +134,8 @@ namespace vw { namespace stereo {
     }
     // Now paste the mean value into the masked pixels
     left_pyramid [0] = apply_mask(copy_mask(left_pyramid[0],
-                                            create_mask(left_mask_pyramid [0], 0)),
-                                  left_mean );
+                                            create_mask(left_mask_pyramid[0], 0)),
+                                  left_mean);
     right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],
                                             create_mask(right_mask_pyramid[0], 0)),
                                   right_mean);
@@ -138,7 +166,7 @@ namespace vw { namespace stereo {
     vw_out(DebugMessage, "stereo") << "Right pyramid mask base size = " << right_mask << std::endl;
 
     // Set up smoothing kernel used before downsampling.
-    std::vector<typename DefaultKernelT<typename PixelGrayImageRef::pixel_type>::type > kernel = 
+    std::vector<typename DefaultKernelT<PixelGray<float>>::type > kernel = 
       generate_pyramid_smoothing_kernel();
     std::vector<uint8> mask_kern(max(m_kernel_size));
     std::fill(mask_kern.begin(), mask_kern.end(), 1);
@@ -175,7 +203,6 @@ namespace vw { namespace stereo {
     
     return true;
   }
-
 
   /// Filter out small blobs of valid pixels (they are usually bad)
   void PyramidCorrelationView::
@@ -244,10 +271,10 @@ namespace vw { namespace stereo {
     // 2.0) Build the pyramids
     //      - Highest resolution image is stored at index zero.
     //      - Remember that these pyramid images are larger than just the input bbox!
-    std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> left_pyramid;
-    std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> right_pyramid;
-    std::vector<ImageView<typename Int8ImageRef::pixel_type >> left_mask_pyramid;
-    std::vector<ImageView<typename Int8ImageRef::pixel_type >> right_mask_pyramid;
+    std::vector<ImageView<PixelGray<float>>> left_pyramid;
+    std::vector<ImageView<PixelGray<float>>> right_pyramid;
+    std::vector<ImageView<uint8>> left_mask_pyramid;
+    std::vector<ImageView<uint8>> right_mask_pyramid;
 
     if (!build_image_pyramids(bbox, max_pyramid_levels, left_pyramid, right_pyramid, 
                               left_mask_pyramid, right_mask_pyramid)){
@@ -267,8 +294,8 @@ namespace vw { namespace stereo {
     std::vector<stereo::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
-    BBox2i initial_disparity_range = BBox2i(0,0,m_search_region.width ()/max_upscaling+1,
-                                            m_search_region.height()/max_upscaling+1);
+    BBox2i initial_disparity_range = BBox2i(0, 0, m_search_region.width() / max_upscaling + 1,
+                                            m_search_region.height() / max_upscaling + 1);
     zones.push_back(SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
                                 initial_disparity_range));
     vw_out(DebugMessage,"stereo") << "initial_disparity_range = " << initial_disparity_range
@@ -316,7 +343,7 @@ namespace vw { namespace stereo {
       vw_out(DebugMessage,"stereo") << "region_offset = " << region_offset << std::endl;
       vw_out(DebugMessage,"stereo") << "Number of zones = " << zones.size() << std::endl;
 
-      ImageView<typename Int8ImageRef::pixel_type> right_rl_mask, left_rl_mask;
+      ImageView<uint8> right_rl_mask, left_rl_mask;
 
       // SGM method
       if (use_sgm) {
@@ -522,7 +549,7 @@ namespace vw { namespace stereo {
         std::sort(zones.begin(), zones.end(), SearchParamLessThan()); 
         BOOST_FOREACH(SearchParam const& zone, zones) {
 
-          // The input zone is in the normal pixel coordinates for this  level.
+          // The input zone is in the normal pixel coordinates for this level.
           // We need to convert it to a bbox in the expanded base of support image at this level.
           BBox2i left_region = zone.image_region() + region_offset; // Kernel width offset
           left_region.expand(half_kernel);
@@ -593,7 +620,6 @@ namespace vw { namespace stereo {
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
             const bool verbose = true;
-            // TODO(oalexan1): Check if this is actually reached!
             stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
                                                  disparity_rl,
                                                  m_consistency_threshold, verbose);
@@ -652,7 +678,6 @@ namespace vw { namespace stereo {
       disparity_blob_filter(disparity, level, m_blob_filter_area);
       if (check_rl && !on_last_level)
         disparity_blob_filter(disparity_rl, level, m_blob_filter_area);
-
 
       // 3.2b) Refine search estimates but never let them go beyond
       // the search region defined by the user

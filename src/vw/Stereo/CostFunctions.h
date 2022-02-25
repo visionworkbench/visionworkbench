@@ -241,13 +241,12 @@ namespace stereo {
     inline void cost_modification(ImageView<pixel_accumulator_type>& /*cost_metric*/,
                                    Vector2i const& /*disparity*/) const {}
 
-    inline bool quality_comparison(accumulator_type cost,
-                                    accumulator_type quality) const {
+    inline bool quality_comparison(accumulator_type cost, accumulator_type quality) const {
       return cost < quality;
     }
   };
 
-  // Cross-correlation. Only float images are expected.
+  // Cross-correlation. Only float32 or float64 images are expected.
   template <class ImageT>
   struct NCCCost {
     typedef typename SqrDiffAccumulatorType<ImageT>::type accumulator_type;
@@ -255,8 +254,7 @@ namespace stereo {
                                       accumulator_type>::type pixel_accumulator_type;
     ImageView<pixel_accumulator_type> left_precision, right_precision;
 
-    NCCCost(ImageT const& left, ImageT const& right,
-            Vector2i const& kernel_size ) {
+    NCCCost(ImageT const& left, ImageT const& right, Vector2i const& kernel_size ) {
       left_precision = pixel_accumulator_type(1) /
         fast_box_sum<accumulator_type>(square(left.impl()), kernel_size);
       right_precision = pixel_accumulator_type(1) /

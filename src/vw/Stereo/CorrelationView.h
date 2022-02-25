@@ -164,46 +164,14 @@ namespace vw { namespace stereo {
 
   private: // Functions
 
-    /// Downsample a mask by two.
-    /// - If at least two mask pixels in a 2x2 region are on, the output pixel is on.
-    struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
-      BBox2i work_area() const { return BBox2i(0,0,2,2); }
-
-      template <class PixelAccessorT>
-      typename boost::remove_reference<typename PixelAccessorT::pixel_type>::type
-      operator()(PixelAccessorT acc) const {
-
-        typedef typename PixelAccessorT::pixel_type PixelT;
-
-        uint8 count = 0;
-        if (*acc) count++;
-        acc.next_col();
-        if (*acc) count++;
-        acc.advance(-1,1);
-        if (*acc) count++;
-        acc.next_col();
-        if (*acc) count++;
-        if (count > 1)
-          return PixelT(ScalarTypeLimits<PixelT>::highest());
-        return PixelT();
-      }
-    }; // End struct SubsampleMaskByTwoFunc
-
-    template <class ViewT>
-    SubsampleView<UnaryPerPixelAccessorView<EdgeExtensionView<ViewT, ZeroEdgeExtension>,
-                                            SubsampleMaskByTwoFunc>>
-    subsample_mask_by_two(ImageViewBase<ViewT> const& input) const {
-      return subsample(per_pixel_accessor_filter(input.impl(), SubsampleMaskByTwoFunc()), 2);
-    }
-
     /// Create the image pyramids needed by the prerasterize function.
     /// - Most of this function is spent figuring out the correct ROIs to use.
     bool build_image_pyramids
     (BBox2i const& bbox, int32 const max_pyramid_levels,
-     std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & left_pyramid,
-     std::vector<ImageView<typename PixelGrayImageRef::pixel_type>> & right_pyramid,
-     std::vector<ImageView<typename Int8ImageRef::pixel_type>> & left_mask_pyramid,
-     std::vector<ImageView<typename Int8ImageRef::pixel_type>> & right_mask_pyramid) const;
+     std::vector<ImageView<PixelGray<float>>> & left_pyramid,
+     std::vector<ImageView<PixelGray<float>>> & right_pyramid,
+     std::vector<ImageView<uint8>> & left_mask_pyramid,
+     std::vector<ImageView<uint8>> & right_mask_pyramid) const;
     
     /// Filter out isolated blobs of valid disparity regions which are usually wrong.
     /// - Using this can decrease run time in images with lots of little disparity islands.
