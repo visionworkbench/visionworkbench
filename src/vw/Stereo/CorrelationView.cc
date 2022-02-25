@@ -92,7 +92,10 @@ namespace vw { namespace stereo {
     right_global_region = left_global_region + m_search_region.min();
     right_global_region.max() += m_search_region.size();// + Vector2i(max_upscaling,max_upscaling); 
     // Total increase in right size = 2*region_offset + search_region_size + max_upscaling
-  
+
+    // TODO(oalexan1): left and right global regions must be multiples of 2^num_levels
+    // But be careful with m_search_region.
+    
     vw_out(VerboseDebugMessage, "stereo") << "Left pyramid base bbox:  "
                                           << left_global_region  << std::endl;
     vw_out(VerboseDebugMessage, "stereo") << "Right pyramid base bbox: "
@@ -100,6 +103,7 @@ namespace vw { namespace stereo {
   
     // Extract the lowest resolution layer
     // - Constant extension is used here to help the correlator make matches near the image edge.
+    // TODO(oalexan1): This must be extension with no-data values as otherwise we get junk.
     left_pyramid      [0] = crop(edge_extend(m_left_image,  ConstantEdgeExtension()),
                                  left_global_region);
     right_pyramid     [0] = crop(edge_extend(m_right_image, ConstantEdgeExtension()),
@@ -110,6 +114,28 @@ namespace vw { namespace stereo {
     right_mask_pyramid[0] = crop(edge_extend(m_right_mask,  ConstantEdgeExtension()),
                                  right_global_region);
 
+#if 0
+    // This is useful for debugging
+    std::ostringstream ostr;
+    ostr << "tile_" << bbox.min().x() << "_" << bbox.min().y() << "_"
+         << bbox.width() << "_" << bbox.height();
+    std::string suff = ostr.str();
+    std::string left_image_file = "left_image_" + suff + ".tif";
+    std::cout << std::endl; // To deal with the progress dialog
+    std::cout << "Writing: " << left_image_file << std::endl;
+    write_image(left_image_file, left_pyramid[0]);
+    std::string left_mask_file = "left_mask_" + suff + ".tif";
+    std::cout << "Writing: " << left_mask_file << std::endl;
+    write_image(left_mask_file, left_mask_pyramid[0]);
+    std::string right_image_file = "right_image_" + suff + ".tif";
+    std::cout << "Writing: " << right_image_file << std::endl;
+    write_image(right_image_file, right_pyramid[0]);
+    std::string right_mask_file = "right_mask_" + suff + ".tif";
+    std::cout << "Writing: " << right_mask_file << std::endl;
+    std::cout << std::endl; // To deal with the progress dialog
+    write_image(right_mask_file, right_mask_pyramid[0]);
+#endif
+    
 #if VW_DEBUG_LEVEL > 0
     VW_OUT(DebugMessage,"stereo") << " > Left ROI: "    << left_global_region
                                   << "\n > Right ROI: " << right_global_region << "\n";
@@ -266,7 +292,6 @@ namespace vw { namespace stereo {
       max_pyramid_levels = 0;
     Vector2i half_kernel = m_kernel_size/2;
     int32 max_upscaling = 1 << max_pyramid_levels;
-
 
     // 2.0) Build the pyramids
     //      - Highest resolution image is stored at index zero.
