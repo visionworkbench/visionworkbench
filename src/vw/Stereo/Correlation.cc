@@ -22,10 +22,119 @@
 #include <vw/Stereo/Algorithms.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/AlgorithmFunctions.h>
+#include <vw/FileIO/DiskImageView.h>
 
-namespace vw {
-namespace stereo {
+namespace vw { namespace stereo {
 
+  /// Lower level implementation function for calc_disparity.
+  /// - The inputs must already be rasterized to safe sizes!
+  /// - Since the inputs are rasterized, they must not be too big.
+  template <class CostFuncT, class PixelT>
+  ImageView<PixelMask<Vector2i>>
+  best_of_search_convolution(ImageView<PixelT> const& left_raster,
+                             ImageView<PixelT> const& right_raster,
+                             BBox2i            const& left_region,
+                             Vector2i          const& search_volume,
+                             Vector2i          const& kernel_size) {
+    
+    typedef ImageView<PixelT> ImageType;
+    typedef typename CostFuncT::accumulator_type AccumChannelT;
+    typedef typename PixelChannelCast<PixelT,AccumChannelT>::type AccumT;
+    typedef typename std::pair<AccumT,AccumT> QualT;
+
+    // Build cost function which sometimes has side car data
+    std::cout << "--call cost function!" << std::endl;
+    CostFuncT cost_function(left_raster, right_raster, kernel_size);
+
+    // Result buffers
+    Vector2i result_size = bounding_box(left_raster).size() - kernel_size + Vector2i(1,1);
+    ImageView<PixelMask<Vector2i>> disparity_map(result_size[0], result_size[1]);
+    std::fill(disparity_map.data(), disparity_map.data() + prod(result_size),
+              PixelMask<Vector2i>(Vector2i()));
+    // First channel is best, second is worst
+    ImageView<QualT> quality_map(result_size[0], result_size[1]);
+    
+    // Storage buffers
+    ImageView<AccumT> cost_metric      (result_size[0], result_size[1]);
+    ImageView<AccumT> cost_applied     (left_raster.cols(), left_raster.rows());
+    ImageView<PixelT> right_raster_crop(left_raster.cols(), left_raster.rows());
+
+    // Loop across the disparity range we are searching over.
+    Vector2i disparity (0, 0);
+    for (disparity.y() = 0; disparity.y() != search_volume[1]; ++disparity.y()) {
+      for (disparity.x() = 0; disparity.x() != search_volume[0]; ++disparity.x()) {
+      
+        // Compute correlations quickly by shifting the right image by the
+        //  current disparity, computing the pixel difference at each location,
+        //  and using fast_box_sum/cost_function to get the final convolution
+        //  value at each location in "cost_metric"
+      
+        // There's only one raster here. Fast box sum calls each pixel
+        // individually by pixel accessor. It only calls each pixel
+        // once so there's no reason to copy/rasterize the cost result before hand.
+        //
+        // The cost function should also not be applying an edge
+        // extension as we've already over cropped the input.
+        
+        right_raster_crop = crop(right_raster, bounding_box(left_raster)+disparity);
+        cost_applied      = cost_function(left_raster, right_raster_crop);
+        cost_metric       = fast_box_sum<AccumChannelT>(cost_applied, kernel_size);
+        cost_function.cost_modification(cost_metric, disparity);
+
+        // Loop across the region we want to compute disparities for.
+        // - The correlation score for each pixel is located in "cost_metric"
+        // - We update the best and worst disparity for each pixel in "quality_map"
+
+        // These conditionals might be served outside of the iteration
+        // of dx and dy. It would make the code slightly longer but
+        // would avoid a conditional inside a double loop.
+        const AccumT* cost_ptr     = cost_metric.data();
+        const AccumT* cost_ptr_end = cost_metric.data() + prod(result_size);
+        QualT* quality_ptr         = quality_map.data();
+        PixelMask<Vector2i>* disparity_ptr = disparity_map.data();
+        if (disparity != Vector2i(0,0)) {
+          // Normal comparison operations
+          while (cost_ptr != cost_ptr_end) {
+            if (cost_function.quality_comparison(*cost_ptr, quality_ptr->first)) {
+              // Better than best?
+              quality_ptr->first = *cost_ptr;
+              disparity_ptr->child() = disparity;
+            } else if (!cost_function.quality_comparison(*cost_ptr, quality_ptr->second)) {
+              // Worse than worse
+              quality_ptr->second = *cost_ptr;
+            }
+            ++cost_ptr;
+            ++quality_ptr;
+            ++disparity_ptr;
+          }
+        } else {
+          // Initializing quality_map and disparity_map with first result
+          while (cost_ptr != cost_ptr_end) {
+            quality_ptr->first = quality_ptr->second = *cost_ptr;
+            ++cost_ptr;
+            ++quality_ptr;
+          }
+        }
+      } // End x loop
+    } // End y loop
+
+    // Determine validity of result (detects rare invalid cases)
+    size_t invalid_count = 0;
+    const QualT* quality_ptr      = quality_map.data();
+    const QualT* quality_ptr_end  = quality_map.data() + prod(result_size);
+    PixelMask<Vector2i>* disp_ptr = disparity_map.data();
+    while (quality_ptr != quality_ptr_end) {
+      if (quality_ptr->first == quality_ptr->second) {
+        invalidate(*disp_ptr);
+        ++invalid_count;
+      }
+      ++quality_ptr;
+      ++disp_ptr;
+    }
+    //std::cout << "Invalidated " << invalid_count << " pixels in best_of_search_convolution2\n";
+
+    return disparity_map;
+  } // End function best_of_search_convolution
  
 bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
                        BBox2i const& current_bbox,
@@ -105,7 +214,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
       }
     }
     // Now we have an estimate of the cost of processing these four
-    // quadrants seperately
+    // quadrants separately
 
     // 3) Find current search v2
     //    - Get the min and max disparity search range that we just calculated
@@ -248,7 +357,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     right_region.max() += search_volume - Vector2i(1,1);
     ImageView<pix_type> left (crop(left_in.impl(),  left_region));
     ImageView<pix_type> right(crop(right_in.impl(), right_region));
-    
+
     // Call the lower level function with the appropriate cost function type
     switch (cost_type) {
     case CROSS_CORRELATION:

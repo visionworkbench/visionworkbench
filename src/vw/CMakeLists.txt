@@ -3,7 +3,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include(Utilities) # Contains functions
 
-# Use CCache if it is available.
+# Use CCache if it is available
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   #message("Using ccache tool...")

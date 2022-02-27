@@ -24,7 +24,6 @@
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/CostFunctions.h>
-#include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Core/Stopwatch.h>
 

@@ -4,9 +4,9 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Stereo/DisparityMap.h>
-#include <vw/Stereo/Correlation.h>
 #include <vw/Image/CensusTransform.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Stereo/CostFunctions.h>
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 
@@ -14,6 +14,8 @@
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
 #endif
+
+// TODO(oalexan1): Remove templates and move the logic to the .cc file.
 
 namespace vw {
 

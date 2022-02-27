@@ -114,28 +114,6 @@ namespace vw { namespace stereo {
     right_mask_pyramid[0] = crop(edge_extend(m_right_mask,  ConstantEdgeExtension()),
                                  right_global_region);
 
-#if 0
-    // This is useful for debugging
-    std::ostringstream ostr;
-    ostr << "tile_" << bbox.min().x() << "_" << bbox.min().y() << "_"
-         << bbox.width() << "_" << bbox.height();
-    std::string suff = ostr.str();
-    std::string left_image_file = "left_image_" + suff + ".tif";
-    std::cout << std::endl; // To deal with the progress dialog
-    std::cout << "Writing: " << left_image_file << std::endl;
-    write_image(left_image_file, left_pyramid[0]);
-    std::string left_mask_file = "left_mask_" + suff + ".tif";
-    std::cout << "Writing: " << left_mask_file << std::endl;
-    write_image(left_mask_file, left_mask_pyramid[0]);
-    std::string right_image_file = "right_image_" + suff + ".tif";
-    std::cout << "Writing: " << right_image_file << std::endl;
-    write_image(right_image_file, right_pyramid[0]);
-    std::string right_mask_file = "right_mask_" + suff + ".tif";
-    std::cout << "Writing: " << right_mask_file << std::endl;
-    std::cout << std::endl; // To deal with the progress dialog
-    write_image(right_mask_file, right_mask_pyramid[0]);
-#endif
-    
 #if VW_DEBUG_LEVEL > 0
     VW_OUT(DebugMessage,"stereo") << " > Left ROI: "    << left_global_region
                                   << "\n > Right ROI: " << right_global_region << "\n";
@@ -171,6 +149,32 @@ namespace vw { namespace stereo {
     vw_out(DebugMessage, "stereo") << "Right pyramid base size = "
                                    << bounding_box(right_pyramid[0]) << std::endl;
 
+#if 0
+    // This is useful for debugging
+    std::ostringstream ostr;
+    ostr << "tile_" << bbox.min().x() << "_" << bbox.min().y() << "_"
+         << bbox.width() << "_" << bbox.height();
+    std::string suff = ostr.str();
+    
+    // Left image and mask
+    std::string left_image_file = "left_image_" + suff + ".tif";
+    std::cout << std::endl; // To deal with the progress dialog
+    std::cout << "Writing: " << left_image_file << std::endl;
+    write_image(left_image_file, left_pyramid[0]);
+    std::string left_mask_file = "left_mask_" + suff + ".tif";
+    std::cout << "Writing: " << left_mask_file << std::endl;
+    write_image(left_mask_file, left_mask_pyramid[0]);
+
+    // Right image and mask
+    std::string right_image_file = "right_image_" + suff + ".tif";
+    std::cout << "Writing: " << right_image_file << std::endl;
+    write_image(right_image_file, right_pyramid[0]);
+    std::string right_mask_file = "right_mask_" + suff + ".tif";
+    std::cout << "Writing: " << right_mask_file << std::endl;
+    std::cout << std::endl; // To deal with the progress dialog
+    write_image(right_mask_file, right_mask_pyramid[0]);
+#endif
+    
     // Reduce the mask images from the expanded-size region to the
     //   actual sized region.
     // - The actual sized region is just the input bbox plus the
@@ -564,7 +568,7 @@ namespace vw { namespace stereo {
 
 
       } else { // Normal block matching method
-      
+
         // 3.1) Process each zone with their refined search estimates
         // - The zones are subregions of the image with similar disparities
         //   that we identified in previous iterations.
@@ -615,7 +619,6 @@ namespace vw { namespace stereo {
                              zone.disparity_range().size(), 
                              m_kernel_size);
 
-
           // TODO(oalexan1):  Support checks at higher levels like with SGM!
           // If at the last level and the user requested a left<->right consistency check,
           //   compute right to left disparity.
@@ -641,7 +644,6 @@ namespace vw { namespace stereo {
                                           right_region - right_region.min(),
                                           zone.disparity_range().size(), m_kernel_size)
               - pixel_typeI(zone.disparity_range().size());
-
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
             const bool verbose = true;
