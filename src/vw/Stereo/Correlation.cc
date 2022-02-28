@@ -43,7 +43,6 @@ namespace vw { namespace stereo {
     typedef typename std::pair<AccumT,AccumT> QualT;
 
     // Build cost function which sometimes has side car data
-    std::cout << "--call cost function!" << std::endl;
     CostFuncT cost_function(left_raster, right_raster, kernel_size);
 
     // Result buffers
