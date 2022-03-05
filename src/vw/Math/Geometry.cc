@@ -20,6 +20,7 @@
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/RANSAC.h>
 
 #include <math.h>
 
@@ -49,8 +50,7 @@ double normalize_longitude(double lon, bool center_on_zero) {
   return lon;
 }
 
-
-double degree_diff(double d1, double d2) {
+  double degree_diff(double d1, double d2) {
   double diff  = fabs(d1 - d2);
   double diff2 = fabs(d1 - (d2+360));
   double diff3 = fabs(d1 - (d2-360));
@@ -127,96 +127,197 @@ HomographyFittingFunctor::BasicDLT( std::vector<Vector3 > const& input,
   return H;
 }
 
-void vw::math::find_3D_affine_transform(vw::Matrix<double> const & in_vec, 
-                                        vw::Matrix<double> const & out_vec,
-                                        vw::Matrix<double,3,3>   & rotation,
-                                        vw::Vector<double,3>     & translation,
-                                        double                   & scale,
-                                        std::string        const & transform_type,
-                                        bool                       filter_outliers,
-                                        vw::Vector2        const & outlier_removal_params) {
+// Given a set of points in 3D, heuristically estimate what it means
+// for two points to be "not far" from each other. The logic is to
+// find a bounding box of an inner cluster and multiply that by 0.2.
+// This will produce an inlier threshold. The input matrices must
+// have 3 rows and N columns where N is equal to the number of points.
+double estimate3DTransInlierThresh(vw::Matrix<double> const& points) {
   
-  std::vector<bool> is_outlier;
+  VW_ASSERT(points.rows() == 3 && points.cols() >= 3, 
+            vw::ArgumentErr() << "Too few points in estimate3DTransInlierThresh().\n");
+  
+  vw::Vector3 range(0.0, 0.0, 0.0);
+  int num_pts = points.cols();
+  
+  std::vector<double> vals(num_pts);
+  for (int it = 0; it < range.size(); it++) {  // iterate in each coordinate
+  
+    // Sort all values in given coordinate
+    for (int p = 0; p < num_pts; p++)
+      vals[p] = points(it, p);
+    std::sort(vals.begin(), vals.end());
+    
+    // Find some percentiles
+    int min_p = round(num_pts*0.25);
+    int max_p = round(num_pts*0.75);
+    if (min_p >= num_pts) min_p = num_pts - 1;
+    if (max_p >= num_pts) max_p = num_pts - 1;
+    double min_val = vals[min_p], max_val = vals[max_p];
+    range[it] = 0.2*(max_val - min_val);
+  }
+
+  // Find the average of all ranges
+  double range_val = 0.0;
+  for (int it = 0; it < range.size(); it++)
+    range_val += range[it];
+  range_val /= range.size();
+
+  return range_val;
+}
+
+// This fitting functor attempts to find a rotation + translation +
+// scale transformation between two vectors of points or
+// just a rotation + translation or just a translation.
+struct Similarity3DFittingFunctor {
+
+  typedef vw::Matrix<double, 4, 4> result_type;
+  std::string m_transform_type;
+
+  Similarity3DFittingFunctor(std::string const & transform_type):
+    m_transform_type(transform_type){}
+  
+  /// A transformation requires 3 inputs and 3 outputs to make a fit.
+  size_t min_elements_needed_for_fit(vw::Vector3 const& /* point */) const { return 3; }
+
+  result_type operator()(std::vector<vw::Vector3> const& in_vec,
+                         std::vector<vw::Vector3> const& out_vec,
+                         vw::Matrix<double> const& /* initial_guess */
+                         = vw::Matrix<double>() ) const {
+    // check consistency
+    if (in_vec.size() != out_vec.size())
+      vw_throw( vw::ArgumentErr() << "There must be as many inputs as outputs to be "
+                << "able to compute a transform between them.\n");
+    if (in_vec.size() < min_elements_needed_for_fit(vw::Vector3()))
+      vw_throw( vw::ArgumentErr() << "Cannot compute a transformation. Insufficient data.\n");
+
+    // Convert to expected format
+    int num_pts = in_vec.size();
+    vw::Matrix<double> in, out;
+    in.set_size(3, num_pts);
+    out.set_size(3, num_pts);
+    for (int col = 0; col < in.cols(); col++) {
+      for (int row = 0; row < in.rows(); row++) {
+        in(row, col)  = in_vec[col][row];
+        out(row, col) = out_vec[col][row];
+      }
+    }
+
+    // Find the 3D transform for these inputs
+    vw::Matrix<double, 3, 3> rotation;
+    vw::Vector<double, 3>    translation;
+    double                   scale;
+    vw::math::find_3D_transform_aux(in, out, rotation, translation, scale, m_transform_type);
+
+    // Convert to expected format
+    result_type out_trans;
+    out_trans.set_identity();
+    submatrix(out_trans, 0, 0, 3, 3) = scale * rotation;
+    for (int it = 0; it < 3; it++) 
+      out_trans(it, 3) = translation[it];
+    
+    return out_trans;
+  }
+  
+};
+
+/// This metric can be used to measure the error between a 3D 
+/// point p and a 3D point p1 that is transformed by a
+/// 4x4 matrix H corresponding to a 3D affine transform (or its
+/// particular cases).
+typedef HomogeneousL2NormErrorMetric<3> Affine3DErrorMetric;
+
+void vw::math::find_3D_transform(vw::Matrix<double> const & in, 
+                                 vw::Matrix<double> const & out,
+                                 vw::Matrix<double,3,3>   & rotation,
+                                 vw::Vector<double,3>     & translation,
+                                 double                   & scale,
+                                 std::string        const & transform_type,
+                                 bool                       filter_outliers,
+                                 vw::Vector2        const & ransac_params) {
+
+  // Initialize the outputs
+  rotation.set_identity();
+  translation = vw::Vector3();
+  scale = 1.0;
+  
+  // Sanity checks
+  VW_ASSERT((in.rows() == 3) && (in.rows() == out.rows()) &&
+            (in.cols() == out.cols()), 
+            vw::ArgumentErr() << "find_3D_transform(): input data "
+            << "has incorrect size.\n");
+  VW_ASSERT(in.cols() >= 3, 
+            vw::ArgumentErr() << "find_3D_transform(): Must have at least "
+            << "three data points.\n");
+
   if (!filter_outliers) {
-    find_3D_affine_transform_aux(in_vec, out_vec, rotation, translation, scale,
-                                 transform_type, filter_outliers, outlier_removal_params,
-                                 is_outlier);
+    find_3D_transform_aux(in, out, rotation, translation, scale, transform_type);
     return;
   }
 
-  // Filter outliers using 3*(75-th percentile).
-
-  // TODO: Need to do an honest RANSAC, but then the question
-  // becomes how to estimate a good outlier factor for it which will
-  // likely require RANSAC to be done twice with the factor being
-  // figured at the first pass, like the error for half of the
-  // measurements multiplied by 2 or so. The current approach could
-  // be good enough if outliers are not many or not large.
-    
-  int num_attempts      = 5;
-  double percentile     = outlier_removal_params[0];
-  double outlier_factor = outlier_removal_params[1];
-  int num_pts           = in_vec.cols();
-
-  // Start with no outliers
-  is_outlier.resize(num_pts);
-  for (int ipt = 0; ipt < num_pts; ipt++) 
-    is_outlier[ipt] = false;
-
-  std::vector<double> errors(num_pts);
-  for (int attempt = 0; attempt < num_attempts; attempt++) {
-    
-    find_3D_affine_transform_aux(in_vec, out_vec,  rotation, translation,
-                                 scale, transform_type, filter_outliers, outlier_removal_params,
-                                 is_outlier);
-
-    for (int col = 0; col < num_pts; col++) {
-      Vector3 src, ref;
-      for (int row = 0; row < 3; row++) {
-        src[row] = in_vec(row, col);
-        ref[row] = out_vec(row, col);
-      }
-      Vector3 trans_src = scale*rotation*src + translation;
-      errors[col] = norm_2(ref - trans_src);
-    }
-
-    std::sort(errors.begin(), errors.end());
-    
-    int cutoff = round(num_pts * (percentile/100.0)) - 1;
-    if (cutoff < 0) cutoff = 0;
-
-    double thresh = outlier_factor * errors[cutoff];
-
-    // Flag the outliers. Must recompute the errors since they were sorted.
-    for (int col = 0; col < num_pts; col++) {
-      Vector3 src, ref;
-      for (int row = 0; row < 3; row++) {
-        src[row] = in_vec(row, col);
-        ref[row] = out_vec(row, col);
-      }
-      Vector3 trans_src = scale*rotation*src + translation;
-      errors[col] = norm_2(ref - trans_src);
-      is_outlier[col] = (errors[col] > thresh);
+  // Copy the data to vectors.
+  // TODO(oalexan1): Convert all uses of this function to an interface
+  // using vectors and not matrices for the points.
+  int num_pts = in.cols();
+  std::vector<vw::Vector3> in_pts(num_pts), out_pts(num_pts);
+  for (int col = 0; col < in.cols(); col++) {
+    for (int row = 0; row < in.rows(); row++) {
+      in_pts[col][row]  = in(row, col);
+      out_pts[col][row] = out(row, col);
     }
   }
 
+  int num_ransac_iterations = ransac_params[0];
+  double outlier_factor     = ransac_params[1];
+  if (num_ransac_iterations < 1 || outlier_factor <= 0.0)
+    vw_throw(ArgumentErr() << "Invalid parameters were provided for outlier filtering.\n");
+
+  // Find the inlier threshold based on the distribution of points in the output
+  double inlier_threshold = outlier_factor * estimate3DTransInlierThresh(out);
+  int min_num_output_inliers = std::max(num_pts/2, 3);
+  bool reduce_min_num_output_inliers_if_no_fit = true;
+
+  vw_out() << "Starting RANSAC.\n";
+  vw::Matrix<double, 4, 4> transform;
+  std::vector<size_t> inlier_indices;
+  try {
+    // Must first create the functor and metric, then pass these to ransac. If
+    // created as inline arguments to ransac, these may go go out
+    // of scope prematurely, which will result in incorrect behavior.
+    Similarity3DFittingFunctor fitting_functor(transform_type);
+    Affine3DErrorMetric error_metric;
+    RandomSampleConsensus<Similarity3DFittingFunctor, Affine3DErrorMetric>
+      ransac(fitting_functor, error_metric, num_ransac_iterations, inlier_threshold,
+                min_num_output_inliers, reduce_min_num_output_inliers_if_no_fit);
+    transform = ransac(in_pts, out_pts);
+    inlier_indices = ransac.inlier_indices(transform, in_pts, out_pts);
+  } catch (const vw::math::RANSACErr& e ) {
+    vw_out() << "RANSAC failed: " << e.what() << "\n";
+    return;
+  }
+  vw_out() << "Found " << inlier_indices.size() << " / " << num_pts << " inliers.\n";
+
+  // Create the outputs
+  rotation = vw::math::submatrix(transform, 0, 0, 3, 3);
+  scale = pow(vw::math::det(rotation), 1.0/3.0);
+  rotation /= scale;
+  for (int it = 0; it < 3; it++) 
+    translation[it] = transform(it, 3);
+  
+  return;
 }
   
-void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec, 
-                                            vw::Matrix<double> const & out_vec,
-                                            vw::Matrix<double,3,3>   & rotation,
-                                            vw::Vector<double,3>     & translation,
-                                            double                   & scale,
-                                            std::string        const & transform_type,
-                                            bool                       filter_outliers,
-                                            vw::Vector2        const & outlier_removal_params,
-                                            std::vector<bool>        & is_outlier) {
-
+void vw::math::find_3D_transform_aux(vw::Matrix<double> const & in_vec, 
+                                     vw::Matrix<double> const & out_vec,
+                                     vw::Matrix<double,3,3>   & rotation,
+                                     vw::Vector<double,3>     & translation,
+                                     double                   & scale,
+                                     std::string        const & transform_type) {
   
   if (transform_type != "similarity" && transform_type != "rigid" &&
       transform_type != "translation") {
-    vw_throw( vw::ArgumentErr() << "find_3D_affine_transform_aux: Expecting to compute a "
-              << "transform which is either similarity, or rigid, or translation." );
+    vw_throw(vw::ArgumentErr() << "find_3D_transform_aux: Expecting to compute a "
+             << "transform which is either similarity, or rigid, or translation." );
   }
     
   // Make copies that we can modify inline
@@ -229,35 +330,22 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   scale = 1.0;
     
   VW_ASSERT((in.rows() == 3) && (in.rows() == out.rows()) && (in.cols() == out.cols()), 
-            vw::ArgumentErr() << "find_3D_affine_transform(): input data has incorrect size.\n");
-  VW_ASSERT((in.cols() >= 3), 
-            vw::ArgumentErr() << "find_3D_affine_transform(): Must have at least "
+            vw::ArgumentErr() << "find_3D_transform(): input data "
+            << "has incorrect size.\n");
+  VW_ASSERT(in.cols() >= 3, 
+            vw::ArgumentErr() << "find_3D_transform(): Must have at least "
             << "three data points.\n");
     
-  typedef vw::math::MatrixCol<vw::Matrix<double> > ColView;
+  typedef vw::math::MatrixCol<vw::Matrix<double>> ColView;
 
   // First find the scale, by finding the ratio of sums of some distances,
   // then bring the datasets to the same scale.
   if (transform_type == "similarity") {
     int num_segments = 0;
     double dist_in = 0, dist_out = 0;
-    for (size_t col = 0; col < in.cols() - 1; col++) {
+    for (int col = 0; col < in.cols() - 1; col++) {
       
-      if (filter_outliers && is_outlier[col]) continue;
-      
-      size_t next_col = col + 1;
-      if (filter_outliers) {
-        // Find the next column that is not an outlier
-        bool success = false;
-        while (next_col < in.cols()){
-          if (!is_outlier[next_col]) {
-            success = true;
-            break;
-          }
-          next_col++;
-        }
-        if (!success) continue;
-      }
+      int next_col = col + 1;
       
       num_segments++;
       
@@ -268,7 +356,7 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
     }
 
     if (num_segments < 1 || dist_in <= 0 || dist_out <= 0) 
-      vw_throw(vw::ArgumentErr() << "find_3D_affine_transform(): not enough distinct points "
+      vw_throw(vw::ArgumentErr() << "find_3D_transform(): not enough distinct points "
                << "to find the scale.\n");
     
     scale = dist_out/dist_in;
@@ -278,57 +366,26 @@ void vw::math::find_3D_affine_transform_aux(vw::Matrix<double> const & in_vec,
   // Find the centroids then shift to the origin
   vw::Vector3 in_ctr;
   vw::Vector3 out_ctr;
-  int good_col = 0;
+  int col_count = 0;
   for (size_t col = 0; col < in.cols(); col++) {
-
-    if (filter_outliers && is_outlier[col]) continue;
 
     ColView inCol (in,  col);
     ColView outCol(out, col);
     in_ctr  += inCol;
     out_ctr += outCol;
-    good_col++;
+    col_count++;
   }
 
   // Get the mean
-  in_ctr  /= good_col;
-  out_ctr /= good_col;
+  in_ctr  /= col_count;
+  out_ctr /= col_count;
 
   // Subtract mean from in and out
   for (size_t col = 0; col < in.cols(); col++) { 
-
-    if (filter_outliers && is_outlier[col]) continue;
-    
     ColView inCol (in,  col);
     ColView outCol(out, col);
-
     inCol  -= in_ctr;
     outCol -= out_ctr;
-  }
-
-  // Wipe columns with outliers
-  good_col = 0;
-  if (filter_outliers) {
-    for (size_t col = 0; col < in.cols(); col++) {
-
-      if (filter_outliers && is_outlier[col]) continue;
-        
-      for (size_t row = 0; row < in.rows(); row++) {
-        in(row, good_col)  = in(row, col);
-        out(row, good_col) = out(row, col);
-      }
-
-      good_col++;
-    }
-
-    if (good_col < 3)
-      vw_throw(vw::ArgumentErr() << "find_3D_affine_transform(): less than 3 points left "
-               << "after outlier filtering.\n");
-
-    // Shrink the data sets to the inliers
-    bool preserve_existing = true;
-    in.set_size(in.rows(), good_col, preserve_existing);
-    out.set_size(out.rows(), good_col, preserve_existing);
   }
 
   if (transform_type != "translation") {

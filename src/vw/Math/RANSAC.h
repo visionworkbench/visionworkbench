@@ -79,7 +79,7 @@ namespace math {
     double operator() (RelationT  const& H,
                        ContainerT const& p1,
                        ContainerT const& p2) const {
-      // Copy the input data into homogenous vector objects
+      // Copy the input data into homogeneous vector objects
       Vector<double, dim+1> p1_h, p2_h;
       for (unsigned i = 0; i < dim; i++) {
         p1_h[i] = p1[i];
