@@ -129,7 +129,7 @@ HomographyFittingFunctor::BasicDLT( std::vector<Vector3 > const& input,
 
 // Given a set of points in 3D, heuristically estimate what it means
 // for two points to be "not far" from each other. The logic is to
-// find a bounding box of an inner cluster and multiply that by 0.2.
+// find a bounding box of an inner cluster and multiply that by 0.1.
 // This will produce an inlier threshold. The input matrices must
 // have 3 rows and N columns where N is equal to the number of points.
 double estimate3DTransInlierThresh(vw::Matrix<double> const& points) {
@@ -154,7 +154,7 @@ double estimate3DTransInlierThresh(vw::Matrix<double> const& points) {
     if (min_p >= num_pts) min_p = num_pts - 1;
     if (max_p >= num_pts) max_p = num_pts - 1;
     double min_val = vals[min_p], max_val = vals[max_p];
-    range[it] = 0.2*(max_val - min_val);
+    range[it] = 0.1*(max_val - min_val);
   }
 
   // Find the average of all ranges
@@ -291,7 +291,7 @@ void vw::math::find_3D_transform(vw::Matrix<double> const & in,
                 min_num_output_inliers, reduce_min_num_output_inliers_if_no_fit);
     transform = ransac(in_pts, out_pts);
     inlier_indices = ransac.inlier_indices(transform, in_pts, out_pts);
-  } catch (const vw::math::RANSACErr& e ) {
+  } catch (const vw::math::RANSACErr& e) {
     vw_out() << "RANSAC failed: " << e.what() << "\n";
     return;
   }
@@ -317,7 +317,7 @@ void vw::math::find_3D_transform_aux(vw::Matrix<double> const & in_vec,
   if (transform_type != "similarity" && transform_type != "rigid" &&
       transform_type != "translation") {
     vw_throw(vw::ArgumentErr() << "find_3D_transform_aux: Expecting to compute a "
-             << "transform which is either similarity, or rigid, or translation." );
+             << "transform which is either similarity, or rigid, or translation.");
   }
     
   // Make copies that we can modify inline
