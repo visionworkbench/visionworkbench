@@ -48,14 +48,16 @@ namespace stereo {
   }
 
   /// Check for consistency between a left-to-right and right-to-left
-  ///  pair of stereo results.  The results are expected to be opposite in
-  ///  sign but equal in magnitude.
+  /// pair of stereo results.  The results are expected to be opposite in
+  /// sign but equal in magnitude. Save the absolute discrepancy
+  /// among the two disparities in lr_disp_diff, if provided.
   template <class ImageT1, class ImageT2>
-  void cross_corr_consistency_check( ImageViewBase<ImageT1> const& l2r,
-                                     ImageViewBase<ImageT2> const& r2l,
-                                     float cross_corr_threshold, 
-                                     bool verbose = false );
-
+  void cross_corr_consistency_check(ImageViewBase<ImageT1> const& l2r,
+                                    ImageViewBase<ImageT2> const& r2l,
+                                    float cross_corr_threshold,
+                                    ImageView<PixelMask<float>> * lr_disp_diff = NULL,
+                                    Vector2i ul_corner_offset = Vector2i(),
+                                    bool verbose = false);
 
   /// Fast affine-EM implementation
   /// In this version we don't keep around future research ideas

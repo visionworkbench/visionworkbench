@@ -22,7 +22,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Fourier.h>
 #include <vw/Stereo/DisparityMap.h>
-#include <vw/Stereo/Correlate.h>
 
 /**
 
@@ -95,8 +94,8 @@ cv::Mat partial_upsample_dft(cv::Mat const& input, int upsampled_height, int ups
     for (int j=0; j<row_kernel.cols; ++j)
       row_kernel.at<c_type>(i,j) = std::exp(row_kernel.at<c_type>(i,j)*constant);
 
-  //save_mag_from_ft(row_kernel,  "/home/smcmich1/data/subpixel/row_kernel.tif", false);
-  //save_mag_from_ft(col_kernel,  "/home/smcmich1/data/subpixel/col_kernel.tif", false);
+  //save_mag_from_ft(row_kernel,  "row_kernel.tif", false);
+  //save_mag_from_ft(col_kernel,  "col_kernel.tif", false);
 
   // These muliplications are the slowest part of the phase correlation method.
   cv::Mat o1  = row_kernel*input;
@@ -119,9 +118,8 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
                                 bool debug = false
                                ) {
 
-  if (left_image.get_size() != right_image.get_size()) {
-    vw_throw( ArgumentErr() << "phase_correlation_subpixel requires images to be the same size!\n" );
-  }
+  if (left_image.get_size() != right_image.get_size())
+    vw_throw(ArgumentErr() << "phase_correlation_subpixel requires images to be the same size!\n");
 
   // Fourier transform of the input images.
   // TODO: Use padding for an optimal DFT size?
@@ -132,8 +130,8 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
   // Some papers suggest filtering out high frequency image content prior to correlation
   //  but that does not seem to help in all cases.
   //const float BETA = 0.35;
-  ////save_mag_from_ft(complexI_left,  "/home/smcmich1/data/subpixel/magI_left_prefilter.tif");
-  ////save_mag_from_ft(complexI_right,  "/home/smcmich1/data/subpixel/magI_right_prefilter.tif");
+  ////save_mag_from_ft(complexI_left,  "magI_left_prefilter.tif");
+  ////save_mag_from_ft(complexI_right,  "magI_right_prefilter.tif");
   //apply_raised_cosine_filter(complexI_left,  BETA);
   //apply_raised_cosine_filter(complexI_right, BETA);
   
@@ -177,14 +175,14 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
     std::cout << "initial_shift_x = " << initial_shift_x << std::endl;
     std::cout << "initial_shift_y = " << initial_shift_y << std::endl;
 
-    save_mag_from_ft(complexI_left,  "/home/smcmich1/data/subpixel/magI_left.tif");
-    save_mag_from_ft(complexI_right, "/home/smcmich1/data/subpixel/magI_right.tif");
-    save_mag_from_ft(initial_conj, "/home/smcmich1/data/subpixel/initial_conj.tif");
-    save_mag_from_ft(padded_conj, "/home/smcmich1/data/subpixel/padded_conj.tif");
+    save_mag_from_ft(complexI_left,  "magI_left.tif");
+    save_mag_from_ft(complexI_right, "magI_right.tif");
+    save_mag_from_ft(initial_conj, "initial_conj.tif");
+    save_mag_from_ft(padded_conj, "padded_conj.tif");
 
     boost::shared_ptr<cv::Mat> ocv_ptr(&conv, boost::null_deleter());
     ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
-    write_image( "/home/smcmich1/data/subpixel/conv.tif", ocv_view);
+    write_image( "conv.tif", ocv_view);
   }
 
   // End of the first pass, stop here if the output resolution is low.
@@ -238,12 +236,9 @@ void phase_correlation_subpixel(ImageViewBase<T1> const& left_image,
     std::cout << "shift_x = " << shift_x << std::endl;
     std::cout << "shift_y = " << shift_y << std::endl;
 
-    save_mag_from_ft(partial_upsampled, "/home/smcmich1/data/subpixel/partial_upsampled.tif", false);
+    save_mag_from_ft(partial_upsampled, "partial_upsampled.tif", false);
   }
 }
-
-
-
 
 /// Update the values in disparity_map according to region_of_interest.
 /// - This function is set up to work with the PyramidSubpixelView class.
@@ -263,8 +258,9 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                             << "disparity map do not have the same dimensions.");
 
   // Interpolated right image in case we go out of bounds.
-  InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-         interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+  InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>,
+    BilinearInterpolation> right_interp_image =
+    interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
 
   // This is the maximum number of pixels that the solution can be
   // adjusted by subpixel refinement.
@@ -300,8 +296,8 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
       ImageView<ChannelT> left_image_patch  = crop(left_image,         current_window);
       ImageView<ChannelT> right_image_patch = crop(right_interp_image, right_window);
 
-      //write_image("/home/smcmich1/data/subpixel/left_patch.tif",  left_image_patch );
-      //write_image("/home/smcmich1/data/subpixel/right_patch.tif", right_image_patch);
+      //write_image("left_patch.tif",  left_image_patch );
+      //write_image("right_patch.tif", right_image_patch);
 
       // We are just solving for a simple translation vector
       Vector2f d;
@@ -317,13 +313,13 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         // phase correlation to get a final offset.
         // - This improves the results at the cost of taking twice as long.
 
-        ImageView<ChannelT> shift_right_crop = crop(translate( right_image,
+        ImageView<ChannelT> shift_right_crop = crop(translate(right_image,
                                                               d[0], d[1],
                                                               ZeroEdgeExtension(),
                                                               BicubicInterpolation()),
                                                     right_window
                                                   );
-        //write_image("/home/smcmich1/data/subpixel/right_patch_refined.tif", shift_right_crop);
+        //write_image("right_patch_refined.tif", shift_right_crop);
 
         Vector2f d2(0,0);
         phase_correlation_subpixel(left_image_patch, shift_right_crop,
@@ -331,7 +327,8 @@ subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         d += d2; // The second translation adds to the first one.
       }
 
-      // If there is too much translation in our affine transform or we got NaNs, invalidate the pixel
+      // If there is too much translation in our affine transform or
+      // we got NaNs, invalidate the pixel
       if ( norm_2(d) > SUBPIXEL_MAX_TRANSLATION ||
            std::isnan(d[0]) || std::isnan(d[1]) )
         invalidate(disparity_map(x,y));

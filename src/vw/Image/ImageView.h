@@ -60,11 +60,10 @@ namespace vw {
   /// - Because of the above, image data is stored internally in 
   ///   INTERLEAVED (BIP) format.
   template <class PixelT>
-  class ImageView : public ImageViewBase<ImageView<PixelT> >
-  {
+  class ImageView : public ImageViewBase<ImageView<PixelT>> {
     // Protect user from themselves. ImageView can never contain
     // another ImageView.
-    BOOST_STATIC_ASSERT( !IsImageView<PixelT>::value );
+    BOOST_STATIC_ASSERT(!IsImageView<PixelT>::value);
 
     boost::shared_array<PixelT> m_data; ///< Underlying data pointer
     int32 m_cols, m_rows, m_planes;     ///< Data dimensions
@@ -73,7 +72,7 @@ namespace vw {
 
   public:
     /// The base type of the image.
-    typedef ImageViewBase<ImageView<PixelT> > base_type;
+    typedef ImageViewBase<ImageView<PixelT>> base_type;
 
     /// The pixel type of the image.
     typedef PixelT pixel_type;
@@ -92,55 +91,55 @@ namespace vw {
     /// Copy-constructs a view pointing to the same data.
     /// Provided explicitly to clarify its precedence over
     /// the templatized generalized copy constructor.
-    ImageView( ImageView const& other )
-      : ImageViewBase<ImageView<PixelT> >(other),
+    ImageView(ImageView const& other)
+      : ImageViewBase<ImageView<PixelT>>(other),
         m_data(other.m_data), m_cols(other.m_cols),
         m_rows(other.m_rows), m_planes(other.m_planes),
         m_origin(other.m_origin),
         m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
 
     /// Constructs an empty image with the given dimensions.
-    ImageView( int32 cols, int32 rows, int32 planes=1 )
+    ImageView(int32 cols, int32 rows, int32 planes=1)
       : m_cols(0), m_rows(0), m_planes(0), m_origin(0),
         m_rstride(0), m_pstride(0) {
-      set_size( cols, rows, planes );
+      set_size(cols, rows, planes);
     }
 
     /// Constructs an image view and rasterizes the given view into it.
     template <class ViewT>
-    ImageView( ViewT const& view )
+    ImageView(ViewT const& view)
       : m_cols(0), m_rows(0), m_planes(0), m_origin(0),
         m_rstride(0), m_pstride(0) {
-      set_size( view.cols(), view.rows(), view.planes() );
-      view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
+      set_size(view.cols(), view.rows(), view.planes());
+      view.rasterize(*this, BBox2i(0,0,view.cols(),view.rows()));
     }
 
     /// Note that this is almost a copy of read_image in ImageIO, but actually
     /// including that is a circular dependency.
-    explicit ImageView( const SrcImageResource& src ) {
+    explicit ImageView(const SrcImageResource& src) {
       int32 planes = 1;
-      if( ! IsCompound<PixelT>::value ) {
+      if(! IsCompound<PixelT>::value) {
         // The image has a fundamental pixel type
-        if( src.planes()>1 && src.channels()>1 )
-          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image resource into a single-channel view." );
-        planes = (std::max)( src.planes(), src.channels() );
+        if(src.planes()>1 && src.channels()>1)
+          vw_throw(ArgumentErr() << "Cannot read a multi-plane multi-channel image resource into a single-channel view.");
+        planes = (std::max)(src.planes(), src.channels());
       }
       set_size(src.cols(), src.rows(), planes);
-      src.read( this->buffer(), BBox2i(0,0,src.cols(),src.rows()) );
+      src.read(this->buffer(), BBox2i(0,0,src.cols(),src.rows()));
     }
 
     /// Rasterizes the given view into the image, adjusting the size if needed.
     template <class SrcT>
-    inline ImageView& operator=( ImageViewBase<SrcT> const& view ) {
-      set_size( view.impl().cols(), view.impl().rows(), view.impl().planes() );
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    inline ImageView& operator=(ImageViewBase<SrcT> const& view) {
+      set_size(view.impl().cols(), view.impl().rows(), view.impl().planes());
+      view.impl().rasterize(*this, BBox2i(0,0,view.impl().cols(),view.impl().rows()));
       return *this;
     }
 
     /// Rasterizes the given view into the image.
     template <class SrcT>
-    inline ImageView const& operator=( ImageViewBase<SrcT> const& view ) const {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    inline ImageView const& operator=(ImageViewBase<SrcT> const& view) const {
+      view.impl().rasterize(*this, BBox2i(0,0,view.impl().cols(),view.impl().rows()));
       return *this;
     }
 
@@ -151,16 +150,16 @@ namespace vw {
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      return pixel_accessor( m_origin, m_rstride, m_pstride,
-                             cols(), rows(), planes() );
+      return pixel_accessor(m_origin, m_rstride, m_pstride,
+                             cols(), rows(), planes());
 #else
-      return pixel_accessor( m_origin, m_rstride, m_pstride );
+      return pixel_accessor(m_origin, m_rstride, m_pstride);
 #endif
     }
 
     /// Returns the pixel at the given position in the given plane.
     /// - See the warning about using planes at the top of the class.
-    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const {
+    inline result_type operator()(int32 col, int32 row, int32 plane=0) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       if (col < 0 || col >= cols() || row < 0 || row >= rows() || plane < 0 || plane >= planes())
         vw_throw(ArgumentErr() << "ImageView::operator() - invalid index [" << col << " " << row << " " << plane << "] for ImageView with dimensions [" << cols() << " " << rows() << " " << planes() << "]");
@@ -169,7 +168,7 @@ namespace vw {
     }
 
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
-    void set_size( int32 cols, int32 rows, int32 planes = 1 ) {
+    void set_size(int32 cols, int32 rows, int32 planes = 1) {
       // These sizes are pretty large for in-memory images and should only come up
       //  in the case of bugs in the code.
       static const int32  MAX_PIXEL_SIZE   = 80000;
@@ -177,7 +176,7 @@ namespace vw {
       static const uint64 MAX_TOTAL_PIXELS = 6400000000;
       
       // Check if we already have the correct size
-      if( cols==m_cols && rows==m_rows && planes==m_planes )
+      if(cols==m_cols && rows==m_rows && planes==m_planes)
           return;
 
       VW_ASSERT(cols >= 0 && rows >= 0 && planes >= 0, // No negative sizes!
@@ -200,16 +199,18 @@ namespace vw {
       
       size_t size = size64;
 
-      if( size==0 )
+      if(size==0)
         m_data.reset();
       else {
-        boost::shared_array<PixelT> data( new (std::nothrow) PixelT[size] );
+        boost::shared_array<PixelT> data(new (std::nothrow) PixelT[size]);
         if (!data) {
-          // print it and throw it for the benefit of OSX, which doesn't print the exception what() on terminate()
-          VW_OUT(ErrorMessage)   << "Cannot allocate enough memory for a " 
-                                 << cols << "x" << rows << "x" << planes << " image: too many bytes!" << std::endl;
+          // print it and throw it for the benefit of OSX, which
+          // doesn't print the exception what() on terminate()
+          VW_OUT(ErrorMessage) << "Cannot allocate enough memory for a " 
+                               << cols << "x" << rows << "x" << planes
+                               << " image: too many bytes!" << std::endl;
           vw_throw(ArgumentErr() << "Cannot allocate enough memory for a " 
-                                 << cols << "x" << rows << "x" << planes << " image: too many bytes!");
+                   << cols << "x" << rows << "x" << planes << " image: too many bytes!");
         }
         m_data = data;
       }
@@ -229,14 +230,14 @@ namespace vw {
       // Note that this is a copy of the fill algorithm that resides
       // in ImageAlgorithms.h, however including ImageAlgorithms.h
       // directly causes an include file cycle.
-      if( boost::is_fundamental<pixel_type>::value ) {
-        memset( m_data.get(), 0, m_rows*m_cols*m_planes*sizeof(PixelT) );
+      if(boost::is_fundamental<pixel_type>::value) {
+        memset(m_data.get(), 0, m_rows*m_cols*m_planes*sizeof(PixelT));
       }
     }
 
     /// Adjusts the size of the image to match the dimensions of another image.
     template <class ImageT>
-    void set_size( const ImageViewBase<ImageT> &img ) {
+    void set_size(const ImageViewBase<ImageT> &img) {
       this->set_size(img.impl().cols(), img.impl().rows(), img.impl().planes());
     }
 
@@ -278,23 +279,23 @@ namespace vw {
 
     /// Prepare an ImageView to be rasterized.  Simply returns the
     /// original image view.
-    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
+    inline prerasterize_type prerasterize(BBox2i /*bbox*/) const { return *this; }
 
     /// Rasterize the image view.  Simply invokes the default
     /// rasterization function.
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
   // Image view traits
   /// Specifies that ImageView objects are resizable.
   template <class PixelT>
-  struct IsResizable<ImageView<PixelT> > : public true_type {};
+  struct IsResizable<ImageView<PixelT>> : public true_type {};
 
   /// Specifies that ImageView objects are fast to access.
   template <class PixelT>
-  struct IsMultiplyAccessible<ImageView<PixelT> > : public true_type {};
+  struct IsMultiplyAccessible<ImageView<PixelT>> : public true_type {};
 
 } // namespace vw
 

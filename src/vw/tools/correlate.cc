@@ -188,6 +188,11 @@ int main( int argc, char *argv[] ) {
                       Vector2i(h_corr_max, v_corr_max));
   Vector2i kernel_size(xkernel, ykernel);
   std::cout << "Correlate max search range = " << search_range << std::endl;
+
+  // Here we don't record the L-R disparity difference
+  ImageView<PixelMask<float>> * lr_disp_diff = NULL;
+  Vector2i region_ul = Vector2i(0, 0);
+  
   ImageViewRef<PixelMask<Vector2f>> disparity_map
     = stereo::pyramid_correlate(left, right,
                                 left_mask, right_mask,
@@ -203,6 +208,7 @@ int main( int argc, char *argv[] ) {
                                 sgm_search_buffer,
                                 memory_limit_mb,
                                 blob_filter_area,
+                                lr_disp_diff, region_ul, 
                                 write_debug_images);
   
   // TODO: Call the code used in stereo_fltr!

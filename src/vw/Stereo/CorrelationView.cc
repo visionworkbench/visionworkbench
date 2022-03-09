@@ -17,6 +17,7 @@
 
 #include <vw/Core/Stopwatch.h>
 #include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Core/Thread.h>
 #include <vw/Image/Algorithms.h>
@@ -31,7 +32,7 @@ namespace vw { namespace stereo {
 
   /// Downsample a mask by two. If at least two mask pixels in a 2x2
   /// region are on, the output pixel is on.
-  struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
+  struct SubsampleMaskByTwoFunc: public ReturnFixedType<uint8> {
     BBox2i work_area() const { return BBox2i(0,0,2,2); }
     
     template <class PixelAccessorT>
@@ -93,8 +94,8 @@ namespace vw { namespace stereo {
     right_global_region.max() += m_search_region.size();// + Vector2i(max_upscaling,max_upscaling); 
     // Total increase in right size = 2*region_offset + search_region_size + max_upscaling
 
-    // TODO(oalexan1): left and right global regions must be multiples of 2^num_levels
-    // But be careful with m_search_region.
+    // TODO(oalexan1): left and right global regions must be multiples of 2^num_levels.
+    // Be careful with m_search_region.
     
     vw_out(VerboseDebugMessage, "stereo") << "Left pyramid base bbox:  "
                                           << left_global_region  << std::endl;
@@ -246,7 +247,6 @@ namespace vw { namespace stereo {
       return; // Skip if erode turned off
     //vw_out() << "Removing blobs smaller than: " << area << std::endl;
 
-
     if (0) { // DEBUG
       vw_out() << "Writing pre-blob image...\n";
       std::ostringstream ostr;
@@ -270,6 +270,15 @@ namespace vw { namespace stereo {
   PyramidCorrelationView::prerasterize_type
   PyramidCorrelationView::prerasterize (BBox2i const& bbox) const {
 
+    // Sanity check, the currently processed bbox must fit in the lr_diff buffer.
+    if (m_lr_disp_diff != NULL) {
+      BBox2i lr_diff_box(0, 0, m_lr_disp_diff->cols(), m_lr_disp_diff->rows());
+      lr_diff_box += m_region_ul;
+      if (!lr_diff_box.contains(bbox)) 
+        vw_throw(ArgumentErr() << "The L-R to R-L difference image domain "
+                 << "does not contain the current tile.");
+    }
+    
     time_t start, end;
     if (m_corr_timeout){
       std::time (&start);
@@ -281,7 +290,7 @@ namespace vw { namespace stereo {
 #endif
 
     // 1.0) Determining the number of levels to process
-    //      There's a maximum base on kernel size. There's also
+    //      There's a maximum based on kernel size. There's also
     //      maximum defined by the search range. Here we determine
     //      the maximum based on kernel size and current bbox.
     // - max_pyramid_levels is the number of levels not including the original resolution level.
@@ -408,7 +417,7 @@ namespace vw { namespace stereo {
         //   but SGM does not require this.
         
         boost::shared_ptr<SemiGlobalMatcher> sgm_matcher_ptr;
-        crop(disparity, zone.image_region()) // This crop not needed in SGM case!
+        crop(disparity, zone.image_region()) // This crop is not needed in SGM case!
           = calc_disparity_sgm(m_cost_type,
                                crop(left_pyramid [level], left_region), 
                                crop(right_pyramid[level], right_region),
@@ -434,7 +443,7 @@ namespace vw { namespace stereo {
 
         // If the user requested a left<->right consistency check at this level,
         //   compute right to left disparity.
-        if (m_consistency_threshold >= 0 && level >= m_min_consistency_level) {
+        if (m_consistency_threshold >= 0.0 && level >= m_min_consistency_level) {
 
           check_rl = true;
 
@@ -442,10 +451,10 @@ namespace vw { namespace stereo {
           BBox2i search_region_level = m_search_region;
           search_region_level /= scaling;
           
-          // To properly perform the reverse correlation, we need to fix the ROIs
-          //  to account for the different sizes of the left and right images
-          //  and make sure they line up with the previous disparity image and the
-          //  input masks.
+          // To properly perform the reverse correlation, we need to
+          // fix the ROIs to account for the different sizes of the
+          // left and right images and make sure they line up with the
+          // previous disparity image and the input masks.
 
           BBox2i right_reverse_region = right_region;
           // Shift to right
@@ -548,12 +557,26 @@ namespace vw { namespace stereo {
 
           //write_image("rl_result2.tif", disparity_rl);
 
+          // Prepare to save the L-R to R-L discrepancy
+          // discrepancy. Do it only at level 0. Find the upper-left
+          // corner offset. Take into account that m_lr_disp_diff does
+          // not span the full image, but only the portion needed by
+          // the parent.
+          Vector2i ul_corner_offset(0, 0);
+          ImageView<PixelMask<float>> * lr_disp_diff = NULL;
+          if (level == 0 && m_lr_disp_diff != NULL) {
+            ul_corner_offset = zone.image_region().min() + bbox.min() - m_region_ul;
+            lr_disp_diff = m_lr_disp_diff;
+          }
+          
           // Find pixels where the disparity distance is greater than m_consistency_threshold
           //  and flag those pixels as invalid.
-          const bool verbose = true;
           // Crop not needed for SGM!
-          stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()), 
-                                               disparity_rl, m_consistency_threshold, verbose);
+          const bool verbose = true;
+          stereo::cross_corr_consistency_check(crop(disparity, zone.image_region()), 
+                                               disparity_rl, m_consistency_threshold,
+                                               lr_disp_diff, ul_corner_offset,
+                                               verbose);
           
           //write_image("lr_result_cons.tif", crop(disparity, zone.image_region()));
                                                
@@ -561,7 +584,8 @@ namespace vw { namespace stereo {
           //write_image("rl_result3.tif", disparity_rl);
           //disparity_rl *= -1;
           
-          // This offset was used for the cross-corr check but must be reset for the previous disparity image
+          // This offset was used for the cross-corr check but must be
+          // reset for the previous disparity image
           disparity_rl += offset;                                               
                                                
         } // End of last level right to left disparity check
@@ -623,6 +647,7 @@ namespace vw { namespace stereo {
           // If at the last level and the user requested a left<->right consistency check,
           //   compute right to left disparity.
           if (m_consistency_threshold >= 0 && level == 0) {
+
             check_rl = true;
 
             // Check the time again before moving on with this
@@ -645,11 +670,24 @@ namespace vw { namespace stereo {
                                           zone.disparity_range().size(), m_kernel_size)
               - pixel_typeI(zone.disparity_range().size());
 
+            // Prepare to save the L-R to R-L disparity
+            // discrepancy. Do it only at level 0. Find the upper-left
+            // corner offset. Take into account that m_lr_disp_diff
+            // does not span the full image, but only the portion
+            // needed by the parent.
+            Vector2i ul_corner_offset(0, 0);
+            ImageView<PixelMask<float>> * lr_disp_diff = NULL;
+            if (level == 0 && m_lr_disp_diff != NULL) {
+              ul_corner_offset = zone.image_region().min() + bbox.min() - m_region_ul;
+              lr_disp_diff = m_lr_disp_diff;
+            }
+
             // Find pixels where the disparity distance is greater than m_consistency_threshold
             const bool verbose = true;
-            stereo::cross_corr_consistency_check(crop(disparity,zone.image_region()),
-                                                 disparity_rl,
-                                                 m_consistency_threshold, verbose);
+            stereo::cross_corr_consistency_check(crop(disparity, zone.image_region()),
+                                                 disparity_rl, m_consistency_threshold,
+                                                 lr_disp_diff, ul_corner_offset,
+                                                 verbose);
           } // End of last level right to left disparity check
 
             // Fix the offsets to account for cropping.
@@ -803,15 +841,27 @@ namespace vw { namespace stereo {
     }
 #endif
 
-    // 5.0) Reposition our result back into the global solution. 
-    // Also we need to correct for the offset we applied to the search region.
-    // - At this point we either cast to floating point or run a subpixel refinement algorithm.
+    // If filtering removed disparities, also invalidate m_lr_disp_diff at the same pixels.
+    if (m_lr_disp_diff != NULL) {
+      Vector2i ul_corner_offset = bbox.min() - m_region_ul;
+      for (int r = 0; r < disparity.rows(); r++){
+        for (int c = 0; c < disparity.cols(); c++){
+          if (!is_valid(disparity(c, r))) 
+            (*m_lr_disp_diff)(c + ul_corner_offset[0], r + ul_corner_offset[1]).invalidate();
+        }
+      }
+    }
+
+    // 5.0) Reposition our result back into the global solution. Also
+    // we need to correct for the offset we applied to the search
+    // region. At this point we either cast to floating point or run a
+    // subpixel refinement algorithm.
 
     if (m_algorithm != VW_CORRELATION_BM) {
     
       // Copy the filtered out pixels to the subpixel view.
-      for (int r=0; r<disparity.rows(); ++r){
-        for (int c=0; c<disparity.cols(); ++c){
+      for (int r = 0; r < disparity.rows(); r++){
+        for (int c = 0; c < disparity.cols(); c++){
           if (!is_valid(disparity(c,r)))
             invalidate(subpixel_disparity(c,r));
         }

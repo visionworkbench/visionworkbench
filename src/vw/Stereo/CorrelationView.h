@@ -21,7 +21,6 @@
 #include <vw/Core/Exception.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageIO.h>
-#include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/CorrelationAlgorithms.h>
@@ -64,6 +63,8 @@ namespace vw { namespace stereo {
                            Vector2i  sgm_search_buffer = Vector2i(2,2),
                            size_t memory_limit_mb=6000,
                            int   blob_filter_area   = 0,
+                           ImageView<PixelMask<float>> * lr_disp_diff = NULL,
+                           Vector2i const& region_ul = Vector2i(0, 0),
                            bool  write_debug_images = false):
       m_left_image(left.impl()),     m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
@@ -80,6 +81,8 @@ namespace vw { namespace stereo {
       m_sgm_subpixel_mode(sgm_subpixel_mode),
       m_sgm_search_buffer(sgm_search_buffer),
       m_memory_limit_mb(memory_limit_mb),
+      m_lr_disp_diff(lr_disp_diff),
+      m_region_ul(region_ul),
       m_write_debug_images(write_debug_images){
 
       // Quit if an invalid area was passed in
@@ -160,6 +163,14 @@ namespace vw { namespace stereo {
     Vector2i m_sgm_search_buffer;
     size_t m_memory_limit_mb;
 
+    // Return here the L-R and R-L disparity discrepancy, if provided as a non-null pointer.
+    ImageView<PixelMask<float>> * m_lr_disp_diff;
+
+    // The upper-left corner of the region that will contain all
+    // pixels to be processed in this class. This will help locating
+    // where to populate the pixels of m_lr_disp_diff.
+    Vector2i m_region_ul;
+    
     bool m_write_debug_images; ///< If true, write out a bunch of intermediate images.
 
   private: // Functions
@@ -200,6 +211,8 @@ namespace vw { namespace stereo {
                     Vector2i sgm_search_buffer = Vector2i(2,2),
                     size_t memory_limit_mb = 6000,
                     int   blob_filter_area = 0,
+                    ImageView<PixelMask<float>> * lr_disp_diff = NULL,
+                    Vector2i const& region_ul = Vector2i(0, 0),
                     bool  write_debug_images = false) {
     typedef PyramidCorrelationView result_type;
     return result_type(left.impl(), right.impl(), 
@@ -212,7 +225,7 @@ namespace vw { namespace stereo {
                        filter_half_kernel, max_pyramid_levels,
                        algorithm, collar_size, sgm_subpixel_mode,
                        sgm_search_buffer, memory_limit_mb, blob_filter_area,
-                       write_debug_images);
+                       lr_disp_diff, region_ul, write_debug_images);
   }
   
 }} // namespace vw::stereo
