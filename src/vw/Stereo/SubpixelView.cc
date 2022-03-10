@@ -133,7 +133,7 @@ namespace vw { namespace stereo {
         subpixel_optimized_LK_2d(d_subpatch,
                                  l_patches[i], r_patches[i],
                                  m_kernel_size[0], m_kernel_size[1],
-                                 rois[i], true, true, false);
+                                 rois[i], true, true);
         break;
       case SUBPIXEL_FAST_AFFINE:
         subpixel_optimized_affine_2d(d_subpatch,
@@ -177,8 +177,7 @@ namespace vw { namespace stereo {
       subpixel_optimized_LK_2d(disparity_map_patch,
                                left_image_patch, right_image_patch,
                                m_kernel_size[0], m_kernel_size[1],
-                               full_res_roi,
-                               true, true, false);
+                               full_res_roi, true, true);
       break;
     case SUBPIXEL_FAST_AFFINE:
       subpixel_optimized_affine_2d(disparity_map_patch,
