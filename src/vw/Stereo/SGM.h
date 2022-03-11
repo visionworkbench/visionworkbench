@@ -22,7 +22,7 @@ namespace vw {
 namespace stereo {
 
 /**
-A 2D implentation of the popular Semi-Global Matching (SGM) algorithm.  This 
+A 2D implentation of the popular Semi-Global Matching (SGM) algorithm. This 
 implementation has the following features:
 - 2D search using the passed in search range.
 - Uses the popular Census cost function in a variable kernel size.
@@ -30,14 +30,14 @@ implementation has the following features:
   By using this input, the search range of each pixel is individually
   computed to minimize the run time.
 - The large memory buffers required by the algorithm are compressed to contain
-  only the individual search range for every pixel.  When combined with an
+  only the individual search range for every pixel. When combined with an
   input low-resolution disparity image, this can massively reduce the amount
   of memory required.
 - SSE instructions are used to increase speed but currently they only provide
   a small improvement.
   
 Even with the included optimizations this algorithm is slow and requires huge
-amounts of memory to operate on large images.  Be careful not to exceed your
+amounts of memory to operate on large images. Be careful not to exceed your
 available memory when using it!
 
 Future improvements:
@@ -48,12 +48,12 @@ Future improvements:
 - Create a sub-pixel disparity step that can be used as an alternative
   to our existing sub-pixel algorithms.
 - Experiment with filtering operations (such as described in the original SGM paper)
-  that plays well with the results of SGM.  This would be a way to avoid low-confidence
+  which play well with the results of SGM. This would be a way to avoid low-confidence
   detection.
 - Try to find algorithmic improvements.
 - Try to further optimize the speed of the expensive accumulation step.
 - Generate a confidence score for each pixel's disparity result.
-- Make sure everything works with negative disparity search ranges.  This never
+- Make sure everything works with negative disparity search ranges. This never
   comes up when called from CorrelationView, but would make the class more flexible.
 */
 

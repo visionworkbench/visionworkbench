@@ -43,6 +43,8 @@ namespace stereo {
   // types use an int64 accumulator to avoid overflow. All this logic is usually
   // used with float images.
   // TODO(oalexan1): The accumulators are best to be always float64.
+  // TODO(oalexan1): Make this code not compile with any other image type than float or double.
+  // There is no point in doing calculations with int16 images.
   template <class ImageT>
   struct AbsAccumulatorType {
     typedef typename AbsAccumulatorType<typename ImageChannelType<ImageT>::type>::type type;
