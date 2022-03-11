@@ -22,7 +22,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Stereo/PreFilter.h>
-#include <vw/Stereo/CostFunctions.h>
 
 namespace vw { namespace stereo {
 

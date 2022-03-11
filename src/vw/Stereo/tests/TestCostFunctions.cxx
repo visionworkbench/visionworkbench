@@ -24,10 +24,6 @@
 using namespace vw;
 using namespace vw::stereo;
 
-// TODO(oalexan1): Some of these tests should be removed as
-// AbsoluteCost, SquaredCost, and NCCCost are no longer specialized or
-// expected to work for integer types.
-
 template <typename PixelT>
 class CostFunction : public ::testing::Test {
 protected:
@@ -50,52 +46,7 @@ protected:
   }
 };
 
-typedef CostFunction<PixelGray<uint8> > CostFunctionGRAYU8;
-typedef CostFunction<PixelGray<int16> > CostFunctionGRAYI16;
 typedef CostFunction<PixelGray<float> > CostFunctionGRAYF32;
-
-typedef CostFunction<uint8> CostFunctionU8;
-typedef CostFunction<PixelRGB<uint8> > CostFunctionRGBU8;
-
-TEST_F( CostFunctionGRAYU8, AbsDiff ) {
-  typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
-}
-
-TEST_F( CostFunctionU8, AbsDiff ) {
-  typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
-}
-
-TEST_F( CostFunctionRGBU8, AbsDiff ) {
-  typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
-}
-
-TEST_F( CostFunctionGRAYI16, AbsDiff ) {
-  typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
-}
 
 TEST_F( CostFunctionGRAYF32, AbsDiff ) {
   typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
@@ -107,54 +58,6 @@ TEST_F( CostFunctionGRAYF32, AbsDiff ) {
   EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
 }
 
-TEST_F( CostFunctionGRAYU8, SquaredDiff ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
-}
-
-TEST_F( CostFunctionU8, SquaredDiff ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
-
-  ImageView<uint8> input3(2,1), input4(2,1);
-  input3(0,0) = input4(1,0) = 0;
-  input3(1,0) = input4(0,0) = 255;
-  result_type result2 =
-    SquaredCost<image_type,true>(input3,input4,Vector2i(2,1))(input3,input4);
-  EXPECT_EQ( 65025, result2(0,0) );
-  EXPECT_EQ( 65025, result2(1,0) );
-}
-
-TEST_F( CostFunctionRGBU8, SquaredDiff ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
-}
-
-TEST_F( CostFunctionGRAYI16, SquaredDiff ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
-}
-
 TEST_F( CostFunctionGRAYF32, SquaredDiff ) {
   typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
   typedef ImageView<rpixel_type> result_type;
@@ -163,46 +66,6 @@ TEST_F( CostFunctionGRAYF32, SquaredDiff ) {
   EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
   EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
   EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
-}
-
-TEST_F( CostFunctionGRAYU8, CrossCorrelation ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = NCCCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 16384/256 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(1,1) );
-}
-
-TEST_F( CostFunctionU8, CrossCorrelation ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = NCCCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 16384/256 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(1,1) );
-}
-
-TEST_F( CostFunctionRGBU8, CrossCorrelation ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = NCCCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 16384/256 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(1,1) );
-}
-
-TEST_F( CostFunctionGRAYI16, CrossCorrelation ) {
-  typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
-  typedef ImageView<rpixel_type> result_type;
-  result_type result = NCCCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 16384/256 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 1000/256 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(1,1) );
 }
 
 TEST_F( CostFunctionGRAYF32, CrossCorrelation ) {

@@ -371,7 +371,6 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     }
 
     return ImageView<PixelMask<Vector2i>>(); // will not be reached
-    
   } // End function calc_disparity
 
   /// Create fake left and right images and search volume.  Do a fake

@@ -50,14 +50,18 @@ namespace stereo {
   template <class ViewT>
   BBox2f get_disparity_range(ImageViewBase<ViewT> const& disparity_map ) {
     typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type accum_type;
-    PixelAccumulator<EWMinMaxAccumulator<accum_type> > accumulator;
-    for_each_pixel( disparity_map, accumulator );
+    PixelAccumulator<EWMinMaxAccumulator<accum_type>> accumulator;
 
-    if ( !accumulator.is_valid() ) {
+    // TODO(oalexan1): It looks as if this accumulator does not skip
+    // invalid pixels.
+    for_each_pixel(disparity_map, accumulator);
+
+    // This only checks if any pixels were passed in, not if they were
+    // valid or not.
+    if (!accumulator.is_valid())
       return BBox2f(0,0,0,0);
-    }
-    return BBox2f(accumulator.minimum(),
-                  accumulator.maximum());
+    
+    return BBox2f(accumulator.minimum(), accumulator.maximum());
   }
 
   //  missing_pixel_image()

@@ -50,16 +50,8 @@ namespace stereo {
   template <class PixelT> struct AbsAccumulatorType<PixelMathBase<PixelT> > {
     typedef typename AbsAccumulatorType<typename CompoundChannelType<PixelT>::type>::type type;
   };
-  template <> struct AbsAccumulatorType<bool>        { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::uint8>   { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::int8>    { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::uint16>  { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::int16>   { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::uint32>  { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::int32>   { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::uint64>  { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::int64>   { typedef vw::int64   type; };
-  template <> struct AbsAccumulatorType<vw::float32> { typedef vw::float32 type; };
+  // Accumulators are float64 for any kind of inputs
+  template <> struct AbsAccumulatorType<vw::float32> { typedef vw::float64 type; };
   template <> struct AbsAccumulatorType<vw::float64> { typedef vw::float64 type; };
 
   // Squared difference accumulator type (needs to be higher to avoid overflow)
@@ -70,15 +62,7 @@ namespace stereo {
   template <class PixelT> struct SqrDiffAccumulatorType<PixelMathBase<PixelT> > {
     typedef typename SqrDiffAccumulatorType<typename CompoundChannelType<PixelT>::type>::type type;
   };
-  template <> struct SqrDiffAccumulatorType<bool>        { typedef vw::int64   type; };
-  template <> struct SqrDiffAccumulatorType<vw::uint8>   { typedef vw::int64   type; };
-  template <> struct SqrDiffAccumulatorType<vw::int8>    { typedef vw::int64   type; };
-  template <> struct SqrDiffAccumulatorType<vw::uint16>  { typedef vw::int64   type; };
-  template <> struct SqrDiffAccumulatorType<vw::int16>   { typedef vw::int64   type; };
-  template <> struct SqrDiffAccumulatorType<vw::uint32>  { typedef vw::float32 type; };
-  template <> struct SqrDiffAccumulatorType<vw::int32>   { typedef vw::float32 type; };
-  template <> struct SqrDiffAccumulatorType<vw::uint64>  { typedef vw::float32 type; };
-  template <> struct SqrDiffAccumulatorType<vw::int64>   { typedef vw::float32 type; };
+  // Accumulators are float64 for any kind of inputs
   template <> struct SqrDiffAccumulatorType<vw::float32> { typedef vw::float64 type; };
   template <> struct SqrDiffAccumulatorType<vw::float64> { typedef vw::float64 type; };
 
@@ -112,30 +96,6 @@ namespace stereo {
       operator()(ArgT const& arg1, ArgT const& arg2) const {
         return (arg1 - arg2)*(arg1 - arg2);
       }
-
-      inline SqrDiffAccumulatorType<uint8>::type
-      operator()(uint8 const& arg1, uint8 const& arg2) const {
-        return (arg1 < arg2) ? (arg2 - arg1)*(arg2 - arg1) :
-          (arg1 - arg2)*(arg1 - arg2);
-      }
-
-      inline SqrDiffAccumulatorType<uint16>::type
-      operator()(uint16 const& arg1, uint16 const& arg2) const {
-        return (arg1 < arg2) ? (arg2 - arg1)*(arg2 - arg1) :
-          (arg1 - arg2)*(arg1 - arg2);
-      }
-
-      inline SqrDiffAccumulatorType<uint32>::type
-      operator()(uint32 const& arg1, uint32 const& arg2) const {
-        return (arg1 < arg2) ? (arg2 - arg1)*(arg2 - arg1) :
-          (arg1 - arg2)*(arg1 - arg2);
-      }
-
-      inline SqrDiffAccumulatorType<uint64>::type
-      operator()(uint64 const& arg1, uint64 const& arg2) const {
-        return (arg1 < arg2) ? (arg2 - arg1)*(arg2 - arg1) :
-          (arg1 - arg2)*(arg1 - arg2);
-      }
     };
 
     template <class Pixel1T, class Pixel2T>
@@ -154,21 +114,13 @@ namespace stereo {
     };
   };
 
+  // Use only float images
   struct CrossCorrelationFunctor {
     struct Helper : BinaryReturnUnaryTemplateBind1st<SqrDiffAccumulatorType> {
       template <class ArgT>
-      inline typename boost::enable_if<boost::is_float<typename SqrDiffAccumulatorType<ArgT>::type>,typename SqrDiffAccumulatorType<ArgT>::type>::type
+      inline typename SqrDiffAccumulatorType<ArgT>::type
       operator()(ArgT const& arg1, ArgT const& arg2) const {
         return arg1 * arg2;
-      }
-
-      // This is a custom version for integers that saves room in the
-      // integer for summing. Realize that we are summing squares! It
-      // is very hard to avoid overflowing.
-      template <class ArgT>
-      inline typename boost::disable_if<boost::is_float<typename SqrDiffAccumulatorType<ArgT>::type>,typename SqrDiffAccumulatorType<ArgT>::type>::type
-      operator()(ArgT const& arg1, ArgT const& arg2) const {
-        return typename SqrDiffAccumulatorType<ArgT>::type(arg1 * arg2) / 256;
       }
     };
 
@@ -186,7 +138,6 @@ namespace stereo {
     };
   };
 
-  // ImageView Functors
   enum CostFunctionType {
     ABSOLUTE_DIFFERENCE,
     SQUARED_DIFFERENCE,
@@ -194,6 +145,8 @@ namespace stereo {
     CENSUS_TRANSFORM,
     TERNARY_CENSUS_TRANSFORM
   };
+
+  // ImageView functors
 
   template <class ImageT>
   struct AbsoluteCost {
@@ -246,7 +199,9 @@ namespace stereo {
     }
   };
 
-  // Cross-correlation. Only float32 or float64 images are expected.
+  // Normalized cross-correlation. Only float32 or float64 images are expected. May overflow
+  // with int32 images so those need to be converted to float first.
+  // See also NCC.h. 
   template <class ImageT>
   struct NCCCost {
     typedef typename SqrDiffAccumulatorType<ImageT>::type accumulator_type;
@@ -255,9 +210,9 @@ namespace stereo {
     ImageView<pixel_accumulator_type> left_precision, right_precision;
 
     NCCCost(ImageT const& left, ImageT const& right, Vector2i const& kernel_size ) {
-      left_precision = pixel_accumulator_type(1) /
+      left_precision = pixel_accumulator_type(1.0) /
         fast_box_sum<accumulator_type>(square(left.impl()), kernel_size);
-      right_precision = pixel_accumulator_type(1) /
+      right_precision = pixel_accumulator_type(1.0) /
         fast_box_sum<accumulator_type>(square(right.impl()), kernel_size);
     }
     

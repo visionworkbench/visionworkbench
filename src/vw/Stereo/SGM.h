@@ -48,8 +48,8 @@ Future improvements:
 - Create a sub-pixel disparity step that can be used as an alternative
   to our existing sub-pixel algorithms.
 - Experiment with filtering operations (such as described in the original SGM paper)
-  that play well with the results of SGM.  This would be a way to avoid low-confidence
-  detections
+  that plays well with the results of SGM.  This would be a way to avoid low-confidence
+  detection.
 - Try to find algorithmic improvements.
 - Try to further optimize the speed of the expensive accumulation step.
 - Generate a confidence score for each pixel's disparity result.
