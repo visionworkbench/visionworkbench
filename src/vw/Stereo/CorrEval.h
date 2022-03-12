@@ -28,24 +28,142 @@
 
 namespace vw { namespace stereo {
 
+// Calculate left and right patches. It assumes everything was setup properly
+// and all the checks have been done
+void calc_patches(// Inputs
+                  BBox2i const& bbox, Vector2i const& kernel_size,
+                  PixelMask<Vector2f> const& disp,
+                  BBox2i const& left_box,
+                  BBox2i const& right_box,
+                  ImageView<PixelMask<float>>    const& left,
+                  ImageViewRef<PixelMask<float>> const& interp_right,
+                  int col, int row, // patches are around this col and row
+                  // Outputs
+                  ImageView<PixelMask<float>> & left_patch,
+                  ImageView<PixelMask<float>> & right_patch) {
+  
+  Vector2i half_kernel = kernel_size/2;
+  
+  // Iterate over the patch
+  for (int c = 0; c < kernel_size[0]; c++) {
+    for (int r = 0; r < kernel_size[1]; r++) {
+      
+      // Left pixel and right pixels in the full images.
+      // The left pix is int, but the right pix is not because disp is float.
+      // Make it double for added precision.
+      Vector2i left_pix(col + bbox.min().x() + c - half_kernel[0],
+                        row + bbox.min().y() + r - half_kernel[1]);
+      Vector2  right_pix = Vector2(left_pix) + Vector2(disp.child());
+      
+      // Compensate for the fact that we will access cropped
+      // versions (sometime the cropped version will cut and
+      // sometimes will extend the original images).
+      left_pix  -= left_box.min();
+      right_pix -= right_box.min();
+      
+      if (!bounding_box(left).contains(left_pix) || !bounding_box(interp_right).contains(right_pix))
+        vw_throw(ArgumentErr() << "Out of bounds in the NCC calculation. "
+                 << "This is not expected.");
+      
+      left_patch(c, r)  = left(left_pix[0], left_pix[1]);           // access int pix
+      right_patch(c, r) = interp_right(right_pix[0], right_pix[1]); // interp float pix
+    }
+  }
+}
+  
+// Calc NCC. Return -1 on failure (normally NCC is non-negative).  
+double calc_ncc(ImageView<PixelMask<float>> const& left_patch,
+                ImageView<PixelMask<float>> const& right_patch) {
+
+  if (left_patch.cols() != right_patch.cols() || left_patch.rows() != right_patch.rows()) 
+    vw_throw(ArgumentErr() << "The left and right patches have different dimensions.");
+  
+  double num = 0.0, den1 = 0.0, den2 = 0.0;
+  for (int c = 0; c < left_patch.cols(); c++) {
+    for (int r = 0; r < left_patch.rows(); r++) {
+      if (!is_valid(left_patch(c, r) || !is_valid(right_patch(c, r)))) 
+        continue;
+      
+      double a = left_patch(c, r).child();
+      double b = right_patch(c, r).child();
+      num  += a*b;
+      den1 += a*a;
+      den2 += b*b;
+    }
+  }
+  
+  if (den1 > 0.0 && den2 > 0.0) 
+    return  num / sqrt(den1 * den2);
+    
+  return -1.0;
+}
+
+// Calc stddev. Skip invalid pixels. Return -1 on failure (normally
+// stddev is non-negative).
+double calc_stddev(ImageView<PixelMask<float>> const& patch) {
+
+  // Find the mean
+  int num = 0;
+  double mean = 0.0;
+  for (int c = 0; c < patch.cols(); c++) {
+    for (int r = 0; r < patch.rows(); r++) {
+      if (!is_valid(patch(c, r))) 
+        continue;
+      
+      num  += 1;
+      mean += patch(c, r).child();
+    }
+  }
+  
+  if (num == 0) 
+    return -1.0;
+
+  mean /= num;
+
+  double sum = 0.0;
+  num = 0.0;
+  
+  for (int c = 0; c < patch.cols(); c++) {
+    for (int r = 0; r < patch.rows(); r++) {
+      if (!is_valid(patch(c, r))) 
+        continue;
+      
+      num += 1;
+      sum += (patch(c, r).child() - mean) * (patch(c, r).child() - mean);
+    }
+  }
+  
+  if (num == 0) 
+    return -1.0;
+
+  return sqrt(sum / num);
+}
+  
 class CorrEval: public ImageViewBase<CorrEval> {
   ImageViewRef<PixelMask<float>> m_left, m_right;
   ImageViewRef<PixelMask<Vector2f>> m_disp;
   Vector2i m_kernel_size;
+  std::string m_metric;
   
 public:
-  CorrEval(ImageViewRef<PixelMask<float>> left, ImageViewRef<PixelMask<float>> right,
-      ImageViewRef<PixelMask<Vector2f>> disp, Vector2i const& kernel_size):
-    m_left(left), m_right(right), m_disp(disp), m_kernel_size(kernel_size) {
+  CorrEval(ImageViewRef<PixelMask<float>>    left,
+           ImageViewRef<PixelMask<float>>    right,
+           ImageViewRef<PixelMask<Vector2f>> disp,
+           Vector2i                   const& kernel_size,
+           std::string                const& metric):
+    m_left(left), m_right(right), m_disp(disp),
+    m_kernel_size(kernel_size), m_metric(metric) {
     
     VW_ASSERT((m_left.cols() == m_disp.cols() && m_left.rows() == m_disp.rows()),
               vw::ArgumentErr()
-              << "CorrEval: Left image and disparity must have the same dimensions.");
+              << "CorrEval: Left image and disparity must have the same dimensions.\n");
 
     VW_ASSERT(((m_kernel_size[0] > 0) && (m_kernel_size[0] % 2 == 1) &&
                (m_kernel_size[1] > 0) && (m_kernel_size[1] % 2 == 1)),
-              vw::ArgumentErr()
-              << "CorrEval: The kernel dimensions must be positive and odd.");
+              vw::ArgumentErr() << "CorrEval: The kernel dimensions must be positive and odd.\n");
+
+    VW_ASSERT((m_metric == "ncc" || metric == "stddev"),
+              vw::ArgumentErr() << "CorrEval: Invalid metric: " << m_metric << ".\n");
   }
   
   typedef PixelMask<float> pixel_type;
@@ -66,9 +184,6 @@ public:
   typedef CropView<ImageView<pixel_type>> prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
-    std::cout << "TODO(oalexan1): Must check with various tile sizes to ensure "
-              << "no boundary artifacts!" << std::endl;
-    
     // Bring the disparity for the given processing region in memory.
     // It was checked before that it has the correct extent.
     ImageViewRef<PixelMask<Vector2f>> disp = crop(m_disp, bbox);
@@ -131,53 +246,29 @@ public:
         PixelMask<Vector2f> d = disp(col, row);
         if (!is_valid(d))
           continue;
-          
-        // Iterate over the patch
-        for (int c = 0; c < m_kernel_size[0]; c++) {
-          for (int r = 0; r < m_kernel_size[1]; r++) {
 
-            // Left pixel and right pixels in the full images.
-            // The left pix is int, but the right pix is not because disp is float.
-            // Make it double for added precision.
-            Vector2i left_pix(col + bbox.min().x() + c - half_kernel[0],
-                              row + bbox.min().y() + r - half_kernel[1]);
-            Vector2  right_pix = Vector2(left_pix) + Vector2(d.child());
-
-            // Compensate for the fact that we will access cropped
-            // versions (sometime the cropped version will cut and
-            // sometimes will extend the original images).
-            left_pix  -= left_box.min();
-            right_pix -= right_box.min();
-
-            if (!bounding_box(left).contains(left_pix) || !bounding_box(right).contains(right_pix))
-              vw_throw(ArgumentErr() << "Out of bounds in the NCC calculation. "
-                       << "This is not expected.");
-            
-            left_patch(c, r)  = left(left_pix[0], left_pix[1]);           // access int pix
-            right_patch(c, r) = interp_right(right_pix[0], right_pix[1]); // interp float pix
-          }
-        }
-
-        // Do NCC
-        double num = 0.0, den1 = 0.0, den2 = 0.0;
-        for (int c = 0; c < m_kernel_size[0]; c++) {
-          for (int r = 0; r < m_kernel_size[1]; r++) {
-            if (!is_valid(left_patch(c, r) || !is_valid(right_patch(c, r)))) 
-              continue;
-
-            double a = left_patch(c, r).child();
-            double b = right_patch(c, r).child();
-            num  += a*b;
-            den1 += a*a;
-            den2 += b*b;
-          }
-        }
-
-        if (den1 > 0.0 && den2 > 0.0) {
-          tile(col, row).validate();
-          tile(col, row).child() = num / sqrt(den1 * den2);
-        }
+        calc_patches(// Inputs
+                     bbox, m_kernel_size, disp(col, row),  
+                     left_box, right_box,  
+                     left, interp_right,  
+                     col, row,  // patches are around this col and row
+                     // Outputs
+                     left_patch, right_patch);
         
+        if (m_metric == "ncc") {
+          double ncc = calc_ncc(left_patch, right_patch);
+          if (ncc >= 0) {
+            tile(col, row).validate();
+            tile(col, row).child() = ncc;
+          }
+        } else if (m_metric == "stddev") {
+          double left_stddev = calc_stddev(left_patch);
+          double right_stddev = calc_stddev(right_patch);
+          if (left_stddev >= 0.0 && right_stddev >= 0.0) {
+            tile(col, row).validate();
+            tile(col, row).child() = (left_stddev + right_stddev)/2.0;
+          }
+        }
       }
     }
     
@@ -191,9 +282,12 @@ public:
   }
 };
   
-CorrEval corr_eval(ImageViewRef<PixelMask<float>> left, ImageViewRef<PixelMask<float>> right,
-                   ImageViewRef<PixelMask<Vector2f>> disp, Vector2i const& kernel_size){
-  return CorrEval(left, right, disp, kernel_size);
+CorrEval corr_eval(ImageViewRef<PixelMask<float>>    left,
+                   ImageViewRef<PixelMask<float>>    right,
+                   ImageViewRef<PixelMask<Vector2f>> disp,
+                   Vector2i                   const& kernel_size,
+                   std::string                const& metric){
+  return CorrEval(left, right, disp, kernel_size, metric);
 }
   
 }} // end namespace vw::stereo
