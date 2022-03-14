@@ -7,7 +7,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Stereo/DisparityMap.h>
 
-// Given two masked images and a float disparity from left to right
+// Given two masked aligned images and a float disparity from left to right
 // image, find at each pixel the normalized cross-correlation (NCC) of
 // the patch of image1 around given pixel of given size, and
 // corresponding patch of image2 around pixel + disparity(pixel). Use
@@ -16,12 +16,15 @@
 
 // Formula:
 // 
-// NCC(pix) = sum( image1(pix + s) * image2(pix + disp(pix) + s) /
+// NCC(pix) = sum(image1(pix + s) * image2(pix + disp(pix) + s) /
 //              sqrt ( sum(image1(pix + s)^2) * sum(image2(pix + disp(pix) + s)^2) ).
 //
 // Here, s varies over [-kx, kx] x [-ky, ky], where kernel_size =
 // (2*kx + 1, 2*ky + 1).
-  
+
+// If 'metric' is not 'ncc' but 'stddev', calculate the average of
+// stddev of the images in the two patches.
+
 // See also CostFunctions.h for an implementation of NCC optimized to
 // be applied over the entire image at once for a given fixed integer
 // disp value.
@@ -29,12 +32,11 @@
 namespace vw { namespace stereo {
 
 // Calculate left and right patches. It assumes everything was setup properly
-// and all the checks have been done
+// and all the checks have been done.
 void calc_patches(// Inputs
                   BBox2i const& bbox, Vector2i const& kernel_size,
                   PixelMask<Vector2f> const& disp,
-                  BBox2i const& left_box,
-                  BBox2i const& right_box,
+                  BBox2i const& left_box, BBox2i const& right_box,
                   ImageView<PixelMask<float>>    const& left,
                   ImageViewRef<PixelMask<float>> const& interp_right,
                   int col, int row, // patches are around this col and row
@@ -55,12 +57,13 @@ void calc_patches(// Inputs
                         row + bbox.min().y() + r - half_kernel[1]);
       Vector2  right_pix = Vector2(left_pix) + Vector2(disp.child());
       
-      // Compensate for the fact that we will access cropped
-      // versions (sometime the cropped version will cut and
-      // sometimes will extend the original images).
+      // Compensate for the fact that we will access cropped image
+      // versions (which may either cut or extend the original
+      // images).
       left_pix  -= left_box.min();
       right_pix -= right_box.min();
-      
+
+      // Sanity check
       if (!bounding_box(left).contains(left_pix) || !bounding_box(interp_right).contains(right_pix))
         vw_throw(ArgumentErr() << "Out of bounds in the NCC calculation. "
                  << "This is not expected.");
@@ -177,7 +180,7 @@ public:
   inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
   inline pixel_type operator()( double/*i*/, double/*j*/, int32/*p*/ = 0 ) const {
-    vw_throw(NoImplErr() << "CorrEval::operator()(...) is not implemented.");
+    vw_throw(NoImplErr() << "CorrEval::operator() is not implemented.");
     return pixel_type();
   }
 
@@ -186,7 +189,7 @@ public:
 
     // Bring the disparity for the given processing region in memory.
     // It was checked before that it has the correct extent.
-    ImageViewRef<PixelMask<Vector2f>> disp = crop(m_disp, bbox);
+    ImageView<PixelMask<Vector2f>> disp = crop(m_disp, bbox);
 
     Vector2i half_kernel = m_kernel_size/2;
     
@@ -198,8 +201,8 @@ public:
     // For the right image it is more complicated. Need to also
     // consider the disparity and interpolation.
     
-    // TODO(oalexan1): if finding NCC in a neighborhood, need to
-    // adjust below to use disp values in the neighborhood.
+    // TODO(oalexan1): When finding the curvature of NCC will need to further
+    // expand the box given the neighborhood we will use then. 
     BBox2i right_box;
     for (int col = 0; col < disp.cols(); col++) {
       for (int row = 0; row < disp.rows(); row++) {
@@ -215,14 +218,14 @@ public:
 
     right_box.expand(half_kernel); // Take into account the kernel
     right_box.expand(BilinearInterpolation::pixel_buffer); // Due to interpolation
-    right_box.expand(2); // because right_box is exclusive in the upper right, and +1 just in case
+    right_box.expand(2); // because right_box is exclusive in the upper-right, and +1 just in case
 
     // An invalid pixel value used for edge extension
     PixelMask<float> nodata_pix(0); nodata_pix.invalidate();
     ValueEdgeExtension<PixelMask<float>> nodata_ext(nodata_pix); 
 
     // Crop portions of the inputs and bring them in memory. Extend them if need be
-    // with invalid data.
+    // with invalid data to not go out of range later. Data validity will be checked.
     ImageView<PixelMask<float>> left  = crop(edge_extend(m_left, nodata_ext), left_box);
     ImageView<PixelMask<float>> right = crop(edge_extend(m_right, nodata_ext), right_box);
     
@@ -234,7 +237,7 @@ public:
     ImageView<PixelMask<float>> left_patch(m_kernel_size[0], m_kernel_size[1]);
     ImageView<PixelMask<float>> right_patch(m_kernel_size[0], m_kernel_size[1]);
     
-    // Process the tile
+    // Create the tile with the result
     ImageView<result_type> tile(bbox.width(), bbox.height());
     for (int col = 0; col < tile.cols(); col++) {
       for (int row = 0; row < tile.rows(); row++) {
