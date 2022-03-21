@@ -207,7 +207,22 @@ namespace ip {
     
     return out_prefix + "-" + suffix;
   }
+  
+  /// Convert match file name to clean match file name.
+  std::string clean_match_filename(std::string const& match_file) {
+    std::string clean_match_file = fs::path(match_file).replace_extension("").string();
+    clean_match_file += "-clean.match";
+    return clean_match_file;
+  }
 
+  /// The name of the clean match file.
+  std::string clean_match_filename(std::string const& out_prefix,
+                                   std::string const& input_file1,
+                                   std::string const& input_file2) {
+
+    return clean_match_filename(match_filename(out_prefix, input_file1, input_file2));
+  }
+  
   std::string ip_filename(std::string const& out_prefix,
                           std::string const& input_file) {
     return out_prefix + "-" + strip_path(out_prefix, input_file) + ".vwip";

@@ -364,7 +364,7 @@ namespace vw { namespace stereo {
       const bool on_last_level = (level == 0);    
       bool check_rl = false;
 
-      int32 scaling = 1 << level;
+      int32 scaling = 1 << level; // scaling = 2^level
       if (use_sgm) {
         prev_disparity    = disparity;
         prev_disparity_rl = disparity_rl;

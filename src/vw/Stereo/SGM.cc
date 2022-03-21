@@ -2351,7 +2351,7 @@ SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image
   populate_constant_disp_bound_image();
 
   if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity)) {
-    vw_out(WarningMessage, "stereo") << "Unable to compute valid search ranges for SGM input!.\n";
+    vw_out(WarningMessage, "stereo") << "Unable to compute valid search ranges for SGM input.\n";
     // If the inputs are invalid, return a default disparity image.
     DisparityImage disparity( m_num_output_cols, m_num_output_rows );
     return invalidate_mask(disparity);
