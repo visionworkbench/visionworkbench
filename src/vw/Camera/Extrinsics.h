@@ -20,7 +20,6 @@
 ///
 /// Utilities for describing extrinsic camera parameters (position and pose).
 
-
 // TODO: Most of these are generic interpolation algorithms, they ought to 
 //       live somewhere else.
 
@@ -143,8 +142,38 @@ namespace vw { namespace camera {
     Vector3 operator()(double t) const;
   };
 
+  /// Performs Lagrangian interpolation between quaternions with
+  /// constant time intervals. Given the input radius, form the
+  /// polynomial of degree 2*radius - 1 which goes through the
+  /// 2*radius samples whose times are closest to the time at which
+  /// interpolation must happen.
+  /// TODO(oalexan1): What if is desired to use an odd number of
+  /// samples?
 
-  /// Interpolation between a series of positions incorporating accelleration information.
+  // TODO(oalexan1): This needs to be tested and compared with SLERPPoseInterpolation,
+  // with and without use of splines in the latter.
+  class QuatLagrangianInterpolation {
+    std::vector<Quat> m_samples;
+    double m_start_time, m_time_delta, m_last_time;
+    int m_radius;
+    std::vector<double> m_denoms;
+    mutable std::vector<double> m_times_temp;
+  public:
+    /// Construct with a set of data samples and times.
+    /// - The radius is the number of points before and after time t used for interpolation.
+    QuatLagrangianInterpolation(std::vector<Quat> const& samples, 
+                            double start_time, double time_delta, double last_time,
+                            int radius=4);
+
+    double get_t0  () const { return m_start_time; }
+    double get_dt  () const { return m_time_delta; }
+    double get_tend() const { return m_last_time;  }
+    
+    /// Compute the interpolated value at a given time t.
+    Quat operator()(double t) const;
+  };
+
+  /// Interpolation between a series of positions using velocity information.
   class PiecewiseAPositionInterpolation {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
@@ -158,7 +187,6 @@ namespace vw { namespace camera {
     double get_dt  () const { return m_dt;  }
     double get_tend() const { return m_tend;}
   };
-
 
   class Curve3DPositionInterpolation {
     Matrix<double,3,3> m_cached_fit;
@@ -193,8 +221,7 @@ namespace vw { namespace camera {
     Vector3 operator()(double t) const;
   };
 
-  /// Cubic Hermite Spline interpolation or CSpline. Assumes you
-  /// provide the velocity measurements.
+  /// Cubic Hermite Spline interpolation or CSpline. Assumes the velocity measurements are provided.
   class HermitePositionInterpolation {
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
@@ -225,7 +252,8 @@ namespace vw { namespace camera {
   };
 
   /// Performs interpolation between sparse pose data points using the
-  /// spherical linear interpolation algorithm.
+  /// spherical linear interpolation algorithm. Using splines is not
+  /// enabled by default and is experimental.
   class SLERPPoseInterpolation {
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
@@ -247,12 +275,12 @@ namespace vw { namespace camera {
 
   /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
   class SlerpGridPointingInterpolation {
-    std::vector< std::vector<vw::Vector3> > m_directions;
+    std::vector<std::vector<vw::Vector3>> m_directions;
     double m_row0, m_drow, m_row_end;
     double m_col0, m_dcol, m_col_end;
   public:
     SlerpGridPointingInterpolation(){}
-    SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3> > const& directions,
+    SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3>> const& directions,
                                    double row0, double drow, double col0, double dcol);
 
     // Careful here, pix[0] is a column, and pix[1] is a row,
@@ -301,18 +329,19 @@ namespace vw { namespace camera {
     double operator()(double line ) const;
   };
 
-  ///
+  // Compute the time at given line using piecewise linear interpolation.
+  // TLC is straight from the IMG XML tag from Digital Globe
+  // products. The pairings are expected to be <Line, Time>.
   class TLCTimeInterpolation {
+
     typedef std::map<double, double> map_type;
     map_type m_m, m_b; // Tables keyed on line: time = m * line + b;
 
   public:
-    // TLC is straight from the IMG XML tag from Digital Globe
-    // products. The pairings are expected to be <Line, Time>.
-    TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
-                         double time_offset = 0 );
+    TLCTimeInterpolation(std::vector<std::pair<double, double>> const& tlc,
+                         double time_offset = 0.0);
 
-    double operator()(double line ) const;
+    double operator()(double line) const;
   };
 
   

@@ -57,7 +57,7 @@ namespace vw { namespace camera {
     std::vector<val_index> V(num_samples);
     for (int i = 0; i < num_samples; i++) {
       double ratio = (t0 + dt * i - t)/dt;
-      V[i] = val_index(exp(-sigma*ratio*ratio), i );
+      V[i] = val_index(exp(-sigma*ratio*ratio), i);
     }
 
     std::sort(V.begin(), V.end(), sort_descending_by_val());
@@ -97,28 +97,32 @@ LinearPositionInterpolation::operator()(double t) const {
 //======================================================================
 // LinearPiecewisePositionInterpolation class
 
-LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation(std::vector<Vector3> const& position_samples,
-									    double t0, double dt ) :
-  m_position_samples(position_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)) {}
+LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation
+(std::vector<Vector3> const& position_samples,
+ double t0, double dt) :
+  m_position_samples(position_samples), m_t0(t0), m_dt(dt),
+  m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)) {}
 
-Vector3 LinearPiecewisePositionInterpolation::operator()(double t ) const {
+Vector3 LinearPiecewisePositionInterpolation::operator()(double t) const {
 
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
   VW_ASSERT(t >= m_t0 && t <= m_tend,
-	     ArgumentErr() << "Cannot extrapolate position for time "
-	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= " << m_tend << "\n" );
-
+            ArgumentErr() << "Cannot extrapolate position for time "
+            << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= "
+            << m_tend << "\n");
+  
   // Get bounding indices
-  int low_i  = (int) floor((t - m_t0 ) / m_dt );
-  int high_i = (int) ceil ((t - m_t0 ) / m_dt );
+  int low_i  = (int) floor((t - m_t0) / m_dt);
+  int high_i = (int) ceil ((t - m_t0) / m_dt);
 
   VW_ASSERT(low_i >= 0 && high_i < (int)m_position_samples.size(),
-	     ArgumentErr() << "Out of bounds in LinearPiecewisePositionInterpolation.\n" );
+	     ArgumentErr() << "Out of bounds in LinearPiecewisePositionInterpolation.\n");
 
   double low_t  = m_t0 + m_dt * low_i;
   double norm_t = (t - low_t) / m_dt; // t as fraction of time between points
 
-  Vector3 result = m_position_samples[low_i] + norm_t * (m_position_samples[high_i] - m_position_samples[low_i] );
+  Vector3 result = m_position_samples[low_i]
+    + norm_t * (m_position_samples[high_i] - m_position_samples[low_i]);
 
   return result;
 }
@@ -128,13 +132,14 @@ Vector3 LinearPiecewisePositionInterpolation::operator()(double t ) const {
 
 SmoothPiecewisePositionInterpolation::SmoothPiecewisePositionInterpolation
 (std::vector<Vector3> const& position_samples, double t0, double dt, int num_wts, double sigma):
-  m_position_samples(position_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)), m_num_wts(num_wts), m_sigma(sigma) {
+  m_position_samples(position_samples), m_t0(t0), m_dt(dt),
+  m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)), m_num_wts(num_wts), m_sigma(sigma) {
 
   VW_ASSERT(m_position_samples.size() > 1,
-	    ArgumentErr() << "Expecting at least two position samples.\n" );
+	    ArgumentErr() << "Expecting at least two position samples.\n");
 }
 
-Vector3 SmoothPiecewisePositionInterpolation::operator()(double t ) const {
+Vector3 SmoothPiecewisePositionInterpolation::operator()(double t) const {
 
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
   VW_ASSERT(t >= m_t0 && t <= m_tend,
@@ -156,7 +161,8 @@ Vector3 SmoothPiecewisePositionInterpolation::operator()(double t ) const {
 }
 
 // Get the indices corresponding to the largest weights
-std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_weights(double t) const {
+std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_weights(double t)
+  const {
 
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
   VW_ASSERT(t >= m_t0 && t <= m_tend,
@@ -180,13 +186,13 @@ LagrangianInterpolationVarTime::LagrangianInterpolationVarTime
 (std::vector<Vector3> const& samples, std::vector<double> const& times, int radius):
   m_samples(samples), m_times(times), m_radius(radius) {
 
-  VW_ASSERT(m_samples.size() > 1, ArgumentErr() << "Expecting at least two samples.\n" );
+  VW_ASSERT(m_samples.size() > 1, ArgumentErr() << "Expecting at least two samples.\n");
   VW_ASSERT(m_samples.size() == m_times.size(),
-	    ArgumentErr() << "The number of samples and times must be equal.\n" );
-  VW_ASSERT(m_radius > 1, ArgumentErr() << "Radius must be > 0.\n" );
+	    ArgumentErr() << "The number of samples and times must be equal.\n");
+  VW_ASSERT(m_radius > 1, ArgumentErr() << "Radius must be > 0.\n");
 }
 
-Vector3 LagrangianInterpolationVarTime::operator()(double t ) const {
+Vector3 LagrangianInterpolationVarTime::operator()(double t) const {
 
   // Find where t lies in our list of samples
   const int num_samples = static_cast<int>(m_times.size());
@@ -202,7 +208,7 @@ Vector3 LagrangianInterpolationVarTime::operator()(double t ) const {
   int start = next - m_radius;
   int end   = next + m_radius; // Note: The last index we use is end-1!
   VW_ASSERT((start >= 0) && (end <= num_samples),
-	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n" );
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n");
     
   // Perform the interpolation
   Vector3 ans;
@@ -216,6 +222,7 @@ Vector3 LagrangianInterpolationVarTime::operator()(double t ) const {
       num_part *= (t - m_times[i]);
     }
 
+    // TODO(oalexan1): the denominator could be cached
     // Denominator
     for (int i=start; i<end; ++i){
       if (i == j)
@@ -233,19 +240,20 @@ Vector3 LagrangianInterpolationVarTime::operator()(double t ) const {
 // LagrangianInterpolation class
 
 LagrangianInterpolation::LagrangianInterpolation
-(std::vector<Vector3> const& samples, double start_time, double time_delta, double last_time, int radius):
+(std::vector<Vector3> const& samples, double start_time, double time_delta,
+ double last_time, int radius):
   m_samples(samples), m_start_time(start_time), m_time_delta(time_delta), 
   m_last_time(last_time), m_radius(radius) {
 
   // Perform a bunch of checks on construction
-  VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n" );
-  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"             );
-  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"         );
-  VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n" );
+  VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n");
+  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"            );
+  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"        );
+  VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n");
   
   size_t num_times = round((m_last_time - m_start_time) / m_time_delta)+1;
   VW_ASSERT(m_samples.size() == num_times,
-	    ArgumentErr() << "The number of samples and times must be equal.\n" );
+	    ArgumentErr() << "The number of samples and times must be equal.\n");
 	
 	// We can precalculate the denominator of the equation here
 	//  since the time intervals between the data points are constant.
@@ -268,11 +276,11 @@ LagrangianInterpolation::LagrangianInterpolation
 Vector3 LagrangianInterpolation::operator()(double t) const {
 
   // Get the bounding indices
-  int    low_i    = static_cast<int>(floor((t - m_start_time) / m_time_delta ));
+  int    low_i    = static_cast<int>(floor((t - m_start_time) / m_time_delta));
   int    high_i   = low_i + 1;
 
   VW_ASSERT((low_i >= 0) && (high_i < static_cast<int>(m_samples.size())),
-	    ArgumentErr() << "Out of bounds in LagrangianInterpolation for time " << t << ".\n" );
+	    ArgumentErr() << "Out of bounds in LagrangianInterpolation for time " << t << ".\n");
 
   // Check that we have enough bordering points to interpolate
   int start = low_i  - (m_radius-1);
@@ -293,7 +301,7 @@ Vector3 LagrangianInterpolation::operator()(double t) const {
   }
 
   VW_ASSERT((start >= 0) && (end < static_cast<int>(m_samples.size())),
-	    ArgumentErr() << "Not enough samples to interpolate time " << t << ".\n" );
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << ".\n");
   
   // Compute the times of the points being used for interpolation
   m_times_temp[0] = m_start_time + start*m_time_delta;
@@ -321,39 +329,140 @@ Vector3 LagrangianInterpolation::operator()(double t) const {
 }
 
 //======================================================================
+// QuatLagrangianInterpolation class
+
+// TODO(oalexan1): This needs to be tested and compared with SLERPPoseInterpolation,
+// with and without use of splines in the latter.
+
+QuatLagrangianInterpolation::QuatLagrangianInterpolation
+(std::vector<Quat> const& samples, double start_time, double time_delta,
+ double last_time, int radius):
+  m_samples(samples), m_start_time(start_time), m_time_delta(time_delta), 
+  m_last_time(last_time), m_radius(radius) {
+
+  // Perform a bunch of checks on construction
+  VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n");
+  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"            );
+  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"        );
+  VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n");
+  
+  size_t num_times = round((m_last_time - m_start_time) / m_time_delta) + 1;
+  VW_ASSERT(m_samples.size() == num_times,
+	    ArgumentErr() << "The number of samples and times must be equal.\n");
+	
+	// We can precalculate the denominator of the equation here
+	//  since the time intervals between the data points are constant.
+	const int num_points = 2*radius; // Number of points used in each calculation
+	m_denoms.resize(num_points);
+	m_times_temp.resize(num_points);
+
+  for (int j=0; j<num_points; ++j) {
+
+    double denominator = 1.0;
+    for (int i=0; i<num_points; ++i){
+      if (i == j)
+        continue;
+      denominator *= (j-i)*m_time_delta;
+    }
+    m_denoms[j] = denominator;
+  } // End outer loop
+}
+
+Quat QuatLagrangianInterpolation::operator()(double t) const {
+
+  // Get the bounding indices
+  int    low_i    = static_cast<int>(floor((t - m_start_time) / m_time_delta));
+  int    high_i   = low_i + 1;
+
+  VW_ASSERT((low_i >= 0) && (high_i < static_cast<int>(m_samples.size())),
+	    ArgumentErr() << "XOut of bounds in QuatLagrangianInterpolation for time " << t << ".\n");
+
+  // Check that we have enough bordering points to interpolate
+  int start = low_i  - (m_radius-1);
+  int end   = high_i + (m_radius-1);
+
+  if (start < 0) {
+    // Have to use points more on the right
+    int shift = -start;
+    start += shift;
+    end   += shift;
+  }
+
+  if (end >= static_cast<int>(m_samples.size())) {
+    // Have to use more points on the left
+    int shift = end - static_cast<int>(m_samples.size()) + 1;
+    start -= shift;
+    end -= shift;
+  }
+
+  VW_ASSERT((start >= 0) && (end < static_cast<int>(m_samples.size())),
+	    ArgumentErr() << "Not enough samples to interpolate time " << t << ".\n");
+  
+  // Compute the times of the points being used for interpolation
+  m_times_temp[0] = m_start_time + start*m_time_delta;
+  for (size_t k=1; k<m_times_temp.size(); ++k)
+    m_times_temp[k] = m_times_temp[k-1] + m_time_delta;
+    
+  // Perform the interpolation. The interval [start, end] has 2 *
+  // m_radius values.  We end up multiplying 2 * m_radius - 1 values
+  // for each numerator.
+  Quat ans(0, 0, 0, 0);
+  for (int j=start; j<=end; ++j) {
+  
+    double numerator = 1.0;
+    for (int i=start; i<=end; ++i){
+      if (i == j)
+        continue;
+      numerator *= (t - m_times_temp[i-start]);
+    }
+
+    double denominator = m_denoms[j-start];
+    ans = ans + m_samples[j] * (numerator/denominator);
+  }
+
+  return normalize(ans);
+}
+
+//======================================================================
 // PiecewiseAPositionInterpolation class
 
-PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation(std::vector<Vector3> const& position_samples,
-								  std::vector<Vector3> const& velocity_samples,
-								  double t0, double dt ) :
-  m_position_samples(position_samples ), m_velocity(velocity_samples ),
+PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation
+(std::vector<Vector3> const& position_samples,
+ std::vector<Vector3> const& velocity_samples,
+ double t0, double dt):
+  m_position_samples(position_samples), m_velocity(velocity_samples),
   m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)) {}
 
-Vector3 PiecewiseAPositionInterpolation::operator()(double t ) const {
+Vector3 PiecewiseAPositionInterpolation::operator()(double t) const {
 
   VW_ASSERT(t >= m_t0 && t < m_tend,
-	     ArgumentErr() << "Cannot extrapolate position for time "
-	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " < " << m_tend << "\n" );
-
+            ArgumentErr() << "Cannot extrapolate position for time "
+            << t << ". Out of valid range. Expecting " << m_t0 << " <= "
+            << t << " < " << m_tend << ".\n");
+  
   // Get the bounding indices and the distance from the time at the lower index
-  int low_i    = (int) floor((t - m_t0 ) / m_dt );
+  int low_i    = (int) floor((t - m_t0) / m_dt);
   int high_i   = low_i + 1;
   double offset_t = t - (m_t0 + m_dt * low_i);
 
   VW_ASSERT(low_i >= 0 && high_i < (int)m_position_samples.size(),
-	     ArgumentErr() << "Out of bounds in PiecewiseAPositionInterpolation.\n" );
+	     ArgumentErr() << "Out of bounds in PiecewiseAPositionInterpolation.\n");
 
-  Vector3 a = (m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
+  // Mean acceleration across the range
+  Vector3 a = (m_velocity[high_i] - m_velocity[low_i]) / m_dt;
+  
   return m_position_samples[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
 }
 
 //======================================================================
 // Curve3DPositionInterpolation class
 
-Curve3DPositionInterpolation::Curve3DPositionInterpolation(std::vector<Vector3> const& position_samples,
-							   double t0, double dt) {
+Curve3DPositionInterpolation::Curve3DPositionInterpolation
+(std::vector<Vector3> const& position_samples,
+ double t0, double dt) {
+  
   Matrix<double> Z(position_samples.size()*3, 9);
-
+  
   Vector<double> p(position_samples.size() * 3);
   // Reshape the position_samples matrix into a column vector
   for (size_t i = 0; i < position_samples.size(); i++) {
@@ -389,7 +498,7 @@ Curve3DPositionInterpolation::Curve3DPositionInterpolation(std::vector<Vector3> 
   m_cached_fit = coeff;
 }
 
-Vector3 Curve3DPositionInterpolation::operator()(double t ) const {
+Vector3 Curve3DPositionInterpolation::operator()(double t) const {
   Vector3 T(1, t, t*t);
   return m_cached_fit * T;
 }
@@ -397,34 +506,36 @@ Vector3 Curve3DPositionInterpolation::operator()(double t ) const {
 //======================================================================
 // HermitePositionInterpolation class
 
-HermitePositionInterpolation::HermitePositionInterpolation(std::vector<Vector3> const& position_samples,
-							    std::vector<Vector3> const& velocity_samples,
-							    double t0, double dt ) :
-  m_position_samples(position_samples ), m_velocity(velocity_samples ),
+HermitePositionInterpolation::HermitePositionInterpolation
+(std::vector<Vector3> const& position_samples,
+ std::vector<Vector3> const& velocity_samples,
+ double t0, double dt) :
+  m_position_samples(position_samples), m_velocity(velocity_samples),
   m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_position_samples.size() - 1)) {}
 
-Vector3 HermitePositionInterpolation::operator()(double t ) const {
+Vector3 HermitePositionInterpolation::operator()(double t) const {
 
   VW_ASSERT(t >= m_t0 && t < m_tend,
-	     ArgumentErr() << "Cannot extrapolate position for time "
-	     << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " < " << m_tend << "\n");
-
-  int low_i = (int) floor((t - m_t0 ) / m_dt );
+            ArgumentErr() << "Cannot extrapolate position for time "
+            << t << ". Out of valid range. Expecting "
+            << m_t0 << " <= " << t << " < " << m_tend << "\n");
+  
+  int low_i = (int) floor((t - m_t0) / m_dt);
   int high_i = low_i + 1;
 
   VW_ASSERT(low_i >= 0 && high_i < (int)m_position_samples.size(),
-	     ArgumentErr() << "Out of bounds in HermitePositionInterpolation.\n" );
+	     ArgumentErr() << "Out of bounds in HermitePositionInterpolation.\n");
 
   double low_t = m_t0 + m_dt * low_i;
   double norm_t = (t - low_t) / m_dt;
   Vector4 poly(1,0,0,0);
-  for (size_t i = 0; i < 3; i++ )
+  for (size_t i = 0; i < 3; i++)
     poly[i+1] = norm_t * poly[i];
 
   return dot_prod(Vector4(1,0,-3,2), poly) * m_position_samples[low_i] +
-    dot_prod(Vector4(0,1,-2,1), poly) * (m_velocity[low_i] * m_dt ) +
+    dot_prod(Vector4(0,1,-2,1), poly) * (m_velocity[low_i] * m_dt) +
     dot_prod(Vector4(0,0,3,-2), poly) * m_position_samples[high_i] +
-    dot_prod(Vector4(0,0,-1,1), poly) * (m_velocity[high_i] * m_dt );
+    dot_prod(Vector4(0,0,-1,1), poly) * (m_velocity[high_i] * m_dt);
 }
 
 //======================================================================
@@ -440,9 +551,7 @@ SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat> const& pose_sam
   m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)), m_use_splines(use_splines) {
 
   if (m_use_splines) {
-
     // Put the poses in a 4D vector and initalize the spline interpolation object
-    
     int num_pts = pose_samples.size();
     std::vector<std::array<double, 4>> vec_samples(num_pts);
     for (size_t it = 0; it < num_pts; it++) {
@@ -491,12 +600,21 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
     norm_t = 1.0;
   
   VW_ASSERT(low_i >= 0 && high_i < (int)m_pose_samples.size(),
-            ArgumentErr() << "Out of bounds in SLERPPoseInterpolation.\n" );
+            ArgumentErr() << "Out of bounds in SLERPPoseInterpolation.\n");
 
   if (!m_use_splines)
     return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
 
   // Using logic from https://github.com/boostorg/math/issues/211
+
+  // TODO(oalexan1): Here the parameter alpha passed to the spline
+  // constructor is the default, 1/2, which can create a little nicer
+  // splines but their parametrization becomes tricky and it is not
+  // clear if such a spline has smooth transitions given how we access
+  // it below. It may be prudent to set alpha = 0, when the spline
+  // parameter is the identity.  See the catmull_rom implementation
+  // for more details.
+  
   double low_s  = (*m_spline_ptr.get()).parameter_at_point(low_i);
   double high_s = (*m_spline_ptr.get()).parameter_at_point(high_i);
 
@@ -520,13 +638,13 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
 
 /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
 SlerpGridPointingInterpolation
-::SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3> > const& directions,
+::SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3>> const& directions,
                                  double row0, double drow, double col0, double dcol):
   m_directions(directions), m_row0(row0), m_drow(drow), m_col0(col0), m_dcol(dcol){
   
 
   VW_ASSERT(!m_directions.empty() && !m_directions.front().empty(),
-	     ArgumentErr() << "Empty input table in SlerpGridPointingInterpolation.\n" );
+	     ArgumentErr() << "Empty input table in SlerpGridPointingInterpolation.\n");
 
   m_row_end = m_row0 + m_drow * (m_directions.size() - 1);
   m_col_end = m_col0 + m_dcol * (m_directions.front().size() - 1);
@@ -540,25 +658,25 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
   VW_ASSERT(row >= m_row0 && row <= m_row_end,
 	     ArgumentErr() << "Cannot interpolate for pixel row "
 	     << row << ". Out of valid range. Expecting "
-             << m_row0 << " <= " << row << " <= " << m_row_end << "\n" );
+             << m_row0 << " <= " << row << " <= " << m_row_end << "\n");
   VW_ASSERT(col >= m_col0 && col <= m_col_end,
 	     ArgumentErr() << "Cannot interpolate for pixel col "
 	     << col << ". Out of valid range. Expecting "
-             << m_col0 << " <= " << col << " <= " << m_col_end << "\n" );
+             << m_col0 << " <= " << col << " <= " << m_col_end << "\n");
 
   // Calculations for the row
-  int low_irow  = (int) floor((row - m_row0 ) / m_drow );
-  int high_irow = (int) ceil ((row - m_row0 ) / m_drow );
+  int low_irow  = (int) floor((row - m_row0) / m_drow);
+  int high_irow = (int) ceil ((row - m_row0) / m_drow);
   VW_ASSERT(low_irow >= 0 && high_irow < (int)m_directions.size(),
-	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n" );
+	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n");
   double low_row  = m_row0 + m_drow * low_irow;
   double norm_row = (row - low_row) / m_drow; // row as fraction of time between points
 
   // Calculations for the col
-  int low_icol  = (int) floor((col - m_col0 ) / m_dcol );
-  int high_icol = (int) ceil ((col - m_col0 ) / m_dcol );
+  int low_icol  = (int) floor((col - m_col0) / m_dcol);
+  int high_icol = (int) ceil ((col - m_col0) / m_dcol);
   VW_ASSERT(low_icol >= 0 && high_icol < (int)m_directions.front().size(),
-	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n" );
+	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n");
   double low_col  = m_col0 + m_dcol * low_icol;
   double norm_col = (col - low_col) / m_dcol; // col as fraction of time between points
 
@@ -597,7 +715,7 @@ SmoothSLERPPoseInterpolation::SmoothSLERPPoseInterpolation(std::vector<Quat> con
   m_pose_samples(pose_samples), m_t0(t0), m_dt(dt), m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)), m_num_wts(num_wts), m_sigma(sigma) {
 
   VW_ASSERT(m_pose_samples.size() > 1,
-	    ArgumentErr() << "Expecting at least two pose samples.\n" );
+	    ArgumentErr() << "Expecting at least two pose samples.\n");
 }
 
 Quat SmoothSLERPPoseInterpolation::operator()(double t) const {
@@ -625,36 +743,37 @@ Quat SmoothSLERPPoseInterpolation::operator()(double t) const {
 //======================================================================
 // LinearTimeInterpolation class
 
-LinearTimeInterpolation::LinearTimeInterpolation(double initial_time, double time_per_line ) :
-  m_t0(initial_time ), m_dt(time_per_line) {}
+LinearTimeInterpolation::LinearTimeInterpolation(double initial_time, double time_per_line) :
+  m_t0(initial_time), m_dt(time_per_line) {}
 
-double LinearTimeInterpolation::operator()(double line ) const {
+double LinearTimeInterpolation::operator()(double line) const {
   return m_dt * line + m_t0;
 }
 
 //======================================================================
 // TLCTimeInterpolation class
 
-TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
-					                                 double time_offset ) {
+TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double>> const& tlc,
+					                                 double time_offset) {
   // Loop until next-to-last entry
-  for (size_t i = 0; i < tlc.size() - 1; i++ ) {
+  for (size_t i = 0; i < tlc.size() - 1; i++) {
     const double this_line = tlc[i].first;
     const double t         = time_offset + tlc[i].second; // The time for this entry
     
-    // Compute instantaneous slope at this time = (time diff) / (line diff)
-    m_m[this_line] = (tlc[i].second - tlc[i+1].second ) / (tlc[i].first - tlc[i+1].first );
-    // ?
+    // Compute the instantaneous slope at this time = (time diff) / (line diff)
+    m_m[this_line] = (tlc[i].second - tlc[i+1].second) / (tlc[i].first - tlc[i+1].first);
+    
+    // Compute the intercept
     m_b[this_line] = t - m_m[this_line] * this_line;
   }
 }
 
-double TLCTimeInterpolation::operator()(double line ) const {
-  map_type::const_iterator m = m_m.lower_bound(line );
-  map_type::const_iterator b = m_b.lower_bound(line );
-  if (m != m_m.begin() ) {
+double TLCTimeInterpolation::operator()(double line) const {
+  map_type::const_iterator m = m_m.lower_bound(line);
+  map_type::const_iterator b = m_b.lower_bound(line);
+  if (m != m_m.begin()) {
     m--; b--;
   }
-  // ?
+  // Find time at given line
   return line  * m->second + b->second;
 }
