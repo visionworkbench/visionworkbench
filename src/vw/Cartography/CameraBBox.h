@@ -496,13 +496,8 @@ namespace vw { namespace cartography {
                     bool quick=false,
                     std::vector<Vector3> *coords=0) {
     
-    // Testing to see if we should be centering on zero. Note that this is adjusted
-    // further at the end of this function.
-
-    // This is very ad hoc logic. At the least, if the DEM uses
-    // lon-lat and target_georef as well, then the resulting box
-    // should keep the same convention as these inputs as to whether
-    // the domain is [-180, 180], or [0, 360].
+    // Testing to see if we should be centering on zero. The logic here is consistent
+    // with point2dem.
     
     bool center_on_zero = true;
     Vector3 camera_llr = // Compute lon/lat/radius of camera center
@@ -739,15 +734,6 @@ namespace vw { namespace cartography {
 
     mean_gsd /= num;
 
-    // For lon-lat projections, if cam_bbox fits within [180, 360], shift it to
-    // [-180, 0]. This is likely to be fragile.
-    if (!target_georef.is_projected() &&
-        cam_bbox.min().x() >= 180.0 &&
-        cam_bbox.max().x() <= 360.0) {
-      cam_bbox.min().x() -= 360.0;
-      cam_bbox.max().x() -= 360.0;
-    }
-    
     return cam_bbox;
   }
 
