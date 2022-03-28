@@ -33,25 +33,25 @@
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/GeoReference.h>
 
-
 #include <boost/shared_ptr.hpp>
 
+// TODO(oalexan1): Move most of this code to .cc. Use it all with
+// ImageViewRef<float> for the DEM.
 
-namespace vw {
-namespace cartography {
+namespace vw { namespace cartography {
 
   // Intersect the ray back-projected from the camera with the datum.
-  Vector3 datum_intersection( Datum const& datum,
+  Vector3 datum_intersection(Datum const& datum,
                               camera::CameraModel const* model,
-                              Vector2 const& pix );
+                              Vector2 const& pix);
 
   // Return the intersection between the ray emanating from the
   // current camera pixel with the datum ellipsoid. The return value
   // is a map-projected point location (the intermediate between
   // lon-lat-altitude and pixel).
-  Vector2 geospatial_intersect( GeoReference const& georef,
+  Vector2 geospatial_intersect(GeoReference const& georef,
                                 Vector3 const& camera_ctr, Vector3 const& camera_vec,
-                                bool& has_intersection );
+                                bool& has_intersection);
 
 
   // Define an LMA model to solve for a DEM intersecting a ray. The
@@ -59,7 +59,8 @@ namespace cartography {
   // function is difference between datum height and DEM height at
   // current point on the ray.
   template <class DEMImageT>
-  class RayDEMIntersectionLMA : public math::LeastSquaresModelBase< RayDEMIntersectionLMA< DEMImageT > > {
+  class RayDEMIntersectionLMA:
+    public math::LeastSquaresModelBase<RayDEMIntersectionLMA<DEMImageT>> {
 
     // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>,
@@ -73,10 +74,10 @@ namespace cartography {
     /// - If m_dem(x,y) is in bounds, return the interpolated value.
     /// - Otherwise return 0 or big_val()
     template <class PixelT>
-    typename boost::enable_if< IsScalar<PixelT>, double >::type
-    inline Helper( double x, double y ) const {
-      if ( (0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
-           (0 <= y) && (y <= m_dem.rows() - 1) ){
+    typename boost::enable_if<IsScalar<PixelT>, double>::type
+    inline Helper(double x, double y) const {
+      if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
+           (0 <= y) && (y <= m_dem.rows() - 1)){
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val;
       }
@@ -86,10 +87,10 @@ namespace cartography {
 
     /// Provide safe interaction with DEMs that are compound
     template <class PixelT>
-    typename boost::enable_if< IsCompound<PixelT>, double>::type
-    inline Helper( double x, double y ) const {
-      if ( (0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
-           (0 <= y) && (y <= m_dem.rows() - 1) ){
+    typename boost::enable_if<IsCompound<PixelT>, double>::type
+    inline Helper(double x, double y) const {
+      if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
+           (0 <= y) && (y <= m_dem.rows() - 1)){
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val[0];
       }
@@ -114,24 +115,24 @@ namespace cartography {
                           Vector3 const& camera_ctr,
                           Vector3 const& camera_vec,
                           bool treat_nodata_as_zero
-                          )
+                         )
       : m_dem(interpolate(dem_image)), m_georef(georef),
         m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
         m_treat_nodata_as_zero(treat_nodata_as_zero){}
 
     /// Evaluator. See description above.
-    inline result_type operator()( domain_type const& len ) const {
+    inline result_type operator()(domain_type const& len) const {
       // The proposed intersection point
       Vector3 xyz = m_camera_ctr + len[0]*m_camera_vec;
 
       // Convert to geodetic coordinates, then to DEM pixel coordinates
-      Vector3 llh = m_georef.datum().cartesian_to_geodetic( xyz );
-      Vector2 pix = m_georef.lonlat_to_pixel( Vector2( llh.x(), llh.y() ) );
+      Vector3 llh = m_georef.datum().cartesian_to_geodetic(xyz);
+      Vector2 pix = m_georef.lonlat_to_pixel(Vector2(llh.x(), llh.y()));
 
       // Return a measure of the elevation difference between the DEM and the guess
       // at its current location.
       result_type result;
-      result[0] = Helper<typename DEMImageT::pixel_type >(pix.x(),pix.y()) - llh[2];
+      result[0] = Helper<typename DEMImageT::pixel_type>(pix.x(), pix.y()) - llh[2];
       return result;
     }
   };
@@ -151,8 +152,7 @@ namespace cartography {
                                   double max_abs_tol      = 1e-14, // abs cost fun change b/w iters
                                   double max_rel_tol      = 1e-14,
                                   int num_max_iter        = 100,
-                                  Vector3 xyz_guess       = Vector3()
-                                  ){
+                                  Vector3 xyz_guess       = Vector3()){
     
     // This is a very fragile function and things can easily go wrong. 
     try {
@@ -161,11 +161,11 @@ namespace cartography {
                                              camera_vec, treat_nodata_as_zero);
 
       Vector3 xyz;
-      if ( xyz_guess == Vector3() ){ // If no guess provided
+      if (xyz_guess == Vector3()){ // If no guess provided
         // Intersect the ray with the datum, this is a good initial guess.
         xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
 
-        if ( xyz == Vector3() ) { // If we failed to intersect the datum, give up!
+        if (xyz == Vector3()) { // If we failed to intersect the datum, give up!
           has_intersection = false;
           return Vector3();
         }
@@ -182,20 +182,20 @@ namespace cartography {
       // along the ray until hopefully it does.
       const double radius     = norm_2(xyz); // Radius from XZY coordinate center
       const int    ITER_LIMIT = 10; // There are two solver attempts per iteration
-      const double small      = radius*0.02/( 1 << (ITER_LIMIT-1) ); // Wiggle
+      const double small      = radius*0.02/(1 << (ITER_LIMIT-1)); // Wiggle
       for (int i = 0; i <= ITER_LIMIT; i++){
         // Gradually expand delta until on final iteration it is == radius*0.02
         double delta = 0;
         if (i > 0)
-          delta = small*( 1 << (i-1) );
+          delta = small*(1 << (i-1));
 
         for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
           len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
           // Use our model to compute the height diff at this length
           Vector<double, 1> height_diff = model(len);
           // TODO: This is an EXTREMELY lenient threshold! big_val()/10.0 == 1.0e+49!!!
-          //       The effect of this may be to just stop this loop when we get over valid DEM terrain.
-          if ( std::abs(height_diff[0]) < (model.big_val()/10.0) ){
+          // The effect of this may be to just stop this loop when we get over valid DEM terrain.
+          if (std::abs(height_diff[0]) < (model.big_val()/10.0)){
             has_intersection = true;
             break;
           }
@@ -207,7 +207,7 @@ namespace cartography {
       } // End i loop
 
       // Failed to compute an intersection in the hard coded iteration limit!
-      if ( !has_intersection ) {
+      if (!has_intersection) {
         return Vector3();
       }
 
@@ -219,11 +219,11 @@ namespace cartography {
       len = math::levenberg_marquardt(model, len, observation, status,
                                       max_abs_tol, max_rel_tol,
                                       num_max_iter
-                                      );
+                                     );
 
       Vector<double, 1> dem_height = model(len);
 
-      if ( (status < 0) || (std::abs(dem_height[0]) > height_error_tol) ){
+      if ((status < 0) || (std::abs(dem_height[0]) > height_error_tol)){
         has_intersection = false;
         return Vector3();
       }
@@ -245,11 +245,11 @@ namespace cartography {
                         
     /// Apply a function to evenly spaced locations along a line of pixels
     template <class FunctionT>
-    void bresenham_apply( math::BresenhamLine line, size_t step,
-                          FunctionT& f ) {
-      while ( line.is_good() ) { // Run until the end of the line
-        f( *line ); // Execute the function on this pixel location
-        for ( size_t i = 0; i < step; i++ )
+    void bresenham_apply(math::BresenhamLine line, size_t step,
+                          FunctionT& f) {
+      while (line.is_good()) { // Run until the end of the line
+        f(*line); // Execute the function on this pixel location
+        for (size_t i = 0; i < step; i++)
           ++line; // Advance "step" pixels along the line
       }
     }
@@ -270,7 +270,7 @@ namespace cartography {
       std::vector<Vector2> cam_pixels; // Collect sampled pixels here
       
       /// Constructor initializes class with DEM, camera model, etc.
-      CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem,
+      CameraDEMBBoxHelper(ImageViewBase<DEMImageT> const& dem,
                            GeoReference const& dem_georef,
                            GeoReference const& target_georef, // return box in this projection
                            boost::shared_ptr<camera::CameraModel> camera,
@@ -280,7 +280,7 @@ namespace cartography {
           m_target_georef(target_georef), 
           m_camera(camera), m_dem(dem.impl()), m_coords(coords),
           m_last_valid(false), m_center_on_zero(center_on_zero),
-          scale( std::numeric_limits<double>::max() ) {
+          scale(std::numeric_limits<double>::max()) {
         if (m_coords)
           m_coords->clear();
       }
@@ -317,7 +317,7 @@ namespace cartography {
                                         has_intersection,
                                         height_error_tol, max_abs_tol, max_rel_tol,
                                         num_max_iter, xyz_guess
-                                       );
+                                      );
           // Quit if we did not find an intersection
           if (!has_intersection)
             return false;
@@ -325,7 +325,7 @@ namespace cartography {
           // Use the datum to convert GCC coordinate to lon/lat/height
           // and to a projected coordinate system
           Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
-          point = target_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
+          point = target_georef.lonlat_to_point(Vector2(llh.x(), llh.y()));
           recenter_point(center_on_zero, target_georef, point);
                     
           return has_intersection;
@@ -335,7 +335,7 @@ namespace cartography {
       }
       
       /// Intersect this pixel with the DEM and record some information about the intersection
-      void operator() ( Vector2 const& pixel ) {
+      void operator() (Vector2 const& pixel) {
 
         Vector2 point;
         Vector3 xyz;
@@ -345,16 +345,16 @@ namespace cartography {
                                                           point, // output
                                                           xyz);
         // Quit if we did not find an intersection
-        if ( !has_intersection ) {
+        if (!has_intersection) {
           m_last_valid = false;
           return;
         }
         
-        if ( m_last_valid ) {
+        if (m_last_valid) {
           // If the call before this successfully intersected, compute
           // distance from last intersection.
-          double current_scale = norm_2( point - m_last_intersect );
-          if ( current_scale < scale ) // Record this distance if less than last distance
+          double current_scale = norm_2(point - m_last_intersect);
+          if (current_scale < scale) // Record this distance if less than last distance
             scale = current_scale;
         }
         
@@ -363,7 +363,7 @@ namespace cartography {
         if (m_coords)
           m_coords->push_back(xyz);
         
-        box.grow( point ); // Expand a bounding box of all points intersected so far
+        box.grow(point); // Expand a bounding box of all points intersected so far
         m_last_valid = true; // Record intersection success
         cam_pixels.push_back(pixel);
         
@@ -434,11 +434,11 @@ namespace cartography {
       }
 
       // Go on the diagonals. 
-      double diag = sqrt( double(dem_cols)*dem_cols + double(dem_rows)*dem_rows);
+      double diag = sqrt(double(dem_cols)*dem_cols + double(dem_rows)*dem_rows);
       for (double val = 0; val < diag + dem_step; val += dem_step) { // add dem_step to go past last
 
-        int col = std::min( int(round((val/diag)*dem_cols)), dem_cols-1);
-        int row = std::min( int(round((val/diag)*dem_rows)), dem_rows-1);
+        int col = std::min(int(round((val/diag)*dem_cols)), dem_cols-1);
+        int row = std::min(int(round((val/diag)*dem_rows)), dem_rows-1);
 
         // Main diagonal
         if (is_valid(dem.impl()(col, row))) {
@@ -467,14 +467,14 @@ namespace cartography {
   BBox2 camera_bbox(GeoReference const& georef,
                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
                     int32 cols, int32 rows, float &scale,
-                    std::vector<Vector2> *coords=0 );
+                    std::vector<Vector2> *coords=0);
 
   /// Overload with no scale return
   inline BBox2 camera_bbox(GeoReference const& dem_georef,
                            boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                           int32 cols, int32 rows ) {
+                           int32 cols, int32 rows) {
     float scale;
-    return camera_bbox( dem_georef, camera_model, cols, rows, scale );
+    return camera_bbox(dem_georef, camera_model, cols, rows, scale);
   }
 
   /// Intersections that take into account DEM topography
@@ -494,13 +494,21 @@ namespace cartography {
                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
                     int32 cols, int32 rows, float &mean_gsd,
                     bool quick=false,
-                    std::vector<Vector3> *coords=0 ) {
+                    std::vector<Vector3> *coords=0) {
     
-    // Testing to see if we should be centering on zero
+    // Testing to see if we should be centering on zero. Note that this is adjusted
+    // further at the end of this function.
+
+    // This is very ad hoc logic. At the least, if the DEM uses
+    // lon-lat and target_georef as well, then the resulting box
+    // should keep the same convention as these inputs as to whether
+    // the domain is [-180, 180], or [0, 360].
+    
     bool center_on_zero = true;
     Vector3 camera_llr = // Compute lon/lat/radius of camera center
       target_georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
-    if ( camera_llr[0] < -90 || camera_llr[0] > 90 )
+
+    if (camera_llr[0] < -90 || camera_llr[0] > 90)
       center_on_zero = false;
 
     int dem_cols = dem.impl().cols(); 
@@ -523,35 +531,35 @@ namespace cartography {
     dem_step = std::max(dem_step, 1);          // step amount must be > 0
 
     // Construct helper class with DEM and camera information.
-    detail::CameraDEMBBoxHelper<DEMImageT> functor( dem, dem_georef, target_georef,
-                                                    camera_model, center_on_zero, coords );
+    detail::CameraDEMBBoxHelper<DEMImageT> functor(dem, dem_georef, target_georef,
+                                                    camera_model, center_on_zero, coords);
 
     // Running the edges. Note: The last valid point on a
     // BresenhamLine is the last point before the endpoint.
 
     // Left to right across the top side
     functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(0,0,cols,0), image_step, functor );
+    bresenham_apply(math::BresenhamLine(0,0,cols,0), image_step, functor);
     
     // Top to bottom down the right side
     functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(cols-1,0,cols-1,rows), image_step, functor );
+    bresenham_apply(math::BresenhamLine(cols-1,0,cols-1,rows), image_step, functor);
 
     // Right to left across the bottom side
     functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(cols-1,rows-1,0,rows-1), image_step, functor );
+    bresenham_apply(math::BresenhamLine(cols-1,rows-1,0,rows-1), image_step, functor);
 
     // Bottom to top up the left side
     functor.m_last_valid = false;
-    bresenham_apply( math::BresenhamLine(0,rows-1,0,0), image_step, functor );
+    bresenham_apply(math::BresenhamLine(0,rows-1,0,0), image_step, functor);
 
     if (!quick) {
       // Do the x pattern
       functor.m_last_valid = false;
-      bresenham_apply( math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor );
+      bresenham_apply(math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor);
 
       functor.m_last_valid = false;
-      bresenham_apply( math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor );
+      bresenham_apply(math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor);
       functor.m_last_valid = false;
     }
     
@@ -692,12 +700,11 @@ namespace cartography {
           continue;
         
         Vector2 off_point;
-        bool has_intersection = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
-                                                                  target_georef,  
-                                                                  camera_model, center_on_zero,  
-                                                                  off_point, // output
-                                                                  xyz
-                                                                 );
+        bool has_intersection
+          = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
+                                              target_georef, camera_model, center_on_zero,  
+                                              off_point, // output
+                                              xyz);
         if (!has_intersection)
           continue; 
         
@@ -732,19 +739,28 @@ namespace cartography {
 
     mean_gsd /= num;
 
+    // For lon-lat projections, if cam_bbox fits within [180, 360], shift it to
+    // [-180, 0]. This is likely to be fragile.
+    if (!target_georef.is_projected() &&
+        cam_bbox.min().x() >= 180.0 &&
+        cam_bbox.max().x() <= 360.0) {
+      cam_bbox.min().x() -= 360.0;
+      cam_bbox.max().x() -= 360.0;
+    }
+    
     return cam_bbox;
   }
 
   /// Overload of camera_bbox when we don't care about getting the mean_gsd back.
   template<class DEMImageT>
-  inline BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem,
-                            GeoReference const& dem_georef,
-                            GeoReference const& target_georef,
-                            boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                            int32 cols, int32 rows) {
+  inline BBox2 camera_bbox(ImageViewBase<DEMImageT> const& dem,
+                           GeoReference const& dem_georef,
+                           GeoReference const& target_georef,
+                           boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                           int32 cols, int32 rows) {
     float mean_gsd;
-    return camera_bbox<DEMImageT>( dem.impl(), dem_georef, target_georef,
-                                    camera_model, cols, rows, mean_gsd );
+    return camera_bbox<DEMImageT>(dem.impl(), dem_georef, target_georef,
+                                  camera_model, cols, rows, mean_gsd);
   }
 
 } // namespace cartography
