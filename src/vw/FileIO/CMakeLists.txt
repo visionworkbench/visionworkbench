@@ -41,6 +41,7 @@ set(VW_FILEIO_SRC_FILES
     DiskImageResourcePDS.h 
     DiskImageResourceRaw.h
     DiskImageUtils.h 
+    DiskImageUtils.cc 
     DiskImageView.h 
     FileUtils.h
     FileUtils.cc

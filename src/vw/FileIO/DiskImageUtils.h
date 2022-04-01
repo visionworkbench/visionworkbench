@@ -147,7 +147,21 @@ namespace vw {
 
     return out_image;
   }
+
+  // Load the first channel of an input image. Must load in its native
+  // format then cast to double, in order to avoid auto-scaling of
+  // pixels.
+  vw::ImageViewRef<double> load_image_as_double(std::string const& image_file);
+
+  // Returns the default nodata value for each data type (just the
+  // minimum value).  Prefer to have
+  // -std::numeric_limits<vw::float32>::max() as no-data, unless for
+  // float64. Regardless of the inputs, the nodata value is read by vw
+  // as a double anyway, and, for example, for uint8 data, setting 0
+  // as no-data is not a good idea as it would conflict with valid
+  // pixels.
+  double get_default_nodata(int channel_type);
   
- } // namespace vw
+} // namespace vw
 
 #endif

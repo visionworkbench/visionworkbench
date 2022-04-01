@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file FileUtils.cc
 ///
 /// An abstract base class referring to an image on disk.
