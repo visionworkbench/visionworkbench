@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file PixelTypeInfo.h
 ///
 /// Base classes, support classes, and other infrastructure
@@ -173,6 +172,50 @@ namespace vw {
     return pix;
   }
 
+  // A correct implementation of clamping and casting.
+  // Note some suspicious logic further down.
+
+  // Converts a double to another numeric type with min/max value clamping.
+  template <typename T>
+  inline T clamp_and_cast(const double val) {
+    const T minVal = std::numeric_limits<T>::min();
+    const T maxVal = std::numeric_limits<T>::max();
+    // This logic is only correct for integer values. for floats,
+    // it is overridden below.
+    if (val < static_cast<double>(minVal)) return (minVal);
+    if (val > static_cast<double>(maxVal)) return (maxVal);
+    return static_cast<T>(val);
+  }
+  
+  // Specializations for floating point values.
+  template <typename T>
+  inline T clamp_and_cast_float(const double val) {
+    const T minVal = -std::numeric_limits<T>::max();
+    const T maxVal = std::numeric_limits<T>::max();
+    if (val < static_cast<double>(minVal)) return (minVal);
+    if (val > static_cast<double>(maxVal)) return (maxVal);
+    return static_cast<T>(val);
+  }
+  
+  template <>
+  inline vw::float32 clamp_and_cast<vw::float32>(const double val) {
+    return clamp_and_cast_float<vw::float32>(val);
+  }
+  
+  template <>
+  inline vw::float64 clamp_and_cast<vw::float64>(const double val) {
+    return clamp_and_cast_float<vw::float64>(val);
+  }
+
+  // To clamp and cast all pixels of an image use
+  // per_pixel_filter(image, ClampAndCast<OutputType, InputType>()).
+  template<class OutputType, class InputType>
+  class ClampAndCast: public ReturnFixedType<OutputType> {
+  public:
+    OutputType operator()(InputType const& v) const {
+      return clamp_and_cast<OutputType>(v);
+    }
+  };
 
   // *******************************************************************
   // Pixel channel casting and rescaling logic.
@@ -216,6 +259,8 @@ namespace vw {
     template <class SourceT>
     inline DestT operator()( SourceT source ) const {
       // Clamping semantics are more reasonable for float->int rescaling.
+      // This will not work for clamping and casting to float.
+      // for that, ClampAndCast above.
       if( boost::is_floating_point<SourceT>::value && ! boost::is_floating_point<DestT>::value) {
         if( source > ChannelRange<SourceT>::max() ) source = ChannelRange<SourceT>::max();
         else if( source < ChannelRange<SourceT>::min() ) source = ChannelRange<SourceT>::min();
