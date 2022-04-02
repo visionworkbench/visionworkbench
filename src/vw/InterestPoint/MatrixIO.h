@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 // TODO: Move this class to another folder!
 
 /// \file MatrixIO.h
@@ -81,6 +80,12 @@ namespace vw {
     in_matrix = result;
   }
 
+  // Write a double precision matrix to disk stored in plain text.
+  void write_matrix_as_txt(std::string const& filename, vw::Matrix<double> const& matrix);
+
+  // Read a double precision matrix to disk stored in plain text.
+  void read_matrix_as_txt(std::string const& filename, vw::Matrix<double> & matrix);
+  
 } // namespace vw
 
 #endif // __VW_INTERESTPOINT_MATRIXIO_H__
