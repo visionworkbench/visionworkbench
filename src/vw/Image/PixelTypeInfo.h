@@ -175,6 +175,8 @@ namespace vw {
   // A correct implementation of clamping and casting.
   // Note some suspicious logic further down.
 
+  // See also here logic for clamping, rounding, and casting.
+
   // Converts a double to another numeric type with min/max value clamping.
   template <typename T>
   inline T clamp_and_cast(const double val) {
@@ -182,8 +184,8 @@ namespace vw {
     const T maxVal = std::numeric_limits<T>::max();
     // This logic is only correct for integer values. for floats,
     // it is overridden below.
-    if (val < static_cast<double>(minVal)) return (minVal);
-    if (val > static_cast<double>(maxVal)) return (maxVal);
+    if (val < static_cast<double>(minVal)) return minVal;
+    if (val > static_cast<double>(maxVal)) return maxVal;
     return static_cast<T>(val);
   }
   
@@ -192,8 +194,8 @@ namespace vw {
   inline T clamp_and_cast_float(const double val) {
     const T minVal = -std::numeric_limits<T>::max();
     const T maxVal = std::numeric_limits<T>::max();
-    if (val < static_cast<double>(minVal)) return (minVal);
-    if (val > static_cast<double>(maxVal)) return (maxVal);
+    if (val < static_cast<double>(minVal)) return minVal;
+    if (val > static_cast<double>(maxVal)) return maxVal;
     return static_cast<T>(val);
   }
   
@@ -207,13 +209,35 @@ namespace vw {
     return clamp_and_cast_float<vw::float64>(val);
   }
 
-  // To clamp and cast all pixels of an image use
+  // Clamp, round and cast to int. T must be some kind of int.
+  template <typename T>
+  inline T clamp_round_and_cast_to_int(const double val) {
+    double roundedVal = round(val); // round first
+    const T minVal = std::numeric_limits<T>::min();
+    const T maxVal = std::numeric_limits<T>::max();
+    if (roundedVal < static_cast<double>(minVal)) return minVal;
+    if (roundedVal > static_cast<double>(maxVal)) return maxVal;
+    return static_cast<T>(roundedVal);
+  }
+
+  // To clamp and cast all pixels of an image, use
   // per_pixel_filter(image, ClampAndCast<OutputType, InputType>()).
   template<class OutputType, class InputType>
   class ClampAndCast: public ReturnFixedType<OutputType> {
   public:
     OutputType operator()(InputType const& v) const {
       return clamp_and_cast<OutputType>(v);
+    }
+  };
+
+  // To clamp, round, and cast all pixels of an image, use
+  // per_pixel_filter(image, ClampRoundAndCastToInt<OutputType, InputType>()).
+  // OutputType must be some kind of int.
+  template<class OutputType, class InputType>
+  class ClampRoundAndCastToInt: public ReturnFixedType<OutputType> {
+  public:
+    OutputType operator()(InputType const& v) const {
+      return clamp_round_and_cast_to_int<OutputType>(v);
     }
   };
 
@@ -375,6 +399,10 @@ namespace vw {
   // overload it for the case when the channel types are the same.
   // The rescaling variant, pixel_cast_rescale<>, performs a scale
   // conversion when converting the channel type.
+
+  // See ClampRoundAndCastToInt if it is desired to first round before
+  // casting to int.
+  
   // *******************************************************************
 
   // Default behavior, invoked when the source and destination channel
