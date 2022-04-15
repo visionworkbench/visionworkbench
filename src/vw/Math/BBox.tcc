@@ -85,11 +85,9 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator=( BBox<RealT1, DimN1> const& bbox
 // End Constructors 
 //-----------------------
 
-
-
 template <class RealT, size_t DimN>
 template <class VectorT>
-void BBox<RealT, DimN>::grow( VectorBase<VectorT> const& point ) {
+void BBox<RealT, DimN>::grow(VectorBase<VectorT> const& point) {
   VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), 
             ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
   if (m_min.size() == 0) {
@@ -160,13 +158,21 @@ bool BBox<RealT, DimN>::intersects( const BBox<RealT1, DimN1>& bbox ) const {
   return (m_min.size() != 0);
 }
 
+// TODO(oalexan1): In many places below use fully_empty() rather than empty()
+  
 template <class RealT, size_t DimN>
 bool BBox<RealT, DimN>::empty() const {
   for( size_t i=0; i<m_min.size(); ++i )
-    if( m_min[i] >= m_max[i] ) return true;
+    if (m_min[i] >= m_max[i]) return true;
   return (m_min.size() <= 0);
 }
 
+template <class RealT, size_t DimN>
+bool BBox<RealT, DimN>::fully_empty() const {
+  for( size_t i=0; i<m_min.size(); ++i )
+    if (m_min[i] > m_max[i]) return true;
+  return (m_min.size() <= 0);
+}
 
 template <class RealT, size_t DimN>
 RealT BBox<RealT, DimN>::width() const {

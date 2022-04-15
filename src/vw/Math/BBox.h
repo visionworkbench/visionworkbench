@@ -146,6 +146,9 @@ struct Int2Type
     /// Returns true if the bounding box is empty (i.e. degenerate).
     inline bool empty() const;
     
+    /// Returns true if the bounding box is fully empty, so min > max
+    inline bool fully_empty() const;
+
     inline Vector<RealT, DimN> size  () const; ///< Returns the size (i.e. the diagonal vector) of the bounding box.
     inline Vector<RealT, DimN> center() const; ///< Returns the center point of the bounding box.
     Vector<RealT, DimN> const& min   () const { return m_min; } ///< Returns the minimal point of the bounding box.
