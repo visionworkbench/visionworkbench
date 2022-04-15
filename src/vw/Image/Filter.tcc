@@ -30,7 +30,6 @@
 #include <vw/Math/Functions.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageMath.h>
-#include <vw/Image/Filter.h>
 
 /// Compute a Gaussian kernel.  The default size is seven times sigma
 /// rounded down to the nearest odd integer, or 3, whichever is larger.
