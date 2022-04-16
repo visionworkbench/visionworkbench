@@ -308,7 +308,7 @@ namespace stereo {
   /// You supply the half dimensions of the kernel window.
   ///
   /// Next, you supply the threshold that determines whether a
-  /// pixel is considered "close" to its neightbors (in units of pixels).
+  /// pixel is considered "close" to its neighbors (in units of pixels).
   ///
   /// Finally, you supply the percentage of the pixels within the kernel
   /// that must "match" the center pixel if that pixel is to be
