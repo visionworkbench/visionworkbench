@@ -39,6 +39,7 @@
 #include <vw/InterestPoint/IntegralDetector.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 #include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPointUtils.h>
 #include <vw/FileIO/FileUtils.h>
 
 using namespace vw;
