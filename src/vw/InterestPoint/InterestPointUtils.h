@@ -21,6 +21,10 @@
 /// Keep here some low-level utilities to avoid cluttering InterestData.h
 /// which is included in many places.
 ///
+
+// TODO(oalexan1): Once many ip finding functions are no longer templates,
+// do the same to these ones.
+
 #ifndef __INTEREST_POINT_UTILS_H__
 #define __INTEREST_POINT_UTILS_H__
 
