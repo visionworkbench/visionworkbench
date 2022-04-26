@@ -193,7 +193,7 @@ namespace cartography {
 
   // ---------------- XYZ to LON LAT ALT CONVERSION ------------------
   // WARNING: These functions are estimations, they do not produce accurate results.
-
+  // They seem to assume the datum to be spherical.
   /// GCC to GDC conversion with elevation being distance from 0,0,0
   class XYZtoLonLatRadEstimateFunctor : public UnaryReturnSameType {
     bool m_east_positive;
