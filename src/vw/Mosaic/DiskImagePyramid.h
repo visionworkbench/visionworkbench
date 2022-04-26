@@ -65,16 +65,20 @@ namespace vw { namespace mosaic {
   /// Single-channel images are read into Image<double>, while
   /// multi-channel in Image<Vector>, and we skip reading extra channels.
   template<class PixelT>
-  typename boost::enable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT> >::type
+  typename boost::enable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
-    return DiskImageView<PixelT>(file);
+    // Bugfix: Sometimes the image may actually have multiple channels
+    // but we choose to read one channel only in the caller of this
+    // function. Hence use read_channels() rather than
+    // DiskImageView(). The latter would cause a crash.
+    return vw::select_channel(vw::read_channels<1, double>(file, 0), 0);
+    //return DiskImageView<PixelT>(file);
   }
   template<class PixelT>
-  typename boost::disable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT> >::type
+  typename boost::disable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
     return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
   }
-
 
   // TODO: Clean up!
   // Gets called for PixelT == double
@@ -233,7 +237,7 @@ namespace vw { namespace mosaic {
     int m_top_image_max_pix;
 
     //  The pyramid. Largest images come earlier.
-    std::vector< ImageViewRef<PixelT> > m_pyramid;
+    std::vector<ImageViewRef<PixelT>> m_pyramid;
 
     // The files (stored on disk) containing the images in the pyramid.
     std::vector<std::string> m_pyramid_files;
@@ -265,13 +269,13 @@ namespace vw { namespace mosaic {
     if (base_file.empty())
       return;
 
-    if (subsample < 2) {
-      vw_throw( ArgumentErr() << "Must subsample by a factor of at least 2.\n");
-    }
+    if (subsample < 2)
+      vw_throw( ArgumentErr()
+                << "Must subsample by a factor of at least 2.\n");
 
-    if (top_image_max_pix < 4) {
-      vw_throw( ArgumentErr() << "The image at the top of the pyramid must be at least 2x2 in size.\n");
-    }
+    if (top_image_max_pix < 4)
+      vw_throw( ArgumentErr()
+                << "The image at the top of the pyramid must be at least 2x2 in size.\n");
 
     m_pyramid.push_back(custom_read<PixelT>(base_file));
 
@@ -287,8 +291,7 @@ namespace vw { namespace mosaic {
     // Keep making more pyramid levels until they are small enough
     int level = 0;
     int scale = 1;
-    while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows())
-           > m_top_image_max_pix ){
+    while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows()) > m_top_image_max_pix) {
 
       // The name of the file at the current scale
       std::ostringstream os;
@@ -301,7 +304,7 @@ namespace vw { namespace mosaic {
         vw_out() << "Will construct an image pyramid on disk."  << std::endl;
       }
 
-      ImageViewRef< PixelMask<PixelT> > masked
+      ImageViewRef<PixelMask<PixelT>> masked
         = create_custom_mask(m_pyramid[level], m_nodata_val);
       double sub_scale   = 1.0/subsample;
       int    tile_size   = 256;
@@ -315,17 +318,16 @@ namespace vw { namespace mosaic {
       PixelT nodata_pixel;
       set_all(nodata_pixel, m_nodata_val);
       ImageViewRef<PixelT> unmasked
-        = block_rasterize
-        (cache_tile_aware_render
-          (pixel_cast<PixelT>
-          (apply_mask
-            (resample_aa
-            (channel_cast<double>(masked), sub_scale),
-            nodata_pixel
-            )),
-          Vector2i(tile_size,tile_size) * sub_scale
-          ), Vector2i(tile_size,tile_size), sub_threads
-        );
+        = block_rasterize(cache_tile_aware_render
+                          (pixel_cast<PixelT>
+                           (apply_mask
+                            (resample_aa
+                             (channel_cast<double>(masked), sub_scale),
+                             nodata_pixel
+                             )),
+                           Vector2i(tile_size,tile_size) * sub_scale
+                           ), Vector2i(tile_size,tile_size), sub_threads
+                          );
       
       // Write the current image.
       if (has_georef)
