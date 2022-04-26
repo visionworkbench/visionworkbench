@@ -34,6 +34,8 @@
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/FileUtils.h>
+#include <vw/FileIO/DiskImageUtils.h>
+
 #include <vw/Math/Statistics.h>
 
 namespace vw { namespace mosaic {
@@ -69,10 +71,13 @@ namespace vw { namespace mosaic {
   custom_read(std::string const& file){
     // Bugfix: Sometimes the image may actually have multiple channels
     // but we choose to read one channel only in the caller of this
-    // function. Hence use read_channels() rather than
+    // function. In that case use read_channels() rather than
     // DiskImageView(). The latter would cause a crash.
-    return vw::select_channel(vw::read_channels<1, double>(file, 0), 0);
-    //return DiskImageView<PixelT>(file);
+    int num_channels = get_num_channels(file);
+    if (num_channels == 1)
+      return DiskImageView<PixelT>(file);
+    else
+      return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
   }
   template<class PixelT>
   typename boost::disable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
