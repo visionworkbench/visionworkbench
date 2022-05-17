@@ -48,10 +48,10 @@ static void vw_jpeg_error_exit(j_common_ptr cinfo) {
   (*cinfo->err->format_message)(cinfo, buffer);
   int msg_code = cinfo->err->msg_code;
   jpeg_destroy(cinfo);
-  if ( msg_code == JERR_NO_SOI )
-    vw_throw( ArgumentErr() << "DiskImageResourceJPEG: Cannot open non-jpeg files.\n" );
+  if (msg_code == JERR_NO_SOI)
+    vw_throw(ArgumentErr() << "DiskImageResourceJPEG: Cannot open non-jpeg files.\n");
   else
-    vw_throw( IOErr() << "DiskImageResourceJPEG error: " << buffer );
+    vw_throw(IOErr() << "DiskImageResourceJPEG error: " << buffer);
 }
 
 /* A struct to handle the data for jpeglib's internals. Have to use it so
@@ -139,8 +139,7 @@ public:
     current_line = 0;
   }
 
-  ~vw_jpeg_decompress_context()
-  {
+  ~vw_jpeg_decompress_context() {
     if(current_line >= 0) {
       jpeg_abort_decompress(&decompress_ctx);
       jpeg_destroy_decompress(&decompress_ctx);
@@ -167,8 +166,7 @@ public:
    * will clobber any error handling you already have, so be sure to
    * reset it!
   */
-  void advance(size_t lines)
-  {
+  void advance(size_t lines) {
     for(size_t i=0; i < lines; i++)
     {
       jpeg_read_scanlines(&decompress_ctx, scanline, 1);
@@ -184,8 +182,7 @@ DiskImageResourceJPEG::~DiskImageResourceJPEG() {
 }
 
 /// Flush the buffered data to disk
-void DiskImageResourceJPEG::flush()
-{
+void DiskImageResourceJPEG::flush() {
 
   if (m_file_ptr) {
     fclose((FILE*)m_file_ptr);
@@ -195,23 +192,22 @@ void DiskImageResourceJPEG::flush()
 
 /// Bind the resource to a file for reading.  Confirm that we can open
 /// the file and that it has a sane pixel format.
-void DiskImageResourceJPEG::open( std::string const& filename, int subsample_factor, size_t byte_offset )
-{
+void DiskImageResourceJPEG::open(std::string const& filename, int subsample_factor, size_t byte_offset) {
   if (subsample_factor == 1 || subsample_factor == 2 ||
       subsample_factor == 4 || subsample_factor == 8)
   {
     m_subsample_factor = subsample_factor;
   } else {
-    vw_throw( ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8" );
+    vw_throw(ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8");
   }
 
   if(m_file_ptr)
-    vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
+    vw_throw(IOErr() << "DiskImageResourceJPEG: A file is already open.");
 
   // Open the file on disk
   FILE * infile;
   if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
-    vw_throw( ArgumentErr() << "Failed to open \"" << filename << "\" using libJPEG." );
+    vw_throw(ArgumentErr() << "Failed to open \"" << filename << "\" using libJPEG.");
   }
   if (byte_offset) fseek(infile, byte_offset, SEEK_SET);
 
@@ -225,18 +221,17 @@ void DiskImageResourceJPEG::open( std::string const& filename, int subsample_fac
 }
 
 /// Bind the resource to a file for writing.
-void DiskImageResourceJPEG::create( std::string const& filename,
-                                        ImageFormat const& format )
-{
-  if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
-    vw_throw( NoImplErr() << "JPEG doesn't support multi-plane images with compound pixel types." );
+void DiskImageResourceJPEG::create(std::string const& filename,
+                                   ImageFormat const& format) {
+  if(format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR)
+    vw_throw(NoImplErr() << "JPEG doesn't support multi-plane images with compound pixel types.");
   if(m_file_ptr)
-    vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
+    vw_throw(IOErr() << "DiskImageResourceJPEG: A file is already open.");
 
   // Open the file on disk
   FILE * outfile;
   if ((outfile = fopen(filename.c_str(), "wb")) == NULL) {
-    vw_throw( IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
+    vw_throw(IOErr() << "Failed to open \"" << filename << "\" using libJPEG.");
   }
   m_filename = filename;
   m_format = format;
@@ -264,29 +259,27 @@ void DiskImageResourceJPEG::create( std::string const& filename,
  * lines automatically depending on whether bbox represents the whole
  * image or not.
 */
-void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) const
-{
-  VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
-             ArgumentErr() << "DiskImageResourceJPEG (read) Error: Destination buffer has wrong dimensions!" );
+void DiskImageResourceJPEG::read(ImageBuffer const& dest, BBox2i const& bbox) const {
+  VW_ASSERT(int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
+            ArgumentErr() << "DiskImageResourceJPEG (read) Error: "
+            << "Destination buffer has wrong dimensions!");
 
   const int start_row = bbox.min().y();
   const unsigned int end_row = bbox.max().y();
 
   // If we're starting from the beginning, or if we don't have an open
   // decompress context, restart from the beginning of the file.
-  if(ctx->current_line != start_row)
-  {
+  if(ctx->current_line != start_row) {
     if(ctx->current_line > start_row)
       read_reset();
     ctx->advance(start_row - ctx->current_line);
   }
 
   // Now read.
-  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
+  boost::scoped_array<uint8> buf(new uint8[ctx->cstride * bbox.width() * bbox.height()]);
 
   int32 offset = 0;
-  while ( ctx->decompress_ctx.output_scanline < end_row)
-  {
+  while (ctx->decompress_ctx.output_scanline < end_row) {
     ctx->readline();
 
     // Copy the data over into a contiguous buffer, which is what
@@ -324,21 +317,22 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
   src.cstride = ctx->cstride;
   src.rstride = src.cstride * src.format.cols;
   src.pstride = src.rstride * src.format.rows;
-  convert( dest, src, m_rescale );
+  convert(dest, src, m_rescale);
 
 }
 
 void DiskImageResourceJPEG::read_reset() const {
-  ctx = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>(new DiskImageResourceJPEG::vw_jpeg_decompress_context(const_cast<DiskImageResourceJPEG*>(this)));
+  ctx = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>
+    (new DiskImageResourceJPEG::vw_jpeg_decompress_context
+     (const_cast<DiskImageResourceJPEG*>(this)));
 }
 
 // Write the given buffer into the disk image.
-void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
-{
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceJPEG does not support partial writes." );
-  VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
-             IOErr() << "Buffer has wrong dimensions in JPEG write." );
+void DiskImageResourceJPEG::write(ImageBuffer const& src, BBox2i const& bbox) {
+  VW_ASSERT(bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceJPEG does not support partial writes.");
+  VW_ASSERT(src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
+             IOErr() << "Buffer has wrong dimensions in JPEG write.");
 
   // Set up the JPEG data structures
   jpeg_compress_struct cinfo;
@@ -353,8 +347,7 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
   cinfo.image_width = m_format.cols;
   cinfo.image_height = m_format.rows;
 
-  switch (m_format.pixel_format)
-  {
+  switch (m_format.pixel_format) {
     case VW_PIXEL_SCALAR:
       cinfo.input_components = m_format.planes;
       cinfo.in_color_space = JCS_UNKNOWN;
@@ -368,7 +361,8 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
       cinfo.in_color_space = JCS_RGB;
       break;
     default:
-      vw_throw( IOErr() << "DiskImageResourceJPEG: Unsupported pixel type (" << m_format.pixel_format << ")." );
+      vw_throw(IOErr() << "DiskImageResourceJPEG: Unsupported pixel type ("
+               << m_format.pixel_format << ").");
       break;
   }
 
@@ -378,10 +372,11 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
   jpeg_set_quality(&cinfo, (int)(100*m_quality), TRUE); // limit to baseline-JPEG values
 
   // Set up the image buffer and convert the data into this buffer
-  boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
+  boost::scoped_array<uint8> buf
+    (new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height]);
   ImageBuffer dst(m_format, buf.get());
 
-  convert( dst, src, m_rescale );
+  convert(dst, src, m_rescale);
 
   jpeg_start_compress(&cinfo, TRUE);
   int row_stride = cinfo.image_width*cinfo.input_components;
@@ -399,12 +394,12 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
 }
 
 // A FileIO hook to open a file for reading
-DiskImageResource* DiskImageResourceJPEG::construct_open( std::string const& filename ) {
-  return new DiskImageResourceJPEG( filename );
+DiskImageResource* DiskImageResourceJPEG::construct_open(std::string const& filename) {
+  return new DiskImageResourceJPEG(filename);
 }
 
 // A FileIO hook to open a file for writing
-DiskImageResource* DiskImageResourceJPEG::construct_create( std::string const& filename,
-                                                                    ImageFormat const& format ) {
-  return new DiskImageResourceJPEG( filename, format );
+DiskImageResource* DiskImageResourceJPEG::construct_create(std::string const& filename,
+                                                           ImageFormat const& format) {
+  return new DiskImageResourceJPEG(filename, format);
 }
