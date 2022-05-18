@@ -32,9 +32,12 @@ if("${ASP_DEPS_DIR}" STREQUAL "")
   message(FATAL_ERROR "You need to set ASP_DEPS_DIR.")
 endif()
 
+# Where to search for dependencies
+set(CMAKE_PREFIX_PATH "${ASP_DEPS_DIR}")
+
 # Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
-include_directories( ../ )
-include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
+include_directories(..)
+include_directories(${CMAKE_BINARY_DIR}/src) # Generated protocol buffers go here!
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 # foreach(dir ${dirs})
