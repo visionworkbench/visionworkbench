@@ -226,15 +226,15 @@ namespace math {
           if (!m_reduce_min_num_output_inliers_if_no_fit) 
             break;
           reduce_min_num_output_inliers();
-          if (m_min_num_output_inliers < 2) // Can't possibly compute a transform with 1 or 0 samples!
+          if (m_min_num_output_inliers < 2) // Can't compute a transform with 1 or 0 samples
             break;
-          vw_out() << "Attempting RANSAC with " << m_min_num_output_inliers << " of output inliers.\n";
+          vw_out() << "Attempting RANSAC with " << m_min_num_output_inliers << " inliers.\n";
           
         }
       }
 
       if (!success) 
-        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
+        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data.");
 
       return H;
     }
