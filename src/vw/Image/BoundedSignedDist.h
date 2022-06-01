@@ -23,21 +23,34 @@
 #define __VW_IMAGE_BOUNDEDSIGNEDDIST_H__
 
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/MaskViews.h>
 
-// Find the signed Euclidean distance function to boundary of invalid
-// pixels. Invalid pixels neighboring valid pixels have a distance of
-// 0. The distance is negative for other invalid pixels, and is
-// positive for all valid pixels, with both increasing in magnitude
-// away from the boundary, till the magnitude reaches current value
-// where it stops growing.
-
-// This is a single-threaded function which does all the calculation
-// in memory. The complexity is proportional to
-// boundary_len * max_dist * max_dist.
-
 namespace vw {
+
+  // Find the Euclidean distance function to boundary of valid pixels
+  // of an image of Vector3 pixels. An invalid pixel equals Vector3().
+  // - Pixels at the edges of the image are considered invalid.
+  // - Invalid pixels have a distance of 0. The distance is
+  //   positive for all valid pixels, increasing when moving away from
+  //   invalid pixels, until the magnitude reaches max_dist where it
+  //   stops growing.
+  // - The complexity of this function is length of boundary times
+  //   max_dist * max_dist, so it can be slow.
+  // - It is assumed that the output image fits fully in memory.
+  //   TODO(oalexan1): Make this more generic.
+  void bounded_boundary_dist(ImageViewRef<Vector3> image, double max_dist,
+                             ImageView<double> & dist);
   
+  // Find the signed Euclidean distance function to boundary of invalid
+  // pixels. Invalid pixels neighboring valid pixels have a distance of
+  // 0. The distance is negative for other invalid pixels, and is
+  // positive for all valid pixels, with both increasing in magnitude
+  // away from the boundary, till the magnitude reaches current value
+  // where it stops growing.
+  // This is a single-threaded function which does all the calculation
+  // in memory. The complexity is proportional to
+  // boundary_len * max_dist * max_dist.
   template<class PixelT>
   void bounded_signed_dist(ImageViewRef<PixelMask<PixelT>> image,
                            double max_dist, ImageView<double> & dist) {
@@ -109,8 +122,10 @@ namespace vw {
         
       }
     }
+
+    return;
   }
-  
+
 } //end namespace vw
 
 #endif//__VW_IMAGE_BOUNDEDSIGNEDDIST_H__
