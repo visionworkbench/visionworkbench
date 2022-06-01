@@ -15,12 +15,11 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file DistanceFunction.h
 ///
 
-#ifndef __VW_IMAGE_BOUNDEDSIGNEDDIST_H__
-#define __VW_IMAGE_BOUNDEDSIGNEDDIST_H__
+#ifndef __VW_IMAGE_DISTANCEFUNCTION_H__
+#define __VW_IMAGE_DISTANCEFUNCTION_H__
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
@@ -39,8 +38,8 @@ namespace vw {
   //   max_dist * max_dist, so it can be slow.
   // - It is assumed that the output image fits fully in memory.
   //   TODO(oalexan1): Make this more generic.
-  void bounded_boundary_dist(ImageViewRef<Vector3> image, double max_dist,
-                             ImageView<double> & dist);
+  void bounded_dist(ImageViewRef<Vector3> image, double max_dist,
+                    ImageView<double> & dist);
   
   // Find the signed Euclidean distance function to boundary of invalid
   // pixels. Invalid pixels neighboring valid pixels have a distance of
@@ -128,4 +127,4 @@ namespace vw {
 
 } //end namespace vw
 
-#endif//__VW_IMAGE_BOUNDEDSIGNEDDIST_H__
+#endif//__VW_IMAGE_DISTANCEFUNCTION_H__

@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file BoundedSignedDist.cc
+/// \file DistanceFunction.cc
 
 #include <vw/Image/DistanceFunction.h>
 
@@ -34,7 +34,7 @@ namespace vw {
 // - It is assumed that the output image fits fully in memory.
 //   TODO(oalexan1): Make this more generic.
 
-void bounded_boundary_dist(ImageViewRef<Vector3> image, double max_dist, ImageView<double> & dist) {
+void bounded_dist(ImageViewRef<Vector3> image, double max_dist, ImageView<double> & dist) {
   
   if (max_dist < 0.0) 
     vw_throw(ArgumentErr() << "Expecting positive max_dist.");
