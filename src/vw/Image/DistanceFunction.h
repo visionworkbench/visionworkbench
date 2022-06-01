@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file BoundedSignedDist.h
+/// \file DistanceFunction.h
 ///
 
 #ifndef __VW_IMAGE_BOUNDEDSIGNEDDIST_H__

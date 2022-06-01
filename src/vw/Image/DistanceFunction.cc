@@ -18,7 +18,7 @@
 
 /// \file BoundedSignedDist.cc
 
-#include <vw/Image/BoundedSignedDist.h>
+#include <vw/Image/DistanceFunction.h>
 
 namespace vw {
 
