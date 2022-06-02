@@ -15,8 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// TODO: Move this class to another folder!
-
 /// \file MatrixIO.h
 ///
 /// Functions for reading and writing matrices to files
