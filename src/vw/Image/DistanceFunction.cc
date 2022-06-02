@@ -22,19 +22,18 @@
 
 namespace vw {
 
-// Find the Euclidean distance function to boundary of valid pixels
-// of an image of Vector3 pixels. An invalid pixel equals Vector3().
-// - Pixels at the edges of the image are considered invalid.
-// - Invalid pixels have a distance of 0. The distance is
-//   positive for all valid pixels, increasing when moving away from
-//   invalid pixels, until the magnitude reaches max_dist where it
-//   stops growing.
-// - The complexity of this function is length of boundary times
-//   max_dist * max_dist, so it can be slow.
-// - It is assumed that the output image fits fully in memory.
-//   TODO(oalexan1): Make this more generic.
+  // Find the Euclidean distance function to boundary of valid pixels
+  // of an image. An invalid pixel equals 0.
+  // - Pixels at the edges of the image are considered invalid.
+  // - Invalid pixels have a distance of 0. The distance is
+  //   positive for all valid pixels, increasing when moving away from
+  //   invalid pixels, until the magnitude reaches max_dist where it
+  //   stops growing.
+  // - The complexity of this function is length of boundary times
+  //   max_dist * max_dist, so it can be slow.
+  // - It is assumed that the output image fits fully in memory.
 
-void bounded_dist(ImageViewRef<Vector3> image, double max_dist, ImageView<double> & dist) {
+void bounded_dist(ImageViewRef<int> image, double max_dist, ImageView<double> & dist) {
   
   if (max_dist < 0.0) 
     vw_throw(ArgumentErr() << "Expecting positive max_dist.");
@@ -47,7 +46,7 @@ void bounded_dist(ImageViewRef<Vector3> image, double max_dist, ImageView<double
   for (int col = 0; col < cols; col++) {
     for (int row = 0; row < rows; row++) {
       // Initialize to the max for valid pixels and not at image edges.
-      if (image(col, row) != Vector3() && col > 0 && col < cols - 1 && row > 0 && row < rows - 1)
+      if (image(col, row) != 0 && col > 0 && col < cols - 1 && row > 0 && row < rows - 1)
         dist(col, row) = max_dist;
       else
         dist(col, row) = 0;

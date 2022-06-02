@@ -28,7 +28,7 @@
 namespace vw {
 
   // Find the Euclidean distance function to boundary of valid pixels
-  // of an image of Vector3 pixels. An invalid pixel equals Vector3().
+  // of an image. An invalid pixel equals 0.
   // - Pixels at the edges of the image are considered invalid.
   // - Invalid pixels have a distance of 0. The distance is
   //   positive for all valid pixels, increasing when moving away from
@@ -37,8 +37,7 @@ namespace vw {
   // - The complexity of this function is length of boundary times
   //   max_dist * max_dist, so it can be slow.
   // - It is assumed that the output image fits fully in memory.
-  //   TODO(oalexan1): Make this more generic.
-  void bounded_dist(ImageViewRef<Vector3> image, double max_dist,
+  void bounded_dist(ImageViewRef<int> image, double max_dist,
                     ImageView<double> & dist);
   
   // Find the signed Euclidean distance function to boundary of invalid
