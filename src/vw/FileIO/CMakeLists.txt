@@ -45,6 +45,8 @@ set(VW_FILEIO_SRC_FILES
     DiskImageView.h 
     FileUtils.h
     FileUtils.cc
+    MatrixIO.h
+    MatrixIO.cc
     MemoryImageResource.h 
     KML.h 
     ScanlineIO.h 
