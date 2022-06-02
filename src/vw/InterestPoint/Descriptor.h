@@ -29,7 +29,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
 #include <vw/InterestPoint/InterestData.h>
-#include <vw/InterestPoint/MatrixIO.h>
+#include <vw/FileIO/MatrixIO.h>
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/Detector.h>
 

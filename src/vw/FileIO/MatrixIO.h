@@ -23,8 +23,8 @@
 ///
 
 //***
-#ifndef __VW_INTERESTPOINT_MATRIXIO_H__
-#define __VW_INTERESTPOINT_MATRIXIO_H__
+#ifndef __VW_FILEIO_MATRIXIO_H__
+#define __VW_FILEIO_MATRIXIO_H__
 
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageView.h>
@@ -38,7 +38,7 @@ namespace vw {
   /// is particularly useful if you write the matrix as an OpenEXR
   /// image file; this retains the maximal amount of information.
   template <class T>
-  void write_matrix( const std::string &filename, vw::Matrix<T> &out_matrix ) {
+  void write_matrix(const std::string &filename, vw::Matrix<T> &out_matrix) {
 
     // Convert the matrix to an image so that we can write it using
     // write_image().  There is probably a more efficient way to do
@@ -59,7 +59,7 @@ namespace vw {
   /// is particularly useful if the matrix was saved as an OpenEXR
   /// image file; this retains the maximal amount of information.
   template <class T>
-  void read_matrix( vw::Matrix<T>& in_matrix, const std::string &filename ) {
+  void read_matrix(vw::Matrix<T>& in_matrix, const std::string &filename) {
 
     // Treat the matrix as an image so we can read from it using read_image().
     // There is probably a more efficient way to do this, but this is the
@@ -88,6 +88,6 @@ namespace vw {
   
 } // namespace vw
 
-#endif // __VW_INTERESTPOINT_MATRIXIO_H__
+#endif // __VW_FILEIO_MATRIXIO_H__
 
 

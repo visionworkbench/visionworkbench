@@ -32,7 +32,7 @@
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Detector.h>
 #include <vw/InterestPoint/Descriptor.h>
-#include <vw/InterestPoint/MatrixIO.h>
+#include <vw/FileIO/MatrixIO.h>
 
 #define PCA_BASIS_SIZE  20
 #define MAX_POINTS_TO_DRAW 1000

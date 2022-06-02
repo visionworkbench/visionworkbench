@@ -21,7 +21,7 @@
 ///
 /// Functions for reading and writing matrices to files
 ///
-#include <vw/InterestPoint/MatrixIO.h>
+#include <vw/FileIO/MatrixIO.h>
 
 namespace vw {
 
