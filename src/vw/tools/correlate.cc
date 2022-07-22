@@ -48,7 +48,6 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::stereo;
 
-
 int main( int argc, char *argv[] ) {
 
   std::string left_file_name, right_file_name;
@@ -251,14 +250,14 @@ int main( int argc, char *argv[] ) {
   // Actually invoke the raster
   {
     vw::Timer corr_timer("Correlation Time");
-    cartography::GdalWriteOptions geo_opt;
+    vw::GdalWriteOptions geo_opt;
     geo_opt.raster_tile_size = Vector2i(1024, 1024);
     if (stereo_algorithm == VW_CORRELATION_BM) {
-      block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
+      vw::cartography::block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
     }
     else { // SGM/MGM needs to be rasterized in a single tile.
       ImageView<PixelMask<Vector2f> > result = disparity_map;
-      block_write_gdal_image("disparity.tif", result, geo_opt);
+      vw::cartography::block_write_gdal_image("disparity.tif", result, geo_opt);
     }
   }
 

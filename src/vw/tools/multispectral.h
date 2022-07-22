@@ -418,7 +418,7 @@ public:
 // High level water detection function for WorldView.
 void detect_water_worldview23(std::vector<std::string> const& image_files, 
                               std::string const& output_path,
-                              cartography::GdalWriteOptions const& write_options,
+                              vw::GdalWriteOptions const& write_options,
                               double sensitivity = 1.0, bool debug = false) {
 
   // Load the image and metadata
@@ -506,7 +506,7 @@ void detect_water_worldview23(std::vector<std::string> const& image_files,
 // High level water detection function for SPOT.
 void detect_water_spot67(std::vector<std::string> const& image_files, 
                          std::string const& output_path,
-                         cartography::GdalWriteOptions const& write_options,
+                         vw::GdalWriteOptions const& write_options,
                          double sensitivity = 1.0, bool debug = false) {
 
   // Load image, no useful metadata available.

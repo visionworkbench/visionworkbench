@@ -54,6 +54,10 @@ using vw::camera::LensDistortion;
 
 // Global variables, to make it easier to invoke the function do_work
 // with many channels and channel types.
+
+// TODO(oalexan1): Make all options below use the Options structure
+struct Options: vw::GdalWriteOptions {};
+
 std::string input_file_name, output_file_name, camera_file_name;
 bool preserve_pixel_type = false;
 double output_nodata_value = -std::numeric_limits<float>::max();
@@ -88,9 +92,9 @@ public:
   inline int32 rows() const { return m_rows; }
   inline int32 planes() const { return 1; }
 
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-  inline pixel_type operator()( double/*i*/, double/*j*/, int32/*p*/ = 0 ) const {
+  inline pixel_type operator()(double/*i*/, double/*j*/, int32/*p*/ = 0) const {
     vw_throw(NoImplErr() << "UndistortView::operator()(...) is not implemented");
     return pixel_type();
   }
@@ -123,13 +127,13 @@ public:
         Vector2 out_loc  = lens_ptr->distorted_coordinates(m_camera_model, lens_loc);
         Vector2 in_loc = elem_quot(out_loc, pitch);
 
-        tile(col - bbox.min().x(), row - bbox.min().y() )
+        tile(col - bbox.min().x(), row - bbox.min().y())
           = interp_dist_img(in_loc[0], in_loc[1]);
       }
     }
     
     return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
+                             cols(), rows());
   }
 
   template <class DestT>
@@ -208,7 +212,7 @@ void do_work() {
   int rows = floor(output_area.height());
   vw_out() << "Output image size: " << cols << ' ' << rows << std::endl;
 
-  vw::cartography::GdalWriteOptions write_options;
+  vw::GdalWriteOptions write_options;
   PixelT edge_extension_val = PixelT(0);
   
   bool has_georef = false;
@@ -225,7 +229,7 @@ void do_work() {
 					   offset,  
 					   edge_extension_val,
 					   camera_model
-					   ),
+					  ),
 			   has_georef,  
 			   georef, use_nodata, nodata,  
 			   write_options, tpc);
@@ -268,7 +272,7 @@ void do_work() {
 		      offset,  
 		      masked_edge_extension_val,
 		      camera_model
-		      );
+		     );
 
     PixelT output_nodata_value_vec = PixelT(output_nodata_value);
     block_write_gdal_image(output_file_name,
@@ -326,13 +330,13 @@ void do_work() {
   }
 
 // The channel type can be integer or float
-#define DO_WORK_ALL_CHANNELS( PIXELTYPE )  \
-  DO_WORK( PIXELTYPE, uint8 );             \
-  DO_WORK( PIXELTYPE, int8 );              \
-  DO_WORK( PIXELTYPE, uint16 );            \
-  DO_WORK( PIXELTYPE, int16 );             \
-  DO_WORK( PIXELTYPE, float32 );           \
-  DO_WORK( PIXELTYPE, float64 ); 
+#define DO_WORK_ALL_CHANNELS(PIXELTYPE)  \
+  DO_WORK(PIXELTYPE, uint8);             \
+  DO_WORK(PIXELTYPE, int8);              \
+  DO_WORK(PIXELTYPE, uint16);            \
+  DO_WORK(PIXELTYPE, int16);             \
+  DO_WORK(PIXELTYPE, float32);           \
+  DO_WORK(PIXELTYPE, float64); 
 
 // Support 1 or 3 channel images, perhaps with an alpha channel
 DO_WORK_ALL_CHANNELS(PixelGray)
@@ -342,7 +346,7 @@ DO_WORK_ALL_CHANNELS(PixelRGBA)
 
 // Prefer to save to process and save as float, to not lose information
 // during interpolation.
-#define SWITCH_ON_CHANNEL_TYPE( PIXELTYPE )                            \
+#define SWITCH_ON_CHANNEL_TYPE(PIXELTYPE)                            \
   if (preserve_pixel_type) {					       \
     switch (fmt.channel_type) {					       \
     case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_uint8();   break;   \
@@ -378,11 +382,11 @@ void do_work_all_channels(std::string const& input_file_name){
   }
 }
     
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
 
-  po::options_description desc("Usage: undistort_image [options] <input image> <camera model> -o <output image>\n\nOptions");
-  desc.add_options()
-    ("help,h",        "Display this help message")
+  Options opt;
+  po::options_description general_options("Usage: undistort_image [options] <input image> <camera model> -o <output image>\n\nOptions");
+  general_options.add_options()
     ("input-file",    po::value<std::string>(&input_file_name), 
                       "Explicitly specify the input file")
     ("camera-file",    po::value<std::string>(&camera_file_name), 
@@ -394,36 +398,38 @@ int main( int argc, char *argv[] ) {
     ("preserve-pixel-type", po::bool_switch(&preserve_pixel_type)->default_value(false),
      "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.")
     ("interpolation-method",  po::value<std::string>(&interpolation_method)->default_value("bilinear"), "Interpolation method. Options: bilinear, bicubic. Default: bilinear.");
-      
+
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
+  
   po::positional_options_description p;
   p.add("input-file", 1);
   p.add("camera-file", 1);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(general_options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     vw_out() << "An error occurred while parsing command line arguments.\n";
     vw_out() << "\t" << e.what() << "\n\n";
-    vw_out() << desc;
+    vw_out() << general_options;
     return 1;
   }
 
-  if( vm.count("help") ) {
-    vw_out() << desc << std::endl;
+  if(vm.count("help")) {
+    vw_out() << general_options << std::endl;
     return 1;
   }
-  if( (vm.count("input-file") != 1) || (vm.count("camera-file") != 1) ) {
+  if((vm.count("input-file") != 1) || (vm.count("camera-file") != 1)) {
     vw_out() << "Error: Must specify exactly one image file and one camera file!" << std::endl;
-    vw_out() << desc << std::endl;
+    vw_out() << general_options << std::endl;
     return 1;
   }
 
   output_nodata_value_was_set = vm.count("output-nodata-value");
 
   if (input_file_name.empty() || camera_file_name.empty() || output_file_name.empty())
-    vw_throw(ArgumentErr() << "Not all inputs were specified.\n" << desc << "\n");
+    vw_throw(ArgumentErr() << "Not all inputs were specified.\n" << general_options << "\n");
 
   vw::create_out_dir(output_file_name);
   do_work_all_channels(input_file_name);

@@ -200,7 +200,7 @@ namespace vw { namespace mosaic {
     // Constructor. Note that we use NaN as nodata if not available,
     // that has the effect of not accidentally setting some pixels to nodata.
     DiskImagePyramid(std::string const& base_file = "",
-		     cartography::GdalWriteOptions const& opt = cartography::GdalWriteOptions(),
+		     vw::GdalWriteOptions const& opt = vw::GdalWriteOptions(),
 		     int top_image_max_pix = 1000*1000,
 		     int subsample = 2);
 
@@ -232,7 +232,7 @@ namespace vw { namespace mosaic {
 
   private:
 
-    cartography::GdalWriteOptions m_opt;
+    vw::GdalWriteOptions m_opt;
 
     // The subsample factor to go to the next level of the pyramid (must be >= 2).
     int m_subsample;
@@ -264,7 +264,7 @@ namespace vw { namespace mosaic {
 
   template <class PixelT>
   DiskImagePyramid<PixelT>::DiskImagePyramid(std::string const& base_file,
-                                             cartography::GdalWriteOptions const& opt,
+                                             vw::GdalWriteOptions const& opt,
                                              int top_image_max_pix,
                                              int subsample):
     m_opt(opt), m_subsample(subsample),

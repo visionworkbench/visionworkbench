@@ -39,15 +39,17 @@
 #include <vw/Mosaic/QuadTreeGenerator.h>
 #include <vw/Mosaic/UniviewQuadTreeConfig.h>
 #include <vw/tools/Common.h>
-
-#include <fstream>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/filesystem/path_traits.hpp>
 #include <boost/foreach.hpp>
+
+#include <fstream>
+
 namespace fs = boost::filesystem;
-                               
+
 template <class ImageT, class TransformT>
 vw::TransformView<ImageT, TransformT>
 transform_only( vw::ImageViewBase<ImageT> const& v,
@@ -55,7 +57,7 @@ transform_only( vw::ImageViewBase<ImageT> const& v,
   return vw::TransformView<ImageT, TransformT>(v.impl(),transform_func);
 }
 
-struct Options {
+struct Options: vw::GdalWriteOptions {
 
   Options() :
     output_file_type(""),

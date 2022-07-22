@@ -41,6 +41,7 @@
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/InterestPointUtils.h>
 #include <vw/FileIO/FileUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 using namespace vw;
 using namespace vw::ip;
@@ -50,6 +51,9 @@ using namespace vw::ip;
 #include <boost/foreach.hpp>
 namespace po = boost::program_options;
 
+// TODO(oalexan1): Make all options below use the Options structure
+struct Options: vw::GdalWriteOptions {};
+  
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string output_folder, interest_operator, descriptor_generator;
@@ -64,6 +68,7 @@ int main(int argc, char** argv) {
   const float IDEAL_OBALOG_THRESHOLD = .07;
   const float IDEAL_HARRIS_THRESHOLD = 1.2e-5;
 
+  Options opt;
   po::options_description general_options("Options");
   general_options.add_options()
     ("interest-operator",    po::value(&interest_operator)->default_value("sift"), 
@@ -88,7 +93,6 @@ int main(int argc, char** argv) {
      "Write output files to this location.")
     ("num-threads",          po::value(&num_threads)->default_value(0), 
      "Set the number of threads for interest point detection. If set to 0 (default), use the visionworkbench default number of threads.")
-    ("help,h",        "Display this help message.")
     // Debug options
     ("debug-image,d", po::value(&debug_image)->default_value(0), 
      "Write out a low-resolution or full-resolution debug image with interest points on it if the value of this flag is respectively 1 or 2. Default: 0 (do nothing).")
@@ -96,11 +100,13 @@ int main(int argc, char** argv) {
      "Print information for this many detected IP. Default: 0.")
     ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
 
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
+  
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value(&input_file_names));
 
-  po::options_description options("Allowed Options");
+  po::options_description options("Allowed options");
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
@@ -112,8 +118,8 @@ int main(int argc, char** argv) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     vw_out() << "An error occurred while parsing command line arguments.\n";
     vw_out() << "\t" << e.what() << "\n\n";
@@ -121,43 +127,43 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if( vm.count("help") ) {
+  if(vm.count("help")) {
     vw_out() << usage.str();
     return 1;
   }
 
-  if( input_file_names.size() < 1 ) {
+  if(input_file_names.size() < 1) {
     vw_out() << "Error: Must specify at least one input file!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
   }
 
-  if( nodata_radius < 1 ) {
+  if(nodata_radius < 1) {
     vw_out() << "Error: nodata-radius must be >= 1!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
   }
 
-  if ( num_threads > 0 )
+  if (num_threads > 0)
     vw_settings().set_default_num_threads(num_threads);
-  if ( vm.count("tile-size"))
+  if (vm.count("tile-size"))
     vw_settings().set_default_tile_size(tile_size);
-  if ( vm.count("per-tile-normalize"))
+  if (vm.count("per-tile-normalize"))
     opencv_normalize = true;
 
   // Checking strings
-  boost::to_lower( interest_operator );
-  boost::to_lower( descriptor_generator );
+  boost::to_lower(interest_operator);
+  boost::to_lower(descriptor_generator);
 
   // The OpenCV detector types are handled differently than the custom detector types.  
-  const bool detector_is_opencv = ( (interest_operator == "brisk") ||
-                                    (interest_operator == "surf" ) ||
-                                    (interest_operator == "orb"  ) ||
-                                    (interest_operator == "sift" )   );
-  const bool descriptor_is_opencv = ( (descriptor_generator == "brisk") ||
-                                      (descriptor_generator == "surf" ) ||
-                                      (descriptor_generator == "orb"  ) ||
-                                      (descriptor_generator == "sift" )   );
+  const bool detector_is_opencv = ((interest_operator == "brisk") ||
+                                    (interest_operator == "surf") ||
+                                    (interest_operator == "orb" ) ||
+                                    (interest_operator == "sift")  );
+  const bool descriptor_is_opencv = ((descriptor_generator == "brisk") ||
+                                      (descriptor_generator == "surf") ||
+                                      (descriptor_generator == "orb" ) ||
+                                      (descriptor_generator == "sift")  );
 
   if (opencv_normalize && !detector_is_opencv) {
     vw_out() << "Cannot use per-tile normalize with a non-OpenCV detector!\n";
@@ -165,27 +171,27 @@ int main(int argc, char** argv) {
   }
 
   // Determine if interest_operator is legitimate
-  if ( !( interest_operator == "iagd"   ||
+  if (!(interest_operator == "iagd"   ||
           interest_operator == "harris" ||
           interest_operator == "log"    ||
           interest_operator == "obalog" || 
           //interest_operator == "brisk"  ||
           interest_operator == "orb"    ||
           //interest_operator == "surf"   ||
-          interest_operator == "sift"     ) ) {
+          interest_operator == "sift"    )) {
     vw_out() << "Unknown interest operator: " << interest_operator
              << ". Options are: sift, orb, OBALoG, LoG, Harris, IAGD.\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
-  if ( !( descriptor_generator == "patch"  ||
+  if (!(descriptor_generator == "patch"  ||
           descriptor_generator == "pca"    ||
           descriptor_generator == "sgrad"  ||
           descriptor_generator == "sgrad2" ||
           //descriptor_generator == "brisk"  ||
           descriptor_generator == "orb"    ||
           //descriptor_generator == "surf"   ||
-          descriptor_generator == "sift"    ) ) {
+          descriptor_generator == "sift"   )) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
              << ". Options are: sift, orb, sgrad, sgrad2, patch, pca.\n";
     exit(0);
@@ -230,8 +236,8 @@ int main(int argc, char** argv) {
     }
 
     // Get reference to the file and convert to floating point
-    boost::shared_ptr<vw::DiskImageResource> image_rsrc( vw::DiskImageResourcePtr( input_file_names[i] ) );
-    DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
+    boost::shared_ptr<vw::DiskImageResource> image_rsrc(vw::DiskImageResourcePtr(input_file_names[i]));
+    DiskImageView<PixelGray<float> > raw_image(*image_rsrc);
     ImageViewRef<PixelGray<float> >  image;
     ImageViewRef<PixelMask<PixelGray<float> > >  masked_image;
 
@@ -269,7 +275,7 @@ int main(int argc, char** argv) {
     // Detecting Interest Points
     // - Note that only the OpenCV detectors handle masks.
     InterestPointList ip;
-    if ( interest_operator == "harris" ) {
+    if (interest_operator == "harris") {
       // Harris threshold is inversely proportional to gain.
       HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
@@ -279,7 +285,7 @@ int main(int argc, char** argv) {
         InterestPointDetector<HarrisInterestOperator> detector(interest_operator, ip_per_tile);
         ip = detect_interest_points(image, detector, ip_per_tile);
       }
-    } else if ( interest_operator == "log") {
+    } else if (interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
       // associated threshold is abs(interest) > interest_threshold.
       // LoG threshold is inversely proportional to gain..
@@ -291,26 +297,26 @@ int main(int argc, char** argv) {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, ip_per_tile);
         ip = detect_interest_points(image, detector, ip_per_tile);
       }
-    } else if ( interest_operator == "obalog") {
+    } else if (interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, ip_per_tile );
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector(interest_operator, ip_per_tile);
       ip = detect_interest_points(image, detector, ip_per_tile);
-    } else if ( interest_operator == "iagd") {
+    } else if (interest_operator == "iagd") {
       // This is the default ASP implementation
-      IntegralAutoGainDetector detector( ip_per_tile );
+      IntegralAutoGainDetector detector(ip_per_tile);
       ip = detect_interest_points(image, detector, ip_per_tile);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (detector_is_opencv) {
 
       OpenCvIpDetectorType ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
-      if ( interest_operator == "brisk") {
+      if (interest_operator == "brisk") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_BRISK;
-      } else if ( interest_operator == "orb") {
+      } else if (interest_operator == "orb") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_ORB;
-      } else if ( interest_operator == "sift") {
+      } else if (interest_operator == "sift") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
-      } else if ( interest_operator == "surf") {
+      } else if (interest_operator == "surf") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SURF;
       }
       OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, ip_per_tile);
@@ -335,7 +341,7 @@ int main(int argc, char** argv) {
     // Removing Interest Points on nodata or within 1/px
     if (nodata_radius > 0) {
       size_t before_size = ip.size();
-      remove_ip_near_nodata(raw_image, nodata, ip, nodata_radius );
+      remove_ip_near_nodata(raw_image, nodata, ip, nodata_radius);
       
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
     } // End clearing IP's near nodata
@@ -343,8 +349,8 @@ int main(int argc, char** argv) {
     vw_out() << "\t Found " << ip.size() << " points.\n";
 
     // Delete the orientation value if requested
-    if ( no_orientation ) {
-      BOOST_FOREACH( InterestPoint& i, ip ) {
+    if (no_orientation) {
+      BOOST_FOREACH(InterestPoint& i, ip) {
         i.orientation = 0;
       }
     }
@@ -353,22 +359,22 @@ int main(int argc, char** argv) {
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
       PatchDescriptorGenerator descriptor;
-      describe_interest_points( image, descriptor, ip );
+      describe_interest_points(image, descriptor, ip);
     } else if (descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
-      describe_interest_points( image, descriptor, ip );
+      describe_interest_points(image, descriptor, ip);
     } else if (descriptor_generator == "sgrad") {
       SGradDescriptorGenerator descriptor;
-      describe_interest_points( image, descriptor, ip );
+      describe_interest_points(image, descriptor, ip);
     } else if (descriptor_generator == "sgrad2") {
       SGrad2DescriptorGenerator descriptor;
-      describe_interest_points( image, descriptor, ip );
+      describe_interest_points(image, descriptor, ip);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     // Nothing happens here because we compute the descriptors at the same time we detect IPs.
     }
 #else
     } else {
-      vw_out() << "Error: Cannot use SIFT, SURF, ORB or BRISK if not compiled with OpenCV!" << std::endl;
+      vw_out() << "Error: Cannot use SIFT, SURF, ORB or BRISK if not compiled with OpenCV!\n";
       exit(0); 
     }
 #endif
@@ -397,7 +403,8 @@ int main(int argc, char** argv) {
       write_ip_debug_image(file_prefix + "_debug.png",
                            raw_image, ip, has_nodata, nodata,
                            (debug_image==WRITE_FULL_RES_DEBUG),
-                           (interest_operator == "orb")); // Orb has large scale values so shrink them.
+                           // Orb has large scale values, so shrink them
+                           (interest_operator == "orb")); 
     }
                          
   } // End loop through input files

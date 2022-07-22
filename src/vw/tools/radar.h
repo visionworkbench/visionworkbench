@@ -226,7 +226,7 @@ inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
 template <class ImageT>
 void preprocess_sentinel1_image(ImageT const& input_image, BBox2i const& roi,
                                 RadarType &global_min, RadarType &global_max,
-                                cartography::GdalWriteOptions const& write_options,
+                                vw::GdalWriteOptions const& write_options,
                                 std::string const& temporary_path,
                                 double nodata_value,
                                 ImageViewRef<RadarTypeM>      & processed_image) {
@@ -492,7 +492,7 @@ UnaryPerPixelView<ViewT, GetAngleFunc> get_angle(ImageViewBase<ViewT> const& vie
 /// - This follows the process in the source paper.
 size_t select_best_tiles(ImageView<PixelMask<Vector2f> >    & tile_means_stddevs,
                          std::vector<int>                   & kept_tile_indices,
-                         cartography::GdalWriteOptions const& write_options,
+                         vw::GdalWriteOptions const& write_options,
                          bool debug) {
 
   std::cout << "Computing global tile statistics...\n";
@@ -664,7 +664,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
       ISPRS Journal of Photogrammetry and Remote Sensing 104 (2015): 203-212.
 */
 void sar_martinis(std::string const& input_image_path, std::string const& output_path,
-                  cartography::GdalWriteOptions const& write_options,
+                  vw::GdalWriteOptions const& write_options,
                   std::string dem_path="", bool debug=false, int tile_size = 512,
                   double sensitivity = 1.0) {
 

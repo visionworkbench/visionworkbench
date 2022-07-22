@@ -31,10 +31,6 @@
 ///* Define to 1 if VW has BigTIFF support */
 //#cmakedefine VW_HAS_BIGTIFF
 
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <dlfcn.h> header file. */
-//#define VW_HAVE_DLFCN_H
-
 /* Define to 1 if you have the `exp2' function. */
 #cmakedefine VW_HAVE_EXP2 1
 
@@ -65,10 +61,6 @@
 /* Define to 1 if you have the `log2' function. */
 #cmakedefine VW_HAVE_LOG2 1
 
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <memory.h> header file. */
-//#define VW_HAVE_MEMORY_H
-
 /* Define to 1 if you have the `mkstemps' function. */
 #cmakedefine VW_HAVE_MKSTEMPS
 
@@ -83,10 +75,6 @@
 
 ///* Define to 1 if the ARBITRARY_QT package is available. */
 //#define VW_HAVE_PKG_ARBITRARY_QT
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the BOOST package is available. */
-//#define VW_HAVE_PKG_BOOST
 
 //* Define to 1 if the BOOST_DATETIME package is available. */
 //#define VW_HAVE_PKG_BOOST_DATETIME
@@ -157,14 +145,6 @@
 /* Define to 1 if the pkg package is available */
 #cmakedefine VW_HAVE_PKG_HDF
 
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the HDF_PLAIN package is available. */
-//#define VW_HAVE_PKG_HDF_PLAIN
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the HDF_SUBDIR package is available. */
-//#define VW_HAVE_PKG_HDF_SUBDIR
-
 /* Define to 1 if the HDR module is available. */
 #cmakedefine VW_HAVE_PKG_HDR 1
 
@@ -188,11 +168,6 @@
 
 /* Define to 1 if the LIBKML package is available. */
 #cmakedefine VW_HAVE_PKG_LIBKML
-
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the M package is available. */
-//#define VW_HAVE_PKG_M
 
 /* Define to 1 if the MATH module is available. */
 #cmakedefine VW_HAVE_PKG_MATH 1
@@ -225,11 +200,6 @@
 /* Define to 1 if the SLAPACK package is available. */
 #cmakedefine VW_HAVE_PKG_SLAPACK 1
 
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the STANDALONE_BLAS package is available. */
-//#define VW_HAVE_PKG_STANDALONE_BLAS
-
 ///* Define to 1 if the STANDALONE_F2C package is available. */
 //#define VW_HAVE_PKG_STANDALONE_F2C
 
@@ -245,21 +215,8 @@
 ///* Define to 1 if the STANDALONE_LAPACK package is available. */
 //#define VW_HAVE_PKG_STANDALONE_LAPACK
 
-///* Define to 1 if the pkg package is available */
-//#define VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 /* Define to 1 if the STEREO module is available. */
 #cmakedefine VW_HAVE_PKG_STEREO 1
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the TCMALLOC package is available. */
-//#define VW_HAVE_PKG_TCMALLOC
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the THREADS package is available. */
-//#define VW_HAVE_PKG_THREADS
 
 /* Define to 1 if the TIFF package is available. */
 #cmakedefine VW_HAVE_PKG_TIFF 1
@@ -270,32 +227,11 @@
 ///* Define to 1 if the VW module is available. */
 #cmakedefine VW_HAVE_PKG_VW 1
 
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if the Z package is available. */
-//#define VW_HAVE_PKG_Z
-
-
 /* Define to 1 if you have the <pwd.h> header file. */
 #cmakedefine VW_HAVE_PWD_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #cmakedefine VW_HAVE_STDINT_H 1
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <stdlib.h> header file. */
-//#cmakedefine VW_HAVE_STDLIB_H
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <strings.h> header file. */
-//#cmakedefine VW_HAVE_STRINGS_H
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <string.h> header file. */
-//#cmakedefine VW_HAVE_STRING_H
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to 1 if you have the <sys/stat.h> header file. */
-//#cmakedefine VW_HAVE_SYS_STAT_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #cmakedefine VW_HAVE_SYS_TYPES_H 1
@@ -305,11 +241,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #cmakedefine VW_HAVE_UNISTD_H 1
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-///* Define to the sub-directory in which libtool stores uninstalled libraries.
-//   */
-//#define VW_LT_OBJDIR
 
 /* set the default number of processing threads for multi-threaded operations
    */
@@ -329,10 +260,6 @@
 
 /* Define to the one symbol short name of this package. */
 #define VW_PACKAGE_TARNAME "VisionWorkbench"
-
-//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-/* Define to the home page for this package. */
-#define VW_PACKAGE_URL
 
 /* Define to the version of this package. */
 #define VW_PACKAGE_VERSION @PACKAGE_VERSION@

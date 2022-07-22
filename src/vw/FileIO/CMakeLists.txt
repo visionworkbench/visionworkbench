@@ -44,6 +44,7 @@ set(VW_FILEIO_SRC_FILES
     DiskImageUtils.cc 
     DiskImageView.h 
     FileUtils.h
+    GdalWriteOptions.h
     FileUtils.cc
     MatrixIO.h
     MatrixIO.cc
@@ -65,6 +66,7 @@ set(VW_FILEIO_SRC_FILES
     MemoryImageResource.cc 
     ScanlineIO.cc 
     TemporaryFile.cc 
+    GdalWriteOptions.cc
     ${gdal_sources} 
     ${hdf_sources} 
     ${jpeg_sources} 

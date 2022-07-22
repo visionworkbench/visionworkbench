@@ -170,6 +170,7 @@ namespace {
   }
 }
 
+// Use macros to define set_default_num_threads(), set_system_cache_size(), etc.  
 #define _VW_SET1(Name, Default)\
   m_ ## Name(Default), m_ ## Name ## _override(false)
 
@@ -184,18 +185,18 @@ Settings::Settings()
   set_rc_filename(default_vwrc(), false);
 }
 
-#define GETSET(Name, Type, Callback)           \
-  Type Settings::Name() {                      \
-    if (!m_ ## Name ## _override)              \
-      reload_config();                         \
-    RecursiveMutex::Lock lock(m_settings_mutex);        \
-    return m_ ## Name;                         \
-  }                                            \
-  void Settings::set_ ## Name(const Type& x) { \
-    RecursiveMutex::Lock lock(m_settings_mutex);        \
-    m_ ## Name ## _override = true;            \
-    m_ ## Name = x;                            \
-    Callback                                   \
+#define GETSET(Name, Type, Callback)             \
+  Type Settings::Name() {                        \
+    if (!m_ ## Name ## _override)                \
+      reload_config();                           \
+    RecursiveMutex::Lock lock(m_settings_mutex); \
+    return m_ ## Name;                           \
+  }                                              \
+  void Settings::set_ ## Name(const Type& x) {   \
+    RecursiveMutex::Lock lock(m_settings_mutex); \
+    m_ ## Name ## _override = true;              \
+    m_ ## Name = x;                              \
+    Callback                                     \
   }
 
 GETSET(default_num_threads, uint32, ;);

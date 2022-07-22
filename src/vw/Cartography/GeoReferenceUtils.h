@@ -25,10 +25,9 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Exception.h>
 
-#include <boost/program_options.hpp>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
-
 #include <vw/Cartography/GeoReference.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 /// \file GeoReferenceUtils.h Tools for working with GeoReference objects
 
@@ -58,37 +57,14 @@ namespace cartography {
   /// Estimates meters per pixel for an image.
   double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);
 
-  /// Standard options for multi-threaded GDAL (tif) image writing.
-  /// - num_threads sets the number of parallel block-writing threads when calling one
-  ///   of the block write functions in this file.  By default it is set to
-  ///   vw_settings().default_num_threads().
-  // TODO: This is the wrong place, as it has nothing to do with cartography.
-  // Move to DiskImageResourceGDAL.h.
-  // This will be an immense change. 
-  struct GdalWriteOptions {
-    DiskImageResourceGDAL::Options gdal_options;
-    Vector2i     raster_tile_size;
-    int32        num_threads;  
-    std::string  tif_compress;
-
-    GdalWriteOptions();
-  };
-
-  /// An object to let Program Options know about our GdalWriteOptions
-  struct GdalWriteOptionsDescription : public boost::program_options::options_description {
-    GdalWriteOptionsDescription( GdalWriteOptions& opt);
-  };
-
-
   //---------------------------------------------------------------------------
   // Functions for writing GDAL images - multithreaded.
-
 
   template <class ImageT>
   DiskImageResourceGDAL*
   build_gdal_rsrc( const std::string &filename,
                    ImageViewBase<ImageT> const& image,
-                   GdalWriteOptions const& opt ) {
+                   GdalWriteOptions const& opt) {
     return new DiskImageResourceGDAL(filename, image.impl().format(),
                                          opt.raster_tile_size, opt.gdal_options);
   }

@@ -81,11 +81,12 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
     // cache size is 1.5^n GB. This will limit the number of warnings
     // to a representative subset.
     double factor = 1.5;
+    double MB = 1024.0 * 1024.0; // 1 MB in bytes
     if ( (m_size > m_max_size) && (m_size > factor*m_last_size)){
       VW_OUT(WarningMessage, "cache")
-        << "Cache size (" << round(m_size/1.0e6)
-        << " MB) is larger than the requested maximum cache size (" << round(m_max_size/1.0e6)
-        << " MB). Consider increasing the cache in ~/.vwrc.\n";
+        << "Cache size (" << m_size / MB
+        << " MB) is larger than the requested maximum cache size (" << m_max_size / MB
+        << " MB). Consider increasing --cache-size-mb for this program.\n";
       m_last_size = m_size;
     }
     

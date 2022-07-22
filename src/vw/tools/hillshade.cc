@@ -28,6 +28,7 @@
 
 #include <vw/tools/hillshade.h>
 #include <vw/FileIO/FileUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -37,7 +38,7 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 
-struct Options {
+struct Options : vw::GdalWriteOptions {
   Options() : nodata_value(std::numeric_limits<double>::quiet_NaN()), blur_sigma(std::numeric_limits<double>::quiet_NaN()) {}
   // Input
   std::string input_file_name;
@@ -50,58 +51,59 @@ struct Options {
   bool   align_to_georef;
 };
 
-void handle_arguments( int argc, char *argv[], Options& opt ) {
-  po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
-  desc.add_options()
-    ("input-file",      po::value(&opt.input_file_name ), "Explicitly specify the input file")
+void handle_arguments(int argc, char *argv[], Options& opt) {
+  po::options_description general_options("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
+  general_options.add_options()
+    ("input-file",      po::value(&opt.input_file_name), "Explicitly specify the input file")
     ("output-file,o",   po::value(&opt.output_file_name), "Specify the output file")
     ("azimuth,a",       po::value(&opt.azimuth)->default_value(300), "Sets the direction the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
     ("elevation,e",     po::value(&opt.elevation)->default_value(20), "Set the elevation of the light source (in degrees).")
     ("scale,s",         po::value(&opt.scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
     ("nodata-value",    po::value(&opt.nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("blur",            po::value(&opt.blur_sigma  ), "Pre-blur the DEM with the specified sigma.")
-    ("align-to-georef", po::bool_switch(&opt.align_to_georef), "The azimuth is relative to East instead of +x in the image.")
-    ("help,h", "Display this help message");
+    ("blur",            po::value(&opt.blur_sigma ), "Pre-blur the DEM with the specified sigma.")
+    ("align-to-georef", po::bool_switch(&opt.align_to_georef), "The azimuth is relative to East instead of +x in the image.");
+
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
 
   po::positional_options_description p;
   p.add("input-file", 1);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(general_options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
-    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
-              << e.what() << desc );
+    vw_throw(ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << general_options);
   }
 
-  if( vm.count("help") )
-    vw_throw( ArgumentErr() << desc );
+  if(vm.count("help"))
+    vw_throw(ArgumentErr() << general_options);
 
-  if ( vm.count("input-file") != 1 )
-    vw_throw( ArgumentErr() << "Error: Must specify exactly one input file!\n\n" << desc );
+  if (vm.count("input-file") != 1)
+    vw_throw(ArgumentErr() << "Error: Must specify exactly one input file!\n\n" << general_options);
 
-  if ( opt.output_file_name.empty() )
+  if (opt.output_file_name.empty())
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string() + "_HILLSHADE.tif";
 
   create_out_dir(opt.output_file_name);
 }
 
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
 
   Options opt;
   try {
-    handle_arguments( argc, argv, opt );
+    handle_arguments(argc, argv, opt);
     do_multitype_hillshade(opt.input_file_name,
                            opt.output_file_name,
                            opt.azimuth, opt.elevation, opt.scale,
                            opt.nodata_value, opt.blur_sigma, opt.align_to_georef);
 
-  } catch ( const ArgumentErr& e ) {
+  } catch (const ArgumentErr& e) {
     vw_out() << e.what() << std::endl;
     return 1;
-  } catch ( const Exception& e ) {
+  } catch (const Exception& e) {
     vw_out() << e.what() << std::endl;
     return 1;
   }

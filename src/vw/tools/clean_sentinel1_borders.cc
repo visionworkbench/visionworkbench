@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
   int tile_size   = 2048;
 
   /// Handle the command line parameters
-  cartography::GdalWriteOptions write_options;
+  vw::GdalWriteOptions write_options;
 
   po::options_description general_options("Clean up the borders of a Sentinel1 radar image.\n\nGeneral Options");
   general_options.add_options()

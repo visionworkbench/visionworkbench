@@ -521,7 +521,7 @@ public:
 /// The sensitivity option multiplies the water detection threshold and is
 /// an easy way to adjust the gross sensitivity of the algorithm.
 void detect_water(std::vector<std::string> const& image_files, std::string const& output_path,
-                  cartography::GdalWriteOptions const& write_options, 
+                  vw::GdalWriteOptions const& write_options, 
                   double sensitivity=1.0, bool debug=false) {
 
   const int landsat_type= 8; // This could be a parameter but for now it is the only option.

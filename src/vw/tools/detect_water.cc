@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   int num_threads    = 0;
   int tile_size      = 512;
   double sensitivity = 1.0;
-  cartography::GdalWriteOptions write_options;
+  vw::GdalWriteOptions write_options;
 
   // Parse the command line options.
   

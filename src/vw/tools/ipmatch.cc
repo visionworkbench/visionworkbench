@@ -38,6 +38,7 @@
 #include <vw/Camera/CameraGeometry.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <vector>
 #include <string>
@@ -138,7 +139,12 @@ static void write_match_image(std::string const& out_file_name,
   block_write_image( *rsrc, comp, TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
 }
 
+// TODO(oalexan1): Make all options below use the Options structure
+struct Options : vw::GdalWriteOptions {};
+
 int main(int argc, char** argv) {
+
+  Options opt;
   std::vector<std::string> input_file_names;
   double      matcher_threshold;
   std::string ransac_constraint, distance_metric_in, output_prefix;
@@ -147,7 +153,6 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("help,h",              "Display this help message")
     ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
                             "Write output files using this prefix.")
     ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), 
@@ -163,6 +168,8 @@ int main(int argc, char** argv) {
                             "Number of RANSAC iterations.")
     ("debug-image,d",       "Write out debug images.");
 
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
+  
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value<std::vector<std::string> >(&input_file_names));

@@ -181,19 +181,18 @@ GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
 }
 
 int handle_options(int argc, char *argv[], Options& opt) {
-  po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral Options");
+  po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral options");
   general_options.add_options()
-    ("output-name,o", po::value(&opt.output_file_name), "Specify the base output directory")
-    ("help,h",        po::bool_switch(&opt.help),       "Display this help message");
+    ("output-name,o", po::value(&opt.output_file_name), "Specify the base output directory");
 
-
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
 
 const std::string channel_options_str    = "DEFAULT, UINT8, UINT16, INT16, FLOAT";
 const std::string mode_options_str       = "NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN";
 const std::string datum_options_str      = "NONE, WGS84, LUNAR, MARS, SPHERE";
 const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR, TRANSVERSE_MERCATOR, ORTHOGRAPHIC, STEREOGRAPHIC, LAMBERT_AZIMUTHAL, LAMBERT_CONFORMAL_CONIC, UTM, PLATE_CARREE";
 
-  po::options_description input_options("Input Options");
+  po::options_description input_options("Input options");
   string datum_desc = string("Override input datum ["            ) + datum_options_str      + "]";
   string mode_desc  = string("Specify the output metadata type [") + mode_options_str       + "]";
   string proj_desc  = string("Projection type ["                 ) + projection_options_str + "]";
@@ -207,7 +206,7 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
     ("normalize"   , po::bool_switch(&opt.normalize)                  , "Normalize input images so that their full dynamic range falls in between [0,255].")
     ("nodata"      , po::value(&opt.nodata)                           , "Set the input's nodata value so that it will be transparent in output");
 
-  po::options_description output_options("Output Options");
+  po::options_description output_options("Output options");
   output_options.add_options()
     ("mode,m"           , po::value(&opt.mode)->default_value("KML"), mode_desc.c_str())
     ("file-type"        , po::value(&opt.output_file_type)                       , "Output file type.  (Choose \'auto\' to generate jpgs in opaque areas and png images where there is transparency.)")
@@ -223,7 +222,7 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
     ("aspect-ratio"     , po::value(&opt.aspect_ratio)                           , "Pixel aspect ratio (for polar overlays; should be a power of two)")
     ("global-resolution", po::value(&opt.global_resolution)                      , "Override the global pixel resolution; should be a power of two");
 
-  po::options_description projection_options("Input Projection Options");
+  po::options_description projection_options("Input projection options");
   projection_options.add_options()
     ("north"      ,  po::value(&opt.north)         , "The northernmost latitude in projection units")
     ("south"      ,  po::value(&opt.south)         , "The southernmost latitude in projection units")
@@ -244,7 +243,7 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
   hidden_options.add_options()
     ("input-file", po::value(&opt.input_files));
 
-  po::options_description options("Allowed Options");
+  po::options_description options("Allowed options");
   options.add(general_options).add(input_options).add(projection_options).add(output_options).add(hidden_options);
 
   po::positional_options_description p;
@@ -295,7 +294,7 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
 
 /// This function picks the correct function call to do the work.
 void run(const Options& opt) {
-  TerminalProgressCallback tpc( "tools.image2qtree", "");
+  TerminalProgressCallback tpc( "image2qtree", "");
   const ProgressCallback *progress = &tpc;
 
   // Get the right pixel/channel type, and call the mosaic.

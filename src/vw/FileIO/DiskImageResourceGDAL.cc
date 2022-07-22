@@ -615,8 +615,6 @@ namespace vw {
                                                                   ImageFormat const& format ) {
     return new DiskImageResourceGDAL( filename, format );
   }
-
-
 } // namespace vw
 
 #endif // HAVE_PKG_GDAL

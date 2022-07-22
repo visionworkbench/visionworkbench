@@ -46,10 +46,12 @@ namespace po = boost::program_options;
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
 #include <vw/FileIO/FileUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 using namespace vw;
 
-struct Options {
+struct Options: vw::GdalWriteOptions {
+  
   // Input
   std::string input_file_name;
   std::string shaded_relief_file_name;
@@ -248,6 +250,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'.")
     ("help,h",        "Display this help message.");
 
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
+  
   po::options_description positional("");
   positional.add_options()
     ("input-file", po::value(&opt.input_file_name), "Input disparity map.");

@@ -22,34 +22,6 @@
 namespace vw {
 namespace cartography {
 
-GdalWriteOptions::GdalWriteOptions() {
-#if defined(VW_HAS_BIGTIFF) && VW_HAS_BIGTIFF == 1
-  gdal_options["BIGTIFF"]  = "YES";
-#else
-  gdal_options["BIGTIFF"] = "NO";
-#endif
-  gdal_options["COMPRESS"] = "LZW";
-  raster_tile_size = Vector2i(vw_settings().default_tile_size(),
-                              vw_settings().default_tile_size());
-  num_threads = vw_settings().default_num_threads();
-}
-
-GdalWriteOptionsDescription::GdalWriteOptionsDescription( GdalWriteOptions& opt ) {
-  namespace po = boost::program_options;
-  (*this).add_options()
-    ("threads",      po::value(&opt.num_threads)->default_value(0),
-        "Select the number of processors (threads) to use.")
-    ("tile-size",  po::value(&opt.raster_tile_size)->default_value
-     (Vector2i(vw_settings().default_tile_size(),
-               vw_settings().default_tile_size()),"256, 256"),
-        "Image tile size used for multi-threaded processing.")
-    ("no-bigtiff",   "Tell GDAL to not create bigtiffs.")  // gets stored in vm.count("no-bigtiff")
-    ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
-        "TIFF Compression method. [None, LZW, Deflate, Packbits]")
-    ("version,v",    "Display the version of software.")
-    ("help,h",       "Display this help message.");
-}
-
 GeoReference crop( GeoReference const& input,
                    double upper_left_x, double upper_left_y,
                    double /*width*/, double /*height*/ ) {
