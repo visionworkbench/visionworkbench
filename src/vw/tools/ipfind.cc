@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   std::string output_folder, interest_operator, descriptor_generator;
   float  ip_gain;
   uint32 ip_per_image = 0, ip_per_tile;
-  int    tile_size, num_threads, nodata_radius, print_num_ip, debug_image;
+  int    tile_size, nodata_radius, print_num_ip, debug_image;
   ImageView<double> integral;
   bool   no_orientation;
   bool   opencv_normalize = false;
@@ -91,8 +91,6 @@ int main(int argc, char** argv) {
      "Don't detect IP within this many pixels of image borders or nodata. Default: 1.")
     ("output-folder",  po::value(&output_folder)->default_value(""), 
      "Write output files to this location.")
-    ("num-threads",          po::value(&num_threads)->default_value(0), 
-     "Set the number of threads for interest point detection. If set to 0 (default), use the visionworkbench default number of threads.")
     // Debug options
     ("debug-image,d", po::value(&debug_image)->default_value(0), 
      "Write out a low-resolution or full-resolution debug image with interest points on it if the value of this flag is respectively 1 or 2. Default: 0 (do nothing).")
@@ -144,8 +142,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if (num_threads > 0)
-    vw_settings().set_default_num_threads(num_threads);
   if (vm.count("tile-size"))
     vw_settings().set_default_tile_size(tile_size);
   if (vm.count("per-tile-normalize"))
