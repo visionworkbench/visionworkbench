@@ -416,6 +416,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  opt.setVwSettingsFromOpt();
+  
   if(vm.count("help")) {
     vw_out() << general_options << std::endl;
     return 1;

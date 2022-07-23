@@ -16,6 +16,7 @@
 // __END_LICENSE__
 
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <boost/algorithm/string.hpp>
 
 namespace vw {
 
@@ -50,6 +51,43 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt) 
         "TIFF Compression method. [None, LZW, Deflate, Packbits]")
     ("version,v",    "Display the version of software.")
     ("help,h",       "Display this help message.");
+}
+
+void GdalWriteOptions::setVwSettingsFromOpt() {
+    
+  // If the user did not set the number of threads, use what is set in
+  // .vwrc.
+  if (this->num_threads <= 0)
+    this->num_threads = vw_settings().default_num_threads();
+  
+  // Same for cache size
+  double MB = 1024.0 * 1024.0; // 1 MB in bytes
+  if (this->cache_size_mb <= 0)
+    this->cache_size_mb = vw_settings().system_cache_size() / MB;
+  
+  // Here we ensure that this->num_threads and default_num_threads()
+  // are consistent among themselves. Same for cache size.
+  vw::vw_settings().set_default_num_threads(this->num_threads);
+  vw::vw_settings().set_system_cache_size(this->cache_size_mb * MB);
+  
+  // Print the message below just once per process.
+  static bool verbose = true;
+  if (verbose){
+    vw::vw_out() << "\t--> Setting number of processing threads to: "
+                 <<  vw_settings().default_num_threads() << std::endl;
+    vw::vw_out() << "\t--> Setting system cache size to: "
+                 << vw_settings().system_cache_size() / MB << " MB" << std::endl;
+    verbose = false;
+  }
+  
+  boost::algorithm::to_upper(this->tif_compress);
+  boost::algorithm::trim( this->tif_compress );
+  VW_ASSERT( this->tif_compress == "NONE" || this->tif_compress == "LZW" ||
+             this->tif_compress == "DEFLATE" || this->tif_compress == "PACKBITS",
+             ArgumentErr() << "\"" << this->tif_compress
+             << "\" is not a valid options for TIF_COMPRESS." );
+  this->gdal_options["COMPRESS"] = this->tif_compress;
+  
 }
   
 } // end namespace vw

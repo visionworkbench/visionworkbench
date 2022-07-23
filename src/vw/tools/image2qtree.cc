@@ -284,6 +284,9 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
     }
     return false;
   }
+
+  opt.setVwSettingsFromOpt();
+  
   // Make sure all these string parameters are upper case
   boost::to_upper(opt.mode);
   boost::to_upper(opt.datum.type);

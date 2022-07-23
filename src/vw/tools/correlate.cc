@@ -38,6 +38,7 @@
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -48,8 +49,12 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::stereo;
 
+// TODO(oalexan1): Make all options below use the Options structure
+struct Options: vw::GdalWriteOptions {};
+
 int main( int argc, char *argv[] ) {
 
+  Options opt;
   std::string left_file_name, right_file_name;
   float log;
   int32 h_corr_min, h_corr_max;
@@ -71,8 +76,8 @@ int main( int argc, char *argv[] ) {
   int   filter_radius;
   int   mem_limit_gb;
 
-  po::options_description desc("Options");
-  desc.add_options()
+  po::options_description general_options("Options");
+  general_options.add_options()
     ("help,h", "Display this help message")
     ("left",       po::value(&left_file_name),                 "Explicitly specify the \"left\" input file")
     ("right",      po::value(&right_file_name),                "Explicitly specify the \"right\" input file")
@@ -102,29 +107,34 @@ int main( int argc, char *argv[] ) {
       "Limit the maximum number of pyramid levels")
     ("debug",      "Write out debugging images")
     ;
+
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
+  
   po::positional_options_description p;
   p.add("left", 1);
   p.add("right", 1);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
+    po::store( po::command_line_parser( argc, argv ).options(general_options).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
-    std::cout << desc << std::endl;
+    std::cout << general_options << std::endl;
     return 1;
   }
 
-  if( vm.count("help") ) {
-    vw_out() << desc << std::endl;
+  if (vm.count("help")) {
+    vw_out() << general_options << std::endl;
     return 1;
   }
+
+  opt.setVwSettingsFromOpt();
 
   if( vm.count("left") != 1 || vm.count("right") != 1 ) {
     vw_out() << "Error: Must specify one (and only one) left and right input file!" << std::endl;
-    vw_out() << desc << std::endl;
+    vw_out() << general_options << std::endl;
     return 1;
   }
 

@@ -200,6 +200,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  opt.setVwSettingsFromOpt();
+  
   std::string distance_metric = distance_metric_in;
   boost::algorithm::to_lower(distance_metric);
   if ((distance_metric != "l2") && (distance_metric != "hamming")) {

@@ -33,6 +33,7 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraUtilities.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <iostream>
 
@@ -42,16 +43,20 @@ namespace po = boost::program_options;
 using namespace vw;
 using namespace vw::camera;
 
-int main( int argc, char *argv[] ) {
+// TODO(oalexan1): Make all options below use the Options structure
+struct Options: vw::GdalWriteOptions {};
+
+int main(int argc, char *argv[]) {
 
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
   int sample_spacing, rpc_degree;
   double camera_to_ground_dist;
   Vector2 image_size;
   std::string image_size_str;
-  
-  po::options_description desc("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
-  desc.add_options()
+
+  Options opt;
+  po::options_description general_options("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
+  general_options.add_options()
     ("help,h",        "Display this help message.")
     ("input-file",    po::value<std::string>(&image_file_name), 
                       "Explicitly specify the input file.")
@@ -69,6 +74,8 @@ int main( int argc, char *argv[] ) {
      "Specify the output file. It is expected to have the .tsai extension.")
     ("image-size",        po::value(&image_size_str)->default_value(""),
      "Image width and height, specified as two numbers in quotes and separated by a space, unless the input image file is provided.");
+
+  general_options.add(vw::GdalWriteOptionsDescription(opt));
   
   po::positional_options_description p;
   p.add("input-file",  1);
@@ -76,19 +83,22 @@ int main( int argc, char *argv[] ) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(general_options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     vw_out() << "An error occurred while parsing command line arguments.\n";
     vw_out() << "\t" << e.what() << "\n\n";
-    vw_out() << desc;
+    vw_out() << general_options;
     return 1;
   }
 
-  if( vm.count("help") ) {
-    vw_out() << desc << std::endl;
+  if (vm.count("help")) {
+    vw_out() << general_options << std::endl;
     return 1;
   }
+
+  // This must happen after the options are parsed
+  opt.setVwSettingsFromOpt();
 
   // Parse the image size from a string
   if (image_size_str != "") {
@@ -121,18 +131,18 @@ int main( int argc, char *argv[] ) {
     
   } else {
     // Must specify both the image and camera
-    if( (vm.count("input-file") != 1) || (vm.count("camera-file") != 1) ) {
+    if ((vm.count("input-file") != 1) || (vm.count("camera-file") != 1)) {
       vw_out() << "Error: Must specify exactly one image file and one camera file. "
                << "At least provide the image size via the provided option "
                << "if not the image itself." << std::endl;
-      vw_out() << desc << std::endl;
+      vw_out() << general_options << std::endl;
       return 1;
     }
   }
   
   if (rpc_degree <= 0) {
     vw_out() << "Error: The RPC degree must be positive." << std::endl;
-    vw_out() << desc << std::endl;
+    vw_out() << general_options << std::endl;
     return 1;
   }
 

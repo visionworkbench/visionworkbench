@@ -87,6 +87,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string() + "_HILLSHADE.tif";
 
+  opt.setVwSettingsFromOpt();
+  
   create_out_dir(opt.output_file_name);
 }
 

@@ -58,6 +58,8 @@ namespace vw {
     std::string  tif_compress;
 
     GdalWriteOptions();
+
+    void setVwSettingsFromOpt();
   };
 
   /// An object to let Program Options know about our GdalWriteOptions

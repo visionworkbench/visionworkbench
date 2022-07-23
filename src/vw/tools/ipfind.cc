@@ -125,6 +125,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  opt.setVwSettingsFromOpt();
+
   if(vm.count("help")) {
     vw_out() << usage.str();
     return 1;

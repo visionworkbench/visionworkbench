@@ -84,11 +84,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if( vm.count("help") ) {
+  opt.setVwSettingsFromOpt();
+  
+  if (vm.count("help")) {
     std::cout << usage.str();
     return 0;
   }
-  
+
   if (!vm.count("mode")) {
     std::cout << "Error: The 'mode' option must be specified.\n";
     return 0;

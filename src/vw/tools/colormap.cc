@@ -292,6 +292,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
       fs::path(opt.input_file_name).replace_extension().string()+"_CMAP.tif";
   opt.draw_legend = vm.count("legend");
 
+  opt.setVwSettingsFromOpt();
+
   create_out_dir(opt.output_file_name);
 }
 
