@@ -52,14 +52,14 @@ using namespace vw::ip;
 namespace po = boost::program_options;
 
 // TODO(oalexan1): Make all options below use the Options structure
-struct Options: vw::GdalWriteOptions {};
+struct Options: public vw::GdalWriteOptions {};
   
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string output_folder, interest_operator, descriptor_generator;
   float  ip_gain;
   uint32 ip_per_image = 0, ip_per_tile;
-  int    tile_size, nodata_radius, print_num_ip, debug_image;
+  int nodata_radius, print_num_ip, debug_image;
   ImageView<double> integral;
   bool   no_orientation;
   bool   opencv_normalize = false;
@@ -77,10 +77,10 @@ int main(int argc, char** argv) {
      "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch, and pca).")
     ("ip-per-image",           po::value(&ip_per_image), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
-    ("tile-size,t",  po::value(&tile_size), 
-     "The tile size for processing interest points. Useful when working with large images. Default: 256.")
+    //("tile-size,t",  po::value(&tile_size), 
+    // "The tile size for processing interest points. Useful when working with large images. Default: 256.")
     ("ip-per-tile",           po::value(&ip_per_tile)->default_value(250), 
-     "Set the maximum number of IP to find in each tile. Default: 250.")
+     "Set the maximum number of IP to find in each tile.")
     ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
      "Increasing this number will increase the gain at which interest points are detected. Default: 1.")
     ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
@@ -144,8 +144,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if (vm.count("tile-size"))
-    vw_settings().set_default_tile_size(tile_size);
+//  if ( vm.count("tile-size"))
+//     vw_settings().set_default_tile_size(tile_size);
   if (vm.count("per-tile-normalize"))
     opencv_normalize = true;
 
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
 
     if (vm.count("ip-per-image")) {
-      tile_size = vw_settings().default_tile_size();
+      int tile_size = vw_settings().default_tile_size();
       Vector2 image_size = vw::file_image_size(input_file_names[i]);
       double num_tiles = image_size[0]*image_size[1]/(double(tile_size*tile_size));
       ip_per_tile = (int)ceil(ip_per_image / num_tiles);

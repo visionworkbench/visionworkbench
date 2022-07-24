@@ -111,8 +111,6 @@ UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view
 
 template <class PixelT>
 void do_colormap(Options& opt) {
-  vw_out() << "Creating color map.\n";
-
   cartography::GeoReference georef;
   bool has_georef = cartography::read_georeference(georef, opt.input_file_name);
 

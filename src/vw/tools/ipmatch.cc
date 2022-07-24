@@ -140,7 +140,7 @@ static void write_match_image(std::string const& out_file_name,
 }
 
 // TODO(oalexan1): Make all options below use the Options structure
-struct Options : vw::GdalWriteOptions {};
+struct Options: public vw::GdalWriteOptions {};
 
 int main(int argc, char** argv) {
 
