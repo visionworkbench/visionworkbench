@@ -77,10 +77,8 @@ int main(int argc, char** argv) {
      "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch, and pca).")
     ("ip-per-image",           po::value(&ip_per_image), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
-    //("tile-size,t",  po::value(&tile_size), 
-    // "The tile size for processing interest points. Useful when working with large images. Default: 256.")
     ("ip-per-tile",           po::value(&ip_per_tile)->default_value(250), 
-     "Set the maximum number of IP to find in each tile.")
+     "Set the maximum number of IP to find in each tile. The tile size is set with --tile-size.")
     ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
      "Increasing this number will increase the gain at which interest points are detected. Default: 1.")
     ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
@@ -144,8 +142,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-//  if ( vm.count("tile-size"))
-//     vw_settings().set_default_tile_size(tile_size);
   if (vm.count("per-tile-normalize"))
     opencv_normalize = true;
 

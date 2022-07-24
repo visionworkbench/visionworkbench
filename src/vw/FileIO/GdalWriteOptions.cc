@@ -18,6 +18,54 @@
 #include <vw/FileIO/GdalWriteOptions.h>
 #include <boost/algorithm/string.hpp>
 
+namespace boost { namespace program_options {
+  // Custom value semantics, these explain how many tokens should be ingested.
+
+  template <class T, class charT = char>
+  class typed_2_value : public typed_value<T,charT> {
+  public:
+    typed_2_value(T* store_to) : typed_value<T,charT>(store_to) {
+      this->multitoken();
+    }
+    
+    unsigned min_tokens() const { return 2; }
+    unsigned max_tokens() const { return 2; }
+  };
+  
+  typed_2_value<vw::Vector2i>*
+  value( vw::Vector2i* v ) {
+    typed_2_value<vw::Vector2i>* r =
+      new typed_2_value<vw::Vector2i>(v);
+    return r;
+  }
+
+  // Validator for Vector2i
+  template <>
+  void validate(boost::any& v,
+                const std::vector<std::string>& values,
+                vw::Vector2i*, long ) {
+    validators::check_first_occurrence(v);
+
+    // Concatenate and then split again, so that the user can mix
+    // comma and space delimited values.
+    std::string joined = boost::algorithm::join(values, " ");
+    std::vector<std::string> cvalues;
+    boost::split(cvalues, joined, is_any_of(", "), boost::token_compress_on);
+
+    if ( cvalues.size() != 2 )
+      boost::throw_exception(invalid_syntax(invalid_syntax::missing_parameter));
+
+    try {
+      vw::Vector2i output(boost::lexical_cast<vw::int32>( cvalues[0]),
+                          boost::lexical_cast<vw::int32>( cvalues[1]));
+      v = output;
+    } catch (boost::bad_lexical_cast const& e ) {
+      boost::throw_exception(validation_error(validation_error::invalid_option_value));
+    }
+  }
+  
+}}
+
 namespace vw {
 
 GdalWriteOptions::GdalWriteOptions() {
@@ -41,8 +89,8 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt) 
     ("threads",      po::value(&opt.num_threads)->default_value(0),
         "Select the number of threads to use for each process. If 0, use the value in ~/.vwrc.")
     ("tile-size",  po::value(&opt.raster_tile_size)->default_value
-     (Vector2i(vw_settings().default_tile_size(),
-               vw_settings().default_tile_size()),"256, 256"),
+     (vw::Vector2i(vw_settings().default_tile_size(),
+               vw_settings().default_tile_size()),"256 256"),
         "Image tile size used for multi-threaded processing.")
     ("cache-size-mb", po::value(&opt.cache_size_mb)->default_value(1024),
         "Set the system cache size, in MB, for each process.")
