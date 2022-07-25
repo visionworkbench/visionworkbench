@@ -136,8 +136,6 @@ void GdalWriteOptions::setVwSettingsFromOpt() {
   if (verbose){
     vw::vw_out() << "\t--> Setting number of processing threads to: "
                  <<  vw_settings().default_num_threads() << std::endl;
-    vw::vw_out() << "\t--> Setting system cache size to: "
-                 << vw_settings().system_cache_size() / MB << " MB" << std::endl;
     verbose = false;
   }
   
