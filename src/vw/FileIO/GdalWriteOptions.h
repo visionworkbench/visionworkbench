@@ -64,7 +64,7 @@ namespace vw {
 
   /// An object to let Program Options know about our GdalWriteOptions
   struct GdalWriteOptionsDescription: public boost::program_options::options_description {
-    GdalWriteOptionsDescription(GdalWriteOptions& opt);
+    GdalWriteOptionsDescription(GdalWriteOptions& opt, bool adjust_tile_size_opt = false);
   };
   
 } // namespace vw

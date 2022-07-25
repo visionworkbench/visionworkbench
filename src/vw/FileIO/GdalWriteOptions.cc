@@ -83,24 +83,37 @@ GdalWriteOptions::GdalWriteOptions() {
   cache_size_mb    = vw_settings().system_cache_size() / (1024.0 * 1024.0); // bytes to MB
 }
 
-GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt) {
+GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt,
+                                                         bool adjust_tile_size_opt) {
   namespace po = boost::program_options;
   (*this).add_options()
     ("threads",      po::value(&opt.num_threads)->default_value(0),
-        "Select the number of threads to use for each process. If 0, use the value in ~/.vwrc.")
-    ("tile-size",  po::value(&opt.raster_tile_size)->default_value
-     (vw::Vector2i(vw_settings().default_tile_size(),
-               vw_settings().default_tile_size()),"256 256"),
-        "Image tile size used for multi-threaded processing.")
+     "Select the number of threads to use for each process. If 0, use the value in ~/.vwrc.");
+  
+  if (!adjust_tile_size_opt) {
+    (*this).add_options()
+      ("tile-size",  po::value(&opt.raster_tile_size)->default_value
+       (vw::Vector2i(vw_settings().default_tile_size(),
+                     vw_settings().default_tile_size()), "256 256"), 
+       "Image tile size used for multi-threaded processing.");
+  } else {
+    // This is needed for dem_mosaic, which already has a --tile-size option
+    (*this).add_options()
+      ("tif-tile-size",  po::value(&opt.raster_tile_size)->default_value
+       (vw::Vector2i(vw_settings().default_tile_size(),
+                     vw_settings().default_tile_size()), "256 256"), 
+       "The dimensions of each block in the output image.");
+  }
+  (*this).add_options()
     ("cache-size-mb", po::value(&opt.cache_size_mb)->default_value(1024),
-        "Set the system cache size, in MB, for each process.")
+     "Set the system cache size, in MB, for each process.")
     ("no-bigtiff",   "Tell GDAL to not create bigtiffs.")  // gets stored in vm.count("no-bigtiff")
     ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
-        "TIFF Compression method. [None, LZW, Deflate, Packbits]")
+     "TIFF Compression method. [None, LZW, Deflate, Packbits]")
     ("version,v",    "Display the version of software.")
     ("help,h",       "Display this help message.");
 }
-
+  
 void GdalWriteOptions::setVwSettingsFromOpt() {
     
   // If the user did not set the number of threads, use what is set in
