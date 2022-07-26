@@ -188,6 +188,9 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
     for (int row = 0; row < disp.rows(); row++) {
       if (!is_valid(disp(col, row))) 
         continue;
+
+      if (col % m_sample_rate != 0 || row % m_sample_rate != 0) 
+        continue;
       
       Vector2 left_pix  = bbox.min() + Vector2(col, row);
       Vector2 right_pix = left_pix + disp(col, row).child();
@@ -224,6 +227,9 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
       
       PixelMask<Vector2f> d = disp(col, row);
       if (!is_valid(d))
+        continue;
+
+      if (col % m_sample_rate != 0 || row % m_sample_rate != 0) 
         continue;
       
       calc_patches(// Inputs

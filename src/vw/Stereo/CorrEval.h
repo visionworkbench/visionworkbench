@@ -57,6 +57,7 @@ class CorrEval: public ImageViewBase<CorrEval> {
   ImageViewRef<PixelMask<Vector2f>> m_disp;
   Vector2i m_kernel_size;
   std::string m_metric;
+  int m_sample_rate;
   bool m_round_to_int;
   
 public:
@@ -65,9 +66,10 @@ public:
            ImageViewRef<PixelMask<Vector2f>> disp,
            Vector2i                   const& kernel_size,
            std::string                const& metric,
-           bool round_to_int):
+           int sample_rate, bool round_to_int):
     m_left(left), m_right(right), m_disp(disp),
-    m_kernel_size(kernel_size), m_metric(metric), m_round_to_int(round_to_int) {
+    m_kernel_size(kernel_size), m_metric(metric),
+    m_sample_rate(sample_rate), m_round_to_int(round_to_int) {
     
     VW_ASSERT((m_left.cols() == m_disp.cols() && m_left.rows() == m_disp.rows()),
               vw::ArgumentErr()
@@ -75,7 +77,8 @@ public:
 
     VW_ASSERT(((m_kernel_size[0] > 0) && (m_kernel_size[0] % 2 == 1) &&
                (m_kernel_size[1] > 0) && (m_kernel_size[1] % 2 == 1)),
-              vw::ArgumentErr() << "CorrEval: The kernel dimensions must be positive and odd.\n");
+              vw::ArgumentErr()
+              << "CorrEval: The kernel dimensions must be positive and odd.\n");
 
     VW_ASSERT((m_metric == "ncc" || metric == "stddev"),
               vw::ArgumentErr() << "CorrEval: Invalid metric: " << m_metric << ".\n");
@@ -110,8 +113,8 @@ CorrEval corr_eval(ImageViewRef<PixelMask<float>>    left,
                    ImageViewRef<PixelMask<Vector2f>> disp,
                    Vector2i                   const& kernel_size,
                    std::string                const& metric,
-                   bool round_to_int) {
-  return CorrEval(left, right, disp, kernel_size, metric, round_to_int);
+                   int sample_rate, bool round_to_int) {
+  return CorrEval(left, right, disp, kernel_size, metric, sample_rate, round_to_int);
 }
   
 }} // end namespace vw::stereo
