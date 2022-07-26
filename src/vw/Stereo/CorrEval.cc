@@ -3,6 +3,7 @@
 #include <vw/Image/Interpolation.h>
 #include <vw/Core/Exception.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/CorrEval.h>
 
 // See CorrEval.h for documentation.
@@ -51,12 +52,12 @@ void calc_patches(// Inputs
       right_pix -= right_box.min();
 
       // Sanity check
-      if (!bounding_box(left).contains(left_pix) || !bounding_box(interp_right).contains(right_pix))
+      if (!bounding_box(left).contains(left_pix) ||
+          !bounding_box(interp_right).contains(right_pix))
         vw_throw(ArgumentErr() << "Out of bounds in the NCC calculation. "
                  << "This is not expected.");
       
       left_patch(c, r)  = left(left_pix[0], left_pix[1]);           // access int pix
-
       
       if (!round_to_int) 
         right_patch(c, r) = interp_right(right_pix[0], right_pix[1]); // interp float pix
@@ -147,17 +148,38 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
         disp(col, row).child() = round(disp(col, row).child());
       }
     }
+    
+    // TODO(oalexan1): Consider subdividing regions as done in stereo
+    // correlation.  For disparities that have integer values, and
+    // which vary little over a large area, that may be more efficient
+    // than the per-pixel approach. However, if the range of
+    // disparities in a region is more than the kernel size, the
+    // per-pixel approach should do better. So there has to be a check
+    // and much testing.
+    
+    // Also, the best_of_search_convolution() logic in Correlation.cc
+    // needs some modifications, since there the disparity with lowest
+    // cost function is kept, but here we must keep the cost function
+    // for the given known disparity regardless of cost function
+    // value.
+    
+    //  ImageView<PixelMask<Vector2i>> int_disp(disp.cols(), disp.rows());
+    //  std::vector<stereo::SearchParam> zones; 
+    //  subdivide_regions(int_disp, bounding_box(int_disp),
+    //   zones, m_kernel_size);
+    // Now must iterate over regions.
   }
-  
+
   Vector2i half_kernel = m_kernel_size/2;
   
   // Need to be able to look beyond the current tile in left image
   // to be able to compute the NCC.
   BBox2i left_box = bbox;
   left_box.expand(half_kernel);
-  
+
   // For the right image it is more complicated. Need to also
   // consider the disparity and interpolation.
+  // Note: The memory usage can be high for a large disparity.
   
   // TODO(oalexan1): When finding the curvature of NCC will need to further
   // expand the box given the neighborhood we will use then. 
@@ -228,7 +250,7 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
       }
     }
   }
-  
+
   return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(),
                            cols(), rows());
 }

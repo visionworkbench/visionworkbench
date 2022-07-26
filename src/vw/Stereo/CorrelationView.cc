@@ -738,8 +738,8 @@ namespace vw { namespace stereo {
           // No need to filter R-L disparity with SGM on the last level.
         }
       } // End of 
-
-        // The kernel based filtering tends to leave isolated blobs behind.
+      
+      // The kernel based filtering tends to leave isolated blobs behind.
       disparity_blob_filter(disparity, level, m_blob_filter_area);
       if (check_rl && !on_last_level)
         disparity_blob_filter(disparity_rl, level, m_blob_filter_area);
