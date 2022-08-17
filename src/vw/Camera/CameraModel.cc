@@ -156,6 +156,7 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
 // transform (upper-left 3x3 block is the rotation, the first 3
 // elements in last column is the translation, so the style of
 // pc_align is used) as when applied around the planet center.
+// TODO(oalexan1): Support here a scale factor.
 vw::Matrix4x4 AdjustedCameraModel::ecef_transform() {
 
   // Use the fact that the adjustment transform applied to a point x
@@ -187,6 +188,9 @@ void AdjustedCameraModel::write(std::string const& filename) {
 
 }
 
+// TODO(oalexan1): Support reading and writing m_rotation_center,
+// rather than always computing it on the fly. 
+  
 void AdjustedCameraModel::read(std::string const& filename) {
   Vector4 c;
   Vector3 pos;
