@@ -139,6 +139,42 @@ static void write_match_image(std::string const& out_file_name,
   block_write_image( *rsrc, comp, TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
 }
 
+// See --merge-match-files.
+void merge_match_files_fun(std::vector<std::string> const& files) {
+  if (files.size() < 2) {
+    vw_out() << "At least one input and one output match file must exist.\n";
+    return;
+  }
+
+  // Index by left ip x and y to avoid repetition
+  std::map<std::pair<double, double>, std::pair<vw::ip::InterestPoint, vw::ip::InterestPoint>>
+    ip_map;
+
+  for (size_t file_it = 0; file_it + 1 < files.size(); file_it++) {
+    std::cout << "Reading: " << files[file_it] << std::endl;
+
+    std::vector<vw::ip::InterestPoint> left_ip, right_ip;
+    vw::ip::read_binary_match_file(files[file_it], left_ip, right_ip);
+    for (size_t ip_it = 0; ip_it < left_ip.size(); ip_it++) {
+
+      ip_map[std::make_pair(left_ip[ip_it].x, left_ip[ip_it].y)] =
+        std::make_pair(left_ip[ip_it], right_ip[ip_it]);
+    }
+  }
+
+  std::vector<vw::ip::InterestPoint> left_ip(ip_map.size()), right_ip(ip_map.size());
+  int count = 0;
+  for (auto it = ip_map.begin(); it != ip_map.end(); it++) {
+    left_ip[count] = (it->second).first;
+    right_ip[count] = (it->second).second;
+    count++;
+  }
+  
+  vw_out() << "Writing match file: " << files.back() << std::endl;
+  vw::create_out_dir(files.back());
+  write_binary_match_file(files.back(), left_ip, right_ip);
+}
+
 // TODO(oalexan1): Make all options below use the Options structure
 struct Options: public vw::GdalWriteOptions {};
 
@@ -150,6 +186,7 @@ int main(int argc, char** argv) {
   std::string ransac_constraint, distance_metric_in, output_prefix;
   float       inlier_threshold;
   int         ransac_iterations;
+  bool        merge_match_files;
 
   po::options_description general_options("Options");
   general_options.add_options()
@@ -166,7 +203,9 @@ int main(int argc, char** argv) {
                             "RANSAC inlier threshold.")
     ("ransac-iterations",   po::value(&ransac_iterations)->default_value(100), 
                             "Number of RANSAC iterations.")
-    ("debug-image,d",       "Write out debug images.");
+    ("debug-image,d",       "Write out debug images.")
+    ("merge-match-files", po::value(&merge_match_files)->default_value(false)->implicit_value(true),
+     "Given several match files for the same image pair, merge them. The input match files and output match file must be specified in this order. This is an undocumented debug option.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
   
@@ -174,14 +213,14 @@ int main(int argc, char** argv) {
   hidden_options.add_options()
     ("input-files", po::value<std::vector<std::string> >(&input_file_names));
 
-  po::options_description options("Allowed Options");
+  po::options_description options("Allowed options");
   options.add(general_options).add(hidden_options);
 
   po::positional_options_description p;
   p.add("input-files", -1);
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <image files> <vwip files>" << std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <image files> <vwip files>\n\n";
   usage << general_options << std::endl;
 
   po::variables_map vm;
@@ -200,6 +239,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // This is a hidden utility for merging match files for the same image pair
+  if (merge_match_files) {
+    merge_match_files_fun(input_file_names);
+    return 0;
+  }
+  
   opt.setVwSettingsFromOpt();
   
   std::string distance_metric = distance_metric_in;
