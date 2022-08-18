@@ -105,7 +105,8 @@ namespace vw { namespace cartography {
 
     /// Return a very large error to penalize locations that fall off the edge of the DEM.
     inline double big_val() const {
-      // Don't make this too big as in the LMA algorithm it may get squared and may cause overflow.
+      // Don't make this too big as in the LMA algorithm it may get
+      // squared and may cause overflow.
       return 1.0e+50;
     }
 

@@ -84,7 +84,7 @@ void vw::cartography::Datum::set_datum_from_proj_str( std::string const& proj_st
   this->proj4_str() = proj_str; // The other call can change the string, don't let it!
 }
 
-void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
+void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
   m_meridian_name   = "Greenwich";
   m_geocentric      = false;
   m_meridian_offset = 0.0;

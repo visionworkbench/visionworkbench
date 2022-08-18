@@ -208,6 +208,7 @@ namespace ba {
     size_t size() const { return m_nodes.size(); }
 
     cnode& operator[]( int32 const& i ) { return m_nodes[i]; }
+    cnode const& operator[]( int32 const& i ) const { return m_nodes[i]; }
 
     iterator       begin()       { return m_nodes.begin(); }
     iterator       end  ()       { return m_nodes.end();   }
