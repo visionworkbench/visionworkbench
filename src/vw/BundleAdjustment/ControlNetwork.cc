@@ -378,6 +378,7 @@ namespace ba {
   ControlPoint::ControlPoint(ControlPointType type) : m_type(type) {
     m_ignore = false;
     m_id = "Null";
+    m_sigma = Vector3(1.0, 1.0, 1.0); // ensure this is initialized
   }
 
   /// Add a measure
