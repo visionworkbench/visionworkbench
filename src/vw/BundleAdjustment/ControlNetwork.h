@@ -233,8 +233,8 @@ namespace ba {
     const_iterator begin() const { return m_measures.begin(); }
     const_iterator end  () const { return m_measures.end  (); }
 
-    /// Control Point Type
-    enum ControlPointType { GroundControlPoint, TiePoint };
+    /// Control point type
+    enum ControlPointType {GroundControlPoint, TiePoint, PointFromDem};
     ControlPointType m_type;
 
     /// Constructor
