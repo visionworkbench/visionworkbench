@@ -245,8 +245,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
                       "Maximum height of the color map.")
     ("moon",          "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
     ("mars",          "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
-    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'.")
-    ("help,h",        "Display this help message.");
+    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
   
