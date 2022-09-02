@@ -364,6 +364,8 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
     set_proj4_projection_str(strm.str());
   }
 
+  // This function does not set the datum radius based on the projection, which is wrong.
+  // Consider using asp::set_srs_string().
   void GeoReference::set_proj4_projection_str(std::string const& s) {
 
     m_proj_projection_str = boost::trim_copy(s); // Store the string in this class (it is also stored in m_proj_context)
