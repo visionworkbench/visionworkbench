@@ -73,31 +73,42 @@ namespace cartography {
       std::stringstream ss_dst;
       ss_dst << "+proj=longlat " << dst_datum;
       m_dst_datum_proj = ProjContext( ss_dst.str() );
-
-      // This is a bugfix for the situation when the datums are in
-      // fact the same, even if the precise datum strings differ. If
-      // the change-of-datum transform returns the identity, avoid
-      // doing it, as it is very slow. Here pick some samples in
-      // radians. Don't only pick multiples of PI.
-      Mutex::WriteLock write_lock(m_mutex);
-      double alt = 0.0;
-      double max_err = 0.0;
-      for (double lon = 0; lon < 6.0; lon += 2.0) {
-        for (double lat = -M_PI/2.0; lat < M_PI/2.0; lat += 1.0) {
-          double lon0 = lon, lat0 = lat, alt0 = alt;
-          pj_transform(m_src_datum_proj.proj_ptr(), m_dst_datum_proj.proj_ptr(), 1, 0,
-                       &lon, &lat, &alt);
-          max_err = std::max(max_err, norm_2(Vector3(lon - lon0, lat - lat0, alt - alt0)));
-        }
-      }
-      
-      if (max_err < 1e-10) 
-        m_skip_datum_conversion = true; // as good as equal 
     }
     
     // Because GeoTransform is typically very slow, we default to a tolerance
     // of 0.1 pixels to allow ourselves to be approximated.
     set_tolerance(0.1);
+    
+    if (!m_skip_datum_conversion) {
+      // This is a bugfix for the situation when the datums are in
+      // fact the same, even if the precise datum strings differ. If
+      // the change-of-datum transform returns the identity, avoid
+      // doing it, as it is very slow. Here pick some samples in
+      // radians, with both positive and negative longitude. Don't
+      // only pick multiples of PI.
+
+      // This check must happen after the tolerance is set
+      Mutex::WriteLock write_lock(m_mutex);
+      double alt = 0.0;
+      double max_err = 0.0;
+      for (double lon = -6.0; lon < 6.0; lon += 2.0) {
+        for (double lat = -M_PI/2.0; lat < M_PI/2.0; lat += 1.0) {
+          double lon0 = lon, lat0 = lat, alt0 = alt;
+          pj_transform(m_src_datum_proj.proj_ptr(), m_dst_datum_proj.proj_ptr(), 1, 0,
+                       &lon, &lat, &alt);
+          max_err = std::max(max_err, norm_2(Vector3(lon - lon0, lat - lat0, alt - alt0)));
+
+          lon0 = lon, lat0 = lat, alt0 = alt;
+          pj_transform(m_dst_datum_proj.proj_ptr(), m_src_datum_proj.proj_ptr(), 1, 0,
+                       &lon, &lat, &alt);
+          max_err = std::max(max_err, norm_2(Vector3(lon - lon0, lat - lat0, alt - alt0)));
+        }
+      }
+
+      if (max_err < 1.0e-10)
+        m_skip_datum_conversion = true;
+    }
+    
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -119,7 +130,7 @@ namespace cartography {
     if (m_skip_map_projection)
       return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
     Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
-    if(m_skip_datum_conversion)
+    if (m_skip_datum_conversion)
       return m_src_georef.lonlat_to_pixel(dst_lonlat);
     Vector2 src_lonlat = lonlat_to_lonlat(dst_lonlat, false);
     return m_src_georef.lonlat_to_pixel(src_lonlat);
