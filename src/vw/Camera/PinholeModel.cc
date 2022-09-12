@@ -614,6 +614,26 @@ void PinholeModel::rebuild_camera_matrix() {
 }
 
 // Apply a given rotation + translation + scale transform to a pinhole camera
+void PinholeModel::apply_transform(vw::Matrix4x4 const & transform) {
+
+  if (transform(3, 3) != 1) 
+    vw_throw(ArgumentErr() << "Expecting a similarity transform with value "
+             << "1 in the lower-right corner.");
+  
+  vw::Matrix3x3 R = vw::math::submatrix(transform, 0, 0, 3, 3);
+  vw::Vector3   T;
+  for (int r = 0; r < 3; r++) 
+    T[r] = transform(r, 3);
+  
+  double scale = pow(det(R), 1.0/3.0);
+  for (size_t r = 0; r < R.rows(); r++)
+    for (size_t c = 0; c < R.cols(); c++)
+      R(r, c) /= scale;
+  
+  this->apply_transform(R, T, scale);
+}
+  
+// Apply a given rotation + translation + scale transform to a pinhole camera
 void PinholeModel::apply_transform(vw::Matrix3x3 const & rotation,
                                    vw::Vector3   const & translation,
                                    double                scale) {

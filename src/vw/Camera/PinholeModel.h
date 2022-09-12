@@ -283,6 +283,7 @@ namespace camera {
     Matrix<double,3,4> camera_matrix() const;
 
     // Apply a given rotation + translation + scale transform to a pinhole camera
+    void apply_transform(vw::Matrix4x4 const & transform);
     void apply_transform(vw::Matrix3x3 const & rotation,
                          vw::Vector3   const & translation,
                          double                scale);
