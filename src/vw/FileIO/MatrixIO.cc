@@ -57,11 +57,14 @@ namespace vw {
       mat.push_back(vec);
     }
 
+    if (mat.empty()) 
+      vw::vw_throw(ArgumentErr() << "Failed to read matrix from: " << filename << ".\n");
+    
     // See if all rows have the same number of values
     for (size_t it = 1; it < mat.size(); it++) {
       if (mat[0].size() != mat[it].size()) {
-        vw::vw_throw( ArgumentErr() << "Not all rows have the same number of values in: "
-                      << filename << "\n" );
+        vw::vw_throw(ArgumentErr() << "Not all rows have the same number of values in: "
+                     << filename << "\n" );
       }
     }
 
