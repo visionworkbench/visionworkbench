@@ -123,39 +123,55 @@ namespace cartography {
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
+namespace {
+  // A function very specific to this file. Remove duplicates after concatenation
+  // of proj4 strings. Keep the first instance, as the second comes from the datum
+  // string, which may not be right.
+  
+  size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) {
+    std::vector<std::string> arg_strings;
+    std::string trimmed_proj4_str = boost::trim_copy(str_in);
+    boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));
+    str_out = "";
 
-//=============================================================================================
+    std::set<int> duplicates;
+    for (size_t i = 0; i < arg_strings.size(); i++) {
 
+      bool duplicate = false;
+      for (size_t k = i + 1; k < arg_strings.size(); k++) {
+        if (arg_strings[i] == arg_strings[k]) {
+          duplicates.insert(k);
+          break;
+        }
 
-// TODO: Move this!
+        // Do not let the projection show up twice. The second one is the default one,
+        // and may not be right.
+        if (arg_strings[i].rfind("+proj=", 0) == 0  && 
+            arg_strings[k].rfind("+proj=", 0) == 0) {
+          duplicates.insert(k);
+          break;
+        }
+      
+      } // End k loop
+    }
 
-size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) {
-  std::vector<std::string> arg_strings;
-  std::string trimmed_proj4_str = boost::trim_copy(str_in);
-  boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));
-  str_out = "";
-  size_t num_kept = 0;
-
-  for (size_t i=0; i < arg_strings.size(); ++i) {
-    bool duplicate = false;
-    for (size_t k=i+1; k < arg_strings.size(); ++k) {
-      if (arg_strings[i] == arg_strings[k]) {
-        duplicate = true;
-        break;
-      }
-    } // End k loop
-    if (duplicate)
-      continue;
-    // Not a duplicate!
-    if (num_kept > 0)
-      str_out += " ";
-    str_out += arg_strings[i];
-    ++num_kept;
-  } // End i loop
-
-  return num_kept;
-}
-
+    size_t num_kept = 0;
+    for (size_t i = 0; i < arg_strings.size(); i++) {
+    
+      if (duplicates.find(i) != duplicates.end())
+        continue; // duplicate
+      
+      if (num_kept > 0)
+        str_out += " ";
+    
+      str_out += arg_strings[i];
+      num_kept++;
+    } // End i loop
+  
+    return num_kept;
+  }
+} // end anonymous namespace
+  
   std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
   }
@@ -166,6 +182,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
                             + boost::trim_copy(m_datum.proj4_str()) + " +no_defs";
     std::string proj4_str_no_dups;
     remove_proj4_duplicates(proj4_str, proj4_str_no_dups);
+
     return proj4_str_no_dups;
   }
 
