@@ -169,10 +169,12 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
   const int    MAX_ITERATIONS = 1e+5;
 
   Vector3 objective(0, 0, 0);
-  Vector2 solution = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>(model, start, objective, status,
-                                               ABS_TOL, REL_TOL, MAX_ITERATIONS);
-  VW_ASSERT( status > 0,
-             camera::PointToPixelErr() << "Unable to project point into Linescan model" );
+  Vector2 solution = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>
+    (model, start, objective, status,
+     ABS_TOL, REL_TOL, MAX_ITERATIONS);
+  VW_ASSERT(status > 0,
+            camera::PointToPixelErr()
+            << "OpticalBarModel::point_to_pixel: Unable to project point into camera.");
 
   return solution;
 }
@@ -283,7 +285,7 @@ void OpticalBarModel::read(std::string const& filename) {
               &rot_mat(1,0), &rot_mat(1,1), &rot_mat(1,2),
               &rot_mat(2,0), &rot_mat(2,1), &rot_mat(2,2)) != 9 ) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the rotation matrix\n" );
+    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the rotation matrix\n" );
   }
   Quat q(rot_mat);
   m_initial_orientation = q.axis_angle();
