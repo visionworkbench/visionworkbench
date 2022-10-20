@@ -139,6 +139,10 @@ namespace cartography {
 
   std::ostream& operator<<(std::ostream& os, const Datum& datum);
 
+  // A function which reads a datum from a string. It reverses
+  // what operator<< does.
+  bool read_datum_from_str(std::string const& str, Datum & datum);
+  
   // Free associated functions
   vw::Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec);

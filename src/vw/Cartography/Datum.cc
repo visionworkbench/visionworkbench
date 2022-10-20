@@ -21,6 +21,7 @@
 #include <vw/Math/Functions.h>
 #include <ogr_spatialref.h>
 #include <cpl_string.h>
+#include <iostream>
 
 vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& spheroid_name,
@@ -34,11 +35,11 @@ vw::cartography::Datum::Datum(std::string const& name,
     m_semi_major_axis(semi_major_axis),
     m_semi_minor_axis(semi_minor_axis),
     m_meridian_offset(meridian_offset),
-    m_geocentric(false)
-{
+    m_geocentric(false) {
   std::ostringstream strm;
+  strm.precision(17);
   strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
-  m_proj_str = strm.str();
+  m_proj_str = strm.str(); // TODO(oalexan1): GDAL can have issues parsing this
 }
 
 
@@ -373,19 +374,78 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   return llh;
 }
 
+std::vector<std::string> const datum_keys = {"Geodetic Datum --> Name: ",
+                                             "Spheroid: ",
+                                             "Semi-major axis: ",
+                                             "Semi-minor axis: ",
+                                             "Meridian: ",
+                                             "at ",
+                                             "Proj4 Str: "};
+
+
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
   std::ostringstream oss; // To use custom precision
   oss.precision(17);
-  oss << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
-      << "  Semi-major axis: " << datum.semi_major_axis()
-      << "  Semi-minor axis: " << datum.semi_minor_axis()
-      << "  Meridian: "   << datum.meridian_name() << " at " << datum.meridian_offset()
-      << "  Proj4 Str: "  << datum.proj4_str();
+  // Note how the key words below are used in read_datum_from_str() to read back the datum
+  oss <<         datum_keys[0] << datum.name()
+      << "  " << datum_keys[1] << datum.spheroid_name()
+      << "  " << datum_keys[2] << datum.semi_major_axis()
+      << "  " << datum_keys[3] << datum.semi_minor_axis()
+      << "  " << datum_keys[4] << datum.meridian_name()
+      << " "  << datum_keys[5] << datum.meridian_offset()
+      << "  " << datum_keys[6] << datum.proj4_str();
   os << oss.str();
   return os;
 }
 
 // Free associated functions
+
+// A function which reads a datum from a string. It reverses
+// what operator<< does.
+bool vw::cartography::read_datum_from_str(std::string const& str, vw::cartography::Datum & datum) {
+
+  size_t prev_pos = 0, curr_pos = 0; // these will go forward
+  std::vector<std::string> vals;
+  for (size_t it = 0; it < datum_keys.size(); it++) {
+    
+    curr_pos = str.find(datum_keys[it], prev_pos);
+    if (curr_pos == std::string::npos)
+      return false;
+    
+    if (it == 0) {
+      // Just got started, cannot extract a value between prev_pos and curr_pos yet.
+      // Keep on going.
+      prev_pos = curr_pos;
+      continue;
+    }
+    
+    // Parse prev value (value up to current keyword)
+    size_t prev_val_pos = prev_pos + datum_keys[it - 1].size(); // advance to prev value
+    std::string val = str.substr(prev_val_pos, curr_pos - prev_val_pos);
+    val.erase(val.find_last_not_of(" \n\r\t") + 1); // wipe spaces
+    vals.push_back(val);
+    
+    if (it + 1 == datum_keys.size()) {
+      // We are at the end, so parse the last value too
+      size_t curr_val_pos = curr_pos + datum_keys[it].size(); // advance to where the value starts
+      std::string val = str.substr(curr_val_pos, str.size() - curr_val_pos);
+      val.erase(val.find_last_not_of(" \n\r\t") + 1); // wipe spaces
+      vals.push_back(val);
+    }
+
+    // Prepare for next iteration
+    prev_pos = curr_pos;
+  }
+
+  datum = vw::cartography::Datum(vals[0], // name
+                                 vals[1], // spheroid name
+                                 vals[4], // meridian name
+                                 atof(vals[2].c_str()), // semi-major axis
+                                 atof(vals[3].c_str()), // semi-minor axis
+                                 atof(vals[5].c_str())); // meridian offset
+
+  return true;
+}
 
 vw::Vector3
 vw::cartography::datum_intersection(double semi_major_axis, double semi_minor_axis,
