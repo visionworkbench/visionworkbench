@@ -181,7 +181,6 @@ std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_we
 
 //======================================================================
 // LagrangianInterpolationVarTime class
-
 LagrangianInterpolationVarTime::LagrangianInterpolationVarTime
 (std::vector<Vector3> const& samples, std::vector<double> const& times, int radius):
   m_samples(samples), m_times(times), m_radius(radius) {
@@ -238,7 +237,7 @@ Vector3 LagrangianInterpolationVarTime::operator()(double t) const {
 
 //======================================================================
 // LagrangianInterpolation class
-
+// interpolation order = 2 * m_radius
 LagrangianInterpolation::LagrangianInterpolation
 (std::vector<Vector3> const& samples, double start_time, double time_delta,
  double last_time, int radius):
@@ -330,6 +329,7 @@ Vector3 LagrangianInterpolation::operator()(double t) const {
 
 //======================================================================
 // QuatLagrangianInterpolation class
+// interpolation order = 2 * m_radius
 
 // TODO(oalexan1): This needs to be tested and compared with SLERPPoseInterpolation,
 // with and without use of splines in the latter.
@@ -375,7 +375,9 @@ Quat QuatLagrangianInterpolation::operator()(double t) const {
   int    high_i   = low_i + 1;
 
   VW_ASSERT((low_i >= 0) && (high_i < static_cast<int>(m_samples.size())),
-	    ArgumentErr() << "XOut of bounds in QuatLagrangianInterpolation for time " << t << ".\n");
+	    ArgumentErr()
+            << "XOut of bounds in QuatLagrangianInterpolation for time "
+            << t << ".\n");
 
   // Check that we have enough bordering points to interpolate
   int start = low_i  - (m_radius-1);

@@ -102,7 +102,7 @@ namespace vw { namespace camera {
   class LagrangianInterpolationVarTime {
     std::vector<Vector3> m_samples;
     std::vector<double > m_times;
-    int m_radius;
+    int m_radius; // interpolation order = 2 * m_radius
     
   public:
     /// Construct with a set of data samples and times.
@@ -122,12 +122,13 @@ namespace vw { namespace camera {
   /// TODO(oalexan1): What if is desired to use an odd number of
   /// samples?
   class LagrangianInterpolation {
-    std::vector<Vector3> m_samples;
     double m_start_time, m_time_delta, m_last_time;
     int m_radius;
     std::vector<double> m_denoms;
     mutable std::vector<double> m_times_temp;
   public:
+    std::vector<Vector3> m_samples;
+
     /// Construct with a set of data samples and times.
     /// - The radius is the number of points before and after time t used for interpolation.
     LagrangianInterpolation(std::vector<Vector3> const& samples, 
@@ -321,12 +322,11 @@ namespace vw { namespace camera {
 
   /// Simple linear interpolation of the time at a given line.
   class LinearTimeInterpolation {
-    double m_t0, m_dt;
 
   public:
-    LinearTimeInterpolation(double initial_time, double time_per_line );
-
-    double operator()(double line ) const;
+    LinearTimeInterpolation(double initial_time, double time_per_line);
+    double operator()(double line) const;
+    double m_t0, m_dt;
   };
 
   // Compute the time at given line using piecewise linear interpolation.
