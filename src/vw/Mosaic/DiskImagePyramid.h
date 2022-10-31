@@ -91,7 +91,7 @@ namespace vw { namespace mosaic {
   typename boost::enable_if< boost::mpl::or_< boost::is_same<PixelT,double>, 
                              boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
-    return create_mask_less_or_equal(img, nodata_val);
+    return create_mask(img, nodata_val);
   }
   // Gets called for PixelT == Vector<u8, 1> and Vector<u8, 3>
   template<class PixelT>
