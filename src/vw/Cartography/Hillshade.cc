@@ -53,7 +53,7 @@ namespace cartography {
     cartography::GeoReference georef;
     bool has_georef = cartography::read_georeference(georef, input_file_name);
     if (!has_georef)
-      vw_throw( ArgumentErr() << "Input image must be georeferenced!");
+      vw_throw(ArgumentErr() << "Input image must be georeferenced!");
 
     // Select the pixel scale.
     float u_scale, v_scale;
@@ -81,7 +81,7 @@ namespace cartography {
       Vector2 left_pixel (0,                    disk_dem_file.rows()/2);
       Vector2 right_pixel(disk_dem_file.cols(), disk_dem_file.rows()/2);
 
-      Vector2 left_lonlat  = georef.pixel_to_lonlat(left_pixel );
+      Vector2 left_lonlat  = georef.pixel_to_lonlat(left_pixel);
       Vector2 right_lonlat = georef.pixel_to_lonlat(right_pixel);
       Vector2 lonlat_vec   = right_lonlat - left_lonlat;
 
@@ -101,10 +101,10 @@ namespace cartography {
 
     ImageViewRef<PixelMask<PixelT>> dem;
     boost::shared_ptr<vw::DiskImageResource> disk_dem_rsrc(vw::DiskImageResourcePtr(input_file_name));
-    if ( !std::isnan(nodata_value) ) {
+    if (!std::isnan(nodata_value)) {
       vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
       dem = create_mask(disk_dem_file, nodata_value);
-    } else if ( disk_dem_rsrc->has_nodata_read() ) {
+    } else if (disk_dem_rsrc->has_nodata_read()) {
       nodata_value = disk_dem_rsrc->nodata_read();
       vw_out() << "\t--> Extracted nodata value from file: "
                << nodata_value << ".\n";
@@ -113,7 +113,7 @@ namespace cartography {
       dem = pixel_cast<PixelMask<PixelT > >(disk_dem_file);
     }
 
-    if ( !std::isnan(blur_sigma) ) {
+    if (!std::isnan(blur_sigma)) {
       vw_out() << "\t--> Blurring pixel with gaussian kernal.  Sigma = "
                << blur_sigma << "\n";
       dem = gaussian_filter(dem, blur_sigma);
@@ -128,12 +128,12 @@ namespace cartography {
 
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(output_file_name,
                                                                      shaded_image.format()));
-    if ( r->has_block_write() )
-      r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size() ) );
-    write_georeference( *r, georef );
-    block_write_image( *r, shaded_image,
-                       TerminalProgressCallback( "hillshade", "Writing:") );
+    if (r->has_block_write())
+      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
+                                         vw_settings().default_tile_size()));
+    write_georeference(*r, georef);
+    block_write_image(*r, shaded_image,
+                       TerminalProgressCallback("hillshade", "Writing:"));
   } // End function do_hillshade()
 
   /// Redirect to the function with the required data type.
@@ -174,7 +174,8 @@ namespace cartography {
       }
       break;
     default:
-      vw_throw( ArgumentErr() << "Unsupported pixel format. The DEM image must have only one channel." );
+      vw_throw(ArgumentErr()
+               << "Unsupported pixel format. The DEM image must have only one channel.");
     }
   } // End function do_multitype_hillshade()
 
