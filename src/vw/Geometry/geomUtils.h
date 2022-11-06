@@ -95,6 +95,11 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
           double xh_in = 0.0, double yh_in = 0.0):
       xl(xl_in), yl(yl_in), xh(xh_in), yh(yh_in) {}
     double xl, yl, xh, yh;
+
+    bool isInSide(double x, double y) const {
+      return (x >= xl && x <= xh && y >= yl && y <= yh);
+    }
+    
   };
 
 
