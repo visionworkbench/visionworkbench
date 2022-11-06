@@ -158,6 +158,7 @@ public:
   void set_polyIndexAnno(const std::vector<anno> & annotations);
 
   void addAnno(const anno & A){m_annotations.push_back(A); }
+  void compVertFullIndexAnno();
   void compVertIndexAnno();
   void compPolyIndexAnno();
   void compLayerAnno();

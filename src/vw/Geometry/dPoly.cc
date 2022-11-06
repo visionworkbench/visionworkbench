@@ -594,6 +594,33 @@ void dPoly::set_isPolyClosed(bool isPolyClosed) {
   return;
 }
 
+void dPoly::compVertFullIndexAnno() {
+
+  m_vertIndexAnno.clear();
+
+  const double * xv = get_xv();
+  const double * yv = get_yv();
+
+  int start = 0;
+  for (int pIter = 0; pIter < m_numPolys; pIter++) {
+
+    if (pIter > 0) start += m_numVerts[pIter - 1];
+
+    for (int v = 0; v < m_numVerts[pIter]; v++) {
+
+      anno A;
+      A.x     = xv[start + v];
+      A.y     = yv[start + v];
+      A.label = num2str(start +v);
+      m_vertIndexAnno.push_back(A);
+    }
+
+  }
+
+  return;
+}
+
+
 void dPoly::compVertIndexAnno() {
 
   m_vertIndexAnno.clear();
