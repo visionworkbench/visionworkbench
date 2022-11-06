@@ -214,7 +214,8 @@ public:
   void reverseMarkedPolys(std::map<int, int> const & mark);
 
   void extractOnePoly(int polyIndex,       // input
-                      dPoly & poly) const; // output
+                      dPoly & poly,  // output
+					  int start_index = -1) const; // if start index provided do not re-compute
                       
   void extractMarkedPolys(std::map<int, int> const& mark, // input
                           dPoly & polys) const;           // output
@@ -237,7 +238,7 @@ private:
   bool getColorInCntFile(const std::string & line, std::string & color);
   void get_annoByType(std::vector<anno> & annotations, AnnoType annoType);
   void set_annoByType(const std::vector<anno> & annotations, AnnoType annoType);
-
+  std::vector<int> get_startingIndices() const;
   // If isPointCloud is true, treat each point as a set of unconnected points
   bool                     m_isPointCloud;
 

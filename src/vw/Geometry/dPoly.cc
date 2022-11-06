@@ -958,15 +958,32 @@ void dPoly::reverseMarkedPolys(std::map<int, int> const & mark) {
   return;
 }
 
+std::vector<int> dPoly::get_startingIndices() const{
+	std::vector<int> start_indices;
+
+	int start = 0;
+	start_indices.push_back(start);
+	for (int pIter = 0; pIter < m_numPolys; pIter++) {
+		start += m_numVerts[pIter];
+		start_indices.push_back(start);
+	}
+	return start_indices;
+}
+
 void dPoly::extractOnePoly(int polyIndex, // input
-                           dPoly & poly   // output
-                           ) const {
+                           dPoly & poly,   // output
+						   int start_index) const {
 
   assert(0 <= polyIndex && polyIndex < m_numPolys);
 
   int start = 0;
-  for (int pIter = 0; pIter < polyIndex; pIter++) {
-    start += m_numVerts[pIter];
+  if (start_index >= 0)
+	  start = start_index;
+  else {
+
+	  for (int pIter = 0; pIter < polyIndex; pIter++) {
+		  start += m_numVerts[pIter];
+	  }
   }
 
   poly.setPolygon(m_numVerts[polyIndex],
@@ -981,12 +998,15 @@ void dPoly::extractOnePoly(int polyIndex, // input
 void dPoly::extractMarkedPolys(std::map<int, int> const& mark, // input
                                dPoly & polys) const {          // output 
 
+  const auto &start_ids = get_startingIndices();
+
   polys.reset();
   for (int pIter = 0; pIter < m_numPolys; pIter++) {
     if (mark.find(pIter) == mark.end()) continue;
     dPoly lPoly;
     extractOnePoly(pIter, // input
-                   lPoly  // output
+                   lPoly,  // output
+				   start_ids[pIter]
                    );
     polys.appendPolygons(lPoly);
   }
@@ -1527,17 +1547,35 @@ void dPoly::markPolysIntersectingBox(// Inputs
 
   mark.clear();
 
+  const auto &start_ids = get_startingIndices();
+
+  dRect box(xll, yll, xur, yur);
+  int beg_inex = 0;
+
   dPoly onePoly, clippedPoly;
   for (int polyIndex = 0; polyIndex < m_numPolys; polyIndex++) {
-    extractOnePoly(polyIndex, // input
-                   onePoly);  // output
-    
-    // A polygon intersects a rectangle if cut to the rectangle
-    // it returns a non-empty polygon
-    onePoly.clipPoly(xll, yll, xur, yur, // inputs
-                     clippedPoly);       // outputs
-    if (clippedPoly.get_totalNumVerts() == 0) continue;
-    mark[polyIndex] = 1;
+
+	  if (m_numVerts[polyIndex] == 1){
+
+		  if (box.isInSide(m_xv[beg_inex], m_yv[beg_inex])){
+			  mark[polyIndex] = 1;
+		  }
+	  } else {
+		  extractOnePoly(polyIndex, // input
+				  onePoly,
+				  start_ids[polyIndex]);  // output
+
+		  // A polygon intersects a rectangle if cut to the rectangle
+		  // it returns a non-empty polygon
+		  onePoly.clipPoly(xll, yll, xur, yur, // inputs
+				  clippedPoly);       // outputs
+		  if (clippedPoly.get_totalNumVerts() != 0){
+			  mark[polyIndex] = 1;
+		  }
+	  }
+
+	  beg_inex += m_numVerts[polyIndex];
+
   }
 
   return;
