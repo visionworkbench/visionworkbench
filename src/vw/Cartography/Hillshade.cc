@@ -15,9 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#ifndef __VW_TOOLS_HILLSHADE_H__
-#define __VW_TOOLS_HILLSHADE_H__
+// TODO(oalexan1): See about removing many of these header files
 
 #include <vw/Core/System.h>
 #include <vw/Core/Log.h>
@@ -32,9 +30,16 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Cartography/GeoReference.h>
-#include <vw/tools/Common.h>
+#include <vw/Cartography/Hillshade.h>
 
-namespace vw{
+#include <string>
+#include <ostream>
+#include <cmath>
+
+/// \file Hillshade.cc. Hillshade images with georeference.
+
+namespace vw {
+namespace cartography {
 
   /// Do the hillshade work.
   template <class PixelT>
@@ -47,7 +52,7 @@ namespace vw{
     cartography::GeoReference georef;
     bool has_georef = cartography::read_georeference(georef, input_file_name);
     if (!has_georef)
-      vw_throw( ArgumentErr() << "Input image must be georeferenced!" );
+      vw_throw( ArgumentErr() << "Input image must be georeferenced!");
 
     // Select the pixel scale.
     float u_scale, v_scale;
@@ -66,7 +71,7 @@ namespace vw{
     }
 
     vw_out() << "Loading: " << input_file_name << ".\n";
-    DiskImageView<PixelT > disk_dem_file(input_file_name);
+    DiskImageView<PixelT> disk_dem_file(input_file_name);
 
     if (align_to_georef) {
       std::cout << "Calculating adjustment to longitude East...\n";
@@ -93,7 +98,7 @@ namespace vw{
 
     // Compute the surface normals
 
-    ImageViewRef<PixelMask<PixelT > > dem;
+    ImageViewRef<PixelMask<PixelT>> dem;
     boost::shared_ptr<vw::DiskImageResource> disk_dem_rsrc(vw::DiskImageResourcePtr(input_file_name));
     if ( !std::isnan(nodata_value) ) {
       vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
@@ -127,7 +132,7 @@ namespace vw{
                                          vw_settings().default_tile_size() ) );
     write_georeference( *r, georef );
     block_write_image( *r, shaded_image,
-                       TerminalProgressCallback( "tools.hillshade", "Writing:") );
+                       TerminalProgressCallback( "hillshade", "Writing:") );
   } // End function do_hillshade()
 
   /// Redirect to the function with the required data type.
@@ -172,6 +177,5 @@ namespace vw{
     }
   } // End function do_multitype_hillshade()
 
-}
+}} // namespace vw::cartography
 
-#endif

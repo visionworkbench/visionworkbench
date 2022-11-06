@@ -26,9 +26,10 @@
 #undef NDEBUG
 #endif
 
-#include <vw/tools/hillshade.h>
+#include <vw/Cartography/Hillshade.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/tools/Common.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -97,10 +98,10 @@ int main(int argc, char *argv[]) {
   Options opt;
   try {
     handle_arguments(argc, argv, opt);
-    do_multitype_hillshade(opt.input_file_name,
-                           opt.output_file_name,
-                           opt.azimuth, opt.elevation, opt.scale,
-                           opt.nodata_value, opt.blur_sigma, opt.align_to_georef);
+    vw::cartography::do_multitype_hillshade(opt.input_file_name,
+                                            opt.output_file_name,
+                                            opt.azimuth, opt.elevation, opt.scale,
+                                            opt.nodata_value, opt.blur_sigma, opt.align_to_georef);
 
   } catch (const ArgumentErr& e) {
     vw_out() << e.what() << std::endl;

@@ -6,7 +6,6 @@
 
 # A few header files from this folder are used by ASP.
 INSTALL(FILES "Common.h"    DESTINATION include/vw/tools)
-INSTALL(FILES "hillshade.h" DESTINATION include/vw/tools)
 
 set(COMMON_LIBS VwCore VwMath VwFileIO VwImage VwCartography)
 
