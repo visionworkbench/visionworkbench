@@ -42,6 +42,7 @@ namespace vw {
 namespace cartography {
 
   /// Do the hillshade work.
+  /// This templated logic is very slow to compile. 
   template <class PixelT>
   void do_hillshade(std::string const& input_file_name,
                     std::string const& output_file_name,
@@ -151,24 +152,24 @@ namespace cartography {
       switch (fmt.channel_type) {
 
       case VW_CHANNEL_UINT8:
-        do_hillshade<PixelGray<uint8>  >(input_file, output_file,
-                                         azimuth, elevation, scale,
-                                         nodata_value, blur_sigma, align_to_georef);
+        do_hillshade<PixelGray<uint8>>(input_file, output_file,
+                                       azimuth, elevation, scale,
+                                       nodata_value, blur_sigma, align_to_georef);
         break;
       case VW_CHANNEL_INT16:
-        do_hillshade<PixelGray<int16>  >(input_file, output_file,
-                                         azimuth, elevation, scale,
-                                         nodata_value, blur_sigma, align_to_georef);
+        do_hillshade<PixelGray<int16>>(input_file, output_file,
+                                       azimuth, elevation, scale,
+                                       nodata_value, blur_sigma, align_to_georef);
         break;
       case VW_CHANNEL_UINT16:
-        do_hillshade<PixelGray<uint16> >(input_file, output_file,
-                                         azimuth, elevation, scale,
-                                         nodata_value, blur_sigma, align_to_georef);
+        do_hillshade<PixelGray<uint16>>(input_file, output_file,
+                                        azimuth, elevation, scale,
+                                        nodata_value, blur_sigma, align_to_georef);
         break;
       default:
-        do_hillshade<PixelGray<float>  >(input_file, output_file,
-                                         azimuth, elevation, scale,
-                                         nodata_value, blur_sigma, align_to_georef);
+        do_hillshade<PixelGray<float>>(input_file, output_file,
+                                       azimuth, elevation, scale,
+                                       nodata_value, blur_sigma, align_to_georef);
         break;
       }
       break;
