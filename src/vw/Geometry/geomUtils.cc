@@ -189,8 +189,8 @@ void minDistFromPtToSeg(//inputs
   double t;
   if (a == 0.0) t = 0.0;
   else          t = b/a;
-  t = max(t, 0.0);
-  t = min(t, 1.0);
+  t = std::max(t, 0.0);
+  t = std::min(t, 1.0);
 
   minX = x0 + t*(x1 - x0);
   minY = y0 + t*(y1 - y0);
@@ -306,18 +306,21 @@ void searchForLayer(std::string   lineStr, // input
   return;
 }
 
-double signedPolyArea(int numV, const double* xv, const double* yv){
+double signedPolyArea(int numV, const double* xv, const double* yv, bool counter_cc){
 
   // Subtract the first vertex when computing the area to handle more
   // accurately polygons very far from the origin.
 
   double area = 0.0;
-
+  double sign = 1.0;
+  if (!counter_cc)
+    sign = -1.0; // clockwise polygons
+  
   for (int vIter = 0; vIter < numV; vIter++){
 
     int vNext = (vIter + 1)%numV;
-    area += (xv[vIter] - xv[0])*(yv[vNext] - yv[0]) -
-      (xv[vNext] - xv[0])*(yv[vIter] - yv[0]);
+    area += sign * ((xv[vIter] - xv[0])*(yv[vNext] - yv[0]) -
+                    (xv[vNext] - xv[0])*(yv[vIter] - yv[0]));
 
   }
 
@@ -368,15 +371,50 @@ bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
 
   assert(xl1 <= xh1 && yl1 <= yh1);
   assert(xl2 <= xh2 && yl2 <= yh2);
-  return(std::max(xl1, xl2) <= std::min(xh1, xh2) &&
-	 std::max(yl1, yl2) <= std::min(yh1, yh2));
+
+  return
+    (std::max(xl1, xl2) <= std::min(xh1, xh2) &&
+     std::max(yl1, yl2) <= std::min(yh1, yh2));
 
 }
 
-bool mergePolys(int an, const double * ax_in, const double * ay_in,
-		int bn, const double * bx_in, const double * by_in,
-		std::vector<double> & mergedX, std::vector<double> & mergedY
-		){
+linTrans composeTransforms(linTrans P, linTrans Q){
+
+  // Composition of two transforms
+
+  linTrans R;
+
+  R.a11 = P.a11*Q.a11 + P.a12*Q.a21;
+  R.a12 = P.a11*Q.a12 + P.a12*Q.a22;
+  R.a21 = P.a21*Q.a11 + P.a22*Q.a21;
+  R.a22 = P.a21*Q.a12 + P.a22*Q.a22;
+
+  R.sx = P.a11*Q.sx + P.a12*Q.sy + P.sx;
+  R.sy = P.a21*Q.sx + P.a22*Q.sy + P.sy;
+
+  return R;
+}
+
+linTrans transAroundPt(const matrix2 & M, dPoint P){
+
+  // Find the linear transformation which applies a given matrix
+  // transform around the current point (for example, rotation around
+  // the current point).
+
+  linTrans T;
+  T.a11 = M.a11; T.a12 = M.a12;
+  T.a21 = M.a21; T.a22 = M.a22;
+  T.sx = P.x - M.a11*P.x - M.a12*P.y;
+  T.sy = P.y - M.a21*P.x - M.a22*P.y;
+  return T;
+}
+
+bool mergePolys(int an,
+                const double * ax_in, const double * ay_in,
+                int bn,
+                const double * bx_in, const double * by_in,
+                std::vector<double> & mergedX,
+                std::vector<double> & mergedY){
 
   // Merge two polygons. This function is INCOMPLETE and BUGGY.
   // To be finished.
@@ -502,7 +540,7 @@ bool isPointInPolyOrOnEdges(double x, double y,
     if (x < x0 || x > x1) continue;
 
     if (x0 == x1){
-      if (y >= min(y0, y1) && y <= max(y0, y1)) return true;
+      if (y >= std::min(y0, y1) && y <= std::max(y0, y1)) return true;
       else                                      continue;
     }
 

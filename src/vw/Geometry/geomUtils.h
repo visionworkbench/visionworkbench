@@ -76,11 +76,10 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
                       std::string & layer    // output
                       );
 
-  double signedPolyArea(int numV, const double* xv, const double* yv);
+  double signedPolyArea(int numV, const double* xv, const double* yv, bool counter_cw);
 
-  void searchForColor(std::string lineStr, // input, not a reference on purpose
-                      std::string & color  // output
-                      );
+  void searchForColor(std::string lineStr,  // input, not a reference on purpose
+                      std::string & color); // output
 
   bool searchForAnnotation(std::string lineStr, anno & annotation);
 
@@ -157,6 +156,41 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
   bool isPointInPolyOrOnEdges(double x, double y,
                               int n, const double* xv, const double*  yv);
 
-}}
+  struct linTrans{
+    // Linear transform
+    double a11, a12, a21, a22, sx, sy;
+    linTrans(){
+      a11 = a22 = 1.0;
+      a21 = a12 = sx = sy = 0.0;
+    }
+    void reset(){
+      *this = linTrans();
+    }
+    void print(){
+      std::cout << "transform " << a11 << ' ' << a12 << ' '
+                << a21 << ' ' << a22 << ' ' << sx << ' ' << sy << std::endl;
+    }
+  };
 
+  linTrans composeTransforms(linTrans P, linTrans Q);
+
+  struct matrix2{
+    // A 2x2 matrix
+    double a11, a12, a21, a22;
+    matrix2(){
+      a11 = a22 = 1.0;
+      a21 = a12 = 0.0;
+    }
+    void reset(){
+      *this = matrix2();
+    }
+    void print(){
+      std::cout << "matrix " << a11 << ' ' << a12 << ' ' << a21 << ' ' << a22 << std::endl;
+    }
+  };
+
+  linTrans transAroundPt(const matrix2 & M, dPoint P);
+
+}} // end namespace vw::geometry
+                                                                   
 #endif // VW_GEOMETRY_GEOMUTILS_H

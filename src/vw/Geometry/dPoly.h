@@ -24,9 +24,13 @@
 #include <vw/Geometry/geomUtils.h>
 
 namespace vw { namespace geometry {
+  
+enum AnnoType {
+  fileAnno = 0, vertAnno, polyAnno, layerAnno, lastAnno
+};
 
 // A class holding a set of polygons in double precision
-class dPoly{
+class dPoly {
 
 public:
 
@@ -38,8 +42,7 @@ public:
 
   bool read_pol_or_cnt_format(std::string filename,
                               std::string type,
-                              bool isPointCloud = false
-                              );
+                              bool isPointCloud = false);
 
   bool readPoly(std::string filename,
                 bool isPointCloud = false
@@ -79,26 +82,47 @@ public:
   void shift(double shift_x, double shift_y);
   void rotate(double angle);
   void scale(double scale);
+  void transformMarkedPolys(std::map<int, int> const& mark, const linTrans & T);
+  void transformMarkedAnnos(std::map<int, int> const& mark, const linTrans & T);
+
+  void transformMarkedPolysAroundPt(std::map<int, int> const& mark,
+                                    const matrix2 & M, dPoint P);
+  void transformMarkedAnnosAroundPt(std::map<int, int> const& mark,
+                                    const matrix2 & M, dPoint P);
+
+  void applyTransform(double a11, double a12, double a21, double a22,
+                      double sx, double sy,
+                      linTrans & T); // save the transform here
+  
+  void applyTransformAroundBdBoxCenter(double a11, double a12,
+                                       double a21, double a22,
+                                       linTrans & T
+                                       );
 
   const int    * get_numVerts         () const { return vecPtr(m_numVerts); }
   const double * get_xv               () const { return vecPtr(m_xv);       }
   const double * get_yv               () const { return vecPtr(m_yv);       }
-  double * get_xv                     () { return vecPtr(m_xv);             }  // non-const
-  double * get_yv                     () { return vecPtr(m_yv);             }
-  int get_numPolys                    () const { return m_numPolys;         }
-  int get_totalNumVerts               () const { return m_totalNumVerts;    }
-  std::vector<char> get_isPolyClosed  () const { return m_isPolyClosed;     }
-  std::vector<std::string> get_colors () const { return m_colors;           }
-  std::vector<std::string> get_layers () const { return m_layers;           }
+
+  // Non-const versions of the above
+  int    * get_numVerts         () { return vecPtr(m_numVerts); }
+  double * get_xv               () { return vecPtr(m_xv);       }
+  double * get_yv               () { return vecPtr(m_yv);       }
+  
+  int get_numPolys                    () const { return m_numPolys;                }
+  int get_totalNumVerts               () const { return m_totalNumVerts;           }
+  std::vector<char> get_isPolyClosed  () const { return m_isPolyClosed;            }
+  std::vector<std::string> get_colors () const { return m_colors;                  }
+  std::vector<std::string> get_layers () const { return m_layers;                  }
 
   void set_color(std::string color);
 
   void set_isPolyClosed(bool isPolyClosed);
 
-  void eraseMarkedPolys(// Inputs
-                        std::map<int, int> & mark
-                        );
+  void eraseMarkedPolys(std::map<int, int> const& mark);
+  void eraseMarkedAnnos(std::map<int, int> const& mark);
+
   void erasePolysIntersectingBox(double xll, double yll, double xur, double yur);
+  void eraseAnnosIntersectingBox(double xll, double yll, double xur, double yur);
   void appendAndShiftMarkedPolys(// Inputs
                                  std::map<int, int> & mark,
                                  double shift_x, double shift_y
@@ -114,19 +138,28 @@ public:
                                 double xll, double yll,
                                 double xur, double yur,
                                 // Outputs
-                                std::map<int, int> & mark
-                                ) const;
+                                std::map<int, int> & mark) const;
+
+  void markAnnosIntersectingBox(// Inputs
+                                double xll, double yll,
+                                double xur, double yur,
+                                // Outputs
+                                std::map<int, int> & mark) const;
+  
   void replaceOnePoly(int polyIndex, int numV, const double* x, const double* y);
   // Annotations
   void get_annotations (std::vector<anno> & annotations) const;
   void get_layerAnno(std::vector<anno> & annotations) const;
   void get_vertIndexAnno(std::vector<anno> & annotations) const;
+  void get_polyIndexAnno(std::vector<anno> & annotations) const;
   void set_annotations(const std::vector<anno> & A);
   void set_layerAnno(const std::vector<anno> & annotations);
   void set_vertIndexAnno(const std::vector<anno> & annotations);
+  void set_polyIndexAnno(const std::vector<anno> & annotations);
 
   void addAnno(const anno & A){m_annotations.push_back(A); }
   void compVertIndexAnno();
+  void compPolyIndexAnno();
   void compLayerAnno();
 
   void bdBox(double & xll, double & yll, double & xur, double & yur) const;
@@ -174,28 +207,36 @@ public:
   void changeVertexValue(int polyIndex, int vertIndex, double x, double y);
   void shiftEdge(int polyIndex, int vertIndex, double shift_x, double shift_y);
   void shiftOnePoly(int polyIndex, double shift_x, double shift_y);
-  void shiftMarkedPolys(const std::map<int, int> & mark, double shift_x, double shift_y);
-  void extractOnePoly(int polyIndex, // input
-                      dPoly & poly   // output
-                      ) const;
-  void extractMarkedPolys(std::map<int, int> & mark, // input
-                          dPoly & polys              // output
-                          ) const;
-  void reverse(); // reverse orientation
+  void shiftOneAnno(int index, double shift_x, double shift_y);
+  void shiftMarkedPolys(std::map<int, int> const & mark, double shift_x, double shift_y);
+  void shiftMarkedAnnos(std::map<int, int> const & amark, double shift_x, double shift_y);
+
+  void reverseMarkedPolys(std::map<int, int> const & mark);
+
+  void extractOnePoly(int polyIndex,       // input
+                      dPoly & poly) const; // output
+                      
+  void extractMarkedPolys(std::map<int, int> const& mark, // input
+                          dPoly & polys) const;           // output
+  
+  // Reverse orientation of all polygons
+  void reverse();
+  
   void reverseOnePoly(int polyIndex);
-  void sortFromLargestToSmallest();
+  void sortFromLargestToSmallest(bool counter_cc);
 
   void sortBySizeAndMaybeAddBigContainingRect(// inputs
                                               double bigXll, double bigYll,
-                                              double bigXur, double bigYur);
+                                              double bigXur, double bigYur,
+                                              bool counter_cc);
 
   void enforce45();
 
 private:
 
   bool getColorInCntFile(const std::string & line, std::string & color);
-  void get_annoByType(std::vector<anno> & annotations, int annoType);
-  void set_annoByType(const std::vector<anno> & annotations, int annoType);
+  void get_annoByType(std::vector<anno> & annotations, AnnoType annoType);
+  void set_annoByType(const std::vector<anno> & annotations, AnnoType annoType);
 
   // If isPointCloud is true, treat each point as a set of unconnected points
   bool                     m_isPointCloud;
@@ -210,8 +251,8 @@ private:
   std::vector<std::string> m_layers;
   std::vector<anno>        m_annotations;
   std::vector<anno>        m_vertIndexAnno; // Anno showing vertex index
+  std::vector<anno>        m_polyIndexAnno; // Anno showing poly index in a set of polys
   std::vector<anno>        m_layerAnno;     // Anno showing layer number
-
 };
 
 }}
