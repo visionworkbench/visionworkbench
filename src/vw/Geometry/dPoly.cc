@@ -119,8 +119,7 @@ void dPoly::setPolygon(int numVerts,
                        const double * yv,
                        bool isPolyClosed,
                        const std::string & color,
-                       const std::string & layer
-                       ) {
+                       const std::string & layer) {
   reset();
   appendPolygon(numVerts, xv, yv, isPolyClosed, color, layer);
   return;
@@ -131,8 +130,7 @@ void dPoly::appendPolygon(int numVerts,
                           const double * yv,
                           bool isPolyClosed,
                           const std::string & color,
-                          const std::string & layer
-                          ) {
+                          const std::string & layer) {
 
   if (numVerts <= 0) return;
 
@@ -271,8 +269,7 @@ void dPoly::clipPoly(// inputs
         double x = xv[start + vIter];
         double y = yv[start + vIter];
         if (x >= clip_xll && x <= clip_xur &&
-            y >= clip_yll && y <= clip_yur
-            ) {
+            y >= clip_yll && y <= clip_yur) {
           cutXv.push_back(x);
           cutYv.push_back(y);
         }
@@ -283,16 +280,13 @@ void dPoly::clipPoly(// inputs
 
       cutPoly(1, numVerts + pIter, xv + start, yv + start,
               clip_xll, clip_yll, clip_xur, clip_yur,
-              cutXv, cutYv, cutNumVerts // outputs
-              );
+              cutXv, cutYv, cutNumVerts); // outputs
 
     }else{
 
       cutPolyLine(numVerts[pIter], xv + start, yv + start,
                   clip_xll, clip_yll, clip_xur, clip_yur,
-                  cutXv, cutYv, cutNumVerts // outputs
-                  );
-
+                  cutXv, cutYv, cutNumVerts); // outputs
     }
 
     int cstart = 0;
@@ -303,9 +297,7 @@ void dPoly::clipPoly(// inputs
       clippedPoly.appendPolygon(cSize,
                                 vecPtr(cutXv) + cstart,
                                 vecPtr(cutYv) + cstart,
-                                isClosed, color, layer
-                                );
-
+                                isClosed, color, layer);
     }
 
   }

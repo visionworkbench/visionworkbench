@@ -33,9 +33,9 @@ void cutPolyLine(// inputs -- the polygonal line
 		 // inputs -- the cutting window
 		 double xll, double yll, double xur, double yur,
 		 // outputs -- the cut polygons
-		 std::vector< double> & cutX,
-		 std::vector< double> & cutY,
-		 std::vector< int>    & cutNumPolys){
+		 std::vector<double> & cutX,
+		 std::vector<double> & cutY,
+		 std::vector<int>    & cutNumPolys){
   
   // Cut a polygonal line. First make it into a polygon by traveling
   // forward and then backward on the polygonal line, then cut the
@@ -62,8 +62,7 @@ void cutPolyLine(// inputs -- the polygonal line
           // inputs -- the cutting window
           xll, yll, xur, yur,  
           // outputs -- the cut polygons
-          lCutX, lCutY, lCutNumPolys
-          );
+          lCutX, lCutY, lCutNumPolys);
 
   cutX.clear(); cutY.clear(); cutNumPolys.clear();
   
