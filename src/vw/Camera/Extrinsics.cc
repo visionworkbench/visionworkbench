@@ -756,15 +756,21 @@ double LinearTimeInterpolation::operator()(double line) const {
 // TLCTimeInterpolation class
 
 TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double>> const& tlc,
-					                                 double time_offset) {
+                                           double time_offset) {
+
+  // These original inputs can be retrieved later if the precomputed data as below
+  // are not sufficient.
+  m_tlc = tlc;
+  m_time_offset = time_offset;
+  
   // Loop until next-to-last entry
-  for (size_t i = 0; i < tlc.size() - 1; i++) {
+  for (size_t i = 0; i + 1 < tlc.size(); i++) {
     const double this_line = tlc[i].first;
     const double t         = time_offset + tlc[i].second; // The time for this entry
     
-    // Compute the instantaneous slope at this time = (time diff) / (line diff)
-    m_m[this_line] = (tlc[i].second - tlc[i+1].second) / (tlc[i].first - tlc[i+1].first);
-    
+    // Compute the slope between this time instance and the next
+    m_m[this_line] = (tlc[i+1].second - tlc[i].second) / (tlc[i+1].first - tlc[i].first);
+
     // Compute the intercept
     m_b[this_line] = t - m_m[this_line] * this_line;
   }

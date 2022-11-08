@@ -333,11 +333,16 @@ namespace vw { namespace camera {
   // TLC is straight from the IMG XML tag from Digital Globe
   // products. The pairings are expected to be <Line, Time>.
   class TLCTimeInterpolation {
+  public:
 
     typedef std::map<double, double> map_type;
-    map_type m_m, m_b; // Tables keyed on line: time = m * line + b;
-
-  public:
+    
+    // Tables keyed on line: time = m * line + b;
+    map_type m_m, m_b;
+    
+    std::vector<std::pair<double, double>> m_tlc;
+    double m_time_offset;
+    
     TLCTimeInterpolation(std::vector<std::pair<double, double>> const& tlc,
                          double time_offset = 0.0);
 
