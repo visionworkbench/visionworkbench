@@ -105,8 +105,7 @@ LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation
 
 Vector3 LinearPiecewisePositionInterpolation::operator()(double t) const {
 
-  // Make sure that t lies within the range [t0, t0+dt*length(points)]
-  VW_ASSERT(t >= m_t0 && t <= m_tend,
+  VW_ASSERT(t >= m_t0 && t <= m_tend + 1.0e-8,
             ArgumentErr() << "Cannot extrapolate position for time "
             << t << ". Out of valid range. Expecting " << m_t0 << " <= " << t << " <= "
             << m_tend << "\n");
@@ -114,6 +113,13 @@ Vector3 LinearPiecewisePositionInterpolation::operator()(double t) const {
   // Get bounding indices
   int low_i  = (int) floor((t - m_t0) / m_dt);
   int high_i = (int) ceil ((t - m_t0) / m_dt);
+
+  // Adjustment for when t equals to m_tend within numerical
+  // precision, when the result should be the last element.  If in
+  // doubt, extrapolate a bit rather than fail, so t can be allowed to
+  // be a tiny bit more above t_end.
+  if (std::abs(t - m_tend) < 1.0e-8 && high_i == (int)m_position_samples.size())
+    high_i = low_i; 
 
   VW_ASSERT(low_i >= 0 && high_i < (int)m_position_samples.size(),
 	     ArgumentErr() << "Out of bounds in LinearPiecewisePositionInterpolation.\n");
@@ -141,7 +147,7 @@ SmoothPiecewisePositionInterpolation::SmoothPiecewisePositionInterpolation
 
 Vector3 SmoothPiecewisePositionInterpolation::operator()(double t) const {
 
-  // Make sure that t lies within the range [t0, t0+dt*length(points)]
+  // Make sure that t lies within the range [t0, t0+dt*length(points)].
   VW_ASSERT(t >= m_t0 && t <= m_tend,
 	     ArgumentErr() << "Cannot extrapolate point for time "
 	     << t << ". Out of valid range. Expecting: "
@@ -437,7 +443,7 @@ PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation
 
 Vector3 PiecewiseAPositionInterpolation::operator()(double t) const {
 
-  VW_ASSERT(t >= m_t0 && t < m_tend,
+  VW_ASSERT(t >= m_t0 && t <= m_tend + 1.0e-8,
             ArgumentErr() << "Cannot extrapolate position for time "
             << t << ". Out of valid range. Expecting " << m_t0 << " <= "
             << t << " < " << m_tend << ".\n");
@@ -447,6 +453,13 @@ Vector3 PiecewiseAPositionInterpolation::operator()(double t) const {
   int high_i   = low_i + 1;
   double offset_t = t - (m_t0 + m_dt * low_i);
 
+  // Adjustment for when t equals to m_tend within numerical
+  // precision, when the result should be the last element.  If in
+  // doubt, extrapolate a bit rather than fail, so t can be allowed to
+  // be a tiny bit more above t_end.
+  if (std::abs(t - m_tend) < 1.0e-8 && high_i == (int)m_position_samples.size())
+    high_i = low_i; 
+  
   VW_ASSERT(low_i >= 0 && high_i < (int)m_position_samples.size(),
 	     ArgumentErr() << "Out of bounds in PiecewiseAPositionInterpolation.\n");
 
