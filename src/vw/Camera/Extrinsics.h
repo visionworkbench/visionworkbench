@@ -50,9 +50,9 @@ namespace vw { namespace camera {
 
   /// Simple position interpolation when only an initial point and velocity are known.
   class LinearPositionInterpolation {
+  public:
     Vector3 m_initial_position, m_initial_velocity;
 
-  public:
     LinearPositionInterpolation(Vector3 const& initial_position,
                                 Vector3 const& initial_velocity);
 
@@ -61,9 +61,9 @@ namespace vw { namespace camera {
 
   /// Simple linear interpolation between a series of positions.
   class LinearPiecewisePositionInterpolation {
+  public:
     std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
-  public:
     LinearPiecewisePositionInterpolation(){}
     LinearPiecewisePositionInterpolation(std::vector<Vector3> const& position_samples,
                                          double t0, double dt );
@@ -76,12 +76,12 @@ namespace vw { namespace camera {
 
   /// Performs smooth interpolation between sparse pose data points using gaussians.
   class SmoothPiecewisePositionInterpolation {
+  public:
     std::vector<Vector3> m_position_samples;
     double m_t0, m_dt, m_tend;
     int m_num_wts;
     double m_sigma;
 
-  public:
     SmoothPiecewisePositionInterpolation(){}
     SmoothPiecewisePositionInterpolation(std::vector<Vector3> const& pose_samples,
                                          double t0, double dt,
@@ -100,11 +100,11 @@ namespace vw { namespace camera {
   /// - If it becomes useful this can be combined with the fixed interval Lagrangian
   ///   class using a boolean check.
   class LagrangianInterpolationVarTime {
+  public:
     std::vector<Vector3> m_samples;
     std::vector<double > m_times;
     int m_radius; // interpolation order = 2 * m_radius
     
-  public:
     /// Construct with a set of data samples and times.
     /// - The radius is the number of points before and after time t used for interpolation.
     LagrangianInterpolationVarTime(std::vector<Vector3> const& samples, 
@@ -122,11 +122,11 @@ namespace vw { namespace camera {
   /// TODO(oalexan1): What if is desired to use an odd number of
   /// samples?
   class LagrangianInterpolation {
+  public:
     double m_start_time, m_time_delta, m_last_time;
     int m_radius;
     std::vector<double> m_denoms;
     mutable std::vector<double> m_times_temp;
-  public:
     std::vector<Vector3> m_samples;
 
     /// Construct with a set of data samples and times.
@@ -154,12 +154,12 @@ namespace vw { namespace camera {
   // TODO(oalexan1): This needs to be tested and compared with SLERPPoseInterpolation,
   // with and without use of splines in the latter.
   class QuatLagrangianInterpolation {
+  public:
     std::vector<Quat> m_samples;
     double m_start_time, m_time_delta, m_last_time;
     int m_radius;
     std::vector<double> m_denoms;
     mutable std::vector<double> m_times_temp;
-  public:
     /// Construct with a set of data samples and times.
     /// - The radius is the number of points before and after time t used for interpolation.
     QuatLagrangianInterpolation(std::vector<Quat> const& samples, 
@@ -176,9 +176,9 @@ namespace vw { namespace camera {
 
   /// Interpolation between a series of positions using velocity information.
   class PiecewiseAPositionInterpolation {
+  public:
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
-  public:
     PiecewiseAPositionInterpolation(std::vector<Vector3> const& position_samples,
                                     std::vector<Vector3> const& velocity_samples,
                                     double t0, double dt );
@@ -224,9 +224,9 @@ namespace vw { namespace camera {
 
   /// Cubic Hermite Spline interpolation or CSpline. Assumes the velocity measurements are provided.
   class HermitePositionInterpolation {
+  public:
     std::vector<Vector3> m_position_samples, m_velocity;
     double m_t0, m_dt, m_tend;
-  public:
     HermitePositionInterpolation(std::vector<Vector3> const& position_samples,
                                  std::vector<Vector3> const& velocity_samples,
                                  double t0, double dt );
@@ -243,8 +243,8 @@ namespace vw { namespace camera {
 
   /// Always returns the input pose.
   class ConstantPoseInterpolation {
-    Quat m_pose;
   public:
+    Quat m_pose;
     ConstantPoseInterpolation(Quat const& pose);
 
     inline Quat operator()(double /*t*/) const {
@@ -275,10 +275,10 @@ public:
 
   /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
   class SlerpGridPointingInterpolation {
+  public:
     std::vector<std::vector<vw::Vector3>> m_directions;
     double m_row0, m_drow, m_row_end;
     double m_col0, m_dcol, m_col_end;
-  public:
     SlerpGridPointingInterpolation(){}
     SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3>> const& directions,
                                    double row0, double drow, double col0, double dcol);
@@ -297,12 +297,12 @@ public:
   /// Performs smooth interpolation between sparse pose data points using the
   /// spherical linear interpolation algorithm. Highly experimental and not tested.
   class SmoothSLERPPoseInterpolation {
+  public:
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
     int m_num_wts;
     double m_sigma;
 
-  public:
     SmoothSLERPPoseInterpolation(){}
     SmoothSLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
                                  int num_wts, double sigma);
@@ -321,7 +321,6 @@ public:
 
   /// Simple linear interpolation of the time at a given line.
   class LinearTimeInterpolation {
-
   public:
     LinearTimeInterpolation(double initial_time, double time_per_line);
     double operator()(double line) const;
