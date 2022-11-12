@@ -35,7 +35,7 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/DiskImageUtils.h>
-
+#include <vw/Image/AntiAliasing.h>
 #include <vw/Math/Statistics.h>
 
 namespace vw { namespace mosaic {
