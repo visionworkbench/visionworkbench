@@ -15,23 +15,14 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+// TODO(oalexan1): Move all logic having to do with colors only, to
+// src/vw/Image/Colormap.cc.
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
 #pragma warning(disable:4996)
 #endif
-
-#include <cstdlib>
-
-#include <boost/tokenizer.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/numeric/conversion/cast.hpp>
-#include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/foreach.hpp>
-namespace fs = boost::filesystem;
-namespace po = boost::program_options;
 
 #include <vw/Core/Functors.h>
 #include <vw/Image/Algorithms.h>
@@ -42,13 +33,29 @@ namespace po = boost::program_options;
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Image/Colormap.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
 
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+#include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/foreach.hpp>
+
+#include <cstdlib>
+
+namespace fs = boost::filesystem;
+namespace po = boost::program_options;
 using namespace vw;
+
+typedef Vector<uint8,3>                 Vector3u;
+typedef std::pair<std::string,Vector3u> lut_element;
+typedef std::vector<lut_element>        lut_type;
 
 struct Options: vw::GdalWriteOptions {
   
@@ -61,24 +68,20 @@ struct Options: vw::GdalWriteOptions {
   float       nodata_value, min_val, max_val;
   bool        draw_legend;
 
-  typedef Vector<uint8,3>                 Vector3u;
-  typedef std::pair<std::string,Vector3u> lut_element;
-  typedef std::vector<lut_element>        lut_type;
-
   lut_type lut;
   std::map<float, Vector3u> lut_map;
 };
 
 // Colormap function
-class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<uint8> > > {
-  typedef std::map<float, Options::Vector3u> map_type;
+class ColormapFunc: public ReturnFixedType<PixelMask<PixelRGB<uint8>>> {
+  typedef std::map<float, Vector3u> map_type;
   map_type m_colormap;
 
 public:
-  ColormapFunc(std::map<float, Options::Vector3u> const& map) : m_colormap(map) {}
+  ColormapFunc(std::map<float, Vector3u> const& map) : m_colormap(map) {}
 
   template <class PixelT>
-  PixelMask<PixelRGB<uint8> > operator() (PixelT const& pix) const {
+  PixelMask<PixelRGB<uint8>> operator() (PixelT const& pix) const {
     if (is_transparent(pix))
       return PixelMask<PixelRGB<uint8> >(); // Skip transparent pixels
 
@@ -91,23 +94,44 @@ public:
     map_type::const_iterator top = m_colormap.upper_bound(val);
 
     if (top == m_colormap.end()) // If this is above the top colormap value
-      return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use the max colormap value
+      return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use max val
 
     // Otherwise determine a proportional color between the bounding colormap values
-    Options::Vector3u output = bot->second + // Lower colormap value
-                                (((val - bot->first)/(top->first - bot->first)) * // Fraction of distance to next colormap value
-                                  (Vector3i(top->second) - Vector3i(bot->second)) ); // Difference between successive colormap values
+    Vector3u output = bot->second + 
+      (((val - bot->first)/(top->first - bot->first)) *
+       (Vector3i(top->second) - Vector3i(bot->second)));
     return PixelRGB<uint8>(output[0], output[1], output[2]);
   }
 };
 
 template <class ViewT>
 UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view,
-                                                std::map<float, Options::Vector3u> const& map) {
+                                                std::map<float, Vector3u> const& map) {
   return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc(map));
 }
 
-// -------------------------------------------------------------------------------------
+
+// Populate a colormap from string pairs given in lut.
+// Note: min_val and max_val are used only for a custom colormap table specified
+// by the user.
+void populate_colormap(double min_val, double max_val, lut_type const& lut,
+                       std::map<float, Vector3u> & colormap) {
+  
+  BOOST_FOREACH(lut_element const& pair, lut) {
+    try {
+      if (boost::contains(pair.first,"%")) {
+        float key = boost::lexical_cast<float>(boost::erase_all_copy(pair.first,"%"))/100.0;
+        colormap[key] = pair.second;
+      } else {
+        float key = boost::lexical_cast<float>(pair.first);
+        colormap[ (key - min_val) / (max_val - min_val) ] =
+          pair.second;
+      }
+    } catch (const boost::bad_lexical_cast& e) {
+      continue;
+    }
+  }
+}
 
 template <class PixelT>
 void do_colormap(Options& opt) {
@@ -127,8 +151,8 @@ void do_colormap(Options& opt) {
 
   // Compute min/max of input image values
   DiskImageView<PixelT> disk_img_file(opt.input_file_name);
-  ImageViewRef<PixelGray<float> > input_image =
-    pixel_cast<PixelGray<float> >(select_channel(disk_img_file,0));
+  ImageViewRef<PixelGray<float>> input_image =
+    pixel_cast<PixelGray<float>>(select_channel(disk_img_file, 0));
   if (opt.min_val == 0 && opt.max_val == 0) {
     min_max_channel_values(create_mask(input_image, opt.nodata_value),
                             opt.min_val, opt.max_val);
@@ -139,25 +163,13 @@ void do_colormap(Options& opt) {
              << opt.min_val << "  " << opt.max_val << "]\n";
   }
 
-  // Convert lut to lut_map (converts altitudes to relative percent)
-  opt.lut_map.clear();
-  BOOST_FOREACH(Options::lut_element const& pair, opt.lut) {
-    try {
-      if (boost::contains(pair.first,"%")) {
-        float key = boost::lexical_cast<float>(boost::erase_all_copy(pair.first,"%"))/100.0;
-        opt.lut_map[ key ] = pair.second;
-      } else {
-        float key = boost::lexical_cast<float>(pair.first);
-        opt.lut_map[ (key - opt.min_val) / (opt.max_val - opt.min_val) ] =
-          pair.second;
-      }
-    } catch (const boost::bad_lexical_cast& e) {
-      continue;
-    }
-  }
+  // If lut_map is not populated so far, convert lut to lut_map
+  // (converts altitudes to relative percent).
+  if (opt.lut_map.empty())
+    populate_colormap(opt.min_val, opt.max_val, opt.lut, opt.lut_map);
 
   // Mask input
-  ImageViewRef<PixelMask<PixelGray<float> > > img;
+  ImageViewRef<PixelMask<PixelGray<float>>> img;
   if (PixelHasAlpha<PixelT>::value)
     img = alpha_to_mask(channel_cast<float>(disk_img_file));
   else if (opt.nodata_value != std::numeric_limits<float>::max()) {
@@ -166,10 +178,10 @@ void do_colormap(Options& opt) {
     img = create_mask(input_image, opt.nodata_value);
   }
   else
-    img = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+    img = pixel_cast<PixelMask<PixelGray<float>>>(input_image);
 
   // Apply colormap
-  ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
+  ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image =
     colormap(normalize(img, opt.min_val, opt.max_val, 0, 1.0), opt.lut_map);
 
   if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
@@ -182,7 +194,8 @@ void do_colormap(Options& opt) {
       copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
                 colorized_image);
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
+    boost::scoped_ptr<DiskImageResource>
+      r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
 
     if (r->has_block_write())
       r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
@@ -197,23 +210,21 @@ void do_colormap(Options& opt) {
   } else { // Not using a hillshade file
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
 
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
+    boost::scoped_ptr<DiskImageResource>
+      r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
     if (r->has_block_write())
       r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
                                          vw_settings().default_tile_size()));
-
     if (has_georef)
       write_georeference(*r, georef);
 
     block_write_image(*r, colorized_image,
                       TerminalProgressCallback("tools.colormap", "Writing:"));
-
   }
-
 }
 
 void save_legend(Options const& opt) {
-  ImageView<PixelGray<float> > img(100, 500);
+  ImageView<PixelGray<float>> img(100, 500);
   for (int j = 0; j < img.rows(); ++j) {
     float val = float(j) / img.rows();
     for (int i = 0; i < img.cols(); ++i) {
@@ -235,17 +246,21 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
                       "Specify the output file.")
     ("colormap-style",po::value(&opt.colormap_style)->default_value("binary-red-blue"),
      "Specify the colormap style. Options: binary-red-blue (default), jet, "
-     "cubehelix (works for most color-blind people), "
+     "cubehelix (works for most color-blind people), black-body, "
      "or the name of a file having the colormap, similar to the file used by gdaldem.")
-    ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
+    ("nodata-value",  po::value(&opt.nodata_value)->default_value
+     (std::numeric_limits<float>::max()),
                       "Remap the nodata default value to the min altitude value.")
     ("min",           po::value(&opt.min_val)->default_value(0),
                       "Minimum height of the color map.")
     ("max",           po::value(&opt.max_val)->default_value(0),
                       "Maximum height of the color map.")
-    ("moon",          "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
-    ("mars",          "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
-    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'.");
+    ("moon",          "Set the min and max values to [-8499 10208] meters, which is "
+     "suitable for covering elevations on the Moon.")
+    ("mars",          "Set the min and max values to [-8208 21249] meters, which is "
+     "suitable for covering elevations on Mars.")
+    ("legend",        "Generate the colormap legend.  This image is saved (without "
+     "labels) as 'legend.png'.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
   
@@ -261,7 +276,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
 
   po::variables_map vm;
   try {
-    po::store(po::command_line_parser(argc, argv).options(all_options).positional(positional_desc).run(), vm);
+    po::store(po::command_line_parser(argc, argv).options(all_options)
+              .positional(positional_desc).run(), vm);
     po::notify(vm);
   } catch (const po::error& e) {
     vw_throw(ArgumentErr() << "Error parsing input:\n\t"
@@ -286,13 +302,82 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   }
   if (opt.output_file_name.empty())
     opt.output_file_name =
-      fs::path(opt.input_file_name).replace_extension().string()+"_CMAP.tif";
+      fs::path(opt.input_file_name).replace_extension().string() + "_CMAP.tif";
   opt.draw_legend = vm.count("legend");
 
   opt.setVwSettingsFromOpt();
 
   create_out_dir(opt.output_file_name);
 }
+
+// Black-body colormap.
+//http://www.kennethmoreland.com/color-advice/
+const char *BlackBody = R""""(
+0	0	0	0
+0.015873016	13	4	2
+0.031746032	22	8	4
+0.047619048	29	12	7
+0.063492063	34	15	9
+0.079365079	40	17	11
+0.095238095	46	18	13
+0.111111111	53	20	15
+0.126984127	59	21	16
+0.142857143	65	23	18
+0.158730159	72	24	19
+0.174603175	79	25	20
+0.19047619	86	26	21
+0.206349206	93	27	22
+0.222222222	99	28	23
+0.238095238	107	29	24
+0.253968254	114	30	25
+0.26984127	121	31	26
+0.285714286	128	31	27
+0.301587302	135	32	28
+0.317460317	143	32	29
+0.333333333	150	33	30
+0.349206349	158	33	31
+0.365079365	165	34	32
+0.380952381	173	34	33
+0.396825397	179	37	34
+0.412698413	183	44	33
+0.428571429	188	51	32
+0.444444444	192	57	30
+0.46031746	196	63	29
+0.476190476	200	68	28
+0.492063492	204	74	26
+0.507936508	208	80	24
+0.523809524	212	85	21
+0.53968254	216	90	18
+0.555555556	220	95	15
+0.571428571	224	101	10
+0.587301587	227	106	5
+0.603174603	228	114	8
+0.619047619	229	121	10
+0.634920635	230	128	13
+0.650793651	230	135	15
+0.666666667	231	141	18
+0.682539683	232	148	21
+0.698412698	232	155	23
+0.714285714	232	161	26
+0.73015873	233	168	28
+0.746031746	233	174	31
+0.761904762	233	180	33
+0.777777778	233	187	36
+0.793650794	233	193	38
+0.80952381	233	199	41
+0.825396825	232	206	43
+0.841269841	232	212	46
+0.857142857	231	218	48
+0.873015873	231	224	51
+0.888888889	230	230	56
+0.904761905	237	234	92
+0.920634921	242	237	122
+0.936507937	246	240	150
+0.952380952	250	244	176
+0.968253968	253	248	203
+0.984126984	254	251	229
+1	255	255	255
+)"""";
 
 // CubeHelix colormap.
 //https://www.mrao.cam.ac.uk/~dag/CUBEHELIX/
@@ -592,8 +677,33 @@ std::string BRB[] = {
 "100.00% 180   4  38"
 };
 
+// Jet colormap
+std::string Jet[] = {
+"0%    0   0   0",   // Black
+"20.8% 0   0   255", // Blue
+"25%   0   0   255", // Blue
+"37.5% 0   191 255", // Light blue
+"41.7% 0   255 255", // Teal
+"58.3% 255 255 51",  // Yellow
+"62.5% 255 191 0",   // Orange
+"75%   255 0   0",   // Red
+"79.1% 255 0   0",   // Red
+"100%   0  0   0"    // Black
+};
+
+// Given a multi-row string, on each row having a value in [0, 1] and 3
+// values representing an RGB color, collect these in a lut_map.
+// See example input BlackBody above. 
+void parse_lut_map(std::string const& table, std::map<float, Vector3u> & lut_map) {
+  lut_map.clear();
+  std::istringstream is(table);
+  double inten, r, g, b;
+  while (is >> inten >> r >> g >> b) 
+    lut_map[inten] = Vector3u(r, g, b);
+}
+ 
 // Append a line to lut
-void AddLutLine(std::string const& line, Options::lut_type & lut){
+void AddLutLine(std::string const& line, lut_type & lut){
   typedef boost::tokenizer<> tokenizer;
   boost::char_delimiters_separator<char> sep(false,",: \t");
 
@@ -601,7 +711,7 @@ void AddLutLine(std::string const& line, Options::lut_type & lut){
   tokenizer::iterator iter = tokens.begin();
 
   std::string key;
-  Options::Vector3u value;
+  Vector3u value;
 
   try {
     // Parse a file having lines of four numbers, e.g., 75 255 0 0
@@ -616,7 +726,7 @@ void AddLutLine(std::string const& line, Options::lut_type & lut){
   } catch (const boost::bad_lexical_cast& e) {
     return;
   }
-  lut.push_back(Options::lut_element(key, value));
+  lut.push_back(lut_element(key, value));
 }
 
 int main(int argc, char *argv[]) {
@@ -625,27 +735,22 @@ int main(int argc, char *argv[]) {
   try {
     handle_arguments(argc, argv, opt);
     
+    opt.lut.clear();
+    opt.lut_map.clear();
+
     // Decide legend
-    if (opt.colormap_style.empty() || opt.colormap_style == "jet") { // default
-      opt.lut.clear();
-      opt.lut.push_back(Options::lut_element("0%",   Options::Vector3u(0,  0,   0))); // Black
-      opt.lut.push_back(Options::lut_element("20.8%",Options::Vector3u(0,  0, 255))); // Blue
-      opt.lut.push_back(Options::lut_element("25%",  Options::Vector3u(0,  0, 255))); // Blue
-      opt.lut.push_back(Options::lut_element("37.5%",Options::Vector3u(0,  191, 255))); // Light blue
-      opt.lut.push_back(Options::lut_element("41.7%",Options::Vector3u(0,  255,  255))); // Teal
-      opt.lut.push_back(Options::lut_element("58.3%",Options::Vector3u(255, 255, 51))); // Yellow
-      opt.lut.push_back(Options::lut_element("62.5%",Options::Vector3u(255, 191, 0))); // Orange
-      opt.lut.push_back(Options::lut_element("75%",  Options::Vector3u(255, 0,   0))); // Red
-      opt.lut.push_back(Options::lut_element("79.1%",Options::Vector3u(255, 0,   0))); // Red
-      opt.lut.push_back(Options::lut_element("100%", Options::Vector3u( 0,  0,   0))); // Black
+    if (opt.colormap_style == "jet") {
+      for (size_t count = 0; count < sizeof(Jet)/sizeof(std::string); count++)
+        AddLutLine(Jet[count], opt.lut);
     } else if (opt.colormap_style == "binary-red-blue") {
-      for (size_t count = 0; count < sizeof(BRB)/sizeof(std::string); count++) {
+      for (size_t count = 0; count < sizeof(BRB)/sizeof(std::string); count++)
         AddLutLine(BRB[count], opt.lut);
-      }
     } else if (opt.colormap_style == "cubehelix") {
-      for (size_t count = 0; count < sizeof(CubeHelix)/sizeof(std::string); count++) {
+      for (size_t count = 0; count < sizeof(CubeHelix)/sizeof(std::string); count++)
         AddLutLine(CubeHelix[count], opt.lut);
-      }
+    } else if (opt.colormap_style == "black-body") {
+      // Populate directly opt.lut_map
+      parse_lut_map(BlackBody, opt.lut_map);
     } else {
       // Read input LUT
       std::ifstream lut_file(opt.colormap_style.c_str());
@@ -658,14 +763,14 @@ int main(int argc, char *argv[]) {
 
         // Skip lines containing spaces only
         bool only_spaces = true;
-        for (unsigned s = 0; s < line.size(); s++) if (!isspace(line[s])) only_spaces = false;
+        for (unsigned s = 0; s < line.size(); s++)
+          if (!isspace(line[s])) only_spaces = false;
         if (only_spaces){
           std::getline(lut_file, line);
           continue;
         }
 
         AddLutLine(line, opt.lut);
-
         std::getline(lut_file, line);
       }
 
