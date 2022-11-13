@@ -41,12 +41,10 @@ namespace vw { namespace cm {
 // or lut_map, depending on the desired style. This will be sorted
 // out later.
 void parse_color_style(std::string const& colormap_style,
-                       lut_type & lut, std::map<float, Vector3u> & lut_map);
+                       std::map<float, Vector3u> & lut_map);
 
 // Populate a colormap from string pairs given in lut.
-// Note: min_val and max_val are used only for a custom colormap table specified
-// by the user.
-void populate_lut_map(float min_val, float max_val, lut_type const& lut,
+void populate_lut_map(lut_type const& lut,
                       std::map<float, Vector3u> & lut_map);
 
   

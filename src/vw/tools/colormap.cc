@@ -62,11 +62,12 @@ struct Options: vw::GdalWriteOptions {
   float       nodata_value, min_val, max_val;
   bool        draw_legend;
 
-  lut_type lut;
   std::map<float, Vector3u> lut_map;
 };
 
 // Colormap function
+// TODO(oalexan1): Move declaration to Colormap.h, while the implementation
+// to Colormap.cc.
 class ColormapFunc: public ReturnFixedType<PixelMask<PixelRGB<uint8>>> {
   typedef std::map<float, Vector3u> map_type;
   map_type m_colormap;
@@ -75,11 +76,11 @@ public:
   ColormapFunc(std::map<float, Vector3u> const& map) : m_colormap(map) {}
 
   template <class PixelT>
-  PixelMask<PixelRGB<uint8>> operator() (PixelT const& pix) const {
+  PixelMask<PixelRGB<uint8>> operator()(PixelT const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelRGB<uint8> >(); // Skip transparent pixels
+      return PixelMask<PixelRGB<uint8>>(); // Skip transparent pixels
 
-    float val = compound_select_channel<const float&>(pix,0);
+    float val = compound_select_channel<const float&>(pix, 0);
     if (val > 1.0) val = 1.0;
     if (val < 0.0) val = 0.0;
 
@@ -104,13 +105,14 @@ UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view
   return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc(map));
 }
 
+// TODO(oalexan1): Move to .h
 template <class PixelT>
 ImageViewRef<PixelMask<PixelRGB<uint8>>>
 apply_colormap(ImageViewRef<PixelT> input_image,
                float min_val, float max_val,
                bool has_alpha, bool has_nodata,
                float nodata_value,
-               lut_type const& lut, std::map<float, Vector3u> & lut_map) {
+               std::map<float, Vector3u> & lut_map) {
 
   ImageViewRef<PixelGray<float>> adj_image =
     pixel_cast<PixelGray<float>>(select_channel(input_image, 0));
@@ -125,11 +127,6 @@ apply_colormap(ImageViewRef<PixelT> input_image,
     vw_out() << "\t--> Using user-specified color map range: ["
              << min_val << "  " << max_val << "]\n";
   }
-
-  // If lut_map is not populated so far, convert lut to lut_map
-  // (converts altitudes to relative percent).
-  if (lut_map.empty())
-    populate_lut_map(min_val, max_val, lut, lut_map);
 
   // Mask input
   ImageViewRef<PixelMask<PixelGray<float>>> img;
@@ -172,8 +169,9 @@ void do_colormap(Options& opt) {
 
   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
     = apply_colormap<PixelT>(input_image, opt.min_val, opt.max_val, has_alpha,
-                             has_nodata, opt.nodata_value, opt.lut, opt.lut_map);
+                             has_nodata, opt.nodata_value, opt.lut_map);
 
+  // TODO(oalexan1): Factor out the code below as it is not templated
   cartography::GeoReference georef;
   bool has_georef = cartography::read_georeference(georef, opt.input_file_name);
 
@@ -238,9 +236,11 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("output-file,o", po::value(&opt.output_file_name),
                       "Specify the output file.")
     ("colormap-style",po::value(&opt.colormap_style)->default_value("binary-red-blue"),
-     "Specify the colormap style. Options: binary-red-blue (default), jet, "
-     "cubehelix (works for most color-blind people), black-body, "
-     "or the name of a file having the colormap, similar to the file used by gdaldem.")
+     "Specify the colormap style. Options: binary-red-blue (default), jet, black-body, "
+     "cubehelix, viridis, plasma, inferno, kindlman. "
+     "Or specify the name of a file having the colormap, on each line of "
+     "which there must be a normalized or percentage intensity and "
+     "the three integer rgb values it maps to.")
     ("nodata-value",  po::value(&opt.nodata_value)->default_value
      (std::numeric_limits<float>::max()),
                       "Remap the nodata default value to the min altitude value.")
@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
   try {
     handle_arguments(argc, argv, opt);
 
-    parse_color_style(opt.colormap_style, opt.lut, opt.lut_map);
+    parse_color_style(opt.colormap_style, opt.lut_map);
     
     // Get the right pixel/channel type.
     ImageFormat fmt = vw::image_format(opt.input_file_name);
