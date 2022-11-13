@@ -66,7 +66,6 @@ struct Options: vw::GdalWriteOptions {
   std::map<float, Vector3u> lut_map;
 };
 
-// TODO(oalexan1): Move to .h
 template <class PixelT>
 ImageViewRef<PixelMask<PixelRGB<uint8>>>
 apply_colormap(ImageViewRef<PixelT> input_image,
@@ -97,8 +96,7 @@ apply_colormap(ImageViewRef<PixelT> input_image,
     img = channel_cast<float>(create_mask(adj_image, nodata_value));
   }else if (has_nodata) {
     img = create_mask(adj_image, nodata_value);
-  }
-  else {
+  } else {
     img = pixel_cast<PixelMask<PixelGray<float>>>(adj_image);
   }
   
@@ -110,7 +108,7 @@ apply_colormap(ImageViewRef<PixelT> input_image,
 }
 
 template <class PixelT>
-void do_colormap(Options& opt) {
+ImageViewRef<PixelMask<PixelRGB<uint8>>> do_colormap(Options& opt) {
 
   // Attempt to extract nodata value
   boost::shared_ptr<vw::DiskImageResource>
@@ -127,12 +125,15 @@ void do_colormap(Options& opt) {
   }
 
   DiskImageView<PixelT> input_image(opt.input_file_name);
-
   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
     = apply_colormap<PixelT>(input_image, opt.min_val, opt.max_val, has_alpha,
                              has_nodata, opt.nodata_value, opt.lut_map);
 
-  // TODO(oalexan1): Factor out the code below as it is not templated
+  return colorized_image;
+}
+
+void save_colormap(Options const& opt, ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image) {
+
   cartography::GeoReference georef;
   bool has_georef = cartography::read_georeference(georef, opt.input_file_name);
 
@@ -274,28 +275,31 @@ int main(int argc, char *argv[]) {
     
     // Get the right pixel/channel type.
     ImageFormat fmt = vw::image_format(opt.input_file_name);
+    ImageViewRef<PixelMask<PixelRGB<uint8>>> out;
 
     switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:
       switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_colormap<PixelGray<uint8>   >(opt); break;
-      case VW_CHANNEL_INT16:  do_colormap<PixelGray<int16>   >(opt); break;
-      case VW_CHANNEL_UINT16: do_colormap<PixelGray<uint16>  >(opt); break;
-      default:                do_colormap<PixelGray<float32> >(opt); break;
+      case VW_CHANNEL_UINT8:  out = do_colormap<PixelGray<uint8>>  (opt); break;
+      case VW_CHANNEL_INT16:  out = do_colormap<PixelGray<int16>>  (opt); break;
+      case VW_CHANNEL_UINT16: out = do_colormap<PixelGray<uint16>> (opt); break;
+      default:                out = do_colormap<PixelGray<float32>>(opt); break;
       }
       break;
     case VW_PIXEL_GRAYA:
       switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_colormap<PixelGrayA<uint8>   >(opt); break;
-      case VW_CHANNEL_INT16:  do_colormap<PixelGrayA<int16>   >(opt); break;
-      case VW_CHANNEL_UINT16: do_colormap<PixelGrayA<uint16>  >(opt); break;
-      default:                do_colormap<PixelGrayA<float32> >(opt); break;
+      case VW_CHANNEL_UINT8:  out = do_colormap<PixelGrayA<uint8>>  (opt); break;
+      case VW_CHANNEL_INT16:  out = do_colormap<PixelGrayA<int16>>  (opt); break;
+      case VW_CHANNEL_UINT16: out = do_colormap<PixelGrayA<uint16>> (opt); break;
+      default:                out = do_colormap<PixelGrayA<float32>>(opt); break;
       }
       break;
     default:
       vw_throw(ArgumentErr() << "Unsupported pixel format. The image must have only one channel.");
     }
 
+    save_colormap(opt, out);
+    
     // Draw legend
     if (opt.draw_legend)
       save_legend(opt);
