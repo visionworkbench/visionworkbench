@@ -34,6 +34,7 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Colormap.h>
+#include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
@@ -64,46 +65,6 @@ struct Options: vw::GdalWriteOptions {
 
   std::map<float, Vector3u> lut_map;
 };
-
-// Colormap function
-// TODO(oalexan1): Move declaration to Colormap.h, while the implementation
-// to Colormap.cc.
-class ColormapFunc: public ReturnFixedType<PixelMask<PixelRGB<uint8>>> {
-  typedef std::map<float, Vector3u> map_type;
-  map_type m_colormap;
-
-public:
-  ColormapFunc(std::map<float, Vector3u> const& map) : m_colormap(map) {}
-
-  template <class PixelT>
-  PixelMask<PixelRGB<uint8>> operator()(PixelT const& pix) const {
-    if (is_transparent(pix))
-      return PixelMask<PixelRGB<uint8>>(); // Skip transparent pixels
-
-    float val = compound_select_channel<const float&>(pix, 0);
-    if (val > 1.0) val = 1.0;
-    if (val < 0.0) val = 0.0;
-
-    // Get locations on sparse colormap that bound this pixel value
-    map_type::const_iterator bot = m_colormap.upper_bound(val); bot--;
-    map_type::const_iterator top = m_colormap.upper_bound(val);
-
-    if (top == m_colormap.end()) // If this is above the top colormap value
-      return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use max val
-
-    // Otherwise determine a proportional color between the bounding colormap values
-    Vector3u output = bot->second + 
-      (((val - bot->first)/(top->first - bot->first)) *
-       (Vector3i(top->second) - Vector3i(bot->second)));
-    return PixelRGB<uint8>(output[0], output[1], output[2]);
-  }
-};
-
-template <class ViewT>
-UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view,
-                                                std::map<float, Vector3u> const& map) {
-  return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc(map));
-}
 
 // TODO(oalexan1): Move to .h
 template <class PixelT>
@@ -142,8 +103,8 @@ apply_colormap(ImageViewRef<PixelT> input_image,
   }
   
   // Apply colormap
-  ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image =
-    colormap(normalize(img, min_val, max_val, 0, 1.0), lut_map);
+  ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
+    = vw::per_pixel_filter(normalize(img, min_val, max_val, 0, 1.0), ColormapFunc(lut_map));
 
   return colorized_image;
 }
@@ -223,8 +184,8 @@ void save_legend(Options const& opt) {
     }
   }
 
-  ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
-    colormap(img, opt.lut_map);
+  ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
+    = vw::per_pixel_filter(img, ColormapFunc(opt.lut_map));
   write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
 }
 

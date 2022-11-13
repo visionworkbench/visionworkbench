@@ -824,5 +824,28 @@ void parse_color_style(std::string const& colormap_style,
   if (lut_map.empty())
     populate_lut_map(lut, lut_map);
 }
+
+// Colormap function
+PixelMask<PixelRGB<uint8>> ColormapFunc::operator()(PixelMask<PixelGray<float>> const& pix) const {
+  if (is_transparent(pix))
+    return PixelMask<PixelRGB<uint8>>(); // Skip transparent pixels
+  
+  float val = compound_select_channel<const float&>(pix, 0);
+  if (val > 1.0) val = 1.0;
+  if (val < 0.0) val = 0.0;
+  
+  // Get locations on sparse colormap that bound this pixel value
+  map_type::const_iterator bot = m_colormap.upper_bound(val); bot--;
+  map_type::const_iterator top = m_colormap.upper_bound(val);
+  
+  if (top == m_colormap.end()) // If this is above the top colormap value
+    return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use max val
+  
+  // Otherwise determine a proportional color between the bounding colormap values
+  Vector3u output = bot->second + 
+    (((val - bot->first)/(top->first - bot->first)) *
+     (Vector3i(top->second) - Vector3i(bot->second)));
+  return PixelRGB<uint8>(output[0], output[1], output[2]);
+}
   
 }} //end namespace vw::cm

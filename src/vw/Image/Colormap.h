@@ -25,6 +25,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/PixelMask.h>
 
 #include <string>
 #include <map>
@@ -47,6 +48,17 @@ void parse_color_style(std::string const& colormap_style,
 void populate_lut_map(lut_type const& lut,
                       std::map<float, Vector3u> & lut_map);
 
+// Functor which colorizes every pixel  
+class ColormapFunc: public ReturnFixedType<PixelMask<PixelRGB<uint8>>> {
+  typedef std::map<float, Vector3u> map_type;
+  map_type m_colormap;
+
+public:
+  ColormapFunc(std::map<float, Vector3u> const& map) : m_colormap(map) {}
+
+  PixelMask<PixelRGB<uint8>> operator()(PixelMask<PixelGray<float>> const& pix) const;
+};
+  
   
 }} // namespace vw::cm
 
