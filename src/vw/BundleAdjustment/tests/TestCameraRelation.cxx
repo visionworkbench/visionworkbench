@@ -100,7 +100,7 @@ TEST_F( CircleTest, IPFeature ) {
 
   // Converting back to Control Network
   ControlNetwork cnet2("Copy");
-  crn.write_controlnetwork( cnet2 );
+  crn.assemble_cnet( cnet2 );
   ASSERT_EQ( cnet2.size(), cnet.size() );
   for ( unsigned i = 0; i < cnet2.size(); i++ ) {
     ASSERT_EQ( cnet2[i].size(), cnet[i].size() );
@@ -129,7 +129,7 @@ TEST_F( CircleTest, JFeature ) {
 
   // Converting back to Control Network
   ControlNetwork cnet2("Copy");
-  crn.write_controlnetwork( cnet2 );
+  crn.assemble_cnet( cnet2 );
   ASSERT_EQ( cnet2.size(), cnet.size() );
   for ( unsigned i = 0; i < cnet2.size(); i++ ) {
     ASSERT_EQ( cnet2[i].size(), cnet[i].size() );

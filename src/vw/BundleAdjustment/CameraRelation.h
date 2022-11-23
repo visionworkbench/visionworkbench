@@ -219,7 +219,7 @@ namespace ba {
     void add_node( cnode const& node );
     void build_map();
     void read_controlnetwork ( ControlNetwork const& cnet );
-    bool write_controlnetwork( ControlNetwork      & cnet ) const;
+    bool assemble_cnet( ControlNetwork      & cnet ) const;
   };
 
 

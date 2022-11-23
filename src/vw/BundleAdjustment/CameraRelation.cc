@@ -138,13 +138,14 @@ namespace ba {
   }
 
   template <class FeatureT>
-  bool CameraRelationNetwork<FeatureT>::write_controlnetwork( ControlNetwork & cnet ) const {
+  bool CameraRelationNetwork<FeatureT>::assemble_cnet(ControlNetwork & cnet) const {
 
     if ( this->size() == 0 )
       vw_throw( ArgumentErr() << "CameraRelation network is empty." );
     cnet.clear();
 
-    // This process is destructive, making a copy of self.
+    // This process is destructive, so start by making a copy of self
+    // that we will modify.
     CameraRelationNetwork<FeatureT> crn = (*this);
 
     // On top of building the control network, we're also going filter
@@ -210,7 +211,7 @@ namespace ba {
             }
           }
 
-          // 6.) Did you pass? Sweet you're in the gang!
+          // 6.) Did you pass? 
           //     - CPoints with only a single measure are GCPs
           if ( cpoint.size() > 0 )
             cnet.add_control_point( cpoint );
@@ -230,11 +231,11 @@ namespace ba {
     return true;
   }
 
-  // Explicit template Instantiation
-#define VW_INSTANTIATE_CAMERA_RELATION_TYPES(FEATURET) \
-  template class CameraRelationNetwork<FEATURET >; \
-
-  VW_INSTANTIATE_CAMERA_RELATION_TYPES(IPFeature)
-  VW_INSTANTIATE_CAMERA_RELATION_TYPES(JFeature)
+  // Explicit template instantiation.
+  // TODO(oalexan1): Use this kind of logic more often to avoid long
+  // compile times, if it is known which classes will be used as
+  // template arguments.
+  template class CameraRelationNetwork<IPFeature>;
+  template class CameraRelationNetwork<JFeature>;
 
 }}

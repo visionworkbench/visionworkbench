@@ -299,16 +299,16 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     progress.report_finished();
   } // End loop through match files
 
-  if ( num_load_rejected != 0 ) {
-    vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
-                                << " matches due to inadequacy. Decrease the"
-                                << " --min-matches parameter to load smaller "
-                                << "sets of matches.\n";
-    vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
-  }
+  if (num_load_rejected != 0)
+    vw_out(WarningMessage,"ba")
+      << "Did not load " << num_load_rejected << " matches "
+      << "due to inadequacy. Decrease the --min-matches parameter "
+      << "to load smaller sets of matches.\n";
+  
+  vw_out() << "Loaded " << num_loaded << " matches.\n";
 
   // Building control network
-  bool success = crn.write_controlnetwork(cnet);
+  bool success = crn.assemble_cnet(cnet);
   
   // Triangulating Positions
   if (triangulate_control_points){

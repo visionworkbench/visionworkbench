@@ -51,10 +51,7 @@ double standard_deviation(T const& values, double mean_value);
 template <typename T>
 double median(T const& values);
 
-
-
 //---------------------------------------------------------------------------------
-
 
 /// Using the quartile range, determine the values b and e so that
 /// all elements in p outsize of [b, e] are outliers.
