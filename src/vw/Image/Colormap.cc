@@ -837,14 +837,18 @@ PixelMask<PixelRGB<uint8>> ColormapFunc::operator()(PixelMask<PixelGray<float>> 
   // Get locations on sparse colormap that bound this pixel value
   map_type::const_iterator bot = m_colormap.upper_bound(val); bot--;
   map_type::const_iterator top = m_colormap.upper_bound(val);
+
+  // If this is above the top colormap value, use the max val.
+  if (top == m_colormap.end())
+    return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); 
   
-  if (top == m_colormap.end()) // If this is above the top colormap value
-    return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use max val
-  
-  // Otherwise determine a proportional color between the bounding colormap values
+  // Otherwise determine a proportional color between the bracketing
+  // colormap values. Do the operations in double precision, then
+  // round.
+  double ratio = (val - bot->first)/(top->first - bot->first);
   Vector3u output = bot->second + 
-    (((val - bot->first)/(top->first - bot->first)) *
-     (Vector3i(top->second) - Vector3i(bot->second)));
+    round(ratio * (Vector3(top->second) - Vector3(bot->second)));
+  
   return PixelRGB<uint8>(output[0], output[1], output[2]);
 }
   
