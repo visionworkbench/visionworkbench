@@ -370,8 +370,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     match_map = VwOpenMVG::matching::PairWiseMatches();  // wipe this, no longer needed
     trackBuilder = VwOpenMVG::tracks::TracksBuilder();   // wipe it
     if (map_tracks.empty())
-      vw::vw_throw(vw::ArgumentErr()
-                   << "No matches among images left after filtering. Check your images.\n");
+      return false; 
 
     // Populate the filtered tracks
     size_t num_elems = map_tracks.size();
