@@ -178,9 +178,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   // the extension. This is susceptible to problems.
   // TODO(oalexan1): Remove this assumption. Note that something
   // similar is used when loading GCP.
+  // TODO(oalexan1): May not need this map altogether.
   std::map<std::string,size_t> image_prefix_map;
   size_t count = 0;
-  ba::CameraRelationNetwork<ba::IPFeature> crn;
   BOOST_FOREACH(std::string const& file, image_files) {
     fs::path file_path(file);
     std::string stripped_path = file_path.replace_extension().string();
@@ -193,16 +193,13 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     image_prefix_map[stripped_path] = count;
     // TODO(oalexan1): Using just the stem can cause non-uniqueness!
-    crn.add_node(ba::CameraNode<ba::IPFeature>(count, file_path.stem().string()));
     cnet.add_image_name(file);
     count++;
   }
 
-  // Look for match files starting with given prefix.
+  // Iterate through the match files passed in
   std::vector<std::string> match_files_vec;
   std::vector<size_t> index1_vec, index2_vec;
-
-  // Searching through the directories available to us.
   typedef std::map<std::string,size_t>::iterator MapIterator;
   for (int i = 0; i < num_images; i++){ // Loop through all image pairs
     for (int j = i+1; j < num_images; j++){
@@ -211,10 +208,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
       // Find the match file for this pair of images
       std::pair<int, int> pair_ind(i, j);
-      std::map<std::pair<int, int>, std::string>::const_iterator pair_it
-        = match_files.find(pair_ind);
+      auto pair_it = match_files.find(pair_ind);
       if (pair_it == match_files.end())
-        continue; // This match file was not passed in, that is ok.
+        continue; // This match file was not passed in
       std::string match_file = pair_it->second;
 
       // Find the indices of the images in crn
@@ -242,11 +238,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   // Give all interest points in a given image a unique id, and put
   // them in a vector with the id corresponding to the interest point
-  std::vector<std::map<ipTriplet, int>> keypoint_map(num_images); // temporary!
+  std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
 
   // Loop through the match files
   size_t num_load_rejected = 0, num_loaded = 0;
-  for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++){
+  for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++) {
     std::string match_file = match_files_vec[file_iter];
     size_t index1 = index1_vec[file_iter];
     size_t index2 = index2_vec[file_iter];
@@ -300,40 +296,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     // Save the matches after getting a subset
     ip_subset[std::make_pair<int, int>(index1, index2)] = std::make_pair(ip1, ip2);
-    
-//     typedef boost::shared_ptr< ba::IPFeature > f_ptr;
-//     typedef std::list< f_ptr >::iterator f_itr;
-
-//     // Checking to see if features already exist, adding if they
-//     // don't, then linking them.
-//     vw_out() << "Building the control network for " << match_file <<".\n";
-//     TerminalProgressCallback progress("ba", "Building: ");
-//     progress.report_progress(0);
-//     double inc_prog = 1.0/double(ip1.size());
-//     for (size_t k = 0; k < ip1.size(); k++) { // Loop through all existing IP
-//       // Check if either IP is already in the lists
-//       f_itr ipfeature1 = std::find_if(crn[index1].begin(),
-//                                        crn[index1].end(),
-//                                        ContainsEqualIP(ip1[k]));
-//       f_itr ipfeature2 = std::find_if(crn[index2].begin(),
-//                                        crn[index2].end(),
-//                                        ContainsEqualIP(ip2[k]));
-//       // If the IP are new, add them to the list
-//       if (ipfeature1 == crn[index1].end()) {
-//         crn[index1].relations.push_front(f_ptr(new ba::IPFeature(ip1[k], index1)));
-//         ipfeature1 = crn[index1].begin();
-//       }
-//       if (ipfeature2 == crn[index2].end()) {
-//         crn[index2].relations.push_front(f_ptr(new ba::IPFeature(ip2[k], index2)));
-//         ipfeature2 = crn[index2].begin();
-//       }
-
-//       // Doubly linking
-//       (*ipfeature1)->connection(*ipfeature2, false);
-//       (*ipfeature2)->connection(*ipfeature1, false);
-//       progress.report_incremental_progress(inc_prog);
-//     } // End loop through ip1
-//     progress.report_finished();
    } // End loop through match files
 
   if (num_load_rejected != 0)
@@ -346,7 +308,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   Stopwatch watch;
   watch.start();
 
-  std::vector<std::vector<ipTriplet>> keypoint_vec; // temporary!
+  std::vector<std::vector<ipTriplet>> keypoint_vec; // for direct access later
   keypoint_vec.resize(num_images);
   for (size_t cid = 0; cid < num_images; cid++) {
     keypoint_vec[cid].resize(keypoint_map[cid].size());
@@ -373,12 +335,12 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     MATCH_PAIR const& match_pair = it->second;  // alias
     std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
     std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
-    
     std::vector<VwOpenMVG::matching::IndMatch> mvg_matches;
-
     for (size_t ip_it = 0; ip_it < left_ip_vec.size(); ip_it++) {
-      auto dist_left_ip  = ipTriplet(left_ip_vec[ip_it].x, left_ip_vec[ip_it].y, left_ip_vec[ip_it].scale);
-      auto dist_right_ip = ipTriplet(right_ip_vec[ip_it].x, right_ip_vec[ip_it].y, right_ip_vec[ip_it].scale);
+      auto dist_left_ip  = ipTriplet(left_ip_vec[ip_it].x, left_ip_vec[ip_it].y,
+                                     left_ip_vec[ip_it].scale);
+      auto dist_right_ip = ipTriplet(right_ip_vec[ip_it].x, right_ip_vec[ip_it].y,
+                                     right_ip_vec[ip_it].scale);
       
       int left_id = keypoint_map[left_cid][dist_left_ip];
       int right_id = keypoint_map[right_cid][dist_right_ip];
@@ -387,8 +349,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     match_map[cid_pair] = mvg_matches;
   }
 
+  // Deallocate data that is not needed anymore
   ip_subset.clear(); ip_subset = MATCH_MAP();
-  //keypoint_map.clear(); keypoint_map.shrink_to_fit();
+  keypoint_map.clear(); keypoint_map.shrink_to_fit();
 
   {
     // Build tracks
@@ -409,43 +372,28 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     // Populate the filtered tracks
     size_t num_elems = map_tracks.size();
     //pid_to_cid_fid.resize(num_elems);
-    size_t curr_id = 0;
     for (auto itr = map_tracks.begin(); itr != map_tracks.end(); itr++) {
-
       ControlPoint cpoint(ControlPoint::TiePoint);
       for (auto itr2 = (itr->second).begin(); itr2 != (itr->second).end(); itr2++) {
         int cid = itr2->first;
         int fid = itr2->second;
         auto const& dist_ip = keypoint_vec.at(cid).at(fid);
-
-        //dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
         cpoint.add_measure(ControlMeasure(std::get<0>(dist_ip), // x position
                                           std::get<1>(dist_ip), // y position
                                           std::get<2>(dist_ip), // col sigma
                                           std::get<2>(dist_ip), // row sigma
                                           cid)); // image index
-        
-//   ControlMeasure::ControlMeasure( float col, float row,
-//                                   float col_sigma, float row_sigma,
-//                                   uint64 image_id,
-//                                   ControlMeasureType type ) :
-
-    
-        //pid_to_cid_fid[curr_id][itr2->first] = itr2->second;
       }
+      
       if (cpoint.size() > 0)
         cnet.add_control_point(cpoint);
-      
-      curr_id++;
     }
   }
   
-  // Building control network
-  bool success = true; // crn.assemble_cnet(cnet);
   watch.stop();
-  std::cout << "Assembling network took " << watch.elapsed_seconds() << std::endl;
+  std::cout << "Building the control network took " << watch.elapsed_seconds() << " seconds.\n";
   
-  // Triangulating Positions
+  // Triangulating positions
   if (triangulate_control_points){
     TerminalProgressCallback progress("ba", "Triangulating: ");
     progress.report_progress(0);
@@ -459,7 +407,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     }
     progress.report_finished();
   }
-  return success;
+  return true;
 }
 
 void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
