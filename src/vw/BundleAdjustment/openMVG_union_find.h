@@ -5,8 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP
-#define OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP
+#ifndef VW_OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP
+#define VW_OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP
 
 #include <numeric>
 #include <vector>
@@ -104,4 +104,4 @@ struct UnionFind
 
 } // namespace VwOpenMVG
 
-#endif // OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP
+#endif // VW_OPENMVG_TRACKS_UNION_FIND_DISJOINT_SET_HPP

@@ -29,12 +29,12 @@
 //  tracksBuilder.ExportToSTL(map_tracks); // Build tracks with STL compliant type
 //
 
-#ifndef OPENMVG_TRACKS_TRACKS_HPP
-#define OPENMVG_TRACKS_TRACKS_HPP
+#ifndef VW_OPENMVG_TRACKS_TRACKS_HPP
+#define VW_OPENMVG_TRACKS_TRACKS_HPP
 
-#include <vw/BundleAdjustment/openMVG_indMatch.hpp>
-#include <vw/BundleAdjustment/openMVG_flat_pair_map.hpp>
-#include <vw/BundleAdjustment/openMVG_union_find.hpp>
+#include <vw/BundleAdjustment/openMVG_match.h>
+#include <vw/BundleAdjustment/openMVG_flat_pair_map.h>
+#include <vw/BundleAdjustment/openMVG_union_find.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -376,4 +376,4 @@ struct TracksUtilsMap
 } // namespace tracks
 } // namespace VwOpenMVG
 
-#endif // OPENMVG_TRACKS_TRACKS_HPP
+#endif // VW_OPENMVG_TRACKS_TRACKS_HPP

@@ -5,8 +5,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef OPENMVG_MATCHING_IND_MATCH_HPP
-#define OPENMVG_MATCHING_IND_MATCH_HPP
+#ifndef VW_OPENMVG_MATCHING_IND_MATCH_HPP
+#define VW_OPENMVG_MATCHING_IND_MATCH_HPP
 
 #include <vw/BundleAdjustment/openMVG_types.h>
 
@@ -46,12 +46,6 @@ struct IndMatch
     return sizeBefore != vec_match.size();
   }
 
-  // Serialization
-  template <class Archive>
-  void serialize( Archive & ar )  {
-    ar(i_, j_);
-  }
-
   IndexT i_, j_;  // Left, right index
 };
 
@@ -87,11 +81,6 @@ struct PairWiseMatches :
       std::forward<std::pair<Pair, IndMatches>>(pairWiseMatches));
   }
 
-  // Serialization
-  template <class Archive>
-  void serialize( Archive & ar )  {
-    ar(static_cast<std::map< Pair, IndMatches >&>(*this));
-  }
 };
 
 inline Pair_Set getPairs(const PairWiseMatches & matches)
@@ -105,4 +94,4 @@ inline Pair_Set getPairs(const PairWiseMatches & matches)
 }  // namespace matching
 }  // namespace VwOpenMVG
 
-#endif // OPENMVG_MATCHING_IND_MATCH_HPP
+#endif // VW_OPENMVG_MATCHING_IND_MATCH_HPP

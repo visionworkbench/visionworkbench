@@ -301,40 +301,40 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     // Save the matches after getting a subset
     ip_subset[std::make_pair<int, int>(index1, index2)] = std::make_pair(ip1, ip2);
     
-    typedef boost::shared_ptr< ba::IPFeature > f_ptr;
-    typedef std::list< f_ptr >::iterator f_itr;
+//     typedef boost::shared_ptr< ba::IPFeature > f_ptr;
+//     typedef std::list< f_ptr >::iterator f_itr;
 
-    // Checking to see if features already exist, adding if they
-    // don't, then linking them.
-    vw_out() << "Building the control network for " << match_file <<".\n";
-    TerminalProgressCallback progress("ba", "Building: ");
-    progress.report_progress(0);
-    double inc_prog = 1.0/double(ip1.size());
-    for (size_t k = 0; k < ip1.size(); k++) { // Loop through all existing IP
-      // Check if either IP is already in the lists
-      f_itr ipfeature1 = std::find_if(crn[index1].begin(),
-                                       crn[index1].end(),
-                                       ContainsEqualIP(ip1[k]));
-      f_itr ipfeature2 = std::find_if(crn[index2].begin(),
-                                       crn[index2].end(),
-                                       ContainsEqualIP(ip2[k]));
-      // If the IP are new, add them to the list
-      if (ipfeature1 == crn[index1].end()) {
-        crn[index1].relations.push_front(f_ptr(new ba::IPFeature(ip1[k], index1)));
-        ipfeature1 = crn[index1].begin();
-      }
-      if (ipfeature2 == crn[index2].end()) {
-        crn[index2].relations.push_front(f_ptr(new ba::IPFeature(ip2[k], index2)));
-        ipfeature2 = crn[index2].begin();
-      }
+//     // Checking to see if features already exist, adding if they
+//     // don't, then linking them.
+//     vw_out() << "Building the control network for " << match_file <<".\n";
+//     TerminalProgressCallback progress("ba", "Building: ");
+//     progress.report_progress(0);
+//     double inc_prog = 1.0/double(ip1.size());
+//     for (size_t k = 0; k < ip1.size(); k++) { // Loop through all existing IP
+//       // Check if either IP is already in the lists
+//       f_itr ipfeature1 = std::find_if(crn[index1].begin(),
+//                                        crn[index1].end(),
+//                                        ContainsEqualIP(ip1[k]));
+//       f_itr ipfeature2 = std::find_if(crn[index2].begin(),
+//                                        crn[index2].end(),
+//                                        ContainsEqualIP(ip2[k]));
+//       // If the IP are new, add them to the list
+//       if (ipfeature1 == crn[index1].end()) {
+//         crn[index1].relations.push_front(f_ptr(new ba::IPFeature(ip1[k], index1)));
+//         ipfeature1 = crn[index1].begin();
+//       }
+//       if (ipfeature2 == crn[index2].end()) {
+//         crn[index2].relations.push_front(f_ptr(new ba::IPFeature(ip2[k], index2)));
+//         ipfeature2 = crn[index2].begin();
+//       }
 
-      // Doubly linking
-      (*ipfeature1)->connection(*ipfeature2, false);
-      (*ipfeature2)->connection(*ipfeature1, false);
-      progress.report_incremental_progress(inc_prog);
-    } // End loop through ip1
-    progress.report_finished();
-  } // End loop through match files
+//       // Doubly linking
+//       (*ipfeature1)->connection(*ipfeature2, false);
+//       (*ipfeature2)->connection(*ipfeature1, false);
+//       progress.report_incremental_progress(inc_prog);
+//     } // End loop through ip1
+//     progress.report_finished();
+   } // End loop through match files
 
   if (num_load_rejected != 0)
     vw_out(WarningMessage,"ba")

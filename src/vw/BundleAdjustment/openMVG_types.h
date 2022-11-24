@@ -4,8 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef OPENMVG_TYPES_HPP
-#define OPENMVG_TYPES_HPP
+#ifndef VW_OPENMVG_TYPES_HPP
+#define VW_OPENMVG_TYPES_HPP
 
 #include <cstdint>
 #include <limits>
@@ -30,4 +30,4 @@ using Pair_Set = std::set<Pair>;
 
 } // namespace VwOpenMVG
 
-#endif  // OPENMVG_TYPES_HPP
+#endif  // VW_OPENMVG_TYPES_HPP
