@@ -85,7 +85,7 @@ namespace ba {
       V_inverse( this->m_model.num_points() ),
       epsilon_a( this->m_model.num_cameras() ), epsilon_b( this->m_model.num_points() ) {
       vw_out(DebugMessage,"ba") << "Constructed Robust Sparse Bundle Adjuster.\n";
-      m_crn.read_controlnetwork( *(this->m_control_net).get() );
+      m_crn.from_cnet( *(this->m_control_net).get() );
       m_found_ideal_ordering = false;
     }
 

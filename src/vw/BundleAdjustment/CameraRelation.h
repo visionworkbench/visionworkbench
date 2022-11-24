@@ -218,7 +218,10 @@ namespace ba {
     // Complex functions
     void add_node( cnode const& node );
     void build_map();
-    void read_controlnetwork ( ControlNetwork const& cnet );
+    void from_cnet ( ControlNetwork const& cnet );
+
+    // TODO(oalexan1): This function scaled very badly. It is no longer used
+    // in build_control_network(). Needs to be wiped.
     bool assemble_cnet( ControlNetwork      & cnet ) const;
   };
 

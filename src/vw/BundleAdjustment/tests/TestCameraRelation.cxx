@@ -86,7 +86,7 @@ TEST_F( CircleTest, IPFeature ) {
 
   // Convert to Camera Relation
   CameraRelationNetwork<IPFeature> crn;
-  crn.read_controlnetwork( cnet );
+  crn.from_cnet( cnet );
   EXPECT_EQ( crn.size(), 4u );
   for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );
@@ -115,7 +115,7 @@ TEST_F( CircleTest, JFeature ) {
 
   // Convert to Camera Relation
   CameraRelationNetwork<JFeature> crn;
-  crn.read_controlnetwork( cnet );
+  crn.from_cnet( cnet );
   EXPECT_EQ( crn.size(), 4u );
   for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );

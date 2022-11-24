@@ -193,11 +193,15 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     image_prefix_map[stripped_path] = count;
     // TODO(oalexan1): Using just the stem can cause non-uniqueness!
+    // TODO(oalexan1): Not sure if cnet actually needs to store image
+    // names. When saving cnet, the list of images can be used.
     cnet.add_image_name(file);
     count++;
   }
 
-  // Iterate through the match files passed in
+  // Iterate through the match files passed in and record the ones which exist.
+  // TODO(oalexan1): Likely this loop and the one below can be
+  // integrated and there is no need for match_files_vec, index1_vec, index2_vec.
   std::vector<std::string> match_files_vec;
   std::vector<size_t> index1_vec, index2_vec;
   typedef std::map<std::string,size_t>::iterator MapIterator;
@@ -289,7 +293,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
       auto dist_right_ip = ipTriplet(ip2[ip_it].x, ip2[ip_it].y, ip2[ip_it].scale);
-      // Initialize to zero for the moment
+      // Initialize key keypoint map to zero. Will populate the entities later.
       keypoint_map[index1][dist_left_ip] = 0;
       keypoint_map[index2][dist_right_ip] = 0;
     }
@@ -342,9 +346,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       auto dist_right_ip = ipTriplet(right_ip_vec[ip_it].x, right_ip_vec[ip_it].y,
                                      right_ip_vec[ip_it].scale);
       
-      int left_id = keypoint_map[left_cid][dist_left_ip];
-      int right_id = keypoint_map[right_cid][dist_right_ip];
-      mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_id, right_id));
+      int left_fid = keypoint_map[left_cid][dist_left_ip];
+      int right_fid = keypoint_map[right_cid][dist_right_ip];
+      mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_fid, right_fid));
     }
     match_map[cid_pair] = mvg_matches;
   }
@@ -371,12 +375,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     // Populate the filtered tracks
     size_t num_elems = map_tracks.size();
-    //pid_to_cid_fid.resize(num_elems);
-    for (auto itr = map_tracks.begin(); itr != map_tracks.end(); itr++) {
+    for (auto pid = map_tracks.begin(); pid != map_tracks.end(); pid++) {
       ControlPoint cpoint(ControlPoint::TiePoint);
-      for (auto itr2 = (itr->second).begin(); itr2 != (itr->second).end(); itr2++) {
-        int cid = itr2->first;
-        int fid = itr2->second;
+      for (auto cid_fid = (pid->second).begin(); cid_fid != (pid->second).end(); cid_fid++) {
+        int cid = cid_fid->first;
+        int fid = cid_fid->second;
         auto const& dist_ip = keypoint_vec.at(cid).at(fid);
         cpoint.add_measure(ControlMeasure(std::get<0>(dist_ip), // x position
                                           std::get<1>(dist_ip), // y position

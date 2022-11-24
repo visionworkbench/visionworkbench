@@ -90,7 +90,7 @@ namespace ba {
   }
 
   template <class FeatureT>
-  void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& cnet ) {
+  void CameraRelationNetwork<FeatureT>::from_cnet( ControlNetwork const& cnet ) {
     typedef boost::shared_ptr<FeatureT> f_ptr;
     typedef boost::weak_ptr<FeatureT>   w_ptr;
     m_nodes.clear();
@@ -137,6 +137,8 @@ namespace ba {
     this->build_map();
   }
 
+  // TODO(oalexan1): This function scaled very badly. It is no longer used
+  // in build_control_network(). Needs to be wiped.
   template <class FeatureT>
   bool CameraRelationNetwork<FeatureT>::assemble_cnet(ControlNetwork & cnet) const {
 
