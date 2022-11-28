@@ -211,6 +211,9 @@ namespace vw { namespace mosaic {
     void get_image_clip(double scale_in, BBox2i region_in,
 			ImageView<PixelT> & clip, double & scale_out, BBox2i & region_out) const;
 
+    // Find the right pyramid level to use for the given sub scale
+    int pyramidLevel(double sub_scale) const;
+    
     vw::Vector2 get_approx_bounds() const {
       return m_approx_bounds;
     }
@@ -222,7 +225,11 @@ namespace vw { namespace mosaic {
     int32 rows  () const { return m_pyramid[0].rows(); }
     int32 planes() const { return m_pyramid[0].planes(); }
 
-    double get_nodata_val() const {return(m_nodata_val);}
+    std::vector<int> const& scales() const { return m_scales; }
+
+    std::vector<ImageViewRef<PixelT>> const& pyramid() const { return m_pyramid; }
+    
+    double get_nodata_val() const { return(m_nodata_val); }
 
     /// Return the highest resolution pyramid layer
     ImageViewRef<PixelT>        bottom()       { return m_pyramid[0]; }
@@ -331,8 +338,7 @@ namespace vw { namespace mosaic {
                              nodata_pixel
                              )),
                            Vector2i(tile_size,tile_size) * sub_scale
-                           ), Vector2i(tile_size,tile_size), sub_threads
-                          );
+                           ), Vector2i(tile_size,tile_size), sub_threads);
       
       // Write the current image.
       if (has_georef)
@@ -384,6 +390,19 @@ namespace vw { namespace mosaic {
     m_approx_bounds = get_approx_bounds_noclass<PixelT>(m_pyramid_files.back());
   }
 
+  // Find the right pyramid level to use for the given sub scale
+  template <class PixelT>
+  int DiskImagePyramid<PixelT>::pyramidLevel(double sub_scale) const {
+    int level = 0;
+    while (1) {
+      if (level+1 >= (int)m_scales.size()) break; // last level
+      if (m_scales[level+1] > sub_scale)  break; // too coarse
+      level++;
+    }
+
+    return level;
+  }
+  
   template <class PixelT>
   void DiskImagePyramid<PixelT>::get_image_clip(double scale_in, BBox2i region_in,
                                                 ImageView<PixelT> & clip,
@@ -393,14 +412,7 @@ namespace vw { namespace mosaic {
       vw_throw( ArgumentErr() << "Uninitialized image pyramid.\n");
 
     // Find the right pyramid level to use
-    int level = 0;
-    while (1) {
-      if (level+1 >= (int)m_scales.size()) break; // last level
-      if (m_scales[level+1] > scale_in)  break; // too coarse
-      level++;
-    }
-
-    //vw_out() << "Reading: " << m_pyramid_files[level] << std::endl;
+    int level = pyramidLevel(scale_in);
 
     region_in.crop(bounding_box(m_pyramid[0]));
     scale_out  = m_scales[level];
