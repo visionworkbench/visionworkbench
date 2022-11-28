@@ -46,9 +46,9 @@ inline std::string current_posix_time_string() {
 
 inline std::string isis_style_time_string() {
   std::string time = current_posix_time_string();
-  boost::erase_all( time, "\n" );
-  boost::trim( time );
-  boost::replace_all( time, " ", "T" );
+  boost::erase_all(time, "\n");
+  boost::trim(time);
+  boost::replace_all(time, " ", "T");
   return time;
 }
 
@@ -60,10 +60,10 @@ namespace ba {
   ////////////////////////////
 
   /// Constructor
-  ControlMeasure::ControlMeasure( float col, float row,
+  ControlMeasure::ControlMeasure(float col, float row,
                                   float col_sigma, float row_sigma,
                                   uint64 image_id,
-                                  ControlMeasureType type ) :
+                                  ControlMeasureType type) :
     m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
 
     // Recording time
@@ -78,7 +78,7 @@ namespace ba {
     m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
   }
 
-  ControlMeasure::ControlMeasure( ControlMeasureType type ) :
+  ControlMeasure::ControlMeasure(ControlMeasureType type) :
     m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0), m_type(type) {
 
     // Recording time
@@ -100,7 +100,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style of measure
-  void ControlMeasure::write_binary( std::ostream &f ) const {
+  void ControlMeasure::write_binary(std::ostream &f) const {
     // Writing out all the strings first
     f << m_serialNumber << char(0) << m_date_time << char(0)
       << m_description << char(0) << m_chooserName << char(0);
@@ -120,12 +120,12 @@ namespace ba {
   }
 
   /// Reading a compressed binary style of measure
-  void ControlMeasure::read_binary( std::istream &f ) {
+  void ControlMeasure::read_binary(std::istream &f) {
     // Reading in all the strings
-    std::getline( f, m_serialNumber, '\0' );
-    std::getline( f, m_date_time, '\0' );
-    std::getline( f, m_description, '\0' );
-    std::getline( f, m_chooserName, '\0' );
+    std::getline(f, m_serialNumber, '\0');
+    std::getline(f, m_date_time, '\0');
+    std::getline(f, m_description, '\0');
+    std::getline(f, m_chooserName, '\0');
     // Reading the binary data
     f.read((char*)&(m_col),             sizeof(m_col));
     f.read((char*)&(m_row),             sizeof(m_row));
@@ -142,26 +142,26 @@ namespace ba {
   }
 
   /// Write an isis style measure
-  void ControlMeasure::write_isis( std::ostream &f ) const {
+  void ControlMeasure::write_isis(std::ostream &f) const {
     f << "    Group = ControlMeasure\n";
     f << "      SerialNumber   = " << m_serialNumber << std::endl;
     f << "      MeasureType    = ";
-    if ( m_type == ControlMeasure::Unmeasured ) {
+    if (m_type == ControlMeasure::Unmeasured) {
       f << "Unmeasured\n";
-    } else if ( m_type == ControlMeasure::Manual ) {
+    } else if (m_type == ControlMeasure::Manual) {
       f << "Manual\n";
-    } else if ( m_type == ControlMeasure::Estimated ) {
+    } else if (m_type == ControlMeasure::Estimated) {
       f << "Estimated\n";
-    } else if ( m_type == ControlMeasure::Automatic ) {
+    } else if (m_type == ControlMeasure::Automatic) {
       f << "Automatic\n";
-    } else if ( m_type == ControlMeasure::ValidatedManual ) {
+    } else if (m_type == ControlMeasure::ValidatedManual) {
       f << "ValidatedManual\n";
-    } else if ( m_type == ControlMeasure::ValidatedAutomatic ) {
+    } else if (m_type == ControlMeasure::ValidatedAutomatic) {
       f << "ValidatedAutomatic\n";
     } else {
-      vw_throw( vw::NoImplErr() << "Invalid Control Measure type." );
+      vw_throw(vw::NoImplErr() << "Invalid Control Measure type.");
     }
-    if ( m_type == ControlMeasure::Unmeasured ) {
+    if (m_type == ControlMeasure::Unmeasured) {
       // Why do you even exist?
       f << "      Sample         = Null\n";
       f << "      Line           = Null\n";
@@ -174,25 +174,25 @@ namespace ba {
       f << "      FocalPlaneX    = " << m_focalplane_x << "\n";
       f << "      FocalPlaneY    = " << m_focalplane_y << "\n";
     }
-    if ( m_ephemeris_time != 0 )
+    if (m_ephemeris_time != 0)
       f << "      EphemerisTime  = " << m_ephemeris_time << "\n";
-    if ( m_diameter > 0 )
+    if (m_diameter > 0)
       f << "      Diameter       = " << m_diameter << "\n";
-    if ( !m_date_time.empty() )
+    if (!m_date_time.empty())
       f << "      DateTime       = " << m_date_time << "\n";
-    if ( !m_chooserName.empty() )
+    if (!m_chooserName.empty())
       f << "      ChooserName    = " << m_chooserName << "\n";
-    if ( m_ignore )
+    if (m_ignore)
       f << "      Ignore         = True\n";
     f << "      Reference      = False\n";    // What is reference?
-    if ( m_pixels_dominant )
+    if (m_pixels_dominant)
       f << "      PixelsDominant = True\n";
     else
       f << "      PixelsDominant = False\n";
     f << "    End_Group\n";
   }
 
-  void ControlMeasure::read_isis( std::istream &f ) {
+  void ControlMeasure::read_isis(std::istream &f) {
 
     std::vector<std::string> tokens;
     std::ostringstream ostr;
@@ -207,121 +207,121 @@ namespace ba {
     m_pixels_dominant = true;
 
     while (1) {
-      if ( f.eof() )
-        vw_throw( vw::IOErr() << "Error reading Control Measure, unexpectly hit end of file" );
+      if (f.eof())
+        vw_throw(vw::IOErr() << "Error reading Control Measure, unexpectly hit end of file");
 
       // Reading file
       str = "";
-      std::getline( f, str );
-      boost::split( tokens, str, boost::is_any_of(" =\n") );
+      std::getline(f, str);
+      boost::split(tokens, str, boost::is_any_of(" =\n"));
 
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
-          iter != tokens.end(); ++iter ) {
-        if ( (*iter).empty() ) {
+          iter != tokens.end(); ++iter) {
+        if ((*iter).empty()) {
           iter = tokens.erase(iter);
           iter--;
         }
       }
 
       // Processing statement
-      if ( tokens.empty() )
+      if (tokens.empty())
         continue;
 
-      if ( tokens[0] == "End_Group" )     // End of Control Group
+      if (tokens[0] == "End_Group")     // End of Control Group
         break;
-      else if ( tokens[0] == "SerialNumber" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "SerialNumber") {
+        read_pvl_property(ostr, tokens);
         m_serialNumber = ostr.str();
-      } else if ( tokens[0] == "MeasureType" ) {
-        read_pvl_property( ostr, tokens );
-        if ( ostr.str() == "Unmeasured" )
+      } else if (tokens[0] == "MeasureType") {
+        read_pvl_property(ostr, tokens);
+        if (ostr.str() == "Unmeasured")
           m_type = ControlMeasure::Unmeasured;
-        else if ( ostr.str() == "Manual" )
+        else if (ostr.str() == "Manual")
           m_type = ControlMeasure::Manual;
-        else if ( ostr.str() == "Estimated" )
+        else if (ostr.str() == "Estimated")
           m_type = ControlMeasure::Estimated;
-        else if ( ostr.str() == "Automatic" )
+        else if (ostr.str() == "Automatic")
           m_type = ControlMeasure::Automatic;
-        else if ( ostr.str() == "ValidatedManual" )
+        else if (ostr.str() == "ValidatedManual")
           m_type = ControlMeasure::ValidatedManual;
-        else if ( ostr.str() == "ValidatedAutomatic" )
+        else if (ostr.str() == "ValidatedAutomatic")
           m_type = ControlMeasure::ValidatedAutomatic;
         else
-          vw_throw( vw::IOErr() << "Invalid Control Measure type, \""
-                    << ostr.str() << "." );
-      } else if ( tokens[0] == "Sample" ) {
-        read_pvl_property( ostr, tokens );
-        if ( ostr.str() == "Null" )
+          vw_throw(vw::IOErr() << "Invalid Control Measure type, \""
+                    << ostr.str() << ".");
+      } else if (tokens[0] == "Sample") {
+        read_pvl_property(ostr, tokens);
+        if (ostr.str() == "Null")
           m_col = 0;
         else {
-          converter.str( ostr.str() );
+          converter.str(ostr.str());
           converter.clear();
           converter >> m_col;
         }
-      } else if ( tokens[0] == "Line" ) {
-        read_pvl_property( ostr, tokens );
-        if ( ostr.str() == "Null" )
+      } else if (tokens[0] == "Line") {
+        read_pvl_property(ostr, tokens);
+        if (ostr.str() == "Null")
           m_row = 0;
         else {
-          converter.str( ostr.str() );
+          converter.str(ostr.str());
           converter.clear();
           converter >> m_row;
         }
-      } else if ( tokens[0] == "ErrorLine" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "ErrorLine") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_col_sigma;
-      } else if ( tokens[0] == "ErrorSample" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "ErrorSample") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_row_sigma;
-      } else if ( tokens[0] == "FocalPlaneX" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "FocalPlaneX") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_focalplane_x;
-      } else if ( tokens[0] == "FocalPlaneY" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "FocalPlaneY") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_focalplane_y;
-      } else if ( tokens[0] == "EphemerisTime" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "EphemerisTime") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_ephemeris_time;
-      } else if ( tokens[0] == "Diameter" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "Diameter") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_diameter;
-      } else if ( tokens[0] == "DateTime" ) {
-        read_pvl_property( ostr, tokens );
+      } else if (tokens[0] == "DateTime") {
+        read_pvl_property(ostr, tokens);
         m_date_time = ostr.str();
-      } else if ( tokens[0] == "ChooserName" ) {
-        read_pvl_property( ostr, tokens );
+      } else if (tokens[0] == "ChooserName") {
+        read_pvl_property(ostr, tokens);
         m_chooserName = ostr.str();
-      } else if ( tokens[0] == "Ignore" ) {
+      } else if (tokens[0] == "Ignore") {
         m_ignore = true;
-      } else if ( tokens[0] == "PixelsDominant" ) {
+      } else if (tokens[0] == "PixelsDominant") {
         boost::to_lower(tokens[1]);
-        if ( tokens[1] == "false" )
+        if (tokens[1] == "false")
           m_pixels_dominant = 0;
         else
           m_pixels_dominant = 1;
       }
-      if ( m_col_sigma == 0 )
+      if (m_col_sigma == 0)
         m_col_sigma = 1;
-      if ( m_row_sigma == 0 )
+      if (m_row_sigma == 0)
         m_row_sigma = 1;
     }
   }
 
   /// Write to a CSV stream
-  void ControlMeasure::write_csv( std::ostream &f ) const {
+  void ControlMeasure::write_csv(std::ostream &f) const {
     // TODO: Handle spaces and other formatting in the data!
     // Just write everything out to a single comma delimited line.
     
@@ -339,18 +339,18 @@ namespace ba {
   }
 
   /// Read from a CSV stream
-  void ControlMeasure::read_csv( std::istream &f ) {
+  void ControlMeasure::read_csv(std::istream &f) {
     // TODO: Handle more formatting possibilities.
     // Grab all of the elements from the input stream.
     std::string str;
-    std::getline( f, str ); // Read in one line.
+    std::getline(f, str); // Read in one line.
 
     const std::string delim = ",";
     std::vector<std::string> parts;
     boost::split(parts, str, boost::is_any_of(delim));
     const size_t EXPECTED_SIZE = 16;
     if (parts.size() != EXPECTED_SIZE)
-      vw_throw( vw::IOErr() << "Error reading Control Measure, on line: " << str );
+      vw_throw(vw::IOErr() << "Error reading Control Measure, on line: " << str);
 
     m_serialNumber    = parts[0];
     m_date_time       = parts[1];
@@ -412,7 +412,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style of point
-  void ControlPoint::write_binary( std::ostream &f ) const {
+  void ControlPoint::write_binary(std::ostream &f) const {
     // Writing out the string first
     f << m_id << char(0);
     // Writing the binary data
@@ -427,14 +427,14 @@ namespace ba {
     int size = m_measures.size();
     f.write((char*)&(size),          sizeof(size));
     // Rolling through the measures
-    BOOST_FOREACH( ControlMeasure const& cm, m_measures )
-      cm.write_binary( f );
+    BOOST_FOREACH(ControlMeasure const& cm, m_measures)
+      cm.write_binary(f);
   }
 
   /// Reading a compressed binary style of point
-  void ControlPoint::read_binary( std::istream &f ) {
+  void ControlPoint::read_binary(std::istream &f) {
     // Reading in the string first
-    std::getline( f, m_id, '\0' );
+    std::getline(f, m_id, '\0');
     // Reading in the binary data
     f.read((char*)&(m_ignore),      sizeof (m_ignore));
     f.read((char*)&(m_position[0]), sizeof (m_position[0]));
@@ -449,39 +449,39 @@ namespace ba {
     m_measures.clear();
     m_measures.reserve(size);
     // Reading in all the measures
-    for ( int m = 0; m < size; m++ ) {
-      m_measures.push_back( ControlMeasure(f, FmtBinary) );
+    for (int m = 0; m < size; m++) {
+      m_measures.push_back(ControlMeasure(f, FmtBinary));
     }
   }
 
   /// Write an isis style point
-  void ControlPoint::write_isis( std::ostream &f ) const {
+  void ControlPoint::write_isis(std::ostream &f) const {
     f << "  Object = ControlPoint\n";
     f << "    PointType = ";
-    if ( m_type == ControlPoint::GroundControlPoint ) {
+    if (m_type == ControlPoint::GroundControlPoint) {
       f << "Ground\n";
-    } else if ( m_type == ControlPoint::TiePoint ) {
+    } else if (m_type == ControlPoint::TiePoint) {
       f << "Tie\n";
     } else {
-      vw_throw( vw::NoImplErr() << "Invalid Control Point type." );
+      vw_throw(vw::NoImplErr() << "Invalid Control Point type.");
     }
     f << "    PointId   = " << m_id << "\n";
     f << "    Latitude  = " << m_position[1] << "\n";
     f << "    Longitude = " << m_position[0] << "\n";
     f << "    Radius    = " << m_position[2] << "\n";
-    if ( m_ignore )
+    if (m_ignore)
       f << "    Ignore    = True\n";
 
     // Rolling through measures
-    BOOST_FOREACH( ControlMeasure const& m, m_measures ) {
+    BOOST_FOREACH(ControlMeasure const& m, m_measures) {
       f << std::endl;
-      m.write_isis( f );
+      m.write_isis(f);
     }
     f << "  End_Object\n";
   }
 
   /// Read an isis style point
-  void ControlPoint::read_isis( std::istream &f ) {
+  void ControlPoint::read_isis(std::istream &f) {
 
     std::vector<std::string> tokens;
     std::ostringstream ostr;
@@ -494,72 +494,72 @@ namespace ba {
     m_measures.clear();
 
     while (1) {
-      if ( f.eof() )
-        vw_throw( vw::IOErr() << "Error reading Control Point, unexpectly hit end of file" );
+      if (f.eof())
+        vw_throw(vw::IOErr() << "Error reading Control Point, unexpectly hit end of file");
 
       // Reading file
       str = "";
-      std::getline( f, str );
-      boost::split( tokens, str, boost::is_any_of(" =\n") );
+      std::getline(f, str);
+      boost::split(tokens, str, boost::is_any_of(" =\n"));
 
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
-          iter != tokens.end(); ++iter ) {
-        if ( (*iter).empty() ) {
+          iter != tokens.end(); ++iter) {
+        if ((*iter).empty()) {
           iter = tokens.erase(iter);
           iter--;
         }
       }
 
       // Processing statement
-      if ( tokens.empty() )
+      if (tokens.empty())
         continue;
 
-      if ( tokens[0] == "End_Object" )     // End of Control Point
+      if (tokens[0] == "End_Object")     // End of Control Point
         break;
-      else if ( tokens[0] == "PointType" ) {
-        read_pvl_property( ostr, tokens );
-        if ( ostr.str() == "Ground" )
+      else if (tokens[0] == "PointType") {
+        read_pvl_property(ostr, tokens);
+        if (ostr.str() == "Ground")
           m_type = ControlPoint::GroundControlPoint;
-        else if ( ostr.str() == "Tie" )
+        else if (ostr.str() == "Tie")
           m_type = ControlPoint::TiePoint;
         else
-          vw_throw( vw::IOErr() << "Invalid Control Point type, \""
-                    << ostr.str() << "." );
-      } else if ( tokens[0] == "PointId" ) {
-        read_pvl_property( ostr, tokens );
+          vw_throw(vw::IOErr() << "Invalid Control Point type, \""
+                    << ostr.str() << ".");
+      } else if (tokens[0] == "PointId") {
+        read_pvl_property(ostr, tokens);
         m_id = ostr.str();
-      } else if ( tokens[0] == "Latitude" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "Latitude") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_position[1];
-      } else if ( tokens[0] == "Longitude" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "Longitude") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_position[0];
-      } else if ( tokens[0] == "Radius" ) {
-        read_pvl_property( ostr, tokens );
-        converter.str( ostr.str() );
+      } else if (tokens[0] == "Radius") {
+        read_pvl_property(ostr, tokens);
+        converter.str(ostr.str());
         converter.clear();
         converter >> m_position[2];
-      } else if ( tokens[0] == "Ignore" ) {
+      } else if (tokens[0] == "Ignore") {
         m_ignore = tokens[1] == "True";
-      } else if ( tokens[0] == "Group" ) {
-        if ( tokens.size() == 1 ) {
-          vw_throw( IOErr() << "Failed to read Control Point. Contains incorrect syntax, unlabelled Group" );
-        } else if ( tokens[1] == "ControlMeasure" ) {
-          m_measures.push_back( ControlMeasure( f, FmtIsisPvl ) );
+      } else if (tokens[0] == "Group") {
+        if (tokens.size() == 1) {
+          vw_throw(IOErr() << "Failed to read Control Point. Contains incorrect syntax, unlabelled Group");
+        } else if (tokens[1] == "ControlMeasure") {
+          m_measures.push_back(ControlMeasure(f, FmtIsisPvl));
         } else {
-          vw_throw( IOErr() << "Failed to read Control Point. Unkown group \"" << tokens[1] << "\" found." );
+          vw_throw(IOErr() << "Failed to read Control Point. Unkown group \"" << tokens[1] << "\" found.");
         }
       }
     }
   }
 
   /// Write a CSV style of point
-  void ControlPoint::write_csv( std::ostream &f ) const {
+  void ControlPoint::write_csv(std::ostream &f) const {
     const std::string delimiter = ", ";
 
     // Writing out the header on one line.
@@ -569,24 +569,24 @@ namespace ba {
       << (int)m_type << delimiter << m_measures.size() << std::endl;
 
     // Write each measure on its own line.
-    BOOST_FOREACH( ControlMeasure const& cm, m_measures ) {
-      cm.write_csv( f );
+    BOOST_FOREACH(ControlMeasure const& cm, m_measures) {
+      cm.write_csv(f);
       f << std::endl;
     }
   }
 
   /// Reading a CSV style of point
-  void ControlPoint::read_csv( std::istream &f ) {
+  void ControlPoint::read_csv(std::istream &f) {
 
     std::string str;
-    std::getline( f, str ); // Read in one line.
+    std::getline(f, str); // Read in one line.
 
     const std::string delim = ",";
     std::vector<std::string> parts;
     boost::split(parts, str, boost::is_any_of(delim));
     const size_t EXPECTED_SIZE = 10;
     if (parts.size() != EXPECTED_SIZE)
-      vw_throw( vw::IOErr() << "Error reading Control Point, on line: " << str );
+      vw_throw(vw::IOErr() << "Error reading Control Point, on line: " << str);
 
     int size;
     m_id          = atoi(parts[0].c_str());
@@ -604,8 +604,8 @@ namespace ba {
     m_measures.clear();
     m_measures.reserve(size);
     // Reading in all the measures
-    for ( int m = 0; m < size; m++ ) {
-      m_measures.push_back( ControlMeasure(f, FmtCsv) );
+    for (int m = 0; m < size; m++) {
+      m_measures.push_back(ControlMeasure(f, FmtCsv));
     }
   }
 
@@ -617,7 +617,7 @@ namespace ba {
   ControlNetwork::ControlNetwork(std::string id,
                                  ControlNetworkType type,
                                  std::string target_name,
-                                 std::string descrip, std::string user_name ) :
+                                 std::string descrip, std::string user_name) :
     m_targetName(target_name), m_networkId(id), m_description(descrip), m_userName(user_name), m_type(type) {
     // Recording time
     m_created = isis_style_time_string();
@@ -627,8 +627,8 @@ namespace ba {
   void ControlNetwork::add_control_point(ControlPoint const& point) {
     // Checking for GCPs (if this network supposedly doesn't contain
     // control networks)
-    if ( m_type != ControlNetwork::ImageToGround &&
-         point.type() == ControlPoint::GroundControlPoint )
+    if (m_type != ControlNetwork::ImageToGround &&
+         point.type() == ControlPoint::GroundControlPoint)
       m_type = ControlNetwork::ImageToGround;
 
     m_control_points.push_back(point);
@@ -638,9 +638,9 @@ namespace ba {
   void ControlNetwork::add_control_points(std::vector<ControlPoint> const& points) {
     // Checking for GCPs (if this network supposedly doesn't contain
     // control networks)
-    if ( m_type != ControlNetwork::ImageToGround ) {
-      BOOST_FOREACH( ControlPoint const& cp, points ) {
-        if ( cp.type() == ControlPoint::GroundControlPoint ) {
+    if (m_type != ControlNetwork::ImageToGround) {
+      BOOST_FOREACH(ControlPoint const& cp, points) {
+        if (cp.type() == ControlPoint::GroundControlPoint) {
           m_type = ControlNetwork::ImageToGround;
           break;
         }
@@ -671,7 +671,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style control network
-  void ControlNetwork::write_binary( std::string filename ) const {
+  void ControlNetwork::write_binary(std::string filename) const {
 
     // Recording the modified time
     m_modified = isis_style_time_string();
@@ -683,7 +683,7 @@ namespace ba {
     vw_out() << "Writing: " << filename << std::endl;
     
     // Opening file
-    std::ofstream f( filename.c_str(), std::ofstream::binary );
+    std::ofstream f(filename.c_str(), std::ofstream::binary);
 
     // Writing out the strings first
     f << m_targetName << char(0) << m_networkId << char(0)
@@ -694,27 +694,27 @@ namespace ba {
     int size = m_control_points.size();
     f.write((char*)&(size), sizeof(size));
     // Rolling through the control points
-    BOOST_FOREACH( ControlPoint const& cp, m_control_points )
-      cp.write_binary( f );
+    BOOST_FOREACH(ControlPoint const& cp, m_control_points)
+      cp.write_binary(f);
 
     f.close();
   }
 
   /// Reading a compressed binary style control network
-  void ControlNetwork::read_binary( std::string const& filename ) {
+  void ControlNetwork::read_binary(std::string const& filename) {
 
     // Opening file
-    std::ifstream f( filename.c_str() );
-    if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
+    std::ifstream f(filename.c_str());
+    if (!f.is_open())
+      vw_throw(IOErr() << "Failed to open \"" << filename << "\" as a Control Network.");
 
     // Reading in the strings first
-    std::getline( f, m_targetName, '\0' );
-    std::getline( f, m_networkId, '\0' );
-    std::getline( f, m_created, '\0' );
-    std::getline( f, m_modified, '\0' );
-    std::getline( f, m_description, '\0' );
-    std::getline( f, m_userName, '\0' );
+    std::getline(f, m_targetName, '\0');
+    std::getline(f, m_networkId, '\0');
+    std::getline(f, m_created, '\0');
+    std::getline(f, m_modified, '\0');
+    std::getline(f, m_description, '\0');
+    std::getline(f, m_userName, '\0');
 
     // Reading in the binary data
     f.read((char*)&(m_type), sizeof(m_type));
@@ -723,17 +723,17 @@ namespace ba {
 
     // Clearing anything left in this control network
     m_control_points.clear();
-    m_control_points.reserve( size );
+    m_control_points.reserve(size);
 
     // Reading in all the control points
-    for ( int p = 0; p < size; p++ )
-      m_control_points.push_back( ControlPoint( f, FmtBinary ) );
+    for (int p = 0; p < size; p++)
+      m_control_points.push_back(ControlPoint(f, FmtBinary));
 
     f.close();
   }
 
   /// Write an isis style control network
-  void ControlNetwork::write_isis( std::string filename ) {
+  void ControlNetwork::write_isis(std::string filename) {
     // Recording the modified time
     m_modified = isis_style_time_string();
 
@@ -743,30 +743,30 @@ namespace ba {
 
     // Making sure all the control points have unique IDs
     size_t cpcount = 0;
-    BOOST_FOREACH( ControlPoint& cp, m_control_points ) {
-      if ( cp.id() == "Null" || cp.id().empty() ) {
+    BOOST_FOREACH(ControlPoint& cp, m_control_points) {
+      if (cp.id() == "Null" || cp.id().empty()) {
         std::ostringstream ostr;
         ostr << std::setw(9) << std::setfill('0') << cpcount;
-        cp.set_id( ostr.str() );
+        cp.set_id(ostr.str());
       }
       cpcount++;
     }
 
     // Opening file
-    std::ofstream f( filename.c_str() );
-    f << std::setprecision( 15 );
+    std::ofstream f(filename.c_str());
+    f << std::setprecision(15);
 
     f << "Object = ControlNetwork\n";
     f << "  NetworkId    = " << m_networkId << "\n";
     f << "  NetworkType  = ";
-    if ( m_type == ControlNetwork::Singleton ) {
+    if (m_type == ControlNetwork::Singleton) {
       f << "Singleton\n";
-    } else if ( m_type == ControlNetwork::ImageToImage ) {
+    } else if (m_type == ControlNetwork::ImageToImage) {
       f << "ImageToImage\n";
-    } else if ( m_type == ControlNetwork::ImageToGround ) {
+    } else if (m_type == ControlNetwork::ImageToGround) {
       f << "ImageToGround\n";
     } else {
-      vw_throw( vw::NoImplErr() << "Invalid Control Network type." );
+      vw_throw(vw::NoImplErr() << "Invalid Control Network type.");
     }
     f << "  TargetName   = " << m_targetName << "\n";
     f << "  UserName     = " << m_userName << "\n";
@@ -775,9 +775,9 @@ namespace ba {
     f << "  Description  = " << m_description << "\n";
 
     // Rolling through the control points
-    BOOST_FOREACH( ControlPoint& cp, m_control_points ) {
+    BOOST_FOREACH(ControlPoint& cp, m_control_points) {
       f << std::endl;
-      cp.write_isis( f );
+      cp.write_isis(f);
     }
 
     f << "End_Object\nEnd\n";
@@ -785,12 +785,12 @@ namespace ba {
   }
 
   /// Read an isis style control network
-  void ControlNetwork::read_isis( std::string const& filename ) {
+  void ControlNetwork::read_isis(std::string const& filename) {
 
     // Opening file
-    std::ifstream f( filename.c_str() );
-    if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a ISIS Control Network." );
+    std::ifstream f(filename.c_str());
+    if (!f.is_open())
+      vw_throw(IOErr() << "Failed to open \"" << filename << "\" as a ISIS Control Network.");
 
     // Clearing anything left in this control network
     m_control_points.clear();
@@ -799,78 +799,78 @@ namespace ba {
     std::vector<std::string> tokens;
     std::ostringstream ostr;
     std::string str;
-    while ( !f.eof() ) {
+    while (!f.eof()) {
       // Reading file
       str = "";
-      std::getline( f, str);
-      boost::split( tokens, str, boost::is_any_of(" =\n") );
+      std::getline(f, str);
+      boost::split(tokens, str, boost::is_any_of(" =\n"));
 
       // Cleaning out any tokens that are just ""
       for(std::vector<std::string>::iterator iter = tokens.begin();
-          iter != tokens.end(); ++iter ) {
-        if ( (*iter).empty() ) {
+          iter != tokens.end(); ++iter) {
+        if ((*iter).empty()) {
           iter = tokens.erase(iter);
           iter--;
         }
       }
 
       // Processing statement
-      if ( tokens.empty() )
+      if (tokens.empty())
         continue;
 
-      if ( tokens[0] == "End" )        // End of file
+      if (tokens[0] == "End")        // End of file
         break;
-      else if ( tokens[0] == "NetworkId" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "NetworkId") {
+        read_pvl_property(ostr, tokens);
         m_networkId = ostr.str();
       }
-      else if ( tokens[0] == "NetworkType" ) {
-        read_pvl_property( ostr, tokens );
-        if ( ostr.str() == "Singleton" )
+      else if (tokens[0] == "NetworkType") {
+        read_pvl_property(ostr, tokens);
+        if (ostr.str() == "Singleton")
           m_type = ControlNetwork::Singleton;
-        else if ( ostr.str() == "ImageToImage" )
+        else if (ostr.str() == "ImageToImage")
           m_type = ControlNetwork::ImageToImage;
-        else if ( ostr.str() == "ImageToGround" )
+        else if (ostr.str() == "ImageToGround")
           m_type = ControlNetwork::ImageToGround;
         else
-          vw_throw( vw::IOErr() << "Invalid Control Network type, \""
-                    << ostr.str() << "." );
+          vw_throw(vw::IOErr() << "Invalid Control Network type, \""
+                    << ostr.str() << ".");
       }
-      else if ( tokens[0] == "TargetName" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "TargetName") {
+        read_pvl_property(ostr, tokens);
         m_targetName = ostr.str();
       }
-      else if ( tokens[0] == "UserName" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "UserName") {
+        read_pvl_property(ostr, tokens);
         m_userName = ostr.str();
       }
-      else if ( tokens[0] == "Created" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "Created") {
+        read_pvl_property(ostr, tokens);
         m_created = ostr.str();
       }
-      else if ( tokens[0] == "LastModified" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "LastModified") {
+        read_pvl_property(ostr, tokens);
         m_modified = ostr.str();
       }
-      else if ( tokens[0] == "Description" ) {
-        read_pvl_property( ostr, tokens );
+      else if (tokens[0] == "Description") {
+        read_pvl_property(ostr, tokens);
         m_description = ostr.str();
       }
-      else if ( tokens[0] == "Object" ) {
-        if ( tokens.size() == 1 ) {
-          vw_throw( IOErr() << "Failed to open \"" << filename
-                    << "\". Contains incorrect syntax, unlabelled Object" );
-        } else if ( tokens[1] == "ControlNetwork" ) {
+      else if (tokens[0] == "Object") {
+        if (tokens.size() == 1) {
+          vw_throw(IOErr() << "Failed to open \"" << filename
+                    << "\". Contains incorrect syntax, unlabelled Object");
+        } else if (tokens[1] == "ControlNetwork") {
           // Start of file
           continue;
-        } else if ( tokens[1] == "ControlPoint" ) {
-          m_control_points.push_back( ControlPoint( f, FmtIsisPvl  ) );
-        } else if ( tokens[1] == "ControlMeasure" ) {
-          vw_throw( IOErr() << "Failed to open \"" << filename
-                    << "\". Control Measure found out of order." );
+        } else if (tokens[1] == "ControlPoint") {
+          m_control_points.push_back(ControlPoint(f, FmtIsisPvl ));
+        } else if (tokens[1] == "ControlMeasure") {
+          vw_throw(IOErr() << "Failed to open \"" << filename
+                    << "\". Control Measure found out of order.");
         } else {
-          vw_throw( IOErr() << "Failed to open \"" << filename
-                    << "\". Unknown Object \"" << tokens[1] << "\" found." );
+          vw_throw(IOErr() << "Failed to open \"" << filename
+                    << "\". Unknown Object \"" << tokens[1] << "\" found.");
         }
       }
     }
@@ -878,7 +878,7 @@ namespace ba {
   }
 
   /// Write a csv style control network
-  void ControlNetwork::write_csv( std::string filename ) const {
+  void ControlNetwork::write_csv(std::string filename) const {
 
     // Recording the modified time
     m_modified = isis_style_time_string();
@@ -890,7 +890,7 @@ namespace ba {
     vw_out() << "Writing: " << filename << std::endl;
     
     // Opening file
-    std::ofstream f( filename.c_str() );
+    std::ofstream f(filename.c_str());
 
     // Writing out the strings first
     const std::string delimiter = ", ";
@@ -900,29 +900,29 @@ namespace ba {
       << (int)m_type << delimiter << m_control_points.size() << std::endl;
 
     // Write each control point
-    BOOST_FOREACH( ControlPoint const& cp, m_control_points )
-      cp.write_csv( f );
+    BOOST_FOREACH(ControlPoint const& cp, m_control_points)
+      cp.write_csv(f);
 
     f.close();
   }
 
   /// Reading a csv style control network
-  void ControlNetwork::read_csv( std::string const& filename ) {
+  void ControlNetwork::read_csv(std::string const& filename) {
 
     // Opening file
-    std::ifstream f( filename.c_str() );
-    if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
+    std::ifstream f(filename.c_str());
+    if (!f.is_open())
+      vw_throw(IOErr() << "Failed to open \"" << filename << "\" as a Control Network.");
 
     std::string str;
-    std::getline( f, str ); // Read in one line.
+    std::getline(f, str); // Read in one line.
 
     const std::string delim = ",";
     std::vector<std::string> parts;
     boost::split(parts, str, boost::is_any_of(delim));
     const size_t EXPECTED_SIZE = 8;
     if (parts.size() != EXPECTED_SIZE)
-      vw_throw( vw::IOErr() << "Error reading Control Network, on line: " << str );
+      vw_throw(vw::IOErr() << "Error reading Control Network, on line: " << str);
 
     int size;
     m_targetName  = parts[0];
@@ -936,30 +936,31 @@ namespace ba {
 
     // Clearing anything left in this control network
     m_control_points.clear();
-    m_control_points.reserve( size );
+    m_control_points.reserve(size);
 
     // Reading in all the control points
-    for ( int p = 0; p < size; p++ )
-      m_control_points.push_back( ControlPoint( f, FmtCsv ) );
+    for (int p = 0; p < size; p++)
+      m_control_points.push_back(ControlPoint(f, FmtCsv));
 
     f.close();
   }
 
-void ControlNetwork::write_in_gcp_format(std::string const& filename, cartography::Datum const& d) const{
+void ControlNetwork::write_in_gcp_format(std::string const& filename,
+                                         cartography::Datum const& d) const{
 
   const std::string UNSPECIFIED_DATUM = "unspecified_datum";
   if (d.name() == UNSPECIFIED_DATUM)
-    vw_throw( ArgumentErr() << "FATAL: No datum was specified. "
-                            << "Cannot save control network as csv.\n" );
+    vw_throw(ArgumentErr() << "FATAL: No datum was specified. "
+                            << "Cannot save control network as csv.\n");
 
   std::ofstream ofs(filename.c_str());
   ofs.precision(18);
 
   int count = 0;
-  for ( const_iterator iter = begin(); iter != end(); ++iter ) {
+  for (const_iterator iter = begin(); iter != end(); ++iter) {
 
     // If to dump only gcp
-    //if ( (*iter).type() != ControlPoint::GroundControlPoint ) continue;
+    //if ((*iter).type() != ControlPoint::GroundControlPoint) continue;
 
     count++;
 
@@ -978,12 +979,13 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename, cartograph
     ofs << count     << ' ' << llr  [0] << ' ' << llr  [1] << ' ' << llr[2] << ' ';
     ofs << sigma[0]  << ' ' << sigma[1] << ' ' << sigma[2] << ' ';
 
-    for ( ControlPoint::const_iterator measure = (*iter).begin();
-          measure != (*iter).end(); ++measure ) {
+    for (ControlPoint::const_iterator measure = (*iter).begin();
+          measure != (*iter).end(); ++measure) {
 
       if (measure->image_id() >= m_image_names.size())
-        vw_throw( ArgumentErr() << "ControlNetwork::write_in_gcp_format: Measure image ID "
-                                << measure->image_id() << " exceeds image count: " << m_image_names.size());
+        vw_throw(ArgumentErr() << "ControlNetwork::write_in_gcp_format: Measure image ID "
+                  << measure->image_id() << " exceeds image count: "
+                 << m_image_names.size());
 
       std::string image_name = m_image_names[measure->image_id()];
       
@@ -991,7 +993,7 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename, cartograph
           << measure->position()[0] << ' ' << measure->position()[1] << ' '
           << measure->sigma()[0]    << ' ' << measure->sigma()[1];
 
-      if ( measure+1 != (*iter).end())
+      if (measure+1 != (*iter).end())
         ofs << ' ';
       else
         ofs << std::endl;
@@ -1006,33 +1008,33 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename, cartograph
   // Generic Ostream        //
   ////////////////////////////
 
-  std::ostream& operator<<( std::ostream& os, ControlMeasure const& measure) {
+  std::ostream& operator<<(std::ostream& os, ControlMeasure const& measure) {
     os << measure.image_id() << ":" << measure.position();
     return os;
   }
 
-  std::ostream& operator<<( std::ostream& os, ControlPoint const& point) {
+  std::ostream& operator<<(std::ostream& os, ControlPoint const& point) {
     os << "[Control Point: " << point.position() << "] ";
-    BOOST_FOREACH( ControlMeasure const& cm, point )
+    BOOST_FOREACH(ControlMeasure const& cm, point)
       os << cm << " ";
     os << "\n";
     return os;
   }
 
-  std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet) {
+  std::ostream& operator<<(std::ostream& os, ControlNetwork const& cnet) {
     os << "Control Network: " << cnet.size() << " points.\n";
-    BOOST_FOREACH( ControlPoint const& cp, cnet )
+    BOOST_FOREACH(ControlPoint const& cp, cnet)
       os << "\t" << cp;
     os << "\n";
     return os;
   }
 
   // Read a single pvl propert
-  void read_pvl_property( std::ostringstream& ostr,
-                          std::vector<std::string>& tokens ) {
+  void read_pvl_property(std::ostringstream& ostr,
+                          std::vector<std::string>& tokens) {
     ostr.str("");
-    for ( size_t i = 1; i < tokens.size(); i++ )
-      if ( i > 1 )
+    for (size_t i = 1; i < tokens.size(); i++)
+      if (i > 1)
         ostr << " " << tokens[i];
       else
         ostr << tokens[i];

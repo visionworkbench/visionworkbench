@@ -50,21 +50,17 @@ void safe_measurement(ip::InterestPoint& ip) {
 }
 
 double vw::ba::triangulate_control_point(ControlPoint& cp,
-                                         std::vector<boost::shared_ptr<camera::CameraModel> >
+                                         std::vector<boost::shared_ptr<camera::CameraModel>>
                                          const& camera_models,
                                          double min_angle_radians,
                                          double forced_triangulation_distance) {
-  
-  // Some shared variables, and a mutex to protect them
-  static int num_printed_warnings = 0;
-  static bool print_warning = true;
-  static std::mutex mutex;
   
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
 
   // 4.1.) Building a listing of triangulation
+
   for (size_t j = 0, k = 1; k < cp.size(); j++, k++) {
     // Make sure camera centers are not equal
     size_t j_cam_id = cp[j].image_id();
@@ -85,47 +81,20 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
         // if the triangulated point is behind the camera, and if yes,
         // to replace it with an artificial point in front of the camera.
         // This will need a good test.
-        if (pt != Vector3()){
+        if (pt != Vector3()) {
           count++;
           position_sum += pt;
           error_sum += error;
-        }else if (forced_triangulation_distance <= 0 && print_warning){
-          // lock mutex before accessing shared variable and before printing
-          std::lock_guard<std::mutex> lock(mutex);
-          vw_out(WarningMessage,"ba") << "\nCould not triangulate point. If too many such errors, "
-                                      << "perhaps your baseline is too small, "
-                                      << "or consider decreasing --min-triangulation-angle "
-                                      << "or using --forced-triangulation-distance.\n";
-          num_printed_warnings++;
         }
       } catch (std::exception const& e) {
         // Just let it go
-        if (print_warning) {
-          // lock mutex before accessing shared variable and before printing
-          std::lock_guard<std::mutex> lock(mutex);
-          vw_out(WarningMessage,"ba") << "\nFailure in triangulation: " << e.what();
-          num_printed_warnings++;
-        }
       }
-
-      // See if we printed enough warnings
-      if (print_warning && MAX_TRI_FAILURE_WARNINGS > 0 &&
-          num_printed_warnings >= MAX_TRI_FAILURE_WARNINGS) {
-        // lock mutex before accessing shared variable and before printing
-        std::lock_guard<std::mutex> lock(mutex); 
-        vw_out(WarningMessage,"ba")
-          << "Encountered " << MAX_TRI_FAILURE_WARNINGS << " triangulation failures. Will stop "
-          << "printing warnings about that.\n";
-        print_warning = false;
-      }
-      
     }
   }
   
   // 4.2.) Summing, averaging, and storing
   if (count == 0) {
-    // vw_out(WarningMessage,"ba") << "\nUnable to triangulate point!\n";
-    // At the very least we can provide a point that is some
+    // It failed to triangulate. At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
     double dist = 10.0; // for backward compatibility
@@ -134,13 +103,20 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
     try {
       cp.set_position(camera_models[j]->camera_center(cp[0].position()) +
                        camera_models[j]->pixel_to_vector(cp[0].position())*dist);
-    } catch (const camera::PixelToRayErr&) {
-      cp.set_position(camera_models[j]->camera_center(cp[0].position()) +
-                       camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,dist)));
+    } catch (...) {
+      try {
+        cp.set_position(camera_models[j]->camera_center(cp[0].position()) +
+                      camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,dist)));
+      } catch (...) {
+        return -1; // nothing can be done
+      }
     }
+    
     if (forced_triangulation_distance > 0)
       return 1; // mark triangulation as successful
+    
     return -1;
+    
   } else {
     error_sum /= double(count);
     cp.set_position(position_sum / double(count));
@@ -174,27 +150,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   
   int num_images = image_files.size();
 
-  // Create a map from image[i] to index i. Note that we remove
-  // the extension. This is susceptible to problems.
-  // TODO(oalexan1): Remove this assumption. Note that something
-  // similar is used when loading GCP.
-  // TODO(oalexan1): May not need this map altogether.
-  std::map<std::string,size_t> image_prefix_map;
   size_t count = 0;
   BOOST_FOREACH(std::string const& file, image_files) {
     fs::path file_path(file);
-    std::string stripped_path = file_path.replace_extension().string();
-
-    // Sanity check. // TODO(oalexan1): Remove this when the flimsy logic
-    // in here and in adding GCP does not make use of stripping
-    // dir names and extensions.
-    if (image_prefix_map.find(stripped_path) != image_prefix_map.end())
-      vw::vw_throw(vw::ArgumentErr() << "Duplicate image found.\n");
-
-    image_prefix_map[stripped_path] = count;
-    // TODO(oalexan1): Using just the stem can cause non-uniqueness!
-    // TODO(oalexan1): Not sure if cnet actually needs to store image
-    // names. When saving cnet, the list of images can be used.
     cnet.add_image_name(file);
     count++;
   }
@@ -207,8 +165,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   typedef std::map<std::string,size_t>::iterator MapIterator;
   for (int i = 0; i < num_images; i++){ // Loop through all image pairs
     for (int j = i+1; j < num_images; j++){
-      std::string image1 = image_files[i];
-      std::string image2 = image_files[j];
 
       // Find the match file for this pair of images
       std::pair<int, int> pair_ind(i, j);
@@ -217,26 +173,16 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
         continue; // This match file was not passed in
       std::string match_file = pair_it->second;
 
-      // Find the indices of the images in crn
-      std::string prefix1 = fs::path(image1).replace_extension().string();
-      std::string prefix2 = fs::path(image2).replace_extension().string();
-      MapIterator it1 = image_prefix_map.find(prefix1);
-      MapIterator it2 = image_prefix_map.find(prefix2);
-      if (it1 == image_prefix_map.end() ||
-           it2 == image_prefix_map.end()) continue;
-           
       // Verify that the match file exists
       if (!fs::exists(match_file)) {
         vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
         continue;
       }
 
-      // Here i must equal it1->second and j must equal it2->second.
-      // TODO(oalexan1): Note sure the image_prefix_map is necessary.
       // Also see what happens when GCP is added, when some similar logic is used.
       match_files_vec.push_back(match_file);
-      index1_vec.push_back(it1->second);
-      index2_vec.push_back(it2->second);
+      index1_vec.push_back(i);
+      index2_vec.push_back(j);
     }
   }
 
@@ -396,19 +342,29 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   std::cout << "Building the control network took " << watch.elapsed_seconds() << " seconds.\n";
   
   // Triangulating positions
-  if (triangulate_control_points){
+  std::int64_t num_total_points = 0, num_failed_points = 0;
+  if (triangulate_control_points) {
     TerminalProgressCallback progress("ba", "Triangulating: ");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
     BOOST_FOREACH(ba::ControlPoint& cpoint, cnet) {
       progress.report_incremental_progress(inc_prog);
-      ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
-                                    forced_triangulation_distance);
-      // TODO(oalexan1): Should we check here if the triangulation succeeded,
-      // that is, the return value of the above function?
+      int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
+                                              forced_triangulation_distance);
+      num_total_points++;
+      if (ans < 0) 
+        num_failed_points++;
     }
     progress.report_finished();
   }
+
+  // lock mutex before accessing shared variable and before printing
+  vw_out() << "\nCould not triangulate " << num_failed_points << " out of " << num_total_points
+           << " points (ratio: " << num_failed_points / double(num_total_points)
+           << "). If too many such errors, perhaps your baseline/convergence angle is too small. "
+           << "Or consider deleting your run directory and rerunning with more match points, "
+           << "decreasing --min-triangulation-angle, or using --forced-triangulation-distance.\n";
+          
   return true;
 }
 
