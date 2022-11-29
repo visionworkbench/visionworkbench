@@ -58,9 +58,22 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
+  
+  double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
 
-  // 4.1.) Building a listing of triangulation
-
+  // Ensure this is initialized
+  cp.set_position((Vector3(0, 0, 0)));
+  
+  // Do pairwise triangulation. Note that as long as at least two
+  // of the rays meet with a triangulation angle no less than min_angle_radians,
+  // triangulation will succeed, and these successful triangulation points
+  // will be averaged. Hence, while some of the rays can meet at a very small
+  // angle, their intersection, being unreliable, will not be added
+  // to the mix. This allows, for example, for a triplet of rays, R1, R2, R3,
+  // so that R1 and R2 have a very small angle, but R1 and R3, then R2 and R3
+  // have a very solid angle. This triangulated point should be robust enough
+  // if the min triangulation angle is, say, no less than 5 degrees, and ideally
+  // 15-20 degrees or more. 
   for (size_t j = 0, k = 1; k < cp.size(); j++, k++) {
     // Make sure camera centers are not equal
     size_t j_cam_id = cp[j].image_id();
@@ -69,12 +82,9 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
                  camera_models[k_cam_id]->camera_center(cp[k].position())) > 1e-6) {
       try {
 
-        double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
-
         bool least_squares = false;
-        stereo::StereoModel sm(camera_models[ j_cam_id ].get(),
-                                camera_models[ k_cam_id ].get(), least_squares,
-                                angle_tol);
+        stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
+                               least_squares, angle_tol); // use angle_tol0
         
         Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
         // TODO: When forced_triangulation_distance > 0, one can check
@@ -86,13 +96,14 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
           position_sum += pt;
           error_sum += error;
         }
+
       } catch (std::exception const& e) {
         // Just let it go
       }
     }
   }
-  
-  // 4.2.) Summing, averaging, and storing
+
+  // Summing, averaging, and storing
   if (count == 0) {
     // It failed to triangulate. At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
@@ -116,16 +127,13 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       return 1; // mark triangulation as successful
     
     return -1;
-    
-  } else {
-    error_sum /= double(count);
-    cp.set_position(position_sum / double(count));
-
-    return error_sum;
   }
+  
+  error_sum /= double(count);
+  Vector3 position = position_sum / double(count);
+  cp.set_position(position);
 
-  // Will not get here, but return something for clarity
-  return -1;
+  return error_sum;
 }
 
 bool vw::ba::build_control_network(bool triangulate_control_points,
@@ -382,6 +390,7 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
   for (size_t i = 0; i < image_files.size(); i++) {
     // TODO(oalexan1): This is fragile logic. What if the same
     // image exists in two directories?
+    // TODO(oalexan1): Wipe this. Test if it makes a difference.
     image_lookup[image_files[i]] = i;
     image_lookup[fs::path(image_files[i]).filename().string()] = i;
   }
