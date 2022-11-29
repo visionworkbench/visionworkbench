@@ -64,16 +64,19 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   // Ensure this is initialized
   cp.set_position((Vector3(0, 0, 0)));
   
-  // Do pairwise triangulation. Note that as long as at least two
-  // of the rays meet with a triangulation angle no less than min_angle_radians,
-  // triangulation will succeed, and these successful triangulation points
-  // will be averaged. Hence, while some of the rays can meet at a very small
-  // angle, their intersection, being unreliable, will not be added
-  // to the mix. This allows, for example, for a triplet of rays, R1, R2, R3,
-  // so that R1 and R2 have a very small angle, but R1 and R3, then R2 and R3
-  // have a very solid angle. This triangulated point should be robust enough
-  // if the min triangulation angle is, say, no less than 5 degrees, and ideally
-  // 15-20 degrees or more. 
+  // Do pairwise triangulation then average the results. Note that as
+  // long as at least two of the rays meet with a triangulation angle
+  // no less than min_angle_radians, triangulation will succeed, and
+  // these successful triangulation points will be averaged. Hence,
+  // while some of the rays can meet at a very small angle, their
+  // intersection, being unreliable, will not be added to the
+  // mix. This allows, for example, for a triplet of rays, R1, R2, R3,
+  // all corresponding to matching features and converging to the same
+  // triangulated point, so that R1 and R2 have a very small angle,
+  // but R1 and R3, then R2 and R3 have a very solid angle. This
+  // triangulated point should be robust enough if the min
+  // triangulation angle is, say, no less than 5 degrees, and ideally
+  // 15-20 degrees or more.
   for (size_t j = 0, k = 1; k < cp.size(); j++, k++) {
     // Make sure camera centers are not equal
     size_t j_cam_id = cp[j].image_id();
