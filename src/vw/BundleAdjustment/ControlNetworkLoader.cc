@@ -369,12 +369,14 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     progress.report_finished();
   }
 
-  // lock mutex before accessing shared variable and before printing
-  vw_out() << "\nCould not triangulate " << num_failed_points << " out of " << num_total_points
-           << " points (ratio: " << num_failed_points / double(num_total_points)
-           << "). If too many such errors, perhaps your baseline/convergence angle is too small. "
-           << "Or consider deleting your run directory and rerunning with more match points, "
-           << "decreasing --min-triangulation-angle, or using --forced-triangulation-distance.\n";
+  if (num_failed_points > 0)
+    vw_out() << "\n" << "Triangulated successfully "
+             << num_total_points - num_failed_points << " out of " << num_total_points
+             << " points (ratio: " << 1.0 - num_failed_points / double(num_total_points)
+             << "). If too many failures, perhaps your baseline/convergence angle is too small. "
+             << "Or consider deleting your run directory and rerunning with more match points, "
+             << "decreasing --min-triangulation-angle, or using "
+             << "--forced-triangulation-distance.\n";
           
   return true;
 }
