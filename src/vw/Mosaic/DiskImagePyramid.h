@@ -146,7 +146,7 @@ namespace vw { namespace mosaic {
   /// outliers. Use the lowest pyramid level.
   template <class PixelT>
   typename boost::enable_if<boost::is_same<PixelT,double>, vw::Vector2 >::type
-  get_approx_bounds_noclass(std::string const& file){
+  get_approx_bounds_nocache(std::string const& file){
     
     double big = std::numeric_limits<double>::max();
     
@@ -182,7 +182,7 @@ namespace vw { namespace mosaic {
   
   template <class PixelT>
   typename boost::disable_if<boost::is_same<PixelT,double>, vw::Vector2 >::type
-  get_approx_bounds_noclass(std::string const& file){
+  get_approx_bounds_nocache(std::string const& file){
     return vw::Vector2(); // multi-channel image
   }
   
@@ -387,7 +387,7 @@ namespace vw { namespace mosaic {
     } // End level creation loop
 
     // This is very expensive, so cache it going forward
-    m_approx_bounds = get_approx_bounds_noclass<PixelT>(m_pyramid_files.back());
+    m_approx_bounds = get_approx_bounds_nocache<PixelT>(m_pyramid_files.back());
   }
 
   // Find the right pyramid level to use for the given sub scale
