@@ -381,7 +381,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   return true;
 }
 
-void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
+int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                        std::vector<std::string> const& gcp_files,
                                        cartography::Datum const& datum){
   
@@ -402,7 +402,7 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
   std::vector<std::string>::const_iterator gcp_iter = gcp_files.begin();
   std::vector<std::string>::const_iterator gcp_end  = gcp_files.end();
-
+  int num_gcp = 0;
   while (gcp_iter != gcp_end) {
 
     vw_out() << "Loading GCP file: " << *gcp_iter << std::endl;
@@ -490,12 +490,16 @@ void vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       }
 
       // Append the GCP
-      if (cpoint.size() > 0) 
+      if (cpoint.size() > 0) {
         cnet.add_control_point(cpoint);
+        num_gcp++;
+      }
       
     } // End line loop
     ifile.close();
 
     gcp_iter++;
   } // End file loop
+
+  return num_gcp;
 }

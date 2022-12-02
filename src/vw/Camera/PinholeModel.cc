@@ -53,8 +53,9 @@ PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
   this->rebuild_camera_matrix();
 }
 
-PinholeModel::PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)),
-                                                          m_do_point_to_pixel_check(true) {
+PinholeModel::PinholeModel(std::string const& filename):
+  m_distortion(DistortPtr(new NullLensDistortion)),
+  m_do_point_to_pixel_check(true) {
   read(filename);
 }
 

@@ -63,7 +63,8 @@ namespace ba {
   /// GCP is a line in the file, containing the point
   /// id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
   /// for each image, the image file name, pixel measurements, and their sigmas.
-  void add_ground_control_points(ControlNetwork& cnet,
+  /// Return the number of added control points.
+  int add_ground_control_points(ControlNetwork& cnet,
                                  std::vector<std::string> const& gcp_files,
                                  cartography::Datum const& datum);
     
