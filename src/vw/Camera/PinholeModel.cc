@@ -60,7 +60,7 @@ PinholeModel::PinholeModel(std::string const& filename):
 }
 
 PinholeModel::PinholeModel(PinholeModel const& other) :
-    m_distortion   (other.m_distortion->copy()),
+  m_distortion   (other.m_distortion->copy()), // make a copy of the distortion model
     m_camera_matrix(other.m_camera_matrix),
     m_camera_center(other.m_camera_center),
     m_rotation     (other.m_rotation),
