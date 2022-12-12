@@ -1352,7 +1352,7 @@ void parse_color_style(std::string const& colormap_style,
 }
 
 // Colormap function
-PixelMask<PixelRGB<uint8>> ColormapFunc::operator()(PixelMask<PixelGray<float>> const& pix) const {
+PixelMask<PixelRGB<uint8>> Colormap::operator()(PixelMask<PixelGray<float>> const& pix) const {
   if (is_transparent(pix))
     return PixelMask<PixelRGB<uint8>>(); // Skip transparent pixels
   

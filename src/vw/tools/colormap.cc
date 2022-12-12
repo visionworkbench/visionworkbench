@@ -102,7 +102,7 @@ apply_colormap(ImageViewRef<PixelT> input_image,
   
   // Apply colormap
   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
-    = vw::per_pixel_filter(normalize(img, min_val, max_val, 0, 1.0), ColormapFunc(lut_map));
+    = vw::per_pixel_filter(normalize(img, min_val, max_val, 0, 1.0), Colormap(lut_map));
 
   return colorized_image;
 }
@@ -186,7 +186,7 @@ void save_legend(Options const& opt) {
   }
 
   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
-    = vw::per_pixel_filter(img, ColormapFunc(opt.lut_map));
+    = vw::per_pixel_filter(img, Colormap(opt.lut_map));
   write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
 }
 
