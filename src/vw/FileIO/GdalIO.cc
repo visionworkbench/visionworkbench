@@ -154,13 +154,16 @@ void GdalIODecompress::read(const ImageFormat& fmt, uint8* buffer, size_t bufsiz
   VW_ASSERT(bufsize >= fmt.rows * skip, LogicErr() << "Buffer is too small");
   if (fmt.pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
-    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
-        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format), NULL, 0, 0, 0);
+    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer),
+                        fmt.cols, fmt.rows,
+                        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
+                        NULL, 0, 0, 0);
   } else {
     // Interleaved pixels
-    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
-        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format), NULL,
-        m_cstride, m_rstride, channel_size(fmt.channel_type));
+    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows,
+                        reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
+                        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
+                        NULL, m_cstride, m_rstride, channel_size(fmt.channel_type));
   }
 }
 
