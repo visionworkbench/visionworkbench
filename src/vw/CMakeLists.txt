@@ -28,8 +28,16 @@ set(VW_ENABLE_SSE "1" CACHE BOOL "Allow SSE optimizations.")
 set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
 set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
 
+if("${CUSTOM_BUILD_DIR}" STREQUAL "")
+    set(CUSTOM_BUILD_DIR "${ASP_DEPS_DIR}")
+endif()
+    
 if("${ASP_DEPS_DIR}" STREQUAL "")
   message(FATAL_ERROR "You need to set ASP_DEPS_DIR.")
+endif()
+
+if("${CUSTOM_BUILD_DIR}" STREQUAL "")
+    set(CUSTOM_BUILD_DIR "${ASP_DEPS_DIR}")
 endif()
 
 # Where to search for dependencies
@@ -80,7 +88,7 @@ find_package(Threads REQUIRED)
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
-set(BOOST_VERSION "1.68") # This is fragile, but it keeps on finding Boost 1.72.
+set(BOOST_VERSION "1.72") # This is fragile, but it keeps on finding Boost 1.72.
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
@@ -134,7 +142,7 @@ find_external_library(TIFF    ${ASP_DEPS_DIR} "" "tiff"      REQUIRED)
 #find_external_library(GEOTIFF ${ASP_DEPS_DIR} "" "geotiff"   REQUIRED)
 find_external_library(Z       ${ASP_DEPS_DIR} "" "z"         REQUIRED)
 find_external_library(PROJ4   ${ASP_DEPS_DIR} "" "proj"      REQUIRED)
-find_external_library(GDAL    ${ASP_DEPS_DIR} "" "gdal"      REQUIRED)
+find_external_library(GDAL    ${CUSTOM_BUILD_DIR} "" "gdal"  REQUIRED)
 
 # TODO: Make a function?
 set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
@@ -148,8 +156,7 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_ml          opencv_ximgproc
                      opencv_objdetect   opencv_xobjdetect
                      opencv_photo       opencv_xphoto)
-find_external_library(OPENCV ${ASP_DEPS_DIR} "" "${OPENCV_LIB_NAMES}" REQUIRED)
-
+find_external_library(OPENCV ${ASP_DEPS_DIR} "opencv4" "${OPENCV_LIB_NAMES}" REQUIRED)
 
 set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
 find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)

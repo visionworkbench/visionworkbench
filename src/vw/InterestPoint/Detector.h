@@ -42,10 +42,9 @@
 #include <vw/InterestPoint/ImageOctaveHistory.h>
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/features2d.hpp"
-#include "opencv2/xfeatures2d.hpp"
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/features2d.hpp>
 #endif
 
 namespace vw {

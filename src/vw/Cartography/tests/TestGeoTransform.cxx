@@ -75,7 +75,7 @@ TEST(GeoTransform, nadgrids) {
   GeoTransform trans12(georef1, georef2);
 
   Vector2 pixel(87, 72);
-  Vector2 p1 = trans12.pixel_to_pixel(pixel);
+  Vector2 p1 = trans12.forward(pixel);
  
   EXPECT_VECTOR_NEAR(p1,  Vector2(84.3167187348,71.0064820955), 1e-4);
 }

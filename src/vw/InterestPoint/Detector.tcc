@@ -649,27 +649,27 @@ void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
 
 inline
 cv::Ptr<cv::FeatureDetector> 
-OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type, int max_points) const {
+OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
+                                           int max_points) const {
 
   // Instantiate the feature detector
   // - There are a lot of detector variables that we just leave as the default here.
-  switch (detector_type)
-  {
-    case OPENCV_IP_DETECTOR_TYPE_BRISK:
-      vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
-      //return cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
-    case OPENCV_IP_DETECTOR_TYPE_ORB:
-      if (max_points > 0)
-        return cv::ORB::create(max_points);
-      else
-        return cv::ORB::create(100); // Unlike SIFT this will not work with a zero points input value
-    case OPENCV_IP_DETECTOR_TYPE_SIFT:
-      return cv::xfeatures2d::SIFT::create(max_points);
-    case OPENCV_IP_DETECTOR_TYPE_SURF:
-      vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
-      //m_detector = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
-    default: 
-      vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+  switch (detector_type) {
+  case OPENCV_IP_DETECTOR_TYPE_BRISK:
+    vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
+    //return cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
+  case OPENCV_IP_DETECTOR_TYPE_ORB:
+    if (max_points > 0)
+      return cv::ORB::create(max_points);
+    else // Unlike SIFT this will not work with a zero points input value
+      return cv::ORB::create(100); 
+  case OPENCV_IP_DETECTOR_TYPE_SIFT:
+    return cv::SIFT::create(max_points);
+  case OPENCV_IP_DETECTOR_TYPE_SURF:
+    vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
+    //m_detector = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
+  default: 
+    vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
   }; 
 }
 

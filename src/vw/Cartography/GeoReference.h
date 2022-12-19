@@ -26,52 +26,63 @@
 #include <vw/Core/Exception.h>
 
 // Boost
-#include <boost/algorithm/string.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 
+// Proj forward declarations
+struct pj_ctx;
+struct PJconsts;
+typedef struct pj_ctx PJ_CONTEXT;
+typedef struct PJconsts PJ;  
 
 namespace vw {
 namespace cartography {
-
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also
   // because basically every error proj.4 returns is due to some variety of bad input.
   VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
 
-
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.
   class ProjContext {
+
+    // TODO(oalexan1): Wipe these two.
     boost::shared_ptr<void> m_proj_ctx_ptr;
     boost::shared_ptr<void> m_proj_ptr;
-    std::string             m_proj4_str;
 
     /// 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
 
-    ProjContext() : m_proj4_str("") {};
+    ProjContext() : m_proj4_str(""), m_pj_context(NULL), m_pj_transform(NULL) {};
     ProjContext(std::string const& proj4_str);
-    ProjContext(ProjContext const& other );
+    ProjContext(ProjContext const& other);
+    ~ProjContext();
+
+    // There is no reason to make these private and then implement a get function
+    std::string m_proj4_str;
+    PJ_CONTEXT * m_pj_context;
+    PJ * m_pj_transform;
 
     inline void* proj_ptr() const {
-      VW_ASSERT( !m_proj4_str.empty(),
-                 ArgumentErr() << "ProjContext: Projection not initialized." );
+      VW_ASSERT(is_initialized(),
+                ArgumentErr() << "ProjContext: Projection not initialized.");
       return m_proj_ptr.get();
     }
     
-    /// Return true if the proj4 string has been loaded.
-    bool is_initialized() const {return(!m_proj4_str.empty());}
+    /// Return true if the object is fully initialized
+    bool is_initialized() const {
+      return !m_proj4_str.empty() && m_pj_context && m_pj_transform;
+    }
 
     int error_no() const;
   };
 
   // Would it make more sense for this class to keep information in an
-  //  OGRSpatialReference gdal object instead of in a proj4 string?
-  //  More information can be stored that way.
+  // OGRSpatialReference gdal object instead of in a proj4 string?
+  // More information can be stored that way.
 
   /// The georeference class contains the mapping from image
   /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
@@ -131,14 +142,13 @@ namespace cartography {
 
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
-
     
     void update_lon_center_private(); ///< Updates m_center_lon_zero
     void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
     void set_proj4_over  (); ///< Adds   the "+over" tag from our proj4 string.
 
     /// Version of the public function that does not perform normalization
-    Vector2 point_to_lonlat_no_normalize(Vector2 loc) const;
+    Vector2 point_to_lonlat_no_normalize(Vector2 const& loc) const;
 
     /// Attempts to extract the value of a key= part of the proj4 string.
     static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
@@ -300,7 +310,7 @@ namespace cartography {
 
     /// For a point in the projected space, compute the position of
     /// that point in unprojected (Geographic) coordinates (lon,lat).
-    Vector2 point_to_lonlat(Vector2 loc) const;
+    Vector2 point_to_lonlat(Vector2 const& loc) const;
 
     /// Given a position in geographic coordinates (lon,lat), compute
     /// the location in the projected coordinate system.

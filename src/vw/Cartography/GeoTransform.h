@@ -45,9 +45,12 @@ namespace cartography {
     GeoReference  m_src_georef;
     GeoReference  m_dst_georef;
     BBox2         m_src_bbox,
-                  m_dst_bbox;
-    ProjContext   m_src_datum_proj,
-                  m_dst_datum_proj;
+      m_dst_bbox;
+
+    // TODO(oalexan1): There is no need for this context, it can come directly from georefs above.
+    // Add to this class pointers to PROJ transforms.
+    ProjContext m_src_datum_proj, m_dst_datum_proj;
+    
     bool          m_skip_map_projection;
     bool          m_skip_datum_conversion;
     mutable Mutex m_mutex; // Used to control access to the ProjContext objects
@@ -66,6 +69,8 @@ namespace cartography {
 
     GeoTransform& operator=(GeoTransform const& other);
 
+    ~GeoTransform();
+    
     //---------------------------------------------------------------
     // These functions implement the Transform interface and allow
     //  this class to be passed in to functions expecting a Transform object.
@@ -73,7 +78,7 @@ namespace cartography {
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
     /// pixel in the destination (transformed) image.
-    Vector2 forward(Vector2 const& v) const {return pixel_to_pixel(v);}
+    Vector2 forward(Vector2 const& v) const;
 
     /// Given a pixel coordinate of an image in a destination
     /// georeference frame, this routine computes the corresponding
@@ -88,12 +93,8 @@ namespace cartography {
     /// As forward_bbox, but from destination to source.
     BBox2i reverse_bbox(BBox2i const& bbox) const;
 
-
     //------------------------------------------------------------
     // These functions do not implement the Transform interface.
-
-    /// Convert a pixel in the source to a pixel in the destination.
-    Vector2 pixel_to_pixel(Vector2 const& v) const;
 
     /// Convert a point in the source to a point (projected coords) in the destination.
     Vector2 point_to_point(Vector2 const& v) const;
@@ -124,16 +125,15 @@ namespace cartography {
 
     /// Convert a pixel bounding box in the source to a point (projected coords)
     ///  bounding box in the destination.
-    BBox2 pixel_to_pixel_bbox(BBox2 const& pixel_bbox) const {return(forward_bbox(pixel_bbox));}
-
-    /// Convert a pixel bounding box in the source to a point (projected coords)
-    ///  bounding box in the destination.
     BBox2 pixel_to_point_bbox(BBox2 const& pixel_bbox) const;
 
     /// Convert a point bounding box in the source to a pixel bounding box in the destination.
     BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
 
-    
+    // TODO(oalexan1): How about a destructor for these?
+    PJ_CONTEXT * m_pj_context;
+    PJ * m_pj_transform;
+
     friend std::ostream& operator<<(std::ostream& os, const GeoTransform& trans);
   }; // End class GeoTransform
 

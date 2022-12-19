@@ -36,11 +36,17 @@
 #include <boost/foreach.hpp>
 
 // Proj
-#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H // TODO(oalexan1): Remove deprecations
-#include <proj_api.h>
+#include <proj.h>
+
+// Implemented based on:
+// https://proj-tmp.readthedocs.io/en/docs/development/migration.html#function-mapping-from-old-to-new-api
+// http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
 
 // Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR(ctx_input, loc) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection in GeoReference.cc. Proj.4 error: " << pj_strerrno(ctx_input.error_no()) <<".\nLocation is " << loc << ".\n")
+#define CHECK_PROJ_ERROR(ctx_input, loc)                                          \
+  if (ctx_input.error_no())                                                       \
+    vw_throw(ProjectionErr() << "Bad projection in GeoReference.cc. Proj error: " \
+             << (ctx_input.error_no()) <<".\nLocation is " << loc << ". \n")
 
 namespace vw {
 namespace cartography {
@@ -83,7 +89,8 @@ namespace cartography {
       return write_gdal_georeference(*gdal, georef);
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
-    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+    vw_throw(NoImplErr()
+             << "This image resource does not support writing georeferencing information.");
   }
 
   bool read_header_string(ImageResource const& resource, std::string const& str_name,
@@ -95,7 +102,8 @@ namespace cartography {
       return read_gdal_string(*gdal, str_name, str_val);
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
-    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+    vw_throw(NoImplErr()
+             << "This image resource does not support writing georeferencing information.");
   }
 
   bool read_header_strings(ImageResource const& resource, 
@@ -120,7 +128,8 @@ namespace cartography {
     return;
 #endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
-    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+    vw_throw(NoImplErr()
+             << "This image resource does not support writing georeferencing information.");
   }
 
 namespace {
@@ -291,7 +300,9 @@ namespace {
     set_proj4_projection_str("+proj=longlat");
   }
 
-  void GeoReference::set_equirectangular(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
+  void GeoReference::set_equirectangular(double center_latitude, double center_longitude,
+                                         double latitude_of_true_scale, double false_easting,
+                                         double false_northing) {
     std::ostringstream strm;
     strm << "+proj=eqc +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +lat_ts=" << latitude_of_true_scale
@@ -300,14 +311,17 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
+  void GeoReference::set_sinusoidal(double center_longitude, double false_easting,
+                                    double false_northing) {
     std::ostringstream strm;
     strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0="
          << false_easting << " +y_0=" << false_northing << " +units=m";
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
+  void GeoReference::set_mercator(double center_latitude, double center_longitude,
+                                  double latitude_of_true_scale, double false_easting,
+                                  double false_northing) {
     std::ostringstream strm;
     strm << "+proj=merc +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +lat_ts=" << latitude_of_true_scale
@@ -316,7 +330,9 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+  void GeoReference::set_transverse_mercator(double center_latitude, double center_longitude,
+                                             double scale, double false_easting,
+                                             double false_northing) {
     std::ostringstream strm;
     strm << "+proj=tmerc +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
@@ -324,7 +340,8 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_orthographic(double center_latitude, double center_longitude, double false_easting, double false_northing) {
+  void GeoReference::set_orthographic(double center_latitude, double center_longitude,
+                                      double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=ortho +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +x_0=" << false_easting << " +y_0="
@@ -332,7 +349,8 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+  void GeoReference::set_stereographic(double center_latitude, double center_longitude,
+                                       double scale, double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
@@ -340,7 +358,9 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+  void GeoReference::set_oblique_stereographic(double center_latitude,
+                                               double center_longitude, double scale,
+                                               double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=sterea +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
@@ -348,7 +368,8 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_gnomonic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+  void GeoReference::set_gnomonic(double center_latitude, double center_longitude, double scale,
+                                  double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=gnom +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
@@ -356,7 +377,8 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting, double false_northing) {
+  void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude,
+                                           double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=laea +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +x_0=" << false_easting << " +y_0="
@@ -364,7 +386,9 @@ namespace {
     set_proj4_projection_str(strm.str());
   }
 
-  void GeoReference::set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting, double false_northing) {
+  void GeoReference::set_lambert_conformal(double std_parallel_1, double std_parallel_2,
+                                           double center_latitude, double center_longitude,
+                                           double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=lcc +lat_1=" << std_parallel_1 << " +lat_2="
          << std_parallel_2 << " +lon_0=" << center_longitude << " +lat_0="
@@ -654,18 +678,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 #if defined(VW_HAVE_PKG_GDAL)
 
   void GeoReference::set_wkt(std::string const& wkt) {
-#if 0
-    // GDAL 3
     OGRSpatialReference gdal_spatial_ref;
     gdal_spatial_ref.importFromWkt(wkt.c_str());
-#else
-    // GDAL 2
-    const char *wkt_str = wkt.c_str();
-    char **wkt_ptr = (char**)(&wkt_str);
-    
-    OGRSpatialReference gdal_spatial_ref;
-    gdal_spatial_ref.importFromWkt(wkt_ptr);
-#endif
 
     // If there is a PROJCS name, record it.
     const char * projcs = gdal_spatial_ref.GetAttrValue("PROJCS");
@@ -848,119 +862,96 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   }
 
 
-  // TODO(oalexan1): See if GDAL has any simpler wrappers for this,
-  // or use the new API in PROJ 6.
-  /// For a point in the projected space, compute the position of
-  /// that point in unprojected (Geographic) coordinates (lon,lat).
-  Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
+/// For a point in the projected space, compute the position of
+/// that point in unprojected (Geographic) coordinates (lon,lat).
+Vector2 GeoReference::point_to_lonlat(Vector2 const& loc) const {
   
-    Vector2 lon_lat;
-    if (!m_is_projected) {
-      lon_lat = loc;
-    } else {
+  if (!m_is_projected) 
+    return loc;
+  
+  Vector2 lon_lat = GeoReference::point_to_lonlat_no_normalize(loc);
+  
+  // Get the longitude into the correct range for this georeference.    
+  lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
+  return lon_lat;
+}
 
-      // https://proj.org/development/migration.html
+/// Version of the public function that does not perform normalization
+/// TODO(oalexan1): Normalization should not be necessary if GDAL or PROJ
+/// manage fully all conversions, and if they are aware of image extent.
+Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 const& loc) const {
 
-      projXY projected;
-      projLP unprojected;
+  if (!m_is_projected) 
+    return loc;
+  
+  if (!m_proj_context.m_pj_transform)
+    vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
+  
+  // https://proj.org/development/migration.html
+  /* For reliable geographic <--> geocentric conversions, z shall not */
+  /* be some random value. Also t shall be initialized to HUGE_VAL to */
+  /* allow for proper selection of time-dependent operations if one of */
+  /* the CRS is dynamic. */
+  PJ_COORD c_in, c_out;
+  c_in.lpzt.z = 0.0;
+  c_in.lpzt.t = HUGE_VAL;
 
-      // GDAL 3
-      //PJ_UV projected, unprojected;
-      
-      projected.u = loc[0]; // Store in proj4 object
-      projected.v = loc[1];
+  // TODO(oalexan1): This needs testing!
+  c_in.enu.e = loc[0]; // easting
+  c_in.enu.n = loc[1]; // northing
+  
+  // http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
+  c_out = proj_trans(m_proj_context.m_pj_transform, PJ_INV, c_in);
+  
+  //printf ("longitude: %g, latitude: %g\n", c_out.lp.lam, c_out.lp.phi);      
+  
+  return Vector2(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi));
+}
+  
+/// Given a position in geographic coordinates (lon,lat), compute
+/// the location in the projected coordinate system.
+Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 
-      // Call proj4 to do the conversion and check for errors.
-      // https://proj.org/development/migration.html
-      unprojected = pj_inv(projected, m_proj_context.proj_ptr());
+  // Get the longitude into the correct range for this georeference.    
+  lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
 
-      // GDAL 3
-      //unprojected = proj_trans(m_proj_context, PJ_INV, projected);
-        
-      CHECK_PROJ_ERROR(m_proj_context, loc);
-
-      // Convert from radians to degrees.
-      lon_lat = Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
-    }
-
-    // Get the longitude into the correct range for this georeference.    
-    lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
+  if (!m_is_projected) 
     return lon_lat;
-  }
 
+  if (!m_proj_context.m_pj_transform)
+    vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
 
-  Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 loc) const {
-    if (!m_is_projected) 
-      return loc;
+  PJ_COORD c_in, c_out;
+  c_in.lpzt.z = 0.0;
+  c_in.lpzt.t = HUGE_VAL; // likely used only for time-dependent projections
+  c_in.lp.lam = proj_torad(lon_lat[0]); // convert lon to radians
+  c_in.lp.phi = proj_torad(lon_lat[1]); // convert lat to radians
 
-    projXY projected;
-    projLP unprojected;
+  c_out = proj_trans(m_proj_context.m_pj_transform, PJ_FWD, c_in);
+  //printf ("easting: %g, northing: %g\n", c_out.enu.e, c_out.enu.n);
 
-    projected.u = loc[0]; // Store in proj4 object
-    projected.v = loc[1];
+  return Vector2(c_out.enu.e, c_out.enu.n);
+}
 
-    // Call proj4 to do the conversion and check for errors.
-    unprojected = pj_inv(projected, m_proj_context.proj_ptr());
-    CHECK_PROJ_ERROR(m_proj_context, loc);
+/// Convert lon/lat/alt to projected x/y/alt 
+Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 
-    // Convert from radians to degrees.
-    return Vector2 (unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
-  }
-
-  /// Given a position in geographic coordinates (lon,lat), compute
-  /// the location in the projected coordinate system.
-  Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
-
-    // Get the longitude into the correct range for this georeference.    
-    lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
-
-    if (! m_is_projected) 
-      return lon_lat;
-
-    // This value is proj's internal limit
-    static const double BOUND = 1.5707963267948966 - (1e-10)
-      - std::numeric_limits<double>::epsilon();
-
-    projXY projected;
-    projLP unprojected;
-
-    // Proj.4 expects the (lon,lat) pair to be in radians
-    unprojected.u = lon_lat[0] * DEG_TO_RAD;
-    unprojected.v = lon_lat[1] * DEG_TO_RAD;
-
-    // Clamp the latitude range to [-HALFPI,HALFPI] ([-90, 90]) as occasionally
-    // we get edge pixels that extend slightly beyond that range (probably due
-    // to pixel as area vs point) and cause Proj.4 to fail. We use HALFPI
-    // rather than other incantations for pi/2 because that's what proj.4 uses.
-    if(unprojected.v > BOUND)        unprojected.v = BOUND;
-    else if(unprojected.v < -BOUND) unprojected.v = -BOUND;
-
-    // Call proj4 to do the conversion and check for errors.
-    projected = pj_fwd(unprojected, m_proj_context.proj_ptr());
-    CHECK_PROJ_ERROR(m_proj_context, lon_lat);
-
-    return Vector2(projected.u, projected.v);
-  }
-
-  /// Convert lon/lat/alt to projected x/y/alt 
-  Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
-
-    if (boost::math::isnan(llh[2]))
-      return llh;
-    
-    Vector2 xy = lonlat_to_point(vw::math::subvector(llh, 0, 2));
-    return Vector3(xy[0], xy[1], llh[2]);
-  }
+  if (boost::math::isnan(llh[2]))
+    return llh;
   
-  /// Convert projected x/y/alt lon/lat/alt
-  Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
+  Vector2 xy = lonlat_to_point(vw::math::subvector(llh, 0, 2));
+  return Vector3(xy[0], xy[1], llh[2]);
+}
+  
+/// Convert projected x/y/alt lon/lat/alt
+Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
 
-    if (boost::math::isnan(point[2]))
-      return point;
-    
-    Vector2 ll = point_to_lonlat(vw::math::subvector(point, 0, 2));
-    return Vector3(ll[0], ll[1], point[2]);
-  }
+  if (boost::math::isnan(point[2]))
+    return point;
+  
+  Vector2 ll = point_to_lonlat(vw::math::subvector(point, 0, 2));
+  return Vector3(ll[0], ll[1], point[2]);
+}
   
   //*****************************************************************
   //************** Functions for class ProjContext ******************
@@ -979,67 +970,99 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
     return strings;
   }
 
-
+  // TODO(oalexan1): Wipe this
   // A temporary empty deallocator to deal with a crash from freeing
   // an object multiple times. Using this may result in memory leaks.
   template <class T>
   static void temp_dealloc(T* ptr) {
   }
   
-  ProjContext::ProjContext(std::string const& proj4_str) : m_proj4_str(proj4_str) {
-    m_proj_ctx_ptr.reset(pj_ctx_alloc(),
-                         &temp_dealloc<void>
-                         // pj_ctx_free 
-                         );
-    int num;
+ProjContext::ProjContext(std::string const& proj4_str): m_proj4_str(proj4_str) {
+  
+  // Create Proj context and transform pointers. Will be deleted in the destructor.
+  // TODO(oalexan1): There must be a context for each thread.
+  m_pj_context = proj_context_create();
+  m_pj_transform = proj_create(m_pj_context, m_proj4_str.c_str());
+
+  if (m_pj_transform == NULL) 
+    vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a projection for proj4 string: "
+                 << m_proj4_str << ".\n");
+  
+  // TODO(oalexan1): Do we need to split the proj string above?
+  
+#if 0
+  // TODO(oalexan1): Wipe this
+  m_proj_ctx_ptr.reset(pj_ctx_alloc(),
+                       &temp_dealloc<void>
+                       // pj_ctx_free 
+                       );
+  int num;
+  char** proj_strings = split_proj4_string(m_proj4_str, num);
+  m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
+                               num, proj_strings),
+                   //&temp_dealloc<void>
+                     proj_destroy);
+  
+  VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
+            InputErr() << "Proj.4 failed to initialize on string: "
+            << m_proj4_str << "\n\tError was: " 
+              << (pj_ctx_get_errno(m_proj_ctx_ptr.get())));
+  
+  for (int i = 0; i < num; i++)
+    delete [] proj_strings[i];
+  delete [] proj_strings;
+#endif
+}
+  
+ProjContext::ProjContext(ProjContext const& other): m_proj4_str(other.m_proj4_str) {
+
+    // A copy of an uninitialized proj context was made. Not an error since it can be
+    // initialized later.
+    if (m_proj4_str.empty())
+      return;
+
+    // Create Proj context and transform pointers. Will be deleted in the destructor.
+    m_pj_context = proj_context_create();
+    m_pj_transform = proj_create(m_pj_context, m_proj4_str.c_str());
+    if (m_pj_transform == NULL) 
+      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a projection for proj4 string: "
+                   << m_proj4_str << ".\n");
+
+#if 0
+    // TODO(oalexan1): Wipe this
+    m_proj_ctx_ptr.reset(pj_ctx_alloc(), &temp_dealloc<void> /*pj_ctx_free*/);
+    
+    int num = -1; // will change
     char** proj_strings = split_proj4_string(m_proj4_str, num);
     m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
-                                 num, proj_strings),
-                     //&temp_dealloc<void>
-                     pj_free 
-                     );
+                                 num, proj_strings), /*&temp_dealloc<void>*/
+                     proj_destroy);
 
     VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
               InputErr() << "Proj.4 failed to initialize on string: "
               << m_proj4_str << "\n\tError was: " 
-              << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())));
+              << (pj_ctx_get_errno(m_proj_ctx_ptr.get())));
     
     for (int i = 0; i < num; i++)
       delete [] proj_strings[i];
     delete [] proj_strings;
+#endif
   }
 
-  ProjContext::ProjContext(ProjContext const& other) : m_proj4_str(other.m_proj4_str) {
-    m_proj_ctx_ptr.reset(pj_ctx_alloc(),
-                         &temp_dealloc<void>
-                         //pj_ctx_free
-                         );
-    if (m_proj4_str.empty())
-      return; // They've made a copy of an uninitialized
-              // projcontext. Not an error .. since they can
-              // initialize later.
-
-    int num;
-    char** proj_strings = split_proj4_string(m_proj4_str, num);
-    m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
-                                  num, proj_strings),
-                     //&temp_dealloc<void>
-                     pj_free
-                     );
-
-    VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " 
-                          << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())));
-
-    for (int i = 0; i < num; i++)
-      delete [] proj_strings[i];
-    delete [] proj_strings;
-  }
-
+  // TODO(oalexan1): See about how to do error checks
+  
+  // TODO(oalexan1): Wipe this!
   int ProjContext::error_no() const {
-    return pj_ctx_get_errno(m_proj_ctx_ptr.get());
+    return 0;
+    //return pj_ctx_get_errno(m_proj_ctx_ptr.get());
   }
 
+  ProjContext::~ProjContext() {
+    // TODO(oalexan1): Deleting causes a crash!
+    //proj_destroy(m_pj_transform);
+    //proj_context_destroy(m_pj_context);
+  }
+  
 //************** End functions for class ProjContext ******************
 //*********************************************************************
 
