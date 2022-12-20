@@ -59,8 +59,9 @@ PinholeModel::PinholeModel(std::string const& filename):
   read(filename);
 }
 
+// Copy constructor. A deep copy is made of the distortion model held by a pointer.
 PinholeModel::PinholeModel(PinholeModel const& other) :
-  m_distortion   (other.m_distortion->copy()), // make a copy of the distortion model
+  m_distortion(other.m_distortion->copy()),
     m_camera_matrix(other.m_camera_matrix),
     m_camera_center(other.m_camera_center),
     m_rotation     (other.m_rotation),

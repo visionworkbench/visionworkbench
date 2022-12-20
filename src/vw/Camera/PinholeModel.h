@@ -129,7 +129,7 @@ namespace camera {
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename);
 
-    /// Copy constructor
+    /// Copy constructor. A deep copy is made of the distortion model held by a pointer.
     PinholeModel(PinholeModel const& other);
 
     /// Initialize the pinhole model with explicit parameters.
