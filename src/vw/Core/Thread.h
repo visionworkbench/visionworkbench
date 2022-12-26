@@ -53,6 +53,9 @@
 
 #include <vw/Core/FundamentalTypes.h>
 
+// Turn off warnings about things we can't control
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/thread/locks.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -61,6 +64,7 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/version.hpp>
+#pragma GCC diagnostic pop
 
 namespace vw {
 

@@ -284,8 +284,7 @@ struct TracksUtilsMap
     return !pvec_featIndex->empty();
   }
 
-  struct FunctorMapFirstEqual : public std::unary_function <STLMAPTracks , bool>
-  {
+  struct FunctorMapFirstEqual {
     size_t id;
     FunctorMapFirstEqual(size_t val):id(val){};
     bool operator()(const std::pair<size_t, submapTrack > & val) {

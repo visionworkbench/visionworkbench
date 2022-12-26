@@ -16,8 +16,12 @@
 // __END_LICENSE__
 
 
+// Turn off warnings about things we can't control
 #include <vw/Math/FLANNTree.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <flann/flann.hpp>
+#pragma GCC diagnostic pop
 
 namespace vw {
 namespace math {
@@ -51,12 +55,6 @@ namespace math {
   const flann::Index<flann::Hamming<unsigned char> >* cast_index_ptr_HAMM_u(const void* void_ptr) {
     return reinterpret_cast<const flann::Index<flann::Hamming<unsigned char> >*>(void_ptr);
   }
-
-
-
-
-//============================================================================
-
 
   template <>
   size_t FLANNTree<float>::knn_search_help( void* data_ptr, size_t rows, size_t cols,

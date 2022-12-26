@@ -25,12 +25,17 @@
 
 #include <vw/Core/Features.h>
 
+// Turn off warnings about things we can't control
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <complex>
 #include <boost/cstdint.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/numeric/conversion/bounds.hpp>
+#include <boost/version.hpp>
+#pragma GCC diagnostic pop
 
 #ifdef _MSC_VER
 // FIXME: We're blindly assuming that any MSC box is little-endian!
@@ -49,8 +54,6 @@
 #define VW_BYTE_ORDER __BYTE_ORDER
 #endif
 #endif
-
-#include <boost/version.hpp>
 
 // ssize_t is not in the c++ spec (just POSIX) but it's important. If you've
 // arrived here due to a compile error, something else has previously defined
