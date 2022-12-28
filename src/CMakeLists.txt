@@ -1,5 +1,3 @@
-# TODO: Move everything up a directory!
-
 include(Utilities) # Contains functions
 
 # Need this to make sure we get the compiler from PATH.
@@ -7,7 +5,6 @@ include(Utilities) # Contains functions
 find_program(CMAKE_C_COMPILER   NAMES $ENV{CC}  gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
 
-#project (VisionWorkbench C CXX CXXPCH CPCH)
 project (VisionWorkbench C CXX)
 
 # Verify that we have a new enough compiler.
@@ -27,22 +24,22 @@ endif()
 set(PACKAGE            "VisionWorkbench")
 set(PACKAGE_NAME       "NASA Vision Workbench")
 
-# Version number of the package
-set(VERSION            "3.1.0")
-set(PACKAGE_VERSION    ${VERSION})
+# The line below is used by the docs/ so don't change it
+# without testing the result.  Versioning is based on https://semver.org
+set(PACKAGE_VERSION "3.2.0")
+#set(PACKAGE_VERSION "3.2.1-alpha")
 
 # Full name and version number
-set(PACKAGE_STRING     "${PACKAGE_NAME} ${VERSION}")
+set(PACKAGE_STRING     "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 
 # Define to the address where bug reports for this package should be sent. 
-set(PACKAGE_BUGREPORT  "vision-workbench@lists.nasa.gov")
+set(PACKAGE_BUGREPORT  "ames-stereo-pipeline-support@googlegroups.com")
 
 # Define to the one symbol short name of this package.
-set(PACKAGE_TARNAME    "${PACKAGE_NAME}")
+set(PACKAGE_TARNAME "${PACKAGE_NAME}")
 
 # Main website associated with the software package
-set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nasa-vision-workbench/")
-
+set(PACKAGE_URL "https://github.com/NeoGeographyToolkit/StereoPipeline")
 
 # Fetch the Git hash and store in VW_COMMIT_ID
 execute_process(

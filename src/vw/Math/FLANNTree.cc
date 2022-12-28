@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 // Turn off warnings about things we can't control
 #include <vw/Math/FLANNTree.h>
 #pragma GCC diagnostic push
