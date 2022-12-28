@@ -13,10 +13,10 @@ set(COMMON_LIBS VwCore VwMath VwFileIO VwImage VwCartography)
 
 #TODO: Add flood detection components
 
-# Blends multiple images into a composite
-add_executable(blend blend.cc) 
-target_link_libraries(blend ${COMMON_LIBS} VwMosaic) 
-install(TARGETS blend DESTINATION bin)
+# # Blends multiple images into a composite
+# add_executable(blend blend.cc) 
+# target_link_libraries(blend ${COMMON_LIBS} VwMosaic) 
+# install(TARGETS blend DESTINATION bin)
 
 # Converts a DEM to a simple color map
 add_executable(colormap colormap.cc Common.h Common.cc) 
