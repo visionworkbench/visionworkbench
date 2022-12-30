@@ -47,9 +47,7 @@ namespace cartography {
     BBox2         m_src_bbox,
       m_dst_bbox;
 
-    // TODO(oalexan1): There is no need for this context, it can come directly from georefs above.
-    // Add to this class pointers to PROJ transforms.
-    ProjContext m_src_datum_proj, m_dst_datum_proj;
+    std::string m_src_datum_proj_str, m_dst_datum_proj_str;
     
     bool          m_skip_map_projection;
     bool          m_skip_datum_conversion;
@@ -130,7 +128,9 @@ namespace cartography {
     /// Convert a point bounding box in the source to a pixel bounding box in the destination.
     BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
 
-    // TODO(oalexan1): How about a destructor for these?
+    // TODO(oalexan1): How about a destructor for these? PROJ may be crashing
+    // when a destructor is called as under the hood different such objects
+    // appear to be sharing something.
     PJ_CONTEXT * m_pj_context;
     PJ * m_pj_transform;
 

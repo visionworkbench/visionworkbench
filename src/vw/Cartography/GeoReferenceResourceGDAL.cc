@@ -22,8 +22,7 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>
 
-//FIXME: can probably trim down these headers
-// GDAL Headers
+// TODO(oalexan1): Can probably trim down these headers
 #include "gdal.h"
 #include "gdal_priv.h"
 #include "cpl_string.h"
@@ -38,17 +37,18 @@ namespace cartography {
 
   bool read_gdal_georeference(GeoReference& georef,
                               DiskImageResourceGDAL const& resource) {
-    boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
+    boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
     if (!dataset)
-      vw_throw( LogicErr() << "read_gdal_georeference: Could not read georeference. No file has been opened." );
+      vw_throw(LogicErr() << "read_gdal_georeference: Could not read georeference. "
+                << "No file has been opened.");
 
     // Pull the projection and datum information out of the file if available
-    if( dataset->GetProjectionRef() != NULL )
+    if (dataset->GetProjectionRef() != NULL)
       georef.set_wkt(dataset->GetProjectionRef());
 
     double geo_transform[6];
     Matrix<double,3,3> transform;
-    if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
+    if (dataset->GetGeoTransform(geo_transform) == CE_None) {
       transform.set_identity();
       transform(0,0) = geo_transform[1];
       transform(0,1) = geo_transform[2];
@@ -63,10 +63,10 @@ namespace cartography {
       // encoded in the file, the default is to assume PixelAsArea.
       georef.set_pixel_interpretation(GeoReference::PixelAsArea);
       char **metadata = dataset->GetMetadata();
-      if( CSLCount(metadata) > 0 ) {
-        for( int i = 0; metadata[i] != NULL; i++ ) {
+      if (CSLCount(metadata) > 0) {
+        for(int i = 0; metadata[i] != NULL; i++) {
           std::vector<std::string> split_vec;
-          boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+          boost::split(split_vec, metadata[i], boost::is_any_of("="));
           if (split_vec[0] == GDALMD_AREA_OR_POINT && split_vec.size() >= 2)
             if (boost::trim_copy(split_vec[1]) == GDALMD_AOP_POINT)
               georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
@@ -113,28 +113,29 @@ namespace cartography {
           resource.filename() << " contains a non-normal georeference." << std::endl;
       }
     }
-
+    
     return true;
   }
 
-  void write_gdal_georeference( DiskImageResourceGDAL& resource,
-                                GeoReference const& georef ) {
+  void write_gdal_georeference(DiskImageResourceGDAL& resource,
+                               GeoReference const& georef) {
 
     boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
     if (!dataset)
-      vw_throw( LogicErr() << "GeoReferenceHelperGDAL: Could not write georeference. No file has been opened." );
+      vw_throw(LogicErr() << "GeoReferenceHelperGDAL: Could not write georeference. "
+               << "No file has been opened.");
 
     // Store the transform matrix
     double geo_transform[6] = { georef.transform()(0,2), georef.transform()(0,0),
                                 georef.transform()(0,1), georef.transform()(1,2),
                                 georef.transform()(1,0), georef.transform()(1,1) };
-    dataset->SetGeoTransform( geo_transform );
+    dataset->SetGeoTransform(geo_transform);
 
     // This is a little ridiculous, but GDAL can't write geotiffs
     // without a string of Well Known Text (WKT), so we must conjure
     // up an OGRSpatialReference here and use it to convert from proj.4 to WKT.
     std::string wkt_str = georef.get_wkt();
-    dataset->SetProjection( wkt_str.c_str() );
+    dataset->SetProjection(wkt_str.c_str());
 
     // Set the pixel interpretation for the image.  See the comments
     // in GeoReference for more information.
@@ -145,20 +146,20 @@ namespace cartography {
   }
 
   // Read an arbitrary name = value pair from the geoheader.
-  bool read_gdal_string( DiskImageResourceGDAL const& resource,
+  bool read_gdal_string(DiskImageResourceGDAL const& resource,
                          std::string const& str_name,
-                         std::string & str_val ) {
+                         std::string & str_val) {
 
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
-      vw_throw( LogicErr() << "read_gdal_string: Could not read string. "
-                << "No file has been opened." );
+      vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
+                << "No file has been opened.");
 
     char **metadata = dataset->GetMetadata();
-    if( CSLCount(metadata) > 0 ) {
-      for( int i = 0; metadata[i] != NULL; i++ ) {
+    if (CSLCount(metadata) > 0) {
+      for(int i = 0; metadata[i] != NULL; i++) {
         std::vector<std::string> split_vec;
-        boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+        boost::split(split_vec, metadata[i], boost::is_any_of("="));
         if (split_vec[0] == str_name && split_vec.size() >= 2){
           str_val = split_vec[1];
           return true;
@@ -168,19 +169,19 @@ namespace cartography {
     return false;
   }
 
-  bool read_gdal_strings( DiskImageResourceGDAL const& resource, 
+  bool read_gdal_strings(DiskImageResourceGDAL const& resource, 
                           std::map<std::string, std::string>& value_pairs) {
 
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
-      vw_throw( LogicErr() << "read_gdal_string: Could not read string. "
-                << "No file has been opened." );
+      vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
+                << "No file has been opened.");
 
     char **metadata = dataset->GetMetadata();
-    if( CSLCount(metadata) > 0 ) {
-      for( int i = 0; metadata[i] != NULL; i++ ) {
+    if (CSLCount(metadata) > 0) {
+      for(int i = 0; metadata[i] != NULL; i++) {
         std::vector<std::string> split_vec;
-        boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+        boost::split(split_vec, metadata[i], boost::is_any_of("="));
         if (split_vec.size() >= 2){
           value_pairs[split_vec[0]] = split_vec[1];
         }
@@ -190,14 +191,14 @@ namespace cartography {
   }
 
   // Write an arbitrary name = value pair in the geoheader.
-  void write_gdal_string( DiskImageResourceGDAL& resource,
+  void write_gdal_string(DiskImageResourceGDAL& resource,
                           std::string const& str_name,
-                          std::string const& str_val ) {
+                          std::string const& str_val) {
 
     boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
     if (!dataset)
-      vw_throw( LogicErr() << "write_gdal_string: Could not write string. "
-                           << "No file has been opened." );
+      vw_throw(LogicErr() << "write_gdal_string: Could not write string. "
+                           << "No file has been opened.");
 
     dataset->SetMetadataItem(str_name.c_str(), str_val.c_str());
   }

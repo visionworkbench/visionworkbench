@@ -72,7 +72,8 @@ namespace { // Anonymous namespace
 
   // returns true if the color interp is either the expected one, or undefined.
   // (some gdal operations strip the interp)
-  bool bcolor_is(const boost::shared_ptr<GDALDataset> d, size_t idx /* 1-indexed */, GDALColorInterp expected) {
+  bool bcolor_is(const boost::shared_ptr<GDALDataset> d, size_t idx /* 1-indexed */,
+                 GDALColorInterp expected) {
     if (ssize_t(idx) > d->GetRasterCount())
       return false;
     GDALColorInterp actual = d->GetRasterBand(idx)->GetColorInterpretation();
@@ -88,7 +89,8 @@ namespace { // Anonymous namespace
       case GDT_UInt32:  return vw::VW_CHANNEL_UINT32;
       case GDT_Float32: return vw::VW_CHANNEL_FLOAT32;
       case GDT_Float64: return vw::VW_CHANNEL_FLOAT64;
-      default: vw::vw_throw( vw::IOErr() << "Unsupported GDAL channel type (" << gdal_type << ")." );
+    default: vw::vw_throw(vw::IOErr() << "Unsupported GDAL channel type ("
+                           << gdal_type << ").");
     }
   }
 
@@ -113,7 +115,7 @@ namespace vw {
 namespace fileio {
 namespace detail {
 
-// TODO: Have this function called so valgrind does not report a leak!
+// TODO(oalexan1): Have this function called so valgrind does not report a leak.
 
 // 1. This kill function is never called. The _gdal_mutex will persist
 // until the end of the program. This is not a memory leak since
@@ -148,22 +150,26 @@ void GdalIODecompress::read(uint8* /*buffer*/, size_t /*bufsize*/) {
   vw_throw(LogicErr() << "Not supported");
 }
 
+// TODO(oalexan1): This function must return if reading was successful or not
 void GdalIODecompress::read(const ImageFormat& fmt, uint8* buffer, size_t bufsize) {
   Mutex::Lock lock(gdal());
   size_t skip = line_bytes();
+  CPLErr ans = CE_None;
   VW_ASSERT(bufsize >= fmt.rows * skip, LogicErr() << "Buffer is too small");
   if (fmt.pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
-    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer),
-                        fmt.cols, fmt.rows,
-                        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
-                        NULL, 0, 0, 0);
+    ans =
+      m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer),
+                          fmt.cols, fmt.rows,
+                          channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
+                          NULL, 0, 0, 0);
   } else {
     // Interleaved pixels
-    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows,
-                        reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
-                        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
-                        NULL, m_cstride, m_rstride, channel_size(fmt.channel_type));
+    ans =
+      m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows,
+                          reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
+                          channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format),
+                          NULL, m_cstride, m_rstride, channel_size(fmt.channel_type));
   }
 }
 
@@ -185,7 +191,9 @@ void GdalIODecompress::open() {
       m_fmt.pixel_format = VW_PIXEL_GRAYA;
       m_fmt.planes = 1;
     }
-  } else if ( bcolor_is(m_dataset, 1, GCI_RedBand) && bcolor_is(m_dataset, 2, GCI_GreenBand) && bcolor_is(m_dataset, 3, GCI_BlueBand)) {
+  } else if (bcolor_is(m_dataset, 1, GCI_RedBand) &&
+             bcolor_is(m_dataset, 2, GCI_GreenBand) &&
+             bcolor_is(m_dataset, 3, GCI_BlueBand)) {
     if (chans == 3) {
       m_fmt.pixel_format = VW_PIXEL_RGB;
       m_fmt.planes = 1;
@@ -249,11 +257,13 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
       options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
 
     if( m_fmt.pixel_format == VW_PIXEL_RGB || m_fmt.pixel_format == VW_PIXEL_RGBA ||
-        m_fmt.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_fmt.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL)
+        m_fmt.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL ||
+        m_fmt.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL)
         options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
 
-    m_dataset.reset(
-      reinterpret_cast<GDALDataset*>(GDALCreate( m_driver, m_fn.c_str(), cols, rows, num_bands, channel_vw_to_gdal(fmt().channel_type), options)),
+    m_dataset.reset(reinterpret_cast<GDALDataset*>
+                    (GDALCreate(m_driver, m_fn.c_str(), cols, rows, num_bands,
+                                channel_vw_to_gdal(fmt().channel_type), options)),
       GDALClose);
   } catch (const std::exception&) {
     CSLDestroy(options);
@@ -261,12 +271,12 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   }
   CSLDestroy(options);
 
-  VW_ASSERT(m_dataset, IOErr() << "GDAL: Failed to open file for create");
+  VW_ASSERT(m_dataset, IOErr() << "GDAL: Failed to open file for create.");
 
-  if (m_has_nodata && m_dataset->GetRasterBand(1)->SetNoDataValue( m_nodata ) != CE_None)
-    vw_throw(IOErr() << "GdalIO: Unable to set nodata value");
+  if (m_has_nodata && m_dataset->GetRasterBand(1)->SetNoDataValue(m_nodata) != CE_None)
+    vw_throw(IOErr() << "GdalIO: Unable to set nodata value.");
 
-  CPLErr err;
+  CPLErr err = CE_None;
   if (fmt().pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
     err = m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
@@ -274,7 +284,8 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   } else {
     //Interleaved pixels
     err = m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
-            channel_vw_to_gdal(fmt().channel_type), num_bands, NULL, m_cstride, skip, channel_size(fmt().channel_type));
+                              channel_vw_to_gdal(fmt().channel_type), num_bands, NULL,
+                              m_cstride, skip, channel_size(fmt().channel_type));
   }
   VW_ASSERT(err == CE_None, IOErr() << "GdalIO: RasterIO write failed");
   m_dataset.reset();
@@ -291,7 +302,8 @@ void GdalIOCompress::open() {
 
   //#define VW_GDAL_BUILD_VERSION(major, minor, rev, build) (major*1000+minor*100+rev*10+build)
   //#if GDAL_VERSION_NUM >= VW_GDAL_BUILD_VERSION(1,5,0,0)
-  //  VW_ASSERT(GDALGetMetadataItem(m_driver, GDAL_DCAP_VIRTUALIO, NULL ), NoImplErr() << "GDAL's current tiff driver does not support virtual IO");
+  //  VW_ASSERT(GDALGetMetadataItem(m_driver, GDAL_DCAP_VIRTUALIO, NULL ), NoImplErr()
+  //     << "GDAL's current tiff driver does not support virtual IO");
   //#endif
 
   this->bind();

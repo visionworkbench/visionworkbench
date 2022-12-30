@@ -33,37 +33,35 @@ namespace cartography {
 
   using vw::math::BresenhamLine;
 
+  // Create transform between given proj strings. Note that what is returned
+  // are pointers, by reference.
+  void create_proj_transform(std::string const& src_proj_str,
+                             std::string const& dst_proj_str,
+                             PJ_CONTEXT* & pj_context,
+                             PJ*         & pj_transform) {
+    
+    pj_context = proj_context_create();
+    PJ_AREA *area = NULL;
+    pj_transform = proj_create_crs_to_crs(pj_context,
+                                            src_proj_str.c_str(),
+                                            dst_proj_str.c_str(),
+                                            area);
+    if (pj_transform == NULL)
+      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a geotransform for PROJ strings: "
+                   << src_proj_str << " and " 
+                   << dst_proj_str << ".\n");
+  }
+  
   // Constructor
   GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
                              BBox2 const& src_bbox, BBox2 const& dst_bbox) :
     m_src_georef(src_georef), m_dst_georef(dst_georef),
     m_src_bbox(src_bbox), m_dst_bbox(dst_bbox) {
 
-    // TODO(oalexan1): Must complete these given what we know about input images.
-    PJ_AREA *area = NULL;
-    
-    // TODO(oalexan1): Need to think about threading here
-    m_pj_context = proj_context_create();
-    m_pj_transform = proj_create_crs_to_crs(m_pj_context,
-                                            m_src_georef.overall_proj4_str().c_str(),
-                                            m_dst_georef.overall_proj4_str().c_str(),
-                                            area);
-    if (m_pj_transform == NULL)
-      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a geotransform for proj4 strings: "
-                   << m_src_datum_proj.m_proj4_str << " and " 
-                   << m_dst_datum_proj.m_proj4_str << ".\n");
+    // This are NULL for now, may be initialized if needed to convert among datums
+    m_pj_context = NULL;
+    m_pj_transform = NULL;
  
-//     // TODO(oalexan1): This code is repeated in 3 places
-//     // https://proj-tmp.readthedocs.io/en/docs/development/quickstart.html
-//     PJ* P_for_GIS = proj_normalize_for_visualization(m_pj_context, m_pj_transform);
-//     if (0 == P_for_GIS) 
-//       vw::vw_throw(vw::ArgumentErr() << "Failed to normalize a geotransform for proj4 strings: "
-//                    << m_src_datum_proj.m_proj4_str << " and " 
-//                    << m_dst_datum_proj.m_proj4_str << ".\n");
-    
-//     proj_destroy(m_pj_transform);
-//     m_pj_transform = P_for_GIS;    
-    
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
@@ -83,28 +81,32 @@ namespace cartography {
       m_skip_datum_conversion = true;
     } else {
       
-      // Set up the various variables for proj.
       m_skip_datum_conversion = false;
 
-      // TODO(oalexan1): Review this code, looks suspicious.
+      // Set up longlat coordinate systems with given datums
       
       // The source proj4 context.
       std::stringstream ss_src;
       // We convert lat/long to lat/long regardless of what the
       // source or destination georef uses.
       ss_src << "+proj=longlat " << src_datum;
-      m_src_datum_proj = ProjContext( ss_src.str() );
+      m_src_datum_proj_str = ss_src.str();
       
       // The destination proj4 context.
       std::stringstream ss_dst;
       ss_dst << "+proj=longlat " << dst_datum;
-      m_dst_datum_proj = ProjContext(ss_dst.str());
+      m_dst_datum_proj_str = ss_dst.str();
+
+      create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
+                            m_pj_context, m_pj_transform); // outputs
     }
     
     // Because GeoTransform is typically very slow, we default to a tolerance
     // of 0.1 pixels to allow ourselves to be approximated.
     set_tolerance(0.1);
-    
+
+    // TODO(oalexan1): Need to think of what to do here
+#if 0
     if (!m_skip_datum_conversion) {
       // This is a bugfix for the situation when the datums are in
       // fact the same, even if the precise datum strings differ. If
@@ -112,26 +114,26 @@ namespace cartography {
       // doing it, as it is very slow. Here pick some samples in
       // radians, with both positive and negative longitude. Don't
       // only pick multiples of PI.
-
+      
       // This check must happen after the tolerance is set
-      Mutex::WriteLock write_lock(m_mutex);
       double alt = 0.0;
       double max_err = 0.0;
-      for (double lon = -360; lon <= 360; lon += 90) {
+      for (double lon = -180; lon <= 180; lon += 90) {
         for (double lat = -90; lat <= 90; lat += 45) {
           Vector2 lon_lat(lon, lat);
-
+          
           bool forward = true;
           Vector2 lon_lat2 = GeoTransform::lonlat_to_lonlat(lon_lat, forward);
-          lon_lat2 = GeoTransform::lonlat_to_lonlat(lon_lat2, !forward);
           max_err = std::max(max_err, norm_2(lon_lat - lon_lat2));
+          Vector2 lon_lat3 = GeoTransform::lonlat_to_lonlat(lon_lat2, !forward);
+          max_err = std::max(max_err, norm_2(lon_lat2 - lon_lat3));
         }
       }
-      
+
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
     }
-    
+#endif
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -141,36 +143,14 @@ namespace cartography {
   GeoTransform& GeoTransform::operator=(GeoTransform const& other) {
     m_src_georef            = other.m_src_georef;
     m_dst_georef            = other.m_dst_georef;
-    m_src_datum_proj        = other.m_src_datum_proj;
-    m_dst_datum_proj        = other.m_dst_datum_proj;
+    m_src_datum_proj_str    = other.m_src_datum_proj_str;
+    m_dst_datum_proj_str    = other.m_dst_datum_proj_str;
     m_skip_map_projection   = other.m_skip_map_projection;
     m_skip_datum_conversion = other.m_skip_datum_conversion;
 
-    // TODO(oalexan1): Must complete these given what we know about input images.
-    PJ_AREA *area = NULL;
-    
-    // TODO(oalexan1): Need to think about threading here
-    m_pj_context = proj_context_create();
-    m_pj_transform = proj_create_crs_to_crs(m_pj_context,
-                                            m_src_georef.overall_proj4_str().c_str(),
-                                            m_dst_georef.overall_proj4_str().c_str(),
-                                            area);
-    if (m_pj_transform == NULL)
-      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a geotransform for proj4 strings: "
-                   << m_src_datum_proj.m_proj4_str << " and " 
-                   << m_dst_datum_proj.m_proj4_str << ".\n");
- 
-//     // TODO(oalexan1): This code is repeated in 3 places
-//     // https://proj-tmp.readthedocs.io/en/docs/development/quickstart.html
-//     PJ* P_for_GIS = proj_normalize_for_visualization(m_pj_context, m_pj_transform);
-//     if (0 == P_for_GIS) 
-//       vw::vw_throw(vw::ArgumentErr() << "Failed to normalize a geotransform for proj4 strings: "
-//                    << m_src_datum_proj.m_proj4_str << " and " 
-//                    << m_dst_datum_proj.m_proj4_str << ".\n");
-    
-//     proj_destroy(m_pj_transform);
-//     m_pj_transform = P_for_GIS;    
-    
+    if (!m_skip_datum_conversion) 
+      create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
+                            m_pj_context, m_pj_transform); // outputs
     return *this;
   }
 
@@ -180,69 +160,35 @@ namespace cartography {
     // proj_destroy(m_pj_transform);
   }
 
-  // TODO(oalexan1): Must add a forward() function!
-  
-  // TODO(oalexan1): Must use directly the Proj functions,
-  // without going to lon-lat!
+  // Inverse of forward()
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
-    Vector2 proj_pt = m_dst_georef.pixel_to_point(v);
-
-    PJ_COORD c_in, c_out;
-    c_in.lpzt.z = 0.0;
-    c_in.lpzt.t = HUGE_VAL;
-    c_in.enu.e = proj_pt[0]; // easting
-    c_in.enu.n = proj_pt[1]; // northing
-
-    // http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
-    c_out = proj_trans(m_pj_transform, PJ_INV, c_in);
-
-    return m_src_georef.point_to_pixel(Vector2(c_out.enu.e, c_out.enu.n));
-
-    // TODO(oalexan1): Review here.
-//     bool forward = false;
-//     if (m_skip_map_projection)
-//       return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
-//     Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
-//     if (m_skip_datum_conversion)
-//       return m_src_georef.lonlat_to_pixel(dst_lonlat);
-//     Vector2 src_lonlat = lonlat_to_lonlat(dst_lonlat, forward);
-//     return m_src_georef.lonlat_to_pixel(src_lonlat);
+    bool forward = false;
+    if (m_skip_map_projection)
+      return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
+    Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
+    if (m_skip_datum_conversion)
+      return m_src_georef.lonlat_to_pixel(dst_lonlat);
+     Vector2 src_lonlat = lonlat_to_lonlat(dst_lonlat, forward);
+     return m_src_georef.lonlat_to_pixel(src_lonlat);
   }
 
-
-  // TODO(oalexan1): Must use directly the Proj functions,
-  // without going to lon-lat!
   /// Given a pixel coordinate of an image in a source
   /// georeference frame, this routine computes the corresponding
   /// pixel in the destination (transformed) image.
   Vector2 GeoTransform::forward(Vector2 const& v) const {
+    bool forward = true;
+     if (m_skip_map_projection)
+       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
+     Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+     if(m_skip_datum_conversion)
+       return m_dst_georef.lonlat_to_pixel(src_lonlat);
+     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, forward);
 
-    Vector2 proj_pt = m_src_georef.pixel_to_point(v);
-
-    PJ_COORD c_in, c_out;
-    c_in.lpzt.z = 0.0;
-    c_in.lpzt.t = HUGE_VAL;
-    c_in.enu.e = proj_pt[0]; // easting
-    c_in.enu.n = proj_pt[1]; // northing
-
-    // http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
-    c_out = proj_trans(m_pj_transform, PJ_FWD, c_in);
-    
-    return m_dst_georef.point_to_pixel(Vector2(c_out.enu.e, c_out.enu.n));
-
-    // TODO(oalexan1): Review here.
-//     bool forward = true;
-//     if (m_skip_map_projection)
-//       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-//     Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
-//     if(m_skip_datum_conversion)
-//       return m_dst_georef.lonlat_to_pixel(src_lonlat);
-//     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, forward);
-//     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
+     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
   
   // TODO(oalexan1): GDAL has a function for this which is likely better written.
-  BBox2i GeoTransform::forward_bbox( BBox2i const& bbox ) const {
+  BBox2i GeoTransform::forward_bbox(BBox2i const& bbox) const {
 
     if (bbox.empty()) return BBox2();
 
@@ -303,48 +249,49 @@ namespace cartography {
     if (m_skip_map_projection)
       return m_dst_georef.point_to_pixel(v);
     Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
-    if(m_skip_datum_conversion)
+    if (m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
 
   // Performs a forward or reverse datum conversion.
-  // TODO(oalexan1): This is a very bad function. It does not take into account
-  // that when the datums differ input 0 height may result in non-zero output height.
+  // TODO(oalexan1): Should one consider 360 degree offsets here?
   Vector2 GeoTransform::lonlat_to_lonlat(Vector2 const& lonlat, bool forward) const {
     if (m_skip_datum_conversion)
       return lonlat;
 
+    // Note that the vertical component of the transform is not used
     Vector3 lonlatalt(lonlat[0], lonlat[1], 0.0);
     return subvector(GeoTransform::lonlatalt_to_lonlatalt(lonlatalt, forward), 0, 2);
   }
 
+  // TODO(oalexan1): Should one consider 360 degree offsets here?
+  // See GeoReference::is_lon_center_around_zero().
   Vector3 GeoTransform::lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward) const {
     if (m_skip_datum_conversion)
       return lonlatalt;
 
-    // TODO(oalexan1): Wipe this code
-#if 0
-    double lon = lonlatalt[0] * DEG_TO_RAD; // proj4 requires radians
-    double lat = lonlatalt[1] * DEG_TO_RAD;
+    double lon_rad = proj_torad(lonlatalt[0]); // proj4 requires radians
+    double lat_rad = proj_torad(lonlatalt[1]);
     double alt = lonlatalt[2];
 
+    PJ_COORD c_in, c_out;
+    c_in.lpzt.t = HUGE_VAL;
+    c_in.lpzt.z = alt;
+    c_in.lp.lam = lon_rad;
+    c_in.lp.phi = lat_rad;
+
+    // TODO(oalexan1): Not clear about the mutex
     Mutex::WriteLock write_lock(m_mutex);
-    // TODO(oalexan1): Review here.
-    if(forward) // src to dst
-      pj_transform(m_src_datum_proj.proj_ptr(), m_dst_datum_proj.proj_ptr(),
-                   1, 0, &lon, &lat, &alt);
-    else // dst to src
-      pj_transform(m_dst_datum_proj.proj_ptr(), m_src_datum_proj.proj_ptr(),
-                   1, 0, &lon, &lat, &alt);
-    CHECK_PROJ_ERROR(m_src_datum_proj);
-    CHECK_PROJ_ERROR(m_dst_datum_proj);
-
-    return Vector3(lon*RAD_TO_DEG, lat*RAD_TO_DEG, alt);
-#endif
-
-    return lonlatalt;
+    if (forward) 
+      c_out = proj_trans(m_pj_transform, PJ_FWD, c_in);
+    else
+      c_out = proj_trans(m_pj_transform, PJ_INV, c_in);
+    
+    vw::Vector3 out(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi), c_out.lpzt.z);
+    
+    return out;
   }
 
   bool GeoTransform::check_bbox_wraparound() const {
@@ -389,7 +336,6 @@ namespace cartography {
     }
     return (hasRight && hasLeft);
   }
-
 
   BBox2 GeoTransform::point_to_point_bbox(BBox2 const& point_bbox) const {
 

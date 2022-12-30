@@ -38,7 +38,10 @@
 // Proj
 #include <proj.h>
 
-// Implemented based on:
+// TODO(oalexan1): See if it is easier to use the GDAL interface
+// https://gdal.org/tutorials/osr_api_tut.html
+
+// Proj logic implemented based on:
 // https://proj-tmp.readthedocs.io/en/docs/development/migration.html#function-mapping-from-old-to-new-api
 // http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
 
@@ -204,7 +207,7 @@ namespace {
 
 
 
-  GeoReference::GeoReference() : m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
+  GeoReference::GeoReference(): m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -542,7 +545,7 @@ namespace {
     // Ortho projections are tricky because pixel 0,0 may not project.
     // - Pick the longitude range where the center is closer to the projection center.
     if (m_proj_projection_str.find("+proj=ortho") != std::string::npos) {
-      double lon0=0;
+      double lon0 = 0;
       m_center_lon_zero = true;
       if (extract_proj4_value(m_proj_projection_str, "+lon_0", lon0)) {
         // If the projection center is closer to 180 than it is to 0,
@@ -589,7 +592,6 @@ namespace {
       corner_pixels[3] = pixel_bbox.min() + Vector2(0, pixel_bbox.height()-1);
     }
 
-    //std::cout << "Converting pixel corners...\n";
     bool negLon = false, overLon=false;
     double minLon=99999, maxLon=-99999;
     for (size_t i=0; i<corner_pixels.size(); ++i) {
@@ -638,7 +640,6 @@ namespace {
     // If we made it to here all pixels are in the 0-180 zone.
     // In this case, default to the more common -180 to 180 range.
     m_center_lon_zero = true;
-    //std::cout << "Decreasing in shared zone, center on 0.\n";
     clear_proj4_over();      
 
     return; 
@@ -871,7 +872,9 @@ Vector2 GeoReference::point_to_lonlat(Vector2 const& loc) const {
   
   Vector2 lon_lat = GeoReference::point_to_lonlat_no_normalize(loc);
   
-  // Get the longitude into the correct range for this georeference.    
+  // Get the longitude into the correct range for this georeference.
+  // TODO(oalexan1): See if this can result in a more robust solution:
+  // https://proj.org/usage/projections.html#longitude-wrapping
   lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
   return lon_lat;
 }
@@ -1263,7 +1266,8 @@ ProjContext::ProjContext(ProjContext const& other): m_proj4_str(other.m_proj4_st
     vw::math::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
     while (l1.is_good()) {
       try {
-        point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min()));
+        point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l1),
+                                                  lower_fraction) + lonlat_bbox.min()));
       } catch (const std::exception& e) {}
       ++l1;
     }
