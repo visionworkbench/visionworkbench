@@ -31,6 +31,27 @@
 namespace vw {
 namespace cartography {
 
+  // Wipe the +proj entry from a projection before appending a new one,
+  // as otherwise PROJ gets confused.
+  std::string wipe_proj(std::string const& str_in) {
+
+    std::vector<std::string> tokens;
+    boost::split(tokens, boost::trim_copy(str_in), boost::is_any_of(" "));
+
+    std::string str_out = "";
+    for (size_t k = 0; k < tokens.size(); k++) {
+      if (boost::starts_with(tokens[k], "+proj"))
+        continue;
+
+      if (!str_out.empty())
+        str_out += " ";
+
+      str_out += tokens[k];
+    }
+
+    return str_out;
+  }
+  
   using vw::math::BresenhamLine;
 
   // Create transform between given proj strings. Note that what is returned
@@ -39,7 +60,7 @@ namespace cartography {
                              std::string const& dst_proj_str,
                              PJ_CONTEXT* & pj_context,
                              PJ*         & pj_transform) {
-    
+
     pj_context = proj_context_create();
     PJ_AREA *area = NULL;
     pj_transform = proj_create_crs_to_crs(pj_context,
@@ -89,12 +110,12 @@ namespace cartography {
       std::stringstream ss_src;
       // We convert lat/long to lat/long regardless of what the
       // source or destination georef uses.
-      ss_src << "+proj=longlat " << src_datum;
+      ss_src << "+proj=longlat " << wipe_proj(src_datum);
       m_src_datum_proj_str = ss_src.str();
       
       // The destination proj4 context.
       std::stringstream ss_dst;
-      ss_dst << "+proj=longlat " << dst_datum;
+      ss_dst << "+proj=longlat " << wipe_proj(dst_datum);
       m_dst_datum_proj_str = ss_dst.str();
 
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
@@ -148,16 +169,23 @@ namespace cartography {
     m_skip_map_projection   = other.m_skip_map_projection;
     m_skip_datum_conversion = other.m_skip_datum_conversion;
 
-    if (!m_skip_datum_conversion) 
+    // A mutex seems necessary to avoid a crash. Presumably
+    // this creation logic does not like to be created from multiple threads.
+    // TODO(oalexan1): It is not clear if this is either necessary
+    // or sufficient to avoid the crash.
+    if (!m_skip_datum_conversion) {
+      Mutex::WriteLock write_lock(m_mutex);
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
                             m_pj_context, m_pj_transform); // outputs
+    }
+    
     return *this;
   }
 
   GeoTransform::~GeoTransform() {
-    // TODO(oalexan1): Must figure out deallocation!
-    //proj_context_destroy(m_pj_context);
-    // proj_destroy(m_pj_transform);
+    // TODO(oalexan1): Must figure out deallocation without crashing!
+    // As of now, likely there is a memory leak. Should not be too big,
+    // unless some monster tables are loaded for each instance.
   }
 
   // Inverse of forward()
@@ -288,7 +316,7 @@ namespace cartography {
       c_out = proj_trans(m_pj_transform, PJ_FWD, c_in);
     else
       c_out = proj_trans(m_pj_transform, PJ_INV, c_in);
-    
+
     vw::Vector3 out(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi), c_out.lpzt.z);
     
     return out;
