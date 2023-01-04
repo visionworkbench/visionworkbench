@@ -43,9 +43,13 @@ endif()
 # Where to search for dependencies
 set(CMAKE_PREFIX_PATH "${ASP_DEPS_DIR}")
 
-# Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
-include_directories(..)
-include_directories(${CMAKE_BINARY_DIR}/src) # Generated protocol buffers go here!
+# Libraries use paths like vw/Core/FundamentalTypes.h, so we need to
+# include the top of the tree.  These must take precedence over
+# anything in the conda or system directories.
+include_directories(BEFORE ../)
+
+# Generated protocol buffers go here
+include_directories(${CMAKE_BINARY_DIR}/src) 
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 # foreach(dir ${dirs})
