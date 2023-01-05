@@ -43,11 +43,6 @@ endif()
 # Where to search for dependencies
 set(CMAKE_PREFIX_PATH "${ASP_DEPS_DIR}")
 
-# Libraries use paths like vw/Core/FundamentalTypes.h, so we need to
-# include the top of the tree.  These must take precedence over
-# anything in the conda or system directories.
-include_directories(BEFORE ../)
-
 # Generated protocol buffers go here
 include_directories(${CMAKE_BINARY_DIR}/src) 
 
@@ -216,6 +211,12 @@ set(ENABLE_EXCEPTIONS True)
 
 ###########################################################################
 
+# Libraries use paths like vw/Core/FundamentalTypes.h, so we need to
+# include the top of the tree.  These must take precedence over
+# anything in the conda or system directories. That is why this is
+# towards the bottom.
+include_directories(BEFORE ../)
+
 # Now that we have found all our external dependencies, generate a config.h file
 include("GenerateConfig.cmake")
 
@@ -325,3 +326,4 @@ endif()
 
 # Add the executable subdirectory
 add_subdirectory(tools)
+

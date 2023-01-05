@@ -9,7 +9,7 @@ cmake_minimum_required (VERSION 3.15)
 set(CMAKE_CXX_FLAGS "" CACHE STRING "")
 set(CMAKE_C_FLAGS "" CACHE STRING "")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 set(CMAKE_EXE_LINKER_FLAGS "-pthread -lpthread")
 
