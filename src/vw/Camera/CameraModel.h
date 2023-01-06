@@ -265,6 +265,9 @@ namespace camera {
                                                   double         mean_surface_elevation,
                                                   Vector3 const& uncorrected_vector);
 
-}} // namespace vw::camera
+} // namespace camera
+
+  typedef boost::shared_ptr<camera::CameraModel> CamPtr; // this shows up a lot
+} // namespace vw
 
 #endif // __VW_CAMERA_CAMERAMODEL_H__

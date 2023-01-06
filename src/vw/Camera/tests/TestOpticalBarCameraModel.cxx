@@ -95,9 +95,8 @@ TEST(OpticalBarModel, CreateCamera) {
 
   EXPECT_VECTOR_EQ(raw_ptr->get_image_size(), cpy.get_image_size());
 
-  typedef boost::shared_ptr<vw::camera::CameraModel> CameraModelPtr;
-  CameraModelPtr cam1;
-  cam1 = CameraModelPtr(raw_ptr);
+  vw::CamPtr cam1;
+  cam1 = vw::CamPtr(raw_ptr);
 
   ASSERT_TRUE( cam1.get() != 0 );
 
@@ -144,8 +143,8 @@ TEST(OpticalBarModel, CreateCamera) {
   //OpticalBarModel* raw_ptr2 = new OpticalBarModel("/home/smcmich1/data/KH4B/bundle_v6_2/out-v6_opt_bar.tsai");
   OpticalBarModel* raw_ptr2 = new OpticalBarModel("/home/smcmich1/data/KH4B/v6_test.tsai");
 
-  CameraModelPtr cam2;
-  cam2 = CameraModelPtr(raw_ptr2);
+  vw::CamPtr cam2;
+  cam2 = vw::CamPtr(raw_ptr2);
   
   
   bool least_squares_refine = false;
