@@ -48,7 +48,8 @@ public:
                 bool isPointCloud = false
                 );
 
-  void writePoly(std::string filename, std::string defaultColor = "yellow");
+  void writePoly(std::string filename, std::string defaultColor = "yellow",
+                 bool emptyLineAsSeparator = false);
   void bdBoxCenter(double & mx, double & my) const;
 
   void appendPolygon(int numVerts,

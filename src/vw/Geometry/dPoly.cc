@@ -1335,7 +1335,7 @@ bool dPoly::readPoly(std::string filename,
 
 }
 
-void dPoly::writePoly(std::string filename, std::string defaultColor) {
+void dPoly::writePoly(std::string filename, std::string defaultColor, bool emptyLineAsSeparator) {
 
   ofstream out(filename.c_str());
   if (!out.is_open()) {
@@ -1343,7 +1343,7 @@ void dPoly::writePoly(std::string filename, std::string defaultColor) {
     return;
   }
 
-  out.precision(16);
+  out.precision(17);
 
   string color = defaultColor, prevColor = defaultColor;
 
@@ -1383,7 +1383,13 @@ void dPoly::writePoly(std::string filename, std::string defaultColor) {
       out << m_xv[start] << ' ' << m_yv[start] << layer << endl;
     }
 
-    if ( !m_isPointCloud ) out << "NEXT" << endl;
+    // The reader only supports reading polygons separated by "NEXT" statements.
+    if (!m_isPointCloud) {
+      if (emptyLineAsSeparator)
+        out <<"\n";
+      else
+        out << "NEXT" << endl;
+    }
   }
 
   // Write the remaining annotations
