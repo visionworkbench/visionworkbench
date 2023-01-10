@@ -121,7 +121,6 @@ namespace camera {
     /// As pixel_to_vector, but in the local camera frame.
     virtual Vector3 get_local_pixel_vector(vw::Vector2 const& pix) const = 0;
 
-
     // Here we use an initial guess for the line number
     // - This class provides a generic implementation but specific
     //   linescan cameras may be able to use more specific implementation.
@@ -151,10 +150,10 @@ namespace camera {
   
 /*
   /// Output stream method for printing a summary of the linear
-  /// pushbroom camera model parameters.
+  /// linescan camera model parameters.
   std::ostream& operator<<( std::ostream& os, LinescanModel const& camera_model);
 */
 
 }}      // namespace vw::camera
 
-#endif  //_VW_CAMERA_LINEARPUSHBROOM_MODEL_H_
+#endif  // _VW_CAMERA_LINESCAN_MODEL_H_
