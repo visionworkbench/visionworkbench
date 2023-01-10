@@ -151,8 +151,7 @@ void dPoly::appendPolygon(int numVerts,
 
 void dPoly::appendRectangle(double xl, double yl, double xh, double yh,
                             bool isPolyClosed,
-                            const std::string & color, const std::string & layer
-                            ) {
+                            const std::string & color, const std::string & layer) {
   double xv[4], yv[4];
   xv[0] = xl; xv[1] = xh; xv[2] = xh; xv[3] = xl;
   yv[0] = yl; yv[1] = yl; yv[2] = yh; yv[3] = yh;
@@ -162,8 +161,7 @@ void dPoly::appendRectangle(double xl, double yl, double xh, double yh,
 
 void dPoly::setRectangle(double xl, double yl, double xh, double yh,
                          bool isPolyClosed,
-                         const std::string & color, const std::string & layer
-                         ) {
+                         const std::string & color, const std::string & layer) {
   reset();
   appendRectangle(xl, yl, xh, yh, isPolyClosed, color, layer);
   return;
@@ -319,7 +317,6 @@ void dPoly::clipPoly(// inputs
     }
 
     clippedPoly.set_annoByType(annoInBox, (AnnoType)annoType);
-
   }
 
   return;
@@ -1377,13 +1374,20 @@ void dPoly::writePoly(std::string filename, std::string defaultColor, bool empty
 
     }
 
-    if ( !m_isPointCloud && isPolyClosed) {
+    // Turn off the logic below. Do not repeat first vertex at the end. 
+    // It is a display preference if the polygon is closed or not.
+#if 0 
+    if (!m_isPointCloud && isPolyClosed) {
       // Repeat last vertex for closed poly
+    
       assert(m_numVerts[pIter] > 0);
-      out << m_xv[start] << ' ' << m_yv[start] << layer << endl;
+     out << m_xv[start] << ' ' << m_yv[start] << layer << endl;
     }
-
-    // The reader only supports reading polygons separated by "NEXT" statements.
+#endif
+    
+    // Give a choice to use just an empty line as a separator. Note
+    // that the reader can only handle the string "NEXT" being a
+    // separator.
     if (!m_isPointCloud) {
       if (emptyLineAsSeparator)
         out <<"\n";
