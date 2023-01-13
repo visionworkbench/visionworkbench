@@ -204,7 +204,10 @@ namespace camera {
     // transform (upper-left 3x3 block is the rotation, the first 3
     // elements in last column is the translation, so the style of
     // pc_align is used) as when applied around the planet center.
-    vw::Matrix4x4 ecef_transform(); 
+    // The adjusted camera center and pixel to vector are obtained
+    // from the unadjusted ones by applying the translation
+    // and rotation returned here.
+    vw::Matrix4x4 ecef_transform() const; 
     
     void write(std::string const&);
     void read (std::string const&);

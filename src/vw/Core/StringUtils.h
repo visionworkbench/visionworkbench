@@ -58,7 +58,7 @@ namespace vw{
   // Optionally pass in several separators (by default use space
   // as separator).
   template<class VecT>
-  VecT str_to_vec(std::string const& str, std::string separators){
+  VecT str_to_vec(std::string const& str, std::string separators) {
 
     std::istringstream iss;
     if (separators == "") {

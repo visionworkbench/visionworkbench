@@ -1,3 +1,5 @@
+project(visionworkbench)
+
 if(APPLE)
     # Needed for conda build on OSX with conda
     cmake_policy(SET CMP0025 NEW) 
@@ -23,13 +25,11 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -lrt -lgcc_s")
 endif()
 
-# Tell cmake to look in the /cmake folder.
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
 # Make sure we do a release type
 set(CMAKE_BUILD_TYPE "Release")
 message("Setting CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
-project(visionworkbench)
+# Tell cmake to look in the cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 add_subdirectory(src)
