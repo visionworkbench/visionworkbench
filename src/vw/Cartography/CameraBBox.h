@@ -153,7 +153,8 @@ namespace vw { namespace cartography {
                                   double max_abs_tol      = 1e-14, // abs cost fun change b/w iters
                                   double max_rel_tol      = 1e-14,
                                   int num_max_iter        = 100,
-                                  Vector3 xyz_guess       = Vector3()){
+                                  Vector3 xyz_guess       = Vector3(),
+                                  double height_guess     = 0.0) {
     
     // This is a very fragile function and things can easily go wrong. 
     try {
@@ -164,7 +165,9 @@ namespace vw { namespace cartography {
       Vector3 xyz;
       if (xyz_guess == Vector3()){ // If no guess provided
         // Intersect the ray with the datum, this is a good initial guess.
-        xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
+        xyz = datum_intersection(georef.datum().semi_major_axis() + height_guess,
+                                 georef.datum().semi_minor_axis() + height_guess,
+                                 camera_ctr, camera_vec);
 
         if (xyz == Vector3()) { // If we failed to intersect the datum, give up!
           has_intersection = false;
@@ -219,8 +222,7 @@ namespace vw { namespace cartography {
       Vector<double, 1> observation; observation[0] = 0;
       len = math::levenberg_marquardt(model, len, observation, status,
                                       max_abs_tol, max_rel_tol,
-                                      num_max_iter
-                                     );
+                                      num_max_iter);
 
       Vector<double, 1> dem_height = model(len);
 
@@ -272,11 +274,11 @@ namespace vw { namespace cartography {
       
       /// Constructor initializes class with DEM, camera model, etc.
       CameraDEMBBoxHelper(ImageViewBase<DEMImageT> const& dem,
-                           GeoReference const& dem_georef,
-                           GeoReference const& target_georef, // return box in this projection
-                           boost::shared_ptr<camera::CameraModel> camera,
-                           bool center_on_zero,
-                           std::vector<Vector3> *coords=0)
+                          GeoReference const& dem_georef,
+                          GeoReference const& target_georef, // return box in this projection
+                          boost::shared_ptr<camera::CameraModel> camera,
+                          bool center_on_zero,
+                          std::vector<Vector3> *coords=0)
         : m_dem_georef(dem_georef),
           m_target_georef(target_georef), 
           m_camera(camera), m_dem(dem.impl()), m_coords(coords),
@@ -294,7 +296,7 @@ namespace vw { namespace cartography {
                                             GeoReference const& target_georef, 
                                             boost::shared_ptr<camera::CameraModel> camera,
                                             bool center_on_zero,
-                                            vw::Vector3 const& xyz_guess,
+                                            vw::Vector3 const& xyz_guess, double height_guess,
                                             Vector2 & point, // output
                                             Vector3 & xyz){
 
@@ -317,7 +319,7 @@ namespace vw { namespace cartography {
                                         treat_nodata_as_zero,
                                         has_intersection,
                                         height_error_tol, max_abs_tol, max_rel_tol,
-                                        num_max_iter, xyz_guess);
+                                        num_max_iter, xyz_guess, height_guess);
           // Quit if we did not find an intersection
           if (!has_intersection)
             return false;
@@ -326,7 +328,7 @@ namespace vw { namespace cartography {
           // and to a projected coordinate system
           Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
           point = target_georef.lonlat_to_point(Vector2(llh.x(), llh.y()));
-          recenter_point(center_on_zero, target_georef, point);
+          vw::cartography::detail::recenter_point(center_on_zero, target_georef, point);
                     
           return has_intersection;
         }catch(...){
@@ -339,10 +341,11 @@ namespace vw { namespace cartography {
 
         Vector2 point;
         Vector3 xyz_guess, xyz;
+        double height_guess = 0.0;
         bool has_intersection = camera_pixel_to_dem_point(pixel, m_dem, m_dem_georef,
                                                           m_target_georef,
                                                           m_camera, m_center_on_zero,
-                                                          xyz_guess,
+                                                          xyz_guess, height_guess,
                                                           point, // output
                                                           xyz);
         // Quit if we did not find an intersection
@@ -497,9 +500,12 @@ namespace vw { namespace cartography {
                     bool quick=false,
                     std::vector<Vector3> *coords=0) {
 
+    // This is helpful for intersecting with a DEM later
+    double height_guess = 0.0;
+    int num_heights = 0;
+
     // Testing to see if we should be centering on zero. The logic here is consistent
     // with point2dem.
-    
     bool center_on_zero = true;
     Vector3 camera_llr = // Compute lon/lat/radius of camera center
       target_georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
@@ -604,6 +610,7 @@ namespace vw { namespace cartography {
           point = target_georef.lonlat_to_point(lonlat);
           vw::cartography::detail::recenter_point(center_on_zero, target_georef, point);
 
+          // Note: This height will be used further down
           llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
 
           // Note: This xyz will be used way down
@@ -613,6 +620,7 @@ namespace vw { namespace cartography {
             continue;
           
           cam_pix = camera_model->point_to_pixel(xyz);
+          
           if (cam_pix != cam_pix)
             continue; // watch for nan
 
@@ -658,6 +666,9 @@ namespace vw { namespace cartography {
           cam_pixels.push_back(cam_pix);
 
           pix2xyz[std::make_pair(cam_pix.x(), cam_pix.y())] = xyz;
+          
+          height_guess += height;
+          num_heights++;
         }
         
         catch(...) {
@@ -673,6 +684,10 @@ namespace vw { namespace cartography {
       
       //vw_out() << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
     } // End if (!quick)
+
+    // Find the average height
+    if (num_heights > 0) 
+      height_guess = height_guess / num_heights;
 
     // Now estimate the gsd, in point units, by projecting onto the ground neighboring points
     std::vector<double> gsd;
@@ -699,7 +714,7 @@ namespace vw { namespace cartography {
       bool has_intersection = functor.camera_pixel_to_dem_point(ctr_pix, dem, dem_georef,
                                                                 target_georef,  
                                                                 camera_model, center_on_zero,
-                                                                xyz_guess,
+                                                                xyz_guess, height_guess,
                                                                 ctr_point, // output
                                                                 xyz);
 
@@ -720,7 +735,7 @@ namespace vw { namespace cartography {
         bool has_intersection
           = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
                                               target_georef, camera_model, center_on_zero,
-                                              xyz_guess,
+                                              xyz_guess, height_guess,
                                               off_point, // output
                                               xyz);
         if (!has_intersection)
