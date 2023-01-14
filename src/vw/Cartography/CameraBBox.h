@@ -294,6 +294,7 @@ namespace vw { namespace cartography {
                                             GeoReference const& target_georef, 
                                             boost::shared_ptr<camera::CameraModel> camera,
                                             bool center_on_zero,
+                                            vw::Vector3 const& xyz_guess,
                                             Vector2 & point, // output
                                             Vector3 & xyz){
 
@@ -307,7 +308,6 @@ namespace vw { namespace cartography {
           double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
           double max_rel_tol      = 1e-14;
           int    num_max_iter     = 100;
-          Vector3 xyz_guess       = Vector3();
           Vector3 camera_ctr = camera->camera_center(pixel);  // Get ray from this pixel
           Vector3 camera_vec = camera->pixel_to_vector(pixel);
           
@@ -317,8 +317,7 @@ namespace vw { namespace cartography {
                                         treat_nodata_as_zero,
                                         has_intersection,
                                         height_error_tol, max_abs_tol, max_rel_tol,
-                                        num_max_iter, xyz_guess
-                                      );
+                                        num_max_iter, xyz_guess);
           // Quit if we did not find an intersection
           if (!has_intersection)
             return false;
@@ -339,10 +338,11 @@ namespace vw { namespace cartography {
       void operator() (Vector2 const& pixel) {
 
         Vector2 point;
-        Vector3 xyz;
+        Vector3 xyz_guess, xyz;
         bool has_intersection = camera_pixel_to_dem_point(pixel, m_dem, m_dem_georef,
                                                           m_target_georef,
-                                                          m_camera, m_center_on_zero,  
+                                                          m_camera, m_center_on_zero,
+                                                          xyz_guess,
                                                           point, // output
                                                           xyz);
         // Quit if we did not find an intersection
@@ -496,7 +496,7 @@ namespace vw { namespace cartography {
                     int32 cols, int32 rows, float &mean_gsd,
                     bool quick=false,
                     std::vector<Vector3> *coords=0) {
-    
+
     // Testing to see if we should be centering on zero. The logic here is consistent
     // with point2dem.
     
@@ -528,7 +528,7 @@ namespace vw { namespace cartography {
 
     // Construct helper class with DEM and camera information.
     detail::CameraDEMBBoxHelper<DEMImageT> functor(dem, dem_georef, target_georef,
-                                                    camera_model, center_on_zero, coords);
+                                                   camera_model, center_on_zero, coords);
 
     // Running the edges. Note: The last valid point on a
     // BresenhamLine is the last point before the endpoint.
@@ -569,9 +569,12 @@ namespace vw { namespace cartography {
     // Sampled camera pixels collected so far 
     std::vector<Vector2> cam_pixels = functor.cam_pixels; 
 
+    // To give a helper hand to the DEM intersection logic later
+    std::map<std::pair<double, double>, vw::Vector3> pix2xyz;
+
     if (!quick) {
 
-      //vw_out() << "Computed image to DEM bbox: " << cam_bbox << std::endl;
+      vw_out() << "Computed image to DEM bbox: " << cam_bbox << std::endl;
 
       // Bugfix. Traversing the bbox of the image and drawing an X on
       // its diagonals is not enough sometimes to accurately determine
@@ -580,7 +583,7 @@ namespace vw { namespace cartography {
       // DEM project points in the camera, traversing the bbox of the
       // DEM and doing an X pattern, and see which fall inside.
       std::vector<Vector2> dem_pixels;
-      detail::sample_points_on_dem(dem, dem_step, dem_pixels);
+      vw::cartography::detail::sample_points_on_dem(dem, dem_step, dem_pixels);
         
       // Project the sampled points into the camera
       for (size_t it = 0; it < dem_pixels.size(); it++) {
@@ -594,16 +597,18 @@ namespace vw { namespace cartography {
           dem_pix = dem_pixels[it];
           if (!is_valid(dem.impl()(dem_pix[0], dem_pix[1])))
             continue;
-          
+
           lonlat = dem_georef.pixel_to_lonlat(dem_pix);
           height = dem.impl()(dem_pix[0], dem_pix[1]);
 
           point = target_georef.lonlat_to_point(lonlat);
-          detail::recenter_point(center_on_zero, target_georef, point);
+          vw::cartography::detail::recenter_point(center_on_zero, target_georef, point);
 
           llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
 
+          // Note: This xyz will be used way down
           xyz = dem_georef.datum().geodetic_to_cartesian(llh);
+          
           if (xyz == Vector3() || xyz != xyz) // watch for invalid values
             continue;
           
@@ -624,6 +629,7 @@ namespace vw { namespace cartography {
           // bugfix.
           vw::Vector3 cam_ctr = camera_model->camera_center(cam_pix);
           vw::Vector3 ray_vec = xyz - cam_ctr;
+          
           double dot = dot_prod(ray_vec, -xyz);
           if (dot < 0.0) 
             continue;
@@ -644,12 +650,14 @@ namespace vw { namespace cartography {
           double DIRECTION_TOLERANCE = 1e-3; 
           if (norm_2(camera_dir - ray_vec) > DIRECTION_TOLERANCE) 
             continue;
-          
+
           // Finally a good point we can accept
           cam_bbox.grow(point);
-          
+
           // Add to cam_pixels from this different way of sampling
           cam_pixels.push_back(cam_pix);
+
+          pix2xyz[std::make_pair(cam_pix.x(), cam_pix.y())] = xyz;
         }
         
         catch(...) {
@@ -671,21 +679,34 @@ namespace vw { namespace cartography {
     BBox2i image_box(0, 0, cols, rows);
     for (size_t it = 0; it < cam_pixels.size(); it++) {
 
+      // Note how we cast to int
       Vector2i ctr_pix = cam_pixels[it];
       if (!image_box.contains(ctr_pix))
         continue;
 
       Vector2 ctr_point;
-      Vector3 xyz;
+      Vector3 xyz_guess, xyz;
+
+      // If we ran into into this pixel before, we have an idea of its xyz.
+      // This will help with intersections below. Use here the original
+      // pixel, not the one cast to int.
+      auto coord_pair = std::make_pair(cam_pixels[it].x(), cam_pixels[it].y());
+      auto xyz_it = pix2xyz.find(coord_pair);
+      if (xyz_it != pix2xyz.end()) {
+        xyz_guess = xyz_it->second;
+      }
+      
       bool has_intersection = functor.camera_pixel_to_dem_point(ctr_pix, dem, dem_georef,
                                                                 target_georef,  
-                                                                camera_model, center_on_zero,  
+                                                                camera_model, center_on_zero,
+                                                                xyz_guess,
                                                                 ctr_point, // output
                                                                 xyz);
+
       if (!has_intersection)
         continue; 
       
-      // Four neighboring pixels
+      // Four neighboring pixels. Use the same guess.
       for (int j = 0; j < 4; j++) {
         Vector2i off_pix = ctr_pix;
         if (j == 0) off_pix += Vector2i(1, 0);
@@ -698,7 +719,8 @@ namespace vw { namespace cartography {
         Vector2 off_point;
         bool has_intersection
           = functor.camera_pixel_to_dem_point(off_pix, dem, dem_georef,
-                                              target_georef, camera_model, center_on_zero,  
+                                              target_georef, camera_model, center_on_zero,
+                                              xyz_guess,
                                               off_point, // output
                                               xyz);
         if (!has_intersection)
@@ -718,6 +740,7 @@ namespace vw { namespace cartography {
     int gsd_len = gsd.size();
     int beg = int(0.1*gsd_len);
     int end = int(0.9*gsd_len);
+    
     VW_ASSERT(beg < end, ArgumentErr() << "Could not sample correctly the image.");
 
     mean_gsd = 0;
