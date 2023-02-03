@@ -55,9 +55,9 @@ int main(int argc, char **argv) {
 
   std::string output_file_name;
   std::string output_file_type;
-  int tile_size;
-  float jpeg_quality;
-  int png_compression;
+  int tile_size = 0;
+  float jpeg_quality = 0;
+  int png_compression = 0;
   std::vector<std::string> image_files;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");

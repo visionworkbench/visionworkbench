@@ -444,9 +444,12 @@ namespace ba {
     f.read((char*)&(m_sigma[1]),    sizeof (m_sigma[1]));
     f.read((char*)&(m_sigma[2]),    sizeof (m_sigma[2]));
     f.read((char*)&(m_type),        sizeof (m_type));
-    int size;
-    f.read((char*)&(size),          sizeof (size));
     m_measures.clear();
+    int size = 0;
+    f.read((char*)&(size),          sizeof (size));
+    if (!f)
+      return; // do not read junk
+    
     m_measures.reserve(size);
     // Reading in all the measures
     for (int m = 0; m < size; m++) {
@@ -588,7 +591,7 @@ namespace ba {
     if (parts.size() != EXPECTED_SIZE)
       vw_throw(vw::IOErr() << "Error reading Control Point, on line: " << str);
 
-    int size;
+    int size = 0;
     m_id          = atoi(parts[0].c_str());
     m_ignore      = atoi(parts[1].c_str());
     m_position[0] = atof(parts[2].c_str());
@@ -716,13 +719,17 @@ namespace ba {
     std::getline(f, m_description, '\0');
     std::getline(f, m_userName, '\0');
 
-    // Reading in the binary data
-    f.read((char*)&(m_type), sizeof(m_type));
-    int size;
-    f.read((char*)&(size), sizeof(size));
-
     // Clearing anything left in this control network
     m_control_points.clear();
+
+    // Reading in the binary data
+    m_type = ControlNetworkType::Singleton; // ensure initialization
+    f.read((char*)&(m_type), sizeof(m_type));
+    int size = 0; // ensure initialization
+    f.read((char*)&(size), sizeof(size));
+    if (!f) 
+      return; // nothing to read
+    
     m_control_points.reserve(size);
 
     // Reading in all the control points
@@ -754,7 +761,7 @@ namespace ba {
 
     // Opening file
     std::ofstream f(filename.c_str());
-    f << std::setprecision(15);
+    f << std::setprecision(17);
 
     f << "Object = ControlNetwork\n";
     f << "  NetworkId    = " << m_networkId << "\n";
@@ -924,7 +931,7 @@ namespace ba {
     if (parts.size() != EXPECTED_SIZE)
       vw_throw(vw::IOErr() << "Error reading Control Network, on line: " << str);
 
-    int size;
+    int size = 0;
     m_targetName  = parts[0];
     m_networkId   = parts[1];
     m_created     = parts[2];
@@ -954,7 +961,7 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename,
                             << "Cannot save control network as csv.\n");
 
   std::ofstream ofs(filename.c_str());
-  ofs.precision(18);
+  ofs.precision(17);
 
   int count = 0;
   for (const_iterator iter = begin(); iter != end(); ++iter) {

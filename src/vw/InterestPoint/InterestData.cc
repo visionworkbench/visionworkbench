@@ -81,8 +81,11 @@ namespace ip {
     f.read((char*)&(ip.octave), sizeof(ip.octave));
     f.read((char*)&(ip.scale_lvl), sizeof(ip.scale_lvl));
 
-    uint64 size;
+    uint64 size = 0; // Must initialize to avoid undefined behavior if reading failed
     f.read((char*)&(size), sizeof(uint64));
+    if (!f)
+      return ip; // Nothing to read
+    
     ip.descriptor = Vector<double>(size);
     for (size_t i = 0; i < size; ++i)
       f.read((char*)&(ip.descriptor[i]), sizeof(ip.descriptor[i]));
@@ -108,8 +111,11 @@ namespace ip {
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
 
-    uint64 size;
+    uint64 size = 0;
     f.read((char*)&size, sizeof(uint64));
+    if (!f)
+      return result;
+    
     for (size_t i = 0; i < size; ++i)
       result.push_back( read_ip_record(f) );
     f.close();
@@ -123,8 +129,11 @@ namespace ip {
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
 
-    uint64 size;
+    uint64 size = 0;
     f.read((char*)&size, sizeof(uint64));
+    if (!f)
+      return result;
+    
     for (size_t i = 0; i < size; ++i)
       result.push_back( read_ip_record(f) );
     f.close();
@@ -169,9 +178,9 @@ namespace ip {
     }
     
     for (size_t i = 0; i < size1; ++i)
-      ip1.push_back( read_ip_record(f) );
+      ip1.push_back(read_ip_record(f));
     for (size_t i = 0; i < size2; ++i)
-      ip2.push_back( read_ip_record(f) );
+      ip2.push_back(read_ip_record(f));
     f.close();
   }
 

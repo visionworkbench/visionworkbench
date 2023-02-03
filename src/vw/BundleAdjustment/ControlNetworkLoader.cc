@@ -210,7 +210,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
-    vw_out(DebugMessage,"ba") << "Loading: " << match_file << std::endl;
+    // vw_out() << "Loading: " << match_file << std::endl;
     ip::read_binary_match_file(match_file, ip1, ip2);
     if (ip1.size() < min_matches) {
       vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
@@ -219,6 +219,12 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       continue;
     }
     vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
+
+    // Remove descriptors from interest points and correct scale
+    std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
+    std::for_each(ip2.begin(), ip2.end(), ip::remove_descriptor);
+    std::for_each(ip1.begin(), ip1.end(), safe_measurement);
+    std::for_each(ip2.begin(), ip2.end(), safe_measurement);
 
     if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
       vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
@@ -238,14 +244,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
         ip2[it] = ip2_full[subset[it]];
       }
     }
-    
-    num_loaded += ip1.size();
 
-    // Remove descriptors from interest points and correct scale
-    std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
-    std::for_each(ip2.begin(), ip2.end(), ip::remove_descriptor);
-    std::for_each(ip1.begin(), ip1.end(), safe_measurement);
-    std::for_each(ip2.begin(), ip2.end(), safe_measurement);
+    num_loaded += ip1.size();
 
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
@@ -350,7 +350,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   }
   
   watch.stop();
-  std::cout << "Building the control network took " << watch.elapsed_seconds() << " seconds.\n";
+  vw_out() << "Building the control network took " << watch.elapsed_seconds() << " seconds.\n";
   
   // Triangulating positions
   std::int64_t num_total_points = 0, num_failed_points = 0;

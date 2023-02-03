@@ -1350,8 +1350,10 @@ void dPoly::writePoly(std::string filename, std::string defaultColor, bool empty
     if (m_numVerts[pIter] <= 0) continue; // skip empty polygons
     if (pIter > 0) start += m_numVerts[pIter - 1];
 
-    if (pIter < (int)m_colors.size()) color = m_colors[pIter];
-    if (color != prevColor || pIter == 0) out << "color = " << color << endl;
+    if (pIter < (int)m_colors.size())
+      color = m_colors[pIter];
+    if (color != prevColor || pIter == 0)
+      out << "color = " << color << endl;
     prevColor = color;
 
     string layer = "";
