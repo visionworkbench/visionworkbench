@@ -161,7 +161,6 @@ namespace vw { namespace mosaic {
     DiskImageView<PixelT> img(file);
     for (int col = 0; col < img.cols(); col++) {
       for (int row = 0; row < img.rows(); row++) {
-	
 	if (std::isnan(img(col, row))) continue;
 	if (has_nodata && img(col, row) == nodata_val) continue;
 	vals.push_back(img(col, row));
@@ -172,7 +171,7 @@ namespace vw { namespace mosaic {
     if (vals.empty()) return bounds;
     
     //  Find sane bounds, even if they are somewhat exaggerated 
-    double pct = 0.25;
+    double pct = 0.01; // 1% outliers at either end
     double outlier_factor = 4;
     double b, e;
     vw::math::find_outlier_brackets(vals, pct, outlier_factor, b, e);
