@@ -159,9 +159,15 @@ namespace ip {
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open match file: " << match_file );
 
-    uint64 size1, size2;
+    uint64 size1 = 0, size2 = 0;
     f.read((char*)&size1, sizeof(uint64));
     f.read((char*)&size2, sizeof(uint64));
+
+    if (!f) {
+      // This is a bugfix for a crash. Apparently junk was being read.
+      return;
+    }
+    
     for (size_t i = 0; i < size1; ++i)
       ip1.push_back( read_ip_record(f) );
     for (size_t i = 0; i < size2; ++i)
@@ -190,6 +196,8 @@ namespace ip {
   }
 */
   /// Helpful functors
-  void remove_descriptor( InterestPoint & ip ) { ip.descriptor.set_size(0); }
+  void remove_descriptor( InterestPoint & ip ) {
+    ip.descriptor = ip::InterestPoint::descriptor_type(); // this should free up the memory
+  }
 
 }} // namespace vw::ip
