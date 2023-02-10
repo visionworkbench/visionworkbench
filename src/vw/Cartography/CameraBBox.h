@@ -65,7 +65,7 @@ namespace vw { namespace cartography {
     // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>,
                       BilinearInterpolation> m_dem;
-    GeoReference m_georef;
+    GeoReference const& m_georef; // making a copy will likely leak memory
     Vector3      m_camera_ctr;
     Vector3      m_camera_vec;
     bool         m_treat_nodata_as_zero;
@@ -81,7 +81,8 @@ namespace vw { namespace cartography {
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val;
       }
-      if (m_treat_nodata_as_zero) return 0;
+      if (m_treat_nodata_as_zero)
+        return 0;
       return big_val();
     }
 
@@ -94,7 +95,8 @@ namespace vw { namespace cartography {
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val[0];
       }
-      if (m_treat_nodata_as_zero) return 0;
+      if (m_treat_nodata_as_zero)
+        return 0;
       return big_val();
     }
 
@@ -115,12 +117,12 @@ namespace vw { namespace cartography {
                           GeoReference const& georef,
                           Vector3 const& camera_ctr,
                           Vector3 const& camera_vec,
-                          bool treat_nodata_as_zero
-                         )
-      : m_dem(interpolate(dem_image)), m_georef(georef),
-        m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
-        m_treat_nodata_as_zero(treat_nodata_as_zero){}
-
+                          bool treat_nodata_as_zero):
+      m_dem(interpolate(dem_image)), // create an interpolation object
+      m_georef(georef),
+      m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
+      m_treat_nodata_as_zero(treat_nodata_as_zero){}
+    
     /// Evaluator. See description above.
     inline result_type operator()(domain_type const& len) const {
       // The proposed intersection point

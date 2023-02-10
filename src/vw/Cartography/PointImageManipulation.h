@@ -46,7 +46,7 @@ namespace cartography {
   /// Functor to convert split col/row/alt values to lon/lat/alt using a georef.
   template <class PixelT>
   class DemToGeodetic : public ReturnFixedType<Vector3> {
-    GeoReference m_georef;
+    GeoReference m_georef; // TODO(oalexan1): Make this an alias to avoid a copy?
   public:
     DemToGeodetic(GeoReference const& georef) : m_georef(georef) {}
 

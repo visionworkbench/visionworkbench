@@ -83,7 +83,7 @@ namespace vw {
 namespace cartography {
 
   class ToastTransform : public TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction> {
-    GeoReference m_georef;
+    GeoReference m_georef; // TODO(oalexan1): Make this an alias to avoid a copy?
     int32 m_resolution;
 
     // A helper function to convert a point on the unit sphere to
