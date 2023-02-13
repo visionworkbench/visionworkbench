@@ -74,8 +74,12 @@ namespace camera {
     ///   distortion information is simply lost.
     CAHVModel(PinholeModel const& pin_model);
 
-    CAHVModel operator= (PinholeModel const& pin_model);
+    CAHVModel operator=(PinholeModel const& pin_model);
 
+    // Convert CAHV to Pinhole. Reference:
+    // https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2003JE002199
+    vw::camera::PinholeModel toPinhole();
+    
     virtual std::string type() const;
 
     /// Initialize the CAHV vectors indirectly using pinhole camera

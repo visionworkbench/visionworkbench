@@ -108,6 +108,7 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                                                  m_w_direction(Vector3(0,0,1)),
                                                  m_pixel_pitch(pixel_pitch),
                                                  m_do_point_to_pixel_check(true) {
+
   if (distortion_model)
     m_distortion = distortion_model->copy();
   else
@@ -305,7 +306,7 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line,
       m_distortion.reset(new RPCLensDistortion4()); // old model of degree 4
       return true;
     } else if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) != std::string::npos) ) {
-      m_distortion.reset(new RPCLensDistortion()); // currrent model of any degree
+      m_distortion.reset(new RPCLensDistortion()); // current model of any degree
       return true;
     }
   }
@@ -414,9 +415,9 @@ Vector2 PinholeModel::point_to_pixel_no_distortion(Vector3 const& point) const {
   double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
                        m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
   Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
-                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)           ) / denominator,
+                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
                            (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
-                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)           ) / denominator);
+                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
 
   // Divide by pixel pitch to convert from metric units to pixels if the intrinsic
   //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
@@ -661,16 +662,15 @@ PinholeModel scale_camera(PinholeModel const& camera_model, double scale) {
   Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   boost::shared_ptr<LensDistortion> lens = camera_model.lens_distortion()->copy();
-  return PinholeModel( camera_model.camera_center(),
-                       camera_model.camera_pose().rotation_matrix(),
-                       focal[0], focal[1], offset[0], offset[1],
-                       camera_model.coordinate_frame_u_direction(),
-                       camera_model.coordinate_frame_v_direction(),
-                       camera_model.coordinate_frame_w_direction(),
-                       lens.get(),
-                       camera_model.pixel_pitch()/scale);
+  return PinholeModel(camera_model.camera_center(),
+                      camera_model.camera_pose().rotation_matrix(),
+                      focal[0], focal[1], offset[0], offset[1],
+                      camera_model.coordinate_frame_u_direction(),
+                      camera_model.coordinate_frame_v_direction(),
+                      camera_model.coordinate_frame_w_direction(),
+                      lens.get(),
+                      camera_model.pixel_pitch()/scale);
 }
-
 
 PinholeModel strip_lens_distortion(PinholeModel const& camera_model) {
   Vector2 focal  = camera_model.focal_length();
@@ -748,8 +748,8 @@ std::ostream& operator<<(std::ostream& str,
                                  PinholeModel const& model) {
 
   str << "Pinhole camera: \n";
-  str << "\tCamera Center: " << model.camera_center() << "\n";
-  str << "\tRotation Matrix: " << model.camera_pose() << "\n";
+  str << "\tCamera center: " << model.camera_center() << "\n";
+  str << "\tRotation matrix: " << model.camera_pose() << "\n";
   str << "\tIntrinsics:\n";
   str << "\t  focal: "       << model.focal_length() << "\n";
   str << "\t  offset: "      << model.point_offset() << "\n";
@@ -757,7 +757,7 @@ std::ostream& operator<<(std::ostream& str,
   str << "\tu direction: " << model.coordinate_frame_u_direction() << "\n";
   str << "\tv direction: " << model.coordinate_frame_v_direction() << "\n";
   str << "\tw direction: " << model.coordinate_frame_w_direction() << "\n";
-  str << "\tDistortion Model: " << model.lens_distortion()->name() << "\n";
+  str << "\tDistortion model: " << model.lens_distortion()->name() << "\n";
   str << *(model.lens_distortion()); // this will be multiple lines
 
   return str;

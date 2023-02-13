@@ -61,16 +61,17 @@ namespace camera {
   std::string
   CAHVModel::type() const { return "CAHV"; }
 
-  CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
+  CAHVModel CAHVModel::operator=(PinholeModel const& pin_model) {
 
     //  Pinhole model parameters (in nominal units)
     double fH, fV, cH, cV;
     pin_model.intrinsic_parameters(fH, fV, cH, cV);
     
-    // Convert parameters to pixel units
+    // Convert the intrinsics to pixel units
     double pitch = pin_model.pixel_pitch();
     if (pitch == 0)
-      vw_throw( ArgumentErr() << "CAHVModel::operator=() input pinhole model has zero pitch!" );
+      vw_throw(ArgumentErr() << "CAHVModel::operator=() input pinhole model has zero pitch!");
+    
     fH /= pitch;
     fV /= pitch;
     cH /= pitch;
@@ -83,9 +84,9 @@ namespace camera {
     //  The true rotation between world and camera coordinate
     //  frames includes the rotation R --AND-- a rotation from
     //  specifying the directions of increasing u,v,w pixels
-    Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
+    Matrix<double,3,3> R = pin_model.get_rotation_matrix();
 
-    //  Now create the components of the CAHV model...
+    //  Now create the components of the CAHV model.
     Vector3 Hvec = R*u;
     Vector3 Vvec = R*v;
 
@@ -97,6 +98,43 @@ namespace camera {
     return *this;
   }
 
+  // Convert CAHV to Pinhole. if the CAHV model was created from
+  // Pinhole using operator=(PinholeModel const& pin_model), the
+  // original pinhole model should be recovered. Reference:
+  // https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2003JE002199
+  vw::camera::PinholeModel CAHVModel::toPinhole() {
+    
+    double Hc = dot_prod(A, H);           // optical center x
+    double fH = norm_2(cross_prod(A, H)); // focal length x
+    double Vc = dot_prod(A, V);           // optical center y
+    double fV = norm_2(cross_prod(A, V)); // focal length y
+    vw::Vector3 H_prime = (H - Hc * A)/fH;
+    vw::Vector3 V_prime = (V - Vc * A)/fV;
+
+    // Normalize
+    H_prime = H_prime/norm_2(H_prime);
+    V_prime = V_prime/norm_2(V_prime);
+    A = A/norm_2(A);
+    
+    // world-to-cam
+    vw::Matrix<double> R;
+    R.set_size(3, 3);
+    for (int col = 0; col < 3; col++) {
+      R(0, col) = H_prime[col];
+      R(1, col) = V_prime[col]; // plus or minus?
+      // Below we do not use a minus sign, unlike the paper
+      // above. That because the VW Pinhole camera model does not
+      // change the sign of the x and y pixel coordinates after
+      // projecting into the camera.
+      R(2, col) = A[col];
+    }
+
+    // Use no distortion, and set pixel pitch to 1
+    LensDistortion const* distortion = NULL;
+    double pixel_pitch = 1.0;
+    return vw::camera::PinholeModel(C, inverse(R), fH, fV, Hc, Vc, distortion, pixel_pitch);
+  }
+  
   CAHVModel::CAHVModel(double f, Vector2 const& pixel_size,
                        double xmin, double /*xmax*/, double ymin, double /*ymax*/,
                        Matrix<double, 4, 4> const& view_matrix) {
@@ -246,20 +284,6 @@ namespace camera {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read Vvec\n" );
       fclose(camFP);
     }
-
-    // In the future, we should also read in a view matrix -- LJE
-    //     double dummy
-    //     if (sscanf(line, "VM = %lf %lf %lf %f %lf %lf %lf %f "
-    //        "%lf %lf %lf %f %lf %lf %lf %f ",
-    //        &Hvec(0), &Hvec(1), &Hvec(2), &dummy,
-    //        &Vvec(0), &Vvec(1), &Vvec(2), &dummy,
-    //        &A(0), &A(1), &A(2), &dummy,
-    //        &C(0), &C(1), &C(2), &dummy) != 16)
-    //     {
-    //       vw_throw( IOErr()
-    //  << "CAHVModel::ReadPinhole: Could not read view matrix\n" );
-    //       fclose(camFP);
-    //     }
 
     fH = f/pixelSize.x();
     fV = f/pixelSize.y();
