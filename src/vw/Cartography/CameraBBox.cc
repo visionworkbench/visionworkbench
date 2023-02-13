@@ -57,7 +57,7 @@ namespace vw { namespace cartography { namespace detail {
   /// A class to help identify the extent of an image when
   /// projected onto a datum.
   class CameraDatumBBoxHelper {
-    GeoReference m_georef; // TODO(oalexan1): Make this an alias to avoid a copy?
+    GeoReference const& m_georef; // alias
     boost::shared_ptr<camera::CameraModel> m_camera;
     Vector2      m_last_intersect;
     std::vector<Vector2> *m_coords;
@@ -67,16 +67,16 @@ namespace vw { namespace cartography { namespace detail {
     BBox2  box;
     double scale;
 
-    CameraDatumBBoxHelper( GeoReference const& georef,
-			   boost::shared_ptr<camera::CameraModel> camera,
-			   bool center=false,
-			   std::vector<Vector2> *coords=0):
+    CameraDatumBBoxHelper(GeoReference const& georef,
+                          boost::shared_ptr<camera::CameraModel> camera,
+                          bool center=false,
+                          std::vector<Vector2> *coords=0):
       m_georef(georef), m_camera(camera), m_coords(coords), last_valid(false),
       center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
       if (m_coords)
         m_coords->clear();
     }
-
+    
     void operator()( Vector2 const& pixel ) {
       bool has_intersection;
       Vector2 point = geospatial_intersect(m_georef,

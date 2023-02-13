@@ -47,16 +47,14 @@ namespace cartography {
 
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<TerrainImageT>, double, int32>::type offset_type;
 
-    TerrainImageT        m_terrain;
-    GeoReference         m_georef;
-    camera::CameraModel* m_camera_model; // There is a big assumption
-                                         // here that the user's
-                                         // camera model is thread
-                                         // safe.
+    TerrainImageT m_terrain;
+    GeoReference  m_georef; // make a copy
+    // There is a big assumption here that the user's camera model is thread safe.
+    camera::CameraModel* m_camera_model;
     InterpolationView<EdgeExtensionView<CameraImageT, EdgeT>, InterpT> m_camera_image;
-    CameraImageT m_camera_image_ref;
-    InterpT      m_interp_func;
-    EdgeT        m_edge_func;
+    CameraImageT  m_camera_image_ref;
+    InterpT       m_interp_func;
+    EdgeT         m_edge_func;
 
     // Provide safe interaction with DEMs that are scalar or compound
     template <class PixelT>

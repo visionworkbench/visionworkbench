@@ -65,7 +65,7 @@ namespace vw { namespace cartography {
     // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>,
                       BilinearInterpolation> m_dem;
-    GeoReference const& m_georef; // making a copy will likely leak memory
+    GeoReference const& m_georef; // use an alias, as making a copy will likely leak memory
     Vector3      m_camera_ctr;
     Vector3      m_camera_vec;
     bool         m_treat_nodata_as_zero;

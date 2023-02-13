@@ -992,29 +992,6 @@ ProjContext::ProjContext(std::string const& proj4_str): m_proj4_str(proj4_str) {
                  << m_proj4_str << ".\n");
   
   // TODO(oalexan1): Do we need to split the proj string above?
-  
-#if 0
-  // TODO(oalexan1): Wipe this
-  m_proj_ctx_ptr.reset(pj_ctx_alloc(),
-                       &temp_dealloc<void>
-                       // pj_ctx_free 
-                       );
-  int num;
-  char** proj_strings = split_proj4_string(m_proj4_str, num);
-  m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
-                               num, proj_strings),
-                   //&temp_dealloc<void>
-                     proj_destroy);
-  
-  VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-            InputErr() << "Proj.4 failed to initialize on string: "
-            << m_proj4_str << "\n\tError was: " 
-              << (pj_ctx_get_errno(m_proj_ctx_ptr.get())));
-  
-  for (int i = 0; i < num; i++)
-    delete [] proj_strings[i];
-  delete [] proj_strings;
-#endif
 }
   
 ProjContext::ProjContext(ProjContext const& other): m_proj4_str(other.m_proj4_str) {
@@ -1031,25 +1008,6 @@ ProjContext::ProjContext(ProjContext const& other): m_proj4_str(other.m_proj4_st
       vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a projection for proj4 string: "
                    << m_proj4_str << ".\n");
 
-#if 0
-    // TODO(oalexan1): Wipe this
-    m_proj_ctx_ptr.reset(pj_ctx_alloc(), &temp_dealloc<void> /*pj_ctx_free*/);
-    
-    int num = -1; // will change
-    char** proj_strings = split_proj4_string(m_proj4_str, num);
-    m_proj_ptr.reset(pj_init_ctx(m_proj_ctx_ptr.get(),
-                                 num, proj_strings), /*&temp_dealloc<void>*/
-                     proj_destroy);
-
-    VW_ASSERT(!pj_ctx_get_errno(m_proj_ctx_ptr.get()),
-              InputErr() << "Proj.4 failed to initialize on string: "
-              << m_proj4_str << "\n\tError was: " 
-              << (pj_ctx_get_errno(m_proj_ctx_ptr.get())));
-    
-    for (int i = 0; i < num; i++)
-      delete [] proj_strings[i];
-    delete [] proj_strings;
-#endif
   }
 
   // TODO(oalexan1): See about how to do error checks
@@ -1061,7 +1019,8 @@ ProjContext::ProjContext(ProjContext const& other): m_proj4_str(other.m_proj4_st
   }
 
   ProjContext::~ProjContext() {
-    // TODO(oalexan1): Deleting causes a crash!
+    // TODO(oalexan1): Deleting causes a crash! Must
+    // revisit this, as one gets memory leaks!
     //proj_destroy(m_pj_transform);
     //proj_context_destroy(m_pj_context);
   }

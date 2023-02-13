@@ -168,7 +168,7 @@ private:
     PointBuffer const& m_inbuf;
     int m_blockSize;
     bool m_have_georef;
-    vw::cartography::GeoReference m_georef; // TODO(oalexan1): Make this an alias to avoid copy?
+    vw::cartography::GeoReference m_georef; // make an internal copy
     int m_numMaxPtsInChip;
     int m_currChip;
     std::vector<PointId> m_partitions;

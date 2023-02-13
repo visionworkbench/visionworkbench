@@ -47,10 +47,6 @@ namespace cartography {
   // projection context using a smart pointer.
   class ProjContext {
 
-    // TODO(oalexan1): Wipe these two.
-    boost::shared_ptr<void> m_proj_ctx_ptr;
-    boost::shared_ptr<void> m_proj_ptr;
-
     /// 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
@@ -66,12 +62,6 @@ namespace cartography {
     PJ_CONTEXT * m_pj_context;
     PJ * m_pj_transform;
 
-    inline void* proj_ptr() const {
-      VW_ASSERT(is_initialized(),
-                ArgumentErr() << "ProjContext: Projection not initialized.");
-      return m_proj_ptr.get();
-    }
-    
     /// Return true if the object is fully initialized
     bool is_initialized() const {
       return !m_proj4_str.empty() && m_pj_context && m_pj_transform;
