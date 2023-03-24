@@ -64,7 +64,10 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   // Ensure this is initialized
   cp.set_position((Vector3(0, 0, 0)));
   
-  // Do pairwise triangulation then average the results. Note that as
+  // TODO(oalexan1): This is fragile as it only intersects each ray with the
+  // next one, given N rays. 
+
+  // Do pairwise triangulation then average the results.  Note that as
   // long as at least two of the rays meet with a triangulation angle
   // no less than min_angle_radians, triangulation will succeed, and
   // these successful triangulation points will be averaged. Hence,

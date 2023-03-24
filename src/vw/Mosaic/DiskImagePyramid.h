@@ -200,7 +200,7 @@ namespace vw { namespace mosaic {
     // that has the effect of not accidentally setting some pixels to nodata.
     DiskImagePyramid(std::string const& base_file = "",
 		     vw::GdalWriteOptions const& opt = vw::GdalWriteOptions(),
-		     int top_image_max_pix = 1000*1000,
+		     int lowest_resolution_subimage_num_pixels = 1000*1000,
 		     int subsample = 2);
 
     // Given a region (at full resolution) and a scale factor, compute
@@ -245,7 +245,7 @@ namespace vw { namespace mosaic {
 
     // The maxiumum number of pixels in the coarsest level of the pyramid
     // (keep on downsampling until getting to this number or under it).
-    int m_top_image_max_pix;
+    int m_lowest_resolution_subimage_num_pixels;
 
     //  The pyramid. Largest images come earlier.
     std::vector<ImageViewRef<PixelT>> m_pyramid;
@@ -271,10 +271,10 @@ namespace vw { namespace mosaic {
   template <class PixelT>
   DiskImagePyramid<PixelT>::DiskImagePyramid(std::string const& base_file,
                                              vw::GdalWriteOptions const& opt,
-                                             int top_image_max_pix,
+                                             int lowest_resolution_subimage_num_pixels,
                                              int subsample):
     m_opt(opt), m_subsample(subsample),
-    m_top_image_max_pix(top_image_max_pix),
+    m_lowest_resolution_subimage_num_pixels(lowest_resolution_subimage_num_pixels),
     m_nodata_val(std::numeric_limits<double>::quiet_NaN()) {
     
     if (base_file.empty())
@@ -284,7 +284,7 @@ namespace vw { namespace mosaic {
       vw_throw( ArgumentErr()
                 << "Must subsample by a factor of at least 2.\n");
 
-    if (top_image_max_pix < 4)
+    if (lowest_resolution_subimage_num_pixels < 4)
       vw_throw( ArgumentErr()
                 << "The image at the top of the pyramid must be at least 2x2 in size.\n");
 
@@ -302,7 +302,7 @@ namespace vw { namespace mosaic {
     // Keep making more pyramid levels until they are small enough
     int level = 0;
     int scale = 1;
-    while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows()) > m_top_image_max_pix) {
+    while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows()) > m_lowest_resolution_subimage_num_pixels) {
 
       // The name of the file at the current scale
       std::ostringstream os;
