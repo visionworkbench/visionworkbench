@@ -145,22 +145,21 @@ namespace vw { namespace mosaic {
   /// Logic to find some approximate values for the valid pixels, ignoring the worst
   /// outliers. Use the lowest pyramid level.
   template <class PixelT>
-  typename boost::enable_if<boost::is_same<PixelT,double>, vw::Vector2 >::type
-  get_approx_bounds_nocache(std::string const& file){
+  typename boost::enable_if<boost::is_same<PixelT, double>, vw::Vector2>::type
+  approx_bounds_nocache(std::string const& file, bool has_nodata,
+                        double nodata_val) {
     
     double big = std::numeric_limits<double>::max();
     
-    // Get the nodata value, if present
-    double nodata_val = -big;
-    bool has_nodata = read_nodata_val(file, nodata_val);
-    
-    // To make life easy
-    if (std::isnan(nodata_val)) nodata_val = -big;
-    
-    std::vector<double> vals;
     DiskImageView<PixelT> img(file);
-    for (int col = 0; col < img.cols(); col++) {
-      for (int row = 0; row < img.rows(); row++) {
+    double num_samples = 250.0; // this many samples should be enough
+    int delta_col = (int)std::max(ceil(img.cols() / num_samples), 1.0);
+    int delta_row = (int)std::max(ceil(img.rows() / num_samples), 1.0);
+    std::vector<double> vals;
+    vals.reserve(num_samples * num_samples);
+    vals.clear();
+    for (int col = 0; col < img.cols(); col += delta_col) {
+      for (int row = 0; row < img.rows(); row += delta_row) {
 	if (std::isnan(img(col, row))) continue;
 	if (has_nodata && img(col, row) == nodata_val) continue;
 	vals.push_back(img(col, row));
@@ -180,8 +179,8 @@ namespace vw { namespace mosaic {
   }
   
   template <class PixelT>
-  typename boost::disable_if<boost::is_same<PixelT,double>, vw::Vector2 >::type
-  get_approx_bounds_nocache(std::string const& file){
+  typename boost::disable_if<boost::is_same<PixelT,double>, vw::Vector2>::type
+  approx_bounds_nocache(std::string const& file, bool has_nodata, double nodata_val) {
     return vw::Vector2(); // multi-channel image
   }
   
@@ -213,7 +212,7 @@ namespace vw { namespace mosaic {
     // Find the right pyramid level to use for the given sub scale
     int pyramidLevel(double sub_scale) const;
     
-    vw::Vector2 get_approx_bounds() const {
+    vw::Vector2 approx_bounds() const {
       return m_approx_bounds;
     }
     
@@ -276,7 +275,7 @@ namespace vw { namespace mosaic {
     m_opt(opt), m_subsample(subsample),
     m_lowest_resolution_subimage_num_pixels(lowest_resolution_subimage_num_pixels),
     m_nodata_val(std::numeric_limits<double>::quiet_NaN()) {
-    
+
     if (base_file.empty())
       return;
 
@@ -286,7 +285,7 @@ namespace vw { namespace mosaic {
 
     if (lowest_resolution_subimage_num_pixels < 4)
       vw_throw( ArgumentErr()
-                << "The image at the top of the pyramid must be at least 2x2 in size.\n");
+                << "The lowest resolution subimage must be at least 2x2 in size.\n");
 
     m_pyramid.push_back(custom_read<PixelT>(base_file));
 
@@ -302,7 +301,8 @@ namespace vw { namespace mosaic {
     // Keep making more pyramid levels until they are small enough
     int level = 0;
     int scale = 1;
-    while (double(m_pyramid[level].cols())*double(m_pyramid[level].rows()) > m_lowest_resolution_subimage_num_pixels) {
+    while (double(m_pyramid[level].cols()) * double(m_pyramid[level].rows())
+           > m_lowest_resolution_subimage_num_pixels) {
 
       // The name of the file at the current scale
       std::ostringstream os;
@@ -385,8 +385,9 @@ namespace vw { namespace mosaic {
       level++;
     } // End level creation loop
 
-    // This is very expensive, so cache it going forward
-    m_approx_bounds = get_approx_bounds_nocache<PixelT>(m_pyramid_files.back());
+    // This is expensive, so cache it going forward
+    m_approx_bounds = approx_bounds_nocache<PixelT>(m_pyramid_files.back(),
+                                                    has_nodata, m_nodata_val);
   }
 
   // Find the right pyramid level to use for the given sub scale
