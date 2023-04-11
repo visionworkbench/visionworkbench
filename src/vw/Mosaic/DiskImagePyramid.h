@@ -152,7 +152,7 @@ namespace vw { namespace mosaic {
     double big = std::numeric_limits<double>::max();
     
     DiskImageView<PixelT> img(file);
-    double num_samples = 250.0; // this many samples should be enough
+    double num_samples = 250.0; // too many samples makes this slow
     int delta_col = (int)std::max(ceil(img.cols() / num_samples), 1.0);
     int delta_row = (int)std::max(ceil(img.rows() / num_samples), 1.0);
     std::vector<double> vals;

@@ -376,9 +376,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     vw_out() << "\n" << "Triangulated successfully "
              << num_total_points - num_failed_points << " out of " << num_total_points
              << " points (ratio: " << 1.0 - num_failed_points / double(num_total_points)
-             << "). If too many failures, perhaps your baseline/convergence angle is too small. "
-             << "Or consider deleting your run directory and rerunning with more match points, "
-             << "decreasing --min-triangulation-angle, or using "
+             << "). If too many failures, perhaps your baseline/convergence angle "
+             << "is too small. Or consider deleting your run directory and rerunning "
+             << "with more match points, decreasing --min-triangulation-angle, or using "
              << "--forced-triangulation-distance.\n";
           
   return true;
@@ -410,9 +410,8 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
     vw_out() << "Loading GCP file: " << *gcp_iter << std::endl;
 
-    if (!fs::exists(*gcp_iter)) {
+    if (!fs::exists(*gcp_iter))
       vw_throw(ArgumentErr() << "GCP file " << *gcp_iter << " does not exist!");
-    }
 
     std::ifstream ifile((*gcp_iter).c_str());
     std::string line;
@@ -435,26 +434,26 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       // the world, and its sigmas
       if (!(is >> point_id >> world_location[0] >> world_location[1]
             >> world_location[2] >> world_sigma[0]
-            >> world_sigma[1] >> world_sigma[2])){
+            >> world_sigma[1] >> world_sigma[2])) {
         vw_out(WarningMessage) << "Could not parse a ground control point "
                                << "from line: " << line << std::endl;
         continue;
       }
 
       // Other elements in the line define the position in images
-      while(1){
-        std::string temp_name;
-        Vector4 temp_loc;
-        if (is >> temp_name >> temp_loc[0] >> temp_loc[1]
-            >> temp_loc[2] >> temp_loc[3]){
-          if (temp_loc[2] <= 0 || temp_loc[3] <= 0) {
+      while (1) {
+        std::string image_name;
+        Vector4 pix_std;
+        if (is >> image_name >> pix_std[0] >> pix_std[1] >> pix_std[2] >> pix_std[3]){
+          if (pix_std[2] <= 0 || pix_std[3] <= 0) {
             vw_throw(ArgumentErr() << "Standard deviations must be positive "
                                     << "when loading ground control points.");
           }
-          measure_locations.push_back(temp_loc);
-          measure_cameras.push_back(temp_name);
-        }else{
-                break;
+
+          measure_locations.push_back(pix_std);
+          measure_cameras.push_back(image_name);
+        } else {
+          break;
         }
       }
 
@@ -465,7 +464,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       // Make lat,lon into lon,lat
       std::swap(world_location[0], world_location[1]);
 
-      // Building Control Point
+      // Convert GCP from lon,lat,height to ECEF
       Vector3 xyz = datum.geodetic_to_cartesian(world_location);
 
       vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: " << xyz << std::endl;
@@ -474,22 +473,22 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       cpoint.set_sigma   (world_sigma[0], world_sigma[1], world_sigma[2]);
 
       // Adding measures
-      std::vector<Vector4    >::iterator m_iter_loc  = measure_locations.begin();
-      std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
-      while (m_iter_loc != measure_locations.end()) {
-        LookupType::iterator it = image_lookup.find(*m_iter_name);
+      auto iter_loc  = measure_locations.begin();
+      auto iter_name = measure_cameras.begin();
+      while (iter_loc != measure_locations.end()) {
+        LookupType::iterator it = image_lookup.find(*iter_name);
         if (it != image_lookup.end()) {
-          vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
+          vw_out(DebugMessage,"ba") << "\t\tAdded measure: " << *iter_name
                                     << " #" << it->second << std::endl;
-          ControlMeasure cm((*m_iter_loc)[0], (*m_iter_loc)[1],
-                             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second);
+          ControlMeasure cm((*iter_loc)[0], (*iter_loc)[1],
+                             (*iter_loc)[2], (*iter_loc)[3], it->second);
           cpoint.add_measure(cm);
         } else {
           vw_out(WarningMessage,"ba") << "No input image found matching "
-                                      << *m_iter_name << std::endl;
+                                      << *iter_name << std::endl;
         }
-        m_iter_loc++;
-        m_iter_name++;
+        iter_loc++;
+        iter_name++;
       }
 
       // Append the GCP
