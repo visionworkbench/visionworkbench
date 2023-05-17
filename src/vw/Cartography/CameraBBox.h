@@ -79,10 +79,13 @@ namespace vw { namespace cartography {
       if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
            (0 <= y) && (y <= m_dem.rows() - 1)){
         PixelT val = m_dem(x, y);
-        if (is_valid(val)) return val;
+        if (is_valid(val))
+          return val;
       }
+
       if (m_treat_nodata_as_zero)
         return 0;
+
       return big_val();
     }
 
@@ -93,10 +96,12 @@ namespace vw { namespace cartography {
       if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
            (0 <= y) && (y <= m_dem.rows() - 1)){
         PixelT val = m_dem(x, y);
-        if (is_valid(val)) return val[0];
+        if (is_valid(val))
+          return val[0];
       }
       if (m_treat_nodata_as_zero)
         return 0;
+
       return big_val();
     }
 
@@ -156,7 +161,9 @@ namespace vw { namespace cartography {
                                   double max_rel_tol      = 1e-14,
                                   int num_max_iter        = 100,
                                   Vector3 xyz_guess       = Vector3(),
-                                  double height_guess     = 0.0) {
+                                  double height_guess     = 0.0,
+                                  // Can call itself recursively if it fails
+                                  int attempt = 0) {
     
     // This is a very fragile function and things can easily go wrong. 
     try {
@@ -175,7 +182,7 @@ namespace vw { namespace cartography {
           has_intersection = false;
           return Vector3();
         }
-      }else{ // User provided guess
+      } else { // User provided guess
         xyz = xyz_guess;
       }
 
@@ -188,28 +195,38 @@ namespace vw { namespace cartography {
       // along the ray until hopefully it does.
       const double radius     = norm_2(xyz); // Radius from XZY coordinate center
       const int    ITER_LIMIT = 10; // There are two solver attempts per iteration
-      const double small      = radius*0.02/(1 << (ITER_LIMIT-1)); // Wiggle
+      const double small      = radius*0.02/(1 << ITER_LIMIT); // Wiggle
       for (int i = 0; i <= ITER_LIMIT; i++){
-        // Gradually expand delta until on final iteration it is == radius*0.02
-        double delta = 0;
-        if (i > 0)
-          delta = small*(1 << (i-1));
 
-        for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
-          len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
+        // Gradually expand delta magnitude until on final iteration it is ==
+        // radius*0.02. If attempt == 0 and i == 0, start with a delta of 0.0,
+        // so that we are at the initial guess. Else, start with a positive
+        // value. For attempt > 0 this case this code is calling itself
+        // recursively because it failed previously and we want to keep on going
+        // forward. Either way, next we flip between positive and negative
+        // values of ever-increasing magnitude.
+        double delta = small*(1 << i);
+        if (attempt == 0 && i == 0)
+          delta = 0.0; // See note above
+
+        for (int k = -1; k <= 1; k += 2) { // For k==-1, k==1
+          // Use below -k because we want len to increase first time, so move down
+          // along ray direction.
+          len[0] = len0[0] - k*delta; // Ray guess length +/- 2% planetary radius
+
           // Use our model to compute the height diff at this length
           Vector<double, 1> height_diff = model(len);
-          // TODO: This is an EXTREMELY lenient threshold! big_val()/10.0 == 1.0e+49!!!
-          // The effect of this may be to just stop this loop when we get over valid DEM terrain.
-          if (std::abs(height_diff[0]) < (model.big_val()/10.0)){
+          // TODO: This is a very lenient threshold. big_val()/10.0 == 1.0e+49.
+          // The effect of this is to stop this loop when we get over valid DEM terrain.
+          if (std::abs(height_diff[0]) < (model.big_val()/10.0)) {
             has_intersection = true;
             break;
           }
-          //if (i == 0) break; // When k*delta==0, no reason to do both + and -!
-
         } // End k loop
+
         if (has_intersection)
           break;
+
       } // End i loop
 
       // Failed to compute an intersection in the hard coded iteration limit!
@@ -217,20 +234,39 @@ namespace vw { namespace cartography {
         return Vector3();
       }
 
-      // Refining the intersection using Levenberg-Marquardt
+      // Refining the intersection using Levenberg-Marquardt, using the value
+      // of 'len' just found.
       // - This will actually use the L-M solver to play around with the len
       //   value to minimize the height difference from the DEM.
       int status = 0;
       Vector<double, 1> observation; observation[0] = 0;
       len = math::levenberg_marquardt(model, len, observation, status,
-                                      max_abs_tol, max_rel_tol,
-                                      num_max_iter);
-
+        max_abs_tol, max_rel_tol, num_max_iter);
       Vector<double, 1> dem_height = model(len);
-
-      if ((status < 0) || (std::abs(dem_height[0]) > height_error_tol)){
+      
+      if (status < 0) {
+        // Failed. No hope.
         has_intersection = false;
         return Vector3();
+      }
+
+      if (std::abs(dem_height[0]) > height_error_tol) {
+        // Success, but did not hit the tolerance. Try again.  
+        if (attempt > 10) {
+          // Tried enough attempts, give up
+          has_intersection = false;
+          return Vector3();
+        }
+
+        // Call itself recursively. Next time will start at a different
+        // location xyz_guess, determined as below.
+        double height_guess = 0.0; // since we use xyz_guess, set this to 0.0.
+        Vector3 xyz_guess = camera_ctr + len[0]*camera_vec;
+        return camera_pixel_to_dem_xyz(camera_ctr, camera_vec, dem_image, georef,
+                                       treat_nodata_as_zero, has_intersection,
+                                       height_error_tol, max_abs_tol, max_rel_tol,
+                                       num_max_iter, xyz_guess, height_guess, 
+                                       attempt + 1);
       }
 
       has_intersection = true;
@@ -306,7 +342,6 @@ namespace vw { namespace cartography {
         try {
           // TODO: Make this an input option!  Whether or not this goes outside the dem is IMPORTANT
           bool   treat_nodata_as_zero = false; // Intersect with datum if no dem
-          
           bool   has_intersection = false;
           double height_error_tol = 1e-3;   // error in DEM height
           double max_abs_tol      = 1e-14;  // abs cost function change b/w iters

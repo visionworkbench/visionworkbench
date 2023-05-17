@@ -95,7 +95,9 @@ void init_blas (){
 }
   
 
-// If prefix is "dir/out", create directory "dir"
+// If prefix is "dir/out", create directory "dir".
+// If the output prefix does not contain a directory, we will do nothing,
+// as the output will be written to the current directory.
 void create_out_dir(std::string out_prefix){
 
   fs::path out_prefix_path(out_prefix);
@@ -105,8 +107,10 @@ void create_out_dir(std::string out_prefix){
                << out_prefix_path.parent_path() << ".\n";
       fs::create_directories(out_prefix_path.parent_path());
     }
-  }
+  } 
 
+  // It is convenient to put this code here as this function is called
+  // from many places. 
   init_blas();
   
   return;

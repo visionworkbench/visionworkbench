@@ -247,6 +247,7 @@ double vw::cartography::Datum::inverse_flattening() const {
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
+// NED to ECEF transform. See the .h file for more info.
 vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& lonlat) const {
   double lon = lonlat.x();
   double lat = lonlat.y();

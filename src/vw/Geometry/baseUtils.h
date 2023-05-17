@@ -22,6 +22,7 @@
 #include <string>
 #include <sstream>
 
+// TODO(oalexan1): Move these to vw/Core.
 namespace vw { namespace geometry {
   
   template<class T>
