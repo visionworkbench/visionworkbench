@@ -259,7 +259,9 @@ namespace vw { namespace cartography {
         }
 
         // Call itself recursively. Next time will start at a different
-        // location xyz_guess, determined as below.
+        // location xyz_guess, determined as below, plus an extra adjustment
+        // in that function. The goal is to dislodge this from the local
+        // minimum it is stuck in.
         double height_guess = 0.0; // since we use xyz_guess, set this to 0.0.
         Vector3 xyz_guess = camera_ctr + len[0]*camera_vec;
         return camera_pixel_to_dem_xyz(camera_ctr, camera_vec, dem_image, georef,
