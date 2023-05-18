@@ -205,7 +205,7 @@ namespace vw { namespace cartography {
         // recursively because it failed previously and we want to keep on going
         // forward. Either way, next we flip between positive and negative
         // values of ever-increasing magnitude.
-        double delta = small*(1 << i);
+        double delta = small*(1 << i)*(1 << attempt); // go further in later attempts
         if (attempt == 0 && i == 0)
           delta = 0.0; // See note above
 
