@@ -210,7 +210,8 @@ namespace vw { namespace cartography {
     // Initialize the output
     has_intersection = false;
 
-    // Try the secant method. The value of j will control the step size
+    // Do several attempts with different starting values for x1. The value of j
+    // will control the step size.
     int num_j = 100; // will use this variable in two places below
     Vector<double, 1> len1, len2; 
 
@@ -219,6 +220,14 @@ namespace vw { namespace cartography {
       double x0 = len[0];
       double f0 = model(len)[0];
     
+      if (std::abs(f0) < height_error_tol) {
+        // As a robustness check, return early if we are already close enough.
+        // Otherwise may end up with a denominator close to 0 below.
+        len[0] = x0;
+        has_intersection = true;
+        return; // Done
+      }
+
       double x1 = len[0] + 10.0 * (j + 1); 
       len1[0] = x1;
       double f1 = model(len1)[0];
@@ -302,7 +311,7 @@ namespace vw { namespace cartography {
       // Call the secant method function to find the intersection with the
       // ground. Return has_intersection and len. This is 10x faster and more
       // robust than the Levenberg-Marquardt method used below (which used to be
-      // // the original method).
+      // the original method).
       Vector<double, 1> len_secant = len; // will change
       secantMethod(model, camera_ctr, camera_vec, height_error_tol,
                    has_intersection, len_secant);
