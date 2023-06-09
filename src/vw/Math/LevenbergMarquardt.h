@@ -45,7 +45,7 @@ namespace math {
   /// evaluate h(x) as well as a way to differentiate h() to get its
   /// Jacobian.  In the past we've implemented a fallback option by
   /// computing the Jacobian numerically which seems to work pretty
-  /// well.  This LeastSquaresModelFunction shoulde be implemented as
+  /// well.  This LeastSquaresModelFunction should be implemented as
   /// an inherited class using the curiously recurring template
   /// mechanism (CRTP) using the following syntax:
   ///

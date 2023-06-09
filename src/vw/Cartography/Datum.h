@@ -132,6 +132,8 @@ namespace cartography {
     /// East, and Down directions at given lon and lat.  And the
     /// reverse holds, if v is in the NED coordinate system, this
     /// matrix times v will be its expression in ECEF.
+    /// This assumes the planet to be a perfect sphere, which can be 
+    /// problematic.
     Matrix3x3 lonlat_to_ned_matrix(Vector2 const& lonlat) const;
 
     Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
