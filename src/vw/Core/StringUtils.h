@@ -7,6 +7,7 @@
 
 #include <string>
 #include <sstream>
+#include <vector>
 #include <vw/Core/Exception.h>
 
 namespace vw{
@@ -42,9 +43,9 @@ namespace vw{
   template <class VecT>
   std::string vec_to_str(VecT const& vec){
 
-    // TODO(oalexan1): Maybe the precision should be 17 here.
+    // Use 17 digits of precision
     std::ostringstream oss;
-    oss.precision(16);
+    oss.precision(17);
     for (int i = 0; i < (int)vec.size()-1; i++) oss << vec[i] << " ";
     if (vec.size() > 0) oss << vec[vec.size()-1];
     
@@ -57,6 +58,7 @@ namespace vw{
   // vals = str_to_vec<Vector3>(str);
   // Optionally pass in several separators (by default use space
   // as separator).
+  // See below for parsing into an std vector.
   template<class VecT>
   VecT str_to_vec(std::string const& str, std::string separators) {
 
@@ -82,6 +84,9 @@ namespace vw{
     }
     return vec;
   }
+
+  // Parse a string with given separators into a vector of doubles.
+  std::vector<double> str_to_std_vec(std::string const& str, std::string separators);
 
 } // namespace vw
 

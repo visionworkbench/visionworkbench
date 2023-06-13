@@ -33,6 +33,32 @@ size_t string_replace(std::string &s, std::string const& find, std::string const
     pos++; // to not get stuck in an infinite loop
     count++;
   }
+  return count;
 }
+
+std::vector<double> str_to_std_vec(std::string const& str, std::string separators) {
+
+  std::istringstream iss;
+  if (separators == "") {
+    iss = std::istringstream(str);
+  } else {
+    // Replace the separators with space before tokenizing
+    std::string proc_str = str;
+    for (size_t it = 0; it < separators.size(); it++) {
+      std::string find;
+      find += separators[it]; // this is now a string with just one character
+      std::string replace = " ";
+      string_replace(proc_str, find, replace);
+    }
+    iss = std::istringstream(proc_str);
+  }
+  
+  std::vector<double> vec;
+  double val = 0;
+    while (iss >> val) 
+      vec.push_back(val);
+  
+  return vec;
+} 
 
 } // End namespace vw
