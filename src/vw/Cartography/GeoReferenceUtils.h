@@ -337,6 +337,9 @@ namespace cartography {
   } // namespace vw::cartography::output
 
 
+  vw::Vector3 projToEcef(GeoReference const& georef, vw::Vector3 const& proj);
+  vw::Vector3 ecefToProj(GeoReference const& georef, vw::Vector3 const& ecef);
+
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_GEOREFERENCEUTILS_H__
