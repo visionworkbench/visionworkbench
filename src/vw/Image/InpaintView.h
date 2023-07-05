@@ -326,8 +326,7 @@ public:
   typedef PixelT result_type;
   typedef ProceduralPixelAccessor<FillNoDataWithAvg> pixel_accessor;
 
-  FillNoDataWithAvg( ImageViewBase<ImageT> const& img,
-		     int kernel_size) :
+  FillNoDataWithAvg(ImageViewBase<ImageT> const& img, int kernel_size):
     m_img(img.impl()), m_kernel_size(kernel_size) {
     VW_ASSERT((m_kernel_size%2 == 1) && (m_kernel_size > 0),
 	      ArgumentErr() << "Expecting odd and positive kernel size.");
@@ -347,16 +346,18 @@ public:
     int nvalid = 0;
     int c0 = i, r0 = j; // convert to int from size_t
     int k2 = m_kernel_size/2, nc = m_img.cols(), nr = m_img.rows();
-    for (int c = std::max(0, c0-k2); c <= std::min(nc-1, c0+k2); c++){
-      for (int r = std::max(0, r0-k2); r <= std::min(nr-1, r0+k2); r++){
-	if (!is_valid(m_img(c, r)))
-	  continue;
-	val += m_img(c, r);
-	nvalid++;
+    for (int c = std::max(0, c0-k2); c <= std::min(nc-1, c0+k2); c++) {
+      for (int r = std::max(0, r0-k2); r <= std::min(nr-1, r0+k2); r++) {
+	      if (!is_valid(m_img(c, r)))
+	        continue;
+        val += m_img(c, r);
+	      nvalid++;
       }
     }
 
-    if (nvalid == 0) return m_img(i, j); // could not find valid points
+    if (nvalid == 0) 
+      return m_img(i, j); // could not find valid points
+
     return val/nvalid; // average of valid values within window
   }
 
@@ -384,6 +385,12 @@ fill_nodata_with_avg( ImageViewBase<ImgT> const& img,
   return result_type( img.impl(), kernel_size);
 }
   
+// Fill nodata values in the input image using a search radius and a fill percentage.
+// This assumes that the image fits fully in memory. Use multiple passes.
+ImageView<PixelMask<double>> 
+fillNodataWithSearchRadius(ImageView<PixelMask<double>> const& image,
+                         double search_radius, double fill_power,
+                         double fill_percent, int num_passes);
   
 } //end namespace vw
 
