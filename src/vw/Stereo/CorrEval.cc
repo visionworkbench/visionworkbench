@@ -51,9 +51,10 @@ void calc_patches(// Inputs
       left_pix  -= left_box.min();
       right_pix -= right_box.min();
 
-      // Sanity check
-      if (!bounding_box(left).contains(left_pix) ||
-          !bounding_box(interp_right).contains(right_pix))
+      // Sanity check for left_pix. We do not check right_pix, as maybe filtering
+      // messed it up and it went out of bounds. In that case interpolation
+      /// will simply return an invalid value.
+      if (!bounding_box(left).contains(left_pix))
         vw_throw(ArgumentErr() << "Out of bounds in the NCC calculation. "
                  << "This is not expected.");
       
