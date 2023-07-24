@@ -413,6 +413,10 @@ namespace cartography {
     write_image( *r, image, progress_callback );
   }
 
+  /// A function to read the value of a variable with given name from a geotiff
+  /// file header. Return an empty string on failure.
+  std::string read_header_string(std::string filename, std::string const& str_name);
+
   /// A function to read a string with given name from geotiff header
   bool read_header_string( ImageResource const& resource, std::string const& str_name,
                            std::string & str_val );

@@ -109,6 +109,15 @@ namespace cartography {
              << "This image resource does not support writing georeferencing information.");
   }
 
+  /// A function to read the value of a variable with given name from a geotiff
+  /// file header. Return an empty string on failure.
+  std::string read_header_string(std::string filename, std::string const& str_name) {
+    boost::shared_ptr<DiskImageResource> r(DiskImageResourcePtr(filename));
+    std::string str_val;
+    read_header_string(*r, str_name, str_val);
+    return str_val;
+  }
+
   bool read_header_strings(ImageResource const& resource, 
                             std::map<std::string, std::string> & value_pairs) {
 

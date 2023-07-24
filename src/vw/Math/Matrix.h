@@ -22,7 +22,7 @@
 ///
 /// Currently I believe we support:
 ///   Element access via m(i,j) and m[i][j]
-///   Seamless conversion between compatibile matrix types
+///   Seamless conversion between compatible matrix types
 ///   Matrix addition, subtraction, and negation
 ///   Scalar multiplication and division
 ///   Matrix*matrix, matrix*vector, and vector*matrix products
