@@ -355,7 +355,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
       // Convert the descriptor to unsigned chars, then call FLANN
       vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
       for (size_t i=0; i<ip.descriptor.size(); i++)
-	      uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
+        uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
       num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
     }
     else {
