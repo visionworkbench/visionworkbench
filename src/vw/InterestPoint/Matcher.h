@@ -183,16 +183,19 @@ namespace ip {
     /// same length as ip1. index_list will be filled with max value
     /// of size_t in the event that a match was not found.
     template <class ListT, class IndexListT >
-    void operator()( ListT const& ip1, ListT const& ip2,
-                     IndexListT& index_list,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+    void operator()(ListT const& ip1, ListT const& ip2,
+                    IndexListT& index_list,
+                    const ProgressCallback &progress_callback 
+                      = ProgressCallback::dummy_instance(), 
+                    bool quiet = false) const;
 
     /// Given two lists of interest points, this routine returns the two lists
     /// of matching interest points based on the Metric and Constraints provided by the user.
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
                      MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(), 
+                     bool quiet = false) const;
   };
 
 
@@ -214,7 +217,8 @@ namespace ip {
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
                      MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const;
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(), 
+                     bool quiet = false ) const;
   };
 
 
@@ -246,10 +250,7 @@ namespace ip {
                           std::string const& input_file);
 
 //==========================================================================
-// Fuction Definitions
-// TODO: Move to a .tcc file!
-
-
+// Fuction definitions
 
 template <class ListT>
 inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
@@ -268,10 +269,8 @@ inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
   std::sort(ip2_sorted.begin(), ip2_sorted.end(), InterestPointLessThan);
 }
 
-
 //---------------------------------------------------------------------------
 // InterestPointMatcher
-
 
 // Helper function to help reduce conditionals in the event of
 // NullConstraint. (Which is common).
@@ -297,27 +296,31 @@ check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
 // of size_t in the event that a match was not found.
 template <class MetricT, class ConstraintT>
 template <class ListT, class IndexListT >
-void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                                                             IndexListT& index_list,
-                                                             const ProgressCallback &progress_callback) const {
+void InterestPointMatcher<MetricT, ConstraintT>::operator()
+    (ListT const& ip1, ListT const& ip2,
+    IndexListT& index_list,
+    const ProgressCallback &progress_callback,
+    bool quiet) const {
 
   Timer total_time("Total elapsed time", DebugMessage, "interest_point");
   size_t ip1_size = ip1.size(), ip2_size = ip2.size();
 
   index_list.clear();
   if (!ip1_size || !ip2_size) {
-    vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
-    progress_callback.report_finished();
+    if (!quiet) {
+      vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+      progress_callback.report_finished();
+    }
     return;
   }
 
   float inc_amt = 1.0f/float(ip1_size);
 
   // Set up FLANNTree objects of all the different types we may need.
-  math::FLANNTree<float        > kd_float;
+  math::FLANNTree<float>         kd_float;
   math::FLANNTree<unsigned char> kd_uchar;
 
-  Matrix<float        > ip2_matrix_float;
+  Matrix<float>         ip2_matrix_float;
   Matrix<unsigned char> ip2_matrix_uchar;
 
   // Pack the IP descriptors into a matrix and feed it to the chosen FLANNTree object
@@ -330,28 +333,35 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
     kd_float.load_match_data( ip2_matrix_float,  MetricT::flann_type );
   }
 
-  vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
+  if (!quiet)
+    vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
 
   const size_t KNN = 2; // Find this many matches
-  Vector<int   > indices(KNN);
+  Vector<int>    indices(KNN);
   Vector<double> distances(KNN);
-  progress_callback.report_progress(0);
+
+  if (!quiet)
+    progress_callback.report_progress(0);
 
   BOOST_FOREACH( InterestPoint ip, ip1 ) {
     if (progress_callback.abort_requested())
       vw_throw( Aborted() << "Aborted by ProgressCallback" );
-    progress_callback.report_incremental_progress(inc_amt);
+
+    if (!quiet)
+      progress_callback.report_incremental_progress(inc_amt);
 
     size_t num_matches_found = 0;
     if (use_uchar_FLANN) {
       // Convert the descriptor to unsigned chars, then call FLANN
       vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
-      for (size_t i=0; i<ip.descriptor.size(); ++i)
-	uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
+      for (size_t i=0; i<ip.descriptor.size(); i++)
+	      uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
       num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
     }
-    else // Use float
+    else {
+      // Use float
       num_matches_found = kd_float.knn_search( ip.descriptor, indices, distances, KNN );
+    }
 
     //vw_out() << "KNN matches "<< num_matches_found <<": indices = " << indices << ",    distances = " << distances << std::endl;
 
@@ -384,6 +394,10 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
       } // End check constraint
     } // End both valid case
   }
+
+  if (!quiet)
+    progress_callback.report_finished();
+
 } // End InterestPointMatcher::operator()
 
 // Given two lists of interest points, this routine returns the two lists
@@ -391,9 +405,11 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 // provided by the user.
 template <class MetricT, class ConstraintT>
 template <class ListT, class MatchListT>
-void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                                                             MatchListT& matched_ip1, MatchListT& matched_ip2,
-                                                             const ProgressCallback &progress_callback) const {
+void InterestPointMatcher<MetricT, ConstraintT>::operator()
+    (ListT const& ip1, ListT const& ip2,
+     MatchListT& matched_ip1, MatchListT& matched_ip2,
+     const ProgressCallback &progress_callback, 
+     bool quiet) const {
 
   // Clear output lists
   matched_ip1.clear();
@@ -401,7 +417,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 
   // Redirect to the other version of this function, getting the results in an index list.
   std::list<size_t> index_list;
-  this->operator()(ip1, ip2, index_list, progress_callback);
+  this->operator()(ip1, ip2, index_list, progress_callback, quiet);
 
   // Now convert from the index output to the pairs output
 
@@ -425,8 +441,6 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 
 }
 
-
-
 //-----------------------------------------------------------
 // InterestPointMatcherSimple
 
@@ -435,28 +449,36 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 // provided by the user.
 template <class MetricT, class ConstraintT>
 template <class ListT, class MatchListT>
-void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& ip1, ListT const& ip2,
-                                                                   MatchListT& matched_ip1, MatchListT& matched_ip2,
-                                                                   const ProgressCallback &progress_callback) const {
+void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()
+  (ListT const& ip1, ListT const& ip2,
+   MatchListT& matched_ip1, MatchListT& matched_ip2,
+   const ProgressCallback &progress_callback, 
+   bool quiet) const {
 
   Timer total_time("Total elapsed time", DebugMessage, "interest_point");
 
   matched_ip1.clear(); matched_ip2.clear();
   if (!ip1.size() || !ip2.size()) {
-    vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
-    progress_callback.report_finished();
+    if (!quiet) {
+      vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
+      progress_callback.report_finished();
+    }
     return;
   }
 
-  float inc_amt = 1.0f / float(ip1.size());
-  progress_callback.report_progress(0);
   std::vector<int> match_index( ip1.size() );
+
+  float inc_amt = 1.0f / float(ip1.size());
+  if (!quiet)
+    progress_callback.report_progress(0);
 
   // Loop through one vector of IPs
   for (size_t i = 0; i < ip1.size(); i++ ) {
     if (progress_callback.abort_requested())
       vw_throw( Aborted() << "Aborted by ProgressCallback" );
-    progress_callback.report_incremental_progress(inc_amt);
+
+    if (!quiet)
+      progress_callback.report_incremental_progress(inc_amt);
 
     double first_pick = 1e100, second_pick = 1e100;
     match_index[i] = -1;
@@ -486,7 +508,8 @@ void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& 
       match_index[i] = -1;
   } // End double loop through IPs
 
-  progress_callback.report_finished();
+  if (!quiet)
+    progress_callback.report_finished();
 
   // Building matched_ip1 & matched_ip2
   for (size_t i = 0; i < ip1.size(); i++ ) {
@@ -495,7 +518,9 @@ void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& 
       matched_ip2.push_back( ip2[match_index[i]] );
     }
   }
-}
+
+  return;
+} // end function operator()
 
 }} // namespace vw::ip
 
