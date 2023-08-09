@@ -62,6 +62,14 @@ namespace vw {
     return result;
   }
 
+  /// A weight at a given pixel, based on an image row. Return
+  /// zero where image values are not valid, and positive where valid.
+  /// - hCenterLine contains the center column at each row/col
+  /// - hMaxDistArray contains the width of the column at each row/col
+  double compute_line_weights(Vector2 const& pix, bool horizontal,
+                              std::vector<double> const& centers,
+                              std::vector<double> const& widths);
+
   // *******************************************************************
   // centerline_weights()
   // *******************************************************************
@@ -163,10 +171,13 @@ namespace vw {
   /// It will operate on any object that has cols() and rows() methods.
   /// - If include_partials is set to false, only full size boxes will be 
   ///   included in the output.
+  /// - If full_size is true, the boxes at the right and bottom edges will
+  ///   be grown inward to have full size. This will result in them overlapping
+  ///   with earlier boxes. This assumes include_partials = true.
   /// - Output tiles are in raster order, top left to bottom right.
-  inline std::vector<BBox2i>
+  std::vector<BBox2i>
   subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
-                 bool include_partials = true);
+                 bool include_partials = true, bool full_size = false);
 
   template <class T>
   inline std::vector<BBox2i>

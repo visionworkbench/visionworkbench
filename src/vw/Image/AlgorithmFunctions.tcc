@@ -208,47 +208,6 @@ namespace vw {
   // *******************************************************************
 
 
-/// A weight at a given pixel, based on an image row. Return
-/// zero where image values are not valid, and positive where valid.
-/// - hCenterLine contains the center column at each row/col
-/// - hMaxDistArray contains the width of the column at each row/col
-inline double compute_line_weights(Vector2 const& pix, bool horizontal,
-                                   std::vector<double> const& centers,
-                                   std::vector<double> const& widths){
-  
-  int primary_axis = 0, secondary_axis = 1; // Vertical
-  if (horizontal) {
-    primary_axis   = 1;
-    secondary_axis = 0;
-  }
-  
-  // We round below, to avoid issues when we are within numerical value
-  // to an integer value for row/col.
-  // To do: Need to do interpolation here.
-
-  int pos = (int)round(pix[primary_axis]); // The row or column
-  if (pos < 0                          ||
-      pos >= (int)widths.size() ||
-      pos >= (int)centers.size() )
-    return 0;
-  
-  double max_dist = widths[pos]/2.0; // Half column width
-  double center   = centers[pos];
-  double dist     = fabs(pix[secondary_axis]-center); // Pixel distance from center column
-
-  if (max_dist <= 0 || dist < 0)
-    return 0;
-
-  // We want to make sure the weight is positive (even if small) at
-  // the first/last valid pixel.
-  double tol = 1e-8*max_dist;
-  
-  // The weight is just a fraction of the distance from the centerline.
-  double weight = std::max(double(0.0), (max_dist - dist + tol)/max_dist);
-
-  return weight;
-}
-
 // A function that compute weights (positive in the image and zero
 // outside) based on finding where each image line data values start
 // and end and the centerline. The same thing is repeated for columns.
@@ -390,49 +349,6 @@ void centerline_weights(ImageT const& img, ImageView<double> & weights,
   }
 
 
-
-  // *******************************************************************
-  // subdivide_bbox()
-  // *******************************************************************
-
-  /// A utility routine that, given an image, returns a vector of
-  /// bounding boxes for sub-regions of the image of the specified
-  /// size.  Note that bounding boxes along the right and bottom edges
-  /// of the image will not have the specified dimension unless the
-  /// image width and height are perfectly divisible by the bounding
-  /// box width and height, respectively. This routine is useful if you
-  /// want to apply an operation to a large image one region at a time.
-  /// It will operate on any object that has cols() and rows() methods.
-  inline std::vector<BBox2i>
-  subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
-                 bool include_partials) {
-    std::vector<BBox2i> bboxes;
-
-    for (int j_offset = 0; j_offset < object.height(); j_offset += block_height) {
-      int32 j_dim = block_height;
-      if ((object.height() - j_offset) < block_height) {
-        if (!include_partials)
-          continue; // Skip row of non-full size boxes.
-        else
-          j_dim = object.height() - j_offset;
-      }
-      
-      for (int i_offset = 0; i_offset < object.width(); i_offset += block_width) {
-        int32 i_dim = block_width;
-        if ((object.width() - i_offset) < block_width) {
-          if (!include_partials)
-            continue; // Skip non-full size boxes.
-          else
-            i_dim = object.width() - i_offset;
-        }
-        
-        bboxes.push_back(BBox2i(i_offset + object.min().x(),
-                                j_offset + object.min().y(),
-                                i_dim,j_dim));
-      }
-    }
-    return bboxes;
-  }
 
   
 /* Replaced by the BlobIndexThreaded class
