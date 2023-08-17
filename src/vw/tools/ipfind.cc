@@ -52,17 +52,16 @@ using namespace vw::ip;
 namespace po = boost::program_options;
 
 // TODO(oalexan1): Make all options below use the Options structure
-struct Options: public vw::GdalWriteOptions {};
-  
-int main(int argc, char** argv) {
+struct Options: public vw::GdalWriteOptions {
   std::vector<std::string> input_file_names;
   std::string output_folder, interest_operator, descriptor_generator;
-  float  ip_gain;
-  uint32 ip_per_image = 0, ip_per_tile;
+  float ip_gain;
+  uint32 ip_per_image, ip_per_tile;
   int nodata_radius, print_num_ip, debug_image;
-  ImageView<double> integral;
-  bool   no_orientation;
-  bool   opencv_normalize = false;
+  bool no_orientation;
+};
+  
+int main(int argc, char** argv) {
 
   const float IDEAL_LOG_THRESHOLD    = .03;
   const float IDEAL_OBALOG_THRESHOLD = .07;
@@ -71,28 +70,28 @@ int main(int argc, char** argv) {
   Options opt;
   po::options_description general_options("Options");
   general_options.add_options()
-    ("interest-operator",    po::value(&interest_operator)->default_value("sift"), 
+    ("interest-operator",    po::value(&opt.interest_operator)->default_value("sift"), 
      "Choose an interest point detector from: sift (default), orb, OBALoG, LoG, Harris, IAGD.")
-    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sift"), 
+    ("descriptor-generator", po::value(&opt.descriptor_generator)->default_value("sift"), 
      "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch, and pca).")
-    ("ip-per-image",           po::value(&ip_per_image), 
+    ("ip-per-image",           po::value(&opt.ip_per_image)->default_value(0), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
-    ("ip-per-tile",           po::value(&ip_per_tile)->default_value(250), 
+    ("ip-per-tile",           po::value(&opt.ip_per_tile)->default_value(250), 
      "Set the maximum number of IP to find in each tile. The tile size is set with --tile-size.")
-    ("gain,g",               po::value(&ip_gain)->default_value(1.0), 
+    ("gain,g",               po::value(&opt.ip_gain)->default_value(1.0), 
      "Increasing this number will increase the gain at which interest points are detected. Default: 1.")
     ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
-    ("no-orientation",       po::bool_switch(&no_orientation), "Turn off rotational invariance.")
+    ("no-orientation",       po::bool_switch(&opt.no_orientation), "Turn off rotational invariance.")
     ("normalize",     "Normalize the input. Use for images that have non-standard values such as ISIS cube files.")
     ("per-tile-normalize",     "Individually normalize each processing tile (only with OpenCV).")
-    ("nodata-radius", po::value(&nodata_radius)->default_value(1), 
+    ("nodata-radius", po::value(&opt.nodata_radius)->default_value(1), 
      "Don't detect IP within this many pixels of image borders or nodata. Default: 1.")
-    ("output-folder",  po::value(&output_folder)->default_value(""), 
+    ("output-folder",  po::value(&opt.output_folder)->default_value(""), 
      "Write output files to this location.")
     // Debug options
-    ("debug-image,d", po::value(&debug_image)->default_value(0), 
+    ("debug-image,d", po::value(&opt.debug_image)->default_value(0), 
      "Write out a low-resolution or full-resolution debug image with interest points on it if the value of this flag is respectively 1 or 2. Default: 0 (do nothing).")
-    ("print-ip",             po::value(&print_num_ip)->default_value(0), 
+    ("print-ip",             po::value(&opt.print_num_ip)->default_value(0), 
      "Print information for this many detected IP. Default: 0.")
     ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
 
@@ -100,7 +99,7 @@ int main(int argc, char** argv) {
   
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-files", po::value(&input_file_names));
+    ("input-files", po::value(&opt.input_file_names));
 
   po::options_description options("Allowed options");
   options.add(general_options).add(hidden_options);
@@ -130,99 +129,100 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if(input_file_names.size() < 1) {
+  if(opt.input_file_names.size() < 1) {
     vw_out() << "Error: Must specify at least one input file!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
   }
 
-  if(nodata_radius < 1) {
+  if(opt.nodata_radius < 1) {
     vw_out() << "Error: nodata-radius must be >= 1!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
   }
 
+  bool opencv_normalize = false;
   if (vm.count("per-tile-normalize"))
     opencv_normalize = true;
 
   // Checking strings
-  boost::to_lower(interest_operator);
-  boost::to_lower(descriptor_generator);
+  boost::to_lower(opt.interest_operator);
+  boost::to_lower(opt.descriptor_generator);
 
   // The OpenCV detector types are handled differently than the custom detector types.  
-  const bool detector_is_opencv = ((interest_operator == "brisk") ||
-                                    (interest_operator == "surf") ||
-                                    (interest_operator == "orb" ) ||
-                                    (interest_operator == "sift")  );
-  const bool descriptor_is_opencv = ((descriptor_generator == "brisk") ||
-                                      (descriptor_generator == "surf") ||
-                                      (descriptor_generator == "orb" ) ||
-                                      (descriptor_generator == "sift")  );
+  const bool detector_is_opencv = ((opt.interest_operator == "brisk") ||
+                                    (opt.interest_operator == "surf") ||
+                                    (opt.interest_operator == "orb" ) ||
+                                    (opt.interest_operator == "sift")  );
+  const bool descriptor_is_opencv = ((opt.descriptor_generator == "brisk") ||
+                                      (opt.descriptor_generator == "surf") ||
+                                      (opt.descriptor_generator == "orb" ) ||
+                                      (opt.descriptor_generator == "sift")  );
 
   if (opencv_normalize && !detector_is_opencv) {
     vw_out() << "Cannot use per-tile normalize with a non-OpenCV detector!\n";
     exit(0);
   }
 
-  // Determine if interest_operator is legitimate
-  if (!(interest_operator == "iagd"   ||
-          interest_operator == "harris" ||
-          interest_operator == "log"    ||
-          interest_operator == "obalog" || 
-          //interest_operator == "brisk"  ||
-          interest_operator == "orb"    ||
-          //interest_operator == "surf"   ||
-          interest_operator == "sift"    )) {
-    vw_out() << "Unknown interest operator: " << interest_operator
+  // Determine if opt.interest_operator is legitimate
+  if (!(opt.interest_operator == "iagd"   ||
+          opt.interest_operator == "harris" ||
+          opt.interest_operator == "log"    ||
+          opt.interest_operator == "obalog" || 
+          //opt.interest_operator == "brisk"  ||
+          opt.interest_operator == "orb"    ||
+          //opt.interest_operator == "surf"   ||
+          opt.interest_operator == "sift"    )) {
+    vw_out() << "Unknown interest operator: " << opt.interest_operator
              << ". Options are: sift, orb, OBALoG, LoG, Harris, IAGD.\n";
     exit(0);
   }
-  // Determine if descriptor_generator is legitimate
-  if (!(descriptor_generator == "patch"  ||
-          descriptor_generator == "pca"    ||
-          descriptor_generator == "sgrad"  ||
-          descriptor_generator == "sgrad2" ||
-          //descriptor_generator == "brisk"  ||
-          descriptor_generator == "orb"    ||
-          //descriptor_generator == "surf"   ||
-          descriptor_generator == "sift"   )) {
-    vw_out() << "Unkown descriptor generator: " << descriptor_generator
+  // Determine if opt.descriptor_generator is legitimate
+  if (!(opt.descriptor_generator == "patch"  ||
+          opt.descriptor_generator == "pca"    ||
+          opt.descriptor_generator == "sgrad"  ||
+          opt.descriptor_generator == "sgrad2" ||
+          //opt.descriptor_generator == "brisk"  ||
+          opt.descriptor_generator == "orb"    ||
+          //opt.descriptor_generator == "surf"   ||
+          opt.descriptor_generator == "sift"   )) {
+    vw_out() << "Unkown descriptor generator: " << opt.descriptor_generator
              << ". Options are: sift, orb, sgrad, sgrad2, patch, pca.\n";
     exit(0);
   }
 
   if ((detector_is_opencv && !descriptor_is_opencv) &&
-      (descriptor_generator != interest_operator)) {
-    vw_out() <<"The value of --descriptor-generator is '" << descriptor_generator << "'. ";
-    descriptor_generator = interest_operator;
-    vw_out() << "Switching it to '" << descriptor_generator << "' to match --interest-operator.\n";
+      (opt.descriptor_generator != opt.interest_operator)) {
+    vw_out() <<"The value of --descriptor-generator is '" << opt.descriptor_generator << "'. ";
+    opt.descriptor_generator = opt.interest_operator;
+    vw_out() << "Switching it to '" << opt.descriptor_generator << "' to match --interest-operator.\n";
   }
 
   if (!detector_is_opencv && descriptor_is_opencv) {
-    vw_out() <<"The value of --descriptor-generator is '" << descriptor_generator << "'. ";
-    descriptor_generator = "sgrad";
-    vw_out() << "Switching it to '" << descriptor_generator << "' to match --interest-operator.\n";
+    vw_out() <<"The value of --descriptor-generator is '" << opt.descriptor_generator << "'. ";
+    opt.descriptor_generator = "sgrad";
+    vw_out() << "Switching it to '" << opt.descriptor_generator << "' to match --interest-operator.\n";
     vw_out() << "Can use any of: 'sgrad', 'sgrad2', 'patch', 'pca'.\n";
   }
 
   // Iterate over the input files and find interest points in each.
-  for (size_t i = 0; i < input_file_names.size(); ++i) {
+  for (size_t i = 0; i < opt.input_file_names.size(); ++i) {
 
-    vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
+    vw_out() << "Finding interest points in \"" << opt.input_file_names[i] << "\".\n";
 
     if (vm.count("ip-per-image")) {
       int tile_size = vw_settings().default_tile_size();
-      Vector2 image_size = vw::file_image_size(input_file_names[i]);
+      Vector2 image_size = vw::file_image_size(opt.input_file_names[i]);
       double num_tiles = image_size[0]*image_size[1]/(double(tile_size*tile_size));
-      ip_per_tile = (int)ceil(ip_per_image / num_tiles);
-      ip_per_tile = std::max(uint32(1), ip_per_tile);
-      vw_out() << "Computing " << ip_per_tile << " ip per tile.\n";
+      opt.ip_per_tile = (int)ceil(opt.ip_per_image / num_tiles);
+      opt.ip_per_tile = std::max(uint32(1), opt.ip_per_tile);
+      vw_out() << "Computing " << opt.ip_per_tile << " ip per tile.\n";
     }
     
-    std::string file_prefix = boost::filesystem::path(input_file_names[i]).replace_extension().string();
-    if (output_folder != "") {
+    std::string file_prefix = boost::filesystem::path(opt.input_file_names[i]).replace_extension().string();
+    if (opt.output_folder != "") {
       // Write the output files to the specified output folder.
-      boost::filesystem::path of(output_folder);
+      boost::filesystem::path of(opt.output_folder);
       of /= boost::filesystem::path(file_prefix).filename();
       file_prefix = of.string();
 
@@ -230,7 +230,7 @@ int main(int argc, char** argv) {
     }
 
     // Get reference to the file and convert to floating point
-    boost::shared_ptr<vw::DiskImageResource> image_rsrc(vw::DiskImageResourcePtr(input_file_names[i]));
+    boost::shared_ptr<vw::DiskImageResource> image_rsrc(vw::DiskImageResourcePtr(opt.input_file_names[i]));
     DiskImageView<PixelGray<float> > raw_image(*image_rsrc);
     ImageViewRef<PixelGray<float> >  image;
     ImageViewRef<PixelMask<PixelGray<float> > >  masked_image;
@@ -269,55 +269,55 @@ int main(int argc, char** argv) {
     // Detecting Interest Points
     // - Note that only the OpenCV detectors handle masks.
     InterestPointList ip;
-    if (interest_operator == "harris") {
+    if (opt.interest_operator == "harris") {
       // Harris threshold is inversely proportional to gain.
-      HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
+      HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/opt.ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, ip_per_tile);
-        ip = detect_interest_points(image, detector, ip_per_tile);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, opt.ip_per_tile);
+        ip = detect_interest_points(image, detector, opt.ip_per_tile);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, ip_per_tile);
-        ip = detect_interest_points(image, detector, ip_per_tile);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, opt.ip_per_tile);
+        ip = detect_interest_points(image, detector, opt.ip_per_tile);
       }
-    } else if (interest_operator == "log") {
+    } else if (opt.interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
       // associated threshold is abs(interest) > interest_threshold.
       // LoG threshold is inversely proportional to gain..
-      LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/ip_gain);
+      LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/opt.ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, ip_per_tile);
-        ip = detect_interest_points(image, detector, ip_per_tile);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, opt.ip_per_tile);
+        ip = detect_interest_points(image, detector, opt.ip_per_tile);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator, ip_per_tile);
-        ip = detect_interest_points(image, detector, ip_per_tile);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, opt.ip_per_tile);
+        ip = detect_interest_points(image, detector, opt.ip_per_tile);
       }
-    } else if (interest_operator == "obalog") {
+    } else if (opt.interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
-      OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector(interest_operator, ip_per_tile);
-      ip = detect_interest_points(image, detector, ip_per_tile);
-    } else if (interest_operator == "iagd") {
+      OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/opt.ip_gain);
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector(interest_operator, opt.ip_per_tile);
+      ip = detect_interest_points(image, detector, opt.ip_per_tile);
+    } else if (opt.interest_operator == "iagd") {
       // This is the default ASP implementation
-      IntegralAutoGainDetector detector(ip_per_tile);
-      ip = detect_interest_points(image, detector, ip_per_tile);
+      IntegralAutoGainDetector detector(opt.ip_per_tile);
+      ip = detect_interest_points(image, detector, opt.ip_per_tile);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (detector_is_opencv) {
 
       OpenCvIpDetectorType ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
-      if (interest_operator == "brisk") {
+      if (opt.interest_operator == "brisk") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_BRISK;
-      } else if (interest_operator == "orb") {
+      } else if (opt.interest_operator == "orb") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_ORB;
-      } else if (interest_operator == "sift") {
+      } else if (opt.interest_operator == "sift") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
-      } else if (interest_operator == "surf") {
+      } else if (opt.interest_operator == "surf") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SURF;
       }
-      OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, ip_per_tile);
+      OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, opt.ip_per_tile);
       if (has_nodata)
-        ip = detect_interest_points(masked_image, detector, ip_per_tile);
+        ip = detect_interest_points(masked_image, detector, opt.ip_per_tile);
       else
-        ip = detect_interest_points(image, detector, ip_per_tile);
+        ip = detect_interest_points(image, detector, opt.ip_per_tile);
     }
 #else // End OpenCV section
     } else {
@@ -333,9 +333,9 @@ int main(int argc, char** argv) {
     }
 
     // Removing Interest Points on nodata or within 1/px
-    if (nodata_radius > 0) {
+    if (opt.nodata_radius > 0) {
       size_t before_size = ip.size();
-      remove_ip_near_nodata(raw_image, nodata, ip, nodata_radius);
+      remove_ip_near_nodata(raw_image, nodata, ip, opt.nodata_radius);
       
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
     } // End clearing IP's near nodata
@@ -343,24 +343,24 @@ int main(int argc, char** argv) {
     vw_out() << "\t Found " << ip.size() << " points.\n";
 
     // Delete the orientation value if requested
-    if (no_orientation) {
+    if (opt.no_orientation) {
       BOOST_FOREACH(InterestPoint& i, ip) {
         i.orientation = 0;
       }
     }
 
     // Generate descriptors for interest points.
-    vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
-    if (descriptor_generator == "patch") {
+    vw_out(InfoMessage) << "\tRunning " << opt.descriptor_generator << " descriptor generator.\n";
+    if (opt.descriptor_generator == "patch") {
       PatchDescriptorGenerator descriptor;
       describe_interest_points(image, descriptor, ip);
-    } else if (descriptor_generator == "pca") {
+    } else if (opt.descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       describe_interest_points(image, descriptor, ip);
-    } else if (descriptor_generator == "sgrad") {
+    } else if (opt.descriptor_generator == "sgrad") {
       SGradDescriptorGenerator descriptor;
       describe_interest_points(image, descriptor, ip);
-    } else if (descriptor_generator == "sgrad2") {
+    } else if (opt.descriptor_generator == "sgrad2") {
       SGrad2DescriptorGenerator descriptor;
       describe_interest_points(image, descriptor, ip);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
@@ -374,7 +374,7 @@ int main(int argc, char** argv) {
 #endif
 
     // Print raw IP info if requested
-    int limit = print_num_ip;
+    int limit = opt.print_num_ip;
     for (InterestPointList::const_iterator iter=ip.begin(); iter!=ip.end(); ++iter) {
       if (limit <= 0)
         break;
@@ -392,13 +392,13 @@ int main(int argc, char** argv) {
     }
 
     // Write Debug image
-    if (debug_image > 0) {
+    if (opt.debug_image > 0) {
       const int WRITE_FULL_RES_DEBUG = 2;
       write_ip_debug_image(file_prefix + "_debug.png",
                            raw_image, ip, has_nodata, nodata,
-                           (debug_image==WRITE_FULL_RES_DEBUG),
+                           (opt.debug_image==WRITE_FULL_RES_DEBUG),
                            // Orb has large scale values, so shrink them
-                           (interest_operator == "orb")); 
+                           (opt.interest_operator == "orb")); 
     }
                          
   } // End loop through input files
