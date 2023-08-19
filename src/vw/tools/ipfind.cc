@@ -51,12 +51,11 @@ using namespace vw::ip;
 #include <boost/foreach.hpp>
 namespace po = boost::program_options;
 
-// TODO(oalexan1): Make all options below use the Options structure
 struct Options: public vw::GdalWriteOptions {
   std::vector<std::string> input_file_names;
   std::string output_folder, interest_operator, descriptor_generator;
   float ip_gain;
-  uint32 ip_per_image, ip_per_tile;
+  int ip_per_image, ip_per_tile;
   int nodata_radius, print_num_ip, debug_image;
   bool no_orientation;
 };
@@ -68,6 +67,7 @@ int main(int argc, char** argv) {
   const float IDEAL_HARRIS_THRESHOLD = 1.2e-5;
 
   Options opt;
+
   po::options_description general_options("Options");
   general_options.add_options()
     ("interest-operator",    po::value(&opt.interest_operator)->default_value("sift"), 
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
-  
+
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value(&opt.input_file_names));
@@ -124,21 +124,28 @@ int main(int argc, char** argv) {
 
   opt.setVwSettingsFromOpt();
 
-  if(vm.count("help")) {
+  if (vm.count("help")) {
     vw_out() << usage.str();
     return 1;
   }
 
-  if(opt.input_file_names.size() < 1) {
+  if (opt.input_file_names.size() < 1) {
     vw_out() << "Error: Must specify at least one input file!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
   }
 
-  if(opt.nodata_radius < 1) {
+
+  if (opt.nodata_radius < 1) {
     vw_out() << "Error: nodata-radius must be >= 1!" << std::endl << std::endl;
     vw_out() << usage.str();
     return 1;
+  }
+
+  // sanity check, must not have both ip per tile and per image be positive
+  if (opt.ip_per_tile > 0 && opt.ip_per_image > 0) {
+    vw_out() << "Cannot set a positive value for both --ip-per-tile and --ip-per-image\n";
+    exit(1);
   }
 
   bool opencv_normalize = false;
@@ -161,7 +168,7 @@ int main(int argc, char** argv) {
 
   if (opencv_normalize && !detector_is_opencv) {
     vw_out() << "Cannot use per-tile normalize with a non-OpenCV detector!\n";
-    exit(0);
+    exit(1);
   }
 
   // Determine if opt.interest_operator is legitimate
@@ -175,8 +182,9 @@ int main(int argc, char** argv) {
           opt.interest_operator == "sift"    )) {
     vw_out() << "Unknown interest operator: " << opt.interest_operator
              << ". Options are: sift, orb, OBALoG, LoG, Harris, IAGD.\n";
-    exit(0);
+    exit(1);
   }
+
   // Determine if opt.descriptor_generator is legitimate
   if (!(opt.descriptor_generator == "patch"  ||
           opt.descriptor_generator == "pca"    ||
@@ -188,7 +196,7 @@ int main(int argc, char** argv) {
           opt.descriptor_generator == "sift"   )) {
     vw_out() << "Unkown descriptor generator: " << opt.descriptor_generator
              << ". Options are: sift, orb, sgrad, sgrad2, patch, pca.\n";
-    exit(0);
+    exit(1);
   }
 
   if ((detector_is_opencv && !descriptor_is_opencv) &&
@@ -206,16 +214,14 @@ int main(int argc, char** argv) {
   }
 
   // Iterate over the input files and find interest points in each.
-  for (size_t i = 0; i < opt.input_file_names.size(); ++i) {
-
+  for (size_t i = 0; i < opt.input_file_names.size(); i++) {
     vw_out() << "Finding interest points in \"" << opt.input_file_names[i] << "\".\n";
-
-    if (vm.count("ip-per-image")) {
+    if (opt.ip_per_image > 0) {
       int tile_size = vw_settings().default_tile_size();
       Vector2 image_size = vw::file_image_size(opt.input_file_names[i]);
       double num_tiles = image_size[0]*image_size[1]/(double(tile_size*tile_size));
       opt.ip_per_tile = (int)ceil(opt.ip_per_image / num_tiles);
-      opt.ip_per_tile = std::max(uint32(1), opt.ip_per_tile);
+      opt.ip_per_tile = std::max(1, opt.ip_per_tile);
       vw_out() << "Computing " << opt.ip_per_tile << " ip per tile.\n";
     }
     
@@ -231,10 +237,9 @@ int main(int argc, char** argv) {
 
     // Get reference to the file and convert to floating point
     boost::shared_ptr<vw::DiskImageResource> image_rsrc(vw::DiskImageResourcePtr(opt.input_file_names[i]));
-    DiskImageView<PixelGray<float> > raw_image(*image_rsrc);
-    ImageViewRef<PixelGray<float> >  image;
-    ImageViewRef<PixelMask<PixelGray<float> > >  masked_image;
-
+    DiskImageView<PixelGray<float>> raw_image(*image_rsrc);
+    ImageViewRef<PixelGray<float>> image;
+    ImageViewRef<PixelMask<PixelGray<float>>> masked_image;
     // Load nodata value if present.
     double nodata = 0;
     bool   has_nodata = image_rsrc->has_nodata_read();
@@ -322,7 +327,7 @@ int main(int argc, char** argv) {
 #else // End OpenCV section
     } else {
       vw_out() << "Error: Cannot use ORB, BRISK, SIFT, or SURF if not compiled with OpenCV!" << std::endl;
-      exit(0); 
+      exit(1); 
     }
 #endif
 
@@ -369,7 +374,7 @@ int main(int argc, char** argv) {
 #else
     } else {
       vw_out() << "Error: Cannot use SIFT, SURF, ORB or BRISK if not compiled with OpenCV!\n";
-      exit(0); 
+      exit(1); 
     }
 #endif
 
