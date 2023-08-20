@@ -142,12 +142,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  // sanity check, must not have both ip per tile and per image be positive
-  if (opt.ip_per_tile > 0 && opt.ip_per_image > 0) {
-    vw_out() << "Cannot set a positive value for both --ip-per-tile and --ip-per-image\n";
-    exit(1);
-  }
-
   bool opencv_normalize = false;
   if (vm.count("per-tile-normalize"))
     opencv_normalize = true;
@@ -217,13 +211,14 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < opt.input_file_names.size(); i++) {
     vw_out() << "Finding interest points in \"" << opt.input_file_names[i] << "\".\n";
     if (opt.ip_per_image > 0) {
+      vw_out() << "Computing " << opt.ip_per_image << " ip per image.\n";
       int tile_size = vw_settings().default_tile_size();
       Vector2 image_size = vw::file_image_size(opt.input_file_names[i]);
       double num_tiles = image_size[0]*image_size[1]/(double(tile_size*tile_size));
       opt.ip_per_tile = (int)ceil(opt.ip_per_image / num_tiles);
       opt.ip_per_tile = std::max(1, opt.ip_per_tile);
-      vw_out() << "Computing " << opt.ip_per_tile << " ip per tile.\n";
     }
+   vw_out() << "Computing " << opt.ip_per_tile << " ip per tile.\n";
     
     std::string file_prefix = boost::filesystem::path(opt.input_file_names[i]).replace_extension().string();
     if (opt.output_folder != "") {
