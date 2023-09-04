@@ -52,7 +52,7 @@ namespace image_block {
   class BlockProcessor {
     FuncT    m_func;
     Vector2i m_block_size;
-    size_t   m_num_threads;
+    uint32   m_num_threads;
   public:
 
     /// Create a BlockProcessor object with the specified parameters.
@@ -60,7 +60,7 @@ namespace image_block {
     ///   by the specified number of threads.
     /// - The func object must have an operator(BBox2i) function that does whatever
     ///   it is you want done.
-    BlockProcessor( FuncT const& func, Vector2i const& block_size, size_t threads = 0 )
+    BlockProcessor( FuncT const& func, Vector2i const& block_size, uint32 threads = 0 )
       : m_func(func), m_block_size(block_size),
         m_num_threads(threads?threads:(vw_settings().default_num_threads())) {}
 
@@ -161,14 +161,14 @@ namespace image_block {
       std::vector<boost::shared_ptr<BlockThread>> generators;
       std::vector<boost::shared_ptr<Thread>> threads;
 
-      for (size_t i=0; i<m_num_threads; i++) {
+      for( uint32 i=0; i<m_num_threads; ++i ) {
         boost::shared_ptr<BlockThread> generator( new BlockThread( info ) );
         generators.push_back( generator );
         boost::shared_ptr<Thread> thread( new Thread( generator ) );
         threads.push_back( thread );
       }
 
-      for (size_t i=0; i<m_num_threads; i++) {
+      for( uint32 i=0; i<m_num_threads; ++i ) {
         threads[i]->join();
       }
     }
@@ -183,12 +183,12 @@ namespace image_block {
   template<typename PixelT>
   Vector2i get_default_block_size(int rows, int cols, int planes=1) {
 
-    const size_t default_blocksize = 2*1024*1024; // 2 megabytes
+    const int32 default_blocksize = 2*1024*1024; // 2 megabytes
     // XXX Should the default block configuration be different for
     // very wide images?  Either way we will guess wrong some of
     // the time, so advanced users will have to know what they're
     // doing in any case.
-    size_t block_rows = default_blocksize / (size_t(planes)*size_t(cols)*size_t(sizeof(PixelT)));
+    int32 block_rows = default_blocksize / (planes*cols*int32(sizeof(PixelT)));
     if( block_rows < 1 ) block_rows = 1;
     else if( block_rows > rows ) block_rows = rows;
     return Vector2i( cols, block_rows );
@@ -213,7 +213,7 @@ namespace image_block {
 
     /// Return the size in bytes that the rasterized object occupies.
     size_t size() const {
-      return size_t(m_bbox.width()) * size_t(m_bbox.height()) * size_t(m_child->planes()) * sizeof(typename ImageT::pixel_type);
+      return m_bbox.width() * m_bbox.height() * m_child->planes() * sizeof(typename ImageT::pixel_type);
     }
 
     /// Rasterize this object into memory from whatever its source is.
@@ -255,16 +255,15 @@ namespace image_block {
       // Compute the table layout
       m_table_width  = (image->cols()-1) / m_block_size.x() + 1;
       m_table_height = (image->rows()-1) / m_block_size.y() + 1;
-      m_block_table_size = size_t(m_table_height) * size_t(m_table_width);
+      m_block_table_size = m_table_height * m_table_width;
       m_block_table.reset( new Cache::Handle<BlockGenerator<ImageT> >[ m_block_table_size ] );
       BBox2i view_bbox(0,0,image->cols(),image->rows());
 
       // Iterate through the block positions and insert a generator object for each block
       // into m_block_table.
-      for( size_t iy=0; iy<m_table_height; ++iy ) {
-        for( size_t ix=0; ix<m_table_width; ++ix ) {
-          BBox2i bbox(ix*m_block_size.x(), iy*m_block_size.y(), 
-                      m_block_size.x(), m_block_size.y());
+      for( int32 iy=0; iy<m_table_height; ++iy ) {
+        for( int32 ix=0; ix<m_table_width; ++ix ) {
+          BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           bbox.crop( view_bbox );
           block(ix,iy) = m_cache_ptr->insert( BlockGenerator<ImageT>( image, bbox ) );
         }
@@ -317,13 +316,13 @@ namespace image_block {
       int ix = block_index.x();
       int iy = block_index.y();
       check_block_index(block_index);
-      return m_block_table[size_t(block_index.x()) + size_t(block_index.y()) * size_t(m_table_width)];
+      return m_block_table[block_index.x() + block_index.y()*m_table_width];
     }
 
     /// Overload
     Cache::Handle<BlockGenerator<ImageT> >& block(int ix, int iy)  {
       check_block_index(Vector2i(ix, iy));
-      return m_block_table[size_t(ix) + size_t(iy) * size_t(m_table_width)];
+      return m_block_table[ix + iy*m_table_width];
     }
 
     /// Return true if there is only a single block

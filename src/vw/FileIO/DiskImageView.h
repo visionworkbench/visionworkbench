@@ -40,7 +40,7 @@ namespace vw {
   template <class PixelT>
   class DiskImageView : public ImageViewBase<DiskImageView<PixelT> >
   {
-    typedef BlockRasterizeView<ImageResourceView<PixelT> > impl_type;
+    typedef BlockRasterizeView<ImageResourceView<PixelT>> impl_type;
     // This is sort of redundant, but holding both the resource and
     // the block rasterize view simplifies construction and access
     // to the underlying resource.

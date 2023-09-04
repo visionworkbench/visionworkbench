@@ -36,6 +36,9 @@
 
 namespace vw {
 
+  // A helper utility to adjust the block size
+  void adjust_block_size(vw::Vector2i & block_size);
+  
   /// A wrapper view that rasterizes its child in blocks.
   template <class ImageT>
   class BlockRasterizeView : public ImageViewBase<BlockRasterizeView<ImageT> > {
@@ -49,10 +52,15 @@ namespace vw {
       : m_child           ( new ImageT(image) ),
         m_block_size      ( block_size ),
         m_num_threads     ( num_threads ),
-        m_cache_ptr       ( cache )
-    {
-      if( m_block_size.x() <= 0 || m_block_size.y() <= 0 )
-        m_block_size = image_block::get_default_block_size<pixel_type>(image.rows(), image.cols(), image.planes());
+        m_cache_ptr       ( cache ) {
+
+      if (m_block_size.x() <= 0 || m_block_size.y() <= 0)
+        m_block_size = image_block::get_default_block_size<pixel_type>
+          (image.rows(), image.cols(), image.planes());
+
+      // Make each dimension be not too large, as otherwise performance
+      // becomes bad
+      adjust_block_size(m_block_size);  
 
       if (m_cache_ptr) // Manager is not needed if not using a cache.
         m_block_manager.initialize(m_cache_ptr, m_block_size, m_child);
@@ -180,6 +188,7 @@ namespace vw {
                                                  Vector2i const& block_size, int num_threads, Cache& cache ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &cache );
   }
+
 
 } // namespace vw
 

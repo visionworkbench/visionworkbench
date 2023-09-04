@@ -39,6 +39,7 @@
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/BlockProcessor.h>
+#include <vw/Image/BlockRasterize.h>
 
 namespace vw {
 
@@ -58,7 +59,12 @@ namespace vw {
         m_cache_ptr       ( cache )
     {
       if( m_block_size.x() <= 0 || m_block_size.y() <= 0 )
-        m_block_size = image_block::get_default_block_size<pixel_type>(image.rows(), image.cols(), image.planes());
+        m_block_size = image_block::get_default_block_size<pixel_type>
+          (image.rows(), image.cols(), image.planes());
+
+      // Make each dimension be not too large, as otherwise performance
+      // becomes bad
+      adjust_block_size(m_block_size);  
 
       if (m_cache_ptr) // Manager is not needed if not using a cache.
         m_block_manager.initialize(m_cache_ptr, m_block_size, m_child);
