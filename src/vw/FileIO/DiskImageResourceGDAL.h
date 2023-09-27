@@ -45,8 +45,12 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Math/Matrix.h>
 
+// Can't do much about warnings in boost except to hide them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#pragma GCC diagnostic pop
 
 // Forward declarations
 class GDALDataset;

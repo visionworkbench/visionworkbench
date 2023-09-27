@@ -36,7 +36,11 @@
 #include <vw/Cartography/Datum.h>
 
 // Boost
+// Can't do much about warnings in boost except to hide them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/algorithm/string.hpp>
+#pragma GCC diagnostic pop
 
 namespace vw {
 namespace ba {

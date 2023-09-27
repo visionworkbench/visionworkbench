@@ -25,9 +25,14 @@
 
 #include <set>
 #include <string>
+
+// Can't do much about warnings in boost except to hide them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/type_traits.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#pragma GCC diagnostic pop
 
 #include <vw/Core/Features.h>
 #include <vw/Core/Log.h>
@@ -36,7 +41,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/Manipulation.h>
-
 
 namespace vw {
 

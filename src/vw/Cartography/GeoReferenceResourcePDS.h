@@ -22,8 +22,11 @@
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/Cartography/GeoReference.h>
 
-// Boost
+// Can't do much about warnings in boost except to hide them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/algorithm/string.hpp>
+#pragma GCC diagnostic pop
 
 /// \file GeoReferenceResourcePDS.h Functions to read/write a \ref vw::cartography::GeoReference from PDS.
 

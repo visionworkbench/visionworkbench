@@ -40,6 +40,9 @@
 #include <vw/BundleAdjustment/ControlNetwork.h>
 
 // Boost
+// Can't do much about warnings in boost except to hide them
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/bind.hpp>
@@ -54,6 +57,8 @@
 #else
 #include <ctime>
 #endif
+
+#pragma GCC diagnostic pop
 
 // Bundle Adjust Report has many different reporting levels much like
 // VW's log. Higher number options include all of the options of the
