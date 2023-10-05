@@ -89,22 +89,6 @@ double get_image_meters_per_pixel(int width, int height, GeoReference const& geo
   return (d1 + d2) / 2.0;
 }
 
-// Convert from projected coordinates to ECEF
-vw::Vector3 projToEcef(GeoReference const& georef,
-                       vw::Vector3  const& proj) {
-  vw::Vector3 llh = georef.point_to_geodetic(proj);
-  vw::Vector3 ecef = georef.datum().geodetic_to_cartesian(llh);
-  return ecef;
-}
-
-// Convert from ECEF to projected coordinates
-vw::Vector3 ecefToProj(GeoReference const& georef,
-                       vw::Vector3  const& ecef) {
-  vw::Vector3 llh = georef.datum().cartesian_to_geodetic(ecef);
-  vw::Vector3 proj = georef.geodetic_to_point(llh);
-  return proj;
-}
-
 }} // vw::cartography
 
 #undef CHECK_PROJ_ERROR

@@ -15,9 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#ifndef __VW_CARTOGRAPHY_GEOREFERENCEUTILS_H__
-#define __VW_CARTOGRAPHY_GEOREFERENCEUTILS_H__
+#ifndef __VW_CARTOGRAPHY_GEOREFERENCE_UTILS_H__
+#define __VW_CARTOGRAPHY_GEOREFERENCE_UTILS_H__
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/Algorithms.h>
@@ -336,10 +335,6 @@ namespace cartography {
     } // namespace vw::cartography::output::tms
   } // namespace vw::cartography::output
 
-
-  vw::Vector3 projToEcef(GeoReference const& georef, vw::Vector3 const& proj);
-  vw::Vector3 ecefToProj(GeoReference const& georef, vw::Vector3 const& ecef);
-
 }} // namespace vw::cartography
 
-#endif // __VW_CARTOGRAPHY_GEOREFERENCEUTILS_H__
+#endif // __VW_CARTOGRAPHY_GEOREFERENCE_UTILS_H__
