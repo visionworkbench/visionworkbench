@@ -31,16 +31,29 @@
 namespace vw {
 namespace cartography {
 
-  // Wipe the +proj entry from a projection before appending a new one,
-  // as otherwise PROJ gets confused.
+  // Wipe the +proj and other entries from a projection before appending a new one,
+  // as otherwise PROJ gets confused. Must make sure to keep the radius.
+  // TODO(oalexan1): This is a hack. Need to figure out how to properly
+  // do conversions between datums. 
   std::string wipe_proj(std::string const& str_in) {
 
     std::vector<std::string> tokens;
     boost::split(tokens, boost::trim_copy(str_in), boost::is_any_of(" "));
 
+    std::vector<std::string> to_wipe = {"+proj", "+lon", "+lat", "+k", "+x", "+y"};
+    
     std::string str_out = "";
     for (size_t k = 0; k < tokens.size(); k++) {
-      if (boost::starts_with(tokens[k], "+proj"))
+      
+      // Wipe any tokens that start with the strings in to_wipe
+      bool will_skip = false;
+      for (size_t i = 0; i < to_wipe.size(); i++) {
+        if (boost::starts_with(tokens[k], to_wipe[i])) {
+          will_skip = true;
+          break;
+        }
+      }
+      if (will_skip)
         continue;
 
       if (!str_out.empty())
@@ -63,10 +76,8 @@ namespace cartography {
 
     pj_context = proj_context_create();
     PJ_AREA *area = NULL;
-    pj_transform = proj_create_crs_to_crs(pj_context,
-                                            src_proj_str.c_str(),
-                                            dst_proj_str.c_str(),
-                                            area);
+    pj_transform = proj_create_crs_to_crs(pj_context, src_proj_str.c_str(),
+                                          dst_proj_str.c_str(), area);
     if (pj_transform == NULL)
       vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a geotransform for PROJ strings: "
                    << src_proj_str << " and " 
@@ -117,7 +128,9 @@ namespace cartography {
       std::stringstream ss_dst;
       ss_dst << "+proj=longlat " << wipe_proj(dst_datum);
       m_dst_datum_proj_str = ss_dst.str();
-
+      
+      // This transform will only be used to convert lon,lat,alt between
+      // datums. It will not be used to convert between projections.
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
                             m_pj_context, m_pj_transform); // outputs
     }
@@ -126,8 +139,6 @@ namespace cartography {
     // of 0.1 pixels to allow ourselves to be approximated.
     set_tolerance(0.1);
 
-    // TODO(oalexan1): Need to think of what to do here
-#if 0
     if (!m_skip_datum_conversion) {
       // This is a bugfix for the situation when the datums are in
       // fact the same, even if the precise datum strings differ. If
@@ -142,7 +153,6 @@ namespace cartography {
       for (double lon = -180; lon <= 180; lon += 90) {
         for (double lat = -90; lat <= 90; lat += 45) {
           Vector2 lon_lat(lon, lat);
-          
           bool forward = true;
           Vector2 lon_lat2 = GeoTransform::lonlat_to_lonlat(lon_lat, forward);
           max_err = std::max(max_err, norm_2(lon_lat - lon_lat2));
@@ -150,11 +160,10 @@ namespace cartography {
           max_err = std::max(max_err, norm_2(lon_lat2 - lon_lat3));
         }
       }
-
+      
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
     }
-#endif
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -205,14 +214,15 @@ namespace cartography {
   /// pixel in the destination (transformed) image.
   Vector2 GeoTransform::forward(Vector2 const& v) const {
     bool forward = true;
-     if (m_skip_map_projection)
-       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-     Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
-     if(m_skip_datum_conversion)
-       return m_dst_georef.lonlat_to_pixel(src_lonlat);
-     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, forward);
+    if (m_skip_map_projection)
+      return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
 
-     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
+    Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+    if (m_skip_datum_conversion)
+      return m_dst_georef.lonlat_to_pixel(src_lonlat);
+    
+    Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, forward);
+    return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
   
   // TODO(oalexan1): GDAL has a function for this which is likely better written.
@@ -316,9 +326,8 @@ namespace cartography {
       c_out = proj_trans(m_pj_transform, PJ_FWD, c_in);
     else
       c_out = proj_trans(m_pj_transform, PJ_INV, c_in);
-
-    vw::Vector3 out(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi), c_out.lpzt.z);
     
+    vw::Vector3 out(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi), c_out.lpzt.z);
     return out;
   }
 
