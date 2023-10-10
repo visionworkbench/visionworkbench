@@ -60,7 +60,7 @@ namespace fs = boost::filesystem;
   // Images are aligned by computing interest points, matching
   // them using a standard 2-Norm nearest-neighor metric, and then
   // rejecting outliers by fitting a similarity between the
-  // putative matches using RANSAC.
+  // matches using RANSAC.
 
 /// Program parameters
 struct Options {
@@ -217,7 +217,7 @@ void align_images( Options & opt ) {
     std::vector<InterestPoint> matched_ip1, matched_ip2;
     matcher(ref_ip_v, input_ip_v, matched_ip1, matched_ip2,
             TerminalProgressCallback( "tools.ipalign", "Matching:"));
-    vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
+    vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " matches.\n";
 
     // RANSAC is used to fit a similarity transform between the matched sets of points
     // - We generate the transformation matrix and the lists of inlier indices

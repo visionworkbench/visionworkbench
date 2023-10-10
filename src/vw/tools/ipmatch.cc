@@ -327,10 +327,10 @@ int main(int argc, char** argv) {
         }
       } // End non-KDTree case
 
-      vw_out() << "Found " << matched_ip1.size() << " putative matches before duplicate removal.\n";
+      vw_out() << "Found " << matched_ip1.size() << " matches before duplicate removal.\n";
 
       remove_duplicates(matched_ip1, matched_ip2);
-      vw_out() << "Found " << matched_ip1.size() << " putative matches.\n";
+      vw_out() << "Found " << matched_ip1.size() << " matches.\n";
 
       std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1),
                            ransac_ip2 = iplist_to_vectorlist(matched_ip2);

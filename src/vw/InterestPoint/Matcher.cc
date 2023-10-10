@@ -15,8 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-/// \file Matcher.h
+/// \file Matcher.cc
 ///
 /// Classes and functions for matching image interest points.
 ///
@@ -32,6 +31,7 @@ namespace vw { namespace ip {
 float
 L2NormMetric::operator()( InterestPoint const& ip1, InterestPoint const& ip2,
                           float maxdist ) const {
+                            
   float dist = 0.0;
   for (size_t i = 0; i < ip1.descriptor.size(); i++) {
     dist += (ip1.descriptor[i] - ip2.descriptor[i])*(ip1.descriptor[i] - ip2.descriptor[i]);
@@ -132,6 +132,7 @@ bool ScaleOrientationConstraint::operator()( InterestPoint const& baseline_ip,
 
 bool PositionConstraint::operator()( InterestPoint const& baseline_ip,
                                       InterestPoint const& test_ip ) const {
+
   double dx = test_ip.x - baseline_ip.x;
   double dy = test_ip.y - baseline_ip.y;
   if (dx >= min_x && dx <= max_x && dy >= min_y && dy <= max_y) {
@@ -147,7 +148,7 @@ bool PositionConstraint::operator()( InterestPoint const& baseline_ip,
 // way to get the same results as a prior version of the code.
 void remove_duplicates(std::vector<InterestPoint>& ip1,
                        std::vector<InterestPoint>& ip2) {
-
+  
   // Sanity check
   VW_ASSERT(ip1.size() == ip2.size(),
             ArgumentErr() << "Input vectors are not the same size.");

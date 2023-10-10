@@ -39,8 +39,7 @@
 #include "opencv2/features2d/features2d.hpp"
 #endif
 
-namespace vw {
-namespace ip {
+namespace vw { namespace ip {
 
   /// A class for storing information about an interest point.
   struct InterestPoint {
@@ -61,7 +60,6 @@ namespace ip {
       : x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), interest(interest),
         polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
 
-
     /// Subpixel (col,row) location of point
     float x,y;
 
@@ -70,7 +68,7 @@ namespace ip {
     /// other scale detector like the Laplace scale used by Mikolajczyk & Schmid
     float scale;
 
-    /// Integer location (unnormalized), mainly for internal use.
+    /// Integer location, mainly for internal use.
     int32 ix;
     int32 iy;
 
@@ -163,15 +161,15 @@ inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
     if (P1.octave      < P2.octave      ) return true; if (P1.octave      > P2.octave      ) return false;
     if (P1.scale_lvl   < P2.scale_lvl   ) return true; if (P1.scale_lvl   > P2.scale_lvl   ) return false;
     return false;
-  }
+}
   
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
 
   // Utility function converts from a list of interest points to a
-  // vector of interest point locations.  (Useful when preping data for RANSAC...)
-  std::vector<Vector3      > iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
-  //std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3      > const& veclist); // Avoid using, info is lost!
+  // vector of interest point locations.  (Useful when preparing data for RANSAC.)
+  std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
+  //std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist); // Avoid using, info is lost!
 
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
@@ -216,7 +214,6 @@ inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
       ++matrix_row;
     }
   }
-
 
   /// ImageInterestData
   ///
@@ -302,7 +299,7 @@ inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
     /// Accessors to mutable integral image.
     inline integral_type const& integral() const {
       if (!m_integral) 
-        vw_throw(LogicErr() << "ImageInterestData::integral() Integral image  has not yet been computed.");
+        vw_throw(LogicErr() << "ImageInterestData::integral() Integral image has not yet been computed.");
       return *m_integral;
     }
 
