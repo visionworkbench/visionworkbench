@@ -40,7 +40,7 @@ namespace stereo {
                                vw::Vector3 const& dir1, vw::Vector3 const& ctr1, 
                                vw::Vector3& errorVec);
   
-  /// 
+  /// Class for triangulating rays emanating at given pixels in given cameras 
   class StereoModel {
 
   public:
@@ -61,7 +61,7 @@ namespace stereo {
     virtual ~StereoModel() {}
 
     //------------------------------------------------------------------
-    // Public Methods
+    // Public methods
     //------------------------------------------------------------------
 
     /// Apply a stereo model to a disparity map to produce an image of
@@ -71,7 +71,7 @@ namespace stereo {
     /// Users really shouldn't use this method, the ideal method is
     /// the 'stereo_triangulate' in StereoView.h.
     ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f>> const& disparity_map,
-                                  ImageView<double> &error ) const;
+                                  ImageView<double> &error) const;
 
     /// Apply a stereo model to multiple or just two image coordinates.
     /// Returns an xyz point. The error is set to 0 if triangulation
@@ -103,11 +103,11 @@ namespace stereo {
     double m_angle_tol;
 
     //------------------------------------------------------------------
-    // Protected Methods
+    // Protected methods
     //------------------------------------------------------------------
 
     /// Return the 2-norm of the error vector ( the vector from the
-    /// closest point of intersectio of A to the closest point of
+    /// closest point of intersection of A to the closest point of
     /// intersection of B ), or -1 if the rays are parallel or divergent.
     static Vector3 triangulate_point(std::vector<Vector3> const& camDirs,
                                      std::vector<Vector3> const& camCtrs,
@@ -116,7 +116,7 @@ namespace stereo {
     static bool are_nearly_parallel(bool least_squares, double angle_tol,
                                     std::vector<Vector3> const& camDirs);
 
-    void refine_point(Vector2 const& pix1, Vector2 const& pix2, Vector3 & point ) const;
+    void refine_point(Vector2 const& pix1, Vector2 const& pix2, Vector3 & point) const;
   };
 
 }}      // namespace vw::stereo

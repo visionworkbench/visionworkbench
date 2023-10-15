@@ -34,7 +34,7 @@ namespace vw { namespace stereo {
   // rays emanating from the camera.
   vw::Vector3 triangulate_pair(vw::Vector3 const& dir0, vw::Vector3 const& ctr0, 
                                vw::Vector3 const& dir1, vw::Vector3 const& ctr1, 
-                               vw::Vector3& errorVec){
+                               vw::Vector3& errorVec) {
     
     vw::Vector3 v12 = cross_prod(dir0, dir1);
     vw::Vector3 v1 = cross_prod(v12, dir0);
@@ -49,7 +49,7 @@ namespace vw { namespace stereo {
 
 namespace detail {
   
-  class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
+  class PointLMA: public math::LeastSquaresModelBase<PointLMA> {
     vector<const camera::CameraModel *> m_cameras;
     
   public:
@@ -71,14 +71,14 @@ namespace detail {
   
 // Constructor with n cameras
 StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
-                         bool least_squares_refine, double angle_tol) :
+                         bool least_squares_refine, double angle_tol):
   m_cameras(cameras),
   m_least_squares(least_squares_refine), m_angle_tol(angle_tol) {}
   
 // Constructor with two cameras
 StereoModel::StereoModel(camera::CameraModel const* camera_model1,
                          camera::CameraModel const* camera_model2,
-                         bool least_squares_refine, double angle_tol){
+                         bool least_squares_refine, double angle_tol) {
   m_cameras.clear();
   m_cameras.push_back(camera_model1);
   m_cameras.push_back(camera_model2);
@@ -88,7 +88,7 @@ StereoModel::StereoModel(camera::CameraModel const* camera_model1,
 
 bool StereoModel::are_nearly_parallel(bool least_squares,
                                       double angle_tol,
-                                      std::vector<Vector3> const& camDirs){
+                                      std::vector<Vector3> const& camDirs) {
 
   // If the camera directions are nearly parallel, there will be very
   // large numerical uncertainty about where to place the point.  We

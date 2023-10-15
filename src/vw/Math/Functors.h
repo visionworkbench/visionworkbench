@@ -390,7 +390,7 @@ namespace vw {
 
     // Note: This function modifies the input!
     template <class T>
-    T destructive_median(std::vector<T> & vec){
+    T destructive_median(std::vector<T> & vec) {
       int len = vec.size();
       VW_ASSERT(len, ArgumentErr() << "median: no valid samples.");
       std::sort(vec.begin(), vec.end());
