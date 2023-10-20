@@ -363,6 +363,7 @@ typedef HomogeneousL2NormErrorMetric<3> Affine3DErrorMetric;
 // with given value of:
 // ransac_params = (ransac_iterations,  outlier_factor).
 // TODO(oalexan1): Convert all uses of this function to an interface
+// using vectors of points rather than matrices.
 void find_3D_transform(vw::Matrix<double> const & in, 
                        vw::Matrix<double> const & out,
                        vw::Matrix<double,3,3>   & rotation,
