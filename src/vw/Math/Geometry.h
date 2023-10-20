@@ -521,12 +521,23 @@ namespace math {
 
   typedef TranslationFittingFunctorN<2> TranslationFittingFunctor;
 
+// Function that finds best fit transform between two sets of 3D points
+// with no outlier filtering. See also find_3D_transform(). This 
+// interface has vectors as inputs rather than having them as rows in a matrix.
+void find_3D_transform_no_outliers(std::vector<vw::Vector3> const & in_vec,
+                                   std::vector<vw::Vector3> const & out_vec,
+                                   vw::Matrix<double,3,3>         & rotation,
+                                   vw::Vector<double,3>           & translation,
+                                   double                         & scale,
+                                   std::string              const & transform_type);
+
 // Given a set of input and output points, use an SVD to find the best
 // rigid rotate/scale/translate transform that aligns the points.
 // The two input matrices should have 3 rows and N columns where
 // N is equal to the number of points. Optionally remove outliers
 // with given value of:
 // ransac_params = (ransac_iterations,  outlier_factor).
+// TODO(oalexan1): Replace the matrix interface with a vector interface.
 void find_3D_transform(vw::Matrix<double> const & in, 
                        vw::Matrix<double> const & out,
                        vw::Matrix<double,3,3>   & rotation,
@@ -534,15 +545,8 @@ void find_3D_transform(vw::Matrix<double> const & in,
                        double                   & scale,
                        std::string        const & transform_type  = "similarity",
                        bool                       filter_outliers = false,
-                       vw::Vector2        const & ransac_params = vw::Vector2(10000.0, 1.0));
-  
-// An auxiliary function 
-void find_3D_transform_aux(vw::Matrix<double> const & in, 
-                           vw::Matrix<double> const & out,
-                           vw::Matrix<double,3,3>   & rotation,
-                           vw::Vector<double,3>     & translation,
-                           double                   & scale,
-                           std::string        const & transform_type);
+                       vw::Vector2        const & ransac_params = vw::Vector2(1e+4, 1.0),
+                       bool                       quiet = false);
   
 }} // namespace vw::math
 

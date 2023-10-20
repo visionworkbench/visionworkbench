@@ -653,7 +653,7 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
 
 /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
 SlerpGridPointingInterpolation
-::SlerpGridPointingInterpolation(std::vector< std::vector<vw::Vector3>> const& directions,
+::SlerpGridPointingInterpolation(std::vector<std::vector<vw::Vector3>> const& directions,
                                  double row0, double drow, double col0, double dcol):
   m_directions(directions), m_row0(row0), m_drow(drow), m_col0(col0), m_dcol(dcol){
   
@@ -671,13 +671,15 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
 
   double row = pix[1], col = pix[0];
   VW_ASSERT(row >= m_row0 && row <= m_row_end,
-	     ArgumentErr() << "Cannot interpolate for pixel row "
-	     << row << ". Out of valid range. Expecting "
-             << m_row0 << " <= " << row << " <= " << m_row_end << "\n");
+    ArgumentErr() 
+      << "Cannot interpolate for pixel row "
+      << row << ". Out of valid range. Expecting "
+      << m_row0 << " <= " << row << " <= " << m_row_end << "\n");
   VW_ASSERT(col >= m_col0 && col <= m_col_end,
-	     ArgumentErr() << "Cannot interpolate for pixel col "
-	     << col << ". Out of valid range. Expecting "
-             << m_col0 << " <= " << col << " <= " << m_col_end << "\n");
+            ArgumentErr() 
+              << "Cannot interpolate for pixel col "
+              << col << ". Out of valid range. Expecting "
+              << m_col0 << " <= " << col << " <= " << m_col_end << "\n");
 
   // Calculations for the row
   int low_irow  = (int) floor((row - m_row0) / m_drow);
