@@ -675,12 +675,7 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
       << "Cannot interpolate for pixel row "
       << row << ". Out of valid range. Expecting "
       << m_row0 << " <= " << row << " <= " << m_row_end << "\n");
-  VW_ASSERT(col >= m_col0 && col <= m_col_end,
-            ArgumentErr() 
-              << "Cannot interpolate for pixel col "
-              << col << ". Out of valid range. Expecting "
-              << m_col0 << " <= " << col << " <= " << m_col_end << "\n");
-
+  
   // Calculations for the row
   int low_irow  = (int) floor((row - m_row0) / m_drow);
   int high_irow = (int) ceil ((row - m_row0) / m_drow);
@@ -692,16 +687,26 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
   // Calculations for the col
   int low_icol  = (int) floor((col - m_col0) / m_dcol);
   int high_icol = (int) ceil ((col - m_col0) / m_dcol);
-  VW_ASSERT(low_icol >= 0 && high_icol < (int)m_directions.front().size(),
-	     ArgumentErr() << "Out of bounds in SlerpGridPointingInterpolation.\n");
+
+  // It is convenient to extrapolate for out-of-range columns. This helps guide
+  // the solver making use of this towards the solution. This is a bugfix.
+  if (col < m_col0) {
+    low_icol = 0;
+    high_icol = 1;
+  } else if (col > m_col_end) {
+    low_icol = m_col_end - 1;
+    high_icol = m_col_end;
+  }
+
+  // We will not use these when out of range in col  
   double low_col  = m_col0 + m_dcol * low_icol;
-  double norm_col = (col - low_col) / m_dcol; // col as fraction of time between points
+  double norm_col = (col - low_col) / m_dcol; 
 
   vw::Vector3 p;
   Quat L, H;
 
   {
-    // Interpolate the pointing vector for low_col
+    // Interpolate the pointing vector for low col
     p = m_directions[low_irow][low_icol];
     Quat ll(0, p[0], p[1], p[2]);
     p = m_directions[high_irow][low_icol];
@@ -710,7 +715,7 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
   }
 
   {
-    // Interpolate the pointing vector for high_col
+    // Interpolate the pointing vector for high col
     p = m_directions[low_irow][high_icol];
     Quat lh(0, p[0], p[1], p[2]);
     p = m_directions[high_irow][high_icol];
@@ -718,10 +723,20 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
     H = vw::math::slerp(norm_row, lh, hh, 0);
   }
 
-  // Now interpolate between low_col and high_col
-  Quat Res = vw::math::slerp(norm_col, L, H, 0);
-
-  Vector3 result(Res.x(), Res.y(), Res.z());
+  Vector3 result;
+  if (m_col0 <= col && col <= m_col_end) {
+    // Within range, interpolate
+    Quat Res = vw::math::slerp(norm_col, L, H, 0);
+    result = Vector3(Res.x(), Res.y(), Res.z());
+  } else {
+    // Extrapolate. Have to spell out the math per coordinate,
+    // as the Quat class does not support this.
+    double t = (col - m_col0) / (m_col_end - m_col0);
+    result = Vector3((1-t) * L.x() + t * H.x(),
+                     (1-t) * L.y() + t * H.y(),
+                     (1-t) * L.z() + t * H.z());
+  }
+  
   return result;
 }
 
