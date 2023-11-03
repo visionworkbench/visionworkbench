@@ -223,14 +223,17 @@ namespace ip {
 
 
   //////////////////////////////////////////////////////////////////////////////
-  // Convenience Typedefs
-  typedef InterestPointMatcher< L2NormMetric, NullConstraint             > DefaultMatcher;
-  typedef InterestPointMatcher< L2NormMetric, ScaleOrientationConstraint > ConstraintedMatcher;
+  // Convenience typedef
+  typedef InterestPointMatcher<L2NormMetric, NullConstraint> DefaultMatcher;
 
   /// Matching doesn't constraint a point to being matched to only one
   /// other point. Here's a way to remove duplicates and have only pairwise points.
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
+
+  /// Return the basename with no extension, and shorten it if need be.
+  /// If filename starts with out_prefix followed by dash, strip those.
+  std::string strip_path(std::string out_prefix, std::string filename);
 
   /// The name of the match file.
   std::string match_filename(std::string const& out_prefix,

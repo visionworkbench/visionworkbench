@@ -191,10 +191,9 @@ void remove_duplicates(std::vector<InterestPoint>& ip1,
   }
 }
 
-std::string strip_path(std::string out_prefix, std::string filename){
-
-  // If filename starts with out_prefix followed by dash, strip both.
-  // Also strip filename extension.
+/// Return the basename with no extension, and shorten it if need be.
+/// If filename starts with out_prefix followed by dash, strip those.
+std::string strip_path(std::string out_prefix, std::string filename) {
 
   std::string ss = out_prefix + "-";
   size_t found = filename.find(ss);
@@ -210,8 +209,8 @@ std::string strip_path(std::string out_prefix, std::string filename){
 
 
 std::string match_filename(std::string const& out_prefix,
-                            std::string const& input_file1,
-                            std::string const& input_file2){
+                           std::string const& input_file1,
+                           std::string const& input_file2) {
 
   // filenames longer than this must be chopped, as too long names
   // cause problems later with boost.
@@ -236,8 +235,8 @@ std::string clean_match_filename(std::string const& match_file) {
 
 /// The name of the clean match file.
 std::string clean_match_filename(std::string const& out_prefix,
-                                  std::string const& input_file1,
-                                  std::string const& input_file2) {
+                                 std::string const& input_file1,
+                                 std::string const& input_file2) {
 
   return clean_match_filename(match_filename(out_prefix, input_file1, input_file2));
 }
