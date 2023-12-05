@@ -38,7 +38,6 @@
 #include <iostream>
 #include <limits>
 
-
 /**
 The objective is to split the region into non-overlapping blocks, each
 containing approximately the same number of points, as specified by the
@@ -65,14 +64,13 @@ we are done, and we simply store away the contents of the block.  If there are
 two partitions in a block, we avoid the recopying the narrow array to the
 spare since the wide array already contains the desired points partitioned
 into two blocks.  We simply need to locate the maximum and minimum values
-from the narrow array so that the approriate extrema of the block can
+from the narrow array so that the appropiate extrema of the block can
 be stored.
 */
 
-// This code was hacked a bit by Oleg to convert the chips to
-// Cartesian xyz values and store then in a tif image. Each chip will
-// be stored in the tif image as a block of size blockSize x
-// blockSize.
+// Adapted for use in ASP. The chips are converted to Cartesian xyz values and
+// store then in a tif image. Each chip will be stored in the tif image as a
+// block of size blockSize x blockSize.
   
 namespace pdal
 {
@@ -80,6 +78,8 @@ namespace filters
 {
 
 using namespace vw;
+
+// TODO(oalexan1): Move this to the vw namespace.
   
 Chipper::Chipper(PointBuffer& buffer, int blockSize, 
                  bool have_georef, vw::cartography::GeoReference const& georef,
@@ -361,7 +361,7 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
     Vector3 pt = m_inbuf[wide[idx].m_ptindex];
     
     // If the data is in respect to a georef, convert to raw xyz values
-    if (m_have_georef){
+    if (m_have_georef) {
       Vector2 ll = m_georef.point_to_lonlat(subvector(pt, 0, 2));
       pt = m_georef.datum().geodetic_to_cartesian(Vector3(ll[0], ll[1], pt[2]));
     }
