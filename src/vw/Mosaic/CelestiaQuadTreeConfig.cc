@@ -21,6 +21,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <functional>
+
 namespace fs = boost::filesystem;
 
 namespace vw {
@@ -61,7 +63,8 @@ namespace mosaic {
   void CelestiaQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_image_path_func( &image_path );
     qtree.set_cull_images( true );
-    qtree.set_metadata_func( boost::bind(&CelestiaQuadTreeConfig::metadata_func,this,_1,_2) );
+    qtree.set_metadata_func( boost::bind(&CelestiaQuadTreeConfig::metadata_func,this,
+                                         std::placeholders::_1, std::placeholders::_2));
   }
 
   // TODO: Is this actually the right function for Celestia?

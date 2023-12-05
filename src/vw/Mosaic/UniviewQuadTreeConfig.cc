@@ -23,6 +23,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <functional>
 namespace fs = boost::filesystem;
 
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -99,7 +100,8 @@ namespace mosaic {
   void UniviewQuadTreeConfig::configure( QuadTreeGenerator &qtree ) const {
     qtree.set_image_path_func( &image_path );
     if( m_terrain ) qtree.set_tile_resource_func( &terrain_tile_resource );
-    qtree.set_metadata_func( boost::bind(&UniviewQuadTreeConfig::metadata_func,this,_1,_2) );
+    qtree.set_metadata_func( boost::bind(&UniviewQuadTreeConfig::metadata_func,this,
+                                         std::placeholders::_1, std::placeholders::_2));
   }
 
   // TODO: Is this actually the right function for Uniview?

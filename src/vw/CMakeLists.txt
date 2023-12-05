@@ -134,6 +134,7 @@ if(LAPACK_FOUND)
 endif()
 
 find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
+find_external_library(LZ4     ${ASP_DEPS_DIR} "" "lz4"       REQUIRED)
 find_external_library(JPEG    ${ASP_DEPS_DIR} "" "jpeg"      REQUIRED)
 find_external_library(PNG     ${ASP_DEPS_DIR} "" "png;png16" REQUIRED)
 find_external_library(TIFF    ${ASP_DEPS_DIR} "" "tiff"      REQUIRED)
@@ -290,7 +291,7 @@ set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${OPENBLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${OPENBLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${LZ4_LIBRARIES})
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
