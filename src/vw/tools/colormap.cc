@@ -40,6 +40,7 @@
 #include <vw/tools/Common.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/Cartography/Hillshade.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -62,8 +63,19 @@ struct Options: vw::GdalWriteOptions {
   std::string output_file_name, colormap_style;
   float       nodata_value, min_val, max_val;
   bool        draw_legend;
-
+  
   std::map<float, Vector3u> lut_map;
+  
+  // For hillshade
+  bool hillshade;
+  double azimuth, elevation, scale; 
+  double hillshade_nodata_value;
+  double blur_sigma;
+  bool   align_to_georef;
+
+  Options(): draw_legend(false), hillshade(false), azimuth(300), elevation(20),
+  scale(0.0), hillshade_nodata_value(std::numeric_limits<double>::quiet_NaN()), 
+  blur_sigma(std::numeric_limits<double>::quiet_NaN()), align_to_georef(false) {}
 };
 
 template <class PixelT>
@@ -140,10 +152,10 @@ void save_colormap(Options const& opt, ImageViewRef<PixelMask<PixelRGB<uint8>>> 
   if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
     vw_out() << "\t--> Incorporating hillshading from: "
              << opt.shaded_relief_file_name << ".\n";
-    DiskImageView<PixelGray<float> >
+    DiskImageView<PixelGray<float>>
       shaded_relief_image(opt.shaded_relief_file_name); // It's okay to throw  away the
                                                         // second channel if it exists.
-    ImageViewRef<PixelMask<PixelRGB<uint8> > > shaded_image =
+    ImageViewRef<PixelMask<PixelRGB<uint8>>> shaded_image =
       copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
                 colorized_image);
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
@@ -152,7 +164,7 @@ void save_colormap(Options const& opt, ImageViewRef<PixelMask<PixelRGB<uint8>>> 
 
     if (r->has_block_write())
       r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size()));
+                                       vw_settings().default_tile_size()));
 
     if (has_georef) 
       write_georeference(*r, georef);
@@ -193,8 +205,6 @@ void save_legend(Options const& opt) {
 void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description general_options("");
   general_options.add_options()
-    ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
-                      "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value(&opt.output_file_name),
                       "Specify the output file.")
     ("colormap-style",po::value(&opt.colormap_style)->default_value("binary-red-blue"),
@@ -214,6 +224,19 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
      "suitable for covering elevations on the Moon.")
     ("mars",          "Set the min and max values to [-8208 21249] meters, which is "
      "suitable for covering elevations on Mars.")
+    ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
+      "Specify a shaded relief image (grayscale) to apply to the colorized image. "
+      "For example, this can be a hillshade image.")
+    ("hillshade",    "Create a hillshaded image first, then incorporate it in the "
+     "colormap. This is equivalent to using an external file with the "
+     "--shaded-relief-file option.")
+    ("azimuth,a",       po::value(&opt.azimuth)->default_value(300), 
+     "Sets the direction the light source is coming from (in degrees). "
+     "Zero degrees is to the right, with positive degree counter-clockwise. "
+     "To be used with the --hillshade option.")
+    ("elevation,e",     po::value(&opt.elevation)->default_value(20), 
+     "Set the elevation of the light source (in degrees). To be used with "
+     "the --hillshade option.")
     ("legend",        "Generate the colormap legend.  This image is saved (without "
      "labels) as 'legend.png'.");
 
@@ -259,9 +282,12 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string() + "_CMAP.tif";
   opt.draw_legend = vm.count("legend");
+  opt.hillshade = vm.count("hillshade");
+
+  if (opt.shaded_relief_file_name != "" && opt.hillshade) 
+    vw_throw(ArgumentErr() << "Cannot use both --shaded-relief-file and --hillshade.\n");
 
   opt.setVwSettingsFromOpt();
-
   create_out_dir(opt.output_file_name);
 }
 
@@ -296,6 +322,25 @@ int main(int argc, char *argv[]) {
       break;
     default:
       vw_throw(ArgumentErr() << "Unsupported pixel format. The image must have only one channel.");
+    }
+    
+    if (opt.hillshade) {
+      // Do the hillshade first, then will use it when colorizing.
+      // Create opt.shaded_relief_file_name by removing any extension first
+      opt.shaded_relief_file_name =
+        fs::path(opt.output_file_name).replace_extension().string();
+      // Remove _CMAP
+      int len = opt.shaded_relief_file_name.size();
+      if (len >= 5 && opt.shaded_relief_file_name.substr(len - 5) == "_CMAP") 
+        opt.shaded_relief_file_name = opt.shaded_relief_file_name.substr(0, len - 5);
+      // In either case, append _HILLSHADE.tif
+      opt.shaded_relief_file_name = opt.shaded_relief_file_name + "_HILLSHADE.tif";
+      // Create the hillshade and save it to disk  
+      vw::cartography::do_multitype_hillshade(opt.input_file_name,
+                                              opt.shaded_relief_file_name,
+                                              opt.azimuth, opt.elevation, opt.scale,
+                                              opt.nodata_value, opt.blur_sigma, 
+                                              opt.align_to_georef);
     }
 
     save_colormap(opt, out);
