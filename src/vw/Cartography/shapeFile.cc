@@ -292,7 +292,7 @@ namespace vw { namespace geometry {
       for(int iGeom = 0; iGeom < nGeomFieldCount; iGeom ++){
         OGRGeomFieldDefn* poGFldDefn =
           poLayer->GetLayerDefn()->GetGeomFieldDefn(iGeom);
-        OGRSpatialReference* poSRS = poGFldDefn->GetSpatialRef();
+        OGRSpatialReference* poSRS = (OGRSpatialReference*)poGFldDefn->GetSpatialRef();
         if (poSRS == NULL)
           pszWKT = CPLStrdup("(unknown)");
         else {

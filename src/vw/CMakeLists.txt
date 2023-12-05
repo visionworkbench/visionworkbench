@@ -87,7 +87,6 @@ find_package(Threads REQUIRED)
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
-set(BOOST_VERSION "1.72") # This is fragile, but it keeps on finding Boost 1.72.
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
@@ -100,10 +99,10 @@ if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
   set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "x64") # needed for pfe
 endif()  
 # Now search for Boost using the available information
-find_package(Boost ${BOOST_VERSION} EXACT REQUIRED COMPONENTS ${REQUIRED_BOOST_LIBS})
+find_package(Boost REQUIRED COMPONENTS ${REQUIRED_BOOST_LIBS})
 
 if(Boost_FOUND)
-    message("Successfully found Boost version ${Boost_VERSION}.")
+    message("Successfully found Boost")
     message("Boost include dir = ${Boost_INCLUDE_DIR}")
     message("Boost library dir = ${Boost_LIBRARY_DIRS}")
     message("Boost libraries   = ${Boost_LIBRARIES}")
