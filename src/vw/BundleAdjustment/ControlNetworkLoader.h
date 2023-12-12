@@ -40,7 +40,7 @@ namespace ba {
   /// permutation of the image_files vector.
   bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
-                             std::vector<boost::shared_ptr<camera::CameraModel> >
+                             std::vector<boost::shared_ptr<camera::CameraModel>>
                              const& camera_models,
                              std::vector<std::string> const& image_files,
                              std::map< std::pair<int, int>, std::string> const& match_files,
@@ -49,6 +49,14 @@ namespace ba {
                              double forced_triangulation_distance,
                              int max_pairwise_matches = -1);
   
+  // Triangulate the points in a control network. Do not triangulate
+  // GCP or points constrained to a DEM.
+  void triangulate_control_network(vw::ba::ControlNetwork& cnet,
+                                   std::vector<boost::shared_ptr<camera::CameraModel>>
+                                   const& camera_models,
+                                   double min_angle_radians,
+                                   double forced_triangulation_distance);
+
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
   double triangulate_control_point(ControlPoint& cp,

@@ -102,6 +102,10 @@ namespace math {
     case FLANN_DistType_L2:
       m_index_ptr = new flann::Index<flann::L2<float> >
         (flann::Matrix<float>( (float*)data_ptr, rows, cols ),
+         // TODO(oalexan1): Must try to use here KMeansIndexParams, with 
+         // CENTERS GONZALES, per http://www.cs.ubc.ca/research/flann/uploads/FLANN/flann_manual-1.8.4.pdf. 
+         // This may result in the same result each time, but may be slower.
+         // Need to check first if this is indeed deterministic.
          flann::KDTreeIndexParams(NUM_TREES),
          flann::L2<float>() );
       cast_index_ptr_L2_f(this->m_index_ptr)->buildIndex();

@@ -142,6 +142,44 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   return error_sum;
 }
 
+// Triangulate the points in a control network. Do not triangulate
+// GCP or points constrained to a DEM. 
+void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
+                                         std::vector<vw::CamPtr> const& camera_models,
+                                         double min_angle_radians,
+                                         double forced_triangulation_distance) {
+
+  std::int64_t num_total_points = 0, num_failed_points = 0;
+  TerminalProgressCallback progress("ba", "Triangulating: ");
+  progress.report_progress(0);
+  double inc_prog = 1.0/double(cnet.size());
+  BOOST_FOREACH(ba::ControlPoint& cpoint, cnet) {
+    progress.report_incremental_progress(inc_prog);
+    
+    if (cpoint.type() == ControlPoint::GroundControlPoint ||
+        cpoint.type() == ControlPoint::PointFromDem)
+      continue; // Skip GCPs and points from a DEM
+    
+    int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
+                                            forced_triangulation_distance);
+    num_total_points++;
+    if (ans < 0) 
+      num_failed_points++;
+  }
+  progress.report_finished();
+
+  // This is a verbose message, but it helps when users are confused as to why
+  // their bundle adjustment failed.
+  if (num_failed_points > 0)
+    vw_out() << "\n" << "Triangulated successfully "
+             << num_total_points - num_failed_points << " out of " << num_total_points
+             << " points (ratio: " << 1.0 - num_failed_points / double(num_total_points)
+             << "). If too many failures, perhaps your baseline/convergence angle "
+             << "is too small. Or consider deleting your run directory and rerunning "
+             << "with more match points, decreasing --min-triangulation-angle, or using "
+             << "--forced-triangulation-distance.\n";
+}
+
 bool vw::ba::build_control_network(bool triangulate_control_points,
                                    ba::ControlNetwork& cnet,
                                    std::vector<boost::shared_ptr<camera::CameraModel>>
@@ -153,17 +191,18 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches) {
 
+  // Wipe fully the network. This does not allow passing a name to it, but that
+  // looks unnecessary.
+  cnet = ba::ControlNetwork("ASP_control_network");
+
+  // Notation
   typedef std::tuple<double, double, double> ipTriplet; // ip.x, ip.y, ip.scale
   typedef std::pair<std::vector<ip::InterestPoint>, std::vector<ip::InterestPoint>> MATCH_PAIR;
   typedef std::map<std::pair<int, int>, MATCH_PAIR> MATCH_MAP;
   MATCH_MAP ip_subset;
 
-  // Note that this statement does not clear the network fully.
-  // TODO: Clear all items here. 
-  cnet.clear();
-  
+  // Add image names  
   int num_images = image_files.size();
-
   size_t count = 0;
   BOOST_FOREACH(std::string const& file, image_files) {
     fs::path file_path(file);
@@ -353,34 +392,13 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   }
   
   watch.stop();
-  vw_out() << "Building the control network took " << watch.elapsed_seconds() << " seconds.\n";
+  vw_out() << "Building the control network took " << watch.elapsed_seconds() 
+    << " seconds.\n";
   
-  // Triangulating positions
-  std::int64_t num_total_points = 0, num_failed_points = 0;
-  if (triangulate_control_points) {
-    TerminalProgressCallback progress("ba", "Triangulating: ");
-    progress.report_progress(0);
-    double inc_prog = 1.0/double(cnet.size());
-    BOOST_FOREACH(ba::ControlPoint& cpoint, cnet) {
-      progress.report_incremental_progress(inc_prog);
-      int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
-                                              forced_triangulation_distance);
-      num_total_points++;
-      if (ans < 0) 
-        num_failed_points++;
-    }
-    progress.report_finished();
-  }
-
-  if (num_failed_points > 0)
-    vw_out() << "\n" << "Triangulated successfully "
-             << num_total_points - num_failed_points << " out of " << num_total_points
-             << " points (ratio: " << 1.0 - num_failed_points / double(num_total_points)
-             << "). If too many failures, perhaps your baseline/convergence angle "
-             << "is too small. Or consider deleting your run directory and rerunning "
-             << "with more match points, decreasing --min-triangulation-angle, or using "
-             << "--forced-triangulation-distance.\n";
-          
+  // Triangulate the points in a control network
+  if (triangulate_control_points)
+    vw::ba::triangulate_control_network(cnet, camera_models, min_angle_radians,
+                                        forced_triangulation_distance);
   return true;
 }
 

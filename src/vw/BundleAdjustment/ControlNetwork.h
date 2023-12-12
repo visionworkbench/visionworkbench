@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file ControlNetwork.h
 ///
 /// This file contains useful classes storing bundle adjustment information.
@@ -281,7 +280,7 @@ namespace ba {
     const ControlMeasure& operator[] (size_t index) const { return m_measures[index]; }
 
     /// Accessors for the list of measures (sightings)
-    void clear     ()                { m_measures.clear();           }
+    void clear()                     { m_measures.clear();           }
     void resize    (size_t sz)       { m_measures.resize( sz );      }
     size_t capacity()          const { return m_measures.capacity(); }
     bool empty     ()          const { return m_measures.empty();    }
@@ -430,8 +429,9 @@ namespace ba {
           ControlPoint& operator[] (size_t index)       { return m_control_points[index]; }
     const ControlPoint& operator[] (size_t index) const { return m_control_points[index]; }
 
-    /// Vector access to the control points.
-    void   clear   ()                { m_control_points.clear();           }
+    /// Vector access to the control points. Note that the function
+    /// clear_points() does not clear everything.
+    void   clear_points()            { m_control_points.clear();           }
     void   resize  (size_t sz)       { m_control_points.resize(sz);        }
     size_t capacity()          const { return m_control_points.capacity(); }
     bool   empty   ()          const { return m_control_points.empty();    }

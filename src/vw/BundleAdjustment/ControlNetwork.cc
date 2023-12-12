@@ -706,6 +706,9 @@ namespace ba {
   /// Reading a compressed binary style control network
   void ControlNetwork::read_binary(std::string const& filename) {
 
+    // Must fully wipe the network before reading in a new one
+    *this = ControlNetwork("ASP_control_network");
+
     // Opening file
     std::ifstream f(filename.c_str());
     if (!f.is_open())
@@ -718,9 +721,6 @@ namespace ba {
     std::getline(f, m_modified, '\0');
     std::getline(f, m_description, '\0');
     std::getline(f, m_userName, '\0');
-
-    // Clearing anything left in this control network
-    m_control_points.clear();
 
     // Reading in the binary data
     m_type = ControlNetworkType::Singleton; // ensure initialization
@@ -794,13 +794,13 @@ namespace ba {
   /// Read an isis style control network
   void ControlNetwork::read_isis(std::string const& filename) {
 
+    // Must fully wipe the network before reading in a new one
+    *this = ControlNetwork("ASP_control_network");
+
     // Opening file
     std::ifstream f(filename.c_str());
     if (!f.is_open())
       vw_throw(IOErr() << "Failed to open \"" << filename << "\" as a ISIS Control Network.");
-
-    // Clearing anything left in this control network
-    m_control_points.clear();
 
     // Reading file
     std::vector<std::string> tokens;
@@ -916,6 +916,9 @@ namespace ba {
   /// Reading a csv style control network
   void ControlNetwork::read_csv(std::string const& filename) {
 
+    // Must fully wipe the network before reading in a new one
+    *this = ControlNetwork("ASP_control_network");
+
     // Opening file
     std::ifstream f(filename.c_str());
     if (!f.is_open())
@@ -1010,42 +1013,40 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename,
   return;
 }
 
+////////////////////////////
+// Generic ostream        //
+////////////////////////////
 
-  ////////////////////////////
-  // Generic Ostream        //
-  ////////////////////////////
+std::ostream& operator<<(std::ostream& os, ControlMeasure const& measure) {
+  os << measure.image_id() << ":" << measure.position();
+  return os;
+}
 
-  std::ostream& operator<<(std::ostream& os, ControlMeasure const& measure) {
-    os << measure.image_id() << ":" << measure.position();
-    return os;
-  }
+std::ostream& operator<<(std::ostream& os, ControlPoint const& point) {
+  os << "[Control Point: " << point.position() << "] ";
+  BOOST_FOREACH(ControlMeasure const& cm, point)
+    os << cm << " ";
+  os << "\n";
+  return os;
+}
 
-  std::ostream& operator<<(std::ostream& os, ControlPoint const& point) {
-    os << "[Control Point: " << point.position() << "] ";
-    BOOST_FOREACH(ControlMeasure const& cm, point)
-      os << cm << " ";
-    os << "\n";
-    return os;
-  }
+std::ostream& operator<<(std::ostream& os, ControlNetwork const& cnet) {
+  os << "Control Network: " << cnet.size() << " points.\n";
+  BOOST_FOREACH(ControlPoint const& cp, cnet)
+    os << "\t" << cp;
+  os << "\n";
+  return os;
+}
 
-  std::ostream& operator<<(std::ostream& os, ControlNetwork const& cnet) {
-    os << "Control Network: " << cnet.size() << " points.\n";
-    BOOST_FOREACH(ControlPoint const& cp, cnet)
-      os << "\t" << cp;
-    os << "\n";
-    return os;
-  }
-
-  // Read a single pvl propert
-  void read_pvl_property(std::ostringstream& ostr,
-                          std::vector<std::string>& tokens) {
-    ostr.str("");
-    for (size_t i = 1; i < tokens.size(); i++)
-      if (i > 1)
-        ostr << " " << tokens[i];
-      else
-        ostr << tokens[i];
-  }
-
+// Read a single pvl property
+void read_pvl_property(std::ostringstream& ostr,
+                        std::vector<std::string>& tokens) {
+  ostr.str("");
+  for (size_t i = 1; i < tokens.size(); i++)
+    if (i > 1)
+      ostr << " " << tokens[i];
+    else
+      ostr << tokens[i];
+}
 
 }} // namespace vw::camera

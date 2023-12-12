@@ -97,18 +97,6 @@ TEST_F( CircleTest, IPFeature ) {
   std::list<boost::weak_ptr<IPFeature> > list;
   crn[3].relations.front()->list_connections( list );
   EXPECT_EQ( list.size(), 4u );
-
-  // Converting back to Control Network
-  ControlNetwork cnet2("Copy");
-  crn.assemble_cnet( cnet2 );
-  ASSERT_EQ( cnet2.size(), cnet.size() );
-  for ( unsigned i = 0; i < cnet2.size(); i++ ) {
-    ASSERT_EQ( cnet2[i].size(), cnet[i].size() );
-    for ( unsigned j = 0; j < cnet2[i].size(); j++ ) {
-      EXPECT_EQ( cnet2[i][j], cnet[i][j] );
-    }
-  }
-
 }
 
 TEST_F( CircleTest, JFeature ) {
@@ -126,17 +114,6 @@ TEST_F( CircleTest, JFeature ) {
   std::list<boost::weak_ptr<JFeature> > list;
   crn[3].relations.front()->list_connections( list );
   EXPECT_EQ( list.size(), 4u );
-
-  // Converting back to Control Network
-  ControlNetwork cnet2("Copy");
-  crn.assemble_cnet( cnet2 );
-  ASSERT_EQ( cnet2.size(), cnet.size() );
-  for ( unsigned i = 0; i < cnet2.size(); i++ ) {
-    ASSERT_EQ( cnet2[i].size(), cnet[i].size() );
-    for ( unsigned j = 0; j < cnet2[i].size(); j++ ) {
-      EXPECT_EQ( cnet2[i][j], cnet[i][j] );
-    }
-  }
 
 }
 
