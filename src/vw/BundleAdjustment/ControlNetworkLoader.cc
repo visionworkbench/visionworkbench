@@ -203,12 +203,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   // Add image names  
   int num_images = image_files.size();
-  size_t count = 0;
-  BOOST_FOREACH(std::string const& file, image_files) {
-    fs::path file_path(file);
-    cnet.add_image_name(file);
-    count++;
-  }
+  for (int i = 0; i < num_images; i++)
+    cnet.add_image_name(image_files[i]);
 
   // Iterate through the match files passed in and record the ones which exist.
   // TODO(oalexan1): Likely this loop and the one below can be
@@ -292,7 +288,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
       auto dist_right_ip = ipTriplet(ip2[ip_it].x, ip2[ip_it].y, ip2[ip_it].scale);
-      // Initialize key keypoint map to zero. Will populate the entities later.
+      // Initialize the keypoint map to zero. Will populate the entities later.
       keypoint_map[index1][dist_left_ip] = 0;
       keypoint_map[index2][dist_right_ip] = 0;
     }
@@ -403,8 +399,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 }
 
 int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
-                                       std::vector<std::string> const& gcp_files,
-                                       cartography::Datum const& datum){
+                                      std::vector<std::string> const& gcp_files,
+                                      cartography::Datum const& datum){
   
   namespace fs = boost::filesystem;
   
