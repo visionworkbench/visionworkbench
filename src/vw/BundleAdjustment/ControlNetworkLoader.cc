@@ -173,7 +173,8 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
   if (num_failed_points > 0)
     vw_out() << "\n" << "Triangulated successfully "
              << num_total_points - num_failed_points << " out of " << num_total_points
-             << " points (ratio: " << 1.0 - num_failed_points / double(num_total_points)
+             << " control points (ratio: " 
+             << 1.0 - num_failed_points / double(num_total_points)
              << "). If too many failures, perhaps your baseline/convergence angle "
              << "is too small. Or consider deleting your run directory and rerunning "
              << "with more match points, decreasing --min-triangulation-angle, or using "
