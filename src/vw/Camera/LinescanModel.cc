@@ -17,14 +17,24 @@
 
 #include <vw/Camera/LinescanModel.h>
 #include <vw/Camera/CameraSolve.h>
+#include <vw/Camera/OrbitalCorrections.h>
 
 namespace vw {
 namespace camera {
 
+// Constructor
+LinescanModel::LinescanModel(Vector2i const& image_size,
+                              bool correct_velocity_aberration,
+                              bool correct_atmospheric_refraction):
+  m_image_size(image_size), 
+  m_correct_velocity_aberration(correct_velocity_aberration),
+  m_correct_atmospheric_refraction(correct_atmospheric_refraction),
+  m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
+  m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {}
+
 Vector2 LinescanModel::point_to_pixel(Vector3 const& point) const {
   return point_to_pixel(point, -1); // Redirect to the function with no guess
 }
-
 
 Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const {
 

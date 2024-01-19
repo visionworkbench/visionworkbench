@@ -240,37 +240,6 @@ namespace camera {
     return inverse(camera_pose).rotate(point - camera_position);
   }
 
-
-  //========================================================================================
-  // Ray correction functions
-
-  // WARNING: These currently only work for Earth!
-
-  /// Returns the velocity corrected to account for the planetary rotation.
-  /// - For efficiency, requires the uncorrected look vector at this location.
-  Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
-                                          Vector3 const& camera_velocity,
-                                          double         mean_earth_radius,
-                                          Vector3 const& uncorrected_vector);
-
-  /// Adjust a pixel vector to account for velocity aberration.
-  Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
-                                               Vector3 const& camera_velocity,
-                                               double         mean_earth_radius,
-                                               Vector3 const& uncorrected_vector,
-                                               vw::Quaternion<double> & corr_rot);
-
-  /// Simple atmospheric atmospheric correction method.
-  double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha);
-
-  /// Account for atmospheric refraction.
-  Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
-                                                  double         mean_earth_radius,
-                                                  double         mean_surface_elevation,
-                                                  Vector3 const& uncorrected_vector,
-                                                  vw::Quaternion<double> & corr_rot);
-
-
 } // namespace camera
 
   typedef boost::shared_ptr<camera::CameraModel> CamPtr; // this shows up a lot

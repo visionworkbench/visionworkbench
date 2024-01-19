@@ -45,7 +45,7 @@ namespace camera {
   /// the image); it is also the flight direction.  If this is not 
   /// accurate for your camera you can apply a rotation in PoseFuncT.
 
-  class LinescanModel : public vw::camera::CameraModel {
+  class LinescanModel: public vw::camera::CameraModel {
 
   public:
     //------------------------------------------------------------------
@@ -53,18 +53,7 @@ namespace camera {
     //------------------------------------------------------------------
     LinescanModel(Vector2i const& image_size,
 		              bool            correct_velocity_aberration,
-		              bool            correct_atmospheric_refraction) :
-      m_image_size(image_size), 
-      m_correct_velocity_aberration(correct_velocity_aberration),
-      m_correct_atmospheric_refraction(correct_atmospheric_refraction) {
-      
-      // Set default values for these constants which can be overridden later on.
-      // TODO(oalexan1): Move this to a shared location. Also for OpticalBarModel.
-      const double DEFAULT_EARTH_RADIUS      = 6371000.0;  // In meters.
-      const double DEFAULT_SURFACE_ELEVATION = 0.0;
-      m_mean_earth_radius      = DEFAULT_EARTH_RADIUS;
-      m_mean_surface_elevation = DEFAULT_SURFACE_ELEVATION;
-    }
+		              bool            correct_atmospheric_refraction);
 
     virtual ~LinescanModel() {}
     virtual std::string type() const { return "Linescan"; }

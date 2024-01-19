@@ -62,19 +62,8 @@ namespace camera {
     // Constructors / Destructors
     //------------------------------------------------------------------
 
-    OpticalBarModel() 
-      : m_motion_compensation(1.0),
-        m_correct_velocity_aberration(true),
-        m_correct_atmospheric_refraction(true) {
-    }
-
-    OpticalBarModel(std::string const& path)
-      : m_motion_compensation(1.0),
-        m_correct_velocity_aberration(true),
-        m_correct_atmospheric_refraction(true) {
-      read(path);
-    } // Create from file
-
+    OpticalBarModel();
+    OpticalBarModel(std::string const& path);
     OpticalBarModel(vw::Vector2i image_size,
                     vw::Vector2  center_offset_pixels,
                     double   pixel_size,
@@ -85,31 +74,9 @@ namespace camera {
                     vw::Vector3  initial_position,
                     vw::Vector3  initial_orientation,
                     double   speed,
-                    double   motion_compensation_factor) :
-        m_image_size          (image_size),
-        m_center_loc_pixels   (center_offset_pixels),
-        m_pixel_size          (pixel_size),
-        m_focal_length        (focal_length),
-        m_scan_time           (scan_time),
-        m_scan_left_to_right  (scan_left_to_right),
-        m_forward_tilt_radians(forward_tilt_radians),
-        m_initial_position    (initial_position),
-        m_initial_orientation (initial_orientation),
-        m_speed               (speed),
-        m_motion_compensation(motion_compensation_factor),
-        m_correct_velocity_aberration(true),
-        m_correct_atmospheric_refraction(true){
-
-      // Set default values for these constants which can be overridden later on.
-      const double DEFAULT_EARTH_RADIUS      = 6371000.0;  // In meters.
-      const double DEFAULT_SURFACE_ELEVATION = 0.0;
-      m_mean_earth_radius      = DEFAULT_EARTH_RADIUS;
-      m_mean_surface_elevation = DEFAULT_SURFACE_ELEVATION;
-      
-      compute_scan_rate();
-    }
-
+                    double   motion_compensation_factor);
     virtual ~OpticalBarModel() {}
+
     virtual std::string type() const { return "OpticalBar"; }
 
     // TODO: Make compatible with .tsai files!

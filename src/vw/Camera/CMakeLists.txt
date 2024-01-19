@@ -1,4 +1,3 @@
- 
 ## Build all protobuf files and list names in this variable
 #generate_protobuf_files(PROTO_GEN)
 
