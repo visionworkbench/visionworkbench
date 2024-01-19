@@ -257,7 +257,8 @@ namespace camera {
   Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
                                                Vector3 const& camera_velocity,
                                                double         mean_earth_radius,
-                                               Vector3 const& uncorrected_vector);
+                                               Vector3 const& uncorrected_vector,
+                                               vw::Quaternion<double> & corr_rot);
 
   /// Simple atmospheric atmospheric correction method.
   double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, double alpha);
@@ -266,7 +267,9 @@ namespace camera {
   Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
                                                   double         mean_earth_radius,
                                                   double         mean_surface_elevation,
-                                                  Vector3 const& uncorrected_vector);
+                                                  Vector3 const& uncorrected_vector,
+                                                  vw::Quaternion<double> & corr_rot);
+
 
 } // namespace camera
 

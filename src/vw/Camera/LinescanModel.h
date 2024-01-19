@@ -39,7 +39,7 @@ namespace camera {
   /// the world frame. The position is a the camera's location in the
   /// world frame.
   ///
-  /// The intrinisic model expects +Z to point out the camera. +X is
+  /// The intrinsic model expects +Z to point out the camera. +X is
   /// the column direction of the image and is perpendicular to
   /// direction of flight. +Y is the row direction of the image (down
   /// the image); it is also the flight direction.  If this is not 
@@ -56,9 +56,10 @@ namespace camera {
 		              bool            correct_atmospheric_refraction) :
       m_image_size(image_size), 
       m_correct_velocity_aberration(correct_velocity_aberration),
-      m_correct_atmospheric_refraction(correct_atmospheric_refraction){
+      m_correct_atmospheric_refraction(correct_atmospheric_refraction) {
       
       // Set default values for these constants which can be overridden later on.
+      // TODO(oalexan1): Move this to a shared location. Also for OpticalBarModel.
       const double DEFAULT_EARTH_RADIUS      = 6371000.0;  // In meters.
       const double DEFAULT_SURFACE_ELEVATION = 0.0;
       m_mean_earth_radius      = DEFAULT_EARTH_RADIUS;

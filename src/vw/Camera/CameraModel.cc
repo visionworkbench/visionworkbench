@@ -250,9 +250,7 @@ boost::shared_ptr<CameraModel> unadjusted_model(boost::shared_ptr<CameraModel> c
   return cam;
 }
   
-//================================================================================================
 // Ray correction functions
-
 
 Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
                                         Vector3 const& camera_velocity,
@@ -276,11 +274,11 @@ Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
   return cam_vel_corr;
 }
 
-
 Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
                                              Vector3 const& camera_velocity,
                                              double         mean_earth_radius,
-                                             Vector3 const& uncorrected_vector) {
+                                             Vector3 const& uncorrected_vector,
+                                             vw::Quaternion<double> & corr_rot) {
 
   // 1. Correct the camera velocity due to the fact that the Earth
   // rotates around its axis.
@@ -292,12 +290,23 @@ Vector3 apply_velocity_aberration_correction(Vector3 const& camera_center,
   Vector3 cam_vel_corr2 = cam_vel_corr1
     - dot_prod(cam_vel_corr1, uncorrected_vector) * uncorrected_vector;
 
-  // 3. Correct direction for velocity aberration due to the speed of light.
+  // 3. Compute the correct direction for velocity aberration due to the speed of light.
   const double LIGHT_SPEED = 299792458.0;
-  Vector3 corrected_vector = uncorrected_vector - cam_vel_corr2/LIGHT_SPEED;
+  vw::Vector3 corr = -cam_vel_corr2/LIGHT_SPEED;
+  
+  // 4. Find the rotation that will rotate the uncorrected vector to the corrected one.
+  // Axis of rotation
+  vw::Vector3 rotation_axis = normalize(cross_prod(uncorrected_vector, corr));
+  // Angle of rotation
+  double angle = atan(norm_2(corr) / norm_2(uncorrected_vector));
+  // Rotation quaternion
+  corr_rot = vw::Quaternion<double>(rotation_axis, angle);
+
+  // 5. Apply the correction  
+  Vector3 corrected_vector = uncorrected_vector + corr;
+  
   return normalize(corrected_vector);
 }
-
 
 /// Compute the ray correction for atmospheric refraction using the 
 ///  Saastamoinen equation.
@@ -318,7 +327,8 @@ double saastamoinen_atmosphere_correction(double camera_alt, double ground_alt, 
 Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
                                                 double         mean_earth_radius,
                                                 double         mean_surface_elevation,
-                                                Vector3 const& uncorrected_vector) {
+                                                Vector3 const& uncorrected_vector,
+                                                vw::Quaternion<double> & corr_rot) {
   // Correct for atmospheric refraction
   // - From Saastamoinen, J. (1972), Atmospheric correction for the 
   //   troposphere and stratosphere in radio ranging of satellites.
@@ -329,20 +339,20 @@ Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
   double  earth_ctr_to_cam     = norm_2(camera_center);   // Distance in meters from cam to earth center
   double  cam_to_earth_surface = earth_ctr_to_cam - mean_earth_radius;
 
-  // Compute angle alpha and correction angle
-  vw::Vector3 u     = normalize(uncorrected_vector);
-  double      alpha = acos(dot_prod(cam_to_earth_center_unit,u)); // Both get angle of normalized vectors.
+  // Compute angle alpha and correction angle. Normalized vectors must be used for this.
+  vw::Vector3 uncorr = normalize(uncorrected_vector);
+  double alpha = acos(dot_prod(cam_to_earth_center_unit, uncorr));
 
   // There are more sophisticated correction methods but this one is simple and does help.
   double delta_alpha = saastamoinen_atmosphere_correction(cam_to_earth_surface,
                                                           mean_surface_elevation, alpha);
 
   // Rotate the vector by delta_alpha
-  vw::Vector3 rotation_axis = normalize(cross_prod(u, cam_to_earth_center_unit));
-  vw::Quaternion<double> refraction_rotation(rotation_axis, delta_alpha);
-  vw::Vector3 u_prime = refraction_rotation.rotate(u);
+  vw::Vector3 rotation_axis = normalize(cross_prod(uncorr, cam_to_earth_center_unit));
+  corr_rot = vw::Quaternion<double>(rotation_axis, delta_alpha);
+  vw::Vector3 corrected = corr_rot.rotate(uncorr);
 
-  return u_prime;
+  return corrected;
 }
 
 } // End namespace camera

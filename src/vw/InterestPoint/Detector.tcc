@@ -154,15 +154,15 @@ InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, Dete
 // Get the orientation of the point at (i0,j0,k0).  This is done by
 // computing a gaussian weighted average orientations in a region
 // around the detected point.  This is not the most sophisticated
-// method for determing orientations -- for example, if there is
+// method for determining orientations -- for example, if there is
 // more than one dominant edge orientation in an image, this will
 // produce a blended average of those two directions, and if those
 // two directions are opposites, then they will cancel each other
 // out.  However, this seems to work well enough for the time being.
 template <class OriT, class MagT>
-float get_orientation( ImageViewBase<OriT> const& x_grad,
-                       ImageViewBase<MagT> const& y_grad,
-                       float i0, float j0, float sigma_ratio) {
+float get_orientation(ImageViewBase<OriT> const& x_grad,
+                      ImageViewBase<MagT> const& y_grad,
+                      float i0, float j0, float sigma_ratio) {
 
   // The size, in pixels, of the image patch used to compute the orientation.
   static const int IP_ORIENTATION_WIDTH = 10;

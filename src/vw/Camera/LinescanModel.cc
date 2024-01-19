@@ -64,15 +64,19 @@ Vector3 LinescanModel::pixel_to_vector(Vector2 const& pixel) const {
     output_vector = camera_pose(pixel).rotate(local_vec);
 
     Vector3 cam_ctr = camera_center(pixel);
-    if (m_correct_atmospheric_refraction) 
+    if (m_correct_atmospheric_refraction) {
+      vw::Quaternion<double> corr_rot;
       output_vector
         = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
-                                                  m_mean_surface_elevation, output_vector);
+                                                  m_mean_surface_elevation, output_vector, corr_rot);
+    }
     
-    if (m_correct_velocity_aberration) 
+    if (m_correct_velocity_aberration) {
+      vw::Quaternion<double> corr_rot;
       output_vector
         = apply_velocity_aberration_correction(cam_ctr, camera_velocity(pixel),
-                                               m_mean_earth_radius, output_vector);
+                                               m_mean_earth_radius, output_vector, corr_rot);
+    }
     
   } catch(const vw::Exception &e) {
     // Repackage any of our exceptions thrown below this point as a 
