@@ -31,6 +31,12 @@
 namespace vw {
 namespace camera {
 
+  // ASP's homegrown linescan model. It is very strongly suggested
+  // to use instead the CSM implementation of the linescan model.
+  // It is much faster and implements more reliably the atmospheric
+  // and velocity aberration corrections, as done for WorldView
+  // cameras.
+
   /// This is a generic line scan camera model that can be derived
   /// from to help implement specific cameras.  Some parts (velocity
   /// and atmospheric correction) currently only work for Earth.

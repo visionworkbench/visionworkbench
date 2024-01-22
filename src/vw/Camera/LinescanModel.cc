@@ -19,6 +19,12 @@
 #include <vw/Camera/CameraSolve.h>
 #include <vw/Camera/OrbitalCorrections.h>
 
+// ASP's homegrown linescan model. It is very strongly suggested
+// to use instead the CSM implementation of the linescan model.
+// It is much faster and implements more reliably the atmospheric
+// and velocity aberration corrections, as done for WorldView
+// cameras.
+
 namespace vw {
 namespace camera {
 
