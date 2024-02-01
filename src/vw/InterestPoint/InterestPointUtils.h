@@ -33,6 +33,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Math/RandomSet.h>
 
 namespace vw {
 namespace ip {
@@ -159,6 +160,32 @@ void write_ip_debug_image(std::string const& out_file_name,
   vw_out(InfoMessage,"interest_point") << "\t > Writing out ip debug image: "
                                        << out_file_name << "\n";
   write_image( *rsrc, oimage);
+}
+
+template <class T>
+void pick_pair_subset(std::vector<T> & ip1,
+                      std::vector<T> & ip2,
+                      int max_pairwise_matches) {
+
+  if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
+
+    std::vector<int> subset;
+    vw::math::pick_random_indices_in_range(ip1.size(), max_pairwise_matches, subset);
+    std::sort(subset.begin(), subset.end()); // sort the indices; not strictly necessary
+    
+    std::vector<T> ip1_full, ip2_full;
+    ip1_full.swap(ip1);
+    ip2_full.swap(ip2);
+    
+    ip1.resize(max_pairwise_matches);
+    ip2.resize(max_pairwise_matches);
+    for (size_t it = 0; it < subset.size(); it++) {
+      ip1[it] = ip1_full[subset[it]];
+      ip2[it] = ip2_full[subset[it]];
+    }
+  }
+  
+  return;
 }
 
 }} // namespace vw::ip

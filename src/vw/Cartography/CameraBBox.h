@@ -863,6 +863,7 @@ namespace vw { namespace cartography {
     // direction can be wildly different (not true for WV
     // though). Hence we should do an average, not a median. But first
     // trimming some outliers.
+    // TODO(oalexan1): Need to do the same for point2dem.
     std::sort(gsd.begin(), gsd.end()); // in order
     int gsd_len = gsd.size();
     int beg = int(0.1*gsd_len);

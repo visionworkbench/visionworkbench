@@ -15,11 +15,11 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/BundleAdjustment/openMVG_tracks.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/InterestPointUtils.h>
 #include <vw/Math/RandomSet.h>
 #include <vw/Core/Stopwatch.h>
 
@@ -267,23 +267,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
     if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
       vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
-
-      std::vector<int> subset;
-      vw::math::pick_random_indices_in_range(ip1.size(), max_pairwise_matches, subset);
-      std::sort(subset.begin(), subset.end()); // sort the indices; not strictly necessary
-      
-      std::vector<ip::InterestPoint> ip1_full, ip2_full;
-      ip1_full.swap(ip1);
-      ip2_full.swap(ip2);
-      
-      ip1.resize(max_pairwise_matches);
-      ip2.resize(max_pairwise_matches);
-      for (size_t it = 0; it < subset.size(); it++) {
-        ip1[it] = ip1_full[subset[it]];
-        ip2[it] = ip2_full[subset[it]];
-      }
+      pick_pair_subset(ip1, ip2, max_pairwise_matches);
     }
-
+    
     num_loaded += ip1.size();
 
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
