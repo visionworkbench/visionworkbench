@@ -25,6 +25,8 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Exception.h>
 
+#include <ogr_spatialref.h>
+
 // Boost
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -57,12 +59,13 @@ namespace cartography {
   public:
 
     ProjContext() : m_proj4_str(""), m_pj_context(NULL), m_pj_transform(NULL) {};
-    ProjContext(std::string const& proj4_str);
+    ProjContext(std::string const& proj4_str, std::string const& proj_wkt); 
     ProjContext(ProjContext const& other);
     ~ProjContext();
 
     // There is no reason to make these private and then implement a get function
-    std::string m_proj4_str;
+    std::string m_proj4_str; // TODO(oalexan1): Wipe this
+    std::string m_proj_wkt;  // TODO(oalexan1): Wipe this
     PJ_CONTEXT * m_pj_context;
     PJ * m_pj_transform;
 
@@ -127,7 +130,10 @@ namespace cartography {
     Datum       m_datum;
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str; // Duplicate of information in m_proj_context
-    ProjContext m_proj_context;
+    ProjContext m_proj_context;// TODO(oalexan1): Wipe this
+    std::string m_geo_wkt; // TODO(oalexan1): Wipe this
+    OGRSpatialReference m_gdal_spatial_ref;
+    
     bool        m_is_projected; // As opposed to lonlat
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
