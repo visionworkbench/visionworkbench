@@ -43,7 +43,6 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/filesystem/path_traits.hpp>
 #include <boost/foreach.hpp>
 
 #include <fstream>

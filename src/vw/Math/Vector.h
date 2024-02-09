@@ -146,7 +146,7 @@ namespace math {
   /// Set all elements in a Vector to a value, but also safe for some other types.
   /// - For VectorBase derived types, this calls the set_all function.
   /// - For all other types, this just tries a regular assignment operation.
-  /// - If more types need to be suppported more boost wizardry will be required.
+  /// - If more types need to be supported more boost wizardry will be required.
   template <class VectorT>
   typename boost::enable_if<typename boost::is_base_of<VectorBase<VectorT>,VectorT>::type, void>::type
   set_all( VectorT &vec, typename VectorT::value_type val ) {

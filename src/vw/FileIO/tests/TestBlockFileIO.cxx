@@ -32,7 +32,6 @@
 #include <string>
 
 #include <boost/scoped_ptr.hpp>
-#include <boost/filesystem/path_traits.hpp>
 namespace fs = boost::filesystem;
 
 using namespace vw;

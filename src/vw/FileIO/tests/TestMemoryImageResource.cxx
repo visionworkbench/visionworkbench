@@ -31,7 +31,6 @@
 #include <fstream>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/path_traits.hpp>
 #include <boost/random/linear_congruential.hpp>
 
 
