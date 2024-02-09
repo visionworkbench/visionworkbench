@@ -66,8 +66,8 @@ namespace cartography {
     // There is no reason to make these private and then implement a get function
     std::string m_proj4_str; // TODO(oalexan1): Wipe this
     std::string m_proj_wkt;  // TODO(oalexan1): Wipe this
-    PJ_CONTEXT * m_pj_context;
-    PJ * m_pj_transform;
+    PJ_CONTEXT * m_pj_context; // TODO(oalexan1): Wipe this
+    PJ * m_pj_transform; // TODO(oalexan1): Wipe this
 
     inline void* proj_ptr() const {
       VW_ASSERT(is_initialized(),
@@ -134,6 +134,12 @@ namespace cartography {
     std::string m_geo_wkt; // TODO(oalexan1): Wipe this
     OGRSpatialReference m_gdal_spatial_ref;
     
+    // Underlying datum
+    boost::shared_ptr<OGRSpatialReference> m_geoGS; 
+    // Transform from lonlat to projected space
+    boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
+    boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
+      
     bool        m_is_projected; // As opposed to lonlat
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
