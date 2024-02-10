@@ -38,14 +38,38 @@ vw::cartography::Datum::Datum(std::string const& name,
     m_geocentric(false) {
   std::ostringstream strm;
   strm.precision(17);
+  
+  std::cout << "--datum main constructor" << std::endl;
+  
+  double inverse_flattening = 0.0;
+  if (semi_minor_axis != semi_major_axis)
+    inverse_flattening = 1.0 / (1.0 - semi_minor_axis / semi_major_axis);
+  
+  std::string geog_name = "Geographic Coordinate System";
+  m_ogr_datum.SetGeogCS(geog_name.c_str(),
+                        name.c_str(),
+                        spheroid_name.c_str(),
+                        semi_major_axis,
+                        inverse_flattening,
+                        meridian_name.c_str(),
+                        meridian_offset);
+
   strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
+  //set_datum_from_proj_str(strm.str());
   m_proj_str = strm.str(); // TODO(oalexan1): GDAL can have issues parsing this
+  std::cout << "---old proj str = " << m_proj_str << std::endl;
+  
+  char* proj4_str_tmp;
+  m_ogr_datum.exportToProj4(&proj4_str_tmp);
+  this->proj4_str() = proj4_str_tmp;
+  CPLFree(proj4_str_tmp);
+  std::cout << "---new proj str = " << proj4_str() << std::endl;
 }
 
-
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
-void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref) {
-
+void vw::cartography::Datum::set_datum_from_spatial_ref(
+  OGRSpatialReference const& gdal_spatial_ref) {
+ std::cout << "--set datum from spatial ref" << std::endl;
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name)
     this->name() = datum_name;
@@ -62,30 +86,36 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference cons
   double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
   double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
   if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) {
-    this->set_semi_major_axis(semi_major);
-    this->set_semi_minor_axis(semi_minor);
+    m_semi_major_axis = semi_major;
+    m_semi_minor_axis = semi_minor;
   }
   this->meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
 
   char* proj4_str_tmp;
   gdal_spatial_ref.exportToProj4(&proj4_str_tmp);
-
   this->proj4_str() = proj4_str_tmp;
-  CPLFree( proj4_str_tmp );
+  CPLFree(proj4_str_tmp);
+  
+  // Make a copy of the spatial reference
+  m_ogr_datum = gdal_spatial_ref;
 }
 
-// A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
-void vw::cartography::Datum::set_datum_from_proj_str( std::string const& proj_str ) {
+// A wrapper around the GDAL/OGR API for setting the datum.
+void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
+  std::cout << "--set datum from proj with str = " << proj_str << std::endl;
   OGRSpatialReference gdal_spatial_ref;
-  if (gdal_spatial_ref.importFromProj4( proj_str.c_str() ))
+  if (gdal_spatial_ref.importFromProj4(proj_str.c_str()))
     vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
+  
+  std::cout << "must wipe this extra call to set_datum_from_proj_str" << std::endl;
   this->proj4_str() = proj_str; // The other call can change the string, don't let it!
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
+  std::cout << "--set well known datum with name = " << name << std::endl;
   m_meridian_name   = "Greenwich";
   m_geocentric      = false;
   m_meridian_offset = 0.0;
@@ -128,9 +158,11 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
     m_name            = "D_MOON";
     m_spheroid_name   = "MOON";
     m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = m_semi_minor_axis = 1737400;
+    m_semi_major_axis = 1737400;
+    m_semi_minor_axis = 1737400;
     m_meridian_offset = 0.0;
-    m_proj_str        = "+a=1737400 +b=1737400";
+    m_proj_str        = "+proj=longlat +a=1737400 +b=1737400 +no_defs";
+    set_datum_from_proj_str(m_proj_str);
     return;
   }
 
@@ -138,9 +170,11 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
     m_name            = "D_MARS";
     m_spheroid_name   = "MARS";
     m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = m_semi_minor_axis = 3396190;
+    m_semi_major_axis = 3396190;
+    m_semi_minor_axis = 3396190;
     m_meridian_offset = 0.0;
-    m_proj_str        = "+a=3396190 +b=3396190";
+    m_proj_str        = "+proj=longlat +a=3396190 +b=3396190 +no_defs";
+    set_datum_from_proj_str(m_proj_str);
     return;
   }
 
@@ -148,9 +182,11 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
     m_name            = "D_MARS";
     m_spheroid_name   = "MARS";
     m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = m_semi_minor_axis = 3396000;
+    m_semi_major_axis = 3396000;
+    m_semi_minor_axis = 3396000;
     m_meridian_offset = 0.0;
-    m_proj_str        = "+a=3396000 +b=3396000";
+    m_proj_str        = "+proj=longlat +a=3396000 +b=3396000 +no_defs";
+    set_datum_from_proj_str(m_proj_str);
     return;
   }
 
@@ -158,21 +194,33 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
 }
 
 void vw::cartography::Datum::set_semi_major_axis(double val) {
+  std::cout << "--set semi major axis with val = " << val << std::endl;
   m_semi_major_axis = val;
   std::ostringstream strm;
-  strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  strm.precision(17);
+  strm << "+proj=longlat +a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  
   if (m_geocentric)
     strm << " +geoc";
+    
+  strm << " +no_defs";
   m_proj_str = strm.str();
+  set_datum_from_proj_str(m_proj_str);
 }
 
 void vw::cartography::Datum::set_semi_minor_axis(double val) {
+  std::cout << "--set semi minor axis with val = " << val << std::endl;
   m_semi_minor_axis = val;
   std::ostringstream strm;
-  strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  strm.precision(17);
+  strm << "+proj=longlat +a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  
   if (m_geocentric)
     strm << " +geoc";
+    
+  strm << " +no_defs";
   m_proj_str = strm.str();
+  set_datum_from_proj_str(m_proj_str);
 }
 
 // return meridian radius of curvature.  NOT geocentric radius
@@ -182,7 +230,7 @@ double vw::cartography::Datum::radius(double /*lon*/, double lat) const {
     return m_semi_major_axis;
   }
 
-  // Bi-axial ellpisoid datum
+  // Bi-axial ellipsoid datum
   double a = m_semi_major_axis;
   double b = m_semi_minor_axis;
   double t = atan((a/b) * tan(lat * M_PI / 180.0));
@@ -197,7 +245,7 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
     return m_semi_major_axis;
   }
 
-  // Bi-axial ellpisoid datum
+  // Bi-axial ellipsoid datum
   // http://mathworld.wolfram.com/GeocentricLatitude.html
   double a  = m_semi_major_axis;
   double b  = m_semi_minor_axis;
@@ -205,7 +253,6 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
   return atan((1-e2)*tan(lat * M_PI / 180.0));
-
 }
 
 double vw::cartography::Datum::radius_of_curvature(double /*lon*/, double lat) const {
@@ -214,7 +261,7 @@ double vw::cartography::Datum::radius_of_curvature(double /*lon*/, double lat) c
     return m_semi_major_axis;
   }
 
-  // Bi-axial Ellpisoid datum
+  // Bi-axial ellipsoid datum
   double a    = m_semi_major_axis;
   double b    = m_semi_minor_axis;
   double a2   = a * a;
@@ -250,18 +297,18 @@ double vw::cartography::Datum::inverse_flattening() const {
 // NED to ECEF transform. 
 // This assumes the planet to be a perfect sphere, which can be problematic.
 // See the .h file for more info.
-vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& lonlat) const {
+vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector2 const& lonlat) const {
   double lon = lonlat.x();
   double lat = lonlat.y();
-  if ( lat < -90 ) lat = -90;
-  if ( lat >  90 ) lat =  90;
+  if (lat < -90) lat = -90;
+  if (lat >  90) lat =  90;
 
   double rlon = (lon + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
-  double slat = sin( rlat );
-  double clat = cos( rlat );
-  double slon = sin( rlon );
-  double clon = cos( rlon );
+  double slat = sin(rlat);
+  double clat = cos(rlat);
+  double slon = sin(rlon);
+  double clon = cos(rlon);
 
   Matrix3x3 R;
 
@@ -278,7 +325,7 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& l
   return R;
 }
 
-vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& llh ) const {
+vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
   double a  = m_semi_major_axis;
   double b  = m_semi_minor_axis;
   double a2 = a * a;
@@ -297,9 +344,9 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& ll
   double clon = cos( rlon );
   double radius = a / sqrt(1.0-e2*slat*slat);
 
-  return Vector3( (radius+llh.z()) * clat * clon,
-                  (radius+llh.z()) * clat * slon,
-                  (radius*(1-e2)+llh.z()) * slat );
+  return Vector3((radius+llh.z()) * clat * clon,
+                 (radius+llh.z()) * clat * slon,
+                 (radius*(1-e2)+llh.z()) * slat);
 }
 
 // This algorithm is a non-iterative algorithm from "An analytical
@@ -405,7 +452,8 @@ std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Da
 
 // A function which reads a datum from a string. It reverses
 // what operator<< does.
-bool vw::cartography::read_datum_from_str(std::string const& str, vw::cartography::Datum & datum) {
+bool vw::cartography::read_datum_from_str(std::string const& str, 
+                                          vw::cartography::Datum & datum) {
 
   size_t prev_pos = 0, curr_pos = 0; // these will go forward
   std::vector<std::string> vals;
@@ -463,24 +511,32 @@ vw::cartography::datum_intersection(double semi_major_axis, double semi_minor_ax
   camera_vec.z() *= z_scale;
   camera_vec = normalize(camera_vec);
   double radius_2 = semi_major_axis * semi_major_axis;
-  double alpha = -dot_prod(camera_ctr, camera_vec );
-  vw::Vector3 projection = camera_ctr + alpha*camera_vec;
+  double alpha = -dot_prod(camera_ctr, camera_vec);
+  vw::Vector3 projection = camera_ctr + alpha * camera_vec;
   if ( norm_2_sqr(projection) > radius_2 ) {
     // did not intersect
     return vw::Vector3();
   }
 
-  alpha -= sqrt( radius_2 -
-                 norm_2_sqr(projection) );
+  alpha -= sqrt(radius_2 - norm_2_sqr(projection));
   vw::Vector3 intersection = camera_ctr + alpha * camera_vec;
   intersection.z() /= z_scale;
   return intersection;
 }
 
 // Intersect the ray back-projected from the camera with the datum.
-vw::Vector3
-vw::cartography::datum_intersection( vw::cartography::Datum const& datum,
-                                     vw::Vector3 camera_ctr, vw::Vector3 camera_vec) {
+vw::Vector3 vw::cartography::datum_intersection(vw::cartography::Datum const& datum,
+                                                vw::Vector3 camera_ctr, 
+                                                vw::Vector3 camera_vec) {
   return vw::cartography::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
                                              camera_ctr, camera_vec);
+}
+
+// Low-level function useful with datums and georefs
+std::string vw::cartography::ogr_wkt(OGRSpatialReference const & ogr) {
+  char *wkt;
+  ogr.exportToWkt(&wkt);
+  std::string result(wkt);
+  CPLFree(wkt);
+  return result;
 }

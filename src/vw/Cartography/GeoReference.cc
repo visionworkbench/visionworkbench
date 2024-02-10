@@ -19,12 +19,10 @@
 #include <vw/Math/Geometry.h>
 #include <vw/Cartography/GeoReference.h>
 
-#if defined(VW_HAVE_PKG_GDAL)
 #include <vw/Cartography/GeoReferenceResourceGDAL.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include "ogr_spatialref.h"
 #include "cpl_string.h"
-#endif
 
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
@@ -36,14 +34,12 @@
 #include <boost/foreach.hpp>
 
 // Proj
+// TODO(oalexan1): Wipe proj code, now the gdal wrapper is used
+
+// TODO(oalexan1): Wipe from everywhere the invocation of VW_HAVE_PKG_GDAL
+// VW will always be built with GDAL support.
+
 #include <proj.h>
-
-// TODO(oalexan1): See if it is easier to use the GDAL interface
-// https://gdal.org/tutorials/osr_api_tut.html
-
-// Proj logic implemented based on:
-// https://proj-tmp.readthedocs.io/en/docs/development/migration.html#function-mapping-from-old-to-new-api
-// http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
 
 // Macro for checking Proj.4 output, something we do a lot of.
 #define CHECK_PROJ_ERROR(ctx_input, loc)                                          \
@@ -58,13 +54,10 @@ namespace cartography {
                          ImageResource const& resource) {
    std::cout << "now in read_georeference" << std::endl;
                            
-#if defined(VW_HAVE_PKG_GDAL)
-
     DiskImageResourceGDAL const* gdal =
       dynamic_cast<DiskImageResourceGDAL const*>(&resource);
     if (gdal) 
       return read_gdal_georeference(georef, *gdal);
-#endif
 
     DiskImageResourcePDS const* pds =
       dynamic_cast<DiskImageResourcePDS const*>(&resource);
@@ -89,11 +82,10 @@ namespace cartography {
   void write_georeference(ImageResource& resource,
                            GeoReference const& georef) {
   std::cout << "--now in write georef" << std::endl;
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
     DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>(&resource);
     if (gdal) 
       return write_gdal_georeference(*gdal, georef);
-#endif
+
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr()
              << "This image resource does not support writing georeferencing information.");
@@ -102,11 +94,10 @@ namespace cartography {
   bool read_header_string(ImageResource const& resource, std::string const& str_name,
                            std::string & str_val) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
     DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>(&resource);
     if (gdal) 
       return read_gdal_string(*gdal, str_name, str_val);
-#endif
+
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr()
              << "This image resource does not support writing georeferencing information.");
@@ -125,11 +116,9 @@ namespace cartography {
   bool read_header_strings(ImageResource const& resource, 
                             std::map<std::string, std::string> & value_pairs) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
     DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>(&resource);
     if (gdal) 
       return read_gdal_strings(*gdal, value_pairs);
-#endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
@@ -137,12 +126,10 @@ namespace cartography {
   void write_header_string(ImageResource& resource, std::string const& str_name,
                             std::string const& str_val) {
     std::cout << "--now in write header string" << std::endl;
-#if defined(VW_HAVE_PKG_GDAL)
     DiskImageResourceGDAL* gdal =
       dynamic_cast<DiskImageResourceGDAL*>(&resource);
     if (gdal) write_gdal_string(*gdal, str_name, str_val);
     return;
-#endif
     // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
     vw_throw(NoImplErr()
              << "This image resource does not support writing georeferencing information.");
@@ -215,63 +202,29 @@ namespace {
     // Update the projection context object with the current proj4 string, 
     //  then make sure the lon center is still correct.
     //std::string geo_wkt = GeoReference::get_wkt(); 
+    std::cout << "--now in init proj" << std::endl;
     
-    if (m_geo_wkt.empty()) {
-      std::string srs_string = overall_proj4_str(); 
-      if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
-        vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
-      char *wkt_str_tmp = NULL;
-      m_gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
-      set_wkt(wkt_str_tmp);
-      CPLFree(wkt_str_tmp);
-    }
-      
-    //std::cout << "bbbb overall proj str is " << srs_string << std::endl;
-    
-    // //if (false && geo_wkt.empty()) {
-    // if (true) {
-    //   std::cout << "bbb set from user input srs_string = " << srs_string << std::endl;
-      
-    //   srs_string = "+proj=utm +zone=10 +units=m +datum=WGS84 +no_defs";
-      
-    //   OGRSpatialReference gdal_spatial_ref;
-    //   if (gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
-    //     vw::vw_throw(vw::ArgumentErr() << "Failed to parse: \"" << srs_string << "\"." );
-    //   char *wkt_str_tmp = NULL;
-    //   //gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
-    //   gdal_spatial_ref.exportToProj4(&wkt_str_tmp);
-    //   geo_wkt = wkt_str_tmp;
-    //   CPLFree(wkt_str_tmp);
-    //   std::cout << "--now in set_srs_string\n";
-      
-    //   //this->set_wkt(srs_string);
-      
-    //   //geo_wkt = srs_string;
+    // This will recreate the GeoReference object
+    std::string srs_string = overall_proj4_str(); 
+    if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
+      vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
+    set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
 
-    //   //char *wkt_str_tmp2 = NULL;
-    //   //const char *const * 	papszOptions = NULL;
-    //   //gdal_spatial_ref.exportToPROJJSON(&wkt_str_tmp2, papszOptions);
-    //   //gdal_spatial_ref.exportToProj4(&wkt_str_tmp2);
-    //   //gdal_spatial_ref.exportToWkt(&wkt_str_tmp2);
-    //   //geo_wkt = wkt_str_tmp2;
-    //   //std::cout << "---aaaa wkt is " << geo_wkt << std::endl;
-      
-    // }
-
-    // std::cout << "--uuu wkt: " << geo_wkt << std::endl;
-    // std::cout << "--uuu overall proj str is " << overall_proj4_str() << std::endl;
-    // geo_wkt = "";
-    // std::cout << "---zzz wkt is " << geo_wkt << std::endl;
-    // geo_wkt="PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-123],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]";
+    // TODO(oalexan1): Wipe the ProjContext code      
+    //m_proj_context = ProjContext(overall_proj4_str(), m_geo_wkt);
     
-    // std::cout << "--bbbgeowkt1 is " << geo_wkt << std::endl;
-    //std::cout << "---aaa geo_wkt is " << geo_wkt << std::endl;
-    m_proj_context = ProjContext(overall_proj4_str(), m_geo_wkt);
-    update_lon_center_private();
+    std::cout << "--put back update_lon_center_private\n";
+    //update_lon_center_private();
   }
 
+  // TODO(oalexan1): How about copy constructor? Create new pointers
+  // for the underlying GDAL objects?
+  
+  // The empty constructor. This initialises m_gdal_spatial_ref to an empty
+  // object, and m_gdal_spatial_ref.exportToWkt() will return an empty string.
   GeoReference::GeoReference(): m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
     std::cout << "now in default constructor" << std::endl;
+    
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -279,7 +232,7 @@ namespace {
 
   GeoReference::GeoReference(Datum const& datum) :
         m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
-          std::cout << "--now in datum constructor" << std::endl;
+    std::cout << "--now in datum constructor" << std::endl;
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -287,7 +240,7 @@ namespace {
 
   GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
       : m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
-        std::cout << "--now in datum constructor2" << std::endl;
+    std::cout << "--now in datum constructor2" << std::endl;
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
     init_proj();
@@ -296,7 +249,7 @@ namespace {
   GeoReference::GeoReference(Datum const& datum,
                              Matrix<double,3,3> const& transform) :
                    m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
-                     std::cout << "--now in datum constructor 3" << std::endl;
+    std::cout << "--now in datum constructor 3" << std::endl;
     set_transform(transform);
     set_geographic();
     init_proj();
@@ -306,7 +259,7 @@ namespace {
                              Matrix<double,3,3> const& transform,
                              PixelInterpretation pixel_interpretation) :
     m_pixel_interpretation(pixel_interpretation), m_datum(datum), m_projcs_name("") {
-      std::cout << "--now datum constructor 4" << std::endl;
+     std::cout << "--now datum constructor 4" << std::endl;
     set_transform(transform);
     set_geographic();
     init_proj();
@@ -321,19 +274,21 @@ namespace {
     m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
 
     // If proj4 is already set up update the lon center, otherwise wait for proj4.
-    if (m_proj_context.is_initialized())
-      update_lon_center_private();
+    std::cout << "--now in set transform" << std::endl;
+    //if (!m_geo_wkt.empty())
+    //  update_lon_center_private();
+    std::cout << "--put back update_lon_center_private\n";
   }
 
-  // We override the base classes method here so that we have the
-  // opportunity to call init_proj()
+  // Setting the datum resets the projection to longlat
   void GeoReference::set_datum(Datum const& datum) {
     std::cout << "--set_datum: " << datum << std::endl;
     m_datum = datum;
 
     // This is a fix for when for some reason the proj4 string
     // does not have the datum name. Example:
-    // '+proj=longlat +ellps=WGS84 +no_defs '.
+    // '+proj=longlat +ellps=WGS84 +no_defs'.
+    // TODO(oalexan1): This may not be needed. 
     if ((m_datum.spheroid_name() == "WGS_1984" ||
          m_datum.spheroid_name() == "WGS84"    ||
          m_datum.spheroid_name() == "WGS 84") &&
@@ -346,7 +301,9 @@ namespace {
     //std::string wkt = get_wkt();
     //std::cout << "--in datum, wkt is " << wkt << std::endl; 
     
-    init_proj();
+    // Recreate the georeference based on the datum, wiping the projection
+    this->set_wkt(vw::cartography::ogr_wkt(m_datum.ogr_datum()));
+    //init_proj();
   }
 
   // Adjust the affine transform to the VW convention ([0,0] is at
@@ -493,6 +450,7 @@ namespace {
     m_proj_projection_str = boost::trim_copy(s); // Store the string in this class (it is also stored in m_proj_context)
 
     // Extract some information from the string
+    std::cout << "--This is duplicate text that must be removed" << std::endl;
     if (m_proj_projection_str.find("+proj=longlat") == 0)
       m_is_projected = false;
     else
@@ -587,6 +545,8 @@ namespace {
   // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
   // - Used to strip an extra tag out of [-180,180] range images where it is not needed.
   void GeoReference::clear_proj4_over() {
+    std::cout << "--put back clear_proj4_over\n";
+    return;
     // Clear out m_proj_projection_str, then recreate the ProjContext object.
     if (string_replace(m_proj_projection_str, "+over", "")) {
       // If we had to make any changes, strip out any double spaces and 
@@ -602,6 +562,9 @@ namespace {
 
   // Add the "+over" text to our stored proj4 info, but don't update_lon_center().
   void GeoReference::set_proj4_over() {
+    std::cout << "--put back set_proj4_over\n";
+    return;
+    
     // Clear out m_proj_projection_str, then recreate the ProjContext object.
     if (m_proj_projection_str.find("+over") == std::string::npos) {
       m_proj_projection_str.append(" +over");
@@ -618,10 +581,14 @@ namespace {
 
   void GeoReference::update_lon_center(BBox2 const& pixel_bbox) {
   
+    std::cout << "--put back update_lon_center\n";
+    return;
+    
     // The goal of this function is to determine which of the two standard longitude ranges
     //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
 
     // UTM projections always center on 0.
+    std::cout << "--now in update_lon_center with m_proj_projection_str = " << m_proj_projection_str << std::endl;
     if (m_proj_projection_str.find("+proj=utm") != std::string::npos) {
       m_center_lon_zero = true;
       clear_proj4_over();
@@ -733,6 +700,8 @@ namespace {
 
   void GeoReference::update_lon_center_private() {
     // Cal the bbox version with a zero size bbox
+    std::cout << "--put back update center private" << std::endl;
+    return;
     update_lon_center(BBox2(0,0,0,0));
   } // End function update_lon_center_private
 
@@ -761,237 +730,254 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   return error;
 }
 
-#if defined(VW_HAVE_PKG_GDAL)
+// Every function that modifies the georef must call this function
+void GeoReference::set_wkt(std::string const& wkt) {
+  std::cout << "--now in set wkt\n";
+  
+  // cannot have empty wkt
+  if (wkt.empty())
+    vw_throw(ArgumentErr() << "GeoReference: Cannot set an empty WKT string.");
 
-  void GeoReference::set_wkt(std::string const& wkt) {
-    std::cout << "--now in set wkt\n";
-    
-    // cannot have empty wkt
-    if (wkt.empty())
-      vw_throw(ArgumentErr() << "GeoReference: Cannot set an empty WKT string.");
+  //OGRSpatialReference m_gdal_spatial_ref;
+  m_gdal_spatial_ref.importFromWkt(wkt.c_str());
+  std::cout << "--may need to eliminate m_geo_wkt\n";
+  std::cout << "--just produce and return the wkt on the fly\n";
+  m_geo_wkt = wkt;
 
-    //OGRSpatialReference m_gdal_spatial_ref;
-    m_gdal_spatial_ref.importFromWkt(wkt.c_str());
-    m_geo_wkt = wkt;
-    
-    // Take ownership of the undelying datum 
-    m_geoGS.reset(m_gdal_spatial_ref.CloneGeogCS());
-    // The returned coordinates will be in longitude, latitude order
-    // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
-    m_geoGS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  // The returned coordinates will be in longitude, latitude order
+  // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
+  m_gdal_spatial_ref.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  
+  // Create the underlying datum
+  {
+    boost::shared_ptr<OGRSpatialReference> geoCS(m_gdal_spatial_ref.CloneGeogCS()); 
+    geoCS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    m_datum.set_datum_from_spatial_ref(*geoCS);
+    // The resource held by geoCS will be deallocated when geoCS goes out of scope.
+  }
+  
+  std::cout << "--must create a class having the transforms\n";
+  std::cout << "That class must duplicate the transforms on copying\n";
+  // Transform from lon-lat to projected coordinates
+  // TODO(oalexan1): These must be cloned when the georef object is copied
+  std::cout << "--must clone transforms\n";
+  std::cout << "or at least the copy operator must set the wkt\n";
+  m_lonlat_to_proj.reset(OGRCreateCoordinateTransformation(&m_datum.ogr_datum(), 
+                                                           &m_gdal_spatial_ref));
+  m_proj_to_lonlat.reset(OGRCreateCoordinateTransformation(&m_gdal_spatial_ref, 
+                                                           &m_datum.ogr_datum()));
+  if (!m_lonlat_to_proj)
+    vw_throw(ArgumentErr() << "Failed to create a coordinate transformation from "
+              << "lon-lat to projected coordinates for wkt: " << wkt);
 
-    // Transform from lon-lat to projected coordinates
-    m_lonlat_to_proj.reset(OGRCreateCoordinateTransformation(m_geoGS.get(), 
-                                                             &m_gdal_spatial_ref));
-    m_proj_to_lonlat.reset(OGRCreateCoordinateTransformation(&m_gdal_spatial_ref, 
-                                                             m_geoGS.get()));
-    if (!m_lonlat_to_proj)
-      vw_throw(ArgumentErr() << "Failed to create a coordinate transformation from "
-               << "lon-lat to projected coordinates for wkt: " << wkt);
-
-    // If there is a PROJCS name, record it.
-    const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
-    if (projcs != NULL) {
-      // Careful here, to avoid a segfault
-      m_projcs_name = std::string(projcs);
-    }
-
-    // Create the datum. We will modify it later on.
-    Datum datum;
-    datum.set_datum_from_spatial_ref(m_gdal_spatial_ref);
-
-    // Set the datum in the georef. Until now the georef may have been
-    // completely invalid, so we need to do this step now to avoid
-    // problems later on.  We'll keep on tweaking things and set the
-    // datum again later one more time.
-    // TODO(oalexan1): This should no longer be necessary.
-    // Setting the datum may require wiping the georef,
-    // unless what is set already agrees with it
-    this->set_datum(datum);
-
-    // Read projection information out of the file
-    char* proj_str_tmp;
-    m_gdal_spatial_ref.exportToProj4(&proj_str_tmp);
-    std::string proj4_str = proj_str_tmp;
-    CPLFree(proj_str_tmp);
-
-    std::vector<std::string> input_strings, output_strings, datum_strings;
-    std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-    boost::split(input_strings, trimmed_proj4_str, boost::is_any_of(" "));
-    BOOST_FOREACH(const std::string& key, input_strings) {
-      // Pick out the parts of the projection string that pertain to
-      // map projections.  We essentially want to eliminate all of
-      // the strings that have to do with the datum, since those are
-      // handled by interacting directly with the
-      // OGRSpatialReference below. This is sort of messy, but it's
-      // the easiest way to do this, as far as I can tell.
-      if (key == "+k=0") {
-        vw_out(WarningMessage)
-            << "Input contained an illegal scale_factor of zero. Ignored."
-            << std::endl;
-      } else if (boost::starts_with(key, "+proj=") ||
-                 boost::starts_with(key, "+x_0=") ||
-                 boost::starts_with(key, "+y_0=") ||
-                 boost::starts_with(key, "+lon") ||
-                 boost::starts_with(key, "+lat") ||
-                 boost::starts_with(key, "+k=") ||
-                 boost::starts_with(key, "+k_0=") ||
-                 boost::starts_with(key, "+lat_ts=") ||
-                 boost::starts_with(key, "+ns") ||
-                 boost::starts_with(key, "+no_cut") ||
-                 boost::starts_with(key, "+h=") ||
-                 boost::starts_with(key, "+W=") ||
-                 boost::starts_with(key, "+units=") ||
-                 boost::starts_with(key, "+zone=")) {
-        output_strings.push_back(key);
-      } else if (boost::starts_with(key, "+ellps=") ||
-                 boost::starts_with(key, "+towgs84=") ||
-                 boost::starts_with(key, "+datum=")) {
-        // We put these in the proj4_str for the Datum class.
-        datum_strings.push_back(key);
-      }
-    }
-    std::string strm = boost::join(output_strings, " ");
-
-    // If the file contains no projection related information, we
-    // supply proj.4 with a "default" interpretation that the file
-    // is in geographic (unprojected) coordinates.
-    if (output_strings.empty())
-      set_proj4_projection_str("+proj=longlat");
-    else
-      set_proj4_projection_str(strm);
-
-    int utm_north = 0;
-    int utm_zone = m_gdal_spatial_ref.GetUTMZone(&utm_north);
-    if (utm_zone) set_UTM(utm_zone, utm_north);
-
-    // Set the proj4 string for datum.
-    std::string datum_proj4_ss =
-        boost::trim_copy(boost::join(datum_strings, " "));
-    // Add the current proj4 string in the case that our ellipse/datum
-    // values are empty.
-    if (datum_proj4_ss.empty()) datum_proj4_ss = datum.proj4_str();
-    datum.proj4_str() = datum_proj4_ss;
-
-    // Setting the fully processed datum
-    set_datum(datum);
+  // If there is a PROJCS name, record it.
+  const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
+  if (projcs != NULL) {
+    // Careful here, to avoid a segfault
+    m_projcs_name = std::string(projcs);
   }
 
-  
-  std::vector<double> GeoReference::get_towgs84_values(std::string const& s) {
-    std::vector<double> o;
-    std::string sub;
-    if (!extract_proj4_value(s, "+towgs84", sub))
-      return o;
+  // std::cout << "see about datum\n";
+  // // Create the datum. We will modify it later on.
+  // Datum datum;
+  // datum.set_datum_from_spatial_ref(m_gdal_spatial_ref);
 
-    o.resize(6);
-    int count = sscanf(sub.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf",
-                       &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-    if (count != 6)
-      vw_throw(LogicErr() << "Error parsing +towgs84 from string: " << s);
+  // Set the datum in the georef. Until now the georef may have been
+  // completely invalid, so we need to do this step now to avoid
+  // problems later on.  We'll keep on tweaking things and set the
+  // datum again later one more time.
+  // TODO(oalexan1): This should no longer be necessary.
+  // Setting the datum may require wiping the georef,
+  // unless what is set already agrees with it
+  //this->set_datum(datum);
+
+  std::cout << "--may need to wipe all below\n";
+  std::cout << "in particular, don't want to set projection, as that will bring us back here\n";
+  
+  // Read projection information out of the file
+  char* proj4_str_tmp;
+  m_gdal_spatial_ref.exportToProj4(&proj4_str_tmp);
+  std::string proj4_str = proj4_str_tmp;
+  CPLFree(proj4_str_tmp);
+
+  std::vector<std::string> input_strings, output_strings, datum_strings;
+  std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
+  boost::split(input_strings, trimmed_proj4_str, boost::is_any_of(" "));
+  BOOST_FOREACH(const std::string& key, input_strings) {
+    // Pick out the parts of the projection string that pertain to
+    // map projections.  We essentially want to eliminate all of
+    // the strings that have to do with the datum, since those are
+    // handled by interacting directly with the
+    // OGRSpatialReference below. This is sort of messy, but it's
+    // the easiest way to do this, as far as I can tell.
+    if (key == "+k=0") {
+      vw_out(WarningMessage)
+          << "Input contained an illegal scale_factor of zero. Ignored."
+          << std::endl;
+    } else if (boost::starts_with(key, "+proj=") ||
+                boost::starts_with(key, "+x_0=") ||
+                boost::starts_with(key, "+y_0=") ||
+                boost::starts_with(key, "+lon") ||
+                boost::starts_with(key, "+lat") ||
+                boost::starts_with(key, "+k=") ||
+                boost::starts_with(key, "+k_0=") ||
+                boost::starts_with(key, "+lat_ts=") ||
+                boost::starts_with(key, "+ns") ||
+                boost::starts_with(key, "+no_cut") ||
+                boost::starts_with(key, "+h=") ||
+                boost::starts_with(key, "+W=") ||
+                boost::starts_with(key, "+units=") ||
+                boost::starts_with(key, "+zone=")) {
+      output_strings.push_back(key);
+    } else if (boost::starts_with(key, "+ellps=") ||
+                boost::starts_with(key, "+towgs84=") ||
+                boost::starts_with(key, "+datum=")) {
+      // We put these in the proj4_str for the Datum class.
+      datum_strings.push_back(key);
+    }
+  }
+  std::string strm = boost::join(output_strings, " ");
+
+  // If the file contains no projection related information, we
+  // supply proj.4 with a "default" interpretation that the file
+  // is in geographic (unprojected) coordinates.
+  if (output_strings.empty())
+    m_proj_projection_str = "+proj=longlat";
+  else
+    m_proj_projection_str  = strm;
+  
+  std::cout << "--this must be done by querying the spatial ref\n";
+  if (m_proj_projection_str.find("+proj=longlat") == 0)
+    m_is_projected = false;
+  else
+    m_is_projected = true;
+
+  std::cout << "--what to do about warping????" << std::endl;
+  // Disable -180 to 180 longitude wrapping in proj4.
+  // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
+  // - We will make sure that the input longitudes are in a safe range.
+  std::cout << "--must be these set in the spatial ref object\n";
+  if ((m_proj_projection_str.find("+over") == std::string::npos) &&
+        (m_proj_projection_str.find("+proj=utm") == std::string::npos))
+    m_proj_projection_str.append(" +over");
+
+  // int utm_north = 0;
+  // int utm_zone = m_gdal_spatial_ref.GetUTMZone(&utm_north);
+  // if (utm_zone) set_UTM(utm_zone, utm_north);
+
+  // // Set the proj4 string for datum.
+  // std::string datum_proj4_ss =
+  //     boost::trim_copy(boost::join(datum_strings, " "));
+  // // Add the current proj4 string in the case that our ellipse/datum
+  // // values are empty.
+  // if (datum_proj4_ss.empty()) datum_proj4_ss = datum.proj4_str();
+  // datum.proj4_str() = datum_proj4_ss;
+
+  // // Setting the fully processed datum
+  // set_datum(datum);
+}
+
+std::vector<double> GeoReference::get_towgs84_values(std::string const& s) {
+  std::vector<double> o;
+  std::string sub;
+  if (!extract_proj4_value(s, "+towgs84", sub))
     return o;
-  }
+
+  o.resize(6);
+  int count = sscanf(sub.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf",
+                      &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
+  if (count != 6)
+    vw_throw(LogicErr() << "Error parsing +towgs84 from string: " << s);
+  return o;
+}
+
+// Get the wkt string from the georef. It only has projection and datum information.
+std::string GeoReference::get_wkt() const {
+
+  if (m_geo_wkt.empty()) 
+    vw_throw(ArgumentErr() << "Georef was not initialized with a WKT string!");
   
-  // Get the wkt string from the georef. It only has projection and datum information.
-  std::string GeoReference::get_wkt() const {
-
-    if (m_geo_wkt.empty()) 
-      vw_throw(ArgumentErr() << "Georef was not initialized with a WKT string!");
+  std::cout << "--get_wkt " << m_geo_wkt << std::endl;
+  return m_geo_wkt;
     
-    std::cout << "--get_wkt " << m_geo_wkt << std::endl;
-    return m_geo_wkt;
-      
-    // std::cout << "--now form and return wkt" << std::endl;
-    // char* wkt_buf;
-    // m_gdal_spatial_ref.exportToWkt(&wkt_buf);
-    // std::string wkt_str = wkt_buf;
-    // CPLFree(wkt_buf);
-    // //if (!wkt_str.empty()) {
-    // std::cout << "--will return wkt: " << wkt_str << std::endl;
-    // return wkt_str;
-    //}
+// TODO(oalexan1): Wipe the code below
 #if 0    
-    // Create an OGRSpatialReference gdal object, load it with the
-    //  proj4 string and datum information, and then use it to 
-    //  generate the WKT string.
+  // Create an OGRSpatialReference gdal object, load it with the
+  //  proj4 string and datum information, and then use it to 
+  //  generate the WKT string.
 
-    OGRSpatialReference m_gdal_spatial_ref;
-    Datum const& datum = this->datum();
-    const std::string proj_string = this->overall_proj4_str();
-    m_gdal_spatial_ref.importFromProj4(proj_string.c_str());
+  OGRSpatialReference m_gdal_spatial_ref;
+  Datum const& datum = this->datum();
+  const std::string proj_string = this->overall_proj4_str();
+  m_gdal_spatial_ref.importFromProj4(proj_string.c_str());
 
-    // Apply projcs override if it was specified
-    std::string projcs_name = this->get_projcs_name();
-    if (!projcs_name.empty())
-      m_gdal_spatial_ref.SetProjCS(projcs_name.c_str());
+  // Apply projcs override if it was specified
+  std::string projcs_name = this->get_projcs_name();
+  if (!projcs_name.empty())
+    m_gdal_spatial_ref.SetProjCS(projcs_name.c_str());
 
-    // For perfect spheres, we set the inverse flattening to
-    // zero. This is making us compliant with OpenGIS Implementation
-    // Specification: CTS 12.3.10.2. In short, we are not allowed to
-    // write infinity as most tools, like ArcGIS, can't read that.
+  // For perfect spheres, we set the inverse flattening to
+  // zero. This is making us compliant with OpenGIS Implementation
+  // Specification: CTS 12.3.10.2. In short, we are not allowed to
+  // write infinity as most tools, like ArcGIS, can't read that.
 
-    // TODO: PROJCS is still not written correctly sometimes, see
-    // StereoPipelineTest/ss_mapproject_ctx_bug.
+  // TODO: PROJCS is still not written correctly sometimes, see
+  // StereoPipelineTest/ss_mapproject_ctx_bug.
 
-    // We also cannot handle: 
-    
-    // TODO: Test this some more. This is a fix for PROJCS "CH1903 / LV03"
-    std::string geog_name;
-    if (projcs_name != "")
-      geog_name = datum.name();
-    else
-      geog_name = "Geographic Coordinate System";
+  // We also cannot handle: 
+  
+  // TODO: Test this some more. This is a fix for PROJCS "CH1903 / LV03"
+  std::string geog_name;
+  if (projcs_name != "")
+    geog_name = datum.name();
+  else
+    geog_name = "Geographic Coordinate System";
 
-    m_gdal_spatial_ref.SetGeogCS(geog_name.c_str(),
-                                datum.name().c_str(),
-                                datum.spheroid_name().c_str(),
-                                datum.semi_major_axis(),
-                                datum.semi_major_axis() == datum.semi_minor_axis() ?
-                                0 : datum.inverse_flattening(),
-                                datum.meridian_name().c_str(),
-                                datum.meridian_offset());
+  m_gdal_spatial_ref.SetGeogCS(geog_name.c_str(),
+                              datum.name().c_str(),
+                              datum.spheroid_name().c_str(),
+                              datum.semi_major_axis(),
+                              datum.semi_major_axis() == datum.semi_minor_axis() ?
+                              0 : datum.inverse_flattening(),
+                              datum.meridian_name().c_str(),
+                              datum.meridian_offset());
 
-    // Make sure that this gets set properly
-    std::vector<double> vals = get_towgs84_values(proj_string);
-    if (vals.size() == 6)
-      m_gdal_spatial_ref.SetTOWGS84(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5]);
-    
-    char* wkt_str_tmp;
-    m_gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
-    wkt_str = wkt_str_tmp;
-    CPLFree(wkt_str_tmp);
+  // Make sure that this gets set properly
+  std::vector<double> vals = get_towgs84_values(proj_string);
+  if (vals.size() == 6)
+    m_gdal_spatial_ref.SetTOWGS84(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5]);
+  
+  wkt_str = vw::cartography::ogr_wkt(m_gdal_spatial_ref);
 
-    //std::cout << "--now in get_wkt " << wkt_str << std::endl;
-    //std::cout << "but m_geo_wkt is " << m_geo_wkt << std::endl;
-    //return m_geo_wkt;
-    std::cout << "--final wkt: " << wkt_str << std::endl;
-    return wkt_str;
+  //std::cout << "--now in get_wkt " << wkt_str << std::endl;
+  //std::cout << "but m_geo_wkt is " << m_geo_wkt << std::endl;
+  //return m_geo_wkt;
+  std::cout << "--final wkt: " << wkt_str << std::endl;
+  return wkt_str;
 #endif    
-  }
+}
 
-#endif // VW_HAVE_PKG_GDAL
+/// For a given pixel coordinate, compute the position of that
+/// pixel in this georeferenced space.
+Vector2 GeoReference::pixel_to_point(Vector2 pix) const {
+  Vector2 loc;
+  Matrix3x3 M = this->vw_native_transform();
+  double denom = pix[0] * M(2,0) + pix[1] * M(2,1) + M(2,2);
+  loc[0] = (pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2)) / denom;
+  loc[1] = (pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2)) / denom;
+  return loc;
+}
 
-  /// For a given pixel coordinate, compute the position of that
-  /// pixel in this georeferenced space.
-  Vector2 GeoReference::pixel_to_point(Vector2 pix) const {
-    Vector2 loc;
-    Matrix3x3 M = this->vw_native_transform();
-    double denom = pix[0] * M(2,0) + pix[1] * M(2,1) + M(2,2);
-    loc[0] = (pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2)) / denom;
-    loc[1] = (pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2)) / denom;
-    return loc;
-  }
-
-  /// For a given location 'loc' in projected space, compute the
-  /// corresponding pixel coordinates in the image.
-  Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
-    Vector2 pix;
-    Matrix3x3 M = this->vw_native_inverse_transform();
-    double denom = loc[0] * M(2,0) + loc[1] * M(2,1) + M(2,2);
-    pix[0] = (loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2)) / denom;
-    pix[1] = (loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2)) / denom;
-    return pix;
-  }
+/// For a given location 'loc' in projected space, compute the
+/// corresponding pixel coordinates in the image.
+Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
+  Vector2 pix;
+  Matrix3x3 M = this->vw_native_inverse_transform();
+  double denom = loc[0] * M(2,0) + loc[1] * M(2,1) + M(2,2);
+  pix[0] = (loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2)) / denom;
+  pix[1] = (loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2)) / denom;
+  return pix;
+}
 
 
 /// For a point in the projected space, compute the position of
@@ -1015,21 +1001,23 @@ Vector2 GeoReference::point_to_lonlat(Vector2 const& loc) const {
 /// manage fully all conversions, and if they are aware of image extent.
 Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 const& loc) const {
 
+  // TODO(oalexan1): Test this direction!
   if (!m_is_projected) 
     return loc;
   
   if (!m_proj_to_lonlat)
     vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
   
-  std::cout << "input meters: " << loc[0] << ' ' << loc[1] << std::endl;
+  //std::cout << "input meters: " << loc[0] << ' ' << loc[1] << std::endl;
   double x = loc[0];
   double y = loc[1];
   if (!m_proj_to_lonlat->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
-  std::cout << "--output lon,lat: " << x << ' ' << y << std::endl;
+  //std::cout << "--output lon,lat: " << x << ' ' << y << std::endl;
   
   return Vector2(x, y);
-    
+   
+  // TODO(oalexan1): Wipe!  
   // // https://proj.org/development/migration.html
   // /* For reliable geographic <--> geocentric conversions, z shall not */
   // /* be some random value. Also t shall be initialized to HUGE_VAL to */
@@ -1055,6 +1043,8 @@ Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 const& loc) const {
 /// the location in the projected coordinate system.
 Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 
+  // TODO(oalexan1): Test this direction!
+  
   // Get the longitude into the correct range for this georeference.    
   lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
 
@@ -1066,10 +1056,10 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
    
    double x = lon_lat[0];
    double y = lon_lat[1];
-   std::cout << "input lon,lat: " << x << ' ' << y << std::endl;
-   if (!m_lonlat_to_proj->Transform(1, &x, &y))
-     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
-  std::cout << "--output meters: " << x << ' ' << y << std::endl;
+  //  std::cout << "input lon,lat: " << x << ' ' << y << std::endl;
+  if (!m_lonlat_to_proj->Transform(1, &x, &y))
+    vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
+  // std::cout << "--output meters: " << x << ' ' << y << std::endl;
   
   return Vector2(x, y);
   
@@ -1109,6 +1099,7 @@ Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
   //************** Functions for class ProjContext ******************
 
   char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
+    // TODO(oalexan1): May need to wipe this!
     std::vector<std::string> arg_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
     boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));

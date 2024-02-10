@@ -26,9 +26,10 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
-/// \file Datum.h Planetary ellipsoidal coordinate system.
+#include <ogr_spatialref.h>
 
-class OGRSpatialReference;
+/// \file Datum.h Planetary ellipsoidal coordinate system.
+/// It is a wrapper around the GDAL OGRSpatialReference class.
 
 namespace vw {
 namespace cartography {
@@ -50,6 +51,7 @@ namespace cartography {
     double      m_semi_minor_axis;
     double      m_meridian_offset;
     bool        m_geocentric;
+    OGRSpatialReference m_ogr_datum;
     std::string m_proj_str;
 
   public:
@@ -61,8 +63,8 @@ namespace cartography {
     /// Constructs a well-known datum by name.
     /// - Supported names: WGS84, WGS72, NAD83, NAD27, D_MOON, D_MARS, MOLA.
     /// - Note that this class does not fully support Earth datums other than WGS84!
-    Datum( std::string const& name ) {
-      set_well_known_datum( name );
+    Datum(std::string const& name) {
+      set_well_known_datum(name);
     }
 
     /// This constructor allows the user to create a custom datum.
@@ -106,6 +108,10 @@ namespace cartography {
     std::string      & proj4_str()       { return m_proj_str; }
     std::string const& proj4_str() const { return m_proj_str; }
 
+    // Use set_datum_from_spatial_ref() to set the OGRSpatialReference.
+    // This will only fetch the underlying object but not set it.
+    OGRSpatialReference const& ogr_datum() const { return m_ogr_datum; }
+    
     /// Returns the radius (distance from center of the body) at the given lat/lon
     double radius(double lon, double lat) const;
 
@@ -151,7 +157,9 @@ namespace cartography {
   vw::Vector3 datum_intersection( Datum const& datum,
                               vw::Vector3 camera_ctr, vw::Vector3 camera_vec );
 
-
+ // Low-level function useful with datums and georefs
+ std::string ogr_wkt(OGRSpatialReference const & ogr);
+  
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_DATUM_H__

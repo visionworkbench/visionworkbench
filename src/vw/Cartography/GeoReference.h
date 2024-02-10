@@ -132,10 +132,10 @@ namespace cartography {
     std::string m_proj_projection_str; // Duplicate of information in m_proj_context
     ProjContext m_proj_context;// TODO(oalexan1): Wipe this
     std::string m_geo_wkt; // TODO(oalexan1): Wipe this
+    
+    // The CRS for the georeference
     OGRSpatialReference m_gdal_spatial_ref;
     
-    // Underlying datum
-    boost::shared_ptr<OGRSpatialReference> m_geoGS; 
     // Transform from lonlat to projected space
     boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
     boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
@@ -204,6 +204,8 @@ namespace cartography {
     ~GeoReference() {}
 
     void set_transform(Matrix<double,3,3> transform);
+    
+    // Setting the datum resets the projection to lonlat
     void set_datum(Datum const& datum);
 
     /// Recompute the longitude center taking into account the given pixel bbox.
@@ -290,20 +292,18 @@ namespace cartography {
     // Consider using instead asp::set_srs_string().
     void set_proj4_projection_str(std::string const& s);
 
-#if defined(VW_HAVE_PKG_GDAL)
-    // Loads the datum and projection information from the given
-    // string in WKT ("Well-Known Text") format.
+    // Every function that modifies the georef must call this function
     void set_wkt(std::string const& wkt);
 
     // Get the wkt string from the georef. It only has projection and datum information.
     std::string get_wkt() const;
     
     /// Set a projcs name used in WKT and writing to disk.
+    // TODO(oalexan1): May need to wipe this, or to have it get data from 
+    // the underlying m_gdal_spatial_ref.
     void        set_projcs_name(std::string const& projcs_name) {m_projcs_name=projcs_name;}
     std::string get_projcs_name() const {return m_projcs_name;}
     
-#endif
-
     //===============================================================================
     // The functions below here are for conversion between lonlat, point, and point 
     //  coordinates within the scope of a SINGLE GeoReference object.  It is 
