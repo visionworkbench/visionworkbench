@@ -39,8 +39,10 @@
 // TODO(oalexan1): Wipe from everywhere the invocation of VW_HAVE_PKG_GDAL
 // VW will always be built with GDAL support.
 
+// TODO(oalexan1): Wipe this
 #include <proj.h>
 
+// TODO(oalexan1): Wipe this
 // Macro for checking Proj.4 output, something we do a lot of.
 #define CHECK_PROJ_ERROR(ctx_input, loc)                                          \
   if (ctx_input.error_no())                                                       \
@@ -198,52 +200,48 @@ namespace {
     return proj4_str_no_dups;
   }
 
+  // This will recreate the GeoReference object
   void GeoReference::init_proj() {
     // Update the projection context object with the current proj4 string, 
     //  then make sure the lon center is still correct.
     //std::string geo_wkt = GeoReference::get_wkt(); 
     std::cout << "--now in init proj" << std::endl;
-    
-    // This will recreate the GeoReference object
+   
+    // This will append the datum info    
     std::string srs_string = overall_proj4_str(); 
+    
     if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
       vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
     set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
 
-    // TODO(oalexan1): Wipe the ProjContext code      
-    //m_proj_context = ProjContext(overall_proj4_str(), m_geo_wkt);
-    
     std::cout << "--put back update_lon_center_private\n";
     //update_lon_center_private();
   }
 
-  // TODO(oalexan1): How about copy constructor? Create new pointers
-  // for the underlying GDAL objects?
-  
   // The empty constructor. This initialises m_gdal_spatial_ref to an empty
   // object, and m_gdal_spatial_ref.exportToWkt() will return an empty string.
   GeoReference::GeoReference(): m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
     std::cout << "now in default constructor" << std::endl;
     
     set_transform(vw::math::identity_matrix<3>());
-    set_geographic();
-    init_proj();
+    set_geographic(); // will call init_proj()
+    //init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum) :
         m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
     std::cout << "--now in datum constructor" << std::endl;
     set_transform(vw::math::identity_matrix<3>());
-    set_geographic();
-    init_proj();
+    set_geographic(); // will call init_proj()
+    //init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
       : m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
     std::cout << "--now in datum constructor2" << std::endl;
     set_transform(vw::math::identity_matrix<3>());
-    set_geographic();
-    init_proj();
+    set_geographic(); // will call init_proj()
+    //init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum,
@@ -251,8 +249,8 @@ namespace {
                    m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
     std::cout << "--now in datum constructor 3" << std::endl;
     set_transform(transform);
-    set_geographic();
-    init_proj();
+    set_geographic(); // will call init_proj()
+    // init_proj();
   }
 
   GeoReference::GeoReference(Datum const& datum,
@@ -261,8 +259,8 @@ namespace {
     m_pixel_interpretation(pixel_interpretation), m_datum(datum), m_projcs_name("") {
      std::cout << "--now datum constructor 4" << std::endl;
     set_transform(transform);
-    set_geographic();
-    init_proj();
+    set_geographic(); // will call init_proj()
+    // init_proj();
   }
 
   void GeoReference::set_transform(Matrix3x3 transform) {
@@ -302,7 +300,7 @@ namespace {
     //std::cout << "--in datum, wkt is " << wkt << std::endl; 
     
     // Recreate the georeference based on the datum, wiping the projection
-    this->set_wkt(vw::cartography::ogr_wkt(m_datum.ogr_datum()));
+    this->set_wkt(vw::cartography::ogr_wkt(m_datum.ogr_datum())); 
     //init_proj();
   }
 
@@ -327,7 +325,7 @@ namespace {
   void GeoReference::set_well_known_geogcs(std::string name) {
     std::cout << "--set_well_known_geogcs: " << name << std::endl;
     m_datum.set_well_known_datum(name);
-    init_proj();
+    this->set_datum(m_datum); // set the datum, this will rebuild the georef
   }
 
   void GeoReference::set_geographic() {
@@ -444,6 +442,8 @@ namespace {
 
   // This function does not set the datum radius based on the projection, which is wrong.
   // Consider using asp::set_srs_string().
+  // TODO(oalexan1): This must be made private as it does not fully create
+  // the object.
   void GeoReference::set_proj4_projection_str(std::string const& s) {
 
     std::cout << "---now in set proj4 projection str" << std::endl;
@@ -743,32 +743,22 @@ void GeoReference::set_wkt(std::string const& wkt) {
   std::cout << "--may need to eliminate m_geo_wkt\n";
   std::cout << "--just produce and return the wkt on the fly\n";
   m_geo_wkt = wkt;
-
   // The returned coordinates will be in longitude, latitude order
   // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
   m_gdal_spatial_ref.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  m_proj_context.m_proj_crs = m_gdal_spatial_ref; // need a copy of this
   
   // Create the underlying datum
   {
     boost::shared_ptr<OGRSpatialReference> geoCS(m_gdal_spatial_ref.CloneGeogCS()); 
     geoCS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     m_datum.set_datum_from_spatial_ref(*geoCS);
+    m_proj_context.m_lonlat_crs = *geoCS; // need a copy of this
     // The resource held by geoCS will be deallocated when geoCS goes out of scope.
   }
-  
-  std::cout << "--must create a class having the transforms\n";
-  std::cout << "That class must duplicate the transforms on copying\n";
-  // Transform from lon-lat to projected coordinates
-  // TODO(oalexan1): These must be cloned when the georef object is copied
-  std::cout << "--must clone transforms\n";
-  std::cout << "or at least the copy operator must set the wkt\n";
-  m_lonlat_to_proj.reset(OGRCreateCoordinateTransformation(&m_datum.ogr_datum(), 
-                                                           &m_gdal_spatial_ref));
-  m_proj_to_lonlat.reset(OGRCreateCoordinateTransformation(&m_gdal_spatial_ref, 
-                                                           &m_datum.ogr_datum()));
-  if (!m_lonlat_to_proj)
-    vw_throw(ArgumentErr() << "Failed to create a coordinate transformation from "
-              << "lon-lat to projected coordinates for wkt: " << wkt);
+
+  // Create here the coordinate transformations
+  m_proj_context.init_transforms();  
 
   // If there is a PROJCS name, record it.
   const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
@@ -1005,13 +995,13 @@ Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 const& loc) const {
   if (!m_is_projected) 
     return loc;
   
-  if (!m_proj_to_lonlat)
+  if (!m_proj_context.m_proj_to_lonlat)
     vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
   
   //std::cout << "input meters: " << loc[0] << ' ' << loc[1] << std::endl;
   double x = loc[0];
   double y = loc[1];
-  if (!m_proj_to_lonlat->Transform(1, &x, &y))
+  if (!m_proj_context.m_proj_to_lonlat->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
   //std::cout << "--output lon,lat: " << x << ' ' << y << std::endl;
   
@@ -1051,13 +1041,13 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
   if (!m_is_projected) 
     return lon_lat;
 
-  if (!m_lonlat_to_proj)
+  if (!m_proj_context.m_lonlat_to_proj)
     vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
    
    double x = lon_lat[0];
    double y = lon_lat[1];
   //  std::cout << "input lon,lat: " << x << ' ' << y << std::endl;
-  if (!m_lonlat_to_proj->Transform(1, &x, &y))
+  if (!m_proj_context.m_lonlat_to_proj->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
   // std::cout << "--output meters: " << x << ' ' << y << std::endl;
   
@@ -1097,7 +1087,7 @@ Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
   
   //*****************************************************************
   //************** Functions for class ProjContext ******************
-
+  // TODO(oalexan1): Wipe this!
   char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
     // TODO(oalexan1): May need to wipe this!
     std::vector<std::string> arg_strings;
@@ -1119,7 +1109,8 @@ Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
   template <class T>
   static void temp_dealloc(T* ptr) {
   }
-  
+
+// TODO(oalexan1): Wipe this!  
 ProjContext::ProjContext(std::string const& proj4_str,
                          std::string const& proj_wkt): 
                           m_proj4_str(proj4_str), m_proj_wkt(proj_wkt) {
@@ -1149,37 +1140,52 @@ ProjContext::ProjContext(std::string const& proj4_str,
 }
   
 ProjContext::ProjContext(ProjContext const& other): 
-m_proj4_str(other.m_proj4_str), 
-m_proj_wkt(other.m_proj_wkt) {
+m_lonlat_crs(other.m_lonlat_crs), m_proj_crs(other.m_proj_crs), m_init(other.m_init) {
 
-    // A copy of an uninitialized proj context was made. Not an error since it can be
-    // initialized later.
-    if (m_proj4_str.empty())
-      return;
-
-    // Create Proj context and transform pointers. Will be deleted in the destructor.
-    m_pj_context = proj_context_create();
-    //std::cout << "proj2 create with string " << m_proj4_str << std::endl;
-    //std::cout << "and proj wkt " << m_proj_wkt << std::endl;
-    if (m_proj_wkt.empty())
-      m_pj_transform = proj_create(m_pj_context, m_proj4_str.c_str());
-    else
-      m_pj_transform = proj_create(m_pj_context, m_proj_wkt.c_str());
+  if (!m_init) 
+    return;
   
-    if (m_pj_transform == NULL) 
-      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a projection for proj4 string: "
-                   << m_proj_wkt << ".\n");
-    //std::cout << "--copied proj context with wkt = " << m_proj_wkt << std::endl;
-  }
+  // Recreate the transforms
+  this->init_transforms();  
+}
 
-  // TODO(oalexan1): See about how to do error checks
+// Assignment operator
+ProjContext & ProjContext::operator=(ProjContext const& other) {
   
-  // TODO(oalexan1): Wipe this!
-  int ProjContext::error_no() const {
-    return 0;
-    //return pj_ctx_get_errno(m_proj_ctx_ptr.get());
-  }
+  m_lonlat_crs = other.m_lonlat_crs;
+  m_proj_crs = other.m_proj_crs; 
+  m_init = other.m_init;
 
+  // Recreate the transforms
+  if (m_init) 
+    this->init_transforms();  
+
+  return *this;
+}
+
+// TODO(oalexan1): See about how to do error checks
+
+// TODO(oalexan1): Wipe this!
+int ProjContext::error_no() const {
+  return 0;
+  //return pj_ctx_get_errno(m_proj_ctx_ptr.get());
+}
+
+void ProjContext::init_transforms() {
+  m_lonlat_to_proj.reset(OGRCreateCoordinateTransformation(&m_lonlat_crs, &m_proj_crs));
+  m_proj_to_lonlat.reset(OGRCreateCoordinateTransformation(&m_proj_crs, &m_lonlat_crs));
+  m_init = true;
+  
+  if (!m_lonlat_to_proj)
+    vw_throw(ArgumentErr() << "Failed to create a coordinate transformation from "
+              << "lon-lat to projected coordinates.\n");
+}
+      
+/// Return true if the object is fully initialized
+bool ProjContext::is_initialized() const {
+  return m_init;
+}
+  
   ProjContext::~ProjContext() {
     // TODO(oalexan1): Deleting causes a crash! Must
     // revisit this, as one gets memory leaks!

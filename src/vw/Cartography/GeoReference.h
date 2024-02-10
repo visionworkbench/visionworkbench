@@ -45,8 +45,8 @@ namespace cartography {
   // because basically every error proj.4 returns is due to some variety of bad input.
   VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
 
-  // Here is some machinery to keep track of an initialized proj.4
-  // projection context using a smart pointer.
+  // This class ensures that the GeoReference transforms are properly
+  // duplicated on copying.
   class ProjContext {
 
     // TODO(oalexan1): Wipe these two.
@@ -58,9 +58,12 @@ namespace cartography {
 
   public:
 
-    ProjContext() : m_proj4_str(""), m_pj_context(NULL), m_pj_transform(NULL) {};
+    ProjContext() : m_proj4_str(""), m_pj_context(NULL), m_pj_transform(NULL), m_init(false) {}
     ProjContext(std::string const& proj4_str, std::string const& proj_wkt); 
+    // The copy constructor and assignment operator is essential
     ProjContext(ProjContext const& other);
+    ProjContext & operator=(ProjContext const& other);
+    void init_transforms();
     ~ProjContext();
 
     // There is no reason to make these private and then implement a get function
@@ -69,6 +72,13 @@ namespace cartography {
     PJ_CONTEXT * m_pj_context; // TODO(oalexan1): Wipe this
     PJ * m_pj_transform; // TODO(oalexan1): Wipe this
 
+    // Transform from lonlat to projected space and their CRS
+    OGRSpatialReference m_lonlat_crs, m_proj_crs;
+    boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
+    boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
+    bool m_init;
+
+    // TODO(oalexan1): Wipe this
     inline void* proj_ptr() const {
       VW_ASSERT(is_initialized(),
                 ArgumentErr() << "ProjContext: Projection not initialized.");
@@ -76,9 +86,7 @@ namespace cartography {
     }
     
     /// Return true if the object is fully initialized
-    bool is_initialized() const {
-      return !m_proj4_str.empty() && m_pj_context && m_pj_transform;
-    }
+    bool is_initialized() const;
 
     int error_no() const;
   };
@@ -136,10 +144,6 @@ namespace cartography {
     // The CRS for the georeference
     OGRSpatialReference m_gdal_spatial_ref;
     
-    // Transform from lonlat to projected space
-    boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
-    boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
-      
     bool        m_is_projected; // As opposed to lonlat
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
