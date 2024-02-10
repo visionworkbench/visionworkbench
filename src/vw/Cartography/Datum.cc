@@ -39,7 +39,7 @@ vw::cartography::Datum::Datum(std::string const& name,
   std::ostringstream strm;
   strm.precision(17);
   
-  std::cout << "--datum main constructor" << std::endl;
+  //std::cout << "--datum main constructor" << std::endl;
   
   double inverse_flattening = 0.0;
   if (semi_minor_axis != semi_major_axis)
@@ -57,19 +57,19 @@ vw::cartography::Datum::Datum(std::string const& name,
   strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
   //set_datum_from_proj_str(strm.str());
   m_proj_str = strm.str(); // TODO(oalexan1): GDAL can have issues parsing this
-  std::cout << "---old proj str = " << m_proj_str << std::endl;
+  //std::cout << "---old proj str = " << m_proj_str << std::endl;
   
   char* proj4_str_tmp;
   m_ogr_datum.exportToProj4(&proj4_str_tmp);
   this->proj4_str() = proj4_str_tmp;
   CPLFree(proj4_str_tmp);
-  std::cout << "---new proj str = " << proj4_str() << std::endl;
+  //std::cout << "---new proj str = " << proj4_str() << std::endl;
 }
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
 void vw::cartography::Datum::set_datum_from_spatial_ref(
   OGRSpatialReference const& gdal_spatial_ref) {
- std::cout << "--set datum from spatial ref" << std::endl;
+ //std::cout << "--set datum from spatial ref" << std::endl;
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name)
     this->name() = datum_name;
@@ -103,19 +103,19 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(
 // A wrapper around the GDAL/OGR API for setting the datum.
 void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
-  std::cout << "--set datum from proj with str = " << proj_str << std::endl;
+  //std::cout << "--set datum from proj with str = " << proj_str << std::endl;
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.importFromProj4(proj_str.c_str()))
     vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
   
-  std::cout << "must wipe this extra call to set_datum_from_proj_str" << std::endl;
+  //std::cout << "must wipe this extra call to set_datum_from_proj_str" << std::endl;
   this->proj4_str() = proj_str; // The other call can change the string, don't let it!
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
-  std::cout << "--set well known datum with name = " << name << std::endl;
+  //std::cout << "--set well known datum with name = " << name << std::endl;
   m_meridian_name   = "Greenwich";
   m_geocentric      = false;
   m_meridian_offset = 0.0;
@@ -194,7 +194,7 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
 }
 
 void vw::cartography::Datum::set_semi_major_axis(double val) {
-  std::cout << "--set semi major axis with val = " << val << std::endl;
+  //std::cout << "--set semi major axis with val = " << val << std::endl;
   m_semi_major_axis = val;
   std::ostringstream strm;
   strm.precision(17);
@@ -209,7 +209,7 @@ void vw::cartography::Datum::set_semi_major_axis(double val) {
 }
 
 void vw::cartography::Datum::set_semi_minor_axis(double val) {
-  std::cout << "--set semi minor axis with val = " << val << std::endl;
+  //std::cout << "--set semi minor axis with val = " << val << std::endl;
   m_semi_minor_axis = val;
   std::ostringstream strm;
   strm.precision(17);
