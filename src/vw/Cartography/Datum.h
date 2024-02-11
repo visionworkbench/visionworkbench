@@ -35,9 +35,7 @@ namespace vw {
 namespace cartography {
 
   /// A geodetic datum, i.e. a reference ellipsoid coordinate system
-  /// for a planetary body.  This implementation assumes a relatively
-  /// modern notion of a datum, ie. a geocentric bi-axial ellipsoidal model.
-  ///
+  /// for a planetary body.
   /// To express a spherical datum, set the semi-major axis equal to
   /// the semi-minor axis.  All angles are measured in degrees, and
   /// all distances are measured in meters.  This class incorporates a
@@ -50,7 +48,6 @@ namespace cartography {
     double      m_semi_major_axis;
     double      m_semi_minor_axis;
     double      m_meridian_offset;
-    bool        m_geocentric;
     OGRSpatialReference m_ogr_datum;
     std::string m_proj_str;
 
@@ -101,9 +98,6 @@ namespace cartography {
 
     double &meridian_offset()       { return m_meridian_offset; }
     double  meridian_offset() const { return m_meridian_offset; }
-
-    void set_geocentric(bool val);
-    bool geocentric() const { return m_geocentric; }
 
     std::string      & proj4_str()       { return m_proj_str; }
     std::string const& proj4_str() const { return m_proj_str; }

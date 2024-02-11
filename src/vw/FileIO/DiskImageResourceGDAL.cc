@@ -18,7 +18,7 @@
 
 /// \file DiskImageResourceGDAL.cc
 ///
-/// Provides support for several geospatially referenced file formats
+/// Provides support for several geospatial referenced file formats
 /// via GDAL.
 ///
 
@@ -259,21 +259,22 @@ namespace vw {
 
   /// Bind the resource to a file for reading.  Confirm that we can
   /// open the file and that it has a sane pixel format.
-  void DiskImageResourceGDAL::open( std::string const& filename )
-  {
+  void DiskImageResourceGDAL::open(std::string const& filename) {
     Mutex::Lock lock(d::gdal());
-    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), GDALCloseNullOk);
+    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), 
+                             GDALCloseNullOk);
 
-    if( !m_read_dataset_ptr )
-      vw_throw( ArgumentErr() << "GDAL: Failed to open " << filename << "." );
-
+    if (!m_read_dataset_ptr)
+      vw_throw(ArgumentErr() << "GDAL: Failed to open " << filename << ".");
+    
     boost::shared_ptr<GDALDataset> dataset(get_dataset_ptr());
 
     m_filename = filename;
     m_format.cols = dataset->GetRasterXSize();
     m_format.rows = dataset->GetRasterYSize();
 
-    VW_OUT(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
+    VW_OUT(DebugMessage, "fileio") << "\n\tMetadata description: " 
+      << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
     VW_OUT(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
     for (int i = 0; i < CSLCount(metadata); i++) {

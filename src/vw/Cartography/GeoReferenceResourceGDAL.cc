@@ -38,13 +38,15 @@ namespace cartography {
   bool read_gdal_georeference(GeoReference& georef,
                               DiskImageResourceGDAL const& resource) {
     boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
+    std::cout << "dataset ptr is " << dataset.get() << std::endl;
     if (!dataset)
       vw_throw(LogicErr() << "read_gdal_georeference: Could not read georeference. "
                 << "No file has been opened.");
-
+    std::cout << "now here 1" << std::endl;
     // Pull the projection and datum information out of the file if available
     if (dataset->GetProjectionRef() != NULL)
       georef.set_wkt(dataset->GetProjectionRef());
+    std::cout << "--now here 2" << std::endl;
 
     double geo_transform[6];
     Matrix<double,3,3> transform;

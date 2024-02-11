@@ -15,6 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+// TODO(oalexan1): Wipe all mention of proj4_str.
+// Everything must be done by setting the OGRSpatialReference object.
 
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoTransform.h>
@@ -22,6 +24,7 @@
 // Vision Workbench
 #include <vw/Image/ImageView.h>
 
+// TODO(oalexan1): Wipe proj
 // Proj
 #include <proj.h>
 

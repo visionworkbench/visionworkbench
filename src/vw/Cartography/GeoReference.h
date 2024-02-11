@@ -32,6 +32,7 @@
 #include <boost/scoped_ptr.hpp>
 
 // Proj forward declarations
+// TODO(oalexan1): Wipe these
 struct pj_ctx;
 struct PJconsts;
 typedef struct pj_ctx PJ_CONTEXT;
@@ -49,46 +50,28 @@ namespace cartography {
   // duplicated on copying.
   class ProjContext {
 
-    // TODO(oalexan1): Wipe these two.
-    boost::shared_ptr<void> m_proj_ctx_ptr;
-    boost::shared_ptr<void> m_proj_ptr;
-
     /// 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
 
-    ProjContext() : m_proj4_str(""), m_pj_context(NULL), m_pj_transform(NULL), m_init(false) {}
-    ProjContext(std::string const& proj4_str, std::string const& proj_wkt); 
-    // The copy constructor and assignment operator is essential
+    ProjContext();
+    // The copy constructor and assignment operator are essential
     ProjContext(ProjContext const& other);
     ProjContext & operator=(ProjContext const& other);
     void init_transforms();
     ~ProjContext();
 
-    // There is no reason to make these private and then implement a get function
-    std::string m_proj4_str; // TODO(oalexan1): Wipe this
-    std::string m_proj_wkt;  // TODO(oalexan1): Wipe this
-    PJ_CONTEXT * m_pj_context; // TODO(oalexan1): Wipe this
-    PJ * m_pj_transform; // TODO(oalexan1): Wipe this
-
     // Transform from lonlat to projected space and their CRS
     OGRSpatialReference m_lonlat_crs, m_proj_crs;
-    boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
-    boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
+    //boost::shared_ptr<OGRCoordinateTransformation> m_lonlat_to_proj;
+    //boost::shared_ptr<OGRCoordinateTransformation> m_proj_to_lonlat;
+    OGRCoordinateTransformation * m_lonlat_to_proj;
+    OGRCoordinateTransformation * m_proj_to_lonlat;
     bool m_init;
 
-    // TODO(oalexan1): Wipe this
-    inline void* proj_ptr() const {
-      VW_ASSERT(is_initialized(),
-                ArgumentErr() << "ProjContext: Projection not initialized.");
-      return m_proj_ptr.get();
-    }
-    
     /// Return true if the object is fully initialized
     bool is_initialized() const;
-
-    int error_no() const;
   };
 
   // Would it make more sense for this class to keep information in an
@@ -139,7 +122,6 @@ namespace cartography {
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str; // Duplicate of information in m_proj_context
     ProjContext m_proj_context;// TODO(oalexan1): Wipe this
-    std::string m_geo_wkt; // TODO(oalexan1): Wipe this
     
     // The CRS for the georeference
     OGRSpatialReference m_gdal_spatial_ref;
@@ -209,7 +191,7 @@ namespace cartography {
 
     void set_transform(Matrix<double,3,3> transform);
     
-    // Setting the datum resets the projection to lonlat
+    // Set the datum. This does not change any projection information.
     void set_datum(Datum const& datum);
 
     /// Recompute the longitude center taking into account the given pixel bbox.

@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <boost/algorithm/string.hpp>
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
@@ -28,48 +27,34 @@ vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& meridian_name,
                               double semi_major_axis,
                               double semi_minor_axis,
-                              double meridian_offset)
-  : m_name(name),
+                              double meridian_offset):
+    m_name(name),
     m_spheroid_name(spheroid_name),
     m_meridian_name(meridian_name),
     m_semi_major_axis(semi_major_axis),
     m_semi_minor_axis(semi_minor_axis),
-    m_meridian_offset(meridian_offset),
-    m_geocentric(false) {
-  std::ostringstream strm;
-  strm.precision(17);
-  
-  //std::cout << "--datum main constructor" << std::endl;
-  
-  double inverse_flattening = 0.0;
-  if (semi_minor_axis != semi_major_axis)
-    inverse_flattening = 1.0 / (1.0 - semi_minor_axis / semi_major_axis);
+    m_meridian_offset(meridian_offset) {
   
   std::string geog_name = "Geographic Coordinate System";
   m_ogr_datum.SetGeogCS(geog_name.c_str(),
                         name.c_str(),
                         spheroid_name.c_str(),
                         semi_major_axis,
-                        inverse_flattening,
+                        this->inverse_flattening(),
                         meridian_name.c_str(),
                         meridian_offset);
 
-  strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
-  //set_datum_from_proj_str(strm.str());
-  m_proj_str = strm.str(); // TODO(oalexan1): GDAL can have issues parsing this
-  //std::cout << "---old proj str = " << m_proj_str << std::endl;
-  
+  // TODO(oalexan1): Wipe all mention of proj4_str.
+  // Everything must be done by setting the OGRSpatialReference object.
   char* proj4_str_tmp;
   m_ogr_datum.exportToProj4(&proj4_str_tmp);
   this->proj4_str() = proj4_str_tmp;
   CPLFree(proj4_str_tmp);
-  //std::cout << "---new proj str = " << proj4_str() << std::endl;
 }
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
 void vw::cartography::Datum::set_datum_from_spatial_ref(
   OGRSpatialReference const& gdal_spatial_ref) {
- //std::cout << "--set datum from spatial ref" << std::endl;
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name)
     this->name() = datum_name;
@@ -103,21 +88,15 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(
 // A wrapper around the GDAL/OGR API for setting the datum.
 void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
-  //std::cout << "--set datum from proj with str = " << proj_str << std::endl;
   OGRSpatialReference gdal_spatial_ref;
-  if (gdal_spatial_ref.importFromProj4(proj_str.c_str()))
+  if (gdal_spatial_ref.importFromProj4(proj_str.c_str()) != OGRERR_NONE)
     vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
-  
-  //std::cout << "must wipe this extra call to set_datum_from_proj_str" << std::endl;
-  this->proj4_str() = proj_str; // The other call can change the string, don't let it!
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
-  //std::cout << "--set well known datum with name = " << name << std::endl;
   m_meridian_name   = "Greenwich";
-  m_geocentric      = false;
   m_meridian_offset = 0.0;
 
   // These numbers will be over-written later. However, we must
@@ -154,39 +133,39 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
     return;
   }
 
+  std::string datum_name, spheroid_name; 
+  std::string meridian_name = "Reference meridian";
+  double semi_major_axis = 0.0;
+  double semi_minor_axis = 0.0;
+  double meridian_offset = 0.0;
+   
   if (up_name == "D_MOON" || up_name == "MOON") {
-    m_name            = "D_MOON";
-    m_spheroid_name   = "MOON";
-    m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = 1737400;
-    m_semi_minor_axis = 1737400;
-    m_meridian_offset = 0.0;
-    m_proj_str        = "+proj=longlat +a=1737400 +b=1737400 +no_defs";
-    set_datum_from_proj_str(m_proj_str);
+    datum_name = "D_MOON";
+    spheroid_name = "MOON";
+    semi_major_axis = 1737400;
+    semi_minor_axis = 1737400;
+    *this = Datum(datum_name, spheroid_name, meridian_name, semi_major_axis, 
+                  semi_minor_axis, meridian_offset);
     return;
   }
 
   if (up_name == "D_MARS" || up_name == "MARS") {
-    m_name            = "D_MARS";
-    m_spheroid_name   = "MARS";
-    m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = 3396190;
-    m_semi_minor_axis = 3396190;
-    m_meridian_offset = 0.0;
-    m_proj_str        = "+proj=longlat +a=3396190 +b=3396190 +no_defs";
-    set_datum_from_proj_str(m_proj_str);
+    datum_name = "D_MARS";
+    spheroid_name = "MARS";
+    semi_major_axis = 3396190;
+    semi_minor_axis = 3396190;
+    *this = Datum(datum_name, spheroid_name, meridian_name, semi_major_axis, 
+                  semi_minor_axis, meridian_offset);
     return;
   }
 
   if (up_name == "MOLA") {
-    m_name            = "D_MARS";
-    m_spheroid_name   = "MARS";
-    m_meridian_name   = "Reference Meridian";
-    m_semi_major_axis = 3396000;
-    m_semi_minor_axis = 3396000;
-    m_meridian_offset = 0.0;
-    m_proj_str        = "+proj=longlat +a=3396000 +b=3396000 +no_defs";
-    set_datum_from_proj_str(m_proj_str);
+    datum_name = "D_MARS";
+    spheroid_name = "MARS";
+    semi_major_axis = 3396000;
+    semi_minor_axis = 3396000;
+    *this = Datum(datum_name, spheroid_name, meridian_name, semi_major_axis, 
+                  semi_minor_axis, meridian_offset);
     return;
   }
 
@@ -194,33 +173,16 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
 }
 
 void vw::cartography::Datum::set_semi_major_axis(double val) {
-  //std::cout << "--set semi major axis with val = " << val << std::endl;
-  m_semi_major_axis = val;
-  std::ostringstream strm;
-  strm.precision(17);
-  strm << "+proj=longlat +a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  
-  if (m_geocentric)
-    strm << " +geoc";
-    
-  strm << " +no_defs";
-  m_proj_str = strm.str();
-  set_datum_from_proj_str(m_proj_str);
+  *this = Datum(m_name, m_spheroid_name, m_meridian_name, 
+                val, // update the semi-major axis
+                m_semi_minor_axis, m_meridian_offset);
 }
 
 void vw::cartography::Datum::set_semi_minor_axis(double val) {
-  //std::cout << "--set semi minor axis with val = " << val << std::endl;
-  m_semi_minor_axis = val;
-  std::ostringstream strm;
-  strm.precision(17);
-  strm << "+proj=longlat +a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  
-  if (m_geocentric)
-    strm << " +geoc";
-    
-  strm << " +no_defs";
-  m_proj_str = strm.str();
-  set_datum_from_proj_str(m_proj_str);
+  *this = Datum(m_name, m_spheroid_name, m_meridian_name, 
+                m_semi_major_axis,
+                val, // update the semi-minor axis 
+                m_meridian_offset);
 }
 
 // return meridian radius of curvature.  NOT geocentric radius
@@ -291,6 +253,8 @@ double vw::cartography::Datum::geocentric_radius(double /*lon*/, double lat, dou
 }
 
 double vw::cartography::Datum::inverse_flattening() const {
+  if (m_semi_major_axis == m_semi_minor_axis)
+    return 0;
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
