@@ -96,8 +96,8 @@ void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
-  // TODO(oalexan1): Likely Greenwhich is the wrong choice for non-Earth datums.
-  m_meridian_name   = "Greenwich";
+  // TODO(oalexan1): Likely Greenwich is the wrong choice for non-Earth datums.
+  m_meridian_name   = "Greenwich"; // Will be over-written for non-Earth datums.
   m_meridian_offset = 0.0;
 
   // These numbers will be over-written later. However, we must
@@ -113,23 +113,27 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
   if (up_name == "WGS84"    || up_name == "WGS_1984" ||
       up_name == "WGS 1984" || up_name == "WGS1984"   ||
       up_name == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
+    // TODO(oalexan1): Consider using the GDAL function for setting the well-known datum.
     set_datum_from_proj_str("+proj=longlat +datum=WGS84 +no_defs");
     return;
   }
 
   if (up_name == "WGS72" || up_name == "WGS_1972") {
+    // TODO(oalexan1): Consider using the GDAL function for setting the well-known datum.
     set_datum_from_proj_str("+proj=longlat +ellps=WGS72 +no_defs");
     return;
   }
 
   if (up_name == "NAD83" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
+    // TODO(oalexan1): Consider using the GDAL function for setting the well-known datum.
     set_datum_from_proj_str("+proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs");
     return;
   }
 
   if (up_name == "NAD27" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1927"))) {
+    // TODO(oalexan1): Consider using the GDAL function for setting the well-known datum.
     set_datum_from_proj_str("+proj=longlat +datum=NAD27 +no_defs");
     return;
   }

@@ -328,23 +328,7 @@ void GeoReference::set_transform(Matrix3x3 transform) {
 // Set the datum. Keep the projection.
 void GeoReference::set_datum(Datum const& datum) {
   
-  // TODO(oalexan1): If the datum does not really change,
-  // do not need to wipe the projection.
   m_datum = datum;
-
-  // This is a fix for when for some reason the proj4 string
-  // does not have the datum name. Example:
-  // '+proj=longlat +ellps=WGS84 +no_defs'.
-  // TODO(oalexan1): This may not be needed. 
-  if ((m_datum.spheroid_name() == "WGS_1984" ||
-        m_datum.spheroid_name() == "WGS84"    ||
-        m_datum.spheroid_name() == "WGS 84") &&
-      (m_datum.proj4_str().find("+datum=") == std::string::npos ||
-        m_datum.name() == "unknown")){
-    m_datum.name() = "WGS_1984";
-    m_datum.proj4_str() += " +datum=WGS84";
-  }
-  
   std::string projcs_name = m_projcs_name; 
   if (projcs_name.empty())
     projcs_name = "Geographic Coordinate System";
@@ -357,7 +341,7 @@ void GeoReference::set_datum(Datum const& datum) {
                                 datum.meridian_name().c_str(),
                                 datum.meridian_offset());
 
-  // Recreate the georeference and transforms
+  // Recreate the georeference
   set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
 }
 
