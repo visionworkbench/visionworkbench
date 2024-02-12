@@ -188,54 +188,90 @@ std::string GeoReference::overall_proj4_str() const {
   return proj4_str_no_dups;
 }
 
+// If there are no names for the datum and ellipsoid, copy
+// from this datum, if the params agree.
+void fixDatum(OGRSpatialReference & gdal_spatial_ref, 
+              vw::cartography::Datum const& datum) {
+  
+  const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+  std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
+  if (lc_datum_name.find("unknown") == std::string::npos &&
+      lc_datum_name.find("user specified datum") == std::string::npos)
+    return; // The datum name is already good
+    
+  const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
+  std::string meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
+  double meridian_offset = gdal_spatial_ref.GetPrimeMeridian();
+  double inv_flattening = gdal_spatial_ref.GetInvFlattening();
+  OGRErr e1, e2;
+  double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
+  double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
+  if (e1 == OGRERR_FAILURE || e2 == OGRERR_FAILURE)
+    vw::vw_throw(vw::ArgumentErr() << "Failed to red axes from OGRSpatialRef.\n");
+
+  if (datum.semi_major_axis() == semi_major &&
+      std::abs(datum.semi_minor_axis() - semi_minor) < 1e-6 &&
+      boost::to_lower_copy(datum.meridian_name()) == boost::to_lower_copy(meridian_name) &&
+      datum.meridian_offset() == meridian_offset) {
+    gdal_spatial_ref.SetGeogCS("Geographic Coordinate System", 
+                                datum.name().c_str(),
+                                datum.spheroid_name().c_str(),
+                                semi_major,
+                                inv_flattening,
+                                datum.meridian_name().c_str(),
+                                meridian_offset);
+  }
+}
+
+// Try to fix datum name in the spatial ref by comparing to several
+// known datums.
+void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
+  
+  const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+  std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
+  if (lc_datum_name.find("unknown") == std::string::npos &&
+      lc_datum_name.find("user specified datum") == std::string::npos)
+    return; // The datum name is already good
+
+  OGRErr e;
+  double semi_major = gdal_spatial_ref.GetSemiMajor(&e);
+  if (e == OGRERR_FAILURE)
+    vw::vw_throw(vw::ArgumentErr() << "Failed to red axes from OGRSpatialRef.\n");
+    
+  if (semi_major == 6378137) {
+    // Try WGS84
+    vw::cartography::Datum datum;
+    datum.set_well_known_datum("WGS84");
+    fixDatum(gdal_spatial_ref, datum);
+  } else if (semi_major == 1737400) {
+    // Try the moon
+    vw::cartography::Datum datum;
+    datum.set_well_known_datum("D_MOON");
+    fixDatum(gdal_spatial_ref, datum);
+  } else if (semi_major == 3396190) {
+    // Try Mars
+    vw::cartography::Datum datum;
+    datum.set_well_known_datum("D_MARS");
+    fixDatum(gdal_spatial_ref, datum);
+  } 
+
+  return;  
+}
+
 // This will recreate the GeoReference object
 void GeoReference::init_proj() {
   // Update the projection context object with the current proj4 string, 
   //  then make sure the lon center is still correct.
   
-  // This will append the datum info    
+  // This will append the datum info (but not the name)
   std::string srs_string = overall_proj4_str(); 
 
-  // The datum and projc before it is overwritten
-  vw::cartography::Datum datum = m_datum;
-  std::string projcs_name = m_projcs_name; 
-  if (projcs_name.empty())
-    projcs_name = "Geographic Coordinate System";
-  
   // Form the georeference from the proj4 string  
   if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
     vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
   set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
 
-  // Fix for when the proj4 string does not have the datum name.
-  // TODO(oalexan1): There should be a better way.
-  const char* datum_name = m_gdal_spatial_ref.GetAttrValue("DATUM");
-  const char* spheroid_name = m_gdal_spatial_ref.GetAttrValue("SPHEROID");
-  const char* meridian_name = m_gdal_spatial_ref.GetAttrValue("PRIMEM");
-  double meridian_offset = m_gdal_spatial_ref.GetPrimeMeridian();
-  OGRErr e1, e2;
-  double semi_major = m_gdal_spatial_ref.GetSemiMajor(&e1);
-  double semi_minor = m_gdal_spatial_ref.GetSemiMinor(&e2);
-  if (e1 == OGRERR_FAILURE || e2 == OGRERR_FAILURE)
-    vw::vw_throw(vw::ArgumentErr() << "Failed to red axes from OGR.\n");
-  
-  std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
-  if (lc_datum_name.find("unknown") != std::string::npos &&
-      datum.semi_major_axis() == semi_major &&
-      std::abs(datum.semi_minor_axis() - semi_minor) < 1e-6 &&
-      datum.meridian_name() == meridian_name &&
-      datum.meridian_offset() == meridian_offset) {
-    m_gdal_spatial_ref.SetGeogCS(projcs_name.c_str(), 
-                                  datum.name().c_str(),
-                                  datum.spheroid_name().c_str(),
-                                  datum.semi_major_axis(),
-                                  datum.inverse_flattening(),
-                                  datum.meridian_name().c_str(),
-                                  datum.meridian_offset());
-    
-    set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
-  }
-
+  // TODO(oalexan1): Sort out the update of the lon center.
   //update_lon_center_private();
 }
 
@@ -255,7 +291,6 @@ GeoReference::GeoReference(Datum const& datum) :
 
 GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
     : m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
-  //std::cout << "--now in datum constructor2" << std::endl;
   set_transform(vw::math::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
@@ -263,7 +298,6 @@ GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpr
 GeoReference::GeoReference(Datum const& datum,
                             Matrix<double,3,3> const& transform) :
                   m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
-  //std::cout << "--now in datum constructor 3" << std::endl;
   set_transform(transform);
   set_geographic(); // will call init_proj()
 }
@@ -272,7 +306,6 @@ GeoReference::GeoReference(Datum const& datum,
                             Matrix<double,3,3> const& transform,
                             PixelInterpretation pixel_interpretation) :
   m_pixel_interpretation(pixel_interpretation), m_datum(datum), m_projcs_name("") {
-    //std::cout << "--now datum constructor 4" << std::endl;
   set_transform(transform);
   set_geographic(); // will call init_proj()
 }
@@ -742,9 +775,20 @@ void GeoReference::set_wkt(std::string const& wkt) {
   if (wkt.empty())
     return;
   
-  //OGRSpatialReference m_gdal_spatial_ref;
   m_gdal_spatial_ref.importFromWkt(wkt.c_str());
   
+  // If the datum name is not known, try to set it based on a datum with the same
+  // parameters
+  fixDatum(m_gdal_spatial_ref);
+
+  // If there is a PROJCS name, record it.
+  m_projcs_name = "Geographic Coordinate System";
+  const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
+  if (projcs != NULL) {
+    // Careful here, to avoid a segfault
+    m_projcs_name = std::string(projcs);
+  }
+
   // The returned coordinates will be in longitude, latitude order
   // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
   m_gdal_spatial_ref.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
@@ -763,13 +807,6 @@ void GeoReference::set_wkt(std::string const& wkt) {
 
   // Create here the coordinate transformations
   m_proj_context.init_transforms();  
-
-  // If there is a PROJCS name, record it.
-  const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
-  if (projcs != NULL) {
-    // Careful here, to avoid a segfault
-    m_projcs_name = std::string(projcs);
-  }
 
   // TODO(oalexan1): Sort this out
   // // Create the datum. We will modify it later on.

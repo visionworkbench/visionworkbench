@@ -96,6 +96,7 @@ void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
+  // TODO(oalexan1): Likely Greenwhich is the wrong choice for non-Earth datums.
   m_meridian_name   = "Greenwich";
   m_meridian_offset = 0.0;
 
