@@ -495,12 +495,3 @@ vw::Vector3 vw::cartography::datum_intersection(vw::cartography::Datum const& da
   return vw::cartography::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
                                              camera_ctr, camera_vec);
 }
-
-// Low-level function useful with datums and georefs
-std::string vw::cartography::ogr_wkt(OGRSpatialReference const & ogr) {
-  char *wkt;
-  ogr.exportToWkt(&wkt);
-  std::string result(wkt);
-  CPLFree(wkt);
-  return result;
-}

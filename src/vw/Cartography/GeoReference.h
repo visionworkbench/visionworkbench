@@ -116,7 +116,9 @@ namespace cartography {
     /// The default pixel interpretation for GeoReference is PixelAsArea
     enum PixelInterpretation { PixelAsArea = 0, PixelAsPoint = 1 };
 
-    OGRSpatialReference gdal_spatial_ref() const { return m_gdal_spatial_ref; }
+    // This in alias to the underlying spatial ref
+    OGRSpatialReference& gdal_spatial_ref() { return m_gdal_spatial_ref; }
+    OGRSpatialReference const& gdal_spatial_ref() const { return m_gdal_spatial_ref; }
    
   private:  
     PixelInterpretation m_pixel_interpretation;
@@ -131,7 +133,7 @@ namespace cartography {
     bool m_is_projected; // As opposed to lonlat
     
     // The image extent in projected coordinates. Used for geotransforms.
-    vw::BBox2 m_proj_image_bbox;
+    vw::BBox2 m_image_ll_box;
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
     /// - If false, the projected space maps to the 0 to 360 degree longitude range. 
@@ -147,12 +149,8 @@ namespace cartography {
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
     
-    void update_lon_center_private(); ///< Updates m_center_lon_zero
     void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
     void set_proj4_over  (); ///< Adds   the "+over" tag from our proj4 string.
-
-    /// Version of the public function that does not perform normalization
-    Vector2 point_to_lonlat_no_normalize(Vector2 const& loc) const;
 
     /// Attempts to extract the value of a key= part of the proj4 string.
     static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
@@ -199,10 +197,6 @@ namespace cartography {
     
     // Set the datum. This does not change any projection information.
     void set_datum(Datum const& datum);
-
-    /// Recompute the longitude center taking into account the given pixel bbox.
-    /// - This method will choose the -180 to 180 range if it will work.
-    void update_lon_center(BBox2 const& pixel_bbox);
 
     PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
     void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
@@ -371,9 +365,11 @@ namespace cartography {
     template <class ViewT>
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const;
     
-    // The image extent in projected coordinates. Used for geotransforms.
-    void set_proj_image_bbox(vw::BBox2 const& bbox);
-    vw::BBox2 proj_image_bbox() const;
+    // The image extent lon-lat box
+    void set_image_ll_box(vw::BBox2 const& bbox);
+    vw::BBox2 image_ll_box() const;
+    // Compute based on pixel box
+    void ll_box_from_pix_box(BBox2 const& pixel_bbox);
   };
 
   /// Format a GeoReference to a text stream

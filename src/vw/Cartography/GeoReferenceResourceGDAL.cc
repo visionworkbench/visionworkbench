@@ -75,33 +75,26 @@ namespace cartography {
       return false;
     }
 
-    // Update the longitude center of the georef using the image size.
+    // Update the lon-lat georef bbox using the image size. This greatly
+    // helps disambiguate the longitude when it comes to a 360 degree offset.
     int cols = resource.format().cols;
     int rows = resource.format().rows; 
-    BBox2 image_bbox(0,0,cols, rows);
+    georef.ll_box_from_pix_box(vw::BBox2(0, 0, cols, rows));
     
-    BBox2 proj_box = georef.pixel_to_point_bbox(image_bbox);
-    georef.set_proj_image_bbox(proj_box);
-    
-    //georef.update_lon_center(image_bbox);
-
-    // Georeference functions need not be invertible.  When we perform
-    // a reverse lookup (e.g. during a geotransformation) we rely on
-    // PROJ.4 to pick one possible value.  However, the georeference
-    // might actually place the image at another (equivalent) location
-    // in the projected space.  This is hard to recover from at
-    // run-time, and we currently have no generic solution to this
-    // problem.  In the mean time, we at least test whether the
-    // georeference is likely to run into this problem (and warn the
-    // user) by checking whether forward- and reverse-projecting the
-    // four corner pixels lands us back at the same pixel.
-    
+    // Georeference functions need not be invertible. When we perform a reverse
+    // lookup (e.g. during a geotransform) we rely on PROJ.4 to pick one
+    // possible value.  However, the georeference might actually place the image
+    // at another (equivalent) location in the projected space.  This is hard to
+    // recover from at run-time, and we currently have no generic solution to
+    // this problem.  In the mean time, we at least test whether the
+    // georeference is likely to run into this problem (and warn the user) by
+    // checking whether forward- and reverse-projecting the four corner pixels
+    // lands us back at the same pixel.
     std::vector<Vector2> test_pixels(4);
-    test_pixels[0] = Vector2(0,     0);
-    test_pixels[1] = Vector2(0,     rows-1);
-    test_pixels[2] = Vector2(cols-1,0);
-    test_pixels[3] = Vector2(cols-1,rows-1);
-    
+    test_pixels[0] = Vector2(0, 0);
+    test_pixels[1] = Vector2(0, rows-1);
+    test_pixels[2] = Vector2(cols-1, 0);
+    test_pixels[3] = Vector2(cols-1, rows-1);
     for (int i = 0; i < 4; i++) {
       double error = 9999;
       bool have_error = false;

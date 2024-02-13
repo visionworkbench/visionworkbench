@@ -150,9 +150,6 @@ namespace cartography {
                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec);
   vw::Vector3 datum_intersection( Datum const& datum,
                               vw::Vector3 camera_ctr, vw::Vector3 camera_vec );
-
- // Low-level function useful with datums and georefs
- std::string ogr_wkt(OGRSpatialReference const & ogr);
   
 }} // namespace vw::cartography
 
