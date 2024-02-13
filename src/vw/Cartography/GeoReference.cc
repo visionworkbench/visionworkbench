@@ -263,7 +263,6 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
 void GeoReference::init_proj() {
   // Update the projection context object with the current proj4 string, 
   //  then make sure the lon center is still correct.
-
     
   // This will append the datum info (but not the name)
   std::string srs_string = overall_proj4_str(); 
@@ -274,7 +273,6 @@ void GeoReference::init_proj() {
   set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
   
   //update_lon_center_private();
-  
 }
 
 // The empty constructor. This initialises m_gdal_spatial_ref to an empty

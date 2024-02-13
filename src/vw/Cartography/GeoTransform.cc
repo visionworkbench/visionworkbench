@@ -131,14 +131,6 @@ namespace cartography {
     // OGRCoordinateTransformation * d2s
     //   = OGRCreateCoordinateTransformation(&dst_crs, &src_crs, dst_opt);
     
-    // double x = src_ll.min().x();
-    // double y = src_ll.min().y();
-    // std::cout << "src ll min = " << x << ' ' << y << std::endl;
-    // if (!s2d->Transform(1, &x, &y)) {
-    //   vw_throw(LogicErr() << "Failed to transform point from source to dest georef");
-    // }
-    // std::cout << "src ll min after = " << x << ' ' << y << std::endl;
-    
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
     // the affine transform.
@@ -206,8 +198,6 @@ namespace cartography {
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
     }
-    
-    std::cout << "--skip datum conversion = " << m_skip_datum_conversion << std::endl;
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -230,10 +220,7 @@ namespace cartography {
       Mutex::WriteLock write_lock(m_mutex);
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
                             m_pj_context, m_pj_transform); // outputs
-      
-      std::cout << "--now in operator=\n";
-      std::cout << "--will init geotransform\n";
-      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
+      // initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
     }
     
     return *this;
