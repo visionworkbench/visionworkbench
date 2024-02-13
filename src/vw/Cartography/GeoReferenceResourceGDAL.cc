@@ -79,7 +79,11 @@ namespace cartography {
     int cols = resource.format().cols;
     int rows = resource.format().rows; 
     BBox2 image_bbox(0,0,cols, rows);
-    georef.update_lon_center(image_bbox);
+    
+    BBox2 proj_box = georef.pixel_to_point_bbox(image_bbox);
+    georef.set_proj_image_bbox(proj_box);
+    
+    //georef.update_lon_center(image_bbox);
 
     // Georeference functions need not be invertible.  When we perform
     // a reverse lookup (e.g. during a geotransformation) we rely on
@@ -98,7 +102,7 @@ namespace cartography {
     test_pixels[2] = Vector2(cols-1,0);
     test_pixels[3] = Vector2(cols-1,rows-1);
     
-    for (int i=0; i<4; ++i) {
+    for (int i = 0; i < 4; i++) {
       double error = 9999;
       bool have_error = false;
       try {
@@ -107,7 +111,7 @@ namespace cartography {
         vw_out(WarningMessage) << e.what() << std::endl;
         have_error = true;
       }
-      if ( error > 0.1 || have_error ) {
+      if (error > 0.1 || have_error) {
         vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
           resource.filename() << " contains a non-normal georeference." << std::endl;
       }

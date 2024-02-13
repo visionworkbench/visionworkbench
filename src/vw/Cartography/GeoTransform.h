@@ -44,11 +44,14 @@ namespace cartography {
 
     GeoReference  m_src_georef;
     GeoReference  m_dst_georef;
-    BBox2         m_src_bbox,
-      m_dst_bbox;
+    BBox2         m_src_bbox, m_dst_bbox;
 
+    // TODO(oalexan1): Wipe this
     std::string m_src_datum_proj_str, m_dst_datum_proj_str;
     
+    OGRCoordinateTransformation * m_src_to_dst;
+    OGRCoordinateTransformation * m_dst_to_src;
+
     bool          m_skip_map_projection;
     bool          m_skip_datum_conversion;
     mutable Mutex m_mutex; // Used to control access to the ProjContext objects
@@ -144,8 +147,6 @@ namespace cartography {
   // ---------------------------------------------------------------------------
   // Image View Functions
   // ---------------------------------------------------------------------------
-
-
 
   /// Returns a transformed image view.  The user can specify the type
   /// of interpolation and edge extension to be done by supplying the

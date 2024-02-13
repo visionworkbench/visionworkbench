@@ -96,15 +96,10 @@ void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str
 }
 
 void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
-  // TODO(oalexan1): Likely Greenwich is the wrong choice for non-Earth datums.
-  m_meridian_name   = "Greenwich"; // Will be over-written for non-Earth datums.
+  // Ensure proper initialization. Meridian name and axes will be over-written
+  // for non-Earth datums. 
+  m_meridian_name   = "Greenwich";
   m_meridian_offset = 0.0;
-
-  // These numbers will be over-written later. However, we must
-  // still initialize them, otherwise when the set_semi_major_axis()
-  // function is invoked later it will result in un-initialized
-  // variables (since that function sets the semi-major axis but
-  // assumes the semi-minor axis is already set).
   m_semi_major_axis =  6378137;
   m_semi_minor_axis = 6356752.3142;
 

@@ -65,7 +65,6 @@ bool read_georeference(GeoReference& georef,
 
 /// A convenience function to read georeferencing information from an image file.
 bool read_georeference(GeoReference& georef, const std::string &filename) {
-
   // No image with a SPOT5 suffix can ever have georeference.
   if (vw::has_spot5_extension(filename)) return false;
 
@@ -189,7 +188,9 @@ std::string GeoReference::overall_proj4_str() const {
 }
 
 // If there are no names for the datum and ellipsoid, copy
-// from this datum, if the params agree.
+// from this datum, if the params agree. Note that WGS84
+// and GRS 80 (NAD83) semi-major axes are the same, but the
+// semi-minor axes differ by a bit more than 1e-4.
 void fixDatum(OGRSpatialReference & gdal_spatial_ref, 
               vw::cartography::Datum const& datum) {
   
@@ -262,7 +263,8 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
 void GeoReference::init_proj() {
   // Update the projection context object with the current proj4 string, 
   //  then make sure the lon center is still correct.
-  
+
+    
   // This will append the datum info (but not the name)
   std::string srs_string = overall_proj4_str(); 
 
@@ -270,9 +272,9 @@ void GeoReference::init_proj() {
   if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
     vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
   set_wkt(vw::cartography::ogr_wkt(m_gdal_spatial_ref));
-
-  // TODO(oalexan1): Sort out the update of the lon center.
+  
   //update_lon_center_private();
+  
 }
 
 // The empty constructor. This initialises m_gdal_spatial_ref to an empty
@@ -319,7 +321,6 @@ void GeoReference::set_transform(Matrix3x3 transform) {
   m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
 
   // If proj4 is already set up update the lon center, otherwise wait for proj4.
-  //std::cout << "--now in set transform" << std::endl;
   // TODO(oalexan1): Sort this out
   //if (!m_geo_wkt.empty())
   //  update_lon_center_private();
@@ -488,17 +489,13 @@ void GeoReference::set_proj4_projection_str(std::string const& s) {
   m_proj_projection_str = boost::trim_copy(s); // Store the string in this class (it is also stored in m_proj_context)
 
   // Extract some information from the string
-  //std::cout << "--This is duplicate text that must be removed" << std::endl;
+  // TODO(oalexan1): This is duplicate text that must be removed
   if (m_proj_projection_str.find("+proj=longlat") == 0)
     m_is_projected = false;
   else
     m_is_projected = true;
 
-  //std::cout << "--set m_gdal_spatial_ref from projection string" << std::endl;
-  //std::cout << "--latest projection str is " << m_proj_projection_str << std::endl;
-  //m_gdal_spatial_ref.importFromProj4(m_proj_projection_str.c_str());
-
-  //std::cout << "--what to do about warping????" << std::endl;
+  // TODO(oalexan1): What to do about warping?
   // Disable -180 to 180 longitude wrapping in proj4.
   // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
   // - We will make sure that the input longitudes are in a safe range.
@@ -549,6 +546,7 @@ bool GeoReference::safe_set_lon_center(bool new_center_around_zero) {
   return true; // Center was changed.
 }
 
+// TODO(oalexan1): Wipe this
 bool GeoReference::extract_proj4_value(std::string const& proj4_string, 
                                         std::string const& key,
                                         std::string &s) {
@@ -572,6 +570,7 @@ bool GeoReference::extract_proj4_value(std::string const& proj4_string,
   return true;
 }
 
+// TODO(oalexan1): Wipe this
 bool GeoReference::extract_proj4_value(std::string const& proj4_string, 
                                        std::string const& key,
                                        double &value) {
@@ -585,26 +584,22 @@ bool GeoReference::extract_proj4_value(std::string const& proj4_string,
 // Strip the "+over" text from our stored proj4 info, but don't update_lon_center().
 // - Used to strip an extra tag out of [-180,180] range images where it is not needed.
 void GeoReference::clear_proj4_over() {
-  //std::cout << "--put back clear_proj4_over\n";
   return;
+  // TODO(oalexan1): Remove all dependencies on proj4_str.
   // Clear out m_proj_projection_str, then recreate the ProjContext object.
   if (string_replace(m_proj_projection_str, "+over", "")) {
     // If we had to make any changes, strip out any double spaces and 
     //  trailing spaces and then update our ProjContext object.
     string_replace(m_proj_projection_str, "  ", " ");
     m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-    //std::string geo_wkt = GeoReference::get_wkt(); 
-    //std::cout << "--Must wipe clear_proj4_over\n";
-    //m_proj_context = ProjContext(overall_proj4_str(), geo_wkt);
     init_proj();
   }
 }
 
 // Add the "+over" text to our stored proj4 info, but don't update_lon_center().
 void GeoReference::set_proj4_over() {
-  //std::cout << "--put back set_proj4_over\n";
   return;
-  
+  // TODO(oalexan1): Wipe this
   // Clear out m_proj_projection_str, then recreate the ProjContext object.
   if (m_proj_projection_str.find("+over") == std::string::npos) {
     m_proj_projection_str.append(" +over");
@@ -613,17 +608,15 @@ void GeoReference::set_proj4_over() {
     //  trailing spaces and then update our ProjContext object.
     string_replace(m_proj_projection_str, "  ", " ");
     m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-    //std::cout << "--Must wipe set_proj4_over\n";
     //m_proj_context = ProjContext(overall_proj4_str(), geo_wkt);
     init_proj();
   }
 }
 
 void GeoReference::update_lon_center(BBox2 const& pixel_bbox) {
-
-  // TODO(oalexan1): Put back update_lon_center
   return;
-  
+  // TODO(oalexan1): Wipe this
+    
   // The goal of this function is to determine which of the two standard longitude ranges
   //  ([-180 to 180] or [0 to 360]) fully contains the projected coordinate space.
 
@@ -739,14 +732,11 @@ void GeoReference::update_lon_center(BBox2 const& pixel_bbox) {
 
 void GeoReference::update_lon_center_private() {
   // Cal the bbox version with a zero size bbox
-  //std::cout << "--put back update center private" << std::endl;
-  return;
-  //update_lon_center(BBox2(0,0,0,0));
+  update_lon_center(BBox2(0,0,0,0));
 } // End function update_lon_center_private
 
 
 double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
-
   Vector2 out_pixel = lonlat_to_pixel(pixel_to_lonlat(pixel));
   Vector2 diff = out_pixel - pixel;
   double error = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
@@ -861,17 +851,16 @@ void GeoReference::set_wkt(std::string const& wkt) {
   else
     m_proj_projection_str  = strm;
   
-  //std::cout << "--this must be done by querying the spatial ref\n";
+  // TODO(oalexan1): This must be done by querying the spatial ref
   if (m_proj_projection_str.find("+proj=longlat") == 0)
     m_is_projected = false;
   else
     m_is_projected = true;
 
-  //std::cout << "--what to do about warping????" << std::endl;
+  // TODO(oalexan1): What to do about warping?
   // Disable -180 to 180 longitude wrapping in proj4.
   // - With wrapping off, Proj4 can work significantly outside those ranges (though there is a limit)
   // - We will make sure that the input longitudes are in a safe range.
-  //std::cout << "--must be these set in the spatial ref object\n";
   if ((m_proj_projection_str.find("+over") == std::string::npos) &&
         (m_proj_projection_str.find("+proj=utm") == std::string::npos))
     m_proj_projection_str.append(" +over");
@@ -998,61 +987,36 @@ Vector2 GeoReference::point_to_lonlat(Vector2 const& loc) const {
   // Get the longitude into the correct range for this georeference.
   // TODO(oalexan1): See if this can result in a more robust solution:
   // https://proj.org/usage/projections.html#longitude-wrapping
-  lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
+  //lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
   return lon_lat;
 }
 
 /// Version of the public function that does not perform normalization
 /// TODO(oalexan1): Normalization should not be necessary if GDAL or PROJ
 /// manage fully all conversions, and if they are aware of image extent.
+// TODO(oalexan1): Wipe this function.
 Vector2 GeoReference::point_to_lonlat_no_normalize(Vector2 const& loc) const {
 
-  // TODO(oalexan1): Test this direction!
   if (!m_is_projected) 
     return loc;
   
   if (!m_proj_context.m_proj_to_lonlat)
     vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
   
-  //std::cout << "input meters: " << loc[0] << ' ' << loc[1] << std::endl;
   double x = loc[0];
   double y = loc[1];
   if (!m_proj_context.m_proj_to_lonlat->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
-  //std::cout << "--output lon,lat: " << x << ' ' << y << std::endl;
   
   return Vector2(x, y);
-   
-  // TODO(oalexan1): Wipe!  
-  // // https://proj.org/development/migration.html
-  // /* For reliable geographic <--> geocentric conversions, z shall not */
-  // /* be some random value. Also t shall be initialized to HUGE_VAL to */
-  // /* allow for proper selection of time-dependent operations if one of */
-  // /* the CRS is dynamic. */
-  // PJ_COORD c_in, c_out;
-  // c_in.lpzt.z = 0.0;
-  // c_in.lpzt.t = HUGE_VAL;
-
-  // // TODO(oalexan1): This needs testing!
-  // c_in.enu.e = loc[0]; // easting
-  // c_in.enu.n = loc[1]; // northing
-  
-  // // http://even.rouault.free.fr/proj_cpp_api/rst_generated/html/development/quickstart.html
-  // c_out = proj_trans(m_proj_context.m_pj_transform, PJ_INV, c_in);
-  
-  // //printf ("longitude: %g, latitude: %g\n", c_out.lp.lam, c_out.lp.phi);      
-  
-  // return Vector2(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi));
 }
   
 /// Given a position in geographic coordinates (lon,lat), compute
 /// the location in the projected coordinate system.
 Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 
-  // TODO(oalexan1): Test this direction!
-  
   // Get the longitude into the correct range for this georeference.    
-  lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
+  //lon_lat[0] = math::normalize_longitude(lon_lat[0], m_center_lon_zero);
 
   if (!m_is_projected) 
     return lon_lat;
@@ -1060,8 +1024,9 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
   if (!m_proj_context.m_lonlat_to_proj)
     vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
    
-   double x = lon_lat[0];
-   double y = lon_lat[1];
+  double x = lon_lat[0];
+  double y = lon_lat[1];
+  
   if (!m_proj_context.m_lonlat_to_proj->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
   return Vector2(x, y);
@@ -1276,6 +1241,7 @@ BBox2 GeoReference::pixel_to_point_bbox(BBox2i const& pixel_bbox) const {
   point_bbox.grow(pixel_to_point(pixel_bbox.max() - Vector2(1, 1)));
   point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y()-1)));
   point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x()-1, pixel_bbox.min().y())));
+  
   return point_bbox;
 }
 
@@ -1412,6 +1378,21 @@ BBox2 GeoReference::point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsample
   }
 
   return lonlat_bbox;
+}
+
+// Given a position in geographic coordinates (lon, lat), compute
+// the location in pixel coordinates in this image that
+// corresponds to the given geographic coordinates.
+vw::Vector2 GeoReference::lonlat_to_pixel(Vector2 lon_lat) const {  
+  return point_to_pixel(lonlat_to_point(lon_lat));
+}
+
+// The image extent in projected coordinates. Used for geotransforms.
+void GeoReference::set_proj_image_bbox(vw::BBox2 const& bbox) {
+  m_proj_image_bbox = bbox;
+}
+vw::BBox2 GeoReference::proj_image_bbox() const {
+  return m_proj_image_bbox;
 }
 
 std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {

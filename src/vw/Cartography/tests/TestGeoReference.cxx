@@ -282,17 +282,17 @@ TEST( GeoReference, IOLoop ) {
     GeoReference test_georeference( test_datum, test_transform );
 
     // Write it to a temporary file
-    UnlinkName test_filename( "georeference_test.tif" );
-    //std::string test_filename( "/home/smcmich1/repo/visionworkbench/src/vw/Cartography/tests/georeference_test.tif" );
+    UnlinkName test_filename("georeference_test.tif");
     ASSERT_NO_THROW(
       write_georeferenced_image( test_filename, test_image,
                              test_georeference ));
 
     // Reading back in and compare
     GeoReference retn_georeference;
-    ImageView<PixelRGB<float> > retn_image;
-    EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georeference,
-                                           test_filename ) );
+    ImageView<PixelRGB<float>> retn_image;
+    // Note: The function below got wiped. Read the image and georef separately.
+    EXPECT_TRUE(read_georeferenced_image(retn_image, retn_georeference,
+                                         test_filename));
 
     // Verify that the pixels are identical
     typedef ImageView<PixelRGB<float> >::iterator iterator;
@@ -328,6 +328,7 @@ TEST( GeoReference, IOLoop ) {
     // Read back in and compare
     GeoReference retn_georef;
     ImageView<PixelRGB<float> > retn_image;
+    // Note: The function below got wiped. Read the image and georef separately.
     EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georef,
                                            test_filename ) );
 

@@ -116,6 +116,8 @@ namespace cartography {
     /// The default pixel interpretation for GeoReference is PixelAsArea
     enum PixelInterpretation { PixelAsArea = 0, PixelAsPoint = 1 };
 
+    OGRSpatialReference gdal_spatial_ref() const { return m_gdal_spatial_ref; }
+   
   private:  
     PixelInterpretation m_pixel_interpretation;
     Datum       m_datum;
@@ -126,12 +128,16 @@ namespace cartography {
     // The CRS for the georeference
     OGRSpatialReference m_gdal_spatial_ref;
     
-    bool        m_is_projected; // As opposed to lonlat
+    bool m_is_projected; // As opposed to lonlat
+    
+    // The image extent in projected coordinates. Used for geotransforms.
+    vw::BBox2 m_proj_image_bbox;
     
     /// If true, the projected space maps to the -180 to 180 degree longitude range.
     /// - If false, the projected space maps to the 0 to 360 degree longitude range. 
     /// - Output longitude values are always given in the specified range.
     /// - Any input longitude value can be handled.
+    // TODO(oalexan1): Wipe this option and all associated code.
     bool m_center_lon_zero;
     
     std::string m_projcs_name; ///< Override the projcs name when writing WKT and to file.
@@ -341,9 +347,7 @@ namespace cartography {
     /// Given a position in geographic coordinates (lon, lat), compute
     /// the location in pixel coordinates in this image that
     /// corresponds to the given geographic coordinates.
-    Vector2 lonlat_to_pixel(Vector2 lon_lat) const {
-      return point_to_pixel(lonlat_to_point(lon_lat));
-    }
+    Vector2 lonlat_to_pixel(Vector2 lon_lat) const;
 
     /// For a given pixel bbox, return the corresponding bbox in projected space
     BBox2  pixel_to_point_bbox(BBox2i const& pixel_bbox) const;
@@ -351,7 +355,6 @@ namespace cartography {
     /// For a bbox in projected space, return the corresponding bbox in
     /// pixels on the image
     BBox2i point_to_pixel_bbox(BBox2 const& point_bbox) const;
-
     
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
@@ -368,6 +371,9 @@ namespace cartography {
     template <class ViewT>
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const;
     
+    // The image extent in projected coordinates. Used for geotransforms.
+    void set_proj_image_bbox(vw::BBox2 const& bbox);
+    vw::BBox2 proj_image_bbox() const;
   };
 
   /// Format a GeoReference to a text stream
@@ -378,21 +384,10 @@ namespace cartography {
   //
 
   /// Read georeferencing information from an image resource.
-  bool read_georeference( GeoReference& georef, ImageResource const& resource );
+  bool read_georeference(GeoReference& georef, ImageResource const& resource);
 
   /// A convenience function to read georeferencing information from an image file.
-  bool read_georeference( GeoReference& georef, const std::string &filename );
-
-  /// A convenience function to read an image and its georeferencing information.
-  template <class PixelT>
-  bool read_georeferenced_image( ImageView<PixelT>& image,
-                                 GeoReference& georef,
-                                 const std::string &filename ) {
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
-    bool result = read_georeference( georef, *r );
-    read_image( image, *r );
-    return result;
-  }
+  bool read_georeference(GeoReference& georef, const std::string &filename);
 
   /// Write georeferencing information to an image resource.  You should
   /// generally call this prior to writing image data to the resource.

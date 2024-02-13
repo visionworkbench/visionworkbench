@@ -38,6 +38,7 @@ namespace cartography {
   // as otherwise PROJ gets confused. Must make sure to keep the radius.
   // TODO(oalexan1): This is a hack. Need to figure out how to properly
   // do conversions between datums. 
+  // TODO(oalexan1): Wipe this
   std::string wipe_proj(std::string const& str_in) {
 
     std::vector<std::string> tokens;
@@ -70,6 +71,14 @@ namespace cartography {
   
   using vw::math::BresenhamLine;
 
+  void initGeoTransform(vw::cartography::GeoReference const& src_georef,
+                        vw::cartography::GeoReference const& dst_georef,
+                        OGRCoordinateTransformation **src_to_dst,
+                        OGRCoordinateTransformation **dst_to_src) {
+  
+  }
+  
+                        
   // Create transform between given proj strings. Note that what is returned
   // are pointers, by reference.
   void create_proj_transform(std::string const& src_proj_str,
@@ -82,7 +91,8 @@ namespace cartography {
     pj_transform = proj_create_crs_to_crs(pj_context, src_proj_str.c_str(),
                                           dst_proj_str.c_str(), area);
     if (pj_transform == NULL)
-      vw::vw_throw(vw::ArgumentErr() << "Failed to initialize a geotransform for PROJ strings: "
+      vw::vw_throw(vw::ArgumentErr() 
+                   << "Failed to initialize a geotransform for PROJ strings: "
                    << src_proj_str << " and " 
                    << dst_proj_str << ".\n");
   }
@@ -100,6 +110,35 @@ namespace cartography {
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
+    // BBox2 src_ll = m_src_georef.point_to_lonlat_bbox(m_src_georef.proj_image_bbox());
+    // BBox2 dst_ll = m_dst_georef.point_to_lonlat_bbox(m_dst_georef.proj_image_bbox());
+    
+    // OGRCoordinateTransformationOptions src_opt, dst_opt;
+    // src_opt.SetAreaOfInterest(src_ll.min().x(), src_ll.min().y(), 
+    //                           src_ll.max().x(), src_ll.max().y());
+    // dst_opt.SetAreaOfInterest(dst_ll.min().x(), dst_ll.min().y(), 
+    //                           dst_ll.max().x(), dst_ll.max().y());
+    
+    // // bool SetAreaOfInterest(double dfWestLongitudeDeg, double dfSouthLatitudeDeg, double dfEastLongitudeDeg, double dfNorthLatitudeDeg)
+    // // Sets an area of interest.
+    // // The west longitude is generally lower than the east longitude, except for areas of interest that go across the anti-meridian.
+    // // poTransform = OGRCreateCoordinateTransformation( &oNAD27, &oWGS84, options );
+
+    // auto src_crs = m_src_georef.gdal_spatial_ref();
+    // auto dst_crs = m_dst_georef.gdal_spatial_ref();
+    // OGRCoordinateTransformation * s2d 
+    //  = OGRCreateCoordinateTransformation(&src_crs, &dst_crs, src_opt);
+    // OGRCoordinateTransformation * d2s
+    //   = OGRCreateCoordinateTransformation(&dst_crs, &src_crs, dst_opt);
+    
+    // double x = src_ll.min().x();
+    // double y = src_ll.min().y();
+    // std::cout << "src ll min = " << x << ' ' << y << std::endl;
+    // if (!s2d->Transform(1, &x, &y)) {
+    //   vw_throw(LogicErr() << "Failed to transform point from source to dest georef");
+    // }
+    // std::cout << "src ll min after = " << x << ' ' << y << std::endl;
+    
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
     // the affine transform.
@@ -167,6 +206,8 @@ namespace cartography {
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
     }
+    
+    std::cout << "--skip datum conversion = " << m_skip_datum_conversion << std::endl;
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -189,6 +230,10 @@ namespace cartography {
       Mutex::WriteLock write_lock(m_mutex);
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
                             m_pj_context, m_pj_transform); // outputs
+      
+      std::cout << "--now in operator=\n";
+      std::cout << "--will init geotransform\n";
+      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
     }
     
     return *this;
@@ -256,8 +301,8 @@ namespace cartography {
     BBox2 r;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        r.grow( this->reverse( points[ptiter] ) );
-      }catch ( const std::exception & e ) {}
+        r.grow(this->reverse( points[ptiter]));
+      } catch (const std::exception & e) {}
     }
 
     return grow_bbox_to_int(r);
