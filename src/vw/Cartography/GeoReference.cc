@@ -277,7 +277,7 @@ void GeoReference::init_proj() {
     
   // This will append the datum info (but not the name)
   std::string srs_string = overall_proj4_str(); 
-
+  
   // Form the georeference from the proj4 string  
   if (m_gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
     vw::vw_throw(vw::ArgumentErr() << "Failed to parse: " << srs_string << "\n");
@@ -331,7 +331,7 @@ void GeoReference::set_transform(Matrix3x3 transform) {
   // Otherwise this is called from a constructor, and a subsequent 
   // step will result in this being set.
   if (m_proj_context.is_initialized())
-    ll_box_from_pix_box(vw::BBox2(0,0,1,1));
+    ll_box_from_pix_box(vw::BBox2(0, 0, 2, 2)); // must be at least 2 pixels in size
 }
 
 // Set the datum. Keep the projection.
@@ -349,7 +349,7 @@ void GeoReference::set_datum(Datum const& datum) {
                                 datum.inverse_flattening(),
                                 datum.meridian_name().c_str(),
                                 datum.meridian_offset());
-
+  
   // Recreate the georeference
   set_wkt(ogr_wkt(m_gdal_spatial_ref));
 }
@@ -515,6 +515,8 @@ void GeoReference::set_proj4_projection_str(std::string const& s) {
   init_proj(); // Initialize the projection
 }
 
+// TODO(oalexan1): Wipe the value m_center_lon_zero.
+
 // TODO(oalexan1): Wipe this
 void GeoReference::set_lon_center(bool centered_on_lon_zero) {
   // Don't allow switching of UTM georefs
@@ -523,7 +525,7 @@ void GeoReference::set_lon_center(bool centered_on_lon_zero) {
   
   // Otherwise update the field  
   m_center_lon_zero = centered_on_lon_zero;
-
+  
   // Make sure that the +over flag is either in or not in the proj4
   // string as appropriate for the new lon center.
   if (m_center_lon_zero)
@@ -675,8 +677,9 @@ void GeoReference::set_wkt(std::string const& wkt) {
 
   // Find the lon-lat bbox. This will be updated later if the transform
   // is set or if the georef is read from disk.
-  ll_box_from_pix_box(vw::BBox2(0, 0, 1, 1));
-
+  // TODO(oalexan1): Record the image width and height on loading and use here.
+  ll_box_from_pix_box(vw::BBox2(0, 0, 2, 2)); // must be at least 2 pixels in size
+  
   // TODO(oalexan1): May need to wipe all below. In particular, don't want to set
   // projection, as that will bring us back here.
   
@@ -833,6 +836,8 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
    
   double x = lon_lat[0];
   double y = lon_lat[1];
+  
+  // TODO(oalexan1): Must we ensure that the longitude is in the range [-180, 180]?
   
   if (!m_proj_context.m_lonlat_to_proj->Transform(1, &x, &y))
     vw::vw_throw(vw::ArgumentErr() << "Failed to project point.\n");
@@ -1199,7 +1204,7 @@ void GeoReference::ll_box_from_pix_box(BBox2 const& pixel_bbox) {
   
   if (pixel_bbox.empty())
     vw_throw(LogicErr() << "GeoReference::ll_box_from_pix_box: Empty pixel box.\n");
-    
+  
   BBox2 ll_box = pixel_to_lonlat_bbox(pixel_bbox);
   set_image_ll_box(ll_box);
   return; 
@@ -1227,10 +1232,6 @@ std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
     os << "pixel as area\n";
   else if (georef.pixel_interpretation() == GeoReference::PixelAsPoint)
     os << "pixel as point\n";
-  if (georef.is_lon_center_around_zero())
-    os << "longitude range: [-180, 180]\n";
-  else
-    os << "longitude range: [0, 360]\n";
   return os;
 }
 
