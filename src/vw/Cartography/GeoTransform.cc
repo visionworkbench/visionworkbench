@@ -75,7 +75,13 @@ namespace cartography {
                         vw::cartography::GeoReference const& dst_georef,
                         OGRCoordinateTransformation **src_to_dst,
                         OGRCoordinateTransformation **dst_to_src) {
-  
+
+    OGRSpatialReference const& src_crs = src_georef.gdal_spatial_ref(); 
+    OGRSpatialReference const& dst_crs = dst_georef.gdal_spatial_ref();
+    
+    // TODO(oalexan1): How about deallocating these?
+    *src_to_dst = OGRCreateCoordinateTransformation(&src_crs, &dst_crs);
+    *dst_to_src = OGRCreateCoordinateTransformation(&dst_crs, &src_crs);
   }
   
                         
@@ -107,11 +113,21 @@ namespace cartography {
     m_pj_context = NULL;
     m_pj_transform = NULL;
  
+    // TODO(oalexan1): May not need to create these unless the datum changes.
+    { 
+      // A mutex seems necessary to avoid a crash. Presumably
+      // this creation logic does not like to be created from multiple threads.
+      Mutex::WriteLock write_lock(m_mutex);
+      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
+    }
+    
+    //std::cout << "--produced geotransform--\n";
+    
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
-    // BBox2 src_ll = m_src_georef.point_to_lonlat_bbox(m_src_georef.proj_image_bbox());
-    // BBox2 dst_ll = m_dst_georef.point_to_lonlat_bbox(m_dst_georef.proj_image_bbox());
+    // BBox2 src_ll = m_src_georef.point_to_lonlat_bbox(m_src_georef.image_ll_box());
+    // BBox2 dst_ll = m_dst_georef.point_to_lonlat_bbox(m_dst_georef.image_ll_box());
     
     // OGRCoordinateTransformationOptions src_opt, dst_opt;
     // src_opt.SetAreaOfInterest(src_ll.min().x(), src_ll.min().y(), 
@@ -124,16 +140,17 @@ namespace cartography {
     // // The west longitude is generally lower than the east longitude, except for areas of interest that go across the anti-meridian.
     // // poTransform = OGRCreateCoordinateTransformation( &oNAD27, &oWGS84, options );
 
-    // auto src_crs = m_src_georef.gdal_spatial_ref();
-    // auto dst_crs = m_dst_georef.gdal_spatial_ref();
-    // OGRCoordinateTransformation * s2d 
-    //  = OGRCreateCoordinateTransformation(&src_crs, &dst_crs, src_opt);
-    // OGRCoordinateTransformation * d2s
-    //   = OGRCreateCoordinateTransformation(&dst_crs, &src_crs, dst_opt);
+    // Create the transforms. We use aliases to the underlying georef
+    // so they don't go out of scope.
+    // TODO(oalexan1): Must do the same for the copy constructor.
     
     // This optimizes in the common case where the two images are
     // already in the same map projection, and we need only apply
     // the affine transform.
+    //std::cout << "--must reimplemnet this--\n";
+    // Maybe do here get_wkt() and compare the strings.
+    // TODO(oalexan1): Wipe the is_lon_center_around_zero.
+    // Check instead that the boxes are either within [-180,180] or [0,360].
     if ((m_src_georef.overall_proj4_str() == m_dst_georef.overall_proj4_str()) &&
         (src_georef.is_lon_center_around_zero() == dst_georef.is_lon_center_around_zero()) )
       m_skip_map_projection = true;
@@ -198,6 +215,10 @@ namespace cartography {
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
     }
+    
+    // std::cout << "--skip map projection is " << m_skip_map_projection << std::endl;
+    // std::cout << "--skip datum conversion is " << m_skip_datum_conversion << std::endl;
+    
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -212,6 +233,13 @@ namespace cartography {
     m_skip_map_projection   = other.m_skip_map_projection;
     m_skip_datum_conversion = other.m_skip_datum_conversion;
 
+    { 
+     // A mutex seems necessary to avoid a crash. Presumably
+     // this creation logic does not like to be created from multiple threads.
+      Mutex::WriteLock write_lock(m_mutex);
+      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
+    }
+    
     // A mutex seems necessary to avoid a crash. Presumably
     // this creation logic does not like to be created from multiple threads.
     // TODO(oalexan1): It is not clear if this is either necessary
@@ -232,14 +260,28 @@ namespace cartography {
     // unless some monster tables are loaded for each instance.
   }
 
+  void wrapLon(double &lon) {
+    if (lon > 180)
+      lon -= 360;
+    if (lon < -180)
+      lon += 360;
+  }
   // Inverse of forward()
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
     bool forward = false;
     if (m_skip_map_projection)
       return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
     Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
+    
+    // For a georef with projection, must ensure input lonlat is in the
+    // [-180,180] range.
+    if (m_src_georef.is_projected())
+      wrapLon(dst_lonlat[0]);
+    
     if (m_skip_datum_conversion)
       return m_src_georef.lonlat_to_pixel(dst_lonlat);
+     
+     // This will require a datum conversion, which is slow
      Vector2 src_lonlat = lonlat_to_lonlat(dst_lonlat, forward);
      return m_src_georef.lonlat_to_pixel(src_lonlat);
   }
@@ -253,6 +295,12 @@ namespace cartography {
       return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
 
     Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+    
+    // For a geo ref with projection, must ensure input lonlat is in the
+    // [-180,180] range.
+    if (m_dst_georef.is_projected())
+      wrapLon(src_lonlat[0]);
+    
     if (m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     
@@ -260,7 +308,7 @@ namespace cartography {
     return m_dst_georef.lonlat_to_pixel(dst_lonlat);
   }
   
-  // TODO(oalexan1): GDAL has a function for this which is likely better written.
+  // Apply the forward transform to a box
   BBox2i GeoTransform::forward_bbox(BBox2i const& bbox) const {
 
     if (bbox.empty()) return BBox2();
@@ -271,14 +319,14 @@ namespace cartography {
     BBox2 r;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        r.grow( this->forward( points[ptiter] ) );
-      }catch ( const std::exception & e ) {}
+        r.grow(this->forward(points[ptiter]));
+      }catch (const std::exception & e) {}
     }
 
     return grow_bbox_to_int(r);
   }
 
-  // TODO(oalexan1): GDAL has a function for this which is likely better written.
+  // Apply the reverse transform to a box
   BBox2i GeoTransform::reverse_bbox( BBox2i const& bbox ) const {
     if (bbox.empty()) return BBox2();
 
@@ -288,13 +336,12 @@ namespace cartography {
     BBox2 r;
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
-        r.grow(this->reverse( points[ptiter]));
+        r.grow(this->reverse(points[ptiter]));
       } catch (const std::exception & e) {}
     }
 
     return grow_bbox_to_int(r);
   }
-
 
   Vector2 GeoTransform::point_to_point(Vector2 const& v) const {
     if (m_skip_map_projection)
@@ -329,7 +376,8 @@ namespace cartography {
   }
 
   // Performs a forward or reverse datum conversion.
-  // TODO(oalexan1): Should one consider 360 degree offsets here?
+  // TODO(oalexan1): Must consider 360 degree offsets here.
+  // TODO(oalexan1): Must consider altitude here always!
   Vector2 GeoTransform::lonlat_to_lonlat(Vector2 const& lonlat, bool forward) const {
     if (m_skip_datum_conversion)
       return lonlat;
