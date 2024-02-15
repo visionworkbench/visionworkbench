@@ -71,20 +71,6 @@ namespace cartography {
   
   using vw::math::BresenhamLine;
 
-  void initGeoTransform(vw::cartography::GeoReference const& src_georef,
-                        vw::cartography::GeoReference const& dst_georef,
-                        OGRCoordinateTransformation **src_to_dst,
-                        OGRCoordinateTransformation **dst_to_src) {
-
-    OGRSpatialReference const& src_crs = src_georef.gdal_spatial_ref(); 
-    OGRSpatialReference const& dst_crs = dst_georef.gdal_spatial_ref();
-    
-    // TODO(oalexan1): How about deallocating these?
-    *src_to_dst = OGRCreateCoordinateTransformation(&src_crs, &dst_crs);
-    *dst_to_src = OGRCreateCoordinateTransformation(&dst_crs, &src_crs);
-  }
-  
-                        
   // Create transform between given proj strings. Note that what is returned
   // are pointers, by reference.
   void create_proj_transform(std::string const& src_proj_str,
@@ -113,44 +99,12 @@ namespace cartography {
     m_pj_context = NULL;
     m_pj_transform = NULL;
  
-    // TODO(oalexan1): May not need to create these unless the datum changes.
-    { 
-      // A mutex seems necessary to avoid a crash. Presumably
-      // this creation logic does not like to be created from multiple threads.
-      Mutex::WriteLock write_lock(m_mutex);
-      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
-    }
-    
-    //std::cout << "--produced geotransform--\n";
-    
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
-    // BBox2 src_ll = m_src_georef.point_to_lonlat_bbox(m_src_georef.image_ll_box());
-    // BBox2 dst_ll = m_dst_georef.point_to_lonlat_bbox(m_dst_georef.image_ll_box());
-    
-    // OGRCoordinateTransformationOptions src_opt, dst_opt;
-    // src_opt.SetAreaOfInterest(src_ll.min().x(), src_ll.min().y(), 
-    //                           src_ll.max().x(), src_ll.max().y());
-    // dst_opt.SetAreaOfInterest(dst_ll.min().x(), dst_ll.min().y(), 
-    //                           dst_ll.max().x(), dst_ll.max().y());
-    
-    // // bool SetAreaOfInterest(double dfWestLongitudeDeg, double dfSouthLatitudeDeg, double dfEastLongitudeDeg, double dfNorthLatitudeDeg)
-    // // Sets an area of interest.
-    // // The west longitude is generally lower than the east longitude, except for areas of interest that go across the anti-meridian.
-    // // poTransform = OGRCreateCoordinateTransformation( &oNAD27, &oWGS84, options );
-
-    // Create the transforms. We use aliases to the underlying georef
-    // so they don't go out of scope.
-    // TODO(oalexan1): Must do the same for the copy constructor.
-    
-    // This optimizes in the common case where the two images are
-    // already in the same map projection, and we need only apply
-    // the affine transform.
-    //std::cout << "--must reimplemnet this--\n";
-    // Maybe do here get_wkt() and compare the strings.
     // TODO(oalexan1): Wipe the is_lon_center_around_zero.
     // Check instead that the boxes are either within [-180,180] or [0,360].
+    // TODO(oalexan1): Remove mention of overall_proj4_str.
     if ((m_src_georef.overall_proj4_str() == m_dst_georef.overall_proj4_str()) &&
         (src_georef.is_lon_center_around_zero() == dst_georef.is_lon_center_around_zero()) )
       m_skip_map_projection = true;
@@ -216,9 +170,12 @@ namespace cartography {
         m_skip_datum_conversion = true;
     }
     
-    // std::cout << "--skip map projection is " << m_skip_map_projection << std::endl;
-    // std::cout << "--skip datum conversion is " << m_skip_datum_conversion << std::endl;
-    
+    // Cannot reliably transform between images with different datums,
+    // as that requires a vertical datum shift, while for GeoTransform
+    // we assume a purely 2D transform.
+    if (!m_skip_datum_conversion)
+      vw::vw_throw(vw::ArgumentErr() << "Cannot handle images with different datums. "
+                   << "Use gdalwarp to convert them to the same datum.\n");
   }
 
   GeoTransform::GeoTransform(GeoTransform const& other) {
@@ -228,18 +185,13 @@ namespace cartography {
   GeoTransform& GeoTransform::operator=(GeoTransform const& other) {
     m_src_georef            = other.m_src_georef;
     m_dst_georef            = other.m_dst_georef;
+    m_src_bbox              = other.m_src_bbox;
+    m_dst_bbox              = other.m_dst_bbox;
     m_src_datum_proj_str    = other.m_src_datum_proj_str;
     m_dst_datum_proj_str    = other.m_dst_datum_proj_str;
     m_skip_map_projection   = other.m_skip_map_projection;
     m_skip_datum_conversion = other.m_skip_datum_conversion;
 
-    { 
-     // A mutex seems necessary to avoid a crash. Presumably
-     // this creation logic does not like to be created from multiple threads.
-      Mutex::WriteLock write_lock(m_mutex);
-      initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
-    }
-    
     // A mutex seems necessary to avoid a crash. Presumably
     // this creation logic does not like to be created from multiple threads.
     // TODO(oalexan1): It is not clear if this is either necessary
@@ -248,7 +200,6 @@ namespace cartography {
       Mutex::WriteLock write_lock(m_mutex);
       create_proj_transform(m_src_datum_proj_str, m_dst_datum_proj_str,  
                             m_pj_context, m_pj_transform); // outputs
-      // initGeoTransform(m_src_georef, m_dst_georef, &m_src_to_dst, &m_dst_to_src);
     }
     
     return *this;
@@ -260,12 +211,14 @@ namespace cartography {
     // unless some monster tables are loaded for each instance.
   }
 
+  // Try to make lon be in the range [-180,180]
   void wrapLon(double &lon) {
     if (lon > 180)
       lon -= 360;
     if (lon < -180)
       lon += 360;
   }
+  
   // Inverse of forward()
   Vector2 GeoTransform::reverse(Vector2 const& v) const {
     bool forward = false;
@@ -354,7 +307,7 @@ namespace cartography {
   }
 
 
-  Vector2 GeoTransform::pixel_to_point( Vector2 const& v ) const {
+  Vector2 GeoTransform::pixel_to_point(Vector2 const& v) const {
     Vector2 src_point = m_src_georef.pixel_to_point(v);
     if (m_skip_map_projection)
       return src_point;
