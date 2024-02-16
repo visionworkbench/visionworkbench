@@ -388,6 +388,15 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   return llh;
 }
 
+// Get the wkt string from the datum.
+std::string vw::cartography::Datum::get_wkt() const {
+  char *wkt;
+  m_ogr_datum.exportToWkt(&wkt);
+  std::string result(wkt);
+  CPLFree(wkt);
+  return result;
+}
+
 std::vector<std::string> const datum_keys = {"Geodetic Datum --> Name: ",
                                              "Spheroid: ",
                                              "Semi-major axis: ",
@@ -397,7 +406,7 @@ std::vector<std::string> const datum_keys = {"Geodetic Datum --> Name: ",
                                              "Proj4 Str: "};
 
 
-std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
+std::ostream& vw::cartography::operator<<(std::ostream& os, vw::cartography::Datum const& datum) {
   std::ostringstream oss; // To use custom precision
   oss.precision(17);
   // Note how the key words below are used in read_datum_from_str() to read back the datum

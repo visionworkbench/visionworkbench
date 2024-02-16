@@ -101,6 +101,7 @@ namespace cartography {
 
     std::string      & proj4_str()       { return m_proj_str; }
     std::string const& proj4_str() const { return m_proj_str; }
+    std::string get_wkt() const;
 
     // Use set_datum_from_spatial_ref() to set the OGRSpatialReference.
     // This will only fetch the underlying object but not set it.
