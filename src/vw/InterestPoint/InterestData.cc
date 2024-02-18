@@ -69,6 +69,9 @@ namespace ip {
   }
 
   inline InterestPoint read_ip_record(std::ifstream &f) {
+    if (!f)
+      vw::vw_throw(vw::IOErr() << "Failed to read interest point from file.");
+      
     InterestPoint ip;
     f.read((char*)&(ip.x), sizeof(ip.x));
     f.read((char*)&(ip.y), sizeof(ip.y));
@@ -117,10 +120,11 @@ namespace ip {
       return result;
     
     for (size_t i = 0; i < size; ++i)
-      result.push_back( read_ip_record(f) );
+      result.push_back(read_ip_record(f));
     f.close();
     return result;
   }
+  
   InterestPointList read_binary_ip_file_list(std::string ip_file) {
     InterestPointList result;
 
@@ -148,6 +152,10 @@ namespace ip {
     std::vector<InterestPoint>::const_iterator iter2 = ip2.begin();
     uint64 size1 = ip1.size();
     uint64 size2 = ip2.size();
+    if (size1 != size2)
+      vw_throw(IOErr() 
+               << "The vectors of matching interest points must have the same size.\n");
+      
     f.write((char*)&size1, sizeof(uint64));
     f.write((char*)&size2, sizeof(uint64));
     for ( ; iter1 != ip1.end(); ++iter1)
@@ -165,12 +173,22 @@ namespace ip {
     f.open(match_file.c_str(), std::ios::binary | std::ios::in);
 
     // Error Handling
-    if ( !f.is_open() )
+    if (!f.is_open())
       vw_throw( IOErr() << "Failed to open match file: " << match_file );
 
     uint64 size1 = 0, size2 = 0;
-    f.read((char*)&size1, sizeof(uint64));
-    f.read((char*)&size2, sizeof(uint64));
+    if (f)
+     f.read((char*)&size1, sizeof(uint64));
+    else
+      vw::vw_throw(vw::IOErr() << "Failed to read match file: " << match_file);
+    if (f)
+      f.read((char*)&size2, sizeof(uint64));
+    else 
+      vw::vw_throw(vw::IOErr() << "Failed to read match file: " << match_file);
+    
+    if (size1 != size2)
+      vw_throw(IOErr() 
+               << "The vectors of matching interest points must have the same size.\n");
 
     if (!f) {
       // This is a bugfix for a crash. Apparently junk was being read.
