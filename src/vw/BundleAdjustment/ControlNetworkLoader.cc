@@ -409,7 +409,8 @@ bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
 
 int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                       std::vector<std::string> const& gcp_files,
-                                      cartography::Datum const& datum){
+                                      cartography::Datum const& datum,
+                                      bool skip_datum_check) {
   
   namespace fs = boost::filesystem;
   
@@ -450,6 +451,8 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
         count++; // for next time
         cartography::Datum gcp_datum;
         if (!parseDatum(line, gcp_datum)) 
+          continue;
+        if (skip_datum_check) 
           continue;
         double tol = 1e-6;
         if (std::abs(gcp_datum.semi_major_axis() - datum.semi_major_axis()) > tol ||

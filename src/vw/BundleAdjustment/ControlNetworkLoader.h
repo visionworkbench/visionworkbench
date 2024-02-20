@@ -74,7 +74,8 @@ namespace ba {
   /// Return the number of added control points.
   int add_ground_control_points(ControlNetwork& cnet,
                                  std::vector<std::string> const& gcp_files,
-                                 cartography::Datum const& datum);
+                                 cartography::Datum const& datum, 
+                                 bool skip_datum_check = false);
     
   template <class IterT>
   void add_ground_control_cnets( ControlNetwork& cnet,
