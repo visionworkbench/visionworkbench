@@ -342,7 +342,7 @@ void OpticalBarModel::read(std::string const& filename) {
   //// !!! DEBUG !!! -> Ignore the orientation, point it locally NED down.
   //vw::cartography::Datum d("WGS84");
   //Vector3 llh = d.cartesian_to_geodetic(m_initial_position);
-  //Matrix3x3 m = d.lonlat_to_ned_matrix(Vector2(llh[0],llh[1]));
+  //Matrix3x3 m = d.lonlat_to_ned_matrix(llh);
   //Quat q(m);
   //m_initial_orientation = q.axis_angle();
   */

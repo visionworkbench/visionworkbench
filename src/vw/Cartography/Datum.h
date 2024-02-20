@@ -135,12 +135,11 @@ namespace cartography {
     /// Return the rotation matrix for converting between ECEF and NED
     /// vectors. If v is a Cartesian (ECEF) vector, the inverse of
     /// this matrix times v will find v's components in the North,
-    /// East, and Down directions at given lon and lat.  And the
+    /// East, and Down directions at given lon, lat, height. The
     /// reverse holds, if v is in the NED coordinate system, this
     /// matrix times v will be its expression in ECEF.
-    /// This assumes the planet to be a perfect sphere, which can be 
-    /// problematic.
-    Matrix3x3 lonlat_to_ned_matrix(Vector2 const& lonlat) const;
+    /// This can handle the planet being an ellipsoid.
+    Matrix3x3 lonlat_to_ned_matrix(Vector3 const& llh) const;
 
     Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
   };

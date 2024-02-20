@@ -445,7 +445,7 @@ TEST(GeoReference, NED_MATRIX) {
   xyz_rad = -xyz/norm_2(xyz);
 
   // The Matrix should be the same as the three vectors side by side.
-  Matrix3x3 M = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
+  Matrix3x3 M = georef.datum().lonlat_to_ned_matrix(G);
   for (int i=0; i<3; ++i) {
     EXPECT_NEAR(M(i, 0), xyz_lat[i], eps);
     EXPECT_NEAR(M(i, 1), xyz_lon[i], eps);

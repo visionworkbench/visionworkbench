@@ -268,15 +268,64 @@ double vw::cartography::Datum::inverse_flattening() const {
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
-// NED to ECEF transform. 
-// This assumes the planet to be a perfect sphere, which can be problematic.
-// See the .h file for more info.
-vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector2 const& lonlat) const {
-  double lon = lonlat.x();
-  double lat = lonlat.y();
+// NED to ECEF transform. This takes into account that the planet is an
+// ellipsoid and the curent elevation above it. See the .h file for 
+// more info.
+vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector3 const& llh) const {
+  
+  double lon = llh.x();
+  double lat = llh.y();
+  double h   = llh[2];
   if (lat < -90) lat = -90;
   if (lat >  90) lat =  90;
 
+  Matrix3x3 R;
+
+#if 1
+  // Numerical implementation for ellipsoid datum and any height above it.
+  // We construct the North, East, and Down axes numerically.
+  
+  // The tolerance should not be too small as the the numbers used here are
+  // distances from planet center, in meters, which can be quite large
+  // (7,000,000 meters). Good results were obtained by using tol = 1e-4 for the
+  // angles and tol2 = tol * 1000 for the height. Then, the error in all
+  // normalized directions (N, E, D) are on the order of 1e-9, when validated
+  // with a spherical datum.
+  double tol = 1e-4; // in meters
+  double tol2 = tol * 1000;
+  double lon_p = lon + tol, lon_m = lon - tol;
+  double lat_p = lat + tol, lat_m = lat - tol;
+  double h_p = h + tol2, h_m = h - tol2;
+  
+  // These must be kept within the valid range, as assumed by 
+  // the function geo_to_cartesian.
+  lat_p = std::min(lat_p, 90.0);
+  lat_m = std::max(lat_m, -90.0);
+  
+  // Centered differences (these are not centered close to the pole, but good enough)
+  vw::Vector3 dN = (this->geodetic_to_cartesian(Vector3(lon, lat_p, 0)) - 
+                    this->geodetic_to_cartesian(Vector3(lon, lat_m, 0)))/(lat_p - lat_m);
+  vw::Vector3 dE = (this->geodetic_to_cartesian(Vector3(lon_p, lat, 0)) - 
+                    this->geodetic_to_cartesian(Vector3(lon_m, lat, 0)))/(lon_p - lon_m);
+  // This one goes down, so the negative sign is needed
+  vw::Vector3 dH = -(this->geodetic_to_cartesian(Vector3(lon, lat, h_p)) - 
+                     this->geodetic_to_cartesian(Vector3(lon, lat, h_m)))/(h_p - h_m);
+  
+  // Normalize these
+  dN = normalize(dN);
+  dE = normalize(dE);
+  dH = normalize(dH);
+
+  // iterate over rows, then assign each column
+  for (int i = 0; i < 3; i++) {
+    R(i, 0) = dN[i];
+    R(i, 1) = dE[i];
+    R(i, 2) = dH[i];
+  }
+
+#else
+
+  // Exact implementation for spherical datum
   double rlon = (lon + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
   double slat = sin(rlat);
@@ -284,7 +333,6 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector2 const& lo
   double slon = sin(rlon);
   double clon = cos(rlon);
 
-  Matrix3x3 R;
 
   R(0,0) = -slat*clon;
   R(1,0) = -slat*slon;
@@ -295,11 +343,13 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector2 const& lo
   R(0,2) = -clon*clat;
   R(1,2) = -slon*clat;
   R(2,2) = -slat;
+#endif
 
   return R;
 }
 
 vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
+
   double a  = m_semi_major_axis;
   double b  = m_semi_minor_axis;
   double a2 = a * a;
@@ -307,8 +357,8 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian(vw::Vector3 const& llh
   double e2 = (a2 - b2) / a2;
 
   double lat = llh.y();
-  if ( lat < -90 ) lat = -90;
-  if ( lat >  90 ) lat = 90;
+  if (lat < -90) lat = -90;
+  if (lat >  90) lat = 90;
 
   double rlon = (llh.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
