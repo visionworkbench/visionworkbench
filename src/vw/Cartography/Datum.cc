@@ -85,7 +85,17 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(
   m_ogr_datum = gdal_spatial_ref;
 }
 
-// A wrapper around the GDAL/OGR API for setting the datum.
+// Set the datum using a WKT string
+void vw::cartography::Datum::set_wkt(std::string const& wkt) {
+  OGRSpatialReference gdal_spatial_ref;
+  if (gdal_spatial_ref.importFromWkt(&wkt[0]) != OGRERR_NONE)
+    vw_throw( ArgumentErr() << "Failed to parse: \"" << wkt << "\"." );
+
+  set_datum_from_spatial_ref(gdal_spatial_ref);
+}
+
+// Set the datum using a Proj.4 string. It is preferred to set the datum
+// using a WKT.
 void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
   OGRSpatialReference gdal_spatial_ref;

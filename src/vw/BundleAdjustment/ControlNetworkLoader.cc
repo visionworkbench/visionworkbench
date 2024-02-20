@@ -385,6 +385,28 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   return true;
 }
 
+// A little function to parse the WKT
+bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
+  
+  std::string buff, val;
+  std::istringstream is(wkt);
+
+  while (is >> val) {
+    // Ignore the pound sign and WKT: 
+    if (val.find("#") != std::string::npos) continue;
+    if (val.find("WKT:") != std::string::npos) continue;
+    buff += val + " ";
+  }
+  
+  // Empty buff means that the string was empty
+  if (buff.empty()) 
+    return false;
+  
+  datum.set_wkt(buff);
+  
+  return true;
+}
+
 int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                       std::vector<std::string> const& gcp_files,
                                       cartography::Datum const& datum){
@@ -416,9 +438,31 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
     std::ifstream ifile((*gcp_iter).c_str());
     std::string line;
-    while (getline(ifile, line, '\n')){
-      // Skip empty lines or lines starting with comments
+    int count = 0;
+    while (getline(ifile, line, '\n')) {
+      
+      // Skip empty lines
       if (line.size() == 0) continue;
+      
+      // The first line can be the WKT string. Then read and validate it.
+      if (line.size() > 0 && line[0] == '#' && line.find("WKT:") != std::string::npos &&
+          count == 0) { 
+        count++; // for next time
+        cartography::Datum gcp_datum;
+        if (!parseDatum(line, gcp_datum)) 
+          continue;
+        double tol = 1e-6;
+        if (std::abs(gcp_datum.semi_major_axis() - datum.semi_major_axis()) > tol ||
+            std::abs(gcp_datum.semi_minor_axis() - datum.semi_minor_axis()) > tol ||
+            std::abs(gcp_datum.meridian_offset() - datum.meridian_offset()) > tol) {
+          vw_throw(ArgumentErr() << "The datum of the GCP file " << *gcp_iter
+                   << " does not match the datum passed on input.");
+        } 
+        continue;
+      }
+      count++;
+      
+      // Skip lines starting with comments
       if (line.size() > 0 && line[0] == '#') continue;
 
       boost::replace_all(line, ",", " ");

@@ -74,9 +74,14 @@ namespace cartography {
 
     // A wrapper around the GDAL tool for extracting the datum information
     void set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref);
+  
+    // Set the datum using a WKT string
+    void set_wkt(std::string const& wkt);
 
+    // Set the datum using a Proj.4 string. It is preferred to set the datum
+    // using a WKT.
     void set_datum_from_proj_str(std::string const& proj_str);
-
+    
     /// See Datum(name)
     void set_well_known_datum(std::string const& name);
 
