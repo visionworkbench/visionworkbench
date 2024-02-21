@@ -291,14 +291,14 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector3 const& ll
   // angles and tol2 = tol * 1000 for the height. Then, the error in all
   // normalized directions (N, E, D) are on the order of 1e-9, when validated
   // with a spherical datum.
-  double tol = 1e-4; // in meters
-  double tol2 = tol * 1000;
+  double tol = 1e-4; // in degrees, this is 11 meters at the equator for Earth
+  double tol2 = tol * 1000; // 0.1 meters
   double lon_p = lon + tol, lon_m = lon - tol;
   double lat_p = lat + tol, lat_m = lat - tol;
   double h_p = h + tol2, h_m = h - tol2;
   
   // These must be kept within the valid range, as assumed by 
-  // the function geo_to_cartesian.
+  // the function geodetic_to_cartesian().
   lat_p = std::min(lat_p, 90.0);
   lat_m = std::max(lat_m, -90.0);
   
