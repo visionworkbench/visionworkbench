@@ -1211,8 +1211,7 @@ void dPoly::enforce45() {
 bool dPoly::readPoly(std::string filename,
                      // If isPointCloud is true, treat each point as a
                      // singleton polygon
-                     bool isPointCloud
-                     ) {
+                     bool isPointCloud) {
 
   reset();
 
@@ -1332,16 +1331,23 @@ bool dPoly::readPoly(std::string filename,
 
 }
 
-void dPoly::writePoly(std::string filename, std::string defaultColor, bool emptyLineAsSeparator) {
+void dPoly::writePoly(std::string const& filename, std::string const& defaultColor, 
+                      bool emptyLineAsSeparator) {
 
-  ofstream out(filename.c_str());
+  std::ofstream out(filename.c_str());
   if (!out.is_open()) {
-    cerr << "Error: Could not write to " << filename << endl;
+    cerr << "Error: Could not write: " << filename << endl;
     return;
   }
 
-  out.precision(17);
+  this->writePoly(out, defaultColor, emptyLineAsSeparator);
+}
 
+void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
+                      bool emptyLineAsSeparator) {
+
+  out.precision(17);
+  
   string color = defaultColor, prevColor = defaultColor;
 
   int start = 0, annoCount = 0;

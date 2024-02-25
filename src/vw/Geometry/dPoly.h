@@ -34,7 +34,7 @@ class dPoly {
 
 public:
 
-  dPoly(){
+  dPoly() {
     reset();
   }
 
@@ -44,12 +44,13 @@ public:
                               std::string type,
                               bool isPointCloud = false);
 
-  bool readPoly(std::string filename,
-                bool isPointCloud = false
-                );
+  bool readPoly(std::string filename, bool isPointCloud = false);
 
-  void writePoly(std::string filename, std::string defaultColor = "yellow",
+  void writePoly(std::ofstream & out, std::string const& defaultColor = "yellow", 
                  bool emptyLineAsSeparator = false);
+  void writePoly(std::string const& filename, std::string const& defaultColor = "yellow",
+                 bool emptyLineAsSeparator = false);
+  
   void bdBoxCenter(double & mx, double & my) const;
 
   void appendPolygon(int numVerts,
