@@ -160,20 +160,31 @@ namespace vw { namespace mosaic {
     vals.clear();
     for (int col = 0; col < img.cols(); col += delta_col) {
       for (int row = 0; row < img.rows(); row += delta_row) {
-	if (std::isnan(img(col, row))) continue;
-	if (has_nodata && img(col, row) == nodata_val) continue;
-	vals.push_back(img(col, row));
+        if (std::isnan(img(col, row))) continue;
+        if (has_nodata && img(col, row) == nodata_val) continue;
+        vals.push_back(img(col, row));
       }
     }
     
     vw::Vector2 bounds(-big, big);
     if (vals.empty()) return bounds;
     
-    //  Find sane bounds, even if they are somewhat exaggerated 
+    // Find the bounds using percentiles
     double pct = 0.01; // 1% outliers at either end
     double outlier_factor = 4;
     double b, e;
     vw::math::find_outlier_brackets(vals, pct, outlier_factor, b, e);
+    
+    // Tighten the bounds
+    std::sort(vals.begin(), vals.end());
+    b = std::max(b, vals[0]);
+    e = std::min(e, vals[vals.size()-1]);
+    
+    // If the bounds are the same, expand them
+    if (b == e) {
+      b -= 1;
+      e += 1;
+    }
 
     return vw::Vector2(b, e);
   }
