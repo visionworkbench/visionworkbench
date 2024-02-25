@@ -51,7 +51,7 @@ namespace cartography {
   /// - The distance is returned in meters.
   /// - Accuracy is not perfect but should be pretty good.
   /// - Inputs should be in lon/lat degrees.
-  double haversine_circle_distance(Vector2 a, Vector2 b);
+  double haversine_circle_distance(Vector2 a, Vector2 b, double radius);
 
   /// Estimates meters per pixel for an image.
   double get_image_meters_per_pixel(int width, int height, GeoReference const& georef);

@@ -248,8 +248,6 @@ TEST( GeoReference, LonLat_to_UTM ) {
     s << "+proj=utm +zone=" << zone << " +units=m";
     std::string proj_string = s.str();
     georef.set_proj4_projection_str(proj_string );
-    //georef.set_lon_center(false); // Force to 0-360 range -> don't hit the UTM zone!
-    //std::cout << georef << std::endl;
     
     // Test lonlat to pixel conversion.
     Vector2 pixel = georef.lonlat_to_pixel(Vector2(longitude, 44.059883787682551));

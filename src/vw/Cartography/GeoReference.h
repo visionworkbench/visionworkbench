@@ -135,13 +135,6 @@ namespace cartography {
     // The image extent in projected coordinates. Used for geotransforms.
     vw::BBox2 m_image_ll_box;
     
-    /// If true, the projected space maps to the -180 to 180 degree longitude range.
-    /// - If false, the projected space maps to the 0 to 360 degree longitude range. 
-    /// - Output longitude values are always given in the specified range.
-    /// - Any input longitude value can be handled.
-    // TODO(oalexan1): Wipe this option and all associated code.
-    bool m_center_lon_zero;
-    
     std::string m_projcs_name; ///< Override the projcs name when writing WKT and to file.
     
     // ---- Functions -------------------------
@@ -201,24 +194,6 @@ namespace cartography {
     PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
     void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
 
-    /// Set the GeoReference to either the [-180,180] longitude range or to the [0,360] longitude range.
-    /// - The value set by this function MUST properly correspond to the range of projected space
-    ///   occupied by the GeoReference.  For +proj=lonlat cases, adding or subtracting 360.0 from the
-    ///   (0,2) element of the affine transform will compensate for the center shift.
-    /// - UTM projections must always be in the [-180,180] range and this function enforces this.
-    /// - If this function is not called the class will attempt to automatically select the best value.
-    /// - All longitude inputs are accepted.
-    /// - All longitude outputs will be given in this range.
-    void set_lon_center(bool centered_on_lon_zero);
-
-    /// As set_lon_center and also update the transform matrix to match.
-    /// - Return false if the center did not need to be changed.
-    bool safe_set_lon_center(bool new_center_around_zero);
-
-    /// Returns true if the output longitude values will be normalized to the [-180, 180] range.
-    /// - Otherwise they will be normalized to the [0, 360] range.
-    bool is_lon_center_around_zero() const {return m_center_lon_zero;}
-    
     ///// Checks if an image with the given dimensions is properly contained in the projected space.
     ///// - In particular, all of the projected coordinates must fall in the selected longitude range.
     //bool check_projection_validity(Vector2i image_size) const;

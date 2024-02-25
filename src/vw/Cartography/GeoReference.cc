@@ -35,7 +35,6 @@
 
 // TODO(oalexan1): Wipe all mention of proj4_str.
 // Everything must be done by setting the OGRSpatialReference object.
-// TODO(oalexan1): Wipe all cout statements.
 // TODO(oalexan1): Look at all leftover todo statements.
 // TODO(oalexan1): Look in GeoTransform for things to fix.
 
@@ -513,49 +512,6 @@ void GeoReference::set_proj4_projection_str(std::string const& s) {
     m_proj_projection_str.append(" +over");
 
   init_proj(); // Initialize the projection
-}
-
-// TODO(oalexan1): Wipe the value m_center_lon_zero.
-
-// TODO(oalexan1): Wipe this
-void GeoReference::set_lon_center(bool centered_on_lon_zero) {
-  // Don't allow switching of UTM georefs
-  if (m_proj_projection_str.find("+proj=utm") != std::string::npos)
-    return;
-  
-  // Otherwise update the field  
-  m_center_lon_zero = centered_on_lon_zero;
-  
-  // Make sure that the +over flag is either in or not in the proj4
-  // string as appropriate for the new lon center.
-  if (m_center_lon_zero)
-    clear_proj4_over();
-  else 
-    set_proj4_over();
-}
-
-// TODO(oalexan1): Wipe this
-bool GeoReference::safe_set_lon_center(bool new_center_around_zero) {
-  bool current_center = is_lon_center_around_zero();
-  if (current_center == new_center_around_zero)
-    return false; // The center is already how we want it
-    
-  std::string proj = overall_proj4_str();
-  if (proj.find("+proj=longlat") == std::string::npos)
-    vw_throw(NoImplErr() << "safe_set_georef_center is only defined for longlat projections!");
-  
-  // Shift the projection transform matrix to account for the new longitude center.
-  Matrix3x3 affine = transform();
-  if (current_center) {
-    affine(0,2) += 360.0;
-    set_lon_center(false);
-  }
-  else {
-    affine(0,2) -= 360.0;
-    set_lon_center(true);
-  }
-  set_transform(affine);
-  return true; // Center was changed.
 }
 
 // TODO(oalexan1): Wipe this

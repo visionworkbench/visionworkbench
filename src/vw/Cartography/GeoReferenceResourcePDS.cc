@@ -30,7 +30,7 @@
 namespace vw {
 namespace cartography {
 
-  bool read_pds_georeference( GeoReference& georef, DiskImageResourcePDS const& resource ) {
+  bool read_pds_georeference(GeoReference& georef, DiskImageResourcePDS const& resource) {
 
     std::string key, value;
     bool failed = false;
@@ -40,14 +40,14 @@ namespace cartography {
     datum.spheroid_name() = "PDS Spheroid";
     // Collect datum information
     key = "A_AXIS_RADIUS";
-    if ( resource.query(key,value) ) { datum.set_semi_major_axis(atof(value.c_str()) * 1000); } else {failed = true; }
+    if (resource.query(key,value)) { datum.set_semi_major_axis(atof(value.c_str()) * 1000); } else {failed = true; }
     key = "B_AXIS_RADIUS";
-    if ( resource.query(key,value) ) { datum.set_semi_minor_axis(atof(value.c_str()) * 1000); } else {failed = true; }
+    if (resource.query(key,value)) { datum.set_semi_minor_axis(atof(value.c_str()) * 1000); } else {failed = true; }
     georef.set_datum(datum);
 
     // Collect projection information
     key = "MAP_PROJECTION_TYPE";
-    if ( resource.query(key,value) ) {
+    if (resource.query(key,value)) {
       if (value != "\"SIMPLE CYLINDRICAL\"") {
         vw_out(ErrorMessage, "console") << "Unsupported map projection type in PDS header.";
         vw_out(ErrorMessage, "cartography") << "Unsupported map projection type in PDS header.";
@@ -62,11 +62,11 @@ namespace cartography {
     transform.set_identity();
 
     key = "WESTERNMOST_LONGITUDE";
-    if ( resource.query(key,value) ) { transform(0,2) = atof(value.c_str()); } else {failed = true; }
+    if (resource.query(key,value)) { transform(0,2) = atof(value.c_str()); } else {failed = true; }
     key = "MAXIMUM_LATITUDE";
-    if ( resource.query(key,value) ) { transform(1,2) = atof(value.c_str()); } else {failed = true; }
+    if (resource.query(key,value)) { transform(1,2) = atof(value.c_str()); } else {failed = true; }
     key = "MAP_RESOLUTION";
-    if ( resource.query(key,value) ) {
+    if (resource.query(key,value)) {
       transform(0,0) = 1/atof(value.c_str());
       transform(1,1) = -1/atof(value.c_str());
     } else {failed = true; }

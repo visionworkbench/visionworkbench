@@ -41,8 +41,6 @@ TEST(GeoTransform, safe_set_center) {
   out_georef.set_well_known_geogcs("WGS84");
   in_georef.set_transform(a);
   out_georef.set_transform(a);
-  in_georef.safe_set_lon_center(true); // Move center to -180 to 180 range.
-  out_georef.safe_set_lon_center(true);
   
   GeoTransform tf(in_georef, out_georef);
   
@@ -304,13 +302,6 @@ TEST(GeoTransform, bboxTest) {
   GeoTransform trans13(georef1, georef3, image_bbox, image_bbox);
   GeoTransform trans21(georef2, georef1, image_bbox, image_bbox);
   GeoTransform trans31(georef3, georef1, image_bbox, image_bbox);
-
-  // The check_bbox_wraparound function should only trigger when the 
-  //  lon center changes in the source georef.
-  EXPECT_FALSE(trans12.check_bbox_wraparound());
-  EXPECT_TRUE( trans13.check_bbox_wraparound());
-  EXPECT_FALSE(trans21.check_bbox_wraparound());
-  EXPECT_FALSE(trans31.check_bbox_wraparound());
 }
 
 /// Set up two sinusoidal GeoRefs and see if we can go back-forth to the same bbox

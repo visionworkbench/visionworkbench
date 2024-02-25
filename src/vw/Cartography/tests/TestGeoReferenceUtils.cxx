@@ -104,25 +104,17 @@ TEST( GeoReferenceUtils, gdal_read_checks) {
   // longitude range to this image that could go either way.
   GeoReference georef;
   EXPECT_TRUE(read_georeference(georef, "dem.tif"));
-  EXPECT_TRUE(georef.is_lon_center_around_zero());
-  EXPECT_TRUE(georef.proj4_str().find("+over") == std::string::npos);
-  
-  // Check handling of a 0-360 image
-  //EXPECT_TRUE(read_georeference(georef, "dem360.tif"));
-  //EXPECT_FALSE(georef.is_lon_center_around_zero());
-  //EXPECT_TRUE(georef.proj4_str().find("+over") != std::string::npos);
-
-  // Handle an image that is larger than 360 degrees!
-  //EXPECT_FALSE(georef.is_lon_center_around_zero());
-  //EXPECT_TRUE(georef.proj4_str().find("+over") != std::string::npos);
 }
 
 
 TEST( GeoReferenceUtils, haversine_distance) {
   // Simple check like what we use to compute image meters per pixel
-  
-  double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823), Vector2(-79.8817279, 37.8158211));
-  double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211), Vector2(-79.8817279, 39.7140823));
+
+  double radius = 6371000; // meters  
+  double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823, radius),
+                                           Vector2(-79.8817279, 37.8158211));
+  double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211, radius),
+                                           Vector2(-79.8817279, 39.7140823));
   double denom = sqrt(30977*30977 + 18229*18229);
 
   EXPECT_NEAR(9.74744, d1/denom, 0.0001);

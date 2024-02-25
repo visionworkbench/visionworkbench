@@ -28,9 +28,6 @@
 // Proj
 #include <proj.h>
 
-// Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR(ctx_input) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Bad projection in GeoTransform.cc. Proj.4 error: " << (ctx_input.error_no()))
-
 namespace vw {
 namespace cartography {
 
@@ -102,15 +99,12 @@ namespace cartography {
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
-    // TODO(oalexan1): Wipe the is_lon_center_around_zero.
-    // Check instead that the boxes are either within [-180,180] or [0,360].
-    // TODO(oalexan1): Remove mention of overall_proj4_str.
-    if ((m_src_georef.overall_proj4_str() == m_dst_georef.overall_proj4_str()) &&
-        (src_georef.is_lon_center_around_zero() == dst_georef.is_lon_center_around_zero()) )
+    // This speeds up some transforms
+    if (m_src_georef.get_wkt() == m_dst_georef.get_wkt())
       m_skip_map_projection = true;
     else
       m_skip_map_projection = false;
-
+    
     // This optimizes the case where the two datums are the same,
     // and thus we don't need to call proj to convert between them
     // as we transform.
@@ -168,6 +162,7 @@ namespace cartography {
       
       if (max_err < 1.0e-10)
         m_skip_datum_conversion = true;
+        
     }
     
     // Cannot reliably transform between images with different datums,
@@ -280,7 +275,7 @@ namespace cartography {
   }
 
   // Apply the reverse transform to a box
-  BBox2i GeoTransform::reverse_bbox( BBox2i const& bbox ) const {
+  BBox2i GeoTransform::reverse_bbox(BBox2i const& bbox) const {
     if (bbox.empty()) return BBox2();
 
     std::vector<vw::Vector2> points;
@@ -300,7 +295,7 @@ namespace cartography {
     if (m_skip_map_projection)
       return v;
     Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
-    if(m_skip_datum_conversion)
+    if (m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_point(src_lonlat);
     Vector2 dst_lonlat = lonlat_to_lonlat(src_lonlat, true);
     return m_dst_georef.lonlat_to_point(dst_lonlat);
@@ -318,9 +313,10 @@ namespace cartography {
     return m_dst_georef.lonlat_to_point(dst_lonlat);
   }
 
-  Vector2 GeoTransform::point_to_pixel( Vector2 const& v ) const {
+  Vector2 GeoTransform::point_to_pixel(Vector2 const& v) const {
     if (m_skip_map_projection)
       return m_dst_georef.point_to_pixel(v);
+     
     Vector2 src_lonlat = m_src_georef.point_to_lonlat(v);
     if (m_skip_datum_conversion)
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
@@ -340,8 +336,7 @@ namespace cartography {
     return subvector(GeoTransform::lonlatalt_to_lonlatalt(lonlatalt, forward), 0, 2);
   }
 
-  // TODO(oalexan1): Should one consider 360 degree offsets here?
-  // See GeoReference::is_lon_center_around_zero().
+  // Note: Not sure if this is ever reached as the datum conversion is not supported.
   Vector3 GeoTransform::lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward) const {
     if (m_skip_datum_conversion)
       return lonlatalt;
@@ -365,49 +360,6 @@ namespace cartography {
     
     vw::Vector3 out(proj_todeg(c_out.lp.lam), proj_todeg(c_out.lp.phi), c_out.lpzt.z);
     return out;
-  }
-
-  bool GeoTransform::check_bbox_wraparound() const {
-
-    // Check if we are converting between georefs with different lon centers.
-    bool lon_center_mismatch = (m_src_georef.is_lon_center_around_zero() != 
-                                m_dst_georef.is_lon_center_around_zero()   );
-    if (!lon_center_mismatch)
-      return false; // No chance of wraparound with the same center.
-
-    if (m_src_bbox.empty() || m_dst_bbox.empty())
-      vw_throw(LogicErr() << "Cannot check bbox GeoTransform wraparound without both bboxes!");
-
-    // The danger is that a small bounding box in one center can convert into
-    //  a planet-spanning bounding box when converted to the other center.
-
-    // Get the corners of the src image
-    std::vector<Vector2> corners(4);
-    corners[0] = m_src_bbox.min();
-    corners[1] = Vector2(m_src_bbox.width()-1,0);
-    corners[2] = Vector2(0, m_src_bbox.height()-1);
-    corners[3] = Vector2(m_src_bbox.width()-1,m_src_bbox.height()-1);
-
-    double center;
-    if (m_src_georef.is_lon_center_around_zero()) {
-      // [-180,180] to [0,360]
-      center = 0;
-    } else {
-      // [0,360] to [-180,180]
-      center = 180; 
-    }
-    
-    bool hasLeft  = false;
-    bool hasRight = false;
-    for (size_t i=0; i<4; ++i) {
-      Vector2 lonlat = m_src_georef.pixel_to_lonlat(corners[i]);
-      double lon = lonlat[0];
-      if (lon < center)
-        hasLeft = true;
-      else
-        hasRight = true;
-    }
-    return (hasRight && hasLeft);
   }
 
   BBox2 GeoTransform::point_to_point_bbox(BBox2 const& point_bbox) const {
@@ -463,7 +415,7 @@ namespace cartography {
     for (size_t ptiter = 0; ptiter < points.size(); ptiter++) {
       try {
         point_bbox.grow(this->pixel_to_point(points[ptiter]));
-      }catch ( const std::exception & e ) {}
+      }catch (const std::exception & e) {}
     }
     
     return point_bbox;
@@ -519,4 +471,3 @@ namespace cartography {
   }
 }} // namespace vw::cartography
 
-#undef CHECK_PROJ_ERROR

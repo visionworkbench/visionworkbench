@@ -110,10 +110,6 @@ namespace cartography {
     /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
     Vector3 lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward=true) const;
 
-    /// Returns true if bounding box conversions wrap around the output
-    ///  georeference, creating a very large bounding box.
-    bool check_bbox_wraparound() const;
-
     /// Convert a point bounding box in the source to a point bounding box in the destination.
     BBox2 point_to_point_bbox(BBox2 const& pixel_bbox) const;
 
