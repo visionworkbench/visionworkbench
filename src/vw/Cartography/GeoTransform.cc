@@ -96,14 +96,25 @@ namespace cartography {
     m_pj_context = NULL;
     m_pj_transform = NULL;
  
-    const std::string src_datum = m_src_georef.datum().proj4_str();
-    const std::string dst_datum = m_dst_georef.datum().proj4_str();
+    const std::string src_datum = m_src_georef.datum().get_wkt();
+    const std::string dst_datum = m_dst_georef.datum().get_wkt();
 
-    // This speeds up some transforms
-    if (m_src_georef.get_wkt() == m_dst_georef.get_wkt())
+    // If the lonlat to lonlat transform does not change the results, skip it.
+    // This results in a very notable speedup.
+    if (m_src_georef.get_wkt() == m_dst_georef.get_wkt() &&
+        !m_src_georef.image_ll_box().empty() &&
+        !m_dst_georef.image_ll_box().empty())
       m_skip_map_projection = true;
     else
       m_skip_map_projection = false;
+    
+    // Watch for 360 degree offsets
+    if (m_skip_map_projection) {
+      vw::Vector2 src_ll = m_src_georef.image_ll_box().min();
+      vw::Vector2 dst_ll = m_dst_georef.point_to_lonlat(m_dst_georef.lonlat_to_point(src_ll));
+      if (norm_2(src_ll - dst_ll) > 1e-8) 
+        m_skip_map_projection = false;
+    }
     
     // This optimizes the case where the two datums are the same,
     // and thus we don't need to call proj to convert between them
@@ -115,6 +126,9 @@ namespace cartography {
       m_skip_datum_conversion = false;
 
       // Set up longlat coordinate systems with given datums
+      
+      // TODO(oalexan1): Set here honest CRS that use the lonlat projection
+      // wipe the PROJ.4 logic
       
       // The source proj4 context.
       std::stringstream ss_src;
@@ -160,9 +174,8 @@ namespace cartography {
         }
       }
       
-      if (max_err < 1.0e-10)
+      if (max_err < 1e-8)
         m_skip_datum_conversion = true;
-        
     }
     
     // Cannot reliably transform between images with different datums,
