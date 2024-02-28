@@ -23,7 +23,7 @@
 namespace vw { namespace camera {
 
 // Estimate the GSD at the given pixel given an estimate of the ground point
-// along the ray (or close to the ray).
+// along the ray (or close to the ray). This can throw exceptions.
 double estimatedGSD(vw::camera::CameraModel const* camera_model, 
                     vw::BBox2i const& image_bbox,
                     vw::Vector2 const& pixel,
@@ -63,8 +63,13 @@ double estimatedGSD(vw::camera::CameraModel const* camera_model,
   
   double gsd2 = norm_2(ground - ground2);
   double gsd3 = norm_2(ground - ground3);
-  
-  return (gsd2 + gsd3)/2.0;
-}                
+  double gsd = (gsd2 + gsd3)/2.0;
+
+  // Throw an exception if the GSD is not positive or nan
+  if (gsd <= 0 || std::isnan(gsd))
+    vw_throw(ArgumentErr() << "The estimated GSD is not positive or is nan.\n");
+    
+  return gsd;  
+}    
 
 }} // end namespace vw::camera

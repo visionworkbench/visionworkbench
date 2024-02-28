@@ -29,7 +29,7 @@
 namespace vw { namespace camera {
                 
 // Estimate the GSD at the given pixel given an estimate of the ground point
-// along the ray (or close to the ray).
+// along the ray (or close to the ray). This can throw exceptions.
 double estimatedGSD(vw::camera::CameraModel const* camera_model, 
                     vw::BBox2i const& image_bbox,
                     vw::Vector2 const& pixel,
