@@ -49,7 +49,6 @@ namespace cartography {
 
 bool read_georeference(GeoReference& georef,
                         ImageResource const& resource) {
-  
   DiskImageResourceGDAL const* gdal =
     dynamic_cast<DiskImageResourceGDAL const*>(&resource);
   if (gdal) 
@@ -194,15 +193,25 @@ std::string GeoReference::overall_proj4_str() const {
 // semi-minor axes differ by a bit more than 1e-4.
 void fixDatum(OGRSpatialReference & gdal_spatial_ref, 
               vw::cartography::Datum const& datum) {
-  
+
+  // The datum name can be null, and this can result in a crash.
+  // Cannot continue in this case.
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+  if (datum_name == NULL)
+    return;
+  
   std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
   if (lc_datum_name.find("unknown") == std::string::npos &&
       lc_datum_name.find("user specified datum") == std::string::npos)
     return; // The datum name is already good
     
   const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
-  std::string meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
+  if (spheroid_name == NULL)
+    return;
+  const char* meridian_name_ptr = gdal_spatial_ref.GetAttrValue("PRIMEM");
+  if (meridian_name_ptr == NULL)
+    return;
+  std::string meridian_name = meridian_name_ptr;
   double meridian_offset = gdal_spatial_ref.GetPrimeMeridian();
   double inv_flattening = gdal_spatial_ref.GetInvFlattening();
   OGRErr e1, e2;
@@ -229,7 +238,11 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref,
 // known datums.
 void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
   
+  // The datum name can be null, and this can result in a crash.
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+  if (datum_name == NULL) 
+    return;
+
   std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
   if (lc_datum_name.find("unknown") == std::string::npos &&
       lc_datum_name.find("user specified datum") == std::string::npos)
@@ -608,10 +621,8 @@ void GeoReference::set_wkt(std::string const& wkt) {
   // If there is a PROJCS name, record it.
   m_projcs_name = "Geographic Coordinate System";
   const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
-  if (projcs != NULL) {
-    // Careful here, to avoid a segfault
-    m_projcs_name = std::string(projcs);
-  }
+  if (projcs != NULL)
+    m_projcs_name = std::string(projcs); // Careful here, to avoid a segfault
 
   // The returned coordinates will be in longitude, latitude order
   // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
