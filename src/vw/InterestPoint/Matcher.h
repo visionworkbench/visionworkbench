@@ -370,7 +370,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
 
     if (num_matches_found < KNN) {
       // If we did not get two nearest neighbors, return no match for this point.
-      vw_out() << "Bad descriptor = " << ip.descriptor << std::endl;
+      //vw_out() << "Bad descriptor = " << ip.descriptor << std::endl;
       index_list.push_back( (size_t)(-1) ); // Last value of size_t
     } else {
 

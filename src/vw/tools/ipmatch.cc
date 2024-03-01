@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
   // Separate the images from the .vwip files
   std::vector<std::string> image_paths, vwip_paths;
   for (size_t it = 0; it < input_file_names.size(); it++) {
-    if (fs::extension(input_file_names[it]) != ".vwip")
+    if (fs::path(input_file_names[it]).extension().string() != ".vwip")
       image_paths.push_back(input_file_names[it]);
     else
       vwip_paths.push_back(input_file_names[it]);
