@@ -183,8 +183,7 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
 
 bool vw::ba::build_control_network(bool triangulate_control_points,
                                    ba::ControlNetwork& cnet,
-                                   std::vector<boost::shared_ptr<camera::CameraModel>>
-                                   const& camera_models,
+                                   std::vector<vw::CamPtr> const& camera_models,
                                    std::vector<std::string> const& image_files,
                                    std::map<std::pair<int, int>, std::string> const& match_files,
                                    size_t min_matches,

@@ -966,8 +966,12 @@ void ControlNetwork::write_in_gcp_format(std::string const& filename,
   std::ofstream ofs(filename.c_str());
   ofs.precision(17);
 
+  // It is important to keep track of the datum
+  // because the elevations are relative to it
+  ofs << "# WKT: " << d.get_wkt() << std::endl;
+
   int count = 0;
-  for (const_iterator iter = begin(); iter != end(); ++iter) {
+  for (const_iterator iter = begin(); iter != end(); iter++) {
 
     // If to dump only gcp
     //if ((*iter).type() != ControlPoint::GroundControlPoint) continue;
