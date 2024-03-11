@@ -170,15 +170,20 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
 
   // This is a verbose message, but it helps when users are confused as to why
   // their bundle adjustment failed.
-  if (num_failed_points > 0)
-    vw_out() << "\n" << "Triangulated successfully "
+  double failed_ratio = num_failed_points / double(num_total_points);
+  if (num_failed_points > 0 || num_total_points == 0) {
+    vw_out() << "Triangulated successfully "
              << num_total_points - num_failed_points << " out of " << num_total_points
              << " control points (ratio: " 
-             << 1.0 - num_failed_points / double(num_total_points)
-             << "). If too many failures, perhaps your baseline/convergence angle "
-             << "is too small. Or consider deleting your run directory and rerunning "
-             << "with more match points, decreasing --min-triangulation-angle, or using "
-             << "--forced-triangulation-distance.\n";
+             << 1.0 - failed_ratio << ").\n";
+    if (num_total_points < 30 || failed_ratio > 0.5)
+      vw_out() << "If too many failures, perhaps your baseline/convergence angle "
+              << "is too small. Consider deleting your run directory and rerunning "
+              << "with more match points, decreasing --min-triangulation-angle, or using "
+              << "--forced-triangulation-distance.\n";
+  }
+  
+  return;
 }
 
 bool vw::ba::build_control_network(bool triangulate_control_points,
