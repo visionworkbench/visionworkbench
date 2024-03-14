@@ -109,23 +109,6 @@ namespace vw { namespace cartography { namespace detail {
     
   }; // End class CameraDatumBBoxHelper
 
-  // TODO: Why is this not done by default?
-  void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point){
-    if (!georef.is_projected()){
-      // If we don't use a projected coordinate system, then the
-      // coordinates of this point are simply lon and lat.
-      // - Normalize the longitude coordinate.
-      if ( center_on_zero && point[0] > 180 )
-        point[0] -= 360.0;
-      else if ( center_on_zero && point[0] < -180 )
-        point[0] += 360.0;
-      else if ( !center_on_zero && point[0] < 0 )
-        point[0] += 360.0;
-      else if ( !center_on_zero && point[0] > 360 )
-        point[0] -= 360.0;
-    }
-  }
-  
 }}}
   
 BBox2 cartography::camera_bbox(cartography::GeoReference const& georef,

@@ -240,6 +240,10 @@ namespace vw { namespace cartography {
       for (int i = 0; i < 100; i++) {
         double x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
         len2[0] = x2;
+        
+        if (std::isnan(x2) || std::isinf(x2))
+          break; // bad value, give up
+        
         double f2 = model(len2)[0];
         if (std::abs(f2) < height_error_tol) {
           x0 = x2;
@@ -314,6 +318,7 @@ namespace vw { namespace cartography {
       // robust than the Levenberg-Marquardt method used below (which used to be
       // the original method).
       Vector<double, 1> len_secant = len; // will change
+      
       secantMethod(model, camera_ctr, camera_vec, height_error_tol,
                    has_intersection, len_secant);
       if (has_intersection) {
@@ -356,10 +361,6 @@ namespace vw { namespace cartography {
 
   namespace detail {
 
-    // TODO: This should be done by default!
-    // Normalize the coordinate if lonlat
-    void recenter_point(bool center_on_zero, GeoReference const& georef, Vector2 & point);
-                        
     /// Apply a function to evenly spaced locations along a line of pixels
     template <class FunctionT>
     void bresenham_apply(math::BresenhamLine line, size_t step,
@@ -441,10 +442,9 @@ namespace vw { namespace cartography {
           // and to a projected coordinate system
           Vector3 llh = target_georef.datum().cartesian_to_geodetic(xyz);
           point = target_georef.lonlat_to_point(Vector2(llh.x(), llh.y()));
-          vw::cartography::detail::recenter_point(center_on_zero, target_georef, point);
                     
           return has_intersection;
-        }catch(...){
+        } catch(...) {
           return false;
         }
       }
@@ -573,11 +573,6 @@ namespace vw { namespace cartography {
     
   } // end namespace detail
 
-  // Functions for Users
-  //////////////////////////////////////////////////////
-
-  // Simple Intersection interfaces
-  
   /// Compute the bounding box in points (georeference space) that is
   /// defined by georef. Scale is MPP as georeference space is in meters.
   /// - If coords is provided the intersection coordinates will be stored there.
@@ -721,7 +716,6 @@ namespace vw { namespace cartography {
           height = dem.impl()(dem_pix[0], dem_pix[1]);
 
           point = target_georef.lonlat_to_point(lonlat);
-          vw::cartography::detail::recenter_point(center_on_zero, target_georef, point);
 
           // Note: This height will be used further down
           llh[0] = lonlat[0]; llh[1] = lonlat[1]; llh[2] = height;
