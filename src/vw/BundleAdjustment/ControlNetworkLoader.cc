@@ -64,33 +64,33 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   // Ensure this is initialized
   cp.set_position((Vector3(0, 0, 0)));
   
-  // TODO(oalexan1): This is fragile as it only intersects each ray with the
-  // next one, given N rays. 
-
-  // Do pairwise triangulation then average the results.  Note that as
-  // long as at least two of the rays meet with a triangulation angle
-  // no less than min_angle_radians, triangulation will succeed, and
-  // these successful triangulation points will be averaged. Hence,
-  // while some of the rays can meet at a very small angle, their
-  // intersection, being unreliable, will not be added to the
-  // mix. This allows, for example, for a triplet of rays, R1, R2, R3,
-  // all corresponding to matching features and converging to the same
-  // triangulated point, so that R1 and R2 have a very small angle,
-  // but R1 and R3, then R2 and R3 have a very solid angle. This
-  // triangulated point should be robust enough if the min
-  // triangulation angle is, say, no less than 5 degrees, and ideally
-  // 15-20 degrees or more.
-  for (size_t j = 0, k = 1; k < cp.size(); j++, k++) {
-    // Make sure camera centers are not equal
-    size_t j_cam_id = cp[j].image_id();
-    size_t k_cam_id = cp[k].image_id();
-    if (norm_2(camera_models[j_cam_id]->camera_center(cp[j].position()) -
-                 camera_models[k_cam_id]->camera_center(cp[k].position())) > 1e-6) {
+  // Do pairwise triangulation then average the results. For speed, consider
+  // only each ray and next 10 rays. Should be enough. Note that as long as at
+  // least two of the rays meet with a triangulation angle no less than
+  // min_angle_radians, triangulation will succeed, and these successful
+  // triangulation points will be averaged. Hence, while some of the rays can
+  // meet at a very small angle, their intersection, being unreliable, will not
+  // be added to the mix. This allows, for example, for a triplet of rays, R1,
+  // R2, R3, all corresponding to matching features and converging to the same
+  // triangulated point, so that R1 and R2 have a very small angle, but R1 and
+  // R3, then R2 and R3 have a very solid angle. This triangulated point should
+  // be robust enough if the min triangulation angle is, say, no less than 5
+  // degrees, and ideally 15-20 degrees or more.
+  for (size_t j = 0; j < cp.size(); j++) {
+    for (size_t k = j + 1; k < std::min(j + 11, cp.size()); k++) {
+      size_t j_cam_id = cp[j].image_id();
+      size_t k_cam_id = cp[k].image_id();
+      
+      // Make sure camera centers are not equal
+      auto const& c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
+      auto const& c2 = camera_models[k_cam_id]->camera_center(cp[k].position());
+      if (norm_2(c1 - c2) <= 1e-6)
+        continue;
+        
       try {
-
         bool least_squares = false;
         stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
-                               least_squares, angle_tol); // use angle_tol0
+                                least_squares, angle_tol); // use angle_tol
         
         Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
         // TODO: When forced_triangulation_distance > 0, one can check
@@ -104,17 +104,21 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
         }
 
       } catch (std::exception const& e) {
-        // Just let it go
+        continue;
       }
     }
   }
-
+  
   // Summing, averaging, and storing
   if (count == 0) {
     // It failed to triangulate. At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general' area.
     size_t j = cp[0].image_id();
-    double dist = 10.0; // for backward compatibility
+    // Set the point to be a certain distance from the camera center
+    // TODO(oalexan1): Later the flag that the triangulation failed is not checked.
+    // It is not clear if that should be done. This may end up in too many points
+    // thrown out.
+    double dist = 1000000.0; // 1000 km
     if (forced_triangulation_distance > 0) 
       dist = forced_triangulation_distance;
     try {
@@ -125,13 +129,15 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
         cp.set_position(camera_models[j]->camera_center(cp[0].position()) +
                       camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,dist)));
       } catch (...) {
+        cp.set_ignore(true);
         return -1; // nothing can be done
       }
     }
     
-    if (forced_triangulation_distance > 0)
+    if (forced_triangulation_distance > 0) 
       return 1; // mark triangulation as successful
     
+    cp.set_ignore(true);
     return -1;
   }
   
