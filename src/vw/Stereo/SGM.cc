@@ -515,8 +515,6 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
       } // End col loop
     } // End row loop
-    //std::cout << "max_range_bbox = " << max_range_bbox << std::endl;
-    //std::cout << "===> Writing file: search_size_image"+s.str()+".tif\n";
     //write_image("search_size_image"+s.str()+".tif", search_size_image);
   } // End of search range shrinking code
 
@@ -726,48 +724,27 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   }
   AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
   if (debug) {
-    std::cout << "Prior pixel = ("<<col_p<<","<<row_p<<")\n";
-    std::cout << "m_p2  : " << m_p2 << std::endl;
-    std::cout << "path_intensity_gradient  : " << path_intensity_gradient << std::endl;
-    std::cout << "p2_mod  : " << p2_mod << std::endl;
-    std::cout << "Bounds  : " << pixel_disp_bounds << std::endl;
-    std::cout << "Bounds_P: " << pixel_disp_bounds_p << std::endl;
 
-    std::cout << "min_prior = " <<  min_prior << std::endl;
-    std::cout << "min_prev_disparity_cost = " <<  min_prev_disparity_cost << std::endl;
-
-    std::cout << "Priors: \n";
     int i=0;    
     for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
       for (int dx=pixel_disp_bounds_p[0]; dx<=pixel_disp_bounds_p[2]; ++dx) {
-        std::cout << prior[i] << " ";
         ++i;
       }
-      std::cout << std::endl;
     }
-    std::cout << std::endl;
 
-    std::cout << "Costs: \n";
     i=0;
     for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
       for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
-        std::cout << int(local[i]) << " ";
         ++i;
       }
-      std::cout << std::endl;
     }
-    std::cout << std::endl;
 
-    std::cout << "Full prior buffer: \n";
     i = 0;
     for (int r=0; r<m_num_disp_y; ++r) {
       for (int c=0; c<m_num_disp_x; ++c) {
-        std::cout << full_prior_buffer[i] << " ";
         ++i;
       }
-      std::cout << std::endl;
     }
-    std::cout << std::endl;
   }
   const int LOOKUP_TABLE_WIDTH = 8;
 
@@ -824,27 +801,19 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
     int min_val   = 99999;
     int min_index = 0;
 
-    std::cout << "Output: \n";
     int i=0;
     for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
       for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
-        std::cout << output[i] << " ";
         if (output[i] < min_val) {
           min_val   = output[i];
           min_index = i;
         }
         ++i;
       }
-      std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     DisparityType dx, dy;
     disp_to_xy(min_index, dx, dy);
-    std::cout << "Min value = " << min_val << std::endl;
-    std::cout << "Disp = " << dx-4 <<", " << dy-4 << std::endl;
-    std::cout << "Min index = " << min_index << std::endl<< std::endl;
-    std::cout << "========================================\n\n";
   }
   // Remove the valid disparity scores from full_prior buffer.
   for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
@@ -931,7 +900,6 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
   __m128i _dp1 = _mm_set1_epi16(static_cast<int16>(m_p1));
   
   //printf("dJ = %d, dP = %d, dp1 = %d\n", min_prev_disparity_cost, min_prior, m_p1);
-  //std::cout << "pixel_disp_bounds = " << pixel_disp_bounds << std::endl;
   
   // Loop through disparities for this pixel
   int sse_index = 0, output_index = 0;
@@ -1043,18 +1011,6 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
     }
   } // End double loop
 
-  if (debug) {
-    std::cout << "Input:\n";
-    for (int j=0; j<height; ++j) {
-      for (int i=0; i<width; ++i) {
-        std::cout << buffer[j*width+i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << "min_index = " << min_index << std::endl;
-    std::cout << std::endl;
-  }
-
   // Filtering steps below will go back and forth between buffers.
   AccumCostType * input_array  = accum_vec;
   AccumCostType * output_array = &(buffer[0]);
@@ -1132,19 +1088,7 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
       } // End col loop
     } // End row loop
 
-    ++iter_count;
-
-    if (debug ) {
-      std::cout << "Filtered:\n";
-      for (int j=0; j<height; ++j) {
-        for (int i=0; i<width; ++i) {
-          std::cout << output_array[j*width+i] << " ";
-        }
-        std::cout << std::endl;
-      }
-      std::cout << std::endl;
-      std::cout << "New min count = " << min_count << std::endl;
-    }
+    iter_count++;
 
     // Make sure this never becomes an infinite loop    
     if (iter_count >= MAX_ITERATIONS)
@@ -1155,19 +1099,6 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
   if ((iter_count > 0) && (iter_count % 2 == 0)) {
     for (int i=0; i<index; ++i)
       input_array[i] = output_array[i];
-  }
-
-  if (debug) {
-    std::cout << "Output:\n";
-    for (int j=0; j<height; ++j) {
-      for (int i=0; i<width; ++i) {
-        std::cout << accum_vec[j*width+i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << "min_index = " << min_index << std::endl;
-    std::cout << "iter_count = " << iter_count << std::endl;
-    std::cout << "min_count = " << min_count << std::endl << std::endl;
   }
 
   return min_count;
@@ -1227,14 +1158,11 @@ SemiGlobalMatcher::create_disparity_view() {
 
       // Valid pixel, choose the best disparity.
 
-      bool debug = false;//((j==2937) && (i >= 4635) && (i <= 4645));
       const Vector4i bounds = m_disp_bound_image(i, j);
       AccumCostType  *accum_vec = get_accum_vector(i, j);
-      if (debug)
-        std::cout << "j = " << j << ", i = " << i << std::endl;
+      bool debug = false;
       select_best_disparity(accum_vec, bounds, min_index, accum_buffer, debug);
       disp_index_to_xy(min_index, i, j, dx, dy);
-
       disparity(i,j) = DisparityImage::pixel_type(dx, dy);
 
       // DEBUG
@@ -1282,29 +1210,24 @@ SemiGlobalMatcher::create_disparity_view() {
 
         AccumCostType* vec = get_accum_vector(i, j);
         const int num_disp = get_num_disparities(i, j);
-        for (int k=0; k<num_disp; ++k)
-          std::cout << vec[k] << " " ;
       }
       */
     }
   }
-  /*std::cout << "Writing WTA diff image\n";
-  write_image("wta_intervals.tif",    wto_intervals);
-  write_image("second_intervals.tif", second_intervals);
-  write_image("max_intervals.tif",    max_intervals);
-  write_image("min_counts.tif",       min_counts);
-  write_image("wto_ratios.tif",       wto_ratio);
-  write_image("raw_scores.tif",       raw);
-  write_image("cost_second.tif",      cost_second);
-  write_image("cost_ratio.tif",       cost_ratio);
-  write_image("best_costs.tif",       best_costs);
-  write_image("worst_costs.tif",      worst_costs);*/
+  // write_image("wta_intervals.tif",    wto_intervals);
+  // write_image("second_intervals.tif", second_intervals);
+  // write_image("max_intervals.tif",    max_intervals);
+  // write_image("min_counts.tif",       min_counts);
+  // write_image("wto_ratios.tif",       wto_ratio);
+  // write_image("raw_scores.tif",       raw);
+  // write_image("cost_second.tif",      cost_second);
+  // write_image("cost_ratio.tif",       cost_ratio);
+  // write_image("best_costs.tif",       best_costs);
+  // write_image("worst_costs.tif",      worst_costs);*/
 
   vw_out(DebugMessage, "stereo") << "Finished creating integer disparity image.\n";
   return disparity;
 }
-
-
 
 // A number of proposed subpixel algorithms
 double linearFit(double x) {
@@ -1781,18 +1704,21 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
     case 5:  fill_costs_census5x5(left_image, right_image); break;
     case 7:  fill_costs_census7x7(left_image, right_image); break;
     case 9:  fill_costs_census9x9(left_image, right_image); break;
-    default: vw_throw( NoImplErr() << "Census transforms are only available in size 3, 5, 7, and 9!\n"
-                                   << "Other cost mode options do not have this restriction.");
+    default: vw_throw( NoImplErr() 
+                      << "Census transforms are only available in size 3, 5, 7, and 9!\n"
+                      << "Other cost mode options do not have this restriction.");
     };
   }
-  else { // Use the default mean of diff cost function
-    // Replace this with ASP's efficient existing cost functions?
+  else { 
+    // Use the default mean of diff cost function.
+    // Throw an error here, as this approach produces bad results.
+    vw::vw_throw(NoImplErr() << "With SGM/MGM, only the census transform cost mode "
+                 << "gives good results.\n");
     fill_costs_block(left_image, right_image);
   }
 
   /*
   // DEBUG: Record the min and max cost for each pixel
-  std::cout << "Generating debug cost images\n";
   ImageView<CostType> min_cost_image(m_num_output_cols, m_num_output_rows),
                       max_cost_image(m_num_output_cols, m_num_output_rows),
                       mean_cost_image(m_num_output_cols, m_num_output_rows);
@@ -1835,7 +1761,6 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
 /* DEBUG: Generate a scanline costs image
  int debug_row = m_num_output_rows * 0.5;
  if (m_num_output_rows > debug_row) {
-   std::cout << "debug row = " << debug_row << std::endl;
    ImageView<uint8> cost_image( m_num_output_cols, m_num_disp ); // TODO: Change type?
    std::fill(cost_image.data(), cost_image.data()+m_num_output_cols*m_num_disp, 255);
    for ( int i = 0; i < m_num_output_cols; i++ ) {
@@ -1845,14 +1770,12 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
      for ( int dy = bounds[1]; dy < bounds[3]; dy++ ) {
        for ( int dx = bounds[0]; dx < bounds[2]; dx++ ) {
          int d = xy_to_disp(dx, dy);
-         //std::cout << "cost = " << int(buff[d]) << std::endl;
          cost_image(i,d) = buff[index]; // TODO: scale!
          ++index;
        }
      }
    }
    write_image("scanline_costs_block.tif",cost_image);
-   std::cout << "Done writing line dump.\n";
  }
 */
 
@@ -2302,11 +2225,11 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
 
 SemiGlobalMatcher::DisparityImage
-SemiGlobalMatcher::semi_global_matching_func( ImageView<uint8> const& left_image,
-                                              ImageView<uint8> const& right_image,
-                                              ImageView<uint8> const* left_image_mask,
-                                              ImageView<uint8> const* right_image_mask,
-                                              DisparityImage const* prev_disparity) {
+SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
+                                             ImageView<uint8> const& right_image,
+                                             ImageView<uint8> const* left_image_mask,
+                                             ImageView<uint8> const* right_image_mask,
+                                             DisparityImage const* prev_disparity) {
 
   // Compute safe bounds to search through given the disparity range and kernel size.
   // - Using inclusive bounds here.
@@ -2399,7 +2322,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   // Initialize a number of line buffers equal to the number of threads
   OneLineBufferManager mem_buff_manager(num_threads, this);
 
-  // Each direction of lines is handled seperately.  This adds some additional wait time
+  // Each direction of lines is handled separately.  This adds some additional wait time
   //  as each direction finishes up but it allows the threads to simultaneously read/write
   //  the main accumulation buffer without any collisions.
 

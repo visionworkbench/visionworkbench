@@ -107,7 +107,7 @@ namespace vw {
                   processing_order.push_back( Vector2i(i,j) );
                 }
 
-          // Iterate and apply convolution seperately to each channel
+          // Iterate and apply convolution separately to each channel
           typedef typename CompoundChannelCast<pixel_type,float>::type AccumulatorType;
           for ( int d = 0; d < 10*max_distance*max_distance; d++ )
             BOOST_FOREACH( Vector2i const& l, processing_order ) {
