@@ -723,29 +723,6 @@ void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
     }
   }
   AccumCostType min_prev_disparity_cost = min_prior + p2_mod;
-  if (debug) {
-
-    int i=0;    
-    for (int dy=pixel_disp_bounds_p[1]; dy<=pixel_disp_bounds_p[3]; ++dy) {
-      for (int dx=pixel_disp_bounds_p[0]; dx<=pixel_disp_bounds_p[2]; ++dx) {
-        ++i;
-      }
-    }
-
-    i=0;
-    for (int dy=pixel_disp_bounds[1]; dy<=pixel_disp_bounds[3]; ++dy) {
-      for (int dx=pixel_disp_bounds[0]; dx<=pixel_disp_bounds[2]; ++dx) {
-        ++i;
-      }
-    }
-
-    i = 0;
-    for (int r=0; r<m_num_disp_y; ++r) {
-      for (int c=0; c<m_num_disp_x; ++c) {
-        ++i;
-      }
-    }
-  }
   const int LOOKUP_TABLE_WIDTH = 8;
 
   // Loop through disparities for this pixel
@@ -1223,7 +1200,7 @@ SemiGlobalMatcher::create_disparity_view() {
   // write_image("cost_second.tif",      cost_second);
   // write_image("cost_ratio.tif",       cost_ratio);
   // write_image("best_costs.tif",       best_costs);
-  // write_image("worst_costs.tif",      worst_costs);*/
+  // write_image("worst_costs.tif",      worst_costs);
 
   vw_out(DebugMessage, "stereo") << "Finished creating integer disparity image.\n";
   return disparity;
