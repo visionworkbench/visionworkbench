@@ -76,7 +76,12 @@ void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals,
   double val;
   while (is.good()){
     std::getline(is, line);
-    if ( sscanf(line.c_str(),"%s = %lf", name, &val) != 2 )
+    // Replace "=" with a space. This way need not worry about spaces around the equal sign.
+    for (size_t i = 0; i < line.size(); i++) {
+      if (line[i] == '=')
+        line[i] = ' ';
+    }
+    if (sscanf(line.c_str(),"%s %lf", name, &val) != 2)
       continue;
     
     name2val[name] = val;
