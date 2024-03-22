@@ -106,7 +106,7 @@ namespace camera {
     // convert it to that. For example, if distortion and focal length
     // have been described in mm. Pixel pitch would then be described in mm/px.
     // - To clarify, if the above units are given in pixels this should equal to 1.0.
-    // - It is kind of anoying that m_cu and m_cv must be in the same units as 
+    // - It is kind of annoying that m_cu and m_cv must be in the same units as 
     //   all the numbers in the lens distortion parameters.
     double m_pixel_pitch;
 

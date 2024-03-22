@@ -19,11 +19,12 @@
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/LevenbergMarquardt.h>
-
+#include <set>
 using namespace vw;
 using namespace camera;
 
-// Special LMA Models to figure out foward and backward ---------
+// Special LMA Models to reverse the distortion.
+// TODO(oalexan1): Better use Newton's method here. Should be much faster.
 // - Use the SQ version of the optimizer calls because our matrices are always 2x2.
 
 // Optimization functor for computing the undistorted coordinates
@@ -58,13 +59,16 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseFixed<Distort
 // Isolate these local utilities to this file.
 namespace {
   
-// Pull all lines from the stream. Search for "name = val". Store the
-// values in the order given in "names". Complain if some fields were
-// not populated. This has the advantage that the order of lines in
+// Pull all lines from the stream. Search for "name = val". Store the values in
+// the order given in "names". Complain if some fields were not populated,
+// unless in the set named missing_ok, in which case they are set to zero.
+// This has the advantage that the order of lines in
 // the stream is not important, and it won't complain if there are
 // extraneous fields.
 template<class VectorT>
-void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals, std::istream & is){
+void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals, 
+                        std::istream & is, 
+                        std::set<std::string> const& missing_ok = std::set<std::string>()) {
 
   std::map<std::string, double> name2val;
   std::string line;
@@ -80,12 +84,19 @@ void read_fields_in_vec(std::vector<std::string> const& names, VectorT & vals, s
 
   // Populate the output
   for (size_t i = 0; i < names.size(); i++) {
-    if (i >= vals.size())
+    if (i >= vals.size() + missing_ok.size())
       vw_throw( IOErr() << "Not enough room allocated for output.\n" );
 
     std::map<std::string, double>::iterator it = name2val.find(names[i]);
-    if (it == name2val.end()) 
-      vw_throw( IOErr() << "Could not read a value for " << names[i] << ".\n" );
+    if (it == name2val.end()) {
+      // See if this is in the missing_ok set, then set to zero
+      if (missing_ok.find(names[i]) != missing_ok.end()) {
+        vals[i] = 0;
+        continue;
+      }
+      vw_throw(IOErr() << "LensDistortion: Could not read a value for "
+                       << names[i] << ".\n");
+    }
     
     vals[i] = it->second;
   }
@@ -163,7 +174,7 @@ void write_param(std::string const& param_name, std::ostream & os, double val){
 
 } // end of anonymous namespace
 
-// Default implemenations for Lens Distortion -------------------
+// Default implementations for Lens Distortion -------------------
 
 
 Vector<double>
@@ -189,8 +200,6 @@ LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2
   //VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
   //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
   //double error = norm_2(model(solution) - v);
-  //std::cout << "status = " << status << ", input = " << v 
-  //          << ", pixel = " << solution << ", error = " << error << std::endl;
   return solution;
 }
 
@@ -244,7 +253,7 @@ void NullLensDistortion::scale(double scale) { }
 
 // ======== TsaiLensDistortion ========
 
-TsaiLensDistortion::TsaiLensDistortion(){
+TsaiLensDistortion::TsaiLensDistortion() {
   TsaiLensDistortion::init_distortion_param_names();
   m_distortion.set_size(m_distortion_param_names.size());
 }
@@ -258,8 +267,8 @@ TsaiLensDistortion::TsaiLensDistortion(Vector<double> const& params) : m_distort
 Vector<double>
 TsaiLensDistortion::distortion_parameters() const { return m_distortion; }
 
-void TsaiLensDistortion::init_distortion_param_names(){
-  std::string names[] = {"k1", "k2", "p1", "p2"};
+void TsaiLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1", "k2", "p1", "p2", "k3"}; // k3 must be last
   size_t num_names = sizeof(names)/sizeof(std::string);
   m_distortion_param_names.resize(num_names);
   for (size_t p = 0; p < num_names; p++) 
@@ -278,8 +287,12 @@ TsaiLensDistortion::copy() const {
   return boost::shared_ptr<TsaiLensDistortion>(new TsaiLensDistortion(*this));
 }
 
-Vector2
-TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+// This was validated to be in perfect agreement with the OpenCV implementation.
+// https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
+// The function cv::projectPoints() was used for validation, with no rotation
+// or translation. 
+Vector2 TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
+                                                  Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv] 
   Vector2 offset = cam.point_offset(); // = [cu, cv]
@@ -288,32 +301,24 @@ TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vecto
     return Vector2(HUGE_VAL, HUGE_VAL);
 
   Vector2 dudv(p - offset); // = [u-cx, v-cy]
-  Vector2 p_0 = elem_quot(dudv, focal); // = dudv / f = [x, y] // Normalized pixel coordinates (1 == f)
-  double r2 = norm_2_sqr( p_0 ); // = x^2 + y^2
-  Vector2 distortion( m_distortion[3], m_distortion[2] ); // [p2, p1]
-  Vector2 p_1 =   elem_quot(distortion, p_0); // = [  p2/x,   p1/y]
-  Vector2 p_3 = 2*elem_prod(distortion, p_0); // = [2*p2*x, 2*p1*y]
-
-  Vector2 b =  elem_prod(r2,p_1); // = [r2*p2/x, r2*p1/y]
-  b = elem_sum(b,r2*(m_distortion[0] + r2 * m_distortion[1]) + sum(p_3));
-  // = elem_sum(b, k1*r2 + k2*r4 + 2*p2*x + 2*p1*y);
-  // = [ k1*r2 + k2*r4 + 2*p2*x + 2*p1*y + r2*p2/x, 
-  //     k1*r2 + k2*r4 + 2*p2*x + 2*p1*y + r2*p1/y ]
-
-  // Note that after the multiplication step below, this matches the commonly seen equations:
-  // = [ x(k1*r2 + k2*r4) + 2*p2*x^2 + 2*p1*y*x + r2*p2, 
-  //     y(k1*r2 + k2*r4) + 2*p2*x*y + 2*p1*y^2 + r2*p1 ]
-  // = [ x(k1*r2 + k2*r4) + 2*p1*x*y + p2(r2 + 2x^2), 
-  //     y(k1*r2 + k2*r4) + 2*p2*x*y + p1(r2 + 2y^2) ]
-
-  // Prevent divide by zero at the origin or along the x and y center line
-  Vector2 result = p + elem_prod(b, dudv); // = p + [du, dv]*(b)
-  if (p[0] == offset[0])
-    result[0] = p[0];
-  if (p[1] == offset[1])
-    result[1] = p[1];
-
-  return result;
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  double x = p_0[0];
+  double y = p_0[1];
+  
+  double k1 = m_distortion[0];
+  double k2 = m_distortion[1];
+  double p1 = m_distortion[2];
+  double p2 = m_distortion[3];
+  double k3 = m_distortion[4]; // k3 must be last
+  
+  double r2 = x * x + y * y;
+  double rdist = 1.0 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2;
+  double dx = x * rdist + (2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x));
+  double dy = y * rdist + (p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y);
+  
+  dx = dx * focal[0] + offset[0];
+  dy = dy * focal[1] + offset[1];
+  return Vector2(dx, dy);
 }
 
 void TsaiLensDistortion::write(std::ostream & os) const {
@@ -323,7 +328,9 @@ void TsaiLensDistortion::write(std::ostream & os) const {
 
 void TsaiLensDistortion::read(std::istream & is) {
   m_distortion.set_size(m_distortion_param_names.size());
-  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  std::set<std::string> missing_ok;
+  missing_ok.insert("k3"); // this may be missing, then set to zero
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is, missing_ok);
 }
 
 void TsaiLensDistortion::scale( double scale ) {

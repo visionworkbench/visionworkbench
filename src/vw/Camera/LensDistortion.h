@@ -119,35 +119,25 @@ namespace camera {
   };
 
   /// TSAI Lens Distortion Model
-  ///
-  /// The equations for this model are:
-  /// (u, v) = undistorted coordinates
-  /// (u', v') = observed (distorted) coordinates
-  /// (x, y) = object coordinates of projected point
-  /// r2 = x * x + y * y   -- square of distance from object to primary vector
-  /// k1, k2 are radial distortion parameters; p1, p2 are tangential distortion
-  /// parameters. principal point is at (cx, cy).
-  ///
-  /// u' = u + (u - cx) * (k1 * r2 + k2 * r4 + 2 * p1 * y + p2 * (r2/x + 2x))
-  /// v' = v + (v - cy) * (k1 * r2 + k2 * r4 + 2 * p2 * x + p1 * (r2/y + 2y))
-  ///
-  /// k1 is distortion[0], k2 is distortion[1],  p1 is distortion[2], p2 is distortion[3]
-  /// The input pixel value is normalivzed before the calculations are performed.
-  ///
+  /// This was validated to be in perfect agreement with the OpenCV implementation.
+  /// https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
+  
+  /// The function cv::projectPoints() was used for validation, with no rotation
+  /// or translation. 
+  
   /// References: Roger Tsai, A Versatile Camera Calibration Technique for a High-Accuracy 3D
   /// Machine Vision Metrology Using Off-the-shelf TV Cameras and Lenses
   ///
   /// Be careful when you find a camera calibration result with K1/K2, even though the names
-  ///  are the same they could be used in a different way than the TSAI model!!!
+  /// are the same they could be used in a different way than the TSAI model!!!
 
   class TsaiLensDistortion : public LensDistortion {
   public:
-    static const size_t num_distortion_params = 4;
     TsaiLensDistortion();
     TsaiLensDistortion(Vector<double> const& params);
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
-    virtual int num_dist_params() const { return num_distortion_params; }
+    virtual int num_dist_params() const { return m_distortion.size(); }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
@@ -163,7 +153,7 @@ namespace camera {
     void init_distortion_param_names();
 
   private:
-    Vector<double, num_distortion_params> m_distortion;
+    Vector<double> m_distortion;
   };
 
   /// Brown Conrady Distortion
