@@ -56,6 +56,59 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseFixed<Distort
   }
 };
 
+// Use the Newton-Raphson method to undistort a pixel (dx, dy), producing (ux, uy).
+// TODO(oalexan1): Apply this to all distortion models. It is 10x faster
+// than using UndistortOptimizeFunctor.
+void newtonRaphson(double dx, double dy, double &ux, double &uy,
+                    Vector<double> const& opticalDistCoeffs,
+                    const double tolerance,
+                    std::function<void(double, double, double &, double &,
+                                       Vector<double> const&)> distortionFunction,
+                    std::function<void(double, double, double *, 
+                                       Vector<double> const&)> distortionJacobian) {
+
+  const int maxTries = 20;
+
+  double x, y, fx, fy, jacobian[4];
+
+  // Initial guess for the root
+  x = dx;
+  y = dy;
+
+  distortionFunction(x, y, fx, fy, opticalDistCoeffs);
+
+  for (int count = 1;
+        ((fabs(fx) + fabs(fy)) > tolerance) && (count < maxTries); count++) {
+    distortionFunction(x, y, fx, fy, opticalDistCoeffs);
+
+    fx = dx - fx;
+    fy = dy - fy;
+
+    distortionJacobian(x, y, jacobian, opticalDistCoeffs);
+
+    // Jxx * Jyy - Jxy * Jyx
+    double determinant =
+        jacobian[0] * jacobian[3] - jacobian[1] * jacobian[2];
+    if (fabs(determinant) < 1e-6) {
+      ux = x;
+      uy = y;
+      // Near-zero determinant. Cannot continue. Return most recent result.
+      return;
+    }
+
+    x = x + (jacobian[3] * fx - jacobian[1] * fy) / determinant;
+    y = y + (jacobian[0] * fy - jacobian[2] * fx) / determinant;
+  }
+
+  if ((fabs(fx) + fabs(fy)) <= tolerance) {
+    // The method converged to a root.
+    ux = x;
+    uy = y;
+
+    return;
+  }
+}
+
 // Isolate these local utilities to this file.
 namespace {
   
@@ -292,6 +345,55 @@ TsaiLensDistortion::copy() const {
   return boost::shared_ptr<TsaiLensDistortion>(new TsaiLensDistortion(*this));
 }
 
+// Tsai distortion model, after normalizing the point to the unit focal plane
+void TsaiDistortion(double x, double y, double &dx, double &dy,
+                    Vector<double> const& distortion) {
+  double k1 = distortion[0];
+  double k2 = distortion[1];
+  double p1 = distortion[2];
+  double p2 = distortion[3];
+  double k3 = distortion[4]; // k3 must be last
+  
+  double r2 = x * x + y * y;
+  double rdist = 1.0 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2;
+  dx = x * rdist + (2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x));
+  dy = y * rdist + (p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y);
+}
+
+// Compute the jacobian for the Tsai distortion model
+void TsaiDistortionJacobian(double x, double y, double *jacobian,
+                            Vector<double> const& distortion) {
+
+  double k1 = distortion[0];
+  double k2 = distortion[1];
+  double p1 = distortion[2];
+  double p2 = distortion[3];
+  double k3 = distortion[4]; // k3 must be last
+  
+  double r2 = x * x + y * y;
+  double dr2dx = 2.0 * x;
+  double dr2dy = 2.0 * y;
+  double rdist = 1.0 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2;
+
+  // dfx / dx 
+  jacobian[0] = rdist    
+              + x * (k1 * dr2dx + k2 * dr2dx * 2.0 * r2 + k3 * dr2dx * 3.0 * r2 * r2)
+              + 2.0 * p1 * y + p2 * (dr2dx + 4.0 * x);
+  
+  // dfx / dy
+  jacobian[1] = x * (k1 * dr2dy + k2 * dr2dy * 2.0 * r2 + k3 * dr2dy * 3.0 * r2 * r2)
+              + 2.0 * p1 * x  + p2 * dr2dy;
+              
+  // dfy / dx
+  jacobian[2] = y * (k1 * dr2dx + k2 * dr2dx * 2.0 * r2 + k3 * dr2dx * 3.0 * r2 * r2)
+              + (p1 * dr2dx + 2.0 * p2 * y);
+  
+  // dfy / dy
+  jacobian[3] = rdist
+              + y * (k1 * dr2dy + k2 * dr2dy * 2.0 * r2 + k3 * dr2dy * 3.0 * r2 * r2)
+              + p1 * (dr2dy + 4.0 * y) + 2.0 * p2 * x;
+}
+
 // This was validated to be in perfect agreement with the OpenCV implementation.
 // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
 // The function cv::projectPoints() was used for validation, with no rotation
@@ -305,25 +407,45 @@ Vector2 TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& ca
   if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
-  Vector2 dudv(p - offset); // = [u-cx, v-cy]
+  Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
   double x = p_0[0];
   double y = p_0[1];
   
-  double k1 = m_distortion[0];
-  double k2 = m_distortion[1];
-  double p1 = m_distortion[2];
-  double p2 = m_distortion[3];
-  double k3 = m_distortion[4]; // k3 must be last
-  
-  double r2 = x * x + y * y;
-  double rdist = 1.0 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2;
-  double dx = x * rdist + (2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x));
-  double dy = y * rdist + (p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y);
-  
+  double dx, dy;
+  TsaiDistortion(x, y, dx, dy, m_distortion);
+
+  // Multiply by focal length and add the offset  
   dx = dx * focal[0] + offset[0];
   dy = dy * focal[1] + offset[1];
   return Vector2(dx, dy);
+}
+
+Vector2 TsaiLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
+                                                    Vector2 const& p) const {
+  
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  double dx = p_0[0];
+  double dy = p_0[1];
+
+  // Excessively low tolerance may result in numerical instability.
+  double tolerance = 1e-8;
+  double ux, uy;
+  newtonRaphson(dx, dy, ux, uy, m_distortion, tolerance, 
+                TsaiDistortion, TsaiDistortionJacobian);
+
+  // Multiply by focal length and add the offset  
+  ux = ux * focal[0] + offset[0];
+  uy = uy * focal[1] + offset[1];
+
+  return Vector2(ux, uy);
 }
 
 void TsaiLensDistortion::write(std::ostream & os) const {

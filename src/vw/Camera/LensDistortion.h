@@ -141,6 +141,7 @@ namespace camera {
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     
     virtual bool has_fast_distort  () const {return true;}
     
