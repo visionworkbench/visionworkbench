@@ -202,21 +202,42 @@ std::string strip_path(std::string out_prefix, std::string filename) {
   if (out_prefix != "" && found != std::string::npos)
     filename.erase(found, ss.length());
 
-  filename = fs::path(filename).stem().string();
+  // Find the basename using boost
+  filename = fs::path(filename).filename().string();
+
+  // Find the last dot in the file name. If not found, set it to the length of
+  // the string.
+  size_t dot = filename.rfind(".");
+  if (dot == std::string::npos)
+    dot = filename.size();
+    
+  // Find the substring until the dot
+  filename = filename.substr(0, dot);
 
   return filename;
 }
-
 
 std::string match_filename(std::string const& out_prefix,
                            std::string const& input_file1,
                            std::string const& input_file2) {
 
-  // filenames longer than this must be chopped, as too long names
-  // cause problems later with boost.
-  int max_len = 40;
-  std::string name1 = strip_path(out_prefix, input_file1).substr(0, max_len);
-  std::string name2 = strip_path(out_prefix, input_file2).substr(0, max_len);
+  std::string name1 = strip_path(out_prefix, input_file1);
+  std::string name2 = strip_path(out_prefix, input_file2);
+
+  // Filenames longer than this must be chopped, as too long names cause
+  // problems later with boost. But shorter names may lead to inconsistencies.
+  // So give a warning.
+  int max_len = 60;
+  if (name1.size() >= max_len) {
+    vw_out(WarningMessage) << "Warning: Shortening the long file part: " << input_file1 
+      << ". In case of problems, use shorter input file names.\n";
+    name1 = name1.substr(0, max_len);
+  }
+  if (name2.size() >= max_len) {
+    vw_out(WarningMessage) << "Warning: Shortening the long file part: " 
+      << input_file2 << ". In case of problems, use shorter input file names.\n";
+    name2 = name2.substr(0, max_len);
+  }
 
   std::string suffix = name1 + "__" + name2 + ".match";
   
