@@ -57,6 +57,8 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseFixed<Distort
 };
 
 // Use the Newton-Raphson method to undistort a pixel (dx, dy), producing (ux, uy).
+// This uses an analytical Jacobian. An implementation with a numerical Jacobian
+// is provided below.
 // TODO(oalexan1): Apply this to all distortion models. It is 10x faster
 // than using UndistortOptimizeFunctor.
 void newtonRaphson(double dx, double dy, double &ux, double &uy,
@@ -107,6 +109,87 @@ void newtonRaphson(double dx, double dy, double &ux, double &uy,
 
     return;
   }
+}
+
+// Inverse distortion using the numerical Jacobian. 
+// TODO(oalexan1): Compare with the analytical Jacobian above. The latter needs
+// a custom Jacobian for each distortion model, while the former is generic.
+// Typedefs for distortion and Jacobian of distortion function signatures
+typedef std::function<vw::Vector2(vw::Vector2 const&, vw::Vector<double> const&)> FunT;
+typedef std::function<vw::Vector<double>(vw::Vector2 const&, vw::Vector<double> const&, 
+                                      double, FunT)> JacT;
+
+// Find the Jacobian of a function at a given point using numerical
+// differentiation. A good value for the step is 1e-6. Note that in
+// fishEyeDistortionNorm() we used a tolerance of 1e-8 when dividing floating
+// point values, which is way smaller than this step. This helps avoid
+// numerical instability.
+vw::Vector<double> numericalJacobian(vw::Vector2 const& P,
+                                  vw::Vector<double> const& dist,
+                                  double step, FunT func) {
+
+  // The Jacobian has 4 elements.
+  vw::Vector<double> jacobian(4);
+  
+  // First column
+  vw::Vector2 JX = (func(P + vw::Vector2(step, 0), dist) - 
+                        func(P - vw::Vector2(step, 0), dist)) / (2*step);
+  // Second column
+  vw::Vector2 JY = (func(P + vw::Vector2(0, step), dist) - 
+                        func(P - vw::Vector2(0, step), dist)) / (2*step);
+  
+  // Put in the jacobian matrix
+  jacobian[0] = JX[0];
+  jacobian[1] = JY[0];
+  jacobian[2] = JX[1];
+  jacobian[3] = JY[1];  
+  
+  return jacobian;
+}
+
+// Find X solving func(X) - Y = 0. Use the Newton-Raphson method.
+// Update X as X - (func(X) - Y) * J^-1, where J is the Jacobian of func(X).
+vw::Vector2 newtonRaphson(vw::Vector2 const& Y,
+                          vw::Vector<double> const& distortion,
+                          FunT func, JacT jac) {
+
+  // The step for differentiating the function (1e-6) should be larger
+  // than the tolerance for finding the function value (1e-8).
+  double step = 1e-6;
+     
+  // Initial guess for the root
+  vw::Vector2 X = Y;
+
+  int count = 1, maxTries = 20;
+  while (count < maxTries) {
+    
+    vw::Vector2 F = func(X, distortion) - Y;
+    
+    // Compute the Jacobian
+    vw::Vector<double> J(4);
+    J = jac(X, distortion, step, func);
+    
+    // Find the determinant
+    double det = J[0]*J[3] - J[1]*J[2];
+    if (fabs(det) < 1e-6) {
+      // Near-zero determinant. Cannot continue. Return most recent result.
+      return X;
+    } 
+
+    vw::Vector2 DX;
+    DX[0] = (J[3]*F[0] - J[1]*F[1]) / det;
+    DX[1] = (J[0]*F[1] - J[2]*F[0]) / det;
+    
+    // Update X
+    X -= DX;
+    
+    // If DX is small enough, we are done
+    if (norm_2(DX) < 1e-6)
+      return X;
+      
+    count++;
+   }
+  return X;
 }
 
 // Isolate these local utilities to this file.
@@ -233,7 +316,6 @@ void write_param(std::string const& param_name, std::ostream & os, double val){
 } // end of anonymous namespace
 
 // Default implementations for Lens Distortion -------------------
-
 
 Vector<double>
 LensDistortion::distortion_parameters() const { return Vector<double>(); }
@@ -398,6 +480,8 @@ void TsaiDistortionJacobian(double x, double y, double *jacobian,
 // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
 // The function cv::projectPoints() was used for validation, with no rotation
 // or translation. 
+// For comparing with rig_calibrator, see the convention at:
+// Vector2 FisheyeLensDistortion::distorted_coordinates().
 Vector2 TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
                                                   Vector2 const& p) const {
 
@@ -462,6 +546,257 @@ void TsaiLensDistortion::read(std::istream & is) {
 
 void TsaiLensDistortion::scale( double scale ) {
   m_distortion *= scale;
+}
+
+// ======== FovLensDistortion ========
+// Single-parameter wide-angle lens distortion model.
+FovLensDistortion::FovLensDistortion() {
+  FovLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
+}
+
+FovLensDistortion::FovLensDistortion(Vector<double> const& params) {
+  FovLensDistortion::init_distortion_param_names();
+  set_distortion_parameters(params);
+}
+
+Vector<double>
+FovLensDistortion::distortion_parameters() const { return m_distortion; }
+
+void FovLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++) 
+    m_distortion_param_names[p] = names[p];
+}
+
+void FovLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  FovLensDistortion::init_distortion_param_names();
+  m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw( IOErr() << "FovLensDistortion: Incorrect number of parameters was passed in.");
+
+   // Distortion coefficient must be positive
+   if (m_distortion[0] <= 0)
+     vw_throw(IOErr() << "FovLensDistortion: The distortion coefficient "
+                        << "must be positive.\n");
+
+    // Precompute some values
+    m_distortion_precalc1 = 1 / m_distortion[0];
+    m_distortion_precalc2 = 2 * tan(m_distortion[0] / 2);
+}
+
+boost::shared_ptr<LensDistortion>
+FovLensDistortion::copy() const {
+  return boost::shared_ptr<FovLensDistortion>(new FovLensDistortion(*this));
+}
+
+// This was validated to be in perfect agreement with rig_calibrator FOV model,
+// as long as one respects the convention at:
+// Vector2 FisheyeLensDistortion::distorted_coordinates().
+Vector2 FovLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
+                                                 Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  double ru = norm_2(p_0);
+  double rd = atan(ru * m_distortion_precalc2) * m_distortion_precalc1;
+  double conv = 1.0;
+   if (ru > 1e-8)
+    conv = rd / ru; // Avoid division by a small number
+
+  // Apply the fov distortion model to the normalized pixel
+  Vector2 p_norm  = conv * p_0;
+
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+  
+  return p_dist;
+}
+
+Vector2 FovLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
+                                                    Vector2 const& p) const {
+  
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+  
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  
+  double rd = norm_2(p_0);
+  double ru = tan(rd * m_distortion[0]) / m_distortion_precalc2;
+  double conv = 1.0;
+  if (rd > 1e-8)
+    conv = ru / rd; // Avoid division by a small number
+    
+  // Apply the fov distortion model to the normalized pixel
+  Vector2 p_norm = conv * p_0;
+  
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(p_norm, focal) + offset;
+
+  return p_undist;
+}
+
+void FovLensDistortion::write(std::ostream & os) const {
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++) 
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
+}
+
+void FovLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  set_distortion_parameters(m_distortion); // This does some pre-computations and checks
+}
+
+void FovLensDistortion::scale(double scale) {
+  vw::vw_throw( vw::NoImplErr() << "FovLensDistortion::scale() is not implemented." );
+}
+
+// ======== FisheyeLensDistortion ========
+// Four-parameter wide-angle lens distortion model.
+FisheyeLensDistortion::FisheyeLensDistortion() {
+  FisheyeLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
+}
+
+FisheyeLensDistortion::FisheyeLensDistortion(Vector<double> const& params): 
+  m_distortion(params) {
+  FisheyeLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "FisheyeLensDistortion: Incorrect number of parameters "
+                     << "was passed in.");
+}
+
+Vector<double> FisheyeLensDistortion::distortion_parameters() const { 
+  return m_distortion; 
+}
+
+void FisheyeLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1", "k2", "k3", "k4"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++) 
+    m_distortion_param_names[p] = names[p];
+}
+
+void FisheyeLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  FisheyeLensDistortion::init_distortion_param_names();
+  m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "FisheyeLensDistortion: Incorrect number of parameters was "
+                     << "passed in.");
+}
+
+boost::shared_ptr<LensDistortion>
+FisheyeLensDistortion::copy() const {
+  return boost::shared_ptr<FisheyeLensDistortion>(new FisheyeLensDistortion(*this));
+}
+
+// Apply the fisheye distortion model. Input and output are normalized pixels.
+vw::Vector2 fishEyeDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const& dist) {
+  
+  double k1 = dist[0];
+  double k2 = dist[1];
+  double k3 = dist[2];
+  double k4 = dist[3];
+
+  double x = P[0];
+  double y = P[1];  
+  double r2 = x*x + y*y;
+  double r = sqrt(r2);
+  double theta = atan(r);
+
+  double theta1 = theta*theta;   // theta^2
+  double theta2 = theta1*theta1; // theta^4
+  double theta3 = theta2*theta1; // theta^6
+  double theta4 = theta2*theta2; // theta^8
+  double theta_d = theta*(1 + k1*theta1 + k2*theta2 + k3*theta3 + k4*theta4);
+  
+  // Careful with the case where r is very small
+  double scale = 1.0;
+  if (r > 1e-8)
+    scale = theta_d / r;
+
+  return vw::Vector2(x*scale, y*scale);
+}
+
+// This was validated to be in perfect agreement with rig_calibrator Fisheye
+// model, as long as the approach is as follows. (a) Take the undistorted pixel
+// and distort it with WV. (b) Take the undistorted pixel, subtract optical
+// center, add half the undistorted image size, and then apply the
+// rig_calibrator distortion model. For distortion the process is in reverse.
+// This is a minor convention difference.
+Vector2 FisheyeLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
+                                                     Vector2 const& p) const {
+
+  
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+  
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  
+  // Apply the fisheye distortion model to the normalized pixel
+  Vector2 p_norm = fishEyeDistortionNorm(p_0, m_distortion);
+  
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+  
+  return p_dist;
+}
+
+Vector2 FisheyeLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
+                                                    Vector2 const& p) const {
+  
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Find the normalized undistorted pixel using Newton-Raphson
+  Vector2 U = newtonRaphson(p_0, m_distortion, 
+                            fishEyeDistortionNorm, numericalJacobian);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(U, focal) + offset;
+  
+  return p_undist;
+}
+
+void FisheyeLensDistortion::write(std::ostream & os) const {
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++) 
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
+}
+
+void FisheyeLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  set_distortion_parameters(m_distortion); // This does some checks
+}
+
+void FisheyeLensDistortion::scale(double scale) {
+  vw::vw_throw(vw::NoImplErr() << "FisheyeLensDistortion::scale() is not implemented.");
 }
 
 // ======== BrownConradyDistortion ========
@@ -619,9 +954,9 @@ AdjustableTsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& 
 
 void AdjustableTsaiLensDistortion::write(std::ostream & os) const {
   // Since we don't know how many parameters, print them out in three rows.
-  os << "Radial Coeff: "    << subvector(m_distortion,0,m_distortion.size()-3) << "\n";
-  os << "Tangental Coeff: " << subvector(m_distortion,m_distortion.size()-3,2) << "\n";
-  os << "Alpha: "           << m_distortion[m_distortion.size()-1] << "\n";
+  os << "Radial Coeff: "     << subvector(m_distortion,0,m_distortion.size()-3) << "\n";
+  os << "Tangential Coeff: " << subvector(m_distortion,m_distortion.size()-3,2) << "\n";
+  os << "Alpha: "            << m_distortion[m_distortion.size()-1] << "\n";
 }
 
 void AdjustableTsaiLensDistortion::read(std::istream & is) {
@@ -827,15 +1162,19 @@ RPCLensDistortion::copy() const {
 }
 
 Vector2
-RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  // Here, unlike in the older RPCLensDistortion4 and RPCLensDistortion5, we
-  // put the origin at the optical center.
+RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
+                                         Vector2 const& p) const {
+  // Put the origin at the optical center.
   Vector2 offset = cam.point_offset(); // = [cu, cv]
   return RPCLensDistortion::compute_rpc(p - offset, m_distortion) + offset;
 }
 
+// TODO(oalexan1): Use the numerical Jacobian to undistort the points.
+// Check beforehand with cam_test how distortion and undistortion agree,
+// and how things change in terms of accuracy and speed after this change.
 Vector2
-RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
+                                           Vector2 const& p) const {
   if (!m_can_undistort) 
     vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
   Vector2 offset = cam.point_offset(); // = [cu, cv]
@@ -981,8 +1320,10 @@ void RPCLensDistortion::unpack_params(Vector<double> const& params,
 }
 
 void RPCLensDistortion::pack_params(Vector<double> & params,
-                                     Vector<double> const& num_x, Vector<double> const& den_x,
-                                     Vector<double> const& num_y, Vector<double> const& den_y){
+                                    Vector<double> const& num_x, 
+                                    Vector<double> const& den_x,
+                                    Vector<double> const& num_y, 
+                                    Vector<double> const& den_y) {
 
   int num_len = num_x.size();
   int den_len = den_x.size();
@@ -1078,433 +1419,4 @@ void RPCLensDistortion::read(std::istream & is) {
   pack_params(m_undistortion, num_x, den_x, num_y, den_y);
 
   m_can_undistort = true; 
-}
-
-// Old RPC lens distortion of degree 4.
-
-RPCLensDistortion4::RPCLensDistortion4(){
-  m_distortion.set_size(num_distortion_params);
-  m_undistortion.set_size(num_distortion_params);
-  m_can_undistort = false;
-}
-
-RPCLensDistortion4::RPCLensDistortion4(Vector<double> const& params) 
-  : m_distortion(params) {
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
-  m_can_undistort = false;
-}
-
-Vector<double>
-RPCLensDistortion4::distortion_parameters() const { 
-  return m_distortion; 
-}
-
-Vector<double>
-RPCLensDistortion4::undistortion_parameters() const { 
-  return m_undistortion; 
-}
-
-void RPCLensDistortion4::set_distortion_parameters(Vector<double> const& params) {
-  if (params.size() != num_distortion_params) 
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
-  // If the distortion parameters changed, one cannot undistort until the undistortion
-  // coefficients are computed.
-  for (size_t it = 0; it < num_distortion_params; it++) {
-    if (m_distortion[it] != params[it]) {
-      m_can_undistort = false;
-      break;
-    }
-  }
-  m_distortion = params;
-}
-
-void RPCLensDistortion4::set_undistortion_parameters(Vector<double> const& params) {
-  m_undistortion = params;
-  m_can_undistort = true;
-}
-
-void RPCLensDistortion4::set_image_size(Vector2i const& image_size){
-  m_image_size = image_size;
-}
-
-boost::shared_ptr<LensDistortion>
-RPCLensDistortion4::copy() const {
-  return boost::shared_ptr<RPCLensDistortion4>(new RPCLensDistortion4(*this));
-}
-
-Vector2
-RPCLensDistortion4::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  return RPCLensDistortion4::compute_rpc(p, m_distortion);
-}
-
-Vector2
-RPCLensDistortion4::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-  
-  return RPCLensDistortion4::compute_rpc(v, m_undistortion);
-}
-
-// Compute the RPC transform. Note that if the RPC coefficients are all zero,
-// the obtained transform is the identity.
-Vector2
-RPCLensDistortion4::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
-  
-  if (num_distortion_params != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion4.\n" );
-
-  int i = 0;
-  double a00 = coeffs[i]; i++;
-  double a10 = coeffs[i]; i++;
-  double a01 = coeffs[i]; i++;
-  double a20 = coeffs[i]; i++;
-  double a11 = coeffs[i]; i++;
-  double a02 = coeffs[i]; i++;
-  double a30 = coeffs[i]; i++;
-  double a21 = coeffs[i]; i++;
-  double a12 = coeffs[i]; i++;
-  double a03 = coeffs[i]; i++;
-  double a40 = coeffs[i]; i++;
-  double a31 = coeffs[i]; i++;
-  double a22 = coeffs[i]; i++;
-  double a13 = coeffs[i]; i++;
-  double a04 = coeffs[i]; i++;
-
-  double b10 = coeffs[i]; i++;
-  double b01 = coeffs[i]; i++;
-  double b20 = coeffs[i]; i++;
-  double b11 = coeffs[i]; i++;
-  double b02 = coeffs[i]; i++;
-  double b30 = coeffs[i]; i++;
-  double b21 = coeffs[i]; i++;
-  double b12 = coeffs[i]; i++;
-  double b03 = coeffs[i]; i++;
-  double b40 = coeffs[i]; i++;
-  double b31 = coeffs[i]; i++;
-  double b22 = coeffs[i]; i++;
-  double b13 = coeffs[i]; i++;
-  double b04 = coeffs[i]; i++;
-
-  double c00 = coeffs[i]; i++;
-  double c10 = coeffs[i]; i++;
-  double c01 = coeffs[i]; i++;
-  double c20 = coeffs[i]; i++;
-  double c11 = coeffs[i]; i++;
-  double c02 = coeffs[i]; i++;
-  double c30 = coeffs[i]; i++;
-  double c21 = coeffs[i]; i++;
-  double c12 = coeffs[i]; i++;
-  double c03 = coeffs[i]; i++;
-  double c40 = coeffs[i]; i++;
-  double c31 = coeffs[i]; i++;
-  double c22 = coeffs[i]; i++;
-  double c13 = coeffs[i]; i++;
-  double c04 = coeffs[i]; i++;
-
-  double d10 = coeffs[i]; i++;
-  double d01 = coeffs[i]; i++;
-  double d20 = coeffs[i]; i++;
-  double d11 = coeffs[i]; i++;
-  double d02 = coeffs[i]; i++;
-  double d30 = coeffs[i]; i++;
-  double d21 = coeffs[i]; i++;
-  double d12 = coeffs[i]; i++;
-  double d03 = coeffs[i]; i++;
-  double d40 = coeffs[i]; i++;
-  double d31 = coeffs[i]; i++;
-  double d22 = coeffs[i]; i++;
-  double d13 = coeffs[i]; i++;
-  double d04 = coeffs[i]; i++;
-
-  if (size_t(i) != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion4.\n" );
-  
-  double x = p[0];
-  double y = p[1];
-
-  // Note how we add 1.0 to a10 and a01.
-  
-  double x_corr =
-    (a00 + (1.0+a10)*x + a01*y + a20*x*x + a11*x*y + a02*y*y +
-     a30*x*x*x + a21*x*x*y + a12*x*y*y + a03*y*y*y +
-     (a40*x*x*x*x + a31*x*x*x*y + a22*x*x*y*y + a13*x*y*y*y + + a04*y*y*y*y)/10000 ) /
-      (1 + b10*x + b01*y + b20*x*x + b11*x*y + b02*y*y +
-       b30*x*x*x + b21*x*x*y + b12*x*y*y + b03*y*y*y +
-       (b40*x*x*x*x + b31*x*x*x*y + b22*x*x*y*y + b13*x*y*y*y + + b04*y*y*y*y)/10000 
-       );
-  
-  double y_corr =
-    (c00 + c10*x + (1.0 + c01)*y + c20*x*x + c11*x*y + c02*y*y +
-     c30*x*x*x + c21*x*x*y + c12*x*y*y + c03*y*y*y +
-     (c40*x*x*x*x + c31*x*x*x*y + c22*x*x*y*y + c13*x*y*y*y + + c04*y*y*y*y)/10000 
-     ) /
-      (1 + d10*x + d01*y + d20*x*x + d11*x*y + d02*y*y +
-       d30*x*x*x + d21*x*x*y + d12*x*y*y + d03*y*y*y+
-       (d40*x*x*x*x + d31*x*x*x*y + d22*x*x*y*y + d13*x*y*y*y + + d04*y*y*y*y)/10000 
-       );
-
-  return Vector2(x_corr, y_corr);
-}
-
-void RPCLensDistortion4::write(std::ostream & os) const {
-
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-
-  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
-  // because otherwise the RPC model can return wrong results which confuse
-  // bundle adjustment. 
-  write_param_vec("image_size", os, m_image_size);
-  write_param_vec("distortion_coeffs", os, m_distortion);
-  write_param_vec("undistortion_coeffs", os, m_undistortion);
-}
-
-void RPCLensDistortion4::read(std::istream & is) {
-
-  m_image_size.set_size(2);
-  m_distortion.set_size(num_distortion_params);
-  m_undistortion.set_size(num_distortion_params);
-
-  read_param_vec("image_size", m_image_size.size(), is, m_image_size);
-  read_param_vec("distortion_coeffs", num_distortion_params, is, m_distortion);
-  read_param_vec("undistortion_coeffs", num_distortion_params, is, m_undistortion);
-
-  m_can_undistort = true; 
-}
-
-void RPCLensDistortion4::scale( double scale ) {
-  m_distortion *= scale;
-  m_undistortion *= scale;
-}
-
-// Old RPC lens distortion of degree 5.
-
-RPCLensDistortion5::RPCLensDistortion5(){
-  m_distortion.set_size(num_distortion_params);
-  m_undistortion.set_size(num_distortion_params);
-  m_can_undistort = false;
-}
-
-RPCLensDistortion5::RPCLensDistortion5(Vector<double> const& params) 
-  : m_distortion(params) {
-  if (m_distortion.size() != num_distortion_params)
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
-  m_can_undistort = false;
-}
-
-Vector<double>
-RPCLensDistortion5::distortion_parameters() const { 
-  return m_distortion; 
-}
-
-Vector<double>
-RPCLensDistortion5::undistortion_parameters() const { 
-  return m_undistortion; 
-}
-
-void RPCLensDistortion5::set_distortion_parameters(Vector<double> const& params) {
-  if (params.size() != num_distortion_params) 
-    vw_throw( IOErr() << class_name() << ": Incorrect number of parameters was passed in.");
-  // If the distortion parameters changed, one cannot undistort until the undistortion
-  // coefficients are computed.
-  for (size_t it = 0; it < num_distortion_params; it++) {
-    if (m_distortion[it] != params[it]) {
-      m_can_undistort = false;
-      break;
-    }
-  }
-  m_distortion = params;
-}
-
-void RPCLensDistortion5::set_undistortion_parameters(Vector<double> const& params) {
-  m_undistortion = params;
-  m_can_undistort = true;
-}
-
-void RPCLensDistortion5::set_image_size(Vector2i const& image_size){
-  m_image_size = image_size;
-}
-
-boost::shared_ptr<LensDistortion>
-RPCLensDistortion5::copy() const {
-  return boost::shared_ptr<RPCLensDistortion5>(new RPCLensDistortion5(*this));
-}
-
-Vector2
-RPCLensDistortion5::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  return RPCLensDistortion5::compute_rpc(p, m_distortion);
-}
-
-Vector2
-RPCLensDistortion5::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-  
-  return RPCLensDistortion5::compute_rpc(v, m_undistortion);
-}
-
-// Compute the RPC transform. Note that if the RPC coefficients are all zero,
-// the obtained transform is the identity.
-Vector2
-RPCLensDistortion5::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
-  
-  if (num_distortion_params != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion5.\n" );
-
-  int i = 0;
-  double a00 = coeffs[i]; i++;
-  double a10 = coeffs[i]; i++;
-  double a01 = coeffs[i]; i++;
-  double a20 = coeffs[i]; i++;
-  double a11 = coeffs[i]; i++;
-  double a02 = coeffs[i]; i++;
-  double a30 = coeffs[i]; i++;
-  double a21 = coeffs[i]; i++;
-  double a12 = coeffs[i]; i++;
-  double a03 = coeffs[i]; i++;
-  double a40 = coeffs[i]; i++;
-  double a31 = coeffs[i]; i++;
-  double a22 = coeffs[i]; i++;
-  double a13 = coeffs[i]; i++;
-  double a04 = coeffs[i]; i++;
-
-  double b10 = coeffs[i]; i++;
-  double b01 = coeffs[i]; i++;
-  double b20 = coeffs[i]; i++;
-  double b11 = coeffs[i]; i++;
-  double b02 = coeffs[i]; i++;
-  double b30 = coeffs[i]; i++;
-  double b21 = coeffs[i]; i++;
-  double b12 = coeffs[i]; i++;
-  double b03 = coeffs[i]; i++;
-  double b40 = coeffs[i]; i++;
-  double b31 = coeffs[i]; i++;
-  double b22 = coeffs[i]; i++;
-  double b13 = coeffs[i]; i++;
-  double b04 = coeffs[i]; i++;
-
-  double c00 = coeffs[i]; i++;
-  double c10 = coeffs[i]; i++;
-  double c01 = coeffs[i]; i++;
-  double c20 = coeffs[i]; i++;
-  double c11 = coeffs[i]; i++;
-  double c02 = coeffs[i]; i++;
-  double c30 = coeffs[i]; i++;
-  double c21 = coeffs[i]; i++;
-  double c12 = coeffs[i]; i++;
-  double c03 = coeffs[i]; i++;
-  double c40 = coeffs[i]; i++;
-  double c31 = coeffs[i]; i++;
-  double c22 = coeffs[i]; i++;
-  double c13 = coeffs[i]; i++;
-  double c04 = coeffs[i]; i++;
-
-  double d10 = coeffs[i]; i++;
-  double d01 = coeffs[i]; i++;
-  double d20 = coeffs[i]; i++;
-  double d11 = coeffs[i]; i++;
-  double d02 = coeffs[i]; i++;
-  double d30 = coeffs[i]; i++;
-  double d21 = coeffs[i]; i++;
-  double d12 = coeffs[i]; i++;
-  double d03 = coeffs[i]; i++;
-  double d40 = coeffs[i]; i++;
-  double d31 = coeffs[i]; i++;
-  double d22 = coeffs[i]; i++;
-  double d13 = coeffs[i]; i++;
-  double d04 = coeffs[i]; i++;
-
-  double a50 = coeffs[i]; i++;
-  double a41 = coeffs[i]; i++;
-  double a32 = coeffs[i]; i++;
-  double a23 = coeffs[i]; i++;
-  double a14 = coeffs[i]; i++;
-  double a05 = coeffs[i]; i++;
-
-  double b50 = coeffs[i]; i++;
-  double b41 = coeffs[i]; i++;
-  double b32 = coeffs[i]; i++;
-  double b23 = coeffs[i]; i++;
-  double b14 = coeffs[i]; i++;
-  double b05 = coeffs[i]; i++;
-
-  double c50 = coeffs[i]; i++;
-  double c41 = coeffs[i]; i++;
-  double c32 = coeffs[i]; i++;
-  double c23 = coeffs[i]; i++;
-  double c14 = coeffs[i]; i++;
-  double c05 = coeffs[i]; i++;
-
-  double d50 = coeffs[i]; i++;
-  double d41 = coeffs[i]; i++;
-  double d32 = coeffs[i]; i++;
-  double d23 = coeffs[i]; i++;
-  double d14 = coeffs[i]; i++;
-  double d05 = coeffs[i]; i++;
-
-  if (size_t(i) != coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion5.\n" );
-  
-  double x = p[0];
-  double y = p[1];
-
-  // Note how we add 1.0 to a10 and a01.
-  
-  double x_corr =
-    (a00 + (1.0+a10)*x + a01*y + a20*x*x + a11*x*y + a02*y*y +
-     a30*x*x*x + a21*x*x*y + a12*x*y*y + a03*y*y*y +
-     (a40*x*x*x*x + a31*x*x*x*y + a22*x*x*y*y + a13*x*y*y*y + + a04*y*y*y*y)/10000 +
-     (a50*x*x*x*x*x + a41*x*x*x*x*y + a32*x*x*x*y*y + a23*x*x*y*y*y + + a14*x*y*y*y*y + a05*y*y*y*y*y)/1000000 
-     ) /
-      (1 + b10*x + b01*y + b20*x*x + b11*x*y + b02*y*y +
-       b30*x*x*x + b21*x*x*y + b12*x*y*y + b03*y*y*y +
-       (b40*x*x*x*x + b31*x*x*x*y + b22*x*x*y*y + b13*x*y*y*y + + b04*y*y*y*y)/10000 +
-       (b50*x*x*x*x*x + b41*x*x*x*x*y + b32*x*x*x*y*y + b23*x*x*y*y*y + + b14*x*y*y*y*y + b05*y*y*y*y*y)/1000000 
-       );
-  
-  double y_corr =
-    (c00 + c10*x + (1.0 + c01)*y + c20*x*x + c11*x*y + c02*y*y +
-     c30*x*x*x + c21*x*x*y + c12*x*y*y + c03*y*y*y +
-     (c40*x*x*x*x + c31*x*x*x*y + c22*x*x*y*y + c13*x*y*y*y + + c04*y*y*y*y)/10000 +
-     (c50*x*x*x*x*x + c41*x*x*x*x*y + c32*x*x*x*y*y + c23*x*x*y*y*y + + c14*x*y*y*y*y + c05*y*y*y*y*y)/1000000 
-     ) /
-      (1 + d10*x + d01*y + d20*x*x + d11*x*y + d02*y*y +
-       d30*x*x*x + d21*x*x*y + d12*x*y*y + d03*y*y*y+
-       (d40*x*x*x*x + d31*x*x*x*y + d22*x*x*y*y + d13*x*y*y*y + + d04*y*y*y*y)/10000 +
-       (d50*x*x*x*x*x + d41*x*x*x*x*y + d32*x*x*x*y*y + d23*x*x*y*y*y + + d14*x*y*y*y*y + d05*y*y*y*y*y)/1000000 
-       );
-
-  return Vector2(x_corr, y_corr);
-}
-
-void RPCLensDistortion5::write(std::ostream & os) const {
-
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-
-  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
-  // because otherwise the RPC model can return wrong results which confuse
-  // bundle adjustment. 
-  write_param_vec("image_size", os, m_image_size);
-  write_param_vec("distortion_coeffs", os, m_distortion);
-  write_param_vec("undistortion_coeffs", os, m_undistortion);
-}
-
-void RPCLensDistortion5::read(std::istream & is) {
-  
-  m_image_size.set_size(2);
-  m_distortion.set_size(num_distortion_params);
-  m_undistortion.set_size(num_distortion_params);
-
-  read_param_vec("image_size", m_image_size.size(), is, m_image_size);
-  read_param_vec("distortion_coeffs", num_distortion_params, is, m_distortion);
-  read_param_vec("undistortion_coeffs", num_distortion_params, is, m_undistortion);
-
-  m_can_undistort = true;
-}
-
-void RPCLensDistortion5::scale( double scale ) {
-  m_distortion *= scale;
-  m_undistortion *= scale;
 }

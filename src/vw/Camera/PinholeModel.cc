@@ -41,13 +41,13 @@ namespace ba = boost::algorithm;
 namespace vw {
 namespace camera {
 
-PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
-                               m_camera_center(Vector3(0,0,0)),
-                               m_fu(1), m_fv(1), m_cu(0), m_cv(0),
-                               m_u_direction(Vector3(1,0,0)),
-                               m_v_direction(Vector3(0,1,0)),
-                               m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1),
-                               m_do_point_to_pixel_check(true) {
+PinholeModel::PinholeModel(): m_distortion(DistortPtr(new NullLensDistortion)),
+                              m_camera_center(Vector3(0,0,0)),
+                              m_fu(1), m_fv(1), m_cu(0), m_cv(0),
+                              m_u_direction(Vector3(1,0,0)),
+                              m_v_direction(Vector3(0,1,0)),
+                              m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1),
+                              m_do_point_to_pixel_check(true) {
 
   m_rotation.set_identity();
   this->rebuild_camera_matrix();
@@ -257,66 +257,48 @@ void PinholeModel::read(std::string const& filename) {
   cam_file.close();
 }
 
+// See if string1 has string2 as a substring, ignoring case. 
+bool lc_substr(std::string const& string1, std::string const& string2) {
+  return ba::to_lower_copy(string1).find(ba::to_lower_copy(string2)) != std::string::npos;
+}
+
 bool PinholeModel::construct_lens_distortion(std::string const& config_line,
-                                               int camera_version) {
+                                             int camera_version) {
 
   // Check if the passed in string contains the string for any of the
   //  recognized lens distortion models.
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(NullLensDistortion::class_name()))
-      != std::string::npos) {
+  if (lc_substr(config_line, NullLensDistortion::class_name())) {
     m_distortion.reset(new NullLensDistortion());
     return true;
   }
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(BrownConradyDistortion::class_name()))
-      != std::string::npos) {
+  if (lc_substr(config_line, BrownConradyDistortion::class_name())) {
     m_distortion.reset(new BrownConradyDistortion());
     return true;
   }
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(AdjustableTsaiLensDistortion::class_name()))
-      != std::string::npos) {
+  if (lc_substr(config_line, AdjustableTsaiLensDistortion::class_name())) {
     m_distortion.reset(new AdjustableTsaiLensDistortion());
     return true;
   }
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(PhotometrixLensDistortion::class_name()))
-      != std::string::npos) {
+  if (lc_substr(config_line, PhotometrixLensDistortion::class_name())) {
     m_distortion.reset(new PhotometrixLensDistortion());
     return true;
   }
-
-  // Match RPC5 before matching RPC
-  if ( (ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion5::class_name())) 
-        != std::string::npos) ) {
-    m_distortion.reset(new RPCLensDistortion5()); // old model of degree 5
+  if (lc_substr(config_line, RPCLensDistortion::class_name())) {
+    m_distortion.reset(new RPCLensDistortion());
     return true;
   }
-
-  // Match RPC4 or RPC. This code is a little confusing but was debugged carefully.
-  // In old cameras, RPC4 is simply named RPC.
-  if (camera_version < 4) {
-    // Old camera version
-    if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) 
-       != std::string::npos) ) {
-      m_distortion.reset(new RPCLensDistortion4()); // old model of degree 4
-      return true;
-    }
-  }else{
-    // New camera version
-    if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion4::class_name())) 
-	 != std::string::npos) ) {
-      m_distortion.reset(new RPCLensDistortion4()); // old model of degree 4
-      return true;
-    } else if ((ba::to_lower_copy(config_line).find(ba::to_lower_copy(RPCLensDistortion::class_name())) != std::string::npos) ) {
-      m_distortion.reset(new RPCLensDistortion()); // current model of any degree
-      return true;
-    }
+  if (lc_substr(config_line, FovLensDistortion::class_name())) {
+    m_distortion.reset(new FovLensDistortion());
+    return true;
   }
-  
-  // TSAI is the default model.  Older files which do not have a specifier string
-  //  contain TSAI parameters.
+  if (lc_substr(config_line, FisheyeLensDistortion::class_name())) {
+    m_distortion.reset(new FisheyeLensDistortion());
+    return true;
+  }
+  // TSAI is the default model. Older files which do not have a specifier string
+  // contain TSAI parameters.
   m_distortion.reset(new TsaiLensDistortion());
-  
-  if (ba::to_lower_copy(config_line).find(ba::to_lower_copy(TsaiLensDistortion::class_name()))
-      != std::string::npos)
+  if (lc_substr(config_line, TsaiLensDistortion::class_name())) 
     return true;
   else
     return false;
