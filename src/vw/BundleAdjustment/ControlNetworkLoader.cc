@@ -212,6 +212,11 @@ void matchesToMvg(MATCH_MAP const& match_map,
     
     int left_cid = cid_pair.first;
     int right_cid = cid_pair.second;
+    
+    // Must not have left_cid == right_cid
+    if (left_cid == right_cid) 
+      vw::vw_throw(ArgumentErr() 
+                   << "Bookkeeping error: Cannot have matches from an image to itself.\n");
 
     // This potential swap ensures that the pair is always ordered
     // in the same way. It results in almost the same results regardless
@@ -245,7 +250,11 @@ void matchesToMvg(MATCH_MAP const& match_map,
       else
         mvg_matches.push_back(VwOpenMVG::matching::IndMatch(right_fid, left_fid));
     }
-    mvg_match_map[out_pair] = mvg_matches;
+
+    // Append to vector mvg_match_map[out_pair] the vector mvg_matches.
+    // As such, can have both left-to-right and right-to-left matches.
+    mvg_match_map[out_pair].insert(mvg_match_map[out_pair].end(), 
+                                   mvg_matches.begin(), mvg_matches.end());
   }
 }
 
