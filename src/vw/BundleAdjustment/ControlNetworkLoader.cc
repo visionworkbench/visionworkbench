@@ -192,6 +192,104 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
   return;
 }
 
+// Notation
+typedef std::pair<std::vector<ip::InterestPoint>, std::vector<ip::InterestPoint>> MATCH_PAIR;
+typedef std::map<std::pair<int, int>, MATCH_PAIR> MATCH_MAP;
+typedef std::tuple<double, double, double> ipTriplet; // (ip.x, ip.y, ip.scale)
+
+// Convert the matches to the MVG format, so their track-building code can be used.
+void matchesToMvg(MATCH_MAP const& match_map, 
+                  std::vector<std::map<ipTriplet, int>> const& keypoint_map,
+                  std::vector<std::vector<ipTriplet>> const& keypoint_vec,
+                  std::map<std::pair<int, int>, std::string> const& match_files,
+                  VwOpenMVG::matching::PairWiseMatches& mvg_match_map) {
+
+  // Wipe the output
+  mvg_match_map = VwOpenMVG::matching::PairWiseMatches();
+  
+  for (auto it = match_map.begin(); it != match_map.end(); it++) {
+    std::pair<int, int> const& cid_pair = it->first;     // alias
+    
+    int left_cid = cid_pair.first;
+    int right_cid = cid_pair.second;
+    
+    MATCH_PAIR const& match_pair = it->second;  // alias
+    std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
+    std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
+    std::vector<VwOpenMVG::matching::IndMatch> mvg_matches;
+    for (size_t ip_it = 0; ip_it < left_ip_vec.size(); ip_it++) {
+      auto dist_left_ip  = ipTriplet(left_ip_vec[ip_it].x, left_ip_vec[ip_it].y,
+                                      left_ip_vec[ip_it].scale);
+      auto dist_right_ip = ipTriplet(right_ip_vec[ip_it].x, right_ip_vec[ip_it].y,
+                                      right_ip_vec[ip_it].scale);
+
+      auto left_it = keypoint_map[left_cid].find(dist_left_ip);
+      if (left_it == keypoint_map[left_cid].end()) 
+        vw::vw_throw(ArgumentErr() << "Bookkeeping error in matchesToMvg().\n");
+      auto right_it = keypoint_map[right_cid].find(dist_right_ip);
+      if (right_it == keypoint_map[right_cid].end()) 
+        vw::vw_throw(ArgumentErr() << "Bookkeeping error in matchesToMvg().\n");
+      int left_fid = left_it->second;
+      int right_fid = right_it->second;      
+      mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_fid, right_fid));
+    }
+    mvg_match_map[cid_pair] = mvg_matches;
+  }
+}
+
+// Create tracks and a cnet from matches. Return false if the cnet is empty.
+bool matchMapToCnet(std::vector<std::string> const& image_files,
+                    std::vector<std::vector<ipTriplet>> const& keypoint_vec,
+                    VwOpenMVG::matching::PairWiseMatches const& mvg_match_map,
+                    vw::ba::ControlNetwork& cnet) {
+
+  // Wipe fully the network. This does not allow passing a name to it, but that
+  // looks unnecessary.
+  cnet = ba::ControlNetwork("ASP_control_network");
+
+  // Add image names  
+  int num_images = image_files.size();
+  for (int i = 0; i < num_images; i++)
+    cnet.add_image_name(image_files[i]);
+
+  // If feature A in image I matches feather B in image J, which matches feature
+  // C in image K, then (A, B, C) belong together in a track, and will have a
+  // single triangulated xyz. Build such tracks.
+  VwOpenMVG::tracks::TracksBuilder trackBuilder;
+  trackBuilder.Build(mvg_match_map);
+  
+  // Remove tracks that have conflict
+  trackBuilder.Filter();        
+
+  // Export tracks as a map (each entry is a sequence of imageId and featureIndex):
+  //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
+  VwOpenMVG::tracks::STLMAPTracks map_tracks;
+  trackBuilder.ExportToSTL(map_tracks);
+  trackBuilder = VwOpenMVG::tracks::TracksBuilder();   // wipe it
+  if (map_tracks.empty())
+    return false; 
+
+  size_t num_elems = map_tracks.size();
+  for (auto pid = map_tracks.begin(); pid != map_tracks.end(); pid++) {
+    ControlPoint cpoint(ControlPoint::TiePoint);
+    for (auto cid_fid = (pid->second).begin(); cid_fid != (pid->second).end(); cid_fid++) {
+      int cid = cid_fid->first;
+      int fid = cid_fid->second;
+      auto const& dist_ip = keypoint_vec.at(cid).at(fid);
+      cpoint.add_measure(ControlMeasure(std::get<0>(dist_ip), // x position
+                                        std::get<1>(dist_ip), // y position
+                                        std::get<2>(dist_ip), // col sigma
+                                        std::get<2>(dist_ip), // row sigma
+                                        cid)); // image index
+    }
+    
+    if (cpoint.size() > 0)
+      cnet.add_control_point(cpoint);
+  }
+
+  return true;
+}
+
 bool vw::ba::build_control_network(bool triangulate_control_points,
                                    ba::ControlNetwork& cnet,
                                    std::vector<vw::CamPtr> const& camera_models,
@@ -202,25 +300,14 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches) {
 
-  // Wipe fully the network. This does not allow passing a name to it, but that
-  // looks unnecessary.
   // TODO(oalexan1): Must be able to handle the case when the matches
   // are from an image later in the list to an image earlier in the list.
-  cnet = ba::ControlNetwork("ASP_control_network");
 
-  // Notation
-  typedef std::tuple<double, double, double> ipTriplet; // ip.x, ip.y, ip.scale
-  typedef std::pair<std::vector<ip::InterestPoint>, std::vector<ip::InterestPoint>> MATCH_PAIR;
-  typedef std::map<std::pair<int, int>, MATCH_PAIR> MATCH_MAP;
-  MATCH_MAP ip_subset;
-
-  // Add image names  
-  int num_images = image_files.size();
-  for (int i = 0; i < num_images; i++)
-    cnet.add_image_name(image_files[i]);
+  MATCH_MAP match_map;
 
   // Give all interest points in a given image a unique id, and put
   // them in a vector with the id corresponding to the interest point
+  int num_images = image_files.size();
   std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
   size_t num_load_rejected = 0, num_loaded = 0;
   for (auto it = match_files.begin(); it != match_files.end(); it++) {
@@ -264,7 +351,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     }
 
     // Save the matches after getting a subset
-    ip_subset[pair_ind] = std::make_pair(ip1, ip2);
+    match_map[pair_ind] = std::make_pair(ip1, ip2);
   } // End loop through match files
 
   if (num_load_rejected != 0)
@@ -291,74 +378,21 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     }
   }
 
-  // If feature A in image I matches feather B in image J, which
-  // matches feature C in image K, then (A, B, C) belong together in
-  // a track, and will have a single triangulated xyz. Build such a track.
-  // TODO(oalexan1): Make this into a function called matchesToMatchMap()
-  VwOpenMVG::matching::PairWiseMatches match_map;
-  for (auto it = ip_subset.begin(); it != ip_subset.end(); it++) {
-    std::pair<int, int> const& cid_pair = it->first;     // alias
-    
-    int left_cid = cid_pair.first;
-    int right_cid = cid_pair.second;
-    
-    MATCH_PAIR const& match_pair = it->second;  // alias
-    std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
-    std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
-    std::vector<VwOpenMVG::matching::IndMatch> mvg_matches;
-    for (size_t ip_it = 0; ip_it < left_ip_vec.size(); ip_it++) {
-      auto dist_left_ip  = ipTriplet(left_ip_vec[ip_it].x, left_ip_vec[ip_it].y,
-                                     left_ip_vec[ip_it].scale);
-      auto dist_right_ip = ipTriplet(right_ip_vec[ip_it].x, right_ip_vec[ip_it].y,
-                                     right_ip_vec[ip_it].scale);
-      
-      int left_fid = keypoint_map[left_cid][dist_left_ip];
-      int right_fid = keypoint_map[right_cid][dist_right_ip];
-      mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_fid, right_fid));
-    }
-    match_map[cid_pair] = mvg_matches;
-  }
-
+  // Convert the matches to the MVG format, so their track-building code can be used.
+  VwOpenMVG::matching::PairWiseMatches mvg_match_map;
+  matchesToMvg(match_map, keypoint_map, keypoint_vec, match_files, mvg_match_map);
+  
   // Deallocate data that is not needed anymore
-  ip_subset.clear(); ip_subset = MATCH_MAP();
-  keypoint_map.clear(); keypoint_map.shrink_to_fit();
+  match_map = MATCH_MAP();
+  keypoint_map = std::vector<std::map<ipTriplet, int>>();
 
-  {
-    // TODO(oalexan1): Make this into a function called buildTracks()
-    // Build tracks
-    // De-allocate these as soon as not needed to save memory
-    VwOpenMVG::tracks::TracksBuilder trackBuilder;
-    trackBuilder.Build(match_map);  // Build:  Efficient fusion of correspondences
-    trackBuilder.Filter();          // Filter: Remove tracks that have conflict
-    // Export tracks as a map (each entry is a sequence of imageId and featureIndex):
-    //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
-    VwOpenMVG::tracks::STLMAPTracks map_tracks;
-    trackBuilder.ExportToSTL(map_tracks);
-    match_map = VwOpenMVG::matching::PairWiseMatches();  // wipe this, no longer needed
-    trackBuilder = VwOpenMVG::tracks::TracksBuilder();   // wipe it
-    if (map_tracks.empty())
-      return false; 
-
-    // TODO(oalexan1): Make this into a function called buildCnetFromTracks()
-    // Populate the filtered tracks
-    size_t num_elems = map_tracks.size();
-    for (auto pid = map_tracks.begin(); pid != map_tracks.end(); pid++) {
-      ControlPoint cpoint(ControlPoint::TiePoint);
-      for (auto cid_fid = (pid->second).begin(); cid_fid != (pid->second).end(); cid_fid++) {
-        int cid = cid_fid->first;
-        int fid = cid_fid->second;
-        auto const& dist_ip = keypoint_vec.at(cid).at(fid);
-        cpoint.add_measure(ControlMeasure(std::get<0>(dist_ip), // x position
-                                          std::get<1>(dist_ip), // y position
-                                          std::get<2>(dist_ip), // col sigma
-                                          std::get<2>(dist_ip), // row sigma
-                                          cid)); // image index
-      }
-      
-      if (cpoint.size() > 0)
-        cnet.add_control_point(cpoint);
-    }
-  }
+  // Build the tracks and the control network using MVG
+  bool ans = matchMapToCnet(image_files, keypoint_vec, mvg_match_map, cnet);
+  if (!ans) 
+   return false;
+ 
+  // Wipe this, no longer needed
+  mvg_match_map = VwOpenMVG::matching::PairWiseMatches();
   
   watch.stop();
   vw_out() << "Building the control network took " << watch.elapsed_seconds() 
