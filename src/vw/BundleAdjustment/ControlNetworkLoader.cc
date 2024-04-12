@@ -204,6 +204,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   // Wipe fully the network. This does not allow passing a name to it, but that
   // looks unnecessary.
+  // TODO(oalexan1): Must be able to handle the case when the matches
+  // are from an image later in the list to an image earlier in the list.
   cnet = ba::ControlNetwork("ASP_control_network");
 
   // Notation
@@ -217,53 +219,24 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   for (int i = 0; i < num_images; i++)
     cnet.add_image_name(image_files[i]);
 
-  // Iterate through the match files passed in and record the ones which exist.
-  // TODO(oalexan1): Likely this loop and the one below can be
-  // integrated and there is no need for match_files_vec, index1_vec, index2_vec.
-  std::vector<std::string> match_files_vec;
-  std::vector<size_t> index1_vec, index2_vec;
-  typedef std::map<std::string,size_t>::iterator MapIterator;
-  for (int i = 0; i < num_images; i++){ // Loop through all image pairs
-    for (int j = i+1; j < num_images; j++){
-
-      // Find the match file for this pair of images
-      std::pair<int, int> pair_ind(i, j);
-      auto pair_it = match_files.find(pair_ind);
-      if (pair_it == match_files.end())
-        continue; // This match file was not passed in
-      std::string match_file = pair_it->second;
-
-      // Verify that the match file exists
-      if (!fs::exists(match_file)) {
-        vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
-        continue;
-      }
-
-      // Also see what happens when GCP is added, when some similar logic is used.
-      match_files_vec.push_back(match_file);
-      index1_vec.push_back(i);
-      index2_vec.push_back(j);
-    }
-  }
-
   // Give all interest points in a given image a unique id, and put
   // them in a vector with the id corresponding to the interest point
   std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
-
-  // Loop through the match files
   size_t num_load_rejected = 0, num_loaded = 0;
-  for (size_t file_iter = 0; file_iter < match_files_vec.size(); file_iter++) {
-    std::string match_file = match_files_vec[file_iter];
-    size_t index1 = index1_vec[file_iter];
-    size_t index2 = index2_vec[file_iter];
-
+  for (auto it = match_files.begin(); it != match_files.end(); it++) {
+    
+    std::pair<int, int> pair_ind = it->first;
+    std::string const& match_file = it->second; // alias
+    int index1 = pair_ind.first; 
+    int index2 = pair_ind.second; 
+    
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
     // vw_out() << "Loading: " << match_file << std::endl;
     ip::read_binary_match_file(match_file, ip1, ip2);
     if (ip1.size() < min_matches) {
-      vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
-                                << ip1.size() << " matches. [rejected]\n";
+      vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
+                                << ip1.size() << " matches.\n";
       num_load_rejected += ip1.size();
       continue;
     }
@@ -291,8 +264,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     }
 
     // Save the matches after getting a subset
-    ip_subset[std::make_pair<int, int>(index1, index2)] = std::make_pair(ip1, ip2);
-   } // End loop through match files
+    ip_subset[pair_ind] = std::make_pair(ip1, ip2);
+  } // End loop through match files
 
   if (num_load_rejected != 0)
     vw_out(WarningMessage,"ba")
@@ -321,6 +294,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   // If feature A in image I matches feather B in image J, which
   // matches feature C in image K, then (A, B, C) belong together in
   // a track, and will have a single triangulated xyz. Build such a track.
+  // TODO(oalexan1): Make this into a function called matchesToMatchMap()
   VwOpenMVG::matching::PairWiseMatches match_map;
   for (auto it = ip_subset.begin(); it != ip_subset.end(); it++) {
     std::pair<int, int> const& cid_pair = it->first;     // alias
@@ -350,6 +324,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   keypoint_map.clear(); keypoint_map.shrink_to_fit();
 
   {
+    // TODO(oalexan1): Make this into a function called buildTracks()
     // Build tracks
     // De-allocate these as soon as not needed to save memory
     VwOpenMVG::tracks::TracksBuilder trackBuilder;
@@ -364,6 +339,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     if (map_tracks.empty())
       return false; 
 
+    // TODO(oalexan1): Make this into a function called buildCnetFromTracks()
     // Populate the filtered tracks
     size_t num_elems = map_tracks.size();
     for (auto pid = map_tracks.begin(); pid != map_tracks.end(); pid++) {
