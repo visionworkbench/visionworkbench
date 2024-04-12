@@ -212,7 +212,15 @@ void matchesToMvg(MATCH_MAP const& match_map,
     
     int left_cid = cid_pair.first;
     int right_cid = cid_pair.second;
-    
+
+    // This potential swap ensures that the pair is always ordered
+    // in the same way. It results in almost the same results regardless
+    // of the order of images vs order of matches.
+    bool swap = (left_cid > right_cid);
+    std::pair<int, int> out_pair = cid_pair;
+    if (swap) 
+      out_pair = std::make_pair(right_cid, left_cid);
+      
     MATCH_PAIR const& match_pair = it->second;  // alias
     std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
     std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
@@ -230,10 +238,14 @@ void matchesToMvg(MATCH_MAP const& match_map,
       if (right_it == keypoint_map[right_cid].end()) 
         vw::vw_throw(ArgumentErr() << "Bookkeeping error in matchesToMvg().\n");
       int left_fid = left_it->second;
-      int right_fid = right_it->second;      
-      mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_fid, right_fid));
+      int right_fid = right_it->second;
+
+      if (!swap)
+        mvg_matches.push_back(VwOpenMVG::matching::IndMatch(left_fid, right_fid));
+      else
+        mvg_matches.push_back(VwOpenMVG::matching::IndMatch(right_fid, left_fid));
     }
-    mvg_match_map[cid_pair] = mvg_matches;
+    mvg_match_map[out_pair] = mvg_matches;
   }
 }
 
@@ -316,7 +328,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     std::string const& match_file = it->second; // alias
     int index1 = pair_ind.first; 
     int index2 = pair_ind.second; 
-    
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
     // vw_out() << "Loading: " << match_file << std::endl;
@@ -402,6 +413,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   if (triangulate_control_points)
     vw::ba::triangulate_control_network(cnet, camera_models, min_angle_radians,
                                         forced_triangulation_distance);
+
   return true;
 }
 
