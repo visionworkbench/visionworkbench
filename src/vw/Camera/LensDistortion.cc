@@ -1161,38 +1161,14 @@ RPCLensDistortion::copy() const {
   return boost::shared_ptr<RPCLensDistortion>(new RPCLensDistortion(*this));
 }
 
-Vector2
-RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
-                                         Vector2 const& p) const {
-  // Put the origin at the optical center.
-  Vector2 offset = cam.point_offset(); // = [cu, cv]
-  return RPCLensDistortion::compute_rpc(p - offset, m_distortion) + offset;
-}
+// RPC distortion model, after shifting relative to the principal point.
+vw::Vector2 RpcDistortion(vw::Vector2 const& P, Vector<double> const& distortion) {
 
-// TODO(oalexan1): Use the numerical Jacobian to undistort the points.
-// Check beforehand with cam_test how distortion and undistortion agree,
-// and how things change in terms of accuracy and speed after this change.
-Vector2
-RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
-                                           Vector2 const& p) const {
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-  Vector2 offset = cam.point_offset(); // = [cu, cv]
-  return RPCLensDistortion::compute_rpc(p - offset, m_undistortion) + offset;
-}
-
-// Evaluate the RPC with given coefficients.
-Vector2
-RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const {
-  
-  if (num_dist_params() != (int)coeffs.size()) 
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
-
-  int rpc_deg = rpc_degree(coeffs.size());
-  double x = p[0];
-  double y = p[1];
+  int rpc_deg = RPCLensDistortion::rpc_degree(distortion.size());
   
   // Precompute x^n and y^m values
+  double x = P[0];
+  double y = P[1];  
   std::vector<double> powx(rpc_deg + 1), powy(rpc_deg + 1);
   double valx = 1.0, valy = 1.0;
   for (int deg = 0; deg <= rpc_deg; deg++) {
@@ -1217,16 +1193,40 @@ RPCLensDistortion::compute_rpc(Vector2 const& p, Vector<double> const& coeffs) c
     for (int deg = start; deg <= rpc_deg; deg++) { // start at 0
       for (int i = 0; i <= deg; i++) {
         // Add coeff * x^(deg-i) * y^i
-        vals[count] += coeffs[coeff_index] * powx[deg - i] * powy[i];
+        vals[count] += distortion[coeff_index] * powx[deg - i] * powy[i];
         coeff_index++;
       }
     }
   }
 
-  if (coeff_index != (int)coeffs.size()) 
+  if (coeff_index != (int)distortion.size()) 
     vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
 
-  return Vector2(vals[0]/vals[1], vals[2]/vals[3]);
+  return vw::Vector2(vals[0]/vals[1], vals[2]/vals[3]);
+}
+
+Vector2
+RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
+                                         Vector2 const& p) const {
+  // Shift relative to the principal point
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+  Vector2 p0 = p - offset;
+  
+  return RpcDistortion(p0, m_distortion) + offset;
+}
+
+// Use the numerical Jacobian to undistort the points.
+Vector2 RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
+                                                   Vector2 const& p) const {
+  // Shift relative to the principal point
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+  Vector2 p0 = p - offset;
+  
+  // Find the normalized undistorted pixel using Newton-Raphson
+  Vector2 U = newtonRaphson(p0, m_distortion, 
+                            RpcDistortion, numericalJacobian);
+
+  return U + offset;
 }
 
 void RPCLensDistortion::scale(double scale) {

@@ -409,8 +409,8 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
     double max_error = 0;
     double norm = 0.0;
     for (size_t i = 0; i < distorted_coords.size(); i++) {
-      Vector2 undistorted        = temp_model->undistorted_coordinates(pin_model,
-                                                                       distorted_coords[i]);
+      Vector2 undistorted = temp_model->undistorted_coordinates(pin_model,
+                                                                distorted_coords[i]);
       Vector2 actual_undistorted = Vector2(undistorted_coords[2*i], undistorted_coords[2*i+1]);
       double error = norm_2(undistorted - actual_undistorted);
       mean_error += error;
@@ -424,8 +424,8 @@ double compute_undistortion(PinholeModel& pin_model, Vector2i image_size,
     norm = sqrt(norm) / pixel_pitch; // take the square root and convert to pixels
     vw_out() << DistModelT::class_name() << " undistortion approximation "
              << "of degree " << temp_model->rpc_degree()
-             << " has mean, max, and norm of pixel error of "
-             << mean_error << ", " << max_error << ", and " << norm << ".\n";
+             << " has mean and max pixel error of "
+             << mean_error << " " << max_error << ".\n";
   }
   
   // Make a copy of the model
@@ -644,8 +644,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     if (do_rpc)
       vw_out() << " of degree " << pass;
     
-    vw_out() << " with mean, max, and norm of pixel error of "
-             << mean_error << ", " << max_error << ", and " << norm << ".\n";
+    vw_out() << " with mean and max pixel error of "
+             << mean_error << ", " << max_error << ".\n";
   }
   
   // If the approximation is not very good, keep the original model and warn

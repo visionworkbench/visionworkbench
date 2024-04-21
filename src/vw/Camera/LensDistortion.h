@@ -350,10 +350,9 @@ namespace camera {
     
     // This variable signals that the coefficients needed to perform undistortion
     // have been computed.
+    // TODO(oalexan1): Wipe this!
     bool m_can_undistort;
 
-    // Compute the RPC model with given coeffcient at the given point
-    Vector2 compute_rpc(Vector2 const& p, Vector<double> const& coeffs) const;
   public:
     
     RPCLensDistortion();
