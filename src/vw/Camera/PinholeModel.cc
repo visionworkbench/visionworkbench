@@ -383,10 +383,15 @@ Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
   Vector3 phys_vector  = normalize(point - this->camera_center());
   double  diff         = norm_2(pixel_vector - phys_vector);
 
+  // For very oblique cameras, rays may go the other way
+  if (diff >= ERROR_THRESHOLD)
+    diff = norm_2(pixel_vector + phys_vector);
+
   // Print an explicit error message, otherwise this is confusing when showing up.
   if (diff >= ERROR_THRESHOLD || diff != diff)
-    vw_throw( PointToPixelErr()
-	      << "PinholeModel: Projection into pinhole camera is inaccurate." );
+    vw::vw_throw(PointToPixelErr()
+	      << "PinholeModel: Projection into pinhole camera is inaccurate.");
+
   return final_pixel;
 }
 
