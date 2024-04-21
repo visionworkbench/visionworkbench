@@ -1092,13 +1092,11 @@ void PhotometrixLensDistortion::scale( double scale ) {
 // only after set_distortion_parameters().
 RPCLensDistortion::RPCLensDistortion(){
   m_rpc_degree = 0;
-  m_can_undistort = false;
 }
 
 RPCLensDistortion::RPCLensDistortion(Vector<double> const& params): m_distortion(params) {
   validate_distortion_params(params);
   m_rpc_degree = rpc_degree(params.size());
-  m_can_undistort = false;
 }
 
 Vector<double>
@@ -1106,36 +1104,10 @@ RPCLensDistortion::distortion_parameters() const {
   return m_distortion; 
 }
 
-Vector<double>
-RPCLensDistortion::undistortion_parameters() const { 
-  return m_undistortion; 
-}
-
 void RPCLensDistortion::set_distortion_parameters(Vector<double> const& params) {
   validate_distortion_params(params);
-
-  // If the distortion parameters changed, one cannot undistort until the undistortion
-  // coefficients are computed.
-  if (params.size() != m_distortion.size()) {
-    m_can_undistort = false;
-  } else{
-    for (size_t it = 0; it < params.size(); it++) {
-      if (m_distortion[it] != params[it]) {
-        m_can_undistort = false;
-        break;
-      }
-    }
-  }
   m_distortion = params;
   m_rpc_degree = rpc_degree(params.size());
-}
-
-void RPCLensDistortion::set_undistortion_parameters(Vector<double> const& params) {
-  if (params.size() != num_dist_params()) 
-    vw_throw( IOErr() << class_name()
-              << ": The number of distortion and undistortion parameters must agree.");
-  m_undistortion = params;
-  m_can_undistort = true;
 }
 
 void RPCLensDistortion::set_image_size(Vector2i const& image_size){
@@ -1150,10 +1122,7 @@ void RPCLensDistortion::reset(int rpc_degree){
   m_rpc_degree = rpc_degree;
   int num_params = num_dist_params(rpc_degree);
   m_distortion.set_size(num_params);
-  m_undistortion.set_size(num_params);
   init_as_identity(m_distortion);
-  init_as_identity(m_undistortion);
-  m_can_undistort = true;
 }
 
 boost::shared_ptr<LensDistortion>
@@ -1208,30 +1177,51 @@ vw::Vector2 RpcDistortion(vw::Vector2 const& P, Vector<double> const& distortion
 Vector2
 RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
                                          Vector2 const& p) const {
-  // Shift relative to the principal point
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
   Vector2 offset = cam.point_offset(); // = [cu, cv]
-  Vector2 p0 = p - offset;
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
   
-  return RpcDistortion(p0, m_distortion) + offset;
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  
+  // Apply the fisheye distortion model to the normalized pixel
+  Vector2 p_norm = RpcDistortion(p_0, m_distortion);
+  
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+  
+  return p_dist;
 }
 
 // Use the numerical Jacobian to undistort the points.
 Vector2 RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
                                                    Vector2 const& p) const {
-  // Shift relative to the principal point
+  Vector2 focal  = cam.focal_length(); // = [fu, fv] 
   Vector2 offset = cam.point_offset(); // = [cu, cv]
-  Vector2 p0 = p - offset;
-  
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
   // Find the normalized undistorted pixel using Newton-Raphson
-  Vector2 U = newtonRaphson(p0, m_distortion, 
+  Vector2 U = newtonRaphson(p_0, m_distortion, 
                             RpcDistortion, numericalJacobian);
 
-  return U + offset;
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(U, focal) + offset;
+  
+  return p_undist;
 }
 
 void RPCLensDistortion::scale(double scale) {
+  // Throw an error. This is not a well-defined operation.
+  vw_throw( NoImplErr() << "RPCLensDistortion::scale() is not implemented.");
   m_distortion *= scale;
-  m_undistortion *= scale;
 }
 
 void RPCLensDistortion::validate_distortion_params(Vector<double> const& params) {
@@ -1361,10 +1351,7 @@ namespace {
   
 void RPCLensDistortion::write(std::ostream & os) const {
 
-  if (!m_can_undistort) 
-    vw_throw( IOErr() << class_name() << ": Undistorted coefficients are not up to date.\n" );
-
-  // TODO: Add domain of validity for the distored and undistorted pixels. This is needed
+  // TODO: Add domain of validity for the distorted and undistorted pixels. This is needed
   // because otherwise the RPC model can return wrong results which confuses
   // bundle adjustment. 
   write_param("rpc_degree", os, m_rpc_degree);
@@ -1380,15 +1367,6 @@ void RPCLensDistortion::write(std::ostream & os) const {
   write_param_vec("distortion_den_x  ", os, den_x);
   write_param_vec("distortion_num_y  ", os, num_y);
   write_param_vec("distortion_den_y  ", os, den_y);
-  
-  // Write the undistortion
-  unpack_params(m_undistortion, num_x, den_x, num_y, den_y);
-  prepend_1(den_x);
-  prepend_1(den_y);
-  write_param_vec("undistortion_num_x", os, num_x);
-  write_param_vec("undistortion_den_x", os, den_x);
-  write_param_vec("undistortion_num_y", os, num_y);
-  write_param_vec("undistortion_den_y", os, den_y);
 }
 
 void RPCLensDistortion::read(std::istream & is) {
@@ -1408,15 +1386,4 @@ void RPCLensDistortion::read(std::istream & is) {
   remove_1(den_x);
   remove_1(den_y);
   pack_params(m_distortion, num_x, den_x, num_y, den_y);
-
-  // Read the undistortion
-  read_param_vec("undistortion_num_x", quarter, is, num_x);
-  read_param_vec("undistortion_den_x", quarter, is, den_x);
-  read_param_vec("undistortion_num_y", quarter, is, num_y);
-  read_param_vec("undistortion_den_y", quarter, is, den_y);
-  remove_1(den_x);
-  remove_1(den_y);
-  pack_params(m_undistortion, num_x, den_x, num_y, den_y);
-
-  m_can_undistort = true; 
 }

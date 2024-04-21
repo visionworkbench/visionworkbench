@@ -293,35 +293,6 @@ int auto_compute_sample_spacing(Vector2i const image_size) {
   return spacing;
 }
 
-// TODO: Move this to RPCLensDistortion() as only that class needs it.
-void update_rpc_undistortion(PinholeModel const& model){
-
-  const vw::camera::LensDistortion* distortion = model.lens_distortion();
-  std::string lens_name = distortion->name();
-  if (lens_name != RPCLensDistortion::class_name())
-    return;
-  
-  // Have to cast away the const-ness. Not nice. Only happens for RPC
-  // distortion.
-  PinholeModel * pin_ptr = const_cast<PinholeModel*>(&model);
-
-  if (lens_name == RPCLensDistortion::class_name()) {
-    RPCLensDistortion * rpc_dist = dynamic_cast<RPCLensDistortion*>
-      (const_cast<LensDistortion*>(distortion));
-    if (rpc_dist == NULL) 
-      vw_throw( ArgumentErr() << "PinholeModel::expecting an " + RPCLensDistortion::class_name() +
-                " model." );
-    
-    // Only update this if we have to
-    int sample_spacing = auto_compute_sample_spacing(rpc_dist->image_size());
-    int rpc_degree = rpc_dist->rpc_degree();
-    if (!rpc_dist->can_undistort()) 
-      compute_undistortion<RPCLensDistortion>(*pin_ptr, rpc_dist->image_size(), sample_spacing,
-                                              rpc_degree);
-  }
-
-}
-
 void 
 resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
                                PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,

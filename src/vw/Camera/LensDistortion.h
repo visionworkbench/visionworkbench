@@ -346,13 +346,8 @@ namespace camera {
   class RPCLensDistortion: public LensDistortion {
     int m_rpc_degree;
     Vector2i m_image_size;
-    Vector<double> m_distortion, m_undistortion;
+    Vector<double> m_distortion;
     
-    // This variable signals that the coefficients needed to perform undistortion
-    // have been computed.
-    // TODO(oalexan1): Wipe this!
-    bool m_can_undistort;
-
   public:
     
     RPCLensDistortion();
@@ -386,7 +381,6 @@ namespace camera {
 
     virtual void scale( double scale );
     
-    bool can_undistort() const { return m_can_undistort; }
     static void init_as_identity(Vector<double> & params);
     static void increment_degree(Vector<double> & params);
   private:

@@ -306,8 +306,6 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line,
 
 void PinholeModel::write(std::string const& filename) const {
 
-  update_rpc_undistortion(*this);
-
   // Update this field whenever there is a significant change to the file.
   // - It can be used to keep backwards compatibility with future plain text changes.
   const std::string PINHOLE_VERSION = "VERSION_4";
@@ -364,7 +362,6 @@ Vector2 PinholeModel::point_to_pixel_no_check(Vector3 const& point) const {
 
   return final_pixel;
 }
-
 
 Vector2 PinholeModel::point_to_pixel(Vector3 const& point) const {
 
