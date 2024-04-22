@@ -1110,10 +1110,6 @@ void RPCLensDistortion::set_distortion_parameters(Vector<double> const& params) 
   m_rpc_degree = rpc_degree(params.size());
 }
 
-void RPCLensDistortion::set_image_size(Vector2i const& image_size){
-  m_image_size = image_size;
-}
-
 // Form the identity transform
 void RPCLensDistortion::reset(int rpc_degree){
   if (rpc_degree <= 0) 
@@ -1355,7 +1351,6 @@ void RPCLensDistortion::write(std::ostream & os) const {
   // because otherwise the RPC model can return wrong results which confuses
   // bundle adjustment. 
   write_param("rpc_degree", os, m_rpc_degree);
-  write_param_vec("image_size", os, m_image_size);
 
   // Write the distortion
   Vector<double> num_x, den_x, num_y, den_y;
@@ -1372,7 +1367,6 @@ void RPCLensDistortion::write(std::ostream & os) const {
 void RPCLensDistortion::read(std::istream & is) {
 
   read_param("rpc_degree", is, m_rpc_degree);
-  read_param_vec("image_size", 2, is, m_image_size);
 
   int num_params = num_dist_params(m_rpc_degree);
   int quarter = (num_params+2)/4; // to account for the two 1's in the denominator

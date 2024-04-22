@@ -154,18 +154,15 @@ int main(int argc, char *argv[]) {
       image_size = vw::Vector2(image_in->format().cols, image_in->format().rows);
     }
 
-    std::cout << "image width and height are: " << image_size[0] << ' ' << image_size[1]
-              << std::endl;
-    
+    vw_out() << "Image width and height: " << image_size[0] << ' ' << image_size[1] << "\n";
     if (sample_spacing <= 0) {
       sample_spacing = auto_compute_sample_spacing(image_size);
       vw_out() << "Sample the image by picking one in every " << sample_spacing << " pixels.\n";
     }
-
-    vw_out() << "Loading camera model file: " << camera_file_name.c_str() << "\n";
-
+     
     // Here we will accept an optical bar model too, then in_model
     // will be a pointer to either that or to pinhole.
+    vw_out() << "Loading camera model file: " << camera_file_name.c_str() << "\n";
     CameraModel * in_model;
     OpticalBarModel opb;
     PinholeModel    pin;

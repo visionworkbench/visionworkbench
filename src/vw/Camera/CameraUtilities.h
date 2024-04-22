@@ -467,7 +467,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
     mean_error = 0.0;
     max_error = 0.0;
     for (size_t i = 0; i < undistorted_coords.size(); ++i) {
-      Vector2 distorted        = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
+      Vector2 distorted = new_model.distorted_coordinates(out_model, undistorted_coords[i]);
       Vector2 actual_distorted = Vector2(distorted_coords[2*i], distorted_coords[2*i+1]);
       double error = norm_2(distorted - actual_distorted);
       norm += error * error; 
