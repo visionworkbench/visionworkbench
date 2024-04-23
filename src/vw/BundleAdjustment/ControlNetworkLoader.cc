@@ -448,7 +448,6 @@ bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
   return true;
 }
 
-// TODO(oalexan1): Rename this to load_ground_control_points
 int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                       std::vector<std::string> const& gcp_files,
                                       cartography::Datum const& datum,
