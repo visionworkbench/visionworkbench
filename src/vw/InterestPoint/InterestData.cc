@@ -172,10 +172,11 @@ namespace ip {
     std::ifstream f;
     f.open(match_file.c_str(), std::ios::binary | std::ios::in);
 
-    // Error Handling
+    // Allow match files to not exist. That because we do not write empty match files.
     if (!f.is_open())
-      vw_throw( IOErr() << "Failed to open match file: " << match_file );
+       return;
 
+    // But if the file exists, we must be able to read from it
     uint64 size1 = 0, size2 = 0;
     if (f)
      f.read((char*)&size1, sizeof(uint64));
