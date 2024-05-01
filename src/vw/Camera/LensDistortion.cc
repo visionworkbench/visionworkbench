@@ -1315,7 +1315,7 @@ void RPCLensDistortion::pack_params(Vector<double> & params,
   int den_len = den_x.size();
 
   if (num_len != den_len + 1 || num_len != int(num_y.size()) || den_len != int(den_y.size()))
-    vw_throw( IOErr() << "Book-keeping failure in RPCLensDistortion.\n" );
+    vw::vw_throw(vw::IOErr() << "Book-keeping failure in RPCLensDistortion.\n");
 
   params.set_size(2*num_len + 2*den_len);
   
@@ -1358,10 +1358,10 @@ void RPCLensDistortion::write(std::ostream & os) const {
   prepend_1(den_x);
   prepend_1(den_y);
   // Leave spaces below so that it will display nicely
-  write_param_vec("distortion_num_x  ", os, num_x);
-  write_param_vec("distortion_den_x  ", os, den_x);
-  write_param_vec("distortion_num_y  ", os, num_y);
-  write_param_vec("distortion_den_y  ", os, den_y);
+  write_param_vec("distortion_num_x", os, num_x);
+  write_param_vec("distortion_den_x", os, den_x);
+  write_param_vec("distortion_num_y", os, num_y);
+  write_param_vec("distortion_den_y", os, den_y);
 }
 
 void RPCLensDistortion::read(std::istream & is) {

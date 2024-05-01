@@ -1234,7 +1234,7 @@ double lcBlendFit(double x) {
   return cosFit(x)*factor + linearFit(x)*(1.0-factor);
 }
 
-/// Crude way of performning subpixel interpolation when only two values are available
+/// Crude way of performing subpixel interpolation when only two values are available
 /// - Returns fraction of distance from the primary to the other value.
 double SemiGlobalMatcher::two_value_subpixel(AccumCostType primary, AccumCostType other) {
   return 0.5*(static_cast<double>(primary) / static_cast<double>(other));
