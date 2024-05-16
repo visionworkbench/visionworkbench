@@ -34,8 +34,12 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraUtilities.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/FileUtils.h>
 
 #include <iostream>
+
+// TODO(oalexan1): Add option --min-rpc-coeff-val. Check if this results
+// in RPC distortion optimizing very small coefficients.
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -99,6 +103,7 @@ int main(int argc, char *argv[]) {
 
   // This must happen after the options are parsed
   opt.setVwSettingsFromOpt();
+  create_out_dir(output_file_name);
 
   // Parse the image size from a string
   if (image_size_str != "") {

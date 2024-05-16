@@ -326,13 +326,18 @@ void PinholeModel::write(std::string const& filename) const {
   cam_file << "fv = " << m_fv << "\n";
   cam_file << "cu = " << m_cu << "\n";
   cam_file << "cv = " << m_cv << "\n";
-  cam_file << "u_direction = " << m_u_direction[0] << " " << m_u_direction[1] << " " << m_u_direction[2] << "\n";
-  cam_file << "v_direction = " << m_v_direction[0] << " " << m_v_direction[1] << " " << m_v_direction[2] << "\n";
-  cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " << m_w_direction[2] << "\n";
-  cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " << m_camera_center[2] << "\n";
-  cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " "
-                     << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " "
-                     << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
+  cam_file << "u_direction = " << m_u_direction[0] << " " << m_u_direction[1] << " " 
+           << m_u_direction[2] << "\n";
+  cam_file << "v_direction = " << m_v_direction[0] << " " << m_v_direction[1] << " " 
+           << m_v_direction[2] << "\n";
+  cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " 
+           << m_w_direction[2] << "\n";
+  cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " 
+           << m_camera_center[2] << "\n";
+  cam_file << "R = " 
+           << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " "
+           << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " "
+           << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
   cam_file << "pitch = " << m_pixel_pitch << "\n";
 
   // Write the name of the distortion model, then use the distortion model
@@ -348,17 +353,17 @@ Vector2 PinholeModel::point_to_pixel_no_check(Vector3 const& point) const {
 
   // Multiply the pixel location by the 3x4 camera matrix.
   // - The pixel coordinate is de-homogenized by dividing by the denominator.
-  double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
-                       m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
-  Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
-                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)           ) / denominator,
-                           (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
-                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)           ) / denominator);
+  double den = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
+               m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
+  Vector2 pixel = Vector2((m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
+                           m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / den,
+                          (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
+                           m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / den);
 
   // Apply the lens distortion model
   // - Divide by pixel pitch to convert from metric units to pixels if the intrinsic
   //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
-  Vector2 final_pixel = m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
+  Vector2 final_pixel = m_distortion->distorted_coordinates(*this, pixel) / m_pixel_pitch;
 
   return final_pixel;
 }

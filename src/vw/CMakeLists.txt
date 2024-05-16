@@ -90,9 +90,9 @@ message("Searching for boost...")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
-  set(BOOST_ROOT       "${ASP_DEPS_DIR}")
-  set(BOOST_LIBRARYDIR "${ASP_DEPS_DIR}/lib")
-  set(BOOST_INCLUDEDIR "${ASP_DEPS_DIR}/include")
+  set(Boost_ROOT       "${ASP_DEPS_DIR}")
+  set(Boost_LIBRARYDIR "${ASP_DEPS_DIR}/lib")
+  set(Boost_INCLUDEDIR "${ASP_DEPS_DIR}/include")
   set(Boost_NO_SYSTEM_PATHS ON) # Do not search anywhere else
   set(Boost_DEBUG ON)
   set(Boost_DETAILED_FAILURE_MSG ON)

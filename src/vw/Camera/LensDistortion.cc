@@ -1084,7 +1084,6 @@ void PhotometrixLensDistortion::scale( double scale ) {
   m_distortion *= scale;
 }
 
-
 // ======== RPCLensDistortion ========
 // This class is not fully formed until both distortion and
 // undistortion parameters are computed.
@@ -1357,7 +1356,6 @@ void RPCLensDistortion::write(std::ostream & os) const {
   unpack_params(m_distortion, num_x, den_x, num_y, den_y);
   prepend_1(den_x);
   prepend_1(den_y);
-  // Leave spaces below so that it will display nicely
   write_param_vec("distortion_num_x", os, num_x);
   write_param_vec("distortion_den_x", os, den_x);
   write_param_vec("distortion_num_y", os, num_y);

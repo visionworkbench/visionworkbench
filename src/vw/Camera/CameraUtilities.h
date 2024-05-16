@@ -442,7 +442,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   DistModelT new_model;
   Vector<double> model_params;
 
-  vw_out() << "Approximating an " << lens_name << " distortion model.\n";
+  vw_out() << "Approximating a distortion model of type: " << lens_name << "\n";
   if (do_rpc) 
     vw_out() << "Compute the RPC distortion model starting at degree 1 "
              << "and then refine it until reaching degree " << rpc_degree << ".\n";
