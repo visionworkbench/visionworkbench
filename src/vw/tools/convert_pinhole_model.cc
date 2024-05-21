@@ -162,7 +162,8 @@ int main(int argc, char *argv[]) {
     vw_out() << "Image width and height: " << image_size[0] << ' ' << image_size[1] << "\n";
     if (sample_spacing <= 0) {
       sample_spacing = auto_compute_sample_spacing(image_size);
-      vw_out() << "Sample the image by picking one in every " << sample_spacing << " pixels.\n";
+      vw_out() << "Sample the image by picking one in every " 
+               << sample_spacing << " pixels.\n";
     }
      
     // Here we will accept an optical bar model too, then in_model
