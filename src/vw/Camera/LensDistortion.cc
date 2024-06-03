@@ -329,7 +329,7 @@ LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2
 
   // Must push the solver really hard, to make sure bundle adjust gets accurate values
   // to play with.
-  Vector2 solution = math::levenberg_marquardtFixed( model, v, v, status, 1e-16, 1e-16, 100 );
+  Vector2 solution = math::levenberg_marquardtFixed(model, v, v, status, 1e-16, 1e-16, 100);
 
   Vector2 dist = this->distorted_coordinates(cam, solution);
   double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
@@ -364,7 +364,6 @@ LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 c
   return solution;
 }
 
-
 std::ostream& camera::operator<<(std::ostream & os,
                                  const camera::LensDistortion& ld) {
   ld.write(os);
@@ -398,7 +397,7 @@ TsaiLensDistortion::TsaiLensDistortion() {
   m_distortion.set_size(m_distortion_param_names.size());
 }
 
-TsaiLensDistortion::TsaiLensDistortion(Vector<double> const& params) : m_distortion(params) {
+TsaiLensDistortion::TsaiLensDistortion(Vector<double> const& params): m_distortion(params) {
   TsaiLensDistortion::init_distortion_param_names();
   if (m_distortion.size() != m_distortion_param_names.size())
     vw_throw( IOErr() << "TsaiLensDistortion: Incorrect number of parameters was passed in.");
