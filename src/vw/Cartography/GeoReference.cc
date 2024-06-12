@@ -304,20 +304,20 @@ GeoReference::GeoReference(): m_pixel_interpretation(PixelAsArea), m_projcs_name
   set_geographic(); // will call init_proj()
 }
 
-GeoReference::GeoReference(Datum const& datum) :
+GeoReference::GeoReference(Datum const& datum):
       m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
   set_transform(vw::math::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
 
-GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation)
-    : m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
+GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation):
+ m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
   set_transform(vw::math::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
 
 GeoReference::GeoReference(Datum const& datum,
-                            Matrix<double,3,3> const& transform) :
+                            Matrix<double,3,3> const& transform):
                   m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
   set_transform(transform);
   set_geographic(); // will call init_proj()
@@ -325,10 +325,14 @@ GeoReference::GeoReference(Datum const& datum,
 
 GeoReference::GeoReference(Datum const& datum,
                             Matrix<double,3,3> const& transform,
-                            PixelInterpretation pixel_interpretation) :
+                            PixelInterpretation pixel_interpretation):
   m_pixel_interpretation(pixel_interpretation), m_datum(datum), m_projcs_name("") {
   set_transform(transform);
   set_geographic(); // will call init_proj()
+}
+
+// Destructor
+GeoReference::~GeoReference() {
 }
 
 void GeoReference::set_transform(Matrix3x3 transform) {
@@ -727,7 +731,7 @@ std::vector<double> GeoReference::get_towgs84_values(std::string const& s) {
 
   o.resize(6);
   int count = sscanf(sub.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf",
-                      &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
+                     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
   if (count != 6)
     vw_throw(LogicErr() << "Error parsing +towgs84 from string: " << s);
   return o;
@@ -892,11 +896,13 @@ ProjContext & ProjContext::operator=(ProjContext const& other) {
 bool ProjContext::is_initialized() const {
   return m_init;
 }
-  
+
 ProjContext::~ProjContext() {
-  // TODO(oalexan1): Deleting the pointer causes a segfault. Why?
-  //delete m_lonlat_to_proj; m_lonlat_to_proj = NULL;
-  //delete m_proj_to_lonlat; m_proj_to_lonlat = NULL;
+  if (m_init) {
+    // Free up the memory
+    OGRCoordinateTransformation::DestroyCT(m_lonlat_to_proj);
+    OGRCoordinateTransformation::DestroyCT(m_proj_to_lonlat);
+  }
 }
   
 // Given an integer box, generate points on its boundary and the
@@ -1190,7 +1196,7 @@ std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
   os << "-- Proj.4 Geospatial Reference Object --\n";
   if (georef.get_projcs_name() != "")
     os << "\tPROJCS name: " << georef.get_projcs_name() << "\n";
-  os << "\tTransform  : " << georef.transform() << "\n";
+  os << "\tTransform: " << georef.transform() << "\n";
   os << "\t" << georef.datum() << "\n";
   os << "\tProj.4 String: " << georef.proj4_str() << "\n";
   

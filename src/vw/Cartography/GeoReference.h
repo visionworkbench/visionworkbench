@@ -32,9 +32,6 @@
 #include <boost/scoped_ptr.hpp>
 
 // Proj forward declarations
-// TODO(oalexan1): Wipe these
-struct pj_ctx;
-struct PJconsts;
 typedef struct pj_ctx PJ_CONTEXT;
 typedef struct PJconsts PJ;  
 
@@ -183,8 +180,8 @@ namespace cartography {
     /// pixel interpretation
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation);
 
-    /// Destructor.
-    ~GeoReference() {}
+    /// Destructor
+    ~GeoReference();
 
     void set_transform(Matrix<double,3,3> transform);
     
@@ -192,7 +189,9 @@ namespace cartography {
     void set_datum(Datum const& datum);
 
     PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
-    void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
+    void set_pixel_interpretation(PixelInterpretation const& p) {
+      m_pixel_interpretation = p; 
+    }
 
     ///// Checks if an image with the given dimensions is properly contained in the projected space.
     ///// - In particular, all of the projected coordinates must fall in the selected longitude range.

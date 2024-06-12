@@ -52,6 +52,11 @@ namespace cartography {
     bool          m_skip_datum_conversion;
     mutable Mutex m_mutex; // Used to control access to the ProjContext objects
 
+    // TODO(oalexan1): These are not used for now as a datum conversion is not
+    // allowed. If that's ever allowed, need to add logic to free up these resources.
+    PJ_CONTEXT * m_pj_context;
+    PJ * m_pj_transform;
+
   public:
   
     /// Default constructor, does not generate a usable object.
@@ -122,12 +127,6 @@ namespace cartography {
 
     /// Convert a point bounding box in the source to a pixel bounding box in the destination.
     BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
-
-    // TODO(oalexan1): How about a destructor for these? PROJ may be crashing
-    // when a destructor is called as under the hood different such objects
-    // appear to be sharing something.
-    PJ_CONTEXT * m_pj_context;
-    PJ * m_pj_transform;
 
     friend std::ostream& operator<<(std::ostream& os, const GeoTransform& trans);
   }; // End class GeoTransform

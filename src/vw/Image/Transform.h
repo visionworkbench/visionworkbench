@@ -344,7 +344,7 @@ namespace vw {
     typedef                  pixel_type result_type;
     typedef ProceduralPixelAccessor<TransformView> pixel_accessor;
 
-    // The default constructor creates a tranformed image with the
+    // The default constructor creates a transformed image with the
     // same dimensions as the original.
     TransformView( ImageT const& view, TransformT const& mapper ) :
       m_image(view), m_mapper(mapper), m_width(view.cols()), m_height(view.rows()) {}

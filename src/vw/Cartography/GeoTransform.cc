@@ -91,7 +91,7 @@ namespace cartography {
                              BBox2 const& src_bbox, BBox2 const& dst_bbox) :
     m_src_georef(src_georef), m_dst_georef(dst_georef),
     m_src_bbox(src_bbox), m_dst_bbox(dst_bbox) {
-
+     
     // This are NULL for now, may be initialized if needed to convert among datums
     m_pj_context = NULL;
     m_pj_transform = NULL;
@@ -122,7 +122,6 @@ namespace cartography {
     if (src_datum == dst_datum) {
       m_skip_datum_conversion = true;
     } else {
-      
       m_skip_datum_conversion = false;
 
       // Set up longlat coordinate systems with given datums
@@ -214,9 +213,9 @@ namespace cartography {
   }
 
   GeoTransform::~GeoTransform() {
-    // TODO(oalexan1): Must figure out deallocation without crashing!
-    // As of now, likely there is a memory leak. Should not be too big,
-    // unless some monster tables are loaded for each instance.
+    // TODO(oalexan1): Must deallocate pj_transform and pj_context. But for now
+    // don't have a testcase, as GeoTransform does not initialize these given
+    // that datum conversion is not allowed.
   }
 
   // Try to make lon be in the range [-180,180]
@@ -300,7 +299,7 @@ namespace cartography {
         r.grow(this->reverse(points[ptiter]));
       } catch (const std::exception & e) {}
     }
-
+    
     return grow_bbox_to_int(r);
   }
 
