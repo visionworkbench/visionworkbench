@@ -156,6 +156,7 @@ namespace ip {
   /// Interest point matcher class
   template < class MetricT, class ConstraintT >
   class InterestPointMatcher {
+    std::string m_flann_method; 
     ConstraintT m_constraint;
     MetricT     m_distance_metric;
     double      m_threshold;
@@ -175,8 +176,11 @@ namespace ip {
 
   public:
 
-    InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), bool bidirectional = false)
-      : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold), m_bidirectional(bidirectional) { }
+    InterestPointMatcher(std::string const& flann_method, 
+                         double threshold = 0.5, 
+                         MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), bool bidirectional = false): 
+    m_flann_method(flann_method), m_constraint(constraint), m_distance_metric(metric),
+    m_threshold(threshold), m_bidirectional(bidirectional) {}
 
     /// Given two lists of interest points, this write to index_list
     /// the corresponding matching index in ip2. index_list is the
@@ -320,8 +324,8 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
   float inc_amt = 1.0f/float(ip1_size);
 
   // Set up FLANNTree objects of all the different types we may need.
-  math::FLANNTree<float>         kd_float;
-  math::FLANNTree<unsigned char> kd_uchar;
+  math::FLANNTree<float>         kd_float(m_flann_method);
+  math::FLANNTree<unsigned char> kd_uchar(m_flann_method);
 
   Matrix<float>         ip2_matrix_float;
   Matrix<unsigned char> ip2_matrix_uchar;
@@ -330,10 +334,10 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
   const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
   if (use_uchar_FLANN) {
     ip_list_to_matrix(ip2, ip2_matrix_uchar);
-    kd_uchar.load_match_data( ip2_matrix_uchar, MetricT::flann_type );
+    kd_uchar.load_match_data(ip2_matrix_uchar, MetricT::flann_type);
   }else {
     ip_list_to_matrix(ip2, ip2_matrix_float);
-    kd_float.load_match_data( ip2_matrix_float,  MetricT::flann_type );
+    kd_float.load_match_data(ip2_matrix_float,  MetricT::flann_type);
   }
 
   if (!quiet)
@@ -348,7 +352,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
 
   BOOST_FOREACH( InterestPoint ip, ip1 ) {
     if (progress_callback.abort_requested())
-      vw_throw( Aborted() << "Aborted by ProgressCallback" );
+      vw_throw( Aborted() << "Aborted by ProgressCallback");
 
     if (!quiet)
       progress_callback.report_incremental_progress(inc_amt);

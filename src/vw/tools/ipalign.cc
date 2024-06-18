@@ -213,7 +213,9 @@ void align_images( Options & opt ) {
     std::copy( input_ip.begin(), input_ip.end(), input_ip_v.begin() );
 
     // Use an interest point matcher to find matched pairs of interest points
-    DefaultMatcher matcher(opt.matcher_threshold);
+    std::string flann_method = "kmeans"; 
+    InterestPointMatcher<L2NormMetric, NullConstraint> 
+      matcher(flann_method, opt.matcher_threshold);
     std::vector<InterestPoint> matched_ip1, matched_ip2;
     matcher(ref_ip_v, input_ip_v, matched_ip1, matched_ip2,
             TerminalProgressCallback( "tools.ipalign", "Matching:"));

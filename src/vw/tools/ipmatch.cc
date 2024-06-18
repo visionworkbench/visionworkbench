@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
   Options opt;
   std::vector<std::string> input_file_names;
   double      matcher_threshold;
-  std::string ransac_constraint, distance_metric_in, output_prefix;
+  std::string ransac_constraint, distance_metric_in, output_prefix, flann_method;
   float       inlier_threshold;
   int         ransac_iterations;
   bool        merge_match_files;
@@ -192,9 +192,13 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
                             "Write output files using this prefix.")
-    ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), 
+    ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.8), 
                             "Threshold for the separation between closest and next closest interest points.")
-    ("non-kdtree",          "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
+    ("flann-method",  po::value(&flann_method)->default_value("kmeans"),
+     "Choose the FLANN method for matching interest points. The default 'kmeans' is "
+     "slower but deterministic, while 'kdtree' is faster but not deterministic.")
+    ("non-flann",
+     "Use an implementation of the interest matcher that is not reliant on FLANN.")
     ("distance-metric,m",   po::value(&distance_metric_in)->default_value("L2"), 
                             "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), 
@@ -305,18 +309,22 @@ int main(int argc, char** argv) {
       }
 
       vw_out() << "Using distance metric: " << distance_metric_in << std::endl;
-      if ( !vm.count("non-kdtree") ) {
+      if (!vm.count("non-flann")) {
+        vw_out() << "Using FLANN method: " << flann_method << std::endl;
         // Run interest point matcher that uses KDTree algorithm.
         if (distance_metric == "l2") {
-          InterestPointMatcher< L2NormMetric, NullConstraint> matcher(matcher_threshold);
+          InterestPointMatcher<L2NormMetric, NullConstraint> 
+            matcher(flann_method, matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         } 
         if (distance_metric == "hamming") {
-          InterestPointMatcher< HammingMetric, NullConstraint> matcher(matcher_threshold);
+          InterestPointMatcher<HammingMetric, NullConstraint> 
+            matcher(flann_method, matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } else {
-        // Run interest point matcher that does not use KDTree algorithm.
+        vw_out() << "Not using FLANN.\n";
+        // Run interest point matcher that does not use FLANN.
         if (distance_metric == "l2") {
           InterestPointMatcherSimple<L2NormMetric, NullConstraint> matcher(matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
@@ -325,7 +333,7 @@ int main(int argc, char** argv) {
           InterestPointMatcherSimple<HammingMetric, NullConstraint> matcher(matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
-      } // End non-KDTree case
+      } // End non-flann case
 
       vw_out() << "Found " << matched_ip1.size() << " matches before duplicate removal.\n";
 

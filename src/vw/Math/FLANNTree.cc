@@ -90,10 +90,13 @@ size_t FLANNTree<float>::knn_search_help(void* data_ptr, size_t rows, size_t col
   return 0;
 }
 
-template <>
-void FLANNTree<float>::construct_index(void* data_ptr, size_t rows, size_t cols) {
-  std::cout << "--construct float index\n";
-  if (m_index_ptr != NULL)
+// Logic to be used for float and double types
+template <class FLOAT_T>
+void construct_index_aux(void* data_ptr, size_t rows, size_t cols,
+                         std::string const& flann_method, 
+                         FLANN_DistType const& dist_type,
+                         void* & index_ptr) {
+  if (index_ptr != NULL)
     vw_throw(IOErr() << "FLANNTree: Void ptr is not null, this is unexpected.");
   // Flann manual:
   // http://www.cs.ubc.ca/research/flann/uploads/FLANN/flann_manual-1.8.4.pdf.
@@ -106,19 +109,34 @@ void FLANNTree<float>::construct_index(void* data_ptr, size_t rows, size_t cols)
   int branching = 32;
   int iterations = 11;
   flann::flann_centers_init_t centers_init = flann::FLANN_CENTERS_GONZALES;
-  float cb_index = 0.2;
-  switch(m_dist_type) {
+  FLOAT_T cb_index = 0.2;
+  switch (dist_type) {
   case FLANN_DistType_L2:
-    m_index_ptr = new flann::Index<flann::L2<float>>(
-        flann::Matrix<float>((float*)data_ptr, rows, cols),
-        //flann::KDTreeIndexParams(NUM_TREES), // faster, but not deterministic
-        flann::KMeansIndexParams(branching, iterations, centers_init, cb_index), // slower
-        flann::L2<float>());
-    cast_index_ptr_L2_f(this->m_index_ptr)->buildIndex();
+    if (flann_method == "kmeans") {
+      // Slow, but deterministic
+      index_ptr = new flann::Index<flann::L2<FLOAT_T>>(
+          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, rows, cols),
+          flann::KMeansIndexParams(branching, iterations, centers_init, cb_index),
+          flann::L2<FLOAT_T>());
+    } else if (flann_method == "kdtree") {
+      // Fast, but not deterministic
+      index_ptr = new flann::Index<flann::L2<FLOAT_T>>(
+          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, rows, cols),
+          flann::KDTreeIndexParams(NUM_TREES), // faster, but not deterministic
+          flann::L2<FLOAT_T>());
+    } else {
+      vw_throw(IOErr() << "FLANNTree: Illegal FLANN method passed in.");
+    }
+    cast_index_ptr_L2_f(index_ptr)->buildIndex();
     return;
   default:
     vw_throw(IOErr() << "FLANNTree: Illegal distance type passed in.");
   }; // end switch
+}
+
+template <>
+void FLANNTree<float>::construct_index(void* data_ptr, size_t rows, size_t cols) {
+  construct_index_aux<float>(data_ptr, rows, cols, m_flann_method, m_dist_type, m_index_ptr);
 }
 
 template <>
@@ -182,23 +200,10 @@ size_t FLANNTree<double>::knn_search_help(void* data_ptr, size_t rows, size_t co
   return 0;
 }
 
+// This code is duplicated for floats and doubles. 
 template <>
 void FLANNTree<double>::construct_index(void* data_ptr, size_t rows, size_t cols) {
-  std::cout << "--construct double index\n";
-  if (m_index_ptr != NULL)
-    vw_throw(IOErr() << "FLANNTree: Void ptr is not null, this is unexpected.");
-  const int NUM_TREES = 4;
-  switch(m_dist_type) {
-  case FLANN_DistType_L2:
-    m_index_ptr = new flann::Index<flann::L2<double>>
-      (flann::Matrix<double>((double*)data_ptr, rows, cols),
-        flann::KDTreeIndexParams(NUM_TREES),
-        flann::L2<double>());
-    cast_index_ptr_L2_d(this->m_index_ptr)->buildIndex();
-    return;
-  default:
-    vw_throw(IOErr() << "FLANNTree: Illegal distance type passed in.");
-  }; // end switch
+  construct_index_aux<double>(data_ptr, rows, cols, m_flann_method, m_dist_type, m_index_ptr);
 }
 
 template <>
@@ -273,7 +278,6 @@ size_t FLANNTree<unsigned char>::knn_search_help(void* data_ptr,
 
 template <>
 void FLANNTree<unsigned char>::construct_index(void* data_ptr, size_t rows, size_t cols) {
-  std::cout << "--construct unsigned index\n";
   if (m_index_ptr != NULL)
     vw_throw(IOErr() << "FLANNTree: Void ptr is not null, this is unexpected.");
   switch(m_dist_type) {

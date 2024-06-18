@@ -37,9 +37,9 @@ TEST(FLANNTree, boundsLimiting) {
     locations(i, 1) = 1000 - i*i;
   }
 
-  math::FLANNTree<float> tree;
+  std::string flann_method = "kmeans";
+  math::FLANNTree<float> tree(flann_method);
   tree.load_match_data(locations, FLANN_DistType_L2);
-  printf("---------\n");
   Vector<int>    indices;
   Vector<double> distance;
   tree.knn_search(select_row(locations, 9),

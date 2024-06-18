@@ -43,13 +43,15 @@ class FLANNTree : boost::noncopyable {
 
 private:
 
+  std::string m_flann_method; // kmeans or kdtree
   size_t m_num_features_loaded;
   void* m_index_ptr;
   FLANN_DistType m_dist_type;
   Matrix<T> m_features_cast; // The index makes pointers to this object. So we copy it.
 
   /// Returns the number of results found (usually knn)
-  size_t knn_search_help(void* data_ptr, size_t rows, size_t cols, // Values we are looking for
+  size_t knn_search_help(void* data_ptr, // Values we are looking for
+                         size_t rows, size_t cols, 
                          Vector<int>& indices,    // Index of each result
                          Vector<double>& dists,   // Distance of each result
                          size_t knn);             // Number of results to return
@@ -60,7 +62,8 @@ private:
 public: // Functions
 
   /// Simple constructor. Call load_match_data() before calling knn_search()!
-  FLANNTree(): m_num_features_loaded(0), m_index_ptr(NULL), 
+  FLANNTree(std::string const& flann_method): 
+   m_flann_method(flann_method), m_num_features_loaded(0), m_index_ptr(NULL), 
     m_dist_type(FLANN_DistType_Unsupported) {}
 
   /// Destructor
