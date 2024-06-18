@@ -47,7 +47,7 @@ fs::path make_file_relative_to_dir(fs::path const file, fs::path const dir) {
     }
   } else {
     if (dir.has_root_path()) {
-      fs::path file2 = fs::complete(file);
+      fs::path file2 = fs::absolute(file);
       return make_file_relative_to_dir(file2.relative_path(), dir.relative_path());
     } else {
       typedef fs::path::const_iterator path_iterator;
