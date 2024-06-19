@@ -24,8 +24,6 @@ using std::vector;
 using namespace vw;
 using namespace vw::math;
 
-
-
 // Make sure that vector bounds are respected in small data sets
 TEST(FLANNTree, boundsLimiting) {
 

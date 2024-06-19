@@ -56,6 +56,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/Settings.h>
 
 namespace vw {
 namespace math {
@@ -113,6 +114,7 @@ namespace math {
           double        m_inlier_threshold;
           int           m_min_num_output_inliers;
           bool          m_reduce_min_num_output_inliers_if_no_fit;
+          int           m_num_threads;
     
     /// \cond INTERNAL
     // Utility function: Pick n unique, random integers in the range
@@ -196,13 +198,14 @@ namespace math {
                           int    num_iterations,
                           double inlier_threshold,
                           int    min_num_output_inliers,
-                          bool   reduce_min_num_output_inliers_if_no_fit = false
-                          ):
+                          bool   reduce_min_num_output_inliers_if_no_fit = false,
+                          int num_threads = vw::vw_settings().default_num_threads()):
       m_fitting_func(fitting_func), m_error_func(error_func),
       m_num_iterations(num_iterations), 
       m_inlier_threshold(inlier_threshold),
       m_min_num_output_inliers(min_num_output_inliers),
-      m_reduce_min_num_output_inliers_if_no_fit(reduce_min_num_output_inliers_if_no_fit){}
+      m_reduce_min_num_output_inliers_if_no_fit(reduce_min_num_output_inliers_if_no_fit),
+      m_num_threads(num_threads) {}
 
     /// As attempt_ransac but keep trying with smaller numbers of required inliers.
     template <class ContainerT1, class ContainerT2>
@@ -257,25 +260,28 @@ namespace math {
       VW_ASSERT( m_min_num_output_inliers >= min_elems_for_fit,
                  RANSACErr() << "RANSAC Error.  Number of requested inliers is less than min number of elements needed for fit. (" << m_min_num_output_inliers << "/" << min_elems_for_fit << ")\n");
 
-      typename FittingFuncT::result_type best_H;
+      // Allocate the random indicies before running multiple threads in parallel
+      // to ensure a deterministic outcome. It is important that all integers are unique.
+      std::vector<std::vector<int>> random_indices(m_num_iterations);
+      for (int iteration = 0; iteration < m_num_iterations; iteration++) {
+        random_indices[iteration].resize(min_elems_for_fit);
+        get_n_unique_integers(p1.size(), random_indices[iteration]);
+      }
 
-      std::vector<ContainerT1> try1;
-      std::vector<ContainerT2> try2;
-      std::vector<int> random_indices(min_elems_for_fit);
-
-      int num_inliers = 0;
+      // Run RANSAC using multiple threads. Each thread will try to find the best fit.
       double min_err = std::numeric_limits<double>::max();
-      for (int iteration = 0; iteration < m_num_iterations; ++iteration) {
+      typename FittingFuncT::result_type best_H;
+      int num_inliers = 0;
+      #pragma omp parallel for num_threads(m_num_threads) schedule(dynamic)
+      for (int iteration = 0; iteration < m_num_iterations; iteration++) {
 
-        // 0. Get min_elems_for_fit points at random, taking care not
-        //    to select the same point twice.
-        get_n_unique_integers(p1.size(), random_indices);
-        // Resizing below is essential, as by now their size may have changed
-        try1.resize(min_elems_for_fit);
-        try2.resize(min_elems_for_fit);
-        for (int i = 0; i < min_elems_for_fit; ++i) {
-          try1[i] = p1[random_indices[i]];
-          try2[i] = p2[random_indices[i]];
+        // 0. Pick a random sample of the data. Later the size of these vectors
+        // may change.        
+        std::vector<ContainerT1> try1(min_elems_for_fit);
+        std::vector<ContainerT2> try2(min_elems_for_fit);
+        for (int i = 0; i < min_elems_for_fit; i++) {
+          try1[i] = p1[random_indices[iteration][i]];
+          try2[i] = p2[random_indices[iteration][i]];
         }
 
         // 1. Compute the fit using these samples.
@@ -298,22 +304,27 @@ namespace math {
         err_val /= try1.size();
 
         // 6. Save this model if its error is lowest so far.
-        if (err_val < min_err){
-          min_err     = err_val;
-          best_H      = H;
-          num_inliers = try1.size();
+        // Must use a critical section to protect the shared variables.
+        #pragma omp critical 
+        {
+          if (err_val < min_err) {
+            min_err     = err_val;
+            best_H      = H;
+            num_inliers = try1.size();
+          }
         }
-
       }
 
       if (num_inliers < m_min_num_output_inliers) {
-        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
+        vw_throw(RANSACErr() 
+                 << "RANSAC was unable to find a fit that matched the supplied data.");
       }
 
       // For debugging
-      VW_OUT(InfoMessage, "interest_point") << "\nRANSAC Summary:"     << std::endl;
-      VW_OUT(InfoMessage, "interest_point") << "\tFit = "              << best_H      << std::endl;
-      VW_OUT(InfoMessage, "interest_point") << "\tInliers / Total  = " << num_inliers << " / " << p1.size() << "\n\n";
+      VW_OUT(InfoMessage, "interest_point") << "\nRANSAC summary:"     << "\n";
+      VW_OUT(InfoMessage, "interest_point") << "\tFit = "              << best_H << "\n";
+      VW_OUT(InfoMessage, "interest_point") << "\tInliers / total  = " << num_inliers 
+                                            << " / " << p1.size() << "\n\n";
       
       return best_H;
     }
