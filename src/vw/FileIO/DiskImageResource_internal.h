@@ -23,9 +23,17 @@
 #ifndef __VW_FILEIO_DISKIMAGERESOURCE_INTERNAL_H__
 #define __VW_FILEIO_DISKIMAGERESOURCE_INTERNAL_H__
 
+// Turn off warnings about things we can't control
+#define BOOST_ALLOW_DEPRECATED_HEADERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS  
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#include <boost/function.hpp>
+#pragma GCC diagnostic pop
+
 #include <string>
 #include <set>
-#include <boost/function.hpp>
 
 namespace vw {
 namespace internal {

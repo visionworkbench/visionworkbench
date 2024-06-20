@@ -33,8 +33,15 @@
 #include <queue>
 #include <cstdlib>
 
+// Turn off warnings about things we can't control
+#define BOOST_ALLOW_DEPRECATED_HEADERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS  
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #include <boost/function.hpp>
 #include <boost/range/iterator_range_core.hpp>
+#pragma GCC diagnostic pop
 
 #if defined(VW_ENABLE_EXCEPTIONS)
 #define HAS_EXCEPTIONS(x) x
