@@ -295,10 +295,10 @@ namespace cartography {
     Vector3 point_to_geodetic(Vector3 point) const;
 
     /// For a bbox in pixel coordinates, find what that bbox covers in lonlat
-    BBox2 pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const;
+    BBox2 pixel_to_lonlat_bbox(BBox2 const& pixel_bbox) const;
 
     /// For a bbox in lonlat, find the bbox in pixel coordinates
-    BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
+    BBox2 lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
     
     /// For a given lonlat, provide it's point bbox
     BBox2  lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
@@ -318,11 +318,11 @@ namespace cartography {
     Vector2 lonlat_to_pixel(Vector2 lon_lat) const;
 
     /// For a given pixel bbox, return the corresponding bbox in projected space
-    BBox2  pixel_to_point_bbox(BBox2i const& pixel_bbox) const;
+    BBox2  pixel_to_point_bbox(BBox2 const& pixel_bbox) const;
 
     /// For a bbox in projected space, return the corresponding bbox in
     /// pixels on the image
-    BBox2i point_to_pixel_bbox(BBox2 const& point_bbox) const;
+    BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
     
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
@@ -408,8 +408,9 @@ namespace cartography {
   }
 
   // Given an integer box, generate points on its boundary and the
-  // diagonal. It is important to note that the maximum is exclusive.
-  void sample_int_box(BBox2i const& pixel_bbox, std::vector<Vector2> & points);
+  // diagonal. We assume the max is not exclusive, to ensure even boxes
+  // less than one pixel wide are sampled.
+  void sample_int_box(BBox2 const& pixel_bbox, std::vector<Vector2> & points);
 
   // Sample a float box on the edges and diagonal with 100 points
   void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points);

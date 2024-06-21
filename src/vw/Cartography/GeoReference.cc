@@ -906,8 +906,10 @@ ProjContext::~ProjContext() {
 }
   
 // Given an integer box, generate points on its boundary and the
-// diagonal. It is important to note that the maximum is exclusive.
-void sample_int_box(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points) {
+// diagonal. We overestimate the box by ensuring the max is not exclusive.
+// Otherwise, one can produce an empty box.
+// TODO(oalexan1): What if the box is huge? We may need to sample it differently.
+void sample_int_box(BBox2 const& pixel_bbox, std::vector<vw::Vector2> & points) {
 
   // Reset the output
   points.clear();
@@ -916,37 +918,36 @@ void sample_int_box(BBox2i const& pixel_bbox, std::vector<vw::Vector2> & points)
   if (pixel_bbox.empty()) return;
   
   // Go along the perimeter of the pixel bbox.
-  for (int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x) {
-    points.push_back(Vector2(x,pixel_bbox.min().y()));
-    points.push_back(Vector2(x,pixel_bbox.max().y()-1));
+  for (int32 x = pixel_bbox.min().x(); x <= pixel_bbox.max().x(); x++) {
+    points.push_back(Vector2(x, pixel_bbox.min().y()));
+    points.push_back(Vector2(x, pixel_bbox.max().y()));
   }
-  for (int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y) {
+  for (int32 y = pixel_bbox.min().y(); y <= pixel_bbox.max().y(); y++) {
     points.push_back(Vector2(pixel_bbox.min().x(),y));
-    points.push_back(Vector2(pixel_bbox.max().x()-1,y));
+    points.push_back(Vector2(pixel_bbox.max().x(),y));
   }
   
   // Draw an X inside the bbox. This covers the poles. It will
   // produce a lonlat boundary that is within at least one pixel of
   // the pole. This will also help catch terminator boundaries from
-  // orthographic projections. Note that pixel_bbox.max() is exclusive,
-  // we stop on the line right before we reach this point.
+  // orthographic projections.
   vw::math::BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
   while (l1.is_good()) {
     points.push_back(*l1);
-    ++l1;
+    l1++;
   }
-
-  // Notice how we subtract 1 in two places to make pixel_bbox.max() exclusive.
-  vw::math::BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width() - 1, 0),
-                    pixel_bbox.max() - Vector2i(pixel_bbox.width(), 1));
+  vw::math::BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width(), 0),
+                             pixel_bbox.max() - Vector2i(pixel_bbox.width(), 0));
   while (l2.is_good()) {
     points.push_back(*l2);
-    ++l2;
+    l2++;
   }
   return;
 }
 
 // Sample a float box on the edges and diagonal with 100 points
+// TODO(oalexan1): 100 samples around the poles may not be good enough.
+// Need to do some adaptive scheme.
 void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
 
   // Reset the output
@@ -962,7 +963,6 @@ void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
   double rangex = maxx - minx;
   double rangey = maxy - miny;
 
-  // At the poles this won't be enough, more thought is needed.
   int num_steps = 100;
   for (int i = 0; i <= num_steps; i++) {
     double r = double(i)/num_steps;
@@ -996,7 +996,7 @@ void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
 
 /// For a bbox in projected space, return the corresponding bbox in
 /// pixels on the image
-BBox2i GeoReference::point_to_pixel_bbox(BBox2 const& point_bbox) const {
+BBox2 GeoReference::point_to_pixel_bbox(BBox2 const& point_bbox) const {
   
   // Ensure we don't get incorrect results for empty boxes with strange corners.
   if (point_bbox.empty())
@@ -1015,17 +1015,20 @@ BBox2i GeoReference::point_to_pixel_bbox(BBox2 const& point_bbox) const {
   return grow_bbox_to_int(pixel_bbox);
 }
 
-BBox2 GeoReference::pixel_to_point_bbox(BBox2i const& pixel_bbox) const {
+// We make the max not be exclusive. This overestimates the box a bit, but
+// ensures that the logic works even for subpixel boxes.
+BBox2 GeoReference::pixel_to_point_bbox(BBox2 const& pixel_bbox) const {
 
-  if (pixel_bbox.empty()) return BBox2();
+  if (pixel_bbox.empty())
+   return BBox2();
   
   BBox2 point_bbox;
 
   // Note that pixel_bbox().max() is exclusive.
   point_bbox.grow(pixel_to_point(pixel_bbox.min()));
-  point_bbox.grow(pixel_to_point(pixel_bbox.max() - Vector2(1, 1)));
-  point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y()-1)));
-  point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x()-1, pixel_bbox.min().y())));
+  point_bbox.grow(pixel_to_point(pixel_bbox.max()));
+  point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y())));
+  point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x(), pixel_bbox.min().y())));
   
   return point_bbox;
 }
@@ -1033,7 +1036,7 @@ BBox2 GeoReference::pixel_to_point_bbox(BBox2i const& pixel_bbox) const {
 // Find the pixel box for a given lon-lat box. Since the transform from
 // lon-lat to pixel is nonlinear, need to sample somewhat densely
 // the edges and diagonals of the lon-lat box.
-BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
+BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2 const& pixel_bbox) const {
 
   if (pixel_bbox.empty()) return BBox2();
   
@@ -1054,7 +1057,7 @@ BBox2 GeoReference::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
   return lonlat_bbox;
 }
 
-BBox2i GeoReference::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
+BBox2 GeoReference::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
 
   if (lonlat_bbox.empty()) return BBox2();
 
