@@ -25,6 +25,10 @@
 namespace vw {
 namespace math {
 
+// This variable and lock will be used to print a message once
+bool flann_message_printed = false;
+Mutex flann_mutex;
+
 //=============================================================
 // - Only the float and double versions of this code are listed here.
 // - This multiplies the code size, but hides the messy flann headers from the .h file.
@@ -92,10 +96,34 @@ size_t FLANNTree<float>::knn_search_help(void* data_ptr, size_t rows, size_t col
 
 // Logic to be used for float and double types
 template <class FLOAT_T>
-void construct_index_aux(void* data_ptr, size_t rows, size_t cols,
+void construct_index_aux(void* data_ptr, size_t num_features, size_t cols,
                          std::string const& flann_method, 
                          FLANN_DistType const& dist_type,
                          void* & index_ptr) {
+  
+  // When having a lot of features, and the user did not set a method, use the
+  // kdtree method, which is 6x faster than kmeans but not deterministic. 
+  int thresh = 25000; 
+  std::string local_flann_method = flann_method; 
+  if (local_flann_method == "auto" || local_flann_method == "") {
+    if (num_features > thresh) {
+      local_flann_method = "kdtree";
+      {
+        // Put a lock
+        Mutex::WriteLock write_lock(flann_mutex);
+        if (!flann_message_printed) {
+          vw_out(vw::WarningMessage)            
+             << "FLANNTree: Using the kdtree method for matching features with FLANN "
+             << "as their number is more than " << thresh 
+             << ". See the option --flann-method in the documentation.\n";
+          flann_message_printed = true;
+        }
+      }
+    } else {
+     local_flann_method = "kmeans";
+    }
+  }
+  
   if (index_ptr != NULL)
     vw_throw(IOErr() << "FLANNTree: Void ptr is not null, this is unexpected.");
   // Flann manual:
@@ -112,16 +140,16 @@ void construct_index_aux(void* data_ptr, size_t rows, size_t cols,
   FLOAT_T cb_index = 0.2;
   switch (dist_type) {
   case FLANN_DistType_L2:
-    if (flann_method == "kmeans") {
+    if (local_flann_method == "kmeans") {
       // Slow, but deterministic
       index_ptr = new flann::Index<flann::L2<FLOAT_T>>(
-          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, rows, cols),
+          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, num_features, cols),
           flann::KMeansIndexParams(branching, iterations, centers_init, cb_index),
           flann::L2<FLOAT_T>());
-    } else if (flann_method == "kdtree") {
+    } else if (local_flann_method == "kdtree") {
       // Fast, but not deterministic
       index_ptr = new flann::Index<flann::L2<FLOAT_T>>(
-          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, rows, cols),
+          flann::Matrix<FLOAT_T>((FLOAT_T*)data_ptr, num_features, cols),
           flann::KDTreeIndexParams(NUM_TREES), // faster, but not deterministic
           flann::L2<FLOAT_T>());
     } else {
@@ -129,14 +157,25 @@ void construct_index_aux(void* data_ptr, size_t rows, size_t cols,
     }
     cast_index_ptr_L2_f(index_ptr)->buildIndex();
     return;
+    
+  case FLANN_DistType_Hamming:
+    // Note that we use neither a kdtree or kmeans method
+    index_ptr = new flann::Index<flann::Hamming<unsigned char>>
+      (flann::Matrix<unsigned char>((unsigned char*)data_ptr, num_features, cols),
+        //flann::LshIndexParams(), // Bad performance on small IP data sets
+        flann::HierarchicalClusteringIndexParams(),
+        flann::Hamming<unsigned char>());
+    cast_index_ptr_HAMM_u(index_ptr)->buildIndex();
+    return;
+    
   default:
     vw_throw(IOErr() << "FLANNTree: Illegal distance type passed in.");
   }; // end switch
 }
 
 template <>
-void FLANNTree<float>::construct_index(void* data_ptr, size_t rows, size_t cols) {
-  construct_index_aux<float>(data_ptr, rows, cols, m_flann_method, m_dist_type, m_index_ptr);
+void FLANNTree<float>::construct_index(void* data_ptr, size_t num_features, size_t cols) {
+  construct_index_aux<float>(data_ptr, num_features, cols, m_flann_method, m_dist_type, m_index_ptr);
 }
 
 template <>
@@ -275,6 +314,8 @@ size_t FLANNTree<unsigned char>::knn_search_help(void* data_ptr,
   vw_throw(IOErr() << "FLANNTree: Illegal distance type passed in.");
   return 0;
 }
+
+// TODO(oalexan1): Integrate this into construct_index_aux
 
 template <>
 void FLANNTree<unsigned char>::construct_index(void* data_ptr, size_t rows, size_t cols) {
