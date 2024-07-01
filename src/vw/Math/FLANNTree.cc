@@ -94,7 +94,7 @@ size_t FLANNTree<float>::knn_search_help(void* data_ptr, size_t rows, size_t col
   return 0;
 }
 
-// Logic to be used for float and double types
+// Construct the index for double, float, and unsigned char types.
 template <class FLOAT_T>
 void construct_index_aux(void* data_ptr, size_t num_features, size_t cols,
                          std::string const& flann_method, 
@@ -137,7 +137,7 @@ void construct_index_aux(void* data_ptr, size_t num_features, size_t cols,
   int branching = 32;
   int iterations = 11;
   flann::flann_centers_init_t centers_init = flann::FLANN_CENTERS_GONZALES;
-  FLOAT_T cb_index = 0.2;
+  float cb_index = 0.2;
   switch (dist_type) {
   case FLANN_DistType_L2:
     if (local_flann_method == "kmeans") {
@@ -315,24 +315,9 @@ size_t FLANNTree<unsigned char>::knn_search_help(void* data_ptr,
   return 0;
 }
 
-// TODO(oalexan1): Integrate this into construct_index_aux
-
 template <>
 void FLANNTree<unsigned char>::construct_index(void* data_ptr, size_t rows, size_t cols) {
-  if (m_index_ptr != NULL)
-    vw_throw(IOErr() << "FLANNTree: Void ptr is not null, this is unexpected.");
-  switch(m_dist_type) {
-    case FLANN_DistType_Hamming:
-      m_index_ptr = new flann::Index<flann::Hamming<unsigned char>>
-        (flann::Matrix<unsigned char>((unsigned char*)data_ptr, rows, cols),
-          //flann::LshIndexParams(), // Bad performance on small IP data sets
-          flann::HierarchicalClusteringIndexParams(),
-          flann::Hamming<unsigned char>());
-      cast_index_ptr_HAMM_u(this->m_index_ptr)->buildIndex();
-      return;
-  default:
-    vw_throw(IOErr() << "FLANNTree: Illegal distance type passed in.");
-  }; // end switch
+  construct_index_aux<unsigned char>(data_ptr, rows, cols, m_flann_method, m_dist_type, m_index_ptr);
 }
 
 template <>
