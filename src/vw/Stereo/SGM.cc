@@ -42,6 +42,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_subpixel_type   = subpixel;
   m_search_buffer   = search_buffer;
   m_memory_limit_mb = memory_limit_mb;
+  m_buf_size_factor = 1.0; // Start with a buffer size factor of 1.0
 
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -577,25 +578,32 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
 
   m_buffer_lengths = total_offset; // Record this value
 
-
+  std::cout << "--total offset is " << total_offset << std::endl;
+  std::cout << "--main buffer bytes is " << main_buffer_bytes << std::endl;
+  std::cout << "--memory limit is " << m_memory_limit_mb << std::endl;
+  
   // Verify that allocating the "small" buffers won't put us over the limit.
   // - m_buffer_lengths must be set for this to work.
   const int PATHS_PER_PASS  = 1;
   const int NUM_MGM_BUFFERS = 4;
   size_t small_buffer_size = 0;
-  if (m_use_mgm)
+  if (m_use_mgm) {
     // Four vertical buffers and four horizontal buffers.
-    small_buffer_size = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true )*NUM_MGM_BUFFERS +
-                        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false)*NUM_MGM_BUFFERS;
-  else {
+    small_buffer_size 
+      = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true )*NUM_MGM_BUFFERS +
+        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false)*NUM_MGM_BUFFERS;
+  } else {
     int num_threads   = vw_settings().default_num_threads();
     small_buffer_size = OneLineBuffer::get_buffer_size(this)*num_threads;
   }
   size_t small_buffer_size_bytes = small_buffer_size * sizeof(AccumCostType);
   vw_out(DebugMessage, "stereo") << "SGM: Estimating total small buffer size: " 
                                  << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
-
+  
+  std::cout << "--small buffer size is " << small_buffer_size_bytes << std::endl;
   size_t total_num_bytes = main_buffer_bytes + small_buffer_size_bytes;
+  std::cout << "--total num bytes is " << total_num_bytes << std::endl;
+  
   if (total_num_bytes/BYTES_PER_MB > m_memory_limit_mb) {
     vw_throw( ArgumentErr() << "SGM: Required memory usage is "<< total_num_bytes 
                             << " MB which is greater than the cap of "<< m_memory_limit_mb <<" MB!\n" );
@@ -678,12 +686,12 @@ void SemiGlobalMatcher::populate_adjacent_disp_lookup_table() {
 // Note: local and output are the same size.
 // full_prior_buffer is always length m_num_disps and comes in initialized to a
 //  large flag value.  When the function quits the buffer must be returned to this state.
-void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
+void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
                        AccumCostType* const prior,
                        AccumCostType*       full_prior_buffer,
                        CostType     * const local,
                        AccumCostType*       output,
-                       int path_intensity_gradient, bool debug ) {
+                       int path_intensity_gradient, bool debug) {
 
   // Decrease p2 (jump cost) with increasing disparity along the path
   AccumCostType p2_mod = m_p2;
@@ -1241,8 +1249,10 @@ double SemiGlobalMatcher::two_value_subpixel(AccumCostType primary, AccumCostTyp
 }
 
 /// Add this offset to the integer disparity to get the final result.
-double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
-                                                  bool left_bound, bool right_bound, bool debug) {
+double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostType center, 
+                                                  AccumCostType next,
+                                                  bool left_bound, bool right_bound, 
+                                                  bool debug) {
   double ld = prev - center; // Left  diff
   double rd = next - center; // Right diff
   if ((rd == 0) && (ld == 0)) // Handle case where all values are equal or both bounds are set
@@ -2198,16 +2208,19 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
   // Done with all trips!
 } // End function smooth_path_accumulation
 
-
-
-
 SemiGlobalMatcher::DisparityImage
 SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
                                              ImageView<uint8> const& right_image,
                                              ImageView<uint8> const* left_image_mask,
                                              ImageView<uint8> const* right_image_mask,
-                                             DisparityImage const* prev_disparity) {
+                                             DisparityImage const* prev_disparity,
+                                             double buf_size_factor,
+                                             size_t const memory_limit_mb) {
 
+  std::cout << "--now in semi_global_matching_func--" << std::endl;
+  m_buf_size_factor = buf_size_factor;
+  m_memory_limit_mb = m_buf_size_factor * memory_limit_mb; // Must be adjusted proportionally
+  
   // Compute safe bounds to search through given the disparity range and kernel size.
   // - Using inclusive bounds here.
 
@@ -2276,9 +2289,6 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   // - This computes integer disparities.  Subpixel disparities are computed in CorrelationView.tcc
   return create_disparity_view();
 }
-
-
-
 
 // Perform standard SGM path accumulation using N threads.
 void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_image) {

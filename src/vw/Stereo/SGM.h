@@ -122,11 +122,13 @@ public: // Functions
   /// Compute SGM stereo on the images.
   /// The masks and disparity inputs are used to improve the searched disparity range.
   DisparityImage
-  semi_global_matching_func( ImageView<uint8> const& left_image,
-                             ImageView<uint8> const& right_image,
-                             ImageView<uint8> const* left_image_mask=0,
-                             ImageView<uint8> const* right_image_mask=0,
-                             DisparityImage const* prev_disparity=0);
+  semi_global_matching_func(ImageView<uint8> const& left_image,
+                            ImageView<uint8> const& right_image,
+                            ImageView<uint8> const* left_image_mask,
+                            ImageView<uint8> const* right_image_mask,
+                            DisparityImage const* prev_disparity,
+                            double buf_size_factor,
+                            size_t const  memory_limit_mb);
 
   /// Create a subpixel leves disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
@@ -175,6 +177,8 @@ private: // Variables
     /// For each output pixel, store the starting index in m_cost_buffer/m_accum_buffer
     ImageView<size_t> m_buffer_starts;
 
+    double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
+    
 private: // Functions
 
   /// Populate the lookup table m_adjacent_disp_lookup
@@ -504,7 +508,7 @@ void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_bina
 
 
 template <class ImageT1, class ImageT2>
-ImageView<PixelMask<Vector2i> >
+ImageView<PixelMask<Vector2i>>
 calc_disparity_sgm(CostFunctionType cost_type,
                    ImageViewBase<ImageT1> const& left_in,
                    ImageViewBase<ImageT2> const& right_in,
@@ -518,8 +522,10 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
                    ImageView<uint8>       const* left_mask_ptr,  
                    ImageView<uint8>       const* right_mask_ptr,
-                   SemiGlobalMatcher::DisparityImage  const* prev_disparity){ 
-
+                   SemiGlobalMatcher::DisparityImage  const* prev_disparity) { 
+    
+    std::cout << "--now in calc_disparity_sgm--" << std::endl;
+    
     // Sanity check the input:
     VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
                      ArgumentErr() << "calc_disparity_sgm: Kernel input not sized with odd values." );
@@ -548,10 +554,31 @@ calc_disparity_sgm(CostFunctionType cost_type,
     u8_convert(crop(left_in.impl(),  left_region),  left);
     u8_convert(crop(right_in.impl(), right_region), right);
 
+    std::cout << "--will reset matcher_ptr--" << std::endl;
     matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
                       search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb));
-    return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, right_mask_ptr, prev_disparity);
+    std::cout << "--will run matcher_ptr--" << std::endl;
 
+    // This is a bugfix for the case when the logic for buffer sizes fails.
+    // It happens very rarely and it is not clear why.
+    double buf_size_factor_vec[] = {1.0, 1.5, 2.0, 3.0};
+    for (int i = 0; i < 3; i++) {
+      try {
+        std::cout << "--factor is " << buf_size_factor_vec[i] << std::endl;
+        return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
+                                                      right_mask_ptr, prev_disparity,
+                                                      buf_size_factor_vec[i],
+                                                      memory_limit_mb);
+
+      } catch (const std::exception &e) {
+        vw_out() << "calc_disparity_sgm: Caught failure: " << e.what() << "\n";
+        vw_out() << "Try again with larger buffer size.\n";
+      }
+    }
+    std::cout << "--done running matcher_ptr--" << std::endl;
+
+    // If we get here, we failed to find a good buffer size.
+    return ImageView<PixelMask<Vector2i>>();
   } // End function calc_disparity
 
 

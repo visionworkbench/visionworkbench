@@ -6,6 +6,7 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/ThreadPool.h>
 #include <vw/Image/PixelIterator.h>
+#include <vw/Core/Log.h>
 
 /**
   This file contains supporting classes and functions for the SGM algorithm.
@@ -16,8 +17,8 @@ namespace vw {
 
 namespace stereo {
 
-
-
+Mutex mutex2;
+int c_count = 0;
 
 /// Class to compute parabola surface sub-pixel fits
 class ParabolaFit2d {
@@ -272,6 +273,8 @@ public:
                                 const int  num_paths_in_pass,
                                 const bool vertical) {
 
+    std::cout << "--now in MultiAccumRowBuffer::get_buffer_size" << std::endl;
+    
     size_t line_size = parent_ptr->m_num_output_cols;
     if (vertical)
       line_size = parent_ptr->m_num_output_rows;
@@ -285,10 +288,17 @@ public:
     //    initialized to be the maximum possible size.
     const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
     size_t buffer_size = line_size*buffer_pixel_size;
+    
+    std::cout << "--now in get_buffer_size" << std::endl;
+    std::cout << "buffer_pixel_size = " << buffer_pixel_size << std::endl;
+    std::cout << "line_size = " << line_size << std::endl;
+    std::cout << "buffer_size = " << buffer_size << std::endl;
 
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (buffer_size > parent_ptr->m_buffer_lengths)
+    if (buffer_size > parent_ptr->m_buffer_lengths) {
       buffer_size = parent_ptr->m_buffer_lengths;
+      std::cout << "--had to adjust to buffer_size = " << buffer_size << std::endl;
+    }
 
     // If the buffer is over 128 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
@@ -296,11 +306,17 @@ public:
     const double MAX_PERCENTAGE   = 0.04;
 
     if (buffer_size > SAFE_BUFFER_SIZE) {
+      std::cout << "--is bigger than safe buffer size" << std::endl;
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      std::cout << "--new adjust buffer_size = " << buffer_size << std::endl;
       if (buffer_size < SAFE_BUFFER_SIZE)
         buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+      std::cout << "--last adjust buffer_size = " << buffer_size << std::endl;
     }
 
+    std::cout << "--do 2x buffer_size = " << buffer_size << std::endl;
+    buffer_size *= 2; // Two buffers are needed
+    
     return buffer_size;
   }
 
@@ -366,13 +382,16 @@ public:
     if (!m_vertical) { // horizontal
       size_t  new_lead_index = m_current_row*m_parent_ptr->m_num_output_cols;
       size_t  start_offset   = raw_offsets[new_lead_index]; // Offset of the first column
-      for (int i=0; i<m_line_size; ++i)
+      for (int i=0; i<m_line_size; ++i) {
         m_offsets_lead[i] = (raw_offsets[new_lead_index+i] - start_offset) * m_num_paths_in_pass;
+        //std::cout << "--calc horizontal offset lead " << i << " = " << m_offsets_lead[i] << std::endl;
+      }
     } else { // vertical
       // In the vertical case we need to rebuild a set of offsets to describe the column.
       size_t position = 0;
       for (int i=0; i<m_line_size; ++i) {
         m_offsets_lead[i] = position;
+        //std::cout << "--calc vertical offset lead " << i << " = " << m_offsets_lead[i] << std::endl;
         size_t size = m_parent_ptr->get_num_disparities(m_current_col, i) * m_num_paths_in_pass;
         position += size;
         //std::cout << "offset lead " << i << " = " << position << std::endl;
@@ -481,6 +500,13 @@ public:
 
   /// Get the pointer to write the output of the current pass to
   SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
+    
+    {
+     Mutex::Lock lock(mutex2);
+     c_count++;
+    }
+    
+      
     int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
     size_t pass_offset = num_disps*pass;
     size_t offset      = 0;
@@ -489,9 +515,31 @@ public:
     else
       offset = (m_offsets_lead[m_current_col] + pass_offset);
 
+    if (c_count % 10000 == 0) {
+       Mutex::Lock lock(mutex2);
+      std::cout << "--now in pass " << pass << std::endl;
+      std::cout << "--num disps = " << num_disps << std::endl;
+      std::cout << "--pass offset = " << pass_offset << std::endl;
+      std::cout << "--offset = " << offset << std::endl;
+      std::cout << "--buffer size = " << m_buffer_size << std::endl;  
+    }
+    
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size)
-      vw_throw( ArgumentErr() << "Insufficient memory in small buffers, disparity image may be degenerate.\n" );
+    if (offset + num_disps > m_buffer_size) {
+      Mutex::Lock lock(mutex2);
+      std::cout << "--pass offset is " << pass_offset << std::endl;
+      if (m_vertical) 
+        std::cout << "--is vertical with curr row and offset = " << m_current_row << " " << offset << std::endl;
+      else 
+        std::cout << "is horizontal with curr col and offset = " << m_current_col << " " << offset << std::endl;
+    
+      std::cout << "failed offset is " << offset << std::endl;
+      std::cout << "failed num disps is " << num_disps << std::endl;
+      std::cout << "faild sum is " << offset + num_disps << std::endl;
+      std::cout << "failed buffer size is " << m_buffer_size << std::endl;
+      vw_throw(ArgumentErr() << "Insufficient memory in small buffers, "
+                             << "disparity image may be degenerate.\n" );
+    }
 
     return m_lead_buffer + offset;
   }
@@ -530,9 +578,16 @@ public:
     }
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size)
-      vw_throw( ArgumentErr() << "Insufficient memory in small buffers, disparity image may be degenerate.\n" );
-
+    if (offset + num_disps > m_buffer_size) {
+      std::cout << "--now in get_trailing_pixel_accum_ptr" << std::endl;
+      std::cout << "offset is " << offset << std::endl;
+      std::cout << "num disps is " << num_disps << std::endl;
+      std::cout << "sum is " << offset + num_disps << std::endl;
+      std::cout << "m_buffer_size is " << m_buffer_size << std::endl;
+      vw_throw(ArgumentErr() << "Insufficient memory in small buffers, disparity "
+                             << "image may be degenerate.\n" );
+    }
+    
     return output_ptr + offset;
 
   } // End function get_trailing_pixel_accum_ptr
@@ -568,12 +623,6 @@ private:
 
 Mutex MultiAccumRowBuffer::m_mutex;
 
-
-
-
-
-
-
 /**
   A single line, single pass SGM accumulation buffer designed to be used by a single thread.
   - Each line-pass instance of the SGM accumulation problem is independent until the end.
@@ -581,7 +630,7 @@ Mutex MultiAccumRowBuffer::m_mutex;
     only one instance of the class touches it at any one time.
   - This class is much less complicated than the multi-line buffer class!
 */
-class OneLineBuffer{
+class OneLineBuffer {
 public:
   /// Default constructor does not initialize the object
   OneLineBuffer() {}
@@ -621,6 +670,9 @@ public:
         buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
     }
 
+    std::cout << "--get 2x buffer_size = " << buffer_size << std::endl;
+    buffer_size *= 2; // Two buffers are needed
+    
     return buffer_size;
   }
 
@@ -748,7 +800,7 @@ public:
   /// Do the work!
   virtual void operator()() {
 
-    // Retrive a memory buffer to work with
+    // Retrieve a memory buffer to work with
     size_t buffer_id = m_buffer_manager_ptr->get_free_buffer_id();
     OneLineBuffer* buff_ptr       = m_buffer_manager_ptr->get_line_buffer(buffer_id);
     AccumCostType* full_prior_ptr = buff_ptr->get_full_prior_ptr();
@@ -789,7 +841,8 @@ public:
       // Make sure we don't run out of memory in the buffer
       consumed_size += num_disp;
       if (consumed_size > buffer_size)
-        vw_throw( ArgumentErr() << "Ran out of memory in the small buffer, disparity image may be degenerate.\n" );
+        vw_throw(ArgumentErr() << "Ran out of memory in the small buffer, "
+                               << "disparity image may be degenerate.\n" );
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
