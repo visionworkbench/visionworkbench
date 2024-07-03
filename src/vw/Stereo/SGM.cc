@@ -38,7 +38,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_ternary_census_threshold = ternary_census_threshold;
   m_subpixel_type   = subpixel;
   m_search_buffer   = search_buffer;
-  m_memory_limit_mb = memory_limit_mb;// * buf_size_factor;
+  m_memory_limit_mb = memory_limit_mb;
   m_buf_size_factor = buf_size_factor;
 
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
