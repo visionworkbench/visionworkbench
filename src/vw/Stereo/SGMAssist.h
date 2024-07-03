@@ -17,9 +17,6 @@ namespace vw {
 
 namespace stereo {
 
-Mutex mutex2;
-int c_count = 0;
-
 /// Class to compute parabola surface sub-pixel fits
 class ParabolaFit2d {
 
@@ -127,19 +124,6 @@ m = [1 1  1 -1 -1 1;
       dy /= scale;
     }
 
-
-
-// TODO: Check afterwards.
-    //if ( norm_2(offset) > 0.99 ) {
-    if ( norm_2(Vector2(dx, dy)) >= 1.0 ) {
-      std::cout << "DEBUG!!!\n";
-      std::cout << "offset  = " << offset << std::endl;
-      std::cout << "vals  = " << vals << std::endl;
-      std::cout << "denom = " << denom << std::endl;
-      //vw_throw( NoImplErr() << "DEBUG!\n" );
-      return false;
-    }
-
     return true;
   } // End find_peak()
 
@@ -148,12 +132,6 @@ private: // Variables
   Matrix<float,6,9> m_fit_params;
 
 }; // End class ParabolaFit2d
-
-
-
-//==================================================================================
-
-
 
 /// Class to make counting up "on" mask pixel in a box more efficient.
 /// - This class moves a box through an image and returns the fraction of valid
@@ -271,15 +249,12 @@ public:
   /// Return the number of elements in the buffer
   static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr,
                                 const int  num_paths_in_pass,
-                                const bool vertical) {
+                                const bool vertical,
+                                double buf_size_factor) {
 
-    std::cout << "--now in MultiAccumRowBuffer::get_buffer_size" << std::endl;
-    
     size_t line_size = parent_ptr->m_num_output_cols;
     if (vertical)
       line_size = parent_ptr->m_num_output_rows;
-
-    //std::cout << "m_line_size = " << m_line_size << std::endl;
 
     // Instantiate two single-row buffers that will be used to temporarily store
     //  accumulated cost info until it is no longer needed.
@@ -289,16 +264,9 @@ public:
     const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
     size_t buffer_size = line_size*buffer_pixel_size;
     
-    std::cout << "--now in get_buffer_size" << std::endl;
-    std::cout << "buffer_pixel_size = " << buffer_pixel_size << std::endl;
-    std::cout << "line_size = " << line_size << std::endl;
-    std::cout << "buffer_size = " << buffer_size << std::endl;
-
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (buffer_size > parent_ptr->m_buffer_lengths) {
+    if (buffer_size > parent_ptr->m_buffer_lengths)
       buffer_size = parent_ptr->m_buffer_lengths;
-      std::cout << "--had to adjust to buffer_size = " << buffer_size << std::endl;
-    }
 
     // If the buffer is over 128 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
@@ -306,16 +274,13 @@ public:
     const double MAX_PERCENTAGE   = 0.04;
 
     if (buffer_size > SAFE_BUFFER_SIZE) {
-      std::cout << "--is bigger than safe buffer size" << std::endl;
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
-      std::cout << "--new adjust buffer_size = " << buffer_size << std::endl;
       if (buffer_size < SAFE_BUFFER_SIZE)
         buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
-      std::cout << "--last adjust buffer_size = " << buffer_size << std::endl;
     }
 
-    std::cout << "--do 2x buffer_size = " << buffer_size << std::endl;
-    buffer_size *= 2; // Two buffers are needed
+    // This is a bugfix. Adjust the buffer size if a previous invocation failed.
+    buffer_size *= buf_size_factor;
     
     return buffer_size;
   }
@@ -323,8 +288,9 @@ public:
   /// Construct the buffers.
   /// - num_paths_in_pass can be 1, four (8 directions), or eight (16 directions)
   MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
-                      const int  num_paths_in_pass=4,
-                      const bool vertical=false) {
+                      const int  num_paths_in_pass,
+                      const bool vertical, 
+                      double buf_size_factor) {
     m_parent_ptr        = parent_ptr;  
     m_num_paths_in_pass = num_paths_in_pass;
     m_vertical          = vertical;
@@ -334,7 +300,8 @@ public:
     if (vertical)
       m_line_size = num_rows;
 
-    m_buffer_size       = get_buffer_size(parent_ptr, num_paths_in_pass, vertical);
+    m_buffer_size = get_buffer_size(parent_ptr, num_paths_in_pass, vertical,
+                                    buf_size_factor);
     m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
 
     vw_out(DebugMessage, "stereo") << "MultiAccumRowBuffer - allocating buffer size (MB): " 
@@ -384,17 +351,14 @@ public:
       size_t  start_offset   = raw_offsets[new_lead_index]; // Offset of the first column
       for (int i=0; i<m_line_size; ++i) {
         m_offsets_lead[i] = (raw_offsets[new_lead_index+i] - start_offset) * m_num_paths_in_pass;
-        //std::cout << "--calc horizontal offset lead " << i << " = " << m_offsets_lead[i] << std::endl;
       }
     } else { // vertical
       // In the vertical case we need to rebuild a set of offsets to describe the column.
       size_t position = 0;
       for (int i=0; i<m_line_size; ++i) {
         m_offsets_lead[i] = position;
-        //std::cout << "--calc vertical offset lead " << i << " = " << m_offsets_lead[i] << std::endl;
         size_t size = m_parent_ptr->get_num_disparities(m_current_col, i) * m_num_paths_in_pass;
         position += size;
-        //std::cout << "offset lead " << i << " = " << position << std::endl;
       }
     }
   }
@@ -501,12 +465,6 @@ public:
   /// Get the pointer to write the output of the current pass to
   SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
     
-    {
-     Mutex::Lock lock(mutex2);
-     c_count++;
-    }
-    
-      
     int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
     size_t pass_offset = num_disps*pass;
     size_t offset      = 0;
@@ -515,37 +473,18 @@ public:
     else
       offset = (m_offsets_lead[m_current_col] + pass_offset);
 
-    if (c_count % 10000 == 0) {
-       Mutex::Lock lock(mutex2);
-      std::cout << "--now in pass " << pass << std::endl;
-      std::cout << "--num disps = " << num_disps << std::endl;
-      std::cout << "--pass offset = " << pass_offset << std::endl;
-      std::cout << "--offset = " << offset << std::endl;
-      std::cout << "--buffer size = " << m_buffer_size << std::endl;  
-    }
-    
     // Make sure there is enough memory left to support this location.
     if (offset + num_disps > m_buffer_size) {
-      Mutex::Lock lock(mutex2);
-      std::cout << "--pass offset is " << pass_offset << std::endl;
-      if (m_vertical) 
-        std::cout << "--is vertical with curr row and offset = " << m_current_row << " " << offset << std::endl;
-      else 
-        std::cout << "is horizontal with curr col and offset = " << m_current_col << " " << offset << std::endl;
-    
-      std::cout << "failed offset is " << offset << std::endl;
-      std::cout << "failed num disps is " << num_disps << std::endl;
-      std::cout << "faild sum is " << offset + num_disps << std::endl;
-      std::cout << "failed buffer size is " << m_buffer_size << std::endl;
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, "
-                             << "disparity image may be degenerate.\n" );
+                             << "disparity image may be degenerate1.\n" );
     }
 
     return m_lead_buffer + offset;
   }
 
   /// Gets the pointer to the accumulation buffer for the indicated pixel/pass
-  SemiGlobalMatcher::AccumCostType * get_trailing_pixel_accum_ptr(int col_offset, int row_offset, PassIndex pass) {
+  SemiGlobalMatcher::AccumCostType*
+   get_trailing_pixel_accum_ptr(int col_offset, int row_offset, PassIndex pass) {
  
     int    col         = m_current_col + col_offset;
     int    row         = m_current_row + row_offset;
@@ -579,13 +518,8 @@ public:
 
     // Make sure there is enough memory left to support this location.
     if (offset + num_disps > m_buffer_size) {
-      std::cout << "--now in get_trailing_pixel_accum_ptr" << std::endl;
-      std::cout << "offset is " << offset << std::endl;
-      std::cout << "num disps is " << num_disps << std::endl;
-      std::cout << "sum is " << offset + num_disps << std::endl;
-      std::cout << "m_buffer_size is " << m_buffer_size << std::endl;
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, disparity "
-                             << "image may be degenerate.\n" );
+                             << "image may be degenerate2.\n" );
     }
     
     return output_ptr + offset;
@@ -649,7 +583,7 @@ public:
     int line_size = sqrt(num_cols*num_cols + num_rows*num_rows) + 1;
 
     // Instantiate single-row buffer that will be used to temporarily store
-    //  accumulated cost info until it can be addded to the main SGM class buffer.
+    //  accumulated cost info until it can be added to the main SGM class buffer.
     // - Within each buffer, data is indexed in order [pixel][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
@@ -670,9 +604,9 @@ public:
         buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
     }
 
-    std::cout << "--get 2x buffer_size = " << buffer_size << std::endl;
-    buffer_size *= 2; // Two buffers are needed
-    
+    // This is a bugfix. Adjust the buffer size if a previous invocation failed.
+    buffer_size *= parent_ptr->m_buf_size_factor;
+
     return buffer_size;
   }
 
@@ -705,7 +639,7 @@ public:
   }
 
   /// Get the pointer to the start of the output accumulation buffer
-  SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(size_t &buffer_size) {
+  SemiGlobalMatcher::AccumCostType * get_output_accum_buf_ptr(size_t &buffer_size) {
     buffer_size = m_buffer_size;
     return m_buffer.get();
   }
@@ -808,9 +742,6 @@ public:
     // Make a copy of the pixel iterator so we can re-use it for accum buffer addition
     PixelLineIterator pixel_loc_iter_copy(m_pixel_loc_iter);
 
-    //std::cout << "Starting task with buffer id " << buffer_id 
-    //          << " and location " << pixel_loc_iter_copy.to_string() << std::endl;
-
     //const bool debug = false;
     int last_pixel_val = -1;
     int col_prev = -1, row_prev = -1; // Previous row and column
@@ -819,7 +750,7 @@ public:
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
     size_t buffer_size   = 0;
     size_t consumed_size = 0;
-    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr(buffer_size);
+    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_buf_ptr(buffer_size);
     AccumCostType* prior_accum_ptr    = 0;
 
     while (pixel_loc_iter_copy.is_good()) {
@@ -884,7 +815,7 @@ public:
     // Get the start of the output accumulation buffer
     // - Storage here is simply num_disps for each pixel in the line, one after the other.
     size_t buffer_size=0;
-    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_ptr(buffer_size);
+    AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_buf_ptr(buffer_size);
 
     // Loop through all pixels in the line
     while (m_pixel_loc_iter.is_good()) {
@@ -936,9 +867,13 @@ public:
   SmoothPathAccumTask(MultiAccumRowBuffer    * buffer_ptr,
                       SemiGlobalMatcher      * parent_ptr,
                       ImageView<uint8>  const* image_ptr,
-                      Direction dir)
-    : m_buffer_ptr(buffer_ptr), m_parent_ptr(parent_ptr), m_image_ptr(image_ptr), m_dir(dir) {
+                      Direction dir, 
+                      int * success):
+  m_buffer_ptr(buffer_ptr), m_parent_ptr(parent_ptr),
+  m_image_ptr(image_ptr), m_dir(dir), m_success(success) {
 
+    *success = 1; // Assume success until proven otherwise
+   
     // Init this buffer to bad scores representing disparities that were
     //  not in the search range for the given pixel. 
     m_full_prior_buffer.reset(new AccumCostType[parent_ptr->m_num_disp]);
@@ -954,16 +889,22 @@ public:
 
   /// Main task function redirects to the dedicated function
   virtual void operator()() {
-    switch(m_dir) {
-    case TL: task_TL(); return;
-    case T:  task_T (); return;
-    case TR: task_TR(); return;
-    case L:  task_L (); return;
-    case R:  task_R (); return;
-    case BL: task_BL(); return;
-    case B:  task_B (); return;
-    default: task_BR(); return; // BR
-    };
+    
+    // Must catch exceptions and track success
+    try {
+      switch (m_dir) {
+      case TL: task_TL(); return;
+      case T:  task_T (); return;
+      case TR: task_TR(); return;
+      case L:  task_L (); return;
+      case R:  task_R (); return;
+      case BL: task_BL(); return;
+      case B:  task_B (); return;
+      default: task_BR(); return; // BR
+      };
+    } catch (...) {
+      *m_success = 0;
+    }
   }
 
 private: // Variables
@@ -980,7 +921,7 @@ private: // Variables
 
   boost::shared_array<AccumCostType> m_full_prior_buffer; ///< Working buffer needed for evaluate_task() function
   boost::shared_array<AccumCostType> m_temp_buffer;       ///< Buffer for storing the smoothed-in result.
-
+  int * m_success; /// Will have a non-zero value if the task was successful
 private: // Functions - one per direction
 
   /// Helper function to save some lines.
@@ -992,6 +933,7 @@ private: // Functions - one per direction
   }
 
   void task_L() {
+    
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
 
@@ -1035,9 +977,11 @@ private: // Functions - one per direction
 
       m_buffer_ptr->next_row(row==m_last_row);
     } // End row loop
+
   } // End task_TL
 
   void task_TL() {
+
     AccumCostType* full_prior_ptr = m_full_prior_buffer.get();
     AccumCostType* output_accum_ptr;
 

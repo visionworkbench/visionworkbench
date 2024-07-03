@@ -91,10 +91,12 @@ public: // Functions
                     SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                     Vector2i search_buffer=Vector2i(2,2),
                     size_t memory_limit_mb=6000,
+                    double buf_size_factor=1.0,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
     set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
-                   kernel_size, subpixel, search_buffer, memory_limit_mb, p1, p2, ternary_census_threshold);
+                   kernel_size, subpixel, search_buffer, memory_limit_mb, 
+                   buf_size_factor, p1, p2, ternary_census_threshold);
   }
 
   /// Set the parameters to be used for future SGM calls
@@ -116,6 +118,7 @@ public: // Functions
                       SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                       Vector2i search_buffer=Vector2i(2,2),
                       size_t memory_limit_mb=6000,
+                      double buf_size_factor=1.0,
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
@@ -126,12 +129,12 @@ public: // Functions
                             ImageView<uint8> const& right_image,
                             ImageView<uint8> const* left_image_mask,
                             ImageView<uint8> const* right_image_mask,
-                            DisparityImage const* prev_disparity,
-                            double buf_size_factor,
-                            size_t const  memory_limit_mb);
+                            DisparityImage const* prev_disparity);
 
   /// Create a subpixel leves disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
+
+   double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
 
 private: // Variables
 
@@ -177,7 +180,6 @@ private: // Variables
     /// For each output pixel, store the starting index in m_cost_buffer/m_accum_buffer
     ImageView<size_t> m_buffer_starts;
 
-    double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
     
 private: // Functions
 
@@ -524,8 +526,6 @@ calc_disparity_sgm(CostFunctionType cost_type,
                    ImageView<uint8>       const* right_mask_ptr,
                    SemiGlobalMatcher::DisparityImage  const* prev_disparity) { 
     
-    std::cout << "--now in calc_disparity_sgm--" << std::endl;
-    
     // Sanity check the input:
     VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
                      ArgumentErr() << "calc_disparity_sgm: Kernel input not sized with odd values." );
@@ -554,30 +554,27 @@ calc_disparity_sgm(CostFunctionType cost_type,
     u8_convert(crop(left_in.impl(),  left_region),  left);
     u8_convert(crop(right_in.impl(), right_region), right);
 
-    std::cout << "--will reset matcher_ptr--" << std::endl;
-    matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                      search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb));
-    std::cout << "--will run matcher_ptr--" << std::endl;
-
-    // This is a bugfix for the case when the logic for buffer sizes fails.
-    // It happens very rarely and it is not clear why.
-    double buf_size_factor_vec[] = {1.0, 1.5, 2.0, 3.0};
-    for (int i = 0; i < 3; i++) {
+    // This is a bugfix for when the allocated buffers are insufficient.
+    // It happens for large disparity search range.
+    double buf_size_factor_vec[] = {1.0, 2.0};
+    for (int i = 0; i < 2; i++) {
       try {
-        std::cout << "--factor is " << buf_size_factor_vec[i] << std::endl;
+        matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
+                          search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb,
+                          buf_size_factor_vec[i]));
         return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
-                                                      right_mask_ptr, prev_disparity,
-                                                      buf_size_factor_vec[i],
-                                                      memory_limit_mb);
+                                                      right_mask_ptr, prev_disparity);
 
-      } catch (const std::exception &e) {
-        vw_out() << "calc_disparity_sgm: Caught failure: " << e.what() << "\n";
-        vw_out() << "Try again with larger buffer size.\n";
+      } catch (...) {
+        vw_out() << "Insufficient memory was allocated. Trying again with a larger buffer.\n";
       }
     }
-    std::cout << "--done running matcher_ptr--" << std::endl;
 
-    // If we get here, we failed to find a good buffer size.
+    // Will arrive here on failure only
+    vw::vw_throw(vw::ArgumentErr()
+                 << "Failed to compute the correlation. Consider increasing "
+                 << "--sgm-memory-limit-mb.\n");
+    
     return ImageView<PixelMask<Vector2i>>();
   } // End function calc_disparity
 

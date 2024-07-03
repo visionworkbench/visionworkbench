@@ -17,10 +17,6 @@ namespace vw {
 
 namespace stereo {
 
-
-
-//=========================================================================
-
 void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        bool use_mgm,
                                        int min_disp_x, int min_disp_y,
@@ -29,6 +25,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        SgmSubpixelMode subpixel,
                                        Vector2i search_buffer,
                                        size_t memory_limit_mb,
+                                       double buf_size_factor,
                                        uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
@@ -41,8 +38,8 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_ternary_census_threshold = ternary_census_threshold;
   m_subpixel_type   = subpixel;
   m_search_buffer   = search_buffer;
-  m_memory_limit_mb = memory_limit_mb;
-  m_buf_size_factor = 1.0; // Start with a buffer size factor of 1.0
+  m_memory_limit_mb = memory_limit_mb;// * buf_size_factor;
+  m_buf_size_factor = buf_size_factor;
 
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -350,9 +347,12 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   percent_masked  /= num_pixels;
   percent_trusted /= num_pixels;
 
-  vw_out(DebugMessage, "stereo") << "Percent masked pixels  = "            << percent_masked  << std::endl;
-  vw_out(DebugMessage, "stereo") << "Percent trusted prior disparities = " << percent_trusted << std::endl;
-  vw_out(DebugMessage, "stereo") << "Number missing prev disp = "          << missing_prev_disp_count << std::endl;
+  vw_out(DebugMessage, "stereo") 
+    << "Percent masked pixels  = " << percent_masked  << "\n";
+  vw_out(DebugMessage, "stereo") 
+    << "Percent trusted prior disparities = " << percent_trusted << "\n";
+  vw_out(DebugMessage, "stereo") 
+    << "Number missing prev disp = " << missing_prev_disp_count << "\n";
 
   // Next we attempt to refine the search ranges to stay within the memory usage limits.
   const int NO_CONSERVE  = 0;
@@ -360,8 +360,9 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
   bool result = false;
   for (int conserve_level=NO_CONSERVE; conserve_level<=MAX_CONSERVE; ++conserve_level) {
     // Refine the disparity search ranges with the current conservation level.
-    vw_out(DebugMessage, "stereo") << "Refining search ranges with conservation level "
-                                  << conserve_level << std::endl;
+    vw_out(DebugMessage, "stereo") 
+      << "Refining search ranges with conservation level "
+      << conserve_level << "\n";
     constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, 
                                percent_masked, area, conserve_level);
     try { // Check if the computed boundaries fall within the user specified memory limit
@@ -369,8 +370,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       break; // Memory usage is ok!
     }
     catch(...) { // Used too much memory!
-      vw_out(InfoMessage, "stereo") << "Uses too much memory with conservation level "
-                                    << conserve_level << std::endl;
+      vw_out(InfoMessage, "stereo") 
+        << "Uses too much memory with conservation level " << conserve_level << ".\n"
+        << "Consider increasing --sgm-memory-limit-mb and/or decreasing the "
+        << "number of threads.\n";
       result = false;
     }
   } // End loop through search range conservation attempts
@@ -391,8 +394,8 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
   // Shrink the search range of full range pixels based on neighbors
   // TODO: Make this more efficient!!!
-        int NEARBY_DISP_SEARCH_RANGE = 10; // Look this many pixels in each direction
-  const int NEARBY_DISP_EXPANSION    = 2; // Grow search range from what nearby pixels have
+  int NEARBY_DISP_SEARCH_RANGE = 10; // Look this many pixels in each direction
+  int NEARBY_DISP_EXPANSION    = 2; // Grow search range from what nearby pixels have
   if (conserve_memory == 1) // Look further, but failing pixels are discarded.
     NEARBY_DISP_SEARCH_RANGE = 25;
   if (conserve_memory == 2) // Look less and failing pixels are discarded.
@@ -418,9 +421,10 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
       // Get vertical search range
       int min_search_r = r - NEARBY_DISP_SEARCH_RANGE;
       int max_search_r = r + NEARBY_DISP_SEARCH_RANGE;
-      if (min_search_r <  0                        ) min_search_r = 0;
-      if (max_search_r >= m_disp_bound_image.rows()) max_search_r = m_disp_bound_image.rows()-1;
-
+      if (min_search_r <  0) 
+        min_search_r = 0;
+      if (max_search_r >= m_disp_bound_image.rows()) 
+        max_search_r = m_disp_bound_image.rows()-1;
 
       for (int c=0; c<m_disp_bound_image.cols(); ++c) {
         // Skip pixels without a full search range
@@ -472,8 +476,10 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         // Get horizontal search range
         int min_search_c = c - NEARBY_DISP_SEARCH_RANGE;
         int max_search_c = c + NEARBY_DISP_SEARCH_RANGE;
-        if (min_search_c <  0                        ) min_search_c = 0;
-        if (max_search_c >= m_disp_bound_image.cols()) max_search_c = m_disp_bound_image.cols()-1;
+        if (min_search_c <  0) 
+          min_search_c = 0;
+        if (max_search_c >= m_disp_bound_image.cols()) 
+          max_search_c = m_disp_bound_image.cols()-1;
 
         // Look through the search range
         BBox2i new_range;
@@ -578,10 +584,6 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
 
   m_buffer_lengths = total_offset; // Record this value
 
-  std::cout << "--total offset is " << total_offset << std::endl;
-  std::cout << "--main buffer bytes is " << main_buffer_bytes << std::endl;
-  std::cout << "--memory limit is " << m_memory_limit_mb << std::endl;
-  
   // Verify that allocating the "small" buffers won't put us over the limit.
   // - m_buffer_lengths must be set for this to work.
   const int PATHS_PER_PASS  = 1;
@@ -590,8 +592,10 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   if (m_use_mgm) {
     // Four vertical buffers and four horizontal buffers.
     small_buffer_size 
-      = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true )*NUM_MGM_BUFFERS +
-        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false)*NUM_MGM_BUFFERS;
+      = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true,
+                                             m_buf_size_factor) * NUM_MGM_BUFFERS +
+        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false,
+                                             m_buf_size_factor) * NUM_MGM_BUFFERS;
   } else {
     int num_threads   = vw_settings().default_num_threads();
     small_buffer_size = OneLineBuffer::get_buffer_size(this)*num_threads;
@@ -600,13 +604,14 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   vw_out(DebugMessage, "stereo") << "SGM: Estimating total small buffer size: " 
                                  << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
   
-  std::cout << "--small buffer size is " << small_buffer_size_bytes << std::endl;
   size_t total_num_bytes = main_buffer_bytes + small_buffer_size_bytes;
-  std::cout << "--total num bytes is " << total_num_bytes << std::endl;
   
   if (total_num_bytes/BYTES_PER_MB > m_memory_limit_mb) {
-    vw_throw( ArgumentErr() << "SGM: Required memory usage is "<< total_num_bytes 
-                            << " MB which is greater than the cap of "<< m_memory_limit_mb <<" MB!\n" );
+    vw_throw(ArgumentErr() 
+             << "SGM: Required memory usage is "<< total_num_bytes 
+             << " MB which is greater than the cap of --corr-memory-mb "
+             << m_memory_limit_mb << " MB. Consider increasing this or "
+             << "reducing the number of threads.\n");
   }
 
 
@@ -1776,7 +1781,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
   //Timer timer_total("\tSGM Cost Propagation");
 
   /// Create an object to manage the temporary accumulation buffers that need to be used here.
-  MultiAccumRowBuffer buff_manager(this);
+  const int  num_paths_in_pass=4;
+  const bool vertical=false;
+  MultiAccumRowBuffer buf_mgr(this, num_paths_in_pass, vertical, m_buf_size_factor);
 
   // Init this buffer to bad scores representing disparities that were
   //  not in the search range for the given pixel.
@@ -1801,11 +1808,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       bool debug = false;//(col==152) && (row == 12);
 
       // Top left
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::TOP_LEFT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::TOP_LEFT);
       if ((row > 0) && (col > 0)) {
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
         evaluate_path( col, row, col-1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1814,10 +1821,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Top
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::TOP);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::TOP);
       if (row > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
         evaluate_path( col, row, col, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1826,10 +1833,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Top right
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::TOP_RIGHT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::TOP_RIGHT);
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
         evaluate_path( col, row, col+1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1838,10 +1845,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Left
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::LEFT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::LEFT);
       if (col > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
         evaluate_path( col, row, col-1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1849,14 +1856,14 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
-      buff_manager.next_pixel();
+      buf_mgr.next_pixel();
     } // End col loop
 
-    buff_manager.next_row(row==m_num_output_rows-1);
+    buf_mgr.next_row(row==m_num_output_rows-1);
   } // End row loop
 
   // Done with the first trip!
-  buff_manager.switch_trips();
+  buf_mgr.switch_trips();
 
   // Loop through all pixels in the output image for the first trip, bottom-right to top-left.
   for (int row = last_row; row >= 0; --row) {
@@ -1867,11 +1874,11 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       bool debug = false;//((row == 244) && (col == 341));
 
       // Bottom right
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::BOT_RIGHT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::BOT_RIGHT);
       if ((row < last_row) && (col < last_column)) {
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
         evaluate_path( col, row, col+1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1880,10 +1887,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Bottom
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::BOT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::BOT);
       if (row < last_row) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
         evaluate_path( col, row, col, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1892,10 +1899,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Bottom left
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::BOT_LEFT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::BOT_LEFT);
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
         evaluate_path( col, row, col-1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1904,10 +1911,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Right
-      output_accum_ptr = buff_manager.get_output_accum_ptr(MultiAccumRowBuffer::RIGHT);
+      output_accum_ptr = buf_mgr.get_output_accum_ptr(MultiAccumRowBuffer::RIGHT);
       if (col < last_column) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
-        AccumCostType* const prior_accum_ptr = buff_manager.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
+        AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
         evaluate_path( col, row, col+1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
@@ -1915,10 +1922,10 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
-      buff_manager.next_pixel();
+      buf_mgr.next_pixel();
     } // End col loop
 
-    buff_manager.next_row(row==0);    
+    buf_mgr.next_row(row==0);    
   } // End row loop
 
   // Done with both trips!
@@ -1936,8 +1943,8 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - Two copies are needed here, one for the two horizontal passes and one for the two vertical passes
-  MultiAccumRowBuffer buff_manager_horizontal(this, PATHS_PER_PASS, false);
-  MultiAccumRowBuffer buff_manager_vertical  (this, PATHS_PER_PASS, true);
+  MultiAccumRowBuffer buf_mgr_horiz(this, PATHS_PER_PASS, false, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_vertical  (this, PATHS_PER_PASS, true,  m_buf_size_factor);
   
   // Init this buffer to bad scores representing disparities that were
   //  not in the search range for the given pixel.
@@ -1960,7 +1967,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       // TODO: Do we need to skip these pixels in the two-pass SGM function above?
       int num_disp = get_num_disparities(col, row);
       if (num_disp == 0) {
-        buff_manager_horizontal.next_pixel();
+        buf_mgr_horiz.next_pixel();
         continue;
       }
       CostType * const local_cost_ptr = get_cost_vector(col, row);
@@ -1969,17 +1976,17 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
 
       // Left
-      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      output_accum_ptr = buf_mgr_horiz.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
       if ((row > 0) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         // Compute accumulation from the values in the left pixel
-        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col-1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
         // Compute accumulation from the values in the above pixel
-        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -1991,16 +1998,16 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Top left
-      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      output_accum_ptr = buf_mgr_horiz.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
       if ((row > 0) && (col > 0) && (col < last_column)) {
 
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col-1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col+1, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2010,14 +2017,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
-      buff_manager_horizontal.next_pixel();
+      buf_mgr_horiz.next_pixel();
     } // End col loop
 
-    buff_manager_horizontal.next_row(row==last_row);
+    buf_mgr_horiz.next_row(row==last_row);
   } // End row loop
 
   // Done with the first trip!
-  buff_manager_horizontal.switch_trips();  
+  buf_mgr_horiz.switch_trips();  
 
 
   // Loop through all pixels in the output image for the second trip, bottom-right to top-left.
@@ -2026,7 +2033,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
       int num_disp = get_num_disparities(col, row);
       if (num_disp == 0) {
-        buff_manager_horizontal.next_pixel();
+        buf_mgr_horiz.next_pixel();
         continue;
       }
       CostType * const local_cost_ptr = get_cost_vector(col, row);
@@ -2035,15 +2042,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
 
       // Right
-      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      output_accum_ptr = buf_mgr_horiz.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
       if ((row < last_row) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
-        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col+1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2055,16 +2062,16 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
 
       // Bottom right
-      output_accum_ptr = buff_manager_horizontal.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      output_accum_ptr = buf_mgr_horiz.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
       if ((row < last_row) && (col > 0) && (col < last_column)) {
 
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager_horizontal.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col+1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_horizontal.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col-1, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2075,10 +2082,10 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
 
-      buff_manager_horizontal.next_pixel();
+      buf_mgr_horiz.next_pixel();
     } // End col loop
 
-    buff_manager_horizontal.next_row(row==0);    
+    buf_mgr_horiz.next_row(row==0);    
   } // End row loop
 
   // -- Done with the horizontal passes, switch to vertical passes.
@@ -2090,7 +2097,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       int num_disp = get_num_disparities(col, row);
       //printf("Accum pass 3 col = %d, row = %d, num_disp = %d\n", col, row, num_disp);
       if (num_disp == 0) {
-        buff_manager_vertical.next_pixel();
+        buf_mgr_vertical.next_pixel();
         continue;
       }
       CostType * const local_cost_ptr = get_cost_vector(col, row);
@@ -2099,15 +2106,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
 
       // Bottom
-      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      output_accum_ptr = buf_mgr_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col-1, row,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2118,15 +2125,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Bottom left
-      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      output_accum_ptr = buf_mgr_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
       if ((row > 0) && (row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
-        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col-1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col-1, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2136,14 +2143,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
-      buff_manager_vertical.next_pixel();
+      buf_mgr_vertical.next_pixel();
     } // End col loop
 
-    buff_manager_vertical.next_row(col==last_column);    
+    buf_mgr_vertical.next_row(col==last_column);    
   } // End row loop
 
   // Done with the first trip!
-  buff_manager_vertical.switch_trips();
+  buf_mgr_vertical.switch_trips();
 
   // Loop through all pixels in the output image for the fourth trip, top-right to bottom-left.
   for (int col=last_column; col>=0; --col) {
@@ -2153,7 +2160,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
       int num_disp = get_num_disparities(col, row);
       if (num_disp == 0) {
-        buff_manager_vertical.next_pixel();
+        buf_mgr_vertical.next_pixel();
         continue;
       }
       CostType * const local_cost_ptr = get_cost_vector(col, row);
@@ -2162,15 +2169,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       boost::shared_array<AccumCostType> temp_buffer(new AccumCostType[num_disp]);
 
       // Top
-      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
+      output_accum_ptr = buf_mgr_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_ONE);
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
         evaluate_path( col, row, col+1, row,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2181,15 +2188,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
       // Top right
-      output_accum_ptr = buff_manager_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
+      output_accum_ptr = buf_mgr_vertical.get_output_accum_ptr(MultiAccumRowBuffer::PASS_TWO);
       if ((row > 0) && (row < last_row) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
-        AccumCostType* const prior_accum_ptr = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col+1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
                        pixel_diff, debug );
 
-        AccumCostType* const prior_accum_ptr2 = buff_manager_vertical.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
+        AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
         evaluate_path( col, row, col+1, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
                        pixel_diff, debug );
@@ -2199,10 +2206,10 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
 
-      buff_manager_vertical.next_pixel();
+      buf_mgr_vertical.next_pixel();
     } // End col loop
 
-    buff_manager_vertical.next_row(col==0);
+    buf_mgr_vertical.next_row(col==0);
   } // End row loop
 
   // Done with all trips!
@@ -2213,14 +2220,8 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
                                              ImageView<uint8> const& right_image,
                                              ImageView<uint8> const* left_image_mask,
                                              ImageView<uint8> const* right_image_mask,
-                                             DisparityImage const* prev_disparity,
-                                             double buf_size_factor,
-                                             size_t const memory_limit_mb) {
+                                             DisparityImage const* prev_disparity) {
 
-  std::cout << "--now in semi_global_matching_func--" << std::endl;
-  m_buf_size_factor = buf_size_factor;
-  m_memory_limit_mb = m_buf_size_factor * memory_limit_mb; // Must be adjusted proportionally
-  
   // Compute safe bounds to search through given the disparity range and kernel size.
   // - Using inclusive bounds here.
 
@@ -2249,13 +2250,16 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   m_num_output_cols  = m_max_col - m_min_col + 1;
   m_num_output_rows  = m_max_row - m_min_row + 1;
 
-  vw_out(DebugMessage, "stereo") << "Computed SGM cost bounding box: " << std::endl;
-  vw_out(DebugMessage, "stereo") << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
-                               <<"), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
-  vw_out(DebugMessage, "stereo") << "min_row = "<< m_min_row <<", min_col = "<< m_min_col <<
-                                  ", max_row = "<< m_max_row <<", max_col = "<< m_max_col <<
-                                  ", output_height = "<< m_num_output_rows <<
-                                  ", output_width = "<< m_num_output_cols <<"\n";
+  vw_out(DebugMessage, "stereo") 
+    << "Computed SGM cost bounding box: " << std::endl;
+  vw_out(DebugMessage, "stereo") 
+    << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
+    <<"), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
+  vw_out(DebugMessage, "stereo") 
+    << "min_row = "<< m_min_row <<", min_col = "<< m_min_col 
+    << ", max_row = "<< m_max_row <<", max_col = "<< m_max_col 
+    << ", output_height = "<< m_num_output_rows 
+    << ", output_width = "<< m_num_output_cols <<"\n";
 
   populate_adjacent_disp_lookup_table();
 
@@ -2264,7 +2268,8 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   populate_constant_disp_bound_image();
 
   if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity)) {
-    vw_out(WarningMessage, "stereo") << "Unable to compute valid search ranges for SGM input.\n";
+    vw_out(WarningMessage, "stereo") 
+      << "Unable to compute valid search ranges for SGM input. Increase --corr-memory-mb.\n";
     // If the inputs are invalid, return a default disparity image.
     DisparityImage disparity( m_num_output_cols, m_num_output_rows );
     return invalidate_mask(disparity);
@@ -2307,7 +2312,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads() << " threads.\n";
 
   // Initialize a number of line buffers equal to the number of threads
-  OneLineBufferManager mem_buff_manager(num_threads, this);
+  OneLineBufferManager mem_buf_mgr(num_threads, this);
 
   // Each direction of lines is handled separately.  This adds some additional wait time
   //  as each direction finishes up but it allows the threads to simultaneously read/write
@@ -2319,7 +2324,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) { 
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top(top_pixel, PixelLineIterator::B, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2329,7 +2334,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) { 
     Vector2i bottom_pixel(i, height-1);
     PixelLineIterator line_from_bottom(bottom_pixel, PixelLineIterator::T, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bottom));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bottom));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2339,7 +2344,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<height; ++i) { 
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left (left_pixel, PixelLineIterator::R, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2349,7 +2354,7 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<height; ++i) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right(right_pixel, PixelLineIterator::L, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2359,13 +2364,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) {
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top_br(top_pixel, PixelLineIterator::BR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_br));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_br));
     thread_pool.add_task(task);
   }
   for (int i=1; i<height; ++i) {
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left_br(left_pixel, PixelLineIterator::BR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_br));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_br));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2375,13 +2380,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) {
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top_bl(top_pixel, PixelLineIterator::BL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_top_bl));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_bl));
     thread_pool.add_task(task);
   }
   for (int i=1; i<height; ++i) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right_bl(right_pixel, PixelLineIterator::BL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_bl));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_bl));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2391,13 +2396,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) {
     Vector2i bot_pixel(i, height-1);
     PixelLineIterator line_from_bot_tr(bot_pixel, PixelLineIterator::TR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tr));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tr));
     thread_pool.add_task(task);
   }
   for (int i=0; i<height-1; ++i) {
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left_tr(left_pixel, PixelLineIterator::TR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_left_tr));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_tr));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2407,13 +2412,13 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   for (int i=0; i<width; ++i) {
     Vector2i bot_pixel(i, height-1);
     PixelLineIterator line_from_bot_tl(bot_pixel, PixelLineIterator::TL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_bot_tl));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tl));
     thread_pool.add_task(task);
   }
   for (int i=0; i<height-1; ++i) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right_tl(right_pixel, PixelLineIterator::TL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buff_manager, line_from_right_tl));
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_tl));
     thread_pool.add_task(task);
   }
   thread_pool.join_all(); // Wait for all tasks to complete
@@ -2426,7 +2431,8 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
 // This version of the function requires four passes and is based on the paper:
 // MGM: A Significantly More Global Matching for Stereovision
-void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image) {
+void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
+  (ImageView<uint8> const& left_image) {
 
   const int PATHS_PER_PASS = 1;
   const int MAX_USABLE_THREADS = 8;
@@ -2442,53 +2448,84 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded(ImageView<uint8> 
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - A separate copy instance is used for each direction to allow multithreading
-  MultiAccumRowBuffer buff_manager_horizontal_left    (this, PATHS_PER_PASS, false);
-  MultiAccumRowBuffer buff_manager_horizontal_right   (this, PATHS_PER_PASS, false);
-  MultiAccumRowBuffer buff_manager_horizontal_topleft (this, PATHS_PER_PASS, false);
-  MultiAccumRowBuffer buff_manager_horizontal_botright(this, PATHS_PER_PASS, false);
+  MultiAccumRowBuffer buf_mgr_horiz_left    
+    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_horiz_right
+    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_horiz_topleft
+    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_horiz_botright
+    (this, PATHS_PER_PASS, false, m_buf_size_factor);
 
-  MultiAccumRowBuffer buff_manager_vertical_top     (this, PATHS_PER_PASS, true);
-  MultiAccumRowBuffer buff_manager_vertical_bot     (this, PATHS_PER_PASS, true);
-  MultiAccumRowBuffer buff_manager_vertical_topright(this, PATHS_PER_PASS, true);
-  MultiAccumRowBuffer buff_manager_vertical_botleft (this, PATHS_PER_PASS, true);
+  MultiAccumRowBuffer buf_mgr_vertical_top     
+    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_vertical_bot
+    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_vertical_topright
+    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_vertical_botleft
+    (this, PATHS_PER_PASS, true, m_buf_size_factor);
 
   // Set some of the buffers to the reverse direction
-  buff_manager_horizontal_right.switch_trips();
-  buff_manager_horizontal_botright.switch_trips();
-  buff_manager_vertical_top.switch_trips();
-  buff_manager_vertical_topright.switch_trips();
+  buf_mgr_horiz_right.switch_trips();
+  buf_mgr_horiz_botright.switch_trips();
+  buf_mgr_vertical_top.switch_trips();
+  buf_mgr_vertical_topright.switch_trips();
 
   // Start up thread pool
   FifoWorkQueue thread_pool(num_threads);
   vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads()
                                  << " path accumulation threads.\n";
 
-  // Load all eight required passes as task in to the thread pool   
+  //  Must track the success of each thread. That because exceptions
+  // cannot be thrown in a thread.
+  std::vector<int> success(8, 1);
+  // Load all eight required passes as tasks in the thread pool   
   typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
-  TaskPtrType task_L (new SmoothPathAccumTask(&buff_manager_horizontal_left,     this, &left_image, SmoothPathAccumTask::L ));
-  TaskPtrType task_R (new SmoothPathAccumTask(&buff_manager_horizontal_right,    this, &left_image, SmoothPathAccumTask::R ));
-  TaskPtrType task_TL(new SmoothPathAccumTask(&buff_manager_horizontal_topleft,  this, &left_image, SmoothPathAccumTask::TL));
-  TaskPtrType task_BR(new SmoothPathAccumTask(&buff_manager_horizontal_botright, this, &left_image, SmoothPathAccumTask::BR));
-  TaskPtrType task_T (new SmoothPathAccumTask(&buff_manager_vertical_top,        this, &left_image, SmoothPathAccumTask::T ));
-  TaskPtrType task_B (new SmoothPathAccumTask(&buff_manager_vertical_bot,        this, &left_image, SmoothPathAccumTask::B ));
-  TaskPtrType task_TR(new SmoothPathAccumTask(&buff_manager_vertical_topright,   this, &left_image, SmoothPathAccumTask::TR));
-  TaskPtrType task_BL(new SmoothPathAccumTask(&buff_manager_vertical_botleft,    this, &left_image, SmoothPathAccumTask::BL));
+  TaskPtrType task_L (new SmoothPathAccumTask
+                      (&buf_mgr_horiz_left, this, &left_image,
+                       SmoothPathAccumTask::L, &success[0]));
+  TaskPtrType task_R (new SmoothPathAccumTask
+                      (&buf_mgr_horiz_right, this, &left_image, 
+                       SmoothPathAccumTask::R, &success[1]));
+  TaskPtrType task_TL(new SmoothPathAccumTask
+                      (&buf_mgr_horiz_topleft, this, &left_image, 
+                       SmoothPathAccumTask::TL, &success[2]));
+  TaskPtrType task_BR(new SmoothPathAccumTask
+                      (&buf_mgr_horiz_botright, this, &left_image, 
+                       SmoothPathAccumTask::BR, &success[3]));
+  TaskPtrType task_T (new SmoothPathAccumTask
+                      (&buf_mgr_vertical_top, this, &left_image, 
+                       SmoothPathAccumTask::T, &success[4]));
+  TaskPtrType task_B (new SmoothPathAccumTask
+                      (&buf_mgr_vertical_bot, this, &left_image, 
+                       SmoothPathAccumTask::B, &success[5]));
+  TaskPtrType task_TR(new SmoothPathAccumTask
+                      (&buf_mgr_vertical_topright, this, &left_image, 
+                       SmoothPathAccumTask::TR, &success[6]));
+  TaskPtrType task_BL(new SmoothPathAccumTask
+                      (&buf_mgr_vertical_botleft, this, &left_image, 
+                       SmoothPathAccumTask::BL, &success[7]));
 
-  thread_pool.add_task(task_L );
-  thread_pool.add_task(task_R );
+  thread_pool.add_task(task_L);
+  thread_pool.add_task(task_R);
   thread_pool.add_task(task_TL);
   thread_pool.add_task(task_BR);
-  thread_pool.add_task(task_T );
-  thread_pool.add_task(task_B );
+  thread_pool.add_task(task_T);
+  thread_pool.add_task(task_B);
   thread_pool.add_task(task_TR);
   thread_pool.add_task(task_BL);
 
   thread_pool.join_all(); // Wait for all tasks to complete
   vw_out(DebugMessage, "stereo") << "Finished multi-threaded smooth accumulation.\n";  
 
+  // If some success values are 0, throw an exception that will be caught by the caller.
+  for (int i = 0; i < (int)success.size(); i++) {
+    if (success[i] == 0)
+      vw_throw(vw::ArgumentErr() << "Failed to run correlation.\n");
+  }
+               
 } // End function smooth_path_accumulation_multithreaded
-
-
 
 } // end namespace stereo
 } // end namespace vw
