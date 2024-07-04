@@ -474,10 +474,9 @@ public:
       offset = (m_offsets_lead[m_current_col] + pass_offset);
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size) {
+    if (offset + num_disps > m_buffer_size)
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, "
-                             << "disparity image may be degenerate1.\n" );
-    }
+                             << "disparity image may be degenerate.\n");
 
     return m_lead_buffer + offset;
   }
@@ -517,10 +516,9 @@ public:
     }
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size) {
+    if (offset + num_disps > m_buffer_size)
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, disparity "
-                             << "image may be degenerate2.\n" );
-    }
+                             << "image may be degenerate.\n");
     
     return output_ptr + offset;
 
@@ -773,7 +771,7 @@ public:
       consumed_size += num_disp;
       if (consumed_size > buffer_size)
         vw_throw(ArgumentErr() << "Ran out of memory in the small buffer, "
-                               << "disparity image may be degenerate.\n" );
+                               << "disparity image may be degenerate.\n");
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
@@ -783,11 +781,11 @@ public:
       //std::cout << "DEBUG " << m_parent_ptr->m_disp_bound_image(col,row) << std::endl;
 
       if (last_pixel_val >= 0) { // All pixels after the first
-        m_parent_ptr->evaluate_path( col, row, col_prev, row_prev,
+        m_parent_ptr->evaluate_path(col, row, col_prev, row_prev,
                                     prior_accum_ptr, full_prior_ptr, local_cost_ptr, computed_accum_ptr, 
-                                    pixel_diff, debug );
+                                    pixel_diff, debug);
       } else { // First pixel only, nothing to accumulate.
-        for (int d=0; d<num_disp; ++d) 
+        for (int d = 0; d < num_disp; d++)
           computed_accum_ptr[d] = local_cost_ptr[d];
       }
 
@@ -800,12 +798,12 @@ public:
       pixel_loc_iter_copy++;                // Update the pixel location
     } // End loop through pixels
 
-  // Now that we computed all the results, add them to the main buffer 
-  update_accum_buffer(buff_ptr);
+    // Now that we computed all the results, add them to the main buffer 
+    update_accum_buffer(buff_ptr);
 
-  // Notify the buffer manager that we are finished with the buffer
-  //std::cout << "Releasing buffer " << buffer_id << std::endl;
-  m_buffer_manager_ptr->release_buffer(buffer_id);
+    // Notify the buffer manager that we are finished with the buffer
+    //std::cout << "Releasing buffer " << buffer_id << std::endl;
+    m_buffer_manager_ptr->release_buffer(buffer_id);
 
   } // End operator() function
 
