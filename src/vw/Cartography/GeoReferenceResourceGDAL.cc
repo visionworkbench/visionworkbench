@@ -55,6 +55,17 @@ namespace cartography {
       transform(1,0) = geo_transform[4];
       transform(1,1) = geo_transform[5];
       transform(1,2) = geo_transform[3];
+      
+      // It is highly unusual for a georeference to have the y axis go up.
+      // This breaks some assumptions in the code. Not sure if this should
+      // be a fatal error.
+      if (transform(1,1) > 0)
+        vw_out(WarningMessage) 
+          << "Found a georeference with a positive value of the y pixel component in file: "
+          << resource.filename() << ".\n"
+          << "This is not standard. Incorrect results may be produced. Check the "
+          << "pixel size value with gdalinfo.\n";
+       
       georef.set_transform(transform);
 
       // Determine the pixel interpretation for the image.  See the
