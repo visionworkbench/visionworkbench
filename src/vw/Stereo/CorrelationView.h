@@ -51,22 +51,22 @@ namespace vw { namespace stereo {
                            PrefilterModeType prefilter_mode, float prefilter_width,
                            BBox2i const& search_region, Vector2i const& kernel_size,
                            stereo::CostFunctionType cost_type,
-                           int   corr_timeout, double seconds_per_op,
+                           int corr_timeout, double seconds_per_op,
                            float consistency_threshold,
                            int min_consistency_level,
                            int filter_half_kernel,
                            int32 max_pyramid_levels,
                            CorrelationAlgorithm  algorithm = VW_CORRELATION_BM,
-                           int   collar_size        = 0,
+                           int collar_size = 0,
                            SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode
                            = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
-                           Vector2i  sgm_search_buffer = Vector2i(2,2),
+                           Vector2i sgm_search_buffer = Vector2i(2,2),
                            size_t memory_limit_mb=6000,
-                           int   blob_filter_area   = 0,
+                           int blob_filter_area = 0,
                            ImageView<PixelMask<float>> * lr_disp_diff = NULL,
                            Vector2i const& region_ul = Vector2i(0, 0),
-                           bool  write_debug_images = false):
-      m_left_image(left.impl()),     m_right_image(right.impl()),
+                           bool write_debug_images = false):
+      m_left_image(left.impl()), m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
       m_prefilter_mode(prefilter_mode), m_prefilter_width(prefilter_width),
       m_search_region(search_region), m_kernel_size(kernel_size),
@@ -83,13 +83,13 @@ namespace vw { namespace stereo {
       m_memory_limit_mb(memory_limit_mb),
       m_lr_disp_diff(lr_disp_diff),
       m_region_ul(region_ul),
-      m_write_debug_images(write_debug_images){
+      m_write_debug_images(write_debug_images) {
 
       // Quit if an invalid area was passed in
       double area = search_region.area();
       if (area != area) {
         vw_throw(ArgumentErr() << "PyramidCorrelationView: Invalid search region: "
-                                << search_region.min() << ", " << search_region.max());
+                               << search_region.min() << ", " << search_region.max());
       }
 
       if (algorithm != VW_CORRELATION_BM)
@@ -111,7 +111,7 @@ namespace vw { namespace stereo {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
     inline result_type operator()(int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0) const {
-      vw_throw(NoImplErr() << "NewCorrelationView::operator()(....) has not been implemented.");
+      vw_throw(NoImplErr() << "NewCorrelationView::operator() is not implemented.");
       return result_type();
     }
 
@@ -122,12 +122,12 @@ namespace vw { namespace stereo {
     template <class DestT>
     inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
     
-      vw_out(VerboseDebugMessage, "stereo") << "Rasterize called with box: " << bbox << std::endl;
+      vw_out(VerboseDebugMessage, "stereo") << "Rasterize called with box: " << bbox << "\n";
     
       BBox2i proc_bbox = bbox;
       if (m_collar_size > 0)
         proc_bbox.expand(m_collar_size);
-      vw_out(VerboseDebugMessage, "stereo") << "Collared raster box: " << proc_bbox << std::endl;
+      vw_out(VerboseDebugMessage, "stereo") << "Collared raster box: " << proc_bbox << "\n";
       vw::rasterize(prerasterize(proc_bbox), dest, bbox);
     }
 
@@ -205,12 +205,12 @@ namespace vw { namespace stereo {
                     int filter_half_kernel,
                     int32 max_pyramid_levels,
                     CorrelationAlgorithm  algorithm = VW_CORRELATION_BM,
-                    int   collar_size = 0,
+                    int collar_size = 0,
                     SemiGlobalMatcher::SgmSubpixelMode sgm_subpixel_mode
                     = SemiGlobalMatcher::SUBPIXEL_LC_BLEND,
                     Vector2i sgm_search_buffer = Vector2i(2,2),
                     size_t memory_limit_mb = 6000,
-                    int   blob_filter_area = 0,
+                    int blob_filter_area = 0,
                     ImageView<PixelMask<float>> * lr_disp_diff = NULL,
                     Vector2i const& region_ul = Vector2i(0, 0),
                     bool  write_debug_images = false) {

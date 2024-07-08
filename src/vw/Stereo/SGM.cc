@@ -45,8 +45,8 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
   size_t size_check = m_num_disp_x * m_num_disp_y;;
   if (size_check > (size_t)std::numeric_limits<DisparityType>::max())
-    vw_throw( NoImplErr() << "Number of disparities is too large for data type!\n" );
-  m_num_disp   = m_num_disp_x * m_num_disp_y;
+    vw_throw(NoImplErr() << "Number of disparities is too large for data type.\n");
+  m_num_disp = m_num_disp_x * m_num_disp_y;
 
   if (p1 > 0) // User provided
     m_p1 = p1; 
@@ -104,11 +104,82 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
     };
   } // End p2 cases
 
-  vw_out(DebugMessage, "stereo") << "SGM m_p1 = " << m_p1 << std::endl;
-  vw_out(DebugMessage, "stereo") << "SGM m_p2 = " << m_p2 << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM m_p1 = " << m_p1 << "\n";
+  vw_out(DebugMessage, "stereo") << "SGM m_p2 = " << m_p2 << "\n";
 
 } // End set_parameters
 
+ImageView<PixelMask<Vector2i>> calc_disparity_sgm(
+  CostFunctionType cost_type,
+  ImageView<PixelGray<float>> const& left_in,
+  ImageView<PixelGray<float>> const& right_in,
+  BBox2i                 const& left_region,   // Valid region in the left image
+  Vector2i               const& search_volume, // Max disparity to search in right image
+  Vector2i               const& kernel_size,   // The kernel dimensions are always equal
+  bool                   const  use_mgm,
+  SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
+  Vector2i               const  search_buffer, // Search buffer applied around prev_disparity
+  size_t                 const  memory_limit_mb,
+  boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
+  ImageView<uint8>       const* left_mask_ptr,  
+  ImageView<uint8>       const* right_mask_ptr,
+  SemiGlobalMatcher::DisparityImage const* prev_disparity) { 
+  
+  // Sanity checks
+  VW_DEBUG_ASSERT(kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
+                    ArgumentErr() << "calc_disparity_sgm: Kernel input not sized with odd values.");
+  VW_DEBUG_ASSERT(kernel_size[0] <= left_region.width() &&
+                    kernel_size[1] <= left_region.height(),
+                    ArgumentErr() << "calc_disparity_sgm: Kernel size too large of active region.");
+  VW_DEBUG_ASSERT(left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
+                    left_region.max().x() <= left_in.impl().cols() &&
+                    left_region.max().y() <= left_in.impl().rows(),
+                    ArgumentErr() << "calc_disparity_sgm: Region not inside left image.");
+
+  Vector2i search_volume_inclusive = search_volume;
+
+  // Rasterize input so that we can do a lot of processing on it.
+  BBox2i right_region = left_region;
+  right_region.max() += search_volume_inclusive;
+
+  vw_out(VerboseDebugMessage, "stereo") 
+    << "calc_disparity_sgm: left  region = " << left_region << "\n";
+  vw_out(VerboseDebugMessage, "stereo") 
+    << "calc_disparity_sgm: right region = " << right_region << "\n";
+  vw_out(VerboseDebugMessage, "stereo") 
+    << "calc_disparity_sgm: search_volume_inclusive = " << search_volume_inclusive << "\n";
+
+  // TODO: Ignore masked values when computing this!
+  // Convert the input image to uint8
+  // - Any "smart" stretching here can cause problems.
+  ImageView<PixelGray<vw::uint8>> left, right;
+  u8_convert(crop(left_in.impl(), left_region),  left);
+  u8_convert(crop(right_in.impl(), right_region), right);
+
+  // This is a bugfix for when the allocated buffers are insufficient.
+  // It happens for large disparity search range.
+  double buf_size_factor_vec[] = {1.0, 2.0};
+  for (int i = 0; i < 2; i++) {
+    try {
+      matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
+                        search_volume_inclusive[0], search_volume_inclusive[1], 
+                        kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb,
+                        buf_size_factor_vec[i]));
+      return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
+                                                    right_mask_ptr, prev_disparity);
+
+    } catch (...) {
+      vw_out() << "Insufficient memory was allocated. Trying again with a larger buffer.\n";
+    }
+  }
+
+  // Will arrive here on failure only
+  vw::vw_throw(vw::ArgumentErr()
+                << "Failed to compute the correlation. Consider increasing "
+                << "--sgm-memory-limit-mb.\n");
+  
+  return ImageView<PixelMask<Vector2i>>();
+} // End function calc_disparity
 
 void SemiGlobalMatcher::populate_constant_disp_bound_image() {
   // Allocate the image
@@ -124,30 +195,31 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
                                                   ImageView<uint8> const* right_image_mask,
                                                   DisparityImage const* prev_disparity) {
 
-  vw_out(VerboseDebugMessage, "stereo") << "disparity bound image size = " << bounding_box(m_disp_bound_image) << std::endl;
+  vw_out(VerboseDebugMessage, "stereo") << "disparity bound image size = " << bounding_box(m_disp_bound_image) << "\n";
 
   // The masks are assumed to be the same size as the output image.
   // TODO: Check or automatically compute the left valid mask size!
   bool left_mask_valid = false, right_mask_valid = false;
   if (left_image_mask) {
-    vw_out(VerboseDebugMessage, "stereo") << "Left  mask image size:" << bounding_box(*left_image_mask ) << std::endl;
+    vw_out(VerboseDebugMessage, "stereo") << "Left  mask image size:" << bounding_box(*left_image_mask) << "\n";
     // Currently the left mask is required to EXACTLY match the output size...
-    if ( (left_image_mask->cols() == m_disp_bound_image.cols()) && 
-         (left_image_mask->rows() == m_disp_bound_image.rows())   )
+    if ((left_image_mask->cols() == m_disp_bound_image.cols()) && 
+         (left_image_mask->rows() == m_disp_bound_image.rows()))
       left_mask_valid = true;
     else
-      vw_throw( LogicErr() << "Left mask size does not match the output size!\n" );
+      vw_throw(LogicErr() << "Left mask size does not match the output size.\n");
   }
   if (right_image_mask) {
-    vw_out(VerboseDebugMessage, "stereo") << "Right mask image size:" << bounding_box(*right_image_mask) << std::endl;
+    vw_out(VerboseDebugMessage, "stereo") << "Right mask image size:" << bounding_box(*right_image_mask) << "\n";
 
     // Currently this class assumes a positive search range and requires the right mask to
     //  be big enough to contain the output size PLUS the search range.
-    if ( (right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) && 
-         (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1)   )
+    if ((right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) && 
+         (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1))
       right_mask_valid = true;
     else
-      vw_throw( LogicErr() << "Right mask size is not large enough to support search range!\n" );
+      vw_throw(LogicErr() 
+               << "Right mask size is not large enough to support search range.\n");
   }
 
   // The low-res disparity image must be half-resolution.
@@ -271,7 +343,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
       if (prev_disparity) {
 
         // Verify that the pixel we want exists
-        if ( (c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows()) ) {
+        if ((c_in >= prev_disparity->cols()) || (r_in >= prev_disparity->rows())) {
           missing_prev_disp_count += 1;
         } else {
           input_disp = prev_disparity->operator()(c_in,r_in);
@@ -279,9 +351,10 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
           dx_scaled = input_disp[0] * SCALE_UP; 
           dy_scaled = input_disp[1] * SCALE_UP;
 
-          bool on_edge = (  ( check_x_edge && ((dx_scaled <= m_min_disp_x) || (dx_scaled >= m_max_disp_x)) )
-                         || ( check_y_edge && ((dy_scaled <= m_min_disp_y) || (dy_scaled >= m_max_disp_y)) ) );
-
+          bool on_edge = ((check_x_edge && ((dx_scaled <= m_min_disp_x)   || 
+                                            (dx_scaled >= m_max_disp_x))) || 
+                          (check_y_edge && ((dy_scaled <= m_min_disp_y)   || 
+                                            (dy_scaled >= m_max_disp_y))));
           good_disparity = (is_valid(input_disp) && !on_edge);
         }
 
@@ -323,7 +396,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
 
         // Case with no valid offsets available
         if ((valid_offsets.min()[0] > valid_offsets.max()[0]) ||
-            (valid_offsets.min()[1] > valid_offsets.max()[1])   ) {
+            (valid_offsets.min()[1] > valid_offsets.max()[1])) {
           m_disp_bound_image(c,r) = ZERO_SEARCH_AREA;
           ++percent_masked;
           full_search_image(c,r) = 0;
@@ -442,9 +515,9 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         BBox2i new_range;
         for (int i=1; i<=NEARBY_DISP_SEARCH_RANGE; ++i) {
           std::vector<Vector2i> coords;
-          coords.push_back(Vector2i(c+i,r  )); // Next set of pixels
+          coords.push_back(Vector2i(c+i,r)); // Next set of pixels
           coords.push_back(Vector2i(c  ,r+i));
-          coords.push_back(Vector2i(c-i,r  ));
+          coords.push_back(Vector2i(c-i,r));
           coords.push_back(Vector2i(c  ,r-i));
           coords.push_back(Vector2i(c-i,r-i));
           coords.push_back(Vector2i(c+i,r-i));
@@ -465,7 +538,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
             new_range.grow(Vector2i(vec[0], vec[1])); // Expand to contain this pixel
             new_range.grow(Vector2i(vec[2], vec[3]));
             if ((c == DEBUG_X) && (r == DEBUG_Y))
-              vw_out() << "Expand to contain: " << vec << std::endl;
+              vw_out() << "Expand to contain: " << vec << "\n";
           }
           if (!new_range.empty())
             break; // Quit when we hit valid pixels
@@ -534,15 +607,18 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
   double initial_percent_full_range = 1.0 - (percent_trusted+percent_masked);
   double final_percent_full_range   = initial_percent_full_range - percent_shrunk;
-  vw_out(DebugMessage, "stereo") << "Max pixel search area  = "            << max_search_area    << std::endl;
-  vw_out(DebugMessage, "stereo") << "Mean pixel search area (initial) = "  << area               << std::endl;
-  vw_out(DebugMessage, "stereo") << "Mean pixel search area (final  ) = "  << shrunk_area        << std::endl;
-  vw_out(DebugMessage, "stereo") << "Percent shrunk pixels  = "            << percent_shrunk     << std::endl;
-  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (initial) = " << initial_percent_full_range << std::endl;
-  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (final  ) = " << final_percent_full_range   << std::endl;
+  vw_out(DebugMessage, "stereo") << "Max pixel search area  = " << max_search_area << "\n";
+  vw_out(DebugMessage, "stereo") << "Mean pixel search area (initial) = " << area << "\n";
+  vw_out(DebugMessage, "stereo") << "Mean pixel search area (final) = " 
+    << shrunk_area << "\n";
+  vw_out(DebugMessage, "stereo") << "Percent shrunk pixels = " << percent_shrunk << "\n";
+  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (initial) = " 
+    << initial_percent_full_range << "\n";
+  vw_out(DebugMessage, "stereo") << "Percent full search range pixels (final) = " 
+    << final_percent_full_range   << "\n";
   if (conserve_memory)
-    vw_out(DebugMessage, "stereo") << "Percent pixels conserved for memory = " << conserved << std::endl;
-
+    vw_out(DebugMessage, "stereo") << "Percent pixels conserved for memory = " 
+      << conserved << "\n";
 
   // Return false if the image cannot be processed
   if ((area <= 0) || (percent_masked >= 100))
@@ -557,8 +633,8 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   // Init the starts data storage
   m_buffer_starts.set_size(m_num_output_cols, m_num_output_rows);
 
-  vw_out(DebugMessage, "stereo") << "SGM: Num pixels = "      << m_num_output_rows * m_num_output_cols << std::endl;
-  vw_out(DebugMessage, "stereo") << "SGM: Num disparities = " << m_num_disp << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM: Num pixels = "      << m_num_output_rows * m_num_output_cols << "\n";
+  vw_out(DebugMessage, "stereo") << "SGM: Num disparities = " << m_num_disp << "\n";
 
   // For each pixel, record the starting offset and add the disparity search area 
   //  of this pixel to the running offset total.
@@ -571,10 +647,10 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   }
   // Finished computing the pixel offsets.
 
-  vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << std::endl;
+  vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << "\n";
 
   if (total_offset < 6)
-    vw_throw( ArgumentErr() << "SGM: Total disparity usage is too low!\n" );
+    vw_throw(ArgumentErr() << "SGM: Total disparity usage is too low.\n");
 
   const size_t BYTES_PER_MB      = 1024*1024;
   const size_t main_buffer_bytes = total_offset * (sizeof(CostType) + sizeof(AccumCostType));
@@ -705,7 +781,7 @@ void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
   if (p2_mod < m_p1)
     p2_mod = m_p1;
 
-  //int num_disparities   = get_num_disparities(col,   row  ); // Can be input arg
+  //int num_disparities   = get_num_disparities(col,   row); // Can be input arg
   //int num_disparities_p = get_num_disparities(col_p, row_p);
 
   Vector4i pixel_disp_bounds   = m_disp_bound_image(col, row);
@@ -822,12 +898,12 @@ void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
 #endif
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-void SemiGlobalMatcher::evaluate_path( int col, int row, int col_p, int row_p,
+void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
                        AccumCostType* const prior,
                        AccumCostType*       full_prior_buffer,
                        CostType     * const local,
                        AccumCostType*       output,
-                       int path_intensity_gradient, bool debug ) {
+                       int path_intensity_gradient, bool debug) {
 
   // Decrease p2 (jump cost) with increasing disparity along the path
   AccumCostType p2_mod = m_p2;
@@ -1043,7 +1119,7 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
         //  filtering is needed to get down to one minimum.
         if (iter_count < VERT_ITERATION) {
           // Horizontal filtering
-          if (min + col < 0     ) min = 0; // TODO: Hard coded to radius 1!!
+          if (min + col < 0) min = 0; // TODO: Hard coded to radius 1!!
           if (max + col >= width) max = 0;
 
           for (int k=min; k<=max; ++k) {
@@ -1053,7 +1129,7 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
           }
         } else {
           // Vertical filtering
-          if (min + row < 0      ) min = 0; // TODO: Hard coded to radius 1!!
+          if (min + row < 0) min = 0; // TODO: Hard coded to radius 1!!
           if (max + row >= height) max = 0;
 
           for (int k=min; k<=max; ++k) {
@@ -1122,8 +1198,8 @@ SemiGlobalMatcher::create_disparity_view() {
   DisparityType dx, dy;
   int min_index=0;
   std::vector<AccumCostType> accum_buffer;
-  for ( int j = 0; j < m_num_output_rows; j++ ) {
-    for ( int i = 0; i < m_num_output_cols; i++ ) {
+  for (int j = 0; j < m_num_output_rows; j++) {
+    for (int i = 0; i < m_num_output_cols; i++) {
 
       int num_disp = get_num_disparities(i, j);
 
@@ -1264,7 +1340,7 @@ double SemiGlobalMatcher::compute_subpixel_offset(AccumCostType prev, AccumCostT
     return 0;
 
   // If only two values are available, use a lower quality two value interpolation.
-  if (left_bound )
+  if (left_bound)
     return two_value_subpixel(center, next); // Shift right
   if (right_bound)
     return -1.0*two_value_subpixel(center, prev); // Shift left
@@ -1326,8 +1402,8 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
   //  select the disparity with the lowest accumulated cost.
   double percent_bad = 0;
   double delta_x, delta_y;
-  for ( int j = 0; j < m_num_output_rows; j++ ) {
-    for ( int i = 0; i < m_num_output_cols; i++ ) {
+  for (int j = 0; j < m_num_output_rows; j++) {
+    for (int i = 0; i < m_num_output_cols; i++) {
 
       const Vector4i bounds = m_disp_bound_image(i,j);
       //int height   = (bounds[3] - bounds[1] + 1);
@@ -1374,7 +1450,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
       bool valid = true;
       if (m_subpixel_type == SUBPIXEL_PARABOLA) {
-        valid = fitter.find_peak( accum_vec[min_index+x_left+y_up  ],  accum_vec[min_index+y_up  ], accum_vec[min_index+x_right+y_up  ],
+        valid = fitter.find_peak(accum_vec[min_index+x_left+y_up  ],  accum_vec[min_index+y_up  ], accum_vec[min_index+x_right+y_up  ],
                                   accum_vec[min_index+x_left       ],  accum_vec[min_index       ], accum_vec[min_index+x_right       ],
                                   accum_vec[min_index+x_left+y_down],  accum_vec[min_index+y_down], accum_vec[min_index+x_right+y_down],
                                   delta_x, delta_y);
@@ -1392,20 +1468,20 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         double ratio = 0.0;//compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
         printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
         //       accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right], ratio);
-        rawFile << "col = " << i << ", row = " << j << ", dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << std::endl;
+        rawFile << "col = " << i << ", row = " << j << ", dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << "\n";
         for (int j=0; j<height; ++j) {
           for (int i=0; i<width; ++i) {
             rawFile << accum_vec[j*width+i] << " ";
           }
-          rawFile << std::endl;
+          rawFile << "\n";
         }
-        rawFile << std::endl;
+        rawFile << "\n";
 
       }*/
 
       // To assist development, write the internal subpixel input ratio to a file.
       //double temp = compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
-      //rawFile << temp << std::endl;
+      //rawFile << temp << "\n";
 
       if (valid) {
         disparity(i,j) = p_type(dx+delta_x, dy+delta_y);
@@ -1421,11 +1497,11 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
   if (m_subpixel_type == SUBPIXEL_PARABOLA) { // Only ever failures with this mode
     percent_bad /= (double)(m_num_output_rows*m_num_output_cols);
-    vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << std::endl;
+    vw_out(DebugMessage, "stereo") << "Subpixel interpolation failure percentage: " << percent_bad << "\n";
   }
 
   // Write these out for debugging/development
-  //write_image( "subpixel_disp.tif", disparity );
+  //write_image("subpixel_disp.tif", disparity);
   //hist_dx.write_to_disk("delta_x.csv");
   //hist_dy.write_to_disk("delta_y.csv");
   //rawFile.close();
@@ -1476,7 +1552,7 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
                int left_x, int left_y, int right_x, int right_y, bool debug) const{
 
   if (m_kernel_size == 1) { // Special handling for single pixel case
-    int diff = static_cast<int>(left_image (left_x,  left_y )) - 
+    int diff = static_cast<int>(left_image (left_x,  left_y)) - 
                static_cast<int>(right_image(right_x, right_y));
     return static_cast<CostType>(abs(diff));
   }
@@ -1530,9 +1606,9 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
                                          ImageView<uint8> const& right_image){
   // Make sure we don't go out of bounds here due to the disparity shift and kernel.
   size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+  for (int r = m_min_row; r <= m_max_row; r++) { // For each row in left
     int output_row = r - m_min_row;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
+    for (int c = m_min_col; c <= m_max_col; c++) { // For each column in left
       int output_col = c - m_min_col;
 
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
@@ -1543,8 +1619,8 @@ void SemiGlobalMatcher::fill_costs_block(ImageView<uint8> const& left_image,
         compute_patch_mean_std(left_image, c, r, mean_left, std_left);
 
       // Only compute costs in the search radius for this pixel    
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {          
+      for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
+        for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {          
 
           CostType cost = get_cost_block(left_image, right_image, mean_left, std_left,
                                          c, r, c+dx,r+dy, false);
@@ -1569,25 +1645,25 @@ void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
 
   if (m_cost_type == CENSUS_TRANSFORM) {
-    ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+    ImageView<uint8> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                      right_census(right_image.cols()-padding, right_image.rows()-padding);
 
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_3x3(left_image, c+half_kernel, r+half_kernel);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
     get_hamming_distance_costs(left_census, right_census);
   } else {
-    ImageView<uint16> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+    ImageView<uint16> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                       right_census(right_image.cols()-padding, right_image.rows()-padding);
 
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_ternary_3x3(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_3x3(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
     get_hamming_distance_costs(left_census, right_census);
   } 
@@ -1602,22 +1678,22 @@ void SemiGlobalMatcher::fill_costs_census5x5(ImageView<uint8> const& left_image,
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+  ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                     right_census(right_image.cols()-padding, right_image.rows()-padding);
 
   if (m_cost_type == CENSUS_TRANSFORM) {
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_5x5(left_image, c+half_kernel, r+half_kernel);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_5x5(right_image, c+half_kernel, r+half_kernel);
   } else { // TERNARY_CENSUS_TRANSFORM
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_ternary_5x5(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_5x5(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
   }
   get_hamming_distance_costs(left_census, right_census);
@@ -1631,22 +1707,22 @@ void SemiGlobalMatcher::fill_costs_census7x7(ImageView<uint8> const& left_image,
   // Compute the census value for each pixel.
   // - ROI handling could be fancier but this is simple and works.
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
-  ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+  ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                     right_census(right_image.cols()-padding, right_image.rows()-padding);
 
   if (m_cost_type == CENSUS_TRANSFORM) {
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_7x7(left_image, c+half_kernel, r+half_kernel);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_7x7(right_image, c+half_kernel, r+half_kernel);
   } else { // TERNARY_CENSUS_TRANSFORM
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_ternary_7x7(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_7x7(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
   }
   get_hamming_distance_costs(left_census, right_census);
@@ -1662,25 +1738,25 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
   // - The 0,0 pixels in the left and right images are assumed to be aligned.
 
   if (m_cost_type == CENSUS_TRANSFORM) {
-    ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+    ImageView<uint32> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                       right_census(right_image.cols()-padding, right_image.rows()-padding);
 
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_9x9(left_image, c+half_kernel, r+half_kernel);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_9x9(right_image, c+half_kernel, r+half_kernel);  
     get_hamming_distance_costs(left_census, right_census);
   } else { // TERNARY_CENSUS_TRANSFORM
-    ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding ), 
+    ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                       right_census(right_image.cols()-padding, right_image.rows()-padding);
 
-    for ( int r = 0; r < left_census.rows(); r++ )
-      for ( int c = 0; c < left_census.cols(); c++ )
+    for (int r = 0; r < left_census.rows(); r++)
+      for (int c = 0; c < left_census.cols(); c++)
         left_census(c,r) = get_census_value_ternary_9x9(left_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    for ( int r = 0; r < right_census.rows(); r++ )
-      for ( int c = 0; c < right_census.cols(); c++ )
+    for (int r = 0; r < right_census.rows(); r++)
+      for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_9x9(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
     get_hamming_distance_costs(left_census, right_census);
   }
@@ -1696,8 +1772,8 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
     case 5:  fill_costs_census5x5(left_image, right_image); break;
     case 7:  fill_costs_census7x7(left_image, right_image); break;
     case 9:  fill_costs_census9x9(left_image, right_image); break;
-    default: vw_throw( NoImplErr() 
-                      << "Census transforms are only available in size 3, 5, 7, and 9!\n"
+    default: vw_throw(NoImplErr() 
+                      << "Census transforms are only available in size 3, 5, 7, and 9.\n"
                       << "Other cost mode options do not have this restriction.");
     };
   }
@@ -1715,9 +1791,9 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
                       max_cost_image(m_num_output_cols, m_num_output_rows),
                       mean_cost_image(m_num_output_cols, m_num_output_rows);
   size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+  for (int r = m_min_row; r <= m_max_row; r++) { // For each row in left
     int output_row = r - m_min_row;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
+    for (int c = m_min_col; c <= m_max_col; c++) { // For each column in left
       int output_col = c - m_min_col;
 
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
@@ -1726,8 +1802,8 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
       CostType max_cost = 0;
       double mean_cost = 0;
       double num_disp =0;
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
+      for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
+        for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {
 
           CostType value = m_cost_buffer[cost_index];
           if (value < min_cost)
@@ -1753,14 +1829,14 @@ void SemiGlobalMatcher::compute_disparity_costs(ImageView<uint8> const& left_ima
 /* DEBUG: Generate a scanline costs image
  int debug_row = m_num_output_rows * 0.5;
  if (m_num_output_rows > debug_row) {
-   ImageView<uint8> cost_image( m_num_output_cols, m_num_disp ); // TODO: Change type?
+   ImageView<uint8> cost_image(m_num_output_cols, m_num_disp); // TODO: Change type?
    std::fill(cost_image.data(), cost_image.data()+m_num_output_cols*m_num_disp, 255);
-   for ( int i = 0; i < m_num_output_cols; i++ ) {
+   for (int i = 0; i < m_num_output_cols; i++) {
      CostType* buff = get_cost_vector(i, debug_row);
      Vector4i bounds = m_disp_bound_image(i,debug_row);
      int index = 0;
-     for ( int dy = bounds[1]; dy < bounds[3]; dy++ ) {
-       for ( int dx = bounds[0]; dx < bounds[2]; dx++ ) {
+     for (int dy = bounds[1]; dy < bounds[3]; dy++) {
+       for (int dx = bounds[0]; dx < bounds[2]; dx++) {
          int d = xy_to_disp(dx, dy);
          cost_image(i,d) = buff[index]; // TODO: scale!
          ++index;
@@ -1813,9 +1889,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::TOP_LEFT);
-        evaluate_path( col, row, col-1, row-1,
+        evaluate_path(col, row, col-1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1825,9 +1901,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::TOP);
-        evaluate_path( col, row, col, row-1,
+        evaluate_path(col, row, col, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1837,9 +1913,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::TOP_RIGHT);
-        evaluate_path( col, row, col+1, row-1,
+        evaluate_path(col, row, col+1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1849,9 +1925,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col > 0) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::LEFT);
-        evaluate_path( col, row, col-1, row,
+        evaluate_path(col, row, col-1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1879,9 +1955,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
         // Fill in the accumulated value in the bottom buffer
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::BOT_RIGHT);
-        evaluate_path( col, row, col+1, row+1,
+        evaluate_path(col, row, col+1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1891,9 +1967,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (row < last_row) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::BOT);
-        evaluate_path( col, row, col, row+1,
+        evaluate_path(col, row, col, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1903,9 +1979,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::BOT_LEFT);
-        evaluate_path( col, row, col-1, row+1,
+        evaluate_path(col, row, col-1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1915,9 +1991,9 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
       if (col < last_column) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         AccumCostType* const prior_accum_ptr = buf_mgr.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::RIGHT);
-        evaluate_path( col, row, col+1, row,
+        evaluate_path(col, row, col+1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
       }
       else // Just init to the local cost
         for (int d=0; d<num_disp; ++d) output_accum_ptr[d] = local_cost_ptr[d];
@@ -1981,15 +2057,15 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 0);
         // Compute accumulation from the values in the left pixel
         AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col-1, row,
+        evaluate_path(col, row, col-1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         // Compute accumulation from the values in the above pixel
         AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col, row-1,
+        evaluate_path(col, row, col, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         // The final accumulation values are the average of the two computations
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
@@ -2003,14 +2079,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col-1, row-1,
+        evaluate_path(col, row, col-1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col+1, row-1,
+        evaluate_path(col, row, col+1, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2046,14 +2122,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       if ((row < last_row) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 0);
         AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col+1, row,
+        evaluate_path(col, row, col+1, row,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col, row+1,
+        evaluate_path(col, row, col, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;                      
       }
@@ -2067,14 +2143,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr_horiz.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col+1, row+1,
+        evaluate_path(col, row, col+1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_horiz.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col-1, row+1,
+        evaluate_path(col, row, col-1, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2110,14 +2186,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       if ((row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(0, 1, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col, row+1,
+        evaluate_path(col, row, col, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, 0, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col-1, row,
+        evaluate_path(col, row, col-1, row,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2129,14 +2205,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       if ((row > 0) && (row < last_row) && (col > 0)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, -1, 1);
         AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, 1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col-1, row+1,
+        evaluate_path(col, row, col-1, row+1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(-1, -1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col-1, row-1,
+        evaluate_path(col, row, col-1, row-1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2173,14 +2249,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       if ((row > 0) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 0, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(0, -1, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col, row-1,
+        evaluate_path(col, row, col, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, 0, MultiAccumRowBuffer::PASS_ONE);
-        evaluate_path( col, row, col+1, row,
+        evaluate_path(col, row, col+1, row,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2192,14 +2268,14 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
       if ((row > 0) && (row < last_row) && (col < last_column)) {
         int pixel_diff = get_path_pixel_diff(left_image, col, row, 1, -1);
         AccumCostType* const prior_accum_ptr = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, -1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col+1, row-1,
+        evaluate_path(col, row, col+1, row-1,
                        prior_accum_ptr, full_prior_ptr, local_cost_ptr, output_accum_ptr, 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
 
         AccumCostType* const prior_accum_ptr2 = buf_mgr_vertical.get_trailing_pixel_accum_ptr(1, 1, MultiAccumRowBuffer::PASS_TWO);
-        evaluate_path( col, row, col+1, row+1,
+        evaluate_path(col, row, col+1, row+1,
                        prior_accum_ptr2, full_prior_ptr, local_cost_ptr, temp_buffer.get(), 
-                       pixel_diff, debug );
+                       pixel_diff, debug);
         for (int d=0; d<num_disp; ++d)
           output_accum_ptr[d] = (output_accum_ptr[d] + temp_buffer[d])/2;
       }
@@ -2251,7 +2327,7 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   m_num_output_rows  = m_max_row - m_min_row + 1;
 
   vw_out(DebugMessage, "stereo") 
-    << "Computed SGM cost bounding box: " << std::endl;
+    << "Computed SGM cost bounding box: " << "\n";
   vw_out(DebugMessage, "stereo") 
     << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
     <<"), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
@@ -2271,7 +2347,7 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
     vw_out(WarningMessage, "stereo") 
       << "Unable to compute valid search ranges for SGM input. Increase --corr-memory-mb.\n";
     // If the inputs are invalid, return a default disparity image.
-    DisparityImage disparity( m_num_output_cols, m_num_output_rows );
+    DisparityImage disparity(m_num_output_cols, m_num_output_rows);
     return invalidate_mask(disparity);
   }
 
@@ -2424,10 +2500,8 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   thread_pool.join_all(); // Wait for all tasks to complete
 
   // Finished!
-  vw_out(DebugMessage, "stereo") << "Finished multi-threaded accumulation!\n";
+  vw_out(DebugMessage, "stereo") << "Finished multi-threaded accumulation.\n";
 } // End function multi_thread_accumulation
-
-
 
 // This version of the function requires four passes and is based on the paper:
 // MGM: A Significantly More Global Matching for Stereovision
@@ -2443,7 +2517,8 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
   // implementation.  Currently each of the directions gets its own thread.
   if (num_threads > MAX_USABLE_THREADS) {
     num_threads = MAX_USABLE_THREADS;
-    vw_out(WarningMessage) << "MGM stereo processing is currently limited to 8 parallel threads." << std::endl;
+    vw_out(WarningMessage) << "MGM stereo processing is currently limited " 
+      << "to 8 parallel threads." << "\n";
   }
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.

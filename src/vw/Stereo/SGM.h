@@ -22,7 +22,7 @@ namespace vw {
 namespace stereo {
 
 /**
-A 2D implentation of the popular Semi-Global Matching (SGM) algorithm. This 
+A 2D implementation of the popular Semi-Global Matching (SGM) algorithm. This 
 implementation has the following features:
 - 2D search using the passed in search range.
 - Uses the popular Census cost function in a variable kernel size.
@@ -297,12 +297,12 @@ private: // Functions
   /// - For each disparity in the current pixel, add that disparity's cost with the "cheapest"
   ///   prior pixel disparity.
   /// - Returns the minimum disparity score
-  void evaluate_path( int col, int row, int col_p, int row_p,
+  void evaluate_path(int col, int row, int col_p, int row_p,
                       AccumCostType* const prior,             // Accumulated costs leading up to this pixel, truncated
                       AccumCostType*       full_prior_buffer, // Buffer to store all accumulated costs
                       CostType     * const local,             // The disparity costs of the current pixel
                       AccumCostType*       output,
-                      int path_intensity_gradient, bool debug=false ); // The magnitude of intensity change to this pixel
+                      int path_intensity_gradient, bool debug=false); // The magnitude of intensity change to this pixel
 
   /// Perform all eight path accumulations in two passes through the image
   void two_trip_path_accumulation(ImageView<uint8> const& left_image);
@@ -357,15 +357,18 @@ private: // Functions
 #endif
 
   /// Non-sse backup for compute_path_internals_sse
-  inline void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                                     uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
-                                     AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
+  inline void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, 
+                                     uint16* d2, uint16* d3,
+                                     uint16* d4, uint16* d5, uint16* d6, 
+                                     uint16* d7, uint16* d8,
+                                     AccumCostType dJ, AccumCostType dP, AccumCostType dp1,
+                                     uint16* dRes,
                                      int sse_index, int &output_index, AccumCostType* output);
-
 
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
-                                 bool left_bound=false, bool right_bound=false, bool debug=false);
+                                 bool left_bound = false, bool right_bound = false, 
+                                 bool debug = false);
 
   /// Crude two-element subpixel estimation.
   double two_value_subpixel(AccumCostType primary, AccumCostType other);
@@ -381,47 +384,44 @@ private: // Functions
 /// - This function only searches positive disparities. The input images need to be
 ///   already cropped so that this makes sense.
 /// - This function could be made more flexible by accepting other varieties of mask images.
-/// - TODO: Merge with the function in Correlation.h?
-template <class ImageT1, class ImageT2>
-ImageView<PixelMask<Vector2i> >
-calc_disparity_sgm(CostFunctionType cost_type,
-                   ImageViewBase<ImageT1> const& left_in,
-                   ImageViewBase<ImageT2> const& right_in,
-                   BBox2i                 const& left_region,   // Valid region in the left image
-                   Vector2i               const& search_volume, // Max disparity to search in right image
-                   Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
-                   bool                   const  use_mgm,
-                   SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
-                   Vector2i               const  search_buffer, // Search buffer applied around prev_disparity locations
-                   size_t                 const memory_limit_mb,
-                   boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
-                   ImageView<uint8>       const* left_mask_ptr=0,  
-                   ImageView<uint8>       const* right_mask_ptr=0,
-                   SemiGlobalMatcher::DisparityImage  const* prev_disparity=0);
-
-
-//#################################################################################################
-// Function definitions
+ImageView<PixelMask<Vector2i>>
+calc_disparity_sgm(
+  CostFunctionType cost_type,
+  ImageView<PixelGray<float>> const& left_in,
+  ImageView<PixelGray<float>> const& right_in,
+  BBox2i                 const& left_region,   // Valid region in the left image
+  Vector2i               const& search_volume, // Max disparity to search in right image
+  Vector2i               const& kernel_size,   // The kernel dimensions are always equal
+  bool                   const  use_mgm,
+  SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
+  Vector2i               const  search_buffer, // Search buffer applied around prev_disparity
+  size_t                 const memory_limit_mb,
+  boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
+  ImageView<uint8>       const* left_mask_ptr=0,  
+  ImageView<uint8>       const* right_mask_ptr=0,
+  SemiGlobalMatcher::DisparityImage const* prev_disparity=0);
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                                                   uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
+void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, 
+                                                   uint16* d2, uint16* d3,
+                                                   uint16* d4, uint16* d5, uint16* d6, 
+                                                   uint16* d7, uint16* d8,
                                                    __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
                                                    int sse_index, int &output_index,
                                                    AccumCostType*       output) {
   // Load data from arrays into SSE registers
-  __m128i _dL = _mm_load_si128( (__m128i*) dL );
-  __m128i _d0 = _mm_load_si128( (__m128i*) d0 );
-  __m128i _d1 = _mm_load_si128( (__m128i*) d1 );
-  __m128i _d2 = _mm_load_si128( (__m128i*) d2 );
-  __m128i _d3 = _mm_load_si128( (__m128i*) d3 );
-  __m128i _d4 = _mm_load_si128( (__m128i*) d4 );
-  __m128i _d5 = _mm_load_si128( (__m128i*) d5 );
-  __m128i _d6 = _mm_load_si128( (__m128i*) d6 );
-  __m128i _d7 = _mm_load_si128( (__m128i*) d7 );
-  __m128i _d8 = _mm_load_si128( (__m128i*) d8 );
+  __m128i _dL = _mm_load_si128((__m128i*) dL);
+  __m128i _d0 = _mm_load_si128((__m128i*) d0);
+  __m128i _d1 = _mm_load_si128((__m128i*) d1);
+  __m128i _d2 = _mm_load_si128((__m128i*) d2);
+  __m128i _d3 = _mm_load_si128((__m128i*) d3);
+  __m128i _d4 = _mm_load_si128((__m128i*) d4);
+  __m128i _d5 = _mm_load_si128((__m128i*) d5);
+  __m128i _d6 = _mm_load_si128((__m128i*) d6);
+  __m128i _d7 = _mm_load_si128((__m128i*) d7);
+  __m128i _d8 = _mm_load_si128((__m128i*) d8);
 
-  // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+  // Operation = min(min(d1...d8)+dp1, d0, dJ) + dL - dP
   
   // Start computing the min
   __m128i _min12   = _mm_min_epu16(_d1, _d2);
@@ -442,7 +442,7 @@ void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint1
   _result = _mm_subs_epu16(_result, _dP);
 
   // Fetch results from the output register
-  _mm_store_si128( (__m128i*) dRes, _result );
+  _mm_store_si128((__m128i*) dRes, _result);
 
   // Copy the valid results from the register.
   for (int i=0; i<sse_index; ++i){
@@ -456,7 +456,7 @@ void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d
                                                AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
                                                int sse_index, int &output_index,
                                                AccumCostType*       output) {
-  // Operation = min( min(d1...d8)+dp1, d0, dJ) + dL - dP
+  // Operation = min(min(d1...d8)+dp1, d0, dJ) + dL - dP
 
   for (int i=0; i<sse_index; ++i){
 
@@ -486,20 +486,20 @@ void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_bina
   // Now compute the disparity costs for each pixel.
   // Make sure we don't go out of bounds here due to the disparity shift and kernel.
   size_t cost_index = 0;
-  for ( int r = m_min_row; r <= m_max_row; r++ ) { // For each row in left
+  for (int r = m_min_row; r <= m_max_row; r++) { // For each row in left
     int output_row = r - m_min_row;
     int binary_row = r - half_kernel;
-    for ( int c = m_min_col; c <= m_max_col; c++ ) { // For each column in left
+    for (int c = m_min_col; c <= m_max_col; c++) { // For each column in left
       int output_col = c - m_min_col;
       int binary_col = c - half_kernel;
 
       Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
 
-      for ( int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++ ) { // For each disparity
-        for ( int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++ ) {
+      for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
+        for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {
 
-          CostType cost = hamming_distance(left_binary_image (binary_col   , binary_row   ), 
-                                           right_binary_image(binary_col+dx, binary_row+dy) );
+          CostType cost = hamming_distance(left_binary_image (binary_col   , binary_row), 
+                                           right_binary_image(binary_col+dx, binary_row+dy));
           m_cost_buffer[cost_index] = cost;
           ++cost_index;
         }
@@ -507,77 +507,6 @@ void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_bina
     } // End x loop
   }// End y loop 
 }
-
-
-template <class ImageT1, class ImageT2>
-ImageView<PixelMask<Vector2i>>
-calc_disparity_sgm(CostFunctionType cost_type,
-                   ImageViewBase<ImageT1> const& left_in,
-                   ImageViewBase<ImageT2> const& right_in,
-                   BBox2i                 const& left_region,   // Valid region in the left image
-                   Vector2i               const& search_volume, // Max disparity to search in right image
-                   Vector2i               const& kernel_size,  // Only really takes an N by N kernel!
-                   bool                   const  use_mgm,
-                   SemiGlobalMatcher::SgmSubpixelMode const& subpixel_mode,
-                   Vector2i               const  search_buffer, // Search buffer applied around prev_disparity locations
-                   size_t                 const  memory_limit_mb,
-                   boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
-                   ImageView<uint8>       const* left_mask_ptr,  
-                   ImageView<uint8>       const* right_mask_ptr,
-                   SemiGlobalMatcher::DisparityImage  const* prev_disparity) { 
-    
-    // Sanity check the input:
-    VW_DEBUG_ASSERT( kernel_size[0] % 2 == 1 && kernel_size[1] % 2 == 1,
-                     ArgumentErr() << "calc_disparity_sgm: Kernel input not sized with odd values." );
-    VW_DEBUG_ASSERT( kernel_size[0] <= left_region.width() &&
-                     kernel_size[1] <= left_region.height(),
-                     ArgumentErr() << "calc_disparity_sgm: Kernel size too large of active region." );
-    VW_DEBUG_ASSERT( left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
-                     left_region.max().x() <= left_in.impl().cols() &&
-                     left_region.max().y() <= left_in.impl().rows(),
-                     ArgumentErr() << "calc_disparity_sgm: Region not inside left image." );
-
-    Vector2i search_volume_inclusive = search_volume;
-
-    // Rasterize input so that we can do a lot of processing on it.
-    BBox2i right_region = left_region;
-    right_region.max() += search_volume_inclusive;
-
-    vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: left  region  = " << left_region   << std::endl;
-    vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: right region  = " << right_region  << std::endl;
-    vw_out(VerboseDebugMessage, "stereo") << "calc_disparity_sgm: search_volume_inclusive = " << search_volume_inclusive << std::endl;
-
-    // TODO: Ignore masked values when computing this!
-    // Convert the input image to uint8
-    // - Any "smart" stretching here can cause problems.
-    ImageView<PixelGray<vw::uint8> > left, right;
-    u8_convert(crop(left_in.impl(),  left_region),  left);
-    u8_convert(crop(right_in.impl(), right_region), right);
-
-    // This is a bugfix for when the allocated buffers are insufficient.
-    // It happens for large disparity search range.
-    double buf_size_factor_vec[] = {1.0, 2.0};
-    for (int i = 0; i < 2; i++) {
-      try {
-        matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                          search_volume_inclusive[0], search_volume_inclusive[1], kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb,
-                          buf_size_factor_vec[i]));
-        return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
-                                                      right_mask_ptr, prev_disparity);
-
-      } catch (...) {
-        vw_out() << "Insufficient memory was allocated. Trying again with a larger buffer.\n";
-      }
-    }
-
-    // Will arrive here on failure only
-    vw::vw_throw(vw::ArgumentErr()
-                 << "Failed to compute the correlation. Consider increasing "
-                 << "--sgm-memory-limit-mb.\n");
-    
-    return ImageView<PixelMask<Vector2i>>();
-  } // End function calc_disparity
-
 
 } // end namespace stereo
 } // end namespace vw

@@ -332,12 +332,13 @@ namespace vw { namespace stereo {
     std::vector<stereo::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
-    BBox2i initial_disparity_range = BBox2i(0, 0, m_search_region.width() / max_upscaling + 1,
+    BBox2i initial_disparity_range = BBox2i(0, 0, 
+                                            m_search_region.width()  / max_upscaling + 1,
                                             m_search_region.height() / max_upscaling + 1);
     zones.push_back(SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
                                 initial_disparity_range));
-    vw_out(DebugMessage,"stereo") << "initial_disparity_range = " << initial_disparity_range
-                                  << std::endl;
+    vw_out(DebugMessage,"stereo") << "initial_disparity_range = " 
+      << initial_disparity_range << "\n";
 
     // Perform correlation. Keep track of how much time elapsed
     // since we started and stop if we estimate that doing one more
