@@ -36,10 +36,11 @@
 /// caching computation on the entire tile, then invoke it repeatedly
 /// individual pixels in the tile.
 
-// Use  mapproj_trans_copy() to make a copy. See also stereo_tri.cc for how the
-// underlying DEM can be cached in a tile.
+// This transform is not thread safe. Use mapproj_trans_copy() to make a
+// copy. See also stereo_tri.cc for how the underlying DEM can be cached for 
+// that copy for the needed tile.
 
-/// The class can handle DEMs with holes.
+// The class can handle DEMs with holes.
 
 namespace vw { namespace camera{
   class CameraModel; // forward declaration
@@ -60,14 +61,14 @@ namespace vw { namespace cartography {
     double               m_height_guess;
 
     // We will always be modifying these
-    mutable BBox2i                            m_dem_cache_box;
-    mutable ImageView<float>                  m_cropped_dem;
-    mutable ImageViewRef< PixelMask<float>>   m_cropped_masked_dem;
-    mutable ImageViewRef< PixelMask<float>>   m_cropped_interp_dem;
-    mutable ImageView<Vector2>                m_cache;
-    mutable ImageViewRef< PixelMask<Vector2>> m_cache_interp_mask;
-    mutable BBox2i                            m_img_cache_box;
-    mutable BBox2i                            m_cached_rv_box;
+    mutable BBox2i                           m_dem_cache_box;
+    mutable ImageView<float>                 m_cropped_dem;
+    mutable ImageViewRef<PixelMask<float>>   m_cropped_masked_dem;
+    mutable ImageViewRef<PixelMask<float>>   m_cropped_interp_dem;
+    mutable ImageView<Vector2>               m_cache;
+    mutable ImageViewRef<PixelMask<Vector2>> m_cache_interp_mask;
+    mutable BBox2i                           m_img_cache_box;
+    mutable BBox2i                           m_cached_rv_box;
 
   public:
     Map2CamTrans( camera::CameraModel const* cam,

@@ -24,8 +24,9 @@
 
 namespace vw { namespace cartography {
 
-  // This transform is not thread safe. Use  mapproj_trans_copy() to make a copy.
-  // See also stereo_tri.cc for how the underlying DEM can be cached in a tile.
+  // This transform is not thread safe. Use mapproj_trans_copy() to make a
+  // copy. See also stereo_tri.cc for how the underlying DEM can be cached for 
+  // that copy for the needed tile.
   Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
@@ -37,7 +38,7 @@ namespace vw { namespace cartography {
     m_dem(dem_file), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject), 
     m_nearest_neighbor(nearest_neighbor), m_has_nodata(false),
-    m_nodata(std::numeric_limits<double>::quiet_NaN()){
+    m_nodata(std::numeric_limits<double>::quiet_NaN()) {
 
     boost::shared_ptr<vw::DiskImageResource>
       dem_rsrc(vw::DiskImageResourcePtr(dem_file));
@@ -56,6 +57,7 @@ namespace vw { namespace cartography {
     m_height_guess = vw::cartography::demHeightGuess(m_masked_dem);
   }
 
+  // This function is not thread-safe. See above.
   vw::Vector2 Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
     // If we have data for the location already cached
@@ -141,10 +143,11 @@ namespace vw { namespace cartography {
     return m_image_georef.lonlat_to_pixel(vw::Vector2(llh[0], llh[1]));
   }
 
+  // This function is not thread-safe. See above.
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
 
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
-    // the edges and diagonals of the box.
+    // the edges and diagonals of the box. Use here the function sample_float_bbox().
     BBox2 dbox;
     dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.min().y())))); // Top left
     dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.min().y())))); // Top right
@@ -182,6 +185,7 @@ namespace vw { namespace cartography {
   // This function will be called whenever we start to apply the
   // transform in a tile. It computes and caches the point cloud at
   // each pixel in the tile, to be used later when we iterate over pixels.
+  // This function is not thread-safe, see above.
   vw::BBox2i Map2CamTrans::reverse_bbox(vw::BBox2i const& bbox) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
@@ -233,6 +237,14 @@ namespace vw { namespace cartography {
   BBox2i Map2CamTrans::forward_bbox( BBox2i const& /*output_bbox*/ ) const { 
     vw::vw_throw(vw::NoImplErr() << "forward_bbox() is not implemented for Map2CamTrans.");
     return BBox2i(); 
+  }
+
+  // Make a copy of Map2CamTrans
+  TransformPtr mapproj_trans_copy(TransformPtr trans) {
+    Map2CamTrans* t_ptr = dynamic_cast<Map2CamTrans*>(trans.get());
+    if (!t_ptr)
+      vw_throw(vw::NoImplErr() << "Expecting a transform of type Map2CamTrans.");
+    return TransformPtr(new Map2CamTrans(*t_ptr));
   }
 
   Datum2CamTrans::Datum2CamTrans(camera::CameraModel const* cam,
@@ -296,12 +308,4 @@ namespace vw { namespace cartography {
     return out_box;
   }
 
-  // Make a copy of Map2CamTrans
-  TransformPtr mapproj_trans_copy(TransformPtr trans) {
-    Map2CamTrans* t_ptr = dynamic_cast<Map2CamTrans*>(trans.get());
-    if (!t_ptr)
-      vw_throw(vw::NoImplErr() << "Expecting a transform of type Map2CamTrans.");
-    return TransformPtr(new Map2CamTrans(*t_ptr));
-  }
-  
 }} // namespace vw::cartography
