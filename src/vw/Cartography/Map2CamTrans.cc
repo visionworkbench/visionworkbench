@@ -15,15 +15,17 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Cartography/Map2CamTrans.h>
+#include <vw/Cartography/CameraBBox.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Camera/CameraModel.h>
 
 namespace vw { namespace cartography {
 
+  // This transform is not thread safe. Use  mapproj_trans_copy() to make a copy.
+  // See also stereo_tri.cc for how the underlying DEM can be cached in a tile.
   Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
@@ -44,10 +46,17 @@ namespace vw { namespace cartography {
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
 
     m_invalid_pix = vw::camera::CameraModel::invalid_pixel();
+    
+    // This is the full masked DEM. There is also m_cropped_masked_dem,
+    // which should be used per tile.
+    m_masked_dem = create_mask(m_dem, m_nodata);
+    
+    // An estimate of the DEM height can help the reliability of intersecting
+    // a ray with the DEM. 
+    m_height_guess = vw::cartography::demHeightGuess(m_masked_dem);
   }
 
-  vw::Vector2
-  Map2CamTrans::reverse(const vw::Vector2 &p) const {
+  vw::Vector2 Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
     // If we have data for the location already cached
     if (m_img_cache_box.contains(p)){
@@ -83,7 +92,7 @@ namespace vw { namespace cartography {
       return reverse(p);
     }
 
-    PixelMask<float> h = m_interp_dem(sdem_pix[0], sdem_pix[1]);
+    PixelMask<float> h = m_cropped_interp_dem(sdem_pix[0], sdem_pix[1]);
     if (!is_valid(h))
       return m_invalid_pix;
 
@@ -103,6 +112,33 @@ namespace vw { namespace cartography {
     }
 
     return pt;
+  }
+
+  // Given a raw pixel, intersect the ray with the DEM and return the pixel
+  // on the mapprojected image. This throws an exception if the intersection
+  // failed.
+  vw::Vector2 Map2CamTrans::forward(const vw::Vector2 &p) const {
+     
+    double height_error_tol = 1e-3; // 1 mm
+    double max_abs_tol      = 1e-14; // abs cost function change
+    double max_rel_tol      = 1e-14; // rel cost function change
+    int    num_max_iter     = 50;
+    bool   treat_nodata_as_zero = false;
+    bool has_intersection = false;
+
+    vw::Vector3 prev_xyz(0, 0, 0); // do not have an initial guess
+    vw::Vector3 xyz = vw::cartography::camera_pixel_to_dem_xyz
+       (m_cam->camera_center(p), m_cam->pixel_to_vector(p), m_masked_dem,
+        m_dem_georef, treat_nodata_as_zero, has_intersection,
+        height_error_tol, max_abs_tol, max_rel_tol, num_max_iter, 
+        prev_xyz, m_height_guess);
+
+    // If the intersection failed, throw an exception
+    if (!has_intersection || xyz == vw::Vector3())
+      vw::vw_throw(vw::ArgumentErr() << "Failed to intersect the camera ray with the DEM.\n");
+
+    vw::Vector3 llh = m_dem_georef.datum().cartesian_to_geodetic(xyz);
+    return m_image_georef.lonlat_to_pixel(vw::Vector2(llh[0], llh[1]));
   }
 
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
@@ -129,23 +165,24 @@ namespace vw { namespace cartography {
     m_cropped_dem = crop(m_dem, m_dem_cache_box);
 
     if (m_has_nodata){
-      m_masked_dem = create_mask(m_cropped_dem, m_nodata);
+      m_cropped_masked_dem = create_mask(m_cropped_dem, m_nodata);
     }else{ // Don't need to handle nodata
-      m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
+      m_cropped_masked_dem = pixel_cast< PixelMask<float>>(m_cropped_dem);
     }
     // Set up interpolation interface to the data we loaded into memory
     if (m_nearest_neighbor)
-      m_interp_dem = interpolate(m_masked_dem, NearestPixelInterpolation(), ZeroEdgeExtension());
+      m_cropped_interp_dem = interpolate(m_cropped_masked_dem, 
+                                         NearestPixelInterpolation(), ZeroEdgeExtension());
     else
-      m_interp_dem = interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
+      m_cropped_interp_dem = interpolate(m_cropped_masked_dem, 
+                                         BicubicInterpolation(), ZeroEdgeExtension());
 
   } // End function cache_dem
 
   // This function will be called whenever we start to apply the
   // transform in a tile. It computes and caches the point cloud at
   // each pixel in the tile, to be used later when we iterate over pixels.
-  vw::BBox2i
-  Map2CamTrans::reverse_bbox(vw::BBox2i const& bbox) const {
+  vw::BBox2i Map2CamTrans::reverse_bbox(vw::BBox2i const& bbox) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
     if (!m_cached_rv_box.empty()) return m_cached_rv_box;
@@ -191,17 +228,12 @@ namespace vw { namespace cartography {
     m_cached_rv_box = out_box;
     return m_cached_rv_box;
   }
-/*
-  std::ostream& operator<<(std::ostream& os, Map2CamTrans const& trans) {
-    std::ostringstream oss; // To use custom precision
-    oss.precision(17);
-    oss << "TODO: Fill in Map2CamTrans printer!\n";
-    os << oss.str();
-    return os;
-  }
-*/
-//=======================================================================
   
+  /// This applies the forward transformation to an entire bounding box of pixels.
+  BBox2i Map2CamTrans::forward_bbox( BBox2i const& /*output_bbox*/ ) const { 
+    vw::vw_throw(vw::NoImplErr() << "forward_bbox() is not implemented for Map2CamTrans.");
+    return BBox2i(); 
+  }
 
   Datum2CamTrans::Datum2CamTrans(camera::CameraModel const* cam,
                                   GeoReference const& image_georef,

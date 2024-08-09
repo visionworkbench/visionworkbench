@@ -896,6 +896,11 @@ namespace vw { namespace cartography {
                                   camera_model, cols, rows, mean_gsd);
   }
 
+// Find a handful of valid DEM values and average them. It helps later when
+// intersecting with the DEM, especially for Mars, where the DEM heights ca be
+// very far from the datum. 
+double demHeightGuess(vw::ImageViewRef<vw::PixelMask<float>> const& dem);
+
 } // namespace cartography
 } // namespace vw
 

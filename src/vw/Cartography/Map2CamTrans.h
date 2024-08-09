@@ -36,6 +36,9 @@
 /// caching computation on the entire tile, then invoke it repeatedly
 /// individual pixels in the tile.
 
+// Use  mapproj_trans_copy() to make a copy. See also stereo_tri.cc for how the
+// underlying DEM can be cached in a tile.
+
 /// The class can handle DEMs with holes.
 
 namespace vw { namespace camera{
@@ -48,22 +51,23 @@ namespace vw { namespace cartography {
     camera::CameraModel const* m_cam;
     GeoReference         m_image_georef, m_dem_georef;
     DiskImageView<float> m_dem;
+    ImageViewRef<PixelMask<float>> m_masked_dem;
     Vector2i             m_image_size;
     bool                 m_call_from_mapproject, m_nearest_neighbor;
     bool                 m_has_nodata;
     double               m_nodata;
     Vector2              m_invalid_pix;
-
+    double               m_height_guess;
 
     // We will always be modifying these
-    mutable BBox2i                             m_dem_cache_box;
-    mutable ImageView<float>                   m_cropped_dem;
-    mutable ImageViewRef< PixelMask<float> >   m_masked_dem;
-    mutable ImageViewRef< PixelMask<float> >   m_interp_dem;
-    mutable ImageView<Vector2>                 m_cache;
-    mutable ImageViewRef< PixelMask<Vector2> > m_cache_interp_mask;
-    mutable BBox2i                             m_img_cache_box;
-    mutable BBox2i                             m_cached_rv_box;
+    mutable BBox2i                            m_dem_cache_box;
+    mutable ImageView<float>                  m_cropped_dem;
+    mutable ImageViewRef< PixelMask<float>>   m_cropped_masked_dem;
+    mutable ImageViewRef< PixelMask<float>>   m_cropped_interp_dem;
+    mutable ImageView<Vector2>                m_cache;
+    mutable ImageViewRef< PixelMask<Vector2>> m_cache_interp_mask;
+    mutable BBox2i                            m_img_cache_box;
+    mutable BBox2i                            m_cached_rv_box;
 
   public:
     Map2CamTrans( camera::CameraModel const* cam,
@@ -76,13 +80,15 @@ namespace vw { namespace cartography {
 
     /// Convert Map Projected Coordinate to camera coordinate
     Vector2 reverse(const Vector2 &p) const;
+    /// Convert camera pixel to mapprojected pixel
+    virtual Vector2 forward(const Vector2 &p) const;
 
     // Not thread safe ... you must copy this object
     void       cache_dem   ( BBox2i const& bbox ) const;
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
+    // Convert a camera bbox to a mapprojected bbox
+    BBox2i forward_bbox(BBox2i const& bbox) const;
   }; // End class Map2CamTrans
-
-  //std::ostream& operator<<(std::ostream& os, const Map2CamTrans& trans);
 
   /// Variant of Map2CamTrans that accepts a constant elevation instead of a DEM.
   class Datum2CamTrans : public TransformBase<Map2CamTrans> {
@@ -102,10 +108,12 @@ namespace vw { namespace cartography {
                     bool                call_from_mapproject,
                     bool                nearest_neighbor = false ); // Default is bicubic
 
-    /// Convert Map Projected pixel to camera pixel
-    Vector2 reverse(const Vector2 &p) const;
+    /// Convert mapprojected pixel to camera pixel
+    virtual Vector2 reverse(const Vector2 &p) const;
 
-    BBox2i reverse_bbox( BBox2i const& bbox ) const;
+    // Convert a mapprojected bbox to a camera bbox
+    BBox2i reverse_bbox(BBox2i const& bbox) const;
+    
   }; // End class Datum2CamTrans
 
   // Make a copy of Map2CamTrans

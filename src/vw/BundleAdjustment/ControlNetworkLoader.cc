@@ -379,7 +379,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       << "Did not load " << num_load_rejected << " matches "
       << "due to inadequacy. Decrease the --min-matches parameter "
       << "to load smaller sets of matches.\n";
-  vw_out() << "Loaded " << num_loaded << " matches.\n";
+  vw_out() << "Loaded " << num_loaded << " matches from all files.\n";
 
   Stopwatch watch;
   watch.start();
