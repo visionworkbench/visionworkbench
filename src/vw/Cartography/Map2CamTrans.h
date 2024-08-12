@@ -37,8 +37,7 @@
 /// individual pixels in the tile.
 
 // This transform is not thread safe. Use mapproj_trans_copy() to make a
-// copy. See also stereo_tri.cc for how the underlying DEM can be cached for 
-// that copy for the needed tile.
+// copy. See that function for more details.
 
 // The class can handle DEMs with holes.
 

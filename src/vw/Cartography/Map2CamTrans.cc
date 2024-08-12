@@ -25,8 +25,7 @@
 namespace vw { namespace cartography {
 
   // This transform is not thread safe. Use mapproj_trans_copy() to make a
-  // copy. See also stereo_tri.cc for how the underlying DEM can be cached for 
-  // that copy for the needed tile.
+  // copy. See that function for more details.
   Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
@@ -143,7 +142,8 @@ namespace vw { namespace cartography {
     return m_image_georef.lonlat_to_pixel(vw::Vector2(llh[0], llh[1]));
   }
 
-  // This function is not thread-safe. See above.
+  // This function is not thread-safe. See above. This function is slow,
+  // but later speeds things up. Better not use it for sparse pixel queries.
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
 
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
@@ -179,13 +179,13 @@ namespace vw { namespace cartography {
     else
       m_cropped_interp_dem = interpolate(m_cropped_masked_dem, 
                                          BicubicInterpolation(), ZeroEdgeExtension());
-
   } // End function cache_dem
 
   // This function will be called whenever we start to apply the
   // transform in a tile. It computes and caches the point cloud at
   // each pixel in the tile, to be used later when we iterate over pixels.
-  // This function is not thread-safe, see above.
+  // This function is not thread-safe, see above. See cache_dem() for
+  // a note on performance.
   vw::BBox2i Map2CamTrans::reverse_bbox(vw::BBox2i const& bbox) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
@@ -194,7 +194,6 @@ namespace vw { namespace cartography {
     cache_dem(bbox);
 
     // Cache the reverse transform
-
     m_img_cache_box = BBox2i();
     BBox2i local_cache_box = bbox;
     if (m_nearest_neighbor)
@@ -216,7 +215,7 @@ namespace vw { namespace cartography {
 
     // Must happen after all calls to reverse finished.
     m_img_cache_box = local_cache_box;
-
+    
     if (m_nearest_neighbor)
       m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
                                         NearestPixelInterpolation(), ZeroEdgeExtension());
@@ -230,6 +229,7 @@ namespace vw { namespace cartography {
       out_box = vw::BBox2i(0, 0, 0, 0);
 
     m_cached_rv_box = out_box;
+    
     return m_cached_rv_box;
   }
   
@@ -239,7 +239,10 @@ namespace vw { namespace cartography {
     return BBox2i(); 
   }
 
-  // Make a copy of Map2CamTrans
+  // Make a copy of Map2CamTrans. If later queuing a very dense number of pixels
+  // in a tile, see stereo_tri.cc for how the transform values can be cached for
+  // that tile. Caching can greatly slow things down, however, if only a sparse
+  // number of pixels are queried.
   TransformPtr mapproj_trans_copy(TransformPtr trans) {
     Map2CamTrans* t_ptr = dynamic_cast<Map2CamTrans*>(trans.get());
     if (!t_ptr)
