@@ -994,8 +994,9 @@ void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
   
 }
 
-/// For a bbox in projected space, return the corresponding bbox in
-/// pixels on the image
+/// For a bbox in projected space, return the corresponding bbox in pixels on
+/// the image. This overestimates the box, to ensure the output box is never
+/// empty if the input box is not empty.
 BBox2 GeoReference::point_to_pixel_bbox(BBox2 const& point_bbox) const {
   
   // Ensure we don't get incorrect results for empty boxes with strange corners.

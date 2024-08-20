@@ -55,6 +55,11 @@ namespace vw { namespace cartography {
                                 bool& has_intersection);
 
 
+  // Find a handful of valid DEM values and average them. It helps later when
+  // intersecting with the DEM, especially for Mars, where the DEM heights ca be
+  // very far from the datum. 
+  double demHeightGuess(vw::ImageViewRef<vw::PixelMask<float>> const& dem);
+
   // Define an LMA model to solve for a DEM intersecting a ray. The
   // variable of optimization is position on the ray. The cost
   // function is difference between datum height and DEM height at
@@ -283,16 +288,23 @@ namespace vw { namespace cartography {
                                   double max_rel_tol      = 1e-14,
                                   int num_max_iter        = 100,
                                   Vector3 xyz_guess       = Vector3(),
-                                  double height_guess     = 0.0) {
+                                  double height_guess     = 
+                                  std::numeric_limits<double>::quiet_NaN()) {
     
-    // This is a very fragile function and things can easily go wrong. 
+    // Must estimate the height guess if not provided, as otherwise the results
+    // can be inaccurate.
+    if (std::isnan(height_guess))
+      height_guess 
+        = vw::cartography::demHeightGuess(pixel_cast<vw::PixelMask<float>>(dem_image));
+
     try {
       has_intersection = false;
+      // This is a very fragile function and things can easily go wrong. 
       RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr,
                                              camera_vec, treat_nodata_as_zero);
 
       Vector3 xyz;
-      if (xyz_guess == Vector3()){ // If no guess provided
+      if (xyz_guess == Vector3()) { // If no guess provided
         // Intersect the ray with the datum, this is a good initial guess.
         xyz = datum_intersection(georef.datum().semi_major_axis() + height_guess,
                                  georef.datum().semi_minor_axis() + height_guess,
@@ -318,7 +330,6 @@ namespace vw { namespace cartography {
       // robust than the Levenberg-Marquardt method used below (which used to be
       // the original method).
       Vector<double, 1> len_secant = len; // will change
-      
       secantMethod(model, camera_ctr, camera_vec, height_error_tol,
                    has_intersection, len_secant);
       if (has_intersection) {
@@ -413,7 +424,7 @@ namespace vw { namespace cartography {
                                             bool center_on_zero,
                                             vw::Vector3 const& xyz_guess, double height_guess,
                                             Vector2 & point, // output
-                                            Vector3 & xyz){
+                                            Vector3 & xyz) {
 
         // This is a very fragile function, and at many steps something can fail.
         try {
@@ -714,7 +725,6 @@ namespace vw { namespace cartography {
 
           lonlat = dem_georef.pixel_to_lonlat(dem_pix);
           height = dem.impl()(dem_pix[0], dem_pix[1]);
-
           point = target_georef.lonlat_to_point(lonlat);
 
           // Note: This height will be used further down
@@ -792,9 +802,11 @@ namespace vw { namespace cartography {
       //vw_out() << "Expanded bbox with DEM to image: " << cam_bbox << std::endl;
     } // End if (!quick)
 
-    // Find the average height
+    // Find the average height. If no luck, sample the DEM even if outside the image domain
     if (num_heights > 0) 
       height_guess = height_guess / num_heights;
+    else
+      height_guess = vw::cartography::demHeightGuess(pixel_cast<vw::PixelMask<float>>(dem));
 
     // Now estimate the gsd, in point units, by projecting onto the ground neighboring points
     std::vector<double> gsd;
@@ -895,11 +907,6 @@ namespace vw { namespace cartography {
     return camera_bbox<DEMImageT>(dem.impl(), dem_georef, target_georef,
                                   camera_model, cols, rows, mean_gsd);
   }
-
-// Find a handful of valid DEM values and average them. It helps later when
-// intersecting with the DEM, especially for Mars, where the DEM heights ca be
-// very far from the datum. 
-double demHeightGuess(vw::ImageViewRef<vw::PixelMask<float>> const& dem);
 
 } // namespace cartography
 } // namespace vw
