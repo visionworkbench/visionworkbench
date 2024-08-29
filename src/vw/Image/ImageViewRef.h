@@ -15,19 +15,17 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file ImageViewRef.h
 ///
 /// A generic image view reference class.
 ///
-/// Most Vision Workbench image processing functions simply return
-/// image view objects that lazily represent the processed data.
-/// Under some circumstances it is helpful to be able to hold onto
-/// such a processed view without rasterizing it.  Ordinarily this
-/// requires knowing the full type of the view.  When this is not
-/// acceptable, the \ref vw::ImageViewRef class allows you to hold
-/// a virtualized reference to an arbitrary image view with a given
-/// pixel type.
+/// Most Vision Workbench image processing functions simply return image view
+/// objects that lazily represent the processed data. Under some circumstances
+/// it is helpful to be able to hold onto such a processed view without
+/// rasterizing it.  Ordinarily this requires knowing the full type of the view.
+/// When this is not acceptable, the \ref vw::ImageViewRef class allows you to
+/// hold a virtualized reference to an arbitrary image view with a given pixel
+/// type.
 ///
 /// - WARNING: Never refer to these objects by reference!  The
 //             behaviour is undefined.
@@ -56,20 +54,20 @@ namespace vw {
     virtual void prev_row  () = 0;
     virtual void next_plane() = 0;
     virtual void prev_plane() = 0;
-    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) = 0;
+    virtual void advance(ssize_t di, ssize_t dj, ssize_t dp=0) = 0;
     virtual PixelT operator*() const = 0;
   };
 
   template <class IterT>
-  class ImageViewRefAccessorImpl : public ImageViewRefAccessorBase<typename IterT::pixel_type> {
+  class ImageViewRefAccessorImpl: public ImageViewRefAccessorBase<typename IterT::pixel_type> {
   private:
     IterT m_iter;
-    // We know what this is, but the base class doesn't. Just cast...
+    // We know what this is, but the base class doesn't. So just cast.
     typedef typename IterT::offset_type iter_offset_type;
   public:
     typedef typename IterT::pixel_type pixel_type;
 
-    ImageViewRefAccessorImpl( IterT const& iter ) : m_iter(iter) {}
+    ImageViewRefAccessorImpl(IterT const& iter): m_iter(iter) {}
     virtual ~ImageViewRefAccessorImpl() {}
 
     virtual ImageViewRefAccessorBase<pixel_type>* copy() const { return new ImageViewRefAccessorImpl(m_iter); }
@@ -80,7 +78,7 @@ namespace vw {
     virtual void prev_row  () { m_iter.prev_row();   }
     virtual void next_plane() { m_iter.next_plane(); }
     virtual void prev_plane() { m_iter.prev_plane(); }
-    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) {
+    virtual void advance(ssize_t di, ssize_t dj, ssize_t dp=0) {
       m_iter.advance((iter_offset_type)di,(iter_offset_type)dj,dp);
     }
     virtual pixel_type operator*() const { return *m_iter; }
@@ -93,17 +91,17 @@ namespace vw {
   template <class PixelT>
   class ImageViewRefAccessor {
   private:
-    boost::scoped_ptr< ImageViewRefAccessorBase<PixelT> > m_iter;
+    boost::scoped_ptr<ImageViewRefAccessorBase<PixelT>> m_iter;
   public:
     typedef PixelT  pixel_type;
     typedef PixelT  result_type;
     typedef ssize_t offset_type;
 
-    template <class IterT> ImageViewRefAccessor( IterT const& iter ) : m_iter( new ImageViewRefAccessorImpl<IterT>(iter) ) {}
+    template <class IterT> ImageViewRefAccessor(IterT const& iter): m_iter(new ImageViewRefAccessorImpl<IterT>(iter)) {}
     ~ImageViewRefAccessor() {}
 
-    ImageViewRefAccessor( ImageViewRefAccessor const& other ) : m_iter( other.m_iter->copy() ) {}
-    ImageViewRefAccessor& operator=( ImageViewRefAccessor const& other ) { 
+    ImageViewRefAccessor(ImageViewRefAccessor const& other): m_iter(other.m_iter->copy()) {}
+    ImageViewRefAccessor& operator=(ImageViewRefAccessor const& other) { 
       m_iter = other.m_iter->copy(); return *this; 
     }
 
@@ -113,7 +111,7 @@ namespace vw {
     inline ImageViewRefAccessor& prev_row  () { m_iter->prev_row();   return *this; }
     inline ImageViewRefAccessor& next_plane() { m_iter->next_plane(); return *this; }
     inline ImageViewRefAccessor& prev_plane() { m_iter->prev_plane(); return *this; }
-    inline ImageViewRefAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { 
+    inline ImageViewRefAccessor& advance(ssize_t di, ssize_t dj, ssize_t dp=0) { 
       m_iter->advance(di,dj,dp=0); return *this; 
     }
     inline pixel_type operator*() const { return *(*m_iter); }
@@ -133,24 +131,24 @@ namespace vw {
     virtual int32 cols  () const = 0;
     virtual int32 rows  () const = 0;
     virtual int32 planes() const = 0;
-    virtual pixel_type operator()( int32 i,  int32 j,  int32 p ) const = 0;
-    virtual pixel_type operator()( double i, double j, int32 p ) const = 0;
+    virtual pixel_type operator()(int32 i,  int32 j,  int32 p) const = 0;
+    virtual pixel_type operator()(double i, double j, int32 p) const = 0;
     virtual pixel_accessor origin() const = 0;
 
-    virtual bool sparse_check( BBox2i const& bbox ) const = 0;
-    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i const& bbox ) const = 0;
+    virtual bool sparse_check(BBox2i const& bbox) const = 0;
+    virtual void rasterize(ImageView<pixel_type> const& dest, BBox2i const& bbox) const = 0;
   };
 
   // ImageViewRef class implementation
   template <class ViewT>
-  class ImageViewRefImpl : public ImageViewRefBase<typename ViewT::pixel_type> {
+  class ImageViewRefImpl: public ImageViewRefBase<typename ViewT::pixel_type> {
   private:
     ViewT m_view;
   public:
     typedef typename ViewT::pixel_type pixel_type;
     typedef ImageViewRefAccessor<typename ViewT::pixel_type> pixel_accessor;
 
-    ImageViewRefImpl( ImageViewBase<ViewT> const& view ) : m_view(view.impl()) {}
+    ImageViewRefImpl(ImageViewBase<ViewT> const& view): m_view(view.impl()) {}
     virtual ~ImageViewRefImpl() {}
 
     virtual int32          cols  () const { return m_view.cols();   }
@@ -158,11 +156,11 @@ namespace vw {
     virtual int32          planes() const { return m_view.planes(); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
     
-    virtual pixel_type     operator()( int32  i, int32  j, int32 p ) const { return m_view(i,j,p); }
-    virtual pixel_type     operator()( double i, double j, int32 p ) const { return m_view(i,j,p); }
+    virtual pixel_type     operator()(int32  i, int32  j, int32 p) const { return m_view(i,j,p); }
+    virtual pixel_type     operator()(double i, double j, int32 p) const { return m_view(i,j,p); }
 
-    virtual bool sparse_check( BBox2i const& bbox ) const { return vw::sparse_check( m_view, bbox ); }
-    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i const& bbox ) const { m_view.rasterize( dest, bbox ); }
+    virtual bool sparse_check(BBox2i const& bbox) const { return vw::sparse_check(m_view, bbox); }
+    virtual void rasterize(ImageView<pixel_type> const& dest, BBox2i const& bbox) const { m_view.rasterize(dest, bbox); }
 
     ViewT const& child() const { return m_view; }
   };
@@ -186,82 +184,90 @@ namespace vw {
   ///
   /// The current implementation of ImageViewRef is read-only.
   template <class PixelT>
-  class ImageViewRef : public ImageViewBase<ImageViewRef<PixelT> > {
+  class ImageViewRef: public ImageViewBase<ImageViewRef<PixelT>> {
   private:
-    boost::shared_ptr< ImageViewRefBase<PixelT> > m_view;
+    boost::shared_ptr<ImageViewRefBase<PixelT>> m_view;
   public:
     typedef PixelT pixel_type;
     typedef PixelT result_type;
     typedef ImageViewRefAccessor<PixelT> pixel_accessor;
 
-    // Default contstruction conjures up an empty memory image as a
-    // placeholder.  This allows an ImageViewRef to be created without
-    // any arguments, which makes it suitable for use in situations
-    // where creation and assignment must happen as seperate steps,
-    // such as in STL containers.
-    ImageViewRef() : m_view( new ImageViewRefImpl<ImageView<PixelT> >(ImageView<PixelT>()) ) {}
+    // Default construction conjures up an empty memory image as a placeholder.
+    // This allows an ImageViewRef to be created without any arguments, which
+    // makes it suitable for use in situations where creation and assignment
+    // must happen as separate steps, such as in STL containers.
+    ImageViewRef(): m_view(new ImageViewRefImpl<ImageView<PixelT>>(ImageView<PixelT>())) {}
 
     // Assignment constructor creates an ImageViewRef from another ImageView.
-    template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
+    template <class ViewT> ImageViewRef(ImageViewBase<ViewT> const& view):
+     m_view(new ImageViewRefImpl<ViewT>(view)) {}
     ~ImageViewRef() {}
 
-    template <class ViewT> void reset( ImageViewBase<ViewT> const& view ) { m_view.reset( new ImageViewRefImpl<ViewT>(view) ); }
+    template <class ViewT> void reset(ImageViewBase<ViewT> const& view) {
+      m_view.reset(new ImageViewRefImpl<ViewT>(view)); 
+    }
 
     inline int32 cols  () const { return m_view->cols();   }
     inline int32 rows  () const { return m_view->rows();   }
     inline int32 planes() const { return m_view->planes(); }
 
-    // These difficult enable-ifs are to avoid ambigious operator
-    // overload. The rule below is, if the user passes anything float
-    // like, we'll cast all of the input to double. This is done with
-    // out consideration if the underlining type really is floating point accessible.
+    // These difficult enable-ifs are to avoid ambagious operator overload. The
+    // rule below is, if the user passes anything float like, we'll cast all of
+    // the input to double. This is done with out consideration if the
+    // underlining type really is floating point accessible.
     template <class T1, class T2>
-    inline typename boost::enable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2> >,pixel_type>::type
-    operator()( T1 i, T2 j, int32 p=0 ) const {
+    inline typename boost::enable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2>>,pixel_type>::type
+    operator()(T1 i, T2 j, int32 p=0) const {
       return m_view->operator()(int32(i),int32(j),p);
     }
 
     template <class T1, class T2>
-    inline typename boost::disable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2> >,pixel_type>::type
-    operator()( T1 i, T2 j, int32 p=0 ) const {
+    inline typename boost::disable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2>>,pixel_type>::type
+    operator()(T1 i, T2 j, int32 p=0) const {
       return m_view->operator()(double(i),double(j),p);
     }
 
-    inline pixel_accessor origin() const { return m_view->origin(); }
-
-    inline bool sparse_check( BBox2i const& bbox ) const { return m_view->sparse_check(bbox); }
-
-    /// \cond INTERNAL
-    typedef CropView<ImageView<PixelT> > prerasterize_type;
-
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      // If we're wrapping a plain ImageView, we can avoid copying the data.
-      ImageViewRefImpl<ImageView<PixelT> > *image_ptr = dynamic_cast<ImageViewRefImpl<ImageView<PixelT> >*>( m_view.get() );
-      if( image_ptr ) return CropView<ImageView<PixelT> >( image_ptr->child(), 0, 0, cols(), rows() );
-      // Otherwise, we must rasterize ourselves....
-      ImageView<PixelT> buf( bbox.width(), bbox.height(), planes() );
-      m_view->rasterize( buf, bbox );
-      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
+    inline pixel_accessor origin() const {
+      return m_view->origin();
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    inline bool sparse_check(BBox2i const& bbox) const { 
+      return m_view->sparse_check(bbox);
+    }
+
+    /// \cond INTERNAL
+    typedef CropView<ImageView<PixelT>> prerasterize_type;
+
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      // If we're wrapping a plain ImageView, we can avoid copying the data.
+      ImageViewRefImpl<ImageView<PixelT>> *image_ptr = dynamic_cast<ImageViewRefImpl<ImageView<PixelT>>*>(m_view.get());
+      if (image_ptr)
+       return CropView<ImageView<PixelT>>(image_ptr->child(), 0, 0, cols(), rows());
+       
+      // Otherwise, we must rasterize ourselves.
+      ImageView<PixelT> buf(bbox.width(), bbox.height(), planes());
+      m_view->rasterize(buf, bbox);
+      return CropView<ImageView<PixelT>>(buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()));
+    }
+
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
 
     // A special performance-enhancing overload for rasterizing directly into
     // an ImageView with the proper pixel type.  This cannot be templatized
     // or otherwise generalized because it calls m_view's virtual rasterize method.
-    inline void rasterize( ImageView<PixelT> const& dest, BBox2i const& bbox ) const {
-      m_view->rasterize( dest, bbox );
+    inline void rasterize(ImageView<PixelT> const& dest, BBox2i const& bbox) const {
+      m_view->rasterize(dest, bbox);
     }
     /// \endcond
   };
 
   template <class PixelT>
-  class SparseImageCheck<ImageViewRef<PixelT> > {
+  class SparseImageCheck<ImageViewRef<PixelT>> {
     ImageViewRef<PixelT> const& image;
   public:
-    SparseImageCheck(ImageViewRef<PixelT> const& image) : image(image) {}
+    SparseImageCheck(ImageViewRef<PixelT> const& image): image(image) {}
     bool operator() (BBox2i const& bbox) {
       return image.sparse_check(bbox);
     }
