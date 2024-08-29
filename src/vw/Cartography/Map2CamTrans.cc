@@ -24,8 +24,8 @@
 
 namespace vw { namespace cartography {
 
-  // This transform is not thread safe. Use mapproj_trans_copy() to make a
-  // copy. See that function for more details.
+  // This transform is not thread-safe, unless caching is turned off. Use
+  // mapproj_trans_copy() to make a copy. See that function for more details.
   Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
@@ -70,7 +70,7 @@ namespace vw { namespace cartography {
     m_use_cache = use_cache;
   }
     
-  // This function is not thread-safe. See above.
+  // This function is not thread-safe by default. See above.
   vw::Vector2 Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
     // If we have data for the location already cached
@@ -162,7 +162,7 @@ namespace vw { namespace cartography {
     return m_image_georef.lonlat_to_pixel(vw::Vector2(llh[0], llh[1]));
   }
 
-  // This function is not thread-safe. See above. This function is slow,
+  // This function is not thread-safe, by default. See above. This function is slow,
   // but later speeds things up. Better not use it for sparse pixel queries.
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const {
 
