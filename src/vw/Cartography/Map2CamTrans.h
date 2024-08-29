@@ -52,12 +52,17 @@ namespace vw { namespace cartography {
     GeoReference         m_image_georef, m_dem_georef;
     DiskImageView<float> m_dem;
     ImageViewRef<PixelMask<float>> m_masked_dem;
+    ImageViewRef<PixelMask<float>> m_interp_dem;
     Vector2i             m_image_size;
     bool                 m_call_from_mapproject, m_nearest_neighbor;
     bool                 m_has_nodata;
     double               m_nodata;
     Vector2              m_invalid_pix;
     double               m_height_guess;
+    
+    // Avoid using the cache if querying individual points.
+    // Without the cache this is thread-safe.
+    bool                m_use_cache;
 
     // We will always be modifying these
     mutable BBox2i                           m_dem_cache_box;
@@ -70,13 +75,16 @@ namespace vw { namespace cartography {
     mutable BBox2i                           m_cached_rv_box;
 
   public:
-    Map2CamTrans( camera::CameraModel const* cam,
-                  GeoReference const& image_georef,
-                  GeoReference const& dem_georef,
-                  std::string  const& dem_file,
-                  Vector2i     const& image_size,
-                  bool                call_from_mapproject,
-                  bool                nearest_neighbor = false); // Default is bicubic
+    Map2CamTrans(camera::CameraModel const* cam,
+                 GeoReference const& image_georef,
+                 GeoReference const& dem_georef,
+                 std::string  const& dem_file,
+                 Vector2i     const& image_size,
+                 bool                call_from_mapproject,
+                 bool                nearest_neighbor = false); // Default is bicubic
+
+    // See m_use_cache above
+    void set_use_cache(bool use_cache);
 
     /// Convert Map Projected Coordinate to camera coordinate
     Vector2 reverse(const Vector2 &p) const;
@@ -113,7 +121,6 @@ namespace vw { namespace cartography {
 
     // Convert a mapprojected bbox to a camera bbox
     BBox2i reverse_bbox(BBox2i const& bbox) const;
-    
   }; // End class Datum2CamTrans
 
   // Make a copy of Map2CamTrans

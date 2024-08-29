@@ -37,7 +37,8 @@ namespace vw { namespace cartography {
     m_dem(dem_file), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject), 
     m_nearest_neighbor(nearest_neighbor), m_has_nodata(false),
-    m_nodata(std::numeric_limits<double>::quiet_NaN()) {
+    m_nodata(std::numeric_limits<double>::quiet_NaN()),
+    m_use_cache(true) {
 
     boost::shared_ptr<vw::DiskImageResource>
       dem_rsrc(vw::DiskImageResourcePtr(dem_file));
@@ -50,17 +51,30 @@ namespace vw { namespace cartography {
     // This is the full masked DEM. There is also m_cropped_masked_dem,
     // which should be used per tile.
     m_masked_dem = create_mask(m_dem, m_nodata);
-    
+   
     // An estimate of the DEM height can help the reliability of intersecting
     // a ray with the DEM. 
     m_height_guess = vw::cartography::demHeightGuess(m_masked_dem);
+    
+    // Set up interpolation interface to the data we loaded into memory
+    // TODO(oalexan1): It is not clear if m_nearest_neighbor is useful.
+    if (m_nearest_neighbor)
+      m_interp_dem = interpolate(m_masked_dem, 
+                                 NearestPixelInterpolation(), ZeroEdgeExtension());
+    else
+      m_interp_dem = interpolate(m_masked_dem, 
+                                 BicubicInterpolation(), ZeroEdgeExtension());
   }
 
+  void Map2CamTrans::set_use_cache(bool use_cache) {
+    m_use_cache = use_cache;
+  }
+    
   // This function is not thread-safe. See above.
   vw::Vector2 Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
     // If we have data for the location already cached
-    if (m_img_cache_box.contains(p)){
+    if (m_use_cache && m_img_cache_box.contains(p)) {
       // Interpolate the output value using the cached data
       PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_img_cache_box.min().x(),
                                                  p.y() - m_img_cache_box.min().y());
@@ -76,39 +90,44 @@ namespace vw { namespace cartography {
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
-        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)){
+        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)) {
       // No DEM data
       return m_invalid_pix;
     }
 
-    Vector2 sdem_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
-    if (m_dem_cache_box.empty() ||
-        (sdem_pix[0] < b - 1) || (sdem_pix[0] >= m_cropped_dem.cols() - b) ||
-        (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)){
-      // Cache miss. Will not happen often.
-      BBox2i box;
-      box.min() = floor(p) - Vector2(1, 1);
-      box.max() = ceil(p)  + Vector2(1, 1);
-      cache_dem(box);
-      return reverse(p);
+    PixelMask<float> h;
+    if (m_use_cache) {
+      Vector2 sdem_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
+      if (m_dem_cache_box.empty() ||
+          (sdem_pix[0] < b - 1) || (sdem_pix[0] >= m_cropped_dem.cols() - b) ||
+          (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)) {
+        // Cache miss. Will not happen often.
+        BBox2i box;
+        box.min() = floor(p) - Vector2(1, 1);
+        box.max() = ceil(p)  + Vector2(1, 1);
+        cache_dem(box);
+        return reverse(p);
+      }
+      h = m_cropped_interp_dem(sdem_pix[0], sdem_pix[1]);
+    } else {
+      h = m_interp_dem(dem_pix[0], dem_pix[1]);
     }
-
-    PixelMask<float> h = m_cropped_interp_dem(sdem_pix[0], sdem_pix[1]);
+    
     if (!is_valid(h))
       return m_invalid_pix;
 
-    Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian
-      (Vector3(lonlat[0], lonlat[1], h.child()));
+    Vector3 xyz 
+      = m_dem_georef.datum().geodetic_to_cartesian(Vector3(lonlat[0], lonlat[1], h.child()));
     Vector2 pt;
-    try{
+    try {
       pt = m_cam->point_to_pixel(xyz);
       if (m_call_from_mapproject &&
            (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
-            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)){
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)) {
         // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
-    }catch(...){ // If a point failed to project
+    } catch(...) { // If a point failed to project
       return m_invalid_pix;
     }
 
@@ -119,7 +138,8 @@ namespace vw { namespace cartography {
   // on the mapprojected image. This throws an exception if the intersection
   // failed.
   vw::Vector2 Map2CamTrans::forward(const vw::Vector2 &p) const {
-     
+    
+    // TODO(oalexan1): For fine steps with CERES this may not be accurate enough
     double height_error_tol = 1e-3; // 1 mm
     double max_abs_tol      = 1e-14; // abs cost function change
     double max_rel_tol      = 1e-14; // rel cost function change
@@ -144,7 +164,7 @@ namespace vw { namespace cartography {
 
   // This function is not thread-safe. See above. This function is slow,
   // but later speeds things up. Better not use it for sparse pixel queries.
-  void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
+  void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const {
 
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
     // the edges and diagonals of the box. Use here the function sample_float_bbox().
@@ -167,10 +187,10 @@ namespace vw { namespace cartography {
     // Read the dem in memory for speed in the region of the expanded bounding box.
     m_cropped_dem = crop(m_dem, m_dem_cache_box);
 
-    if (m_has_nodata){
+    if (m_has_nodata) {
       m_cropped_masked_dem = create_mask(m_cropped_dem, m_nodata);
-    }else{ // Don't need to handle nodata
-      m_cropped_masked_dem = pixel_cast< PixelMask<float>>(m_cropped_dem);
+    } else { // Don't need to handle nodata
+      m_cropped_masked_dem = pixel_cast<PixelMask<float>>(m_cropped_dem);
     }
     // Set up interpolation interface to the data we loaded into memory
     if (m_nearest_neighbor)
