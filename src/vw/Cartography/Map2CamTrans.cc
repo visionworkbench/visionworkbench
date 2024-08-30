@@ -34,7 +34,7 @@ namespace vw { namespace cartography {
                               bool call_from_mapproject,
                               bool nearest_neighbor):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
-    m_dem(dem_file), m_image_size(image_size),
+    m_dem_file(dem_file), m_dem(dem_file), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject), 
     m_nearest_neighbor(nearest_neighbor), m_has_nodata(false),
     m_nodata(std::numeric_limits<double>::quiet_NaN()),

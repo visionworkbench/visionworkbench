@@ -48,8 +48,10 @@ namespace vw { namespace camera{
 namespace vw { namespace cartography {
 
   class Map2CamTrans : public TransformBase<Map2CamTrans> {
+public:    
     camera::CameraModel const* m_cam;
     GeoReference         m_image_georef, m_dem_georef;
+    std::string          m_dem_file; 
     DiskImageView<float> m_dem;
     ImageViewRef<PixelMask<float>> m_masked_dem;
     ImageViewRef<PixelMask<float>> m_interp_dem;
