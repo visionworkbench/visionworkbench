@@ -945,10 +945,13 @@ void sample_int_box(BBox2 const& pixel_bbox, std::vector<vw::Vector2> & points) 
   return;
 }
 
-// Sample a float box on the edges and diagonal with 100 points
+// Sample a float box on the edges and diagonal with a default of 100 points.
+// Here the max is not assumed to be exclusive, so we sample up to and including
+// the box max(). This overestimates the box a bit.
 // TODO(oalexan1): 100 samples around the poles may not be good enough.
 // Need to do some adaptive scheme.
-void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
+void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points,
+                      int num_steps) {
 
   // Reset the output
   points.clear();
@@ -960,10 +963,10 @@ void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points) {
 
   double minx = box.min().x(), maxx = box.max().x();
   double miny = box.min().y(), maxy = box.max().y();
+
   double rangex = maxx - minx;
   double rangey = maxy - miny;
 
-  int num_steps = 100;
   for (int i = 0; i <= num_steps; i++) {
     double r = double(i)/num_steps;
 

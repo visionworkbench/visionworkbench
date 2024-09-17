@@ -412,8 +412,11 @@ namespace cartography {
   // less than one pixel wide are sampled.
   void sample_int_box(BBox2 const& pixel_bbox, std::vector<Vector2> & points);
 
-  // Sample a float box on the edges and diagonal with 100 points
-  void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points);
+  // Sample a float box on the edges and diagonal with a default of 100 points.
+  // Here the max is not assumed to be exclusive, so we sample up to and including
+  // the box max(). This overestimates the box a bit.
+  void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points,
+                        int num_steps = 100);
   
 }} // namespace vw::cartography
 
