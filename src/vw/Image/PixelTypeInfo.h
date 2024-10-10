@@ -20,8 +20,8 @@
 /// Base classes, support classes, and other infrastructure
 /// to support the pixel types.
 ///
-#ifndef __VW_IMAGE_PIXELTYPEINFO_H__
-#define __VW_IMAGE_PIXELTYPEINFO_H__
+#ifndef __VW_IMAGE_PIXEL_TYPE_INFO_H__
+#define __VW_IMAGE_PIXEL_TYPE_INFO_H__
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
@@ -46,10 +46,9 @@ namespace vw {
   // *******************************************************************
   // Basic pixel type manipulation logic
   //
-  // Here we provide basic pixel type manipulation classes, most of
-  // which are just thin wrappers provided for backwards
-  // compatability.  We also provide tools to convert between real
-  // and complex pixel types.
+  // Here we provide basic pixel type manipulation classes, most of which are
+  // just thin wrappers provided for backwards compatibility. We also provide
+  // tools to convert between real and complex pixel types.
   // *******************************************************************
 
   template <class T> struct PixelChannelType : CompoundChannelType<T> {};
@@ -127,7 +126,7 @@ namespace vw {
   /// given type, use std::numeric_limits instead.
   template <class T> struct ChannelRange : 
           public ChannelRangeHelper<typename CompoundChannelType<T>::type, 
-                                     boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
+                                    boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
 
 
   // *******************************************************************
@@ -139,36 +138,36 @@ namespace vw {
   // considered to be non-transparent.
   // *******************************************************************
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_transparent(PixelT const& pixel) { return !(pixel.a()); }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_opaque(PixelT const& pixel) { return pixel.a() == ChannelRange<PixelT>::max(); }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_transparent(PixelT const& /*pixel*/) { return false; }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_opaque(PixelT const& /*pixel*/) { return true; }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename PixelChannelType<PixelT>::type >::type
-  alpha_channel( PixelT& /*pix*/ ) {
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename PixelChannelType<PixelT>::type>::type
+  alpha_channel(PixelT& /*pix*/) {
     return ChannelRange<PixelT>::max();
   }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, PixelT& >::type
-  non_alpha_channels( PixelT& pix ) {
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, PixelT&>::type
+  non_alpha_channels(PixelT& pix) {
     return pix;
   }
 
   template <class PixelT>
-  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, const PixelT& >::type
-  non_alpha_channels( const PixelT& pix ) {
+  inline typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, const PixelT&>::type
+  non_alpha_channels(const PixelT& pix) {
     return pix;
   }
 
@@ -257,7 +256,7 @@ namespace vw {
   // point destination types, and the user might expect it to clamp to
   // the ChannelRange instead.  Probably the _clamp behavior should be
   // promoted to the default behavior for integer destination types.
-  // Anyone who is relying on channel_cast's overvlow behavior probably
+  // Anyone who is relying on channel_cast's overflow behavior probably
   // deserves to lose anyway.  At the moment the only thing using this
   // code is BicubicInterpolation.
   // *******************************************************************
@@ -266,122 +265,122 @@ namespace vw {
   class ChannelCastFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>
-    inline DestT operator()( SourceT source ) const {
+    inline DestT operator()(SourceT source) const {
       return (DestT)source;
     }
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast( PixelT pixel ) {
-    return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast(PixelT pixel) {
+    return compound_apply(ChannelCastFunctor<ChannelT>(), pixel);
   }
 
   template <class DestT>
   class ChannelCastRescaleFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>
-    inline DestT operator()( SourceT source ) const {
+    inline DestT operator()(SourceT source) const {
       // Clamping semantics are more reasonable for float->int rescaling.
       // This will not work for clamping and casting to float.
       // for that, ClampAndCast above.
-      if( boost::is_floating_point<SourceT>::value && ! boost::is_floating_point<DestT>::value) {
-        if( source > ChannelRange<SourceT>::max() ) source = ChannelRange<SourceT>::max();
-        else if( source < ChannelRange<SourceT>::min() ) source = ChannelRange<SourceT>::min();
+      if(boost::is_floating_point<SourceT>::value && ! boost::is_floating_point<DestT>::value) {
+        if(source > ChannelRange<SourceT>::max()) source = ChannelRange<SourceT>::max();
+        else if(source < ChannelRange<SourceT>::min()) source = ChannelRange<SourceT>::min();
       }
       return (DestT)(source*(((double)(ChannelRange<DestT>::max()))/(ChannelRange<SourceT>::max())));
     }
-    inline DestT operator()( DestT source ) const {
+    inline DestT operator()(DestT source) const {
       return source;
     }
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_rescale( PixelT pixel ) {
-    return compound_apply( ChannelCastRescaleFunctor<ChannelT>(), pixel );
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_rescale(PixelT pixel) {
+    return compound_apply(ChannelCastRescaleFunctor<ChannelT>(), pixel);
   }
 
   template <class DestT>
   class ChannelCastClampFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>
-    inline DestT operator()( SourceT source ) const {
-      if( source > boost::integer_traits<DestT>::max() ) return boost::integer_traits<DestT>::max();
-      else if( source < boost::integer_traits<DestT>::min() ) return boost::integer_traits<DestT>::min();
-      else return DestT( source );
+    inline DestT operator()(SourceT source) const {
+      if(source > boost::integer_traits<DestT>::max()) return boost::integer_traits<DestT>::max();
+      else if(source < boost::integer_traits<DestT>::min()) return boost::integer_traits<DestT>::min();
+      else return DestT(source);
     }
-    inline DestT operator()( DestT source ) const {
+    inline DestT operator()(DestT source) const {
       return source;
     }
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_clamp( PixelT pixel ) {
-    return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_clamp(PixelT pixel) {
+    return compound_apply(ChannelCastClampFunctor<ChannelT>(), pixel);
   }
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_clamp_if_int( PixelT pixel ) {
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_clamp_if_int(PixelT pixel) {
     typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
-    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastClampFunctor<ChannelT> >::type functor_type;
-    return compound_apply( functor_type(), pixel );
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastClampFunctor<ChannelT>>::type functor_type;
+    return compound_apply(functor_type(), pixel);
   }
 
   template <class DestT>
   class ChannelCastRoundFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>
-    inline DestT operator()( SourceT source ) const {
-      return DestT( math::impl::_round( source ) );
+    inline DestT operator()(SourceT source) const {
+      return DestT(math::impl::_round(source));
     }
-    inline DestT operator()( DestT source ) const {
+    inline DestT operator()(DestT source) const {
       return source;
     }
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_round( PixelT pixel ) {
-    return compound_apply( ChannelCastRoundFunctor<ChannelT>(), pixel );
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_round(PixelT pixel) {
+    return compound_apply(ChannelCastRoundFunctor<ChannelT>(), pixel);
   }
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_round_if_int( PixelT pixel ) {
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_round_if_int(PixelT pixel) {
     typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
-    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundFunctor<ChannelT> >::type functor_type;
-    return compound_apply( functor_type(), pixel );
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundFunctor<ChannelT>>::type functor_type;
+    return compound_apply(functor_type(), pixel);
   }
 
   template <class DestT>
   class ChannelCastRoundClampFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>
-    inline DestT operator()( SourceT source ) const {
-      if( source > boost::integer_traits<DestT>::max() ) return boost::integer_traits<DestT>::max();
-      else if( source < boost::integer_traits<DestT>::min() ) return boost::integer_traits<DestT>::min();
-      else return DestT( math::impl::_round( source ) );
+    inline DestT operator()(SourceT source) const {
+      if(source > boost::integer_traits<DestT>::max()) return boost::integer_traits<DestT>::max();
+      else if(source < boost::integer_traits<DestT>::min()) return boost::integer_traits<DestT>::min();
+      else return DestT(math::impl::_round(source));
     }
-    inline DestT operator()( DestT source ) const {
+    inline DestT operator()(DestT source) const {
       return source;
     }
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_round_and_clamp( PixelT pixel ) {
-    return compound_apply( ChannelCastRoundClampFunctor<ChannelT>(), pixel );
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_round_and_clamp(PixelT pixel) {
+    return compound_apply(ChannelCastRoundClampFunctor<ChannelT>(), pixel);
   }
 
   template <class ChannelT, class PixelT>
-  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
-  inline channel_cast_round_and_clamp_if_int( PixelT pixel ) {
+  typename boost::enable_if<typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type>::type
+  inline channel_cast_round_and_clamp_if_int(PixelT pixel) {
     typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
-    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundClampFunctor<ChannelT> >::type functor_type;
-    return compound_apply( functor_type(), pixel );
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundClampFunctor<ChannelT>>::type functor_type;
+    return compound_apply(functor_type(), pixel);
   }
 
   // *******************************************************************
@@ -410,40 +409,40 @@ namespace vw {
   template <bool SameN, bool SrcN, bool RescaleN>
   struct PixelCastHelper {
     template <class DestT, class SrcT>
-    static inline DestT convert( SrcT src ) {
-      return DestT( src );
+    static inline DestT convert(SrcT src) {
+      return DestT(src);
     }
   };
 
   // Non-rescaling pixel cast free function
   template <class DestT, class SrcT>
-  typename boost::enable_if< typename IsScalarOrCompound<SrcT>::type, DestT >::type
-  inline pixel_cast( SrcT src ) {
+  typename boost::enable_if<typename IsScalarOrCompound<SrcT>::type, DestT>::type
+  inline pixel_cast(SrcT src) {
     typedef typename CompoundChannelType<SrcT>::type src_ch;
     typedef typename CompoundChannelType<DestT>::type dest_ch;
     typedef typename boost::is_same<src_ch,dest_ch>::type is_same;
-    typedef PixelCastHelper< is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), false > helper;
-    return helper::template convert<DestT>( src );
+    typedef PixelCastHelper<is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), false> helper;
+    return helper::template convert<DestT>(src);
   }
 
   // Rescaling pixel cast free function
   template <class DestT, class SrcT>
-  typename boost::enable_if< typename IsScalarOrCompound<SrcT>::type, DestT >::type
-  inline pixel_cast_rescale( SrcT src ) {
+  typename boost::enable_if<typename IsScalarOrCompound<SrcT>::type, DestT>::type
+  inline pixel_cast_rescale(SrcT src) {
     typedef typename CompoundChannelType<SrcT>::type src_ch;
     typedef typename CompoundChannelType<DestT>::type dest_ch;
     typedef typename boost::is_same<src_ch,dest_ch>::type is_same;
-    typedef PixelCastHelper< is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), true > helper;
-    return helper::template convert<DestT>( src );
+    typedef PixelCastHelper<is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), true> helper;
+    return helper::template convert<DestT>(src);
   }
 
   // Non-rescaling behavior when SrcT has less or same precision
   template <>
   struct PixelCastHelper<false, false, false> {
     template <class DestT, class SrcT>
-    static inline DestT convert( SrcT src ) {
+    static inline DestT convert(SrcT src) {
       typedef typename CompoundChannelType<DestT>::type dest_ch;
-      return pixel_cast<DestT>( channel_cast<dest_ch>( src ) );
+      return pixel_cast<DestT>(channel_cast<dest_ch>(src));
     }
   };
 
@@ -451,11 +450,11 @@ namespace vw {
   template <>
   struct PixelCastHelper<false, true, false> {
     template <class DestT, class SrcT>
-    static inline DestT convert( SrcT src ) {
+    static inline DestT convert(SrcT src) {
       typedef typename CompoundChannelType<SrcT>::type src_ch;
       typedef typename CompoundChannelType<DestT>::type dest_ch;
       typedef typename CompoundChannelCast<DestT,src_ch>::type dest_px;
-      return channel_cast<dest_ch>( pixel_cast<dest_px>( src ) );
+      return channel_cast<dest_ch>(pixel_cast<dest_px>(src));
     }
   };
 
@@ -463,9 +462,9 @@ namespace vw {
   template <>
   struct PixelCastHelper<false, false, true> {
     template <class DestT, class SrcT>
-    static inline DestT convert( SrcT src ) {
+    static inline DestT convert(SrcT src) {
       typedef typename CompoundChannelType<DestT>::type dest_ch;
-      return pixel_cast<DestT>( channel_cast_rescale<dest_ch>( src ) );
+      return pixel_cast<DestT>(channel_cast_rescale<dest_ch>(src));
     }
   };
 
@@ -473,17 +472,17 @@ namespace vw {
   template <>
   struct PixelCastHelper<false, true, true> {
     template <class DestT, class SrcT>
-    static inline DestT convert( SrcT src ) {
+    static inline DestT convert(SrcT src) {
       typedef typename CompoundChannelType<SrcT>::type src_ch;
       typedef typename CompoundChannelType<DestT>::type dest_ch;
       typedef typename CompoundChannelCast<DestT,src_ch>::type dest_px;
-      return channel_cast_rescale<dest_ch>( pixel_cast<dest_px>( src ) );
+      return channel_cast_rescale<dest_ch>(pixel_cast<dest_px>(src));
     }
   };
 
 
   // *******************************************************************
-  // A pixel type convenience macro and forward declrations.
+  // A pixel type convenience macro and forward declarations
   // *******************************************************************
 
   /// This macro provides the appropriate specializations of
@@ -491,11 +490,11 @@ namespace vw {
   /// with a fixed number of channels (the common case).
 #define VW_DECLARE_PIXEL_TYPE(PIXELT,NCHANNELS)              \
   template <class ChannelT>                                  \
-  struct CompoundChannelType<PIXELT<ChannelT> > {            \
+  struct CompoundChannelType<PIXELT<ChannelT>> {             \
     typedef ChannelT type;                                   \
   };                                                         \
   template <class ChannelT>                                  \
-  struct CompoundNumChannels<PIXELT<ChannelT> > {            \
+  struct CompoundNumChannels<PIXELT<ChannelT>> {             \
     static const size_t value = NCHANNELS;                   \
   };                                                         \
   template <class OldChT, class NewChT>                      \
@@ -510,30 +509,29 @@ namespace vw {
   /// This macro provides the appropriate specializations of
   /// the compound type traits classes for a new pixel type
   /// with a variable number of channels.
-#define VW_DECLARE_PIXEL_TYPE_NCHANNELS(PIXELT)              \
-  template <class ChannelT, size_t SizeN>                    \
-  struct CompoundChannelType<PIXELT<ChannelT,SizeN> > {      \
-    typedef ChannelT type;                                   \
-  };                                                         \
-  template <class ChannelT, size_t SizeN>                    \
-  struct CompoundNumChannels<PIXELT<ChannelT,SizeN> > {      \
-    static const size_t value = SizeN;                       \
-  };                                                         \
-  template <class OldChT, class NewChT, size_t SizeN>        \
-  struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> { \
-    typedef PIXELT<NewChT,SizeN> type;                       \
-  };                                                         \
-  template <class OldChT, class NewChT, size_t SizeN>        \
+#define VW_DECLARE_PIXEL_TYPE_NCHANNELS(PIXELT)                    \
+  template <class ChannelT, size_t SizeN>                          \
+  struct CompoundChannelType<PIXELT<ChannelT,SizeN>> {             \
+    typedef ChannelT type;                                         \
+  };                                                               \
+  template <class ChannelT, size_t SizeN>                          \
+  struct CompoundNumChannels<PIXELT<ChannelT,SizeN>> {             \
+    static const size_t value = SizeN;                             \
+  };                                                               \
+  template <class OldChT, class NewChT, size_t SizeN>              \
+  struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> {       \
+    typedef PIXELT<NewChT,SizeN> type;                             \
+  };                                                               \
+  template <class OldChT, class NewChT, size_t SizeN>              \
   struct CompoundChannelCast<PIXELT<OldChT,SizeN>, const NewChT> { \
-    typedef const PIXELT<NewChT,SizeN> type;                 \
+    typedef const PIXELT<NewChT,SizeN> type;                       \
   }
 
-#define VW_ALPHA_PIXEL_TRAITS(opaque, alpha) \
-  template <class T> struct PixelHasAlpha<alpha<T> > : true_type {};                  \
-  template <class T> struct PixelWithAlpha<opaque<T> >    { typedef alpha<T> type; }; \
-  template <class T> struct PixelWithAlpha<alpha<T> >     { typedef alpha<T> type; }; \
-  template <class T> struct PixelWithoutAlpha<alpha<T> >  { typedef opaque<T> type; } \
-
+#define VW_ALPHA_PIXEL_TRAITS(opaque, alpha)                                        \
+  template <class T> struct PixelHasAlpha<alpha<T>> : true_type {};                 \
+  template <class T> struct PixelWithAlpha<opaque<T>> { typedef alpha<T> type; };   \
+  template <class T> struct PixelWithAlpha<alpha<T>> { typedef alpha<T> type; };    \
+  template <class T> struct PixelWithoutAlpha<alpha<T>> { typedef opaque<T> type; } \
 
   // Forward pixel type declarations for complex pixel types
   template <class ChannelT> class PixelGray;
@@ -582,7 +580,11 @@ namespace vw {
     VW_PIXEL_GENERIC_7_CHANNEL = 96,
     VW_PIXEL_GENERIC_8_CHANNEL = 97,
     VW_PIXEL_GENERIC_9_CHANNEL = 98,
-    VW_PIXEL_USER = 100
+    VW_PIXEL_GENERIC_10_CHANNEL = 99,
+    VW_PIXEL_GENERIC_11_CHANNEL = 100,
+    VW_PIXEL_GENERIC_12_CHANNEL = 101,
+    VW_PIXEL_GENERIC_13_CHANNEL = 102,
+    VW_PIXEL_USER = 200
   };
 
   enum ChannelTypeEnum {
@@ -599,7 +601,7 @@ namespace vw {
     VW_CHANNEL_FLOAT32 = 10,
     VW_CHANNEL_FLOAT64 = 11,
     VW_CHANNEL_BOOL = 12,
-    VW_CHANNEL_CHAR = 13, // A tag to identify e.g. string medadata
+    VW_CHANNEL_CHAR = 13, // A tag to identify e.g. string metadata
     VW_CHANNEL_GENERIC_1_BYTE = 90,
     VW_CHANNEL_GENERIC_2_BYTE = 91,
     VW_CHANNEL_GENERIC_4_BYTE = 92,
@@ -610,159 +612,199 @@ namespace vw {
   // PixelFormatID<>
   /// Return a VW enum for a pixel data type.
   template <class PixelT> struct PixelFormatID { static const PixelFormatEnum value = VW_PIXEL_UNKNOWN; };
-  template<> struct PixelFormatID<vw::int8>    { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::uint8>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::int16>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::uint16>  { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::int32>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::uint32>  { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::int64>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<vw::uint64>  { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::int8> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::uint8> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::int16> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::uint16> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::int32> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::uint32> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::int64> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::uint64> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::float32> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::float64> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<bool>        { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template <class ChT> struct PixelFormatID<PixelGray<ChT> >  { static const PixelFormatEnum value = VW_PIXEL_GRAY; };
-  template <class ChT> struct PixelFormatID<PixelGrayA<ChT> > { static const PixelFormatEnum value = VW_PIXEL_GRAYA; };
-  template <class ChT> struct PixelFormatID<PixelRGB<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_RGB; };
-  template <class ChT> struct PixelFormatID<PixelRGBA<ChT> >  { static const PixelFormatEnum value = VW_PIXEL_RGBA; };
-  template <class ChT> struct PixelFormatID<PixelHSV<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_HSV; };
-  template <class ChT> struct PixelFormatID<PixelXYZ<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
-  template <class ChT> struct PixelFormatID<PixelLuv<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_LUV; };
-  template <class ChT> struct PixelFormatID<PixelLab<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_LAB; };
+  template<> struct PixelFormatID<bool> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template <class ChT> struct PixelFormatID<PixelGray<ChT>> { static const PixelFormatEnum value = VW_PIXEL_GRAY; };
+  template <class ChT> struct PixelFormatID<PixelGrayA<ChT>> { static const PixelFormatEnum value = VW_PIXEL_GRAYA; };
+  template <class ChT> struct PixelFormatID<PixelRGB<ChT>> { static const PixelFormatEnum value = VW_PIXEL_RGB; };
+  template <class ChT> struct PixelFormatID<PixelRGBA<ChT>> { static const PixelFormatEnum value = VW_PIXEL_RGBA; };
+  template <class ChT> struct PixelFormatID<PixelHSV<ChT>> { static const PixelFormatEnum value = VW_PIXEL_HSV; };
+  template <class ChT> struct PixelFormatID<PixelXYZ<ChT>> { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
+  template <class ChT> struct PixelFormatID<PixelLuv<ChT>> { static const PixelFormatEnum value = VW_PIXEL_LUV; };
+  template <class ChT> struct PixelFormatID<PixelLab<ChT>> { static const PixelFormatEnum value = VW_PIXEL_LAB; };
 
   // PixelFormatID<> specialized for masked pixel types
-  template<> struct PixelFormatID<PixelMask<vw::int8> >    { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::uint8> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::int16> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::uint16> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::int32> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::uint32> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::int64> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::uint64> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::float32> > { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<vw::float64> > { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template<> struct PixelFormatID<PixelMask<bool> >        { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelGray<ChT> > >  { static const PixelFormatEnum value = VW_PIXEL_GRAY_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelGrayA<ChT> > > { static const PixelFormatEnum value = VW_PIXEL_GRAYA_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelRGB<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_RGB_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelRGBA<ChT> > >  { static const PixelFormatEnum value = VW_PIXEL_RGBA_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelHSV<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_HSV_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelXYZ<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_XYZ_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelLuv<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LUV_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int8>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint8>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int16>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint16>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int32>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint32>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int64>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint64>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::float32>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::float64>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<bool>> { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelGray<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_GRAY_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelGrayA<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_GRAYA_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelRGB<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_RGB_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelRGBA<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_RGBA_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelHSV<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_HSV_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelXYZ<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_XYZ_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelLuv<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_LUV_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
 
   // Define everything we are likely to need here so we are unlikely to have to deal with the weird failures
   //  produced when one of these types is missing.
 
   // PixelFormatID<> specialized for vector pixel types
-  template<> struct PixelFormatID<Vector<float, 2> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 3> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 4> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 5> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 6> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 7> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<Vector<float, 8> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-
-  template<> struct PixelFormatID<Vector<double, 2> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 3> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 4> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 5> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 6> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 7> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<Vector<double, 8> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-
-  template<> struct PixelFormatID<Vector<int, 2> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 3> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 4> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 5> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 6> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 7> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<Vector<int, 8> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 2>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 3>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 4>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 5>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 6>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 7>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 8>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 9>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 10>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 11>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<Vector<float, 12>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
   
-  template<> struct PixelFormatID<Vector<uint8, 2> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 3> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 4> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 5> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 6> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 7> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint8, 8> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 2>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 3>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 4>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 5>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 6>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 7>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 8>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 9>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 10>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 11>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<Vector<double, 12>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+
+  template<> struct PixelFormatID<Vector<int, 2>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 3>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 4>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 5>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 6>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 7>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 8>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 9>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 10>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 11>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<Vector<int, 12>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
   
-  template<> struct PixelFormatID<Vector<uint16, 2> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 3> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 4> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 5> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 6> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 7> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<Vector<uint16, 8> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 2>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 3>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 4>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 5>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 6>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 7>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 8>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 9>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 10>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 11>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint8, 12>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  
+  template<> struct PixelFormatID<Vector<uint16, 2>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 3>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 4>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 5>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 6>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 7>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 8>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 9>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 10>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 11>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<Vector<uint16, 12>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
   
   // PixelFormatID<> specialized for masked vector pixel types
-  template<> struct PixelFormatID<PixelMask<Vector<float, 2> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 3> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 4> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 5> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 6> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 7> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<float, 8> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 2>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 3>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 4>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 5>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 6>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 7>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 8>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 9>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 10>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 11>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<float, 12>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_13_CHANNEL; };
 
-  template<> struct PixelFormatID<PixelMask<Vector<double, 2> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 3> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 4> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 5> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 6> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 7> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<double, 8> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 2>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 3>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 4>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 5>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 6>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 7>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 8>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 9>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 10>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 11>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<double, 12>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_13_CHANNEL; };
 
-  template<> struct PixelFormatID<PixelMask<Vector<int, 2> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 3> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 4> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 5> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 6> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 7> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<int, 8> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 2>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 3>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 4>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 5>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 6>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 7>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 8>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 9>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 10>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 11>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<int, 12>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_13_CHANNEL; };
   
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 2> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 3> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 4> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 5> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 6> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 7> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint8, 8> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 2>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 3>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 4>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 5>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 6>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 7>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 8>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 9>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 10>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 11>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint8, 12>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_13_CHANNEL; };
 
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 2> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 3> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 4> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 5> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 6> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 7> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
-  template<> struct PixelFormatID<PixelMask<Vector<uint16, 8> > >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 2>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 3>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_4_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 4>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_5_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 5>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_6_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 6>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_7_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 7>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_8_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 8>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_9_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 9>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_10_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 10>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_11_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 11>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_12_CHANNEL; };
+  template<> struct PixelFormatID<PixelMask<Vector<uint16, 12>>> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_13_CHANNEL; };
   
   // ChannelTypeID<>
   /// Get the VW enum for a data type.
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
-  template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
-  template<> struct ChannelTypeID<vw::uint8>     { static const ChannelTypeEnum value = VW_CHANNEL_UINT8; };
-  template<> struct ChannelTypeID<vw::int16>     { static const ChannelTypeEnum value = VW_CHANNEL_INT16; };
-  template<> struct ChannelTypeID<vw::uint16>    { static const ChannelTypeEnum value = VW_CHANNEL_UINT16; };
-  template<> struct ChannelTypeID<vw::int32>     { static const ChannelTypeEnum value = VW_CHANNEL_INT32; };
-  template<> struct ChannelTypeID<vw::uint32>    { static const ChannelTypeEnum value = VW_CHANNEL_UINT32; };
-  template<> struct ChannelTypeID<vw::int64>     { static const ChannelTypeEnum value = VW_CHANNEL_INT64; };
-  template<> struct ChannelTypeID<vw::uint64>    { static const ChannelTypeEnum value = VW_CHANNEL_UINT64; };
-  template<> struct ChannelTypeID<vw::float32>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT32; };
-  template<> struct ChannelTypeID<vw::float64>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
-  template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
+  template<> struct ChannelTypeID<vw::int8> { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
+  template<> struct ChannelTypeID<vw::uint8> { static const ChannelTypeEnum value = VW_CHANNEL_UINT8; };
+  template<> struct ChannelTypeID<vw::int16> { static const ChannelTypeEnum value = VW_CHANNEL_INT16; };
+  template<> struct ChannelTypeID<vw::uint16> { static const ChannelTypeEnum value = VW_CHANNEL_UINT16; };
+  template<> struct ChannelTypeID<vw::int32> { static const ChannelTypeEnum value = VW_CHANNEL_INT32; };
+  template<> struct ChannelTypeID<vw::uint32> { static const ChannelTypeEnum value = VW_CHANNEL_UINT32; };
+  template<> struct ChannelTypeID<vw::int64> { static const ChannelTypeEnum value = VW_CHANNEL_INT64; };
+  template<> struct ChannelTypeID<vw::uint64> { static const ChannelTypeEnum value = VW_CHANNEL_UINT64; };
+  template<> struct ChannelTypeID<vw::float32> { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT32; };
+  template<> struct ChannelTypeID<vw::float64> { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
+  template<> struct ChannelTypeID<bool> { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
   // This function determines whether a POD-style copy is sufficient
   bool simple_conversion(PixelFormatEnum a, PixelFormatEnum b);
   bool simple_conversion(ChannelTypeEnum a, ChannelTypeEnum b);
 
-  uint32          channel_size        ( ChannelTypeEnum type    );
-  uint32          channel_size_nothrow( ChannelTypeEnum type    );
-  const char *    channel_type_name   ( ChannelTypeEnum type    );
-  uint32          num_channels        ( PixelFormatEnum format  ); ///< Return the number of channels of a PixelFormatEnum.
-  uint32          num_channels_nothrow( PixelFormatEnum format  );
-  const char *    pixel_format_name   ( PixelFormatEnum format  );
-  ChannelTypeEnum channel_name_to_enum( const std::string& name );
+  uint32          channel_size        (ChannelTypeEnum type);
+  uint32          channel_size_nothrow(ChannelTypeEnum type);
+  const char *    channel_type_name   (ChannelTypeEnum type);
+  uint32          num_channels        (PixelFormatEnum format); 
+  uint32          num_channels_nothrow(PixelFormatEnum format);
+  const char *    pixel_format_name   (PixelFormatEnum format);
+  ChannelTypeEnum channel_name_to_enum(const std::string& name);
 
 } // namespace vw
 
-#endif // __VW_IMAGE_PIXELTYPEINFO_H__
+#endif // __VW_IMAGE_PIXEL_TYPE_INFO_H__

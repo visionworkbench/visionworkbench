@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file PixelTypeInfo.cc
 ///
 /// Functions that return information about types by ID.
@@ -71,7 +70,12 @@ bool vw::simple_conversion(vw::PixelFormatEnum a, vw::PixelFormatEnum b) {
     case VW_PIXEL_GENERIC_6_CHANNEL:
     case VW_PIXEL_GENERIC_7_CHANNEL:
     case VW_PIXEL_GENERIC_8_CHANNEL:
-    case VW_PIXEL_GENERIC_9_CHANNEL: return true;
+    case VW_PIXEL_GENERIC_9_CHANNEL: 
+    case VW_PIXEL_GENERIC_10_CHANNEL: 
+    case VW_PIXEL_GENERIC_11_CHANNEL: 
+    case VW_PIXEL_GENERIC_12_CHANNEL: 
+    case VW_PIXEL_GENERIC_13_CHANNEL: 
+      return true;
     default: /* noop */ break;
   }
 
@@ -86,15 +90,20 @@ bool vw::simple_conversion(vw::PixelFormatEnum a, vw::PixelFormatEnum b) {
     case VW_PIXEL_GENERIC_6_CHANNEL:
     case VW_PIXEL_GENERIC_7_CHANNEL:
     case VW_PIXEL_GENERIC_8_CHANNEL:
-    case VW_PIXEL_GENERIC_9_CHANNEL: return true;
+    case VW_PIXEL_GENERIC_9_CHANNEL: 
+    case VW_PIXEL_GENERIC_10_CHANNEL: 
+    case VW_PIXEL_GENERIC_11_CHANNEL: 
+    case VW_PIXEL_GENERIC_12_CHANNEL: 
+    case VW_PIXEL_GENERIC_13_CHANNEL:
+      return true;
     default: /* noop */ break;
   }
 
   return false;
 }
 
-vw::uint32 vw::channel_size_nothrow( vw::ChannelTypeEnum type ) {
-  switch( type ) {
+vw::uint32 vw::channel_size_nothrow(vw::ChannelTypeEnum type) {
+  switch(type) {
     case VW_CHANNEL_BOOL:
       return sizeof(bool);
     case VW_CHANNEL_CHAR:
@@ -122,14 +131,14 @@ vw::uint32 vw::channel_size_nothrow( vw::ChannelTypeEnum type ) {
   }
 }
 
-vw::uint32 vw::channel_size( vw::ChannelTypeEnum type ) {
+vw::uint32 vw::channel_size(vw::ChannelTypeEnum type) {
   vw::uint32 size = channel_size_nothrow(type);
-  VW_ASSERT(size > 0, ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
+  VW_ASSERT(size > 0, ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ").");
   return size;
 }
 
-const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
-  switch( format ) {
+const char *vw::channel_type_name(vw::ChannelTypeEnum format) {
+  switch(format) {
   case VW_CHANNEL_BOOL: return "BOOL";
   case VW_CHANNEL_CHAR: return "CHAR";
   case VW_CHANNEL_INT8: return "INT8";
@@ -151,8 +160,8 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   }
 }
 
-vw::uint32 vw::num_channels_nothrow( vw::PixelFormatEnum format ) {
-  switch( format ) {
+vw::uint32 vw::num_channels_nothrow(vw::PixelFormatEnum format) {
+  switch(format) {
   case VW_PIXEL_SCALAR:
   case VW_PIXEL_GRAY:
   case VW_PIXEL_GENERIC_1_CHANNEL:
@@ -178,25 +187,30 @@ vw::uint32 vw::num_channels_nothrow( vw::PixelFormatEnum format ) {
   case VW_PIXEL_LAB_MASKED:
   case VW_PIXEL_GENERIC_4_CHANNEL:
     return 4;
-  case VW_PIXEL_RGBA_MASKED:
+  case VW_PIXEL_RGBA_MASKED: return 5;
   case VW_PIXEL_GENERIC_5_CHANNEL: return 5;
   case VW_PIXEL_GENERIC_6_CHANNEL: return 6;
   case VW_PIXEL_GENERIC_7_CHANNEL: return 7;
   case VW_PIXEL_GENERIC_8_CHANNEL: return 8;
   case VW_PIXEL_GENERIC_9_CHANNEL: return 9;
+  case VW_PIXEL_GENERIC_10_CHANNEL: return 10;
+  case VW_PIXEL_GENERIC_11_CHANNEL: return 11;
+  case VW_PIXEL_GENERIC_12_CHANNEL: return 12;
+  case VW_PIXEL_GENERIC_13_CHANNEL: return 13;
   default:
     return 0;
   }
 }
 
-vw::uint32 vw::num_channels( vw::PixelFormatEnum format ) {
+vw::uint32 vw::num_channels(vw::PixelFormatEnum format) {
   vw::uint32 num = num_channels_nothrow(format);
-  VW_ASSERT(num > 0, ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
+  VW_ASSERT(num > 0, 
+            ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ").");
   return num;
 }
 
-const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
-  switch( format ) {
+const char *vw::pixel_format_name(vw::PixelFormatEnum format) {
+  switch  (format) {
   case VW_PIXEL_SCALAR: return "SCALAR";
   case VW_PIXEL_GRAY: return "GRAY";
   case VW_PIXEL_GRAYA: return "GRAYA";
@@ -225,11 +239,15 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_7_CHANNEL: return "VW_PIXEL_GENERIC_7_CHANNEL";
   case VW_PIXEL_GENERIC_8_CHANNEL: return "VW_PIXEL_GENERIC_8_CHANNEL";
   case VW_PIXEL_GENERIC_9_CHANNEL: return "VW_PIXEL_GENERIC_9_CHANNEL";
+  case VW_PIXEL_GENERIC_10_CHANNEL: return "VW_PIXEL_GENERIC_10_CHANNEL";
+  case VW_PIXEL_GENERIC_11_CHANNEL: return "VW_PIXEL_GENERIC_11_CHANNEL";
+  case VW_PIXEL_GENERIC_12_CHANNEL: return "VW_PIXEL_GENERIC_12_CHANNEL";
+  case VW_PIXEL_GENERIC_13_CHANNEL: return "VW_PIXEL_GENERIC_13_CHANNEL";
   default: return "UNKNOWN";
   }
 }
 
-vw::ChannelTypeEnum vw::channel_name_to_enum( const std::string& name ) {
+vw::ChannelTypeEnum vw::channel_name_to_enum(const std::string& name) {
   std::string uname(name);
   boost::to_upper(uname);
 
