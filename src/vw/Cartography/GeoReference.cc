@@ -1065,9 +1065,9 @@ BBox2 GeoReference::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsampl
 
   if (lonlat_bbox.empty()) return BBox2();
 
-  if (!m_is_projected) {
+  if (!m_is_projected)
     return point_to_pixel_bbox(lonlat_bbox);
-  }
+
   BBox2 point_bbox = lonlat_to_point_bbox(lonlat_bbox, nsamples);
   return point_to_pixel_bbox(point_bbox);
 }
