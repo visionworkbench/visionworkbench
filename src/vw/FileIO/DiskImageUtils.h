@@ -103,13 +103,16 @@ namespace vw {
   }
 
   /// Read m channels from an image starting with channel k. Must
-  /// have m as a templated argument.
+  /// have m as a templated argument. Channel starts at 0.
   template<int m, class T>
   vw::ImageViewRef<vw::Vector<T, m>> read_channels(std::string const& filename, int k) {
     
     int max_n = 12; // Maximum number of channels we can handle
     int n = get_num_channels(filename);
-
+    
+    VW_ASSERT(2 <= n, // This avoids a runtime error
+            vw::ArgumentErr() << "Attempting to read an image with " << n
+            << " channel(s) into an image with vector pixels.");
     VW_ASSERT(0 <= k,
                vw::ArgumentErr() << "Attempting to read channel " << k
                << " from an image.");
@@ -128,31 +131,31 @@ namespace vw {
     boost::shared_ptr<vw::DiskImageResource> rsrc(vw::DiskImageResourcePtr(filename));
     rsrc->set_rescale(false);
     
-    vw::ImageViewRef< vw::Vector<T, m>> out_image;
-    if      (n == 1) out_image = select_channels<m, 1, T>
-      (vw::DiskImageView< vw::Vector<T, 1>>(rsrc), k);
-    else if (n == 2) out_image = select_channels<m, 2, T>
-      (vw::DiskImageView< vw::Vector<T, 2>>(rsrc), k);
-    else if (n == 3) out_image = select_channels<m, 3, T>
-      (vw::DiskImageView< vw::Vector<T, 3>>(rsrc), k);
-    else if (n == 4) out_image = select_channels<m, 4, T>
-      (vw::DiskImageView< vw::Vector<T, 4>>(rsrc), k);
-    else if (n == 5) out_image = select_channels<m, 5, T>
-      (vw::DiskImageView< vw::Vector<T, 5>>(rsrc), k);
-    else if (n == 6) out_image = select_channels<m, 6, T>
-      (vw::DiskImageView< vw::Vector<T, 6>>(rsrc), k);
-    else if (n == 7) out_image = select_channels<m, 7, T>
-      (vw::DiskImageView< vw::Vector<T, 7>>(rsrc), k);
-    else if (n == 8) out_image = select_channels<m, 8, T>
-      (vw::DiskImageView< vw::Vector<T, 8>>(rsrc), k);
-    else if (n == 9) out_image = select_channels<m, 9, T>
-      (vw::DiskImageView< vw::Vector<T, 9>>(rsrc), k);
-    else if (n == 10) out_image = select_channels<m, 10, T>
-      (vw::DiskImageView< vw::Vector<T, 10>>(rsrc), k);
-    else if (n == 11) out_image = select_channels<m, 11, T>
-      (vw::DiskImageView< vw::Vector<T, 11>>(rsrc), k);
-    else if (n == 12) out_image = select_channels<m, 12, T>
-      (vw::DiskImageView< vw::Vector<T, 12>>(rsrc), k);
+    vw::ImageViewRef<vw::Vector<T, m>> out_image;
+    if      (n == 1) out_image = vw::select_channels<m, 1, T>
+      (vw::DiskImageView<vw::Vector<T, 1>>(rsrc), k);
+    else if (n == 2) out_image = vw::select_channels<m, 2, T>
+      (vw::DiskImageView<vw::Vector<T, 2>>(rsrc), k);
+    else if (n == 3) out_image = vw::select_channels<m, 3, T>
+      (vw::DiskImageView<vw::Vector<T, 3>>(rsrc), k);
+    else if (n == 4) out_image = vw::select_channels<m, 4, T>
+      (vw::DiskImageView<vw::Vector<T, 4>>(rsrc), k);
+    else if (n == 5) out_image = vw::select_channels<m, 5, T>
+      (vw::DiskImageView<vw::Vector<T, 5>>(rsrc), k);
+    else if (n == 6) out_image = vw::select_channels<m, 6, T>
+      (vw::DiskImageView<vw::Vector<T, 6>>(rsrc), k);
+    else if (n == 7) out_image = vw::select_channels<m, 7, T>
+      (vw::DiskImageView<vw::Vector<T, 7>>(rsrc), k);
+    else if (n == 8) out_image = vw::select_channels<m, 8, T>
+      (vw::DiskImageView<vw::Vector<T, 8>>(rsrc), k);
+    else if (n == 9) out_image = vw::select_channels<m, 9, T>
+      (vw::DiskImageView<vw::Vector<T, 9>>(rsrc), k);
+    else if (n == 10) out_image = vw::select_channels<m, 10, T>
+      (vw::DiskImageView<vw::Vector<T, 10>>(rsrc), k);
+    else if (n == 11) out_image = vw::select_channels<m, 11, T>
+      (vw::DiskImageView<vw::Vector<T, 11>>(rsrc), k);
+    else if (n == 12) out_image = vw::select_channels<m, 12, T>
+      (vw::DiskImageView<vw::Vector<T, 12>>(rsrc), k);
     else
       vw::vw_throw(vw::NoImplErr() << "Reading from images with more than "
                    << max_n << " channels is not implemented.");
@@ -160,6 +163,18 @@ namespace vw {
     return out_image;
   }
 
+  // Read only one channel from an image. Channel starts at 0.
+  template<class T>
+  vw::ImageViewRef<T> read_channel(std::string const& filename, int ch) {
+    
+    // Cannot read a Vector<T, 1> image, so have to handle this case separately.
+    int n = vw::get_num_channels(filename);
+    if (n > 1)
+      return vw::select_channel(read_channels<1, T>(filename, ch), 0);
+      
+    return vw::DiskImageView<T>(filename);
+  }
+  
   // Load the first channel of an input image. Must load in its native
   // format then cast to double, in order to avoid auto-scaling of
   // pixels.
