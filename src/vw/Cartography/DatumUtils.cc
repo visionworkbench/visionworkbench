@@ -36,7 +36,6 @@ void checkDatumConsistency(vw::cartography::Datum const& datum1,
   bool small_body = (datum1.semi_major_axis() < rad || datum1.semi_minor_axis() < rad ||
                      datum2.semi_major_axis() < rad || datum2.semi_minor_axis() < rad);
                      
-                     
   if (err >= 1e-6) {
     std::ostringstream oss;
     oss.precision(8);
@@ -44,7 +43,9 @@ void checkDatumConsistency(vw::cartography::Datum const& datum1,
         << err << " meters.\n"
         << "Datum 1: " << datum1 << "\n"
         << "Datum 2: " << datum2 << "\n";
-    if (err < 500.0 || warn_only || small_body) // this is mild
+    // Because in difference in semi-axes, datums can easily differ by 50 km or so,
+    // so be be generous with the threshold.    
+    if (err < 200000.0 || warn_only || small_body) // this is mild
        vw::vw_out(vw::WarningMessage) 
        << oss.str() 
        << "This is likely harmless, but check your inputs.\n";
