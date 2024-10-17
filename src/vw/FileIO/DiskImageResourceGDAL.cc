@@ -155,7 +155,7 @@ namespace vw {
         retval.push_back("DTED");
       } else if (ext == ".fits") {               // FITS (needs GDAL w/ libcfitsio)
         retval.push_back("FITS");
-      } else if (ext == ".ntf") {                // NITF (needs GDAL w/ Jpeg2000 reader)
+      } else if (ext == ".ntf" || ext == ".nitf") { // NITF (needs GDAL w/ Jpeg2000 reader)
         retval.push_back("NITF");
       } else if (ext == ".hgt") {
         retval.push_back("SRTMHGT");             // NASA SRTM data.
