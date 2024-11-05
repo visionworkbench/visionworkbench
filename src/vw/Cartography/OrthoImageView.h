@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -59,27 +59,27 @@ namespace cartography {
     // Provide safe interaction with DEMs that are scalar or compound
     template <class PixelT>
     typename boost::enable_if< IsScalar<PixelT>, double >::type
-    inline Helper( offset_type x, offset_type y ) const {
+    inline Helper(offset_type x, offset_type y) const {
       return m_terrain(x,y);
     }
 
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
-    inline Helper( offset_type x, offset_type y ) const {
+    inline Helper(offset_type x, offset_type y) const {
       return m_terrain(x,y)[0];
     }
 
-    inline Vector2 find_camera_coordinates( offset_type i, offset_type j, double height ) const {
-      Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-      return m_camera_model->point_to_pixel( m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), height ) ) );
+    inline Vector2 find_camera_coordinates(offset_type i, offset_type j, double height) const {
+      Vector2 lon_lat(m_georef.pixel_to_lonlat(Vector2(i,j)));
+      return m_camera_model->point_to_pixel(m_georef.datum().geodetic_to_cartesian(Vector3(lon_lat.x(), lon_lat.y(), height)));
     }
 
-    inline void apply_bresen( math::BresenhamLine line, double min, double max, BBox2i& camera_bbox ) const {
-      while ( line.is_good() ) {
-        Vector2i pt( *line );
-        try { camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), min ) ); }
+    inline void apply_bresen(math::BresenhamLine line, double min, double max, BBox2i& camera_bbox) const {
+      while (line.is_good()) {
+        Vector2i pt(*line);
+        try { camera_bbox.grow(find_camera_coordinates(pt.x(), pt.y(), min)); }
         catch (...) {} // PointToPixelErr, MathErr, etc.
-        try { camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), max ) ); }
+        try { camera_bbox.grow(find_camera_coordinates(pt.x(), pt.y(), max)); }
         catch (...) {} // PointToPixelErr, MathErr, etc.
         ++line;
       }
@@ -122,39 +122,39 @@ namespace cartography {
 
     inline result_type operator()(offset_type i, offset_type j, int32 p=0) const {
 
-      if (!markNoProcessedData){ // This 'if' will be evaluated at compile time
+      if (!markNoProcessedData) { // This 'if' will be evaluated at compile time
 
         // Default behavior, don't mark no-processed-data separately from no-data
 
         // Check for missing DEM pixels.
-        if ( is_transparent(m_terrain(i,j)) ) {
+        if (is_transparent(m_terrain(i,j))) {
           return result_type();
         }
 
         Vector2 pix;
         try{
-          pix = find_camera_coordinates( i, j, Helper<typename TerrainImageT::pixel_type>(i,j) );
+          pix = find_camera_coordinates(i, j, Helper<typename TerrainImageT::pixel_type>(i,j));
         }catch (...) { // PointToPixelErr, MathErr, etc.
           return result_type();
         }
 
         return m_camera_image(pix[0], pix[1], p);
 
-      }else{
+      } else {
 
         // Do mark no-processed-data separately from no-data
 
         // Check for missing DEM pixels.
         double height;
-        if (is_transparent(m_terrain(i,j)) ){
+        if (is_transparent(m_terrain(i,j))) {
           height = 0.0;
-        }else{
+        } else {
           height = Helper<typename TerrainImageT::pixel_type>(i,j);
         }
 
         Vector2 pix;
         try{
-          pix = find_camera_coordinates( i, j, height );
+          pix = find_camera_coordinates(i, j, height);
         }catch (...) { // PointToPixelErr, MathErr, etc.
           // No data, return a transparent pixel
           return result_type();
@@ -162,13 +162,12 @@ namespace cartography {
 
         result_type ans = m_camera_image(pix[0], pix[1], p);
 
-        if ( is_transparent(m_terrain(i,j)) ){
+        if (is_transparent(m_terrain(i,j))) {
           if (0 <= pix[0] && pix[0] < m_camera_image.cols() &&
-              0 <= pix[1] && pix[1] < m_camera_image.rows()
-              ){
+              0 <= pix[1] && pix[1] < m_camera_image.rows()) {
             // No processed data, return a black pixel
             return result_type(0.0);
-          }else{
+          } else {
             // No data, return a transparent pixel
             return result_type();
           }
@@ -182,7 +181,7 @@ namespace cartography {
     /// \cond INTERNAL
     typedef OrthoImageView<typename TerrainImageT::prerasterize_type,
                            typename CameraImageT::prerasterize_type, InterpT, EdgeT, markNoProcessedData> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       // Prerasterize the terrain that we'll be using
       typename TerrainImageT::prerasterize_type terrain_preraster = m_terrain.prerasterize(bbox);
 
@@ -190,12 +189,12 @@ namespace cartography {
              terrain_max = std::numeric_limits<double>::min();
 
       // Determine min max
-      for ( int32 j = bbox.min().y(); j < bbox.max().y(); j++ ) {
-        for ( int32 i = bbox.min().x(); i < bbox.max().x(); i++ ) {
-          if ( !is_transparent( terrain_preraster( i,j ) ) ) {
+      for (int32 j = bbox.min().y(); j < bbox.max().y(); j++) {
+        for (int32 i = bbox.min().x(); i < bbox.max().x(); i++) {
+          if (!is_transparent(terrain_preraster(i,j))) {
             double val = terrain_preraster(i,j);
-            terrain_min = std::min( val, terrain_min );
-            terrain_max = std::max( val, terrain_max );
+            terrain_min = std::min(val, terrain_min);
+            terrain_max = std::max(val, terrain_max);
           }
         }
       }
@@ -204,34 +203,34 @@ namespace cartography {
       // be using. Unfortunately this is no linear. We need to project
       // all the pixels really. For speed I'm only processing an X
       BBox2i camera_bbox;
-      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.min().y() ),
-                    terrain_min, terrain_max, camera_bbox );
-      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.max().y() ),
-                    terrain_min, terrain_max, camera_bbox );
-      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.min().x(), bbox.max().y() ),
-                    terrain_min, terrain_max, camera_bbox );
-      apply_bresen( math::BresenhamLine( bbox.max().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
-                    terrain_min, terrain_max, camera_bbox );
-      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
-                    terrain_min, terrain_max, camera_bbox );
-      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.min().y() ),
-                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen(math::BresenhamLine(bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.min().y()),
+                    terrain_min, terrain_max, camera_bbox);
+      apply_bresen(math::BresenhamLine(bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.max().y()),
+                    terrain_min, terrain_max, camera_bbox);
+      apply_bresen(math::BresenhamLine(bbox.min().x(), bbox.min().y(), bbox.min().x(), bbox.max().y()),
+                    terrain_min, terrain_max, camera_bbox);
+      apply_bresen(math::BresenhamLine(bbox.max().x(), bbox.min().y(), bbox.max().x(), bbox.max().y()),
+                    terrain_min, terrain_max, camera_bbox);
+      apply_bresen(math::BresenhamLine(bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.max().y()),
+                    terrain_min, terrain_max, camera_bbox);
+      apply_bresen(math::BresenhamLine(bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.min().y()),
+                    terrain_min, terrain_max, camera_bbox);
       camera_bbox.max() += Vector2i(1,1);        // Because grow is
                                                  // inclusive and we
                                                  // need exclusive
       camera_bbox.expand(InterpT::pixel_buffer); // Fudge factor
-      camera_bbox.crop( bounding_box( m_camera_image_ref ) );
-      if ( camera_bbox.width() * camera_bbox.height() == 0 )
+      camera_bbox.crop(bounding_box(m_camera_image_ref));
+      if (camera_bbox.width() * camera_bbox.height() == 0)
         camera_bbox = BBox2i(0,0,0,0);
 
       // Prerasterize the parts of the camera image we'll be
       // using. This is important as otherwise we'll just be waiting
       // on cache repeatedly.
-      return prerasterize_type( m_terrain.prerasterize(bbox),
+      return prerasterize_type(m_terrain.prerasterize(bbox),
                                 m_georef, m_camera_image_ref.prerasterize(camera_bbox),
                                 m_camera_model, m_interp_func, m_edge_func);
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
     /// \endcond
   };
 
@@ -246,7 +245,7 @@ namespace cartography {
                camera::CameraModel* camera_model,
                InterpT const& interp_func,
                EdgeT const& edge_extend_func) {
-    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
+    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>(terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
 
   // A special version of orthoproject which will distinguish no-processed-data
@@ -259,7 +258,7 @@ namespace cartography {
                                    camera::CameraModel* camera_model,
                                    InterpT const& interp_func,
                                    EdgeT const& edge_extend_func) {
-    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
+    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>(terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
 
 } // namespace cartography
