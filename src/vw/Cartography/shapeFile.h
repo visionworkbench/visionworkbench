@@ -65,6 +65,13 @@ namespace vw { namespace geometry {
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append);
   
+  // Merge polygons into polyVec. The inputs are in ogr_polys, but they be
+  // changed by this function. The output is in polyVec. 
+  void mergeOGRPolygons(std::string const& poly_color, 
+                        std::string const& layer_str,
+                        std::vector<OGRGeometry*>& ogr_polys, 
+                        std::vector<vw::geometry::dPoly>& polyVec);
+
   // Read a shapefile
   void read_shapefile(std::string const& file,
 		      std::string const& poly_color,
