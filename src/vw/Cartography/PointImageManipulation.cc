@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -56,7 +56,7 @@ Vector3 cartography::GeodeticToPoint::operator()(Vector3 const& v) const {
     // This is a bugfix. Catch failures from GDAL.
     return Vector3(0, 0, nan);
   }
-  
+
   return Vector3(pix[0], pix[1], v[2]);
 }
 

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -29,10 +29,6 @@
 #include <vw/Math/Functors.h>
 #include <vw/Image/ImageViewBase.h>
 
-// This include is here to keep compat (the contents of that header used to be
-// here, and was split up to break the Camera<=>Cartography circular dep).
-//#include <vw/Cartography/SimplePointImageManipulation.h>
-
 /// \file PointImageManipulation.h
 ///
 /// Contains routines for manipulating ImageViews with a pixel type of
@@ -41,14 +37,16 @@
 namespace vw {
 namespace cartography {
 
-  // Functors. View operations are lower in this file. ---------------------------------------
-  
+  // Functors. View operations are lower in this file.
+
   /// Functor to convert split col/row/alt values to lon/lat/alt using a georef.
   template <class PixelT>
-  class DemToGeodetic : public ReturnFixedType<Vector3> {
-    GeoReference m_georef; // TODO(oalexan1): Make this an alias to avoid a copy?
+  class DemToGeodetic: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_georef;
   public:
-    DemToGeodetic(GeoReference const& georef) : m_georef(georef) {}
+    DemToGeodetic(GeoReference const& georef): m_georef(georef) {}
 
     Vector3 operator()(Vector2 const& loc, PixelT alt) const {
       if (is_transparent(alt))
@@ -63,64 +61,72 @@ namespace cartography {
   };
 
   /// Functor to convert lon/lat/alt to GCC x/y/z using a datum.
-  class GeodeticToCartesian : public ReturnFixedType<Vector3> {
+  class GeodeticToCartesian: public ReturnFixedType<Vector3> {
     Datum m_datum;
   public:
-    GeodeticToCartesian(Datum const& d) : m_datum(d) {}
+    GeodeticToCartesian(Datum const& d): m_datum(d) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
   /// Functor to convert GCC x/y/z to lon/lat/alt using a datum.
-  class CartesianToGeodetic : public ReturnFixedType<Vector3> {
+  class CartesianToGeodetic: public ReturnFixedType<Vector3> {
     Datum m_datum;
   public:
-    CartesianToGeodetic(Datum const& d) : m_datum(d) {}
+    CartesianToGeodetic(Datum const& d): m_datum(d) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
   /// Functor to convert lon/lat/alt to projected pixel col/row/alt using a georef.
-  class GeodeticToProjection : public ReturnFixedType<Vector3> {
-    GeoReference m_reference;
+  class GeodeticToProjection: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_reference;
   public:
-    GeodeticToProjection( GeoReference const& r ) : m_reference(r) {}
+    GeodeticToProjection(GeoReference const& r): m_reference(r) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
   /// Functor to convert projected pixel col/row/alt to lon/lat/alt using a georef.
-  class ProjectionToGeodetic : public ReturnFixedType<Vector3> {
-    GeoReference m_reference;
+  class ProjectionToGeodetic: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_reference;
   public:
-    ProjectionToGeodetic( GeoReference const& r ) : m_reference(r) {}
+    ProjectionToGeodetic(GeoReference const& r): m_reference(r) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
   /// Functor to convert lon/lat/alt to projected x/y/alt using a georef.
-  class GeodeticToPoint : public ReturnFixedType<Vector3> {
-    GeoReference m_reference;
+  class GeodeticToPoint: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_reference;
   public:
-    GeodeticToPoint( GeoReference const& r ) : m_reference(r) {}
+    GeodeticToPoint(GeoReference const& r): m_reference(r) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
   /// Functor to convert projected x/y/alt to lon/lat/alt using a georef.
-  class PointToGeodetic : public ReturnFixedType<Vector3> {
-    GeoReference m_reference;
+  class PointToGeodetic: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_reference;
   public:
-    PointToGeodetic( GeoReference const& r ) : m_reference(r) {}
+    PointToGeodetic(GeoReference const& r): m_reference(r) {}
 
-    Vector3 operator()( Vector3 const& v ) const;
+    Vector3 operator()(Vector3 const& v) const;
   };
 
-  // Image View operations ---------------------------------------
-  
-  
+  // Image View operations
+
+
   template <class ImageT>
-  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToGeodetic<typename ImageT::pixel_type> >
+  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToGeodetic<typename ImageT::pixel_type>>
   inline dem_to_geodetic(ImageViewBase<ImageT> const& dem, GeoReference const& georef) {
     typedef DemToGeodetic<typename ImageT::pixel_type> func_type;
     typedef BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, func_type> result_type;
@@ -130,42 +136,42 @@ namespace cartography {
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,GeodeticToCartesian>
-  inline geodetic_to_cartesian( ImageViewBase<ImageT> const& lla_image, Datum const& d ) {
+  inline geodetic_to_cartesian(ImageViewBase<ImageT> const& lla_image, Datum const& d) {
     typedef UnaryPerPixelView<ImageT,GeodeticToCartesian> result_type;
-    return result_type(lla_image.impl(), GeodeticToCartesian(d) );
+    return result_type(lla_image.impl(), GeodeticToCartesian(d));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,CartesianToGeodetic>
-  inline cartesian_to_geodetic( ImageViewBase<ImageT> const& xyz_image, Datum const& d ) {
+  inline cartesian_to_geodetic(ImageViewBase<ImageT> const& xyz_image, Datum const& d) {
     typedef UnaryPerPixelView<ImageT,CartesianToGeodetic> result_type;
-    return result_type(xyz_image.impl(), CartesianToGeodetic(d) );
+    return result_type(xyz_image.impl(), CartesianToGeodetic(d));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,GeodeticToCartesian>
-  inline geodetic_to_cartesian( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+  inline geodetic_to_cartesian(ImageViewBase<ImageT> const& lla_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,GeodeticToCartesian> result_type;
-    return result_type(lla_image.impl(), GeodeticToCartesian(r.datum()) );
+    return result_type(lla_image.impl(), GeodeticToCartesian(r.datum()));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,CartesianToGeodetic>
-  inline cartesian_to_geodetic( ImageViewBase<ImageT> const& xyz_image, GeoReference const& r ) {
+  inline cartesian_to_geodetic(ImageViewBase<ImageT> const& xyz_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,CartesianToGeodetic> result_type;
-    return result_type(xyz_image.impl(), CartesianToGeodetic(r.datum()) );
+    return result_type(xyz_image.impl(), CartesianToGeodetic(r.datum()));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,GeodeticToProjection>
-  inline geodetic_to_projection( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+  inline geodetic_to_projection(ImageViewBase<ImageT> const& lla_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,GeodeticToProjection> result_type;
-    return result_type(lla_image.impl(), GeodeticToProjection(r) );
+    return result_type(lla_image.impl(), GeodeticToProjection(r));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,ProjectionToGeodetic>
-  inline projection_to_geodetic( ImageViewBase<ImageT> const& prj_image, GeoReference const& r ) {
+  inline projection_to_geodetic(ImageViewBase<ImageT> const& prj_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,ProjectionToGeodetic> result_type;
     return result_type(prj_image.impl(), ProjectionToGeodetic(r));
   }
@@ -175,31 +181,27 @@ namespace cartography {
   // point is an affine transform.
   template <class ImageT>
   UnaryPerPixelView<ImageT,GeodeticToPoint>
-  inline geodetic_to_point( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+  inline geodetic_to_point(ImageViewBase<ImageT> const& lla_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,GeodeticToPoint> result_type;
-    return result_type(lla_image.impl(), GeodeticToPoint(r) );
+    return result_type(lla_image.impl(), GeodeticToPoint(r));
   }
 
   template <class ImageT>
   UnaryPerPixelView<ImageT,PointToGeodetic>
-  inline point_to_geodetic( ImageViewBase<ImageT> const& point_image, GeoReference const& r ) {
+  inline point_to_geodetic(ImageViewBase<ImageT> const& point_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,PointToGeodetic> result_type;
     return result_type(point_image.impl(), PointToGeodetic(r));
   }
-  
-  
-   
-  
 
-  // ---------------- XYZ to LON LAT ALT CONVERSION ------------------
+  // XYZ to LON LAT ALT CONVERSION
   // WARNING: These functions are estimations, they do not produce accurate results.
   // They seem to assume the datum to be spherical.
   /// GCC to GDC conversion with elevation being distance from 0,0,0
-  class XYZtoLonLatRadEstimateFunctor : public UnaryReturnSameType {
+  class XYZtoLonLatRadEstimateFunctor: public UnaryReturnSameType {
     bool m_east_positive;
     bool m_centered_on_zero; // Use the range [-180,180] otherwise [0,360]
   public:
-    XYZtoLonLatRadEstimateFunctor(bool east_positive = true, bool centered_on_zero = true ) : m_east_positive(east_positive), m_centered_on_zero(centered_on_zero) {}
+    XYZtoLonLatRadEstimateFunctor(bool east_positive = true, bool centered_on_zero = true): m_east_positive(east_positive), m_centered_on_zero(centered_on_zero) {}
 
     template <class T>
     T operator()(T const& p) const {
@@ -207,7 +209,8 @@ namespace cartography {
     }
 
     template <class T>
-    static inline T apply(T const& p, bool east_positive = true, bool centered_on_zero = true )  {
+    static inline T apply(T const& p, bool east_positive = true,
+                          bool centered_on_zero = true) {
 
       // Deal with "missing pixels"
       if (p == T()) { return p; }
@@ -223,15 +226,15 @@ namespace cartography {
         lon = atan2(-p.y(), p.x());
 
       // For consistency-sake, we always return a longitude in the range +/-180.
-      if ( centered_on_zero ) {
+      if (centered_on_zero) {
         if (lon > M_PI)
           lon -= 2*M_PI;
         if (lon < -M_PI)
           lon += 2*M_PI;
       } else {
-        if ( lon < 0 )
+        if (lon < 0)
           lon += 2*M_PI;
-        if ( lon > 2*M_PI )
+        if (lon > 2*M_PI)
           lon -= 2*M_PI;
       }
 
@@ -240,10 +243,10 @@ namespace cartography {
   };
 
   /// GDC to GCC conversion with elevation being distance from 0,0,0
-  class LonLatRadToXYZEstimateFunctor : public UnaryReturnSameType {
+  class LonLatRadToXYZEstimateFunctor: public UnaryReturnSameType {
     bool m_east_positive;
   public:
-    LonLatRadToXYZEstimateFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+    LonLatRadToXYZEstimateFunctor(bool east_positive = true): m_east_positive(east_positive) {}
 
     // Convert from lon, lat, radius to x,y,z:
     //
@@ -263,22 +266,21 @@ namespace cartography {
     }
 
     template <class T>
-    static inline T apply(T const& p, bool east_positive = true)  {
+    static inline T apply(T const& p, bool east_positive = true) {
       typename T::value_type z = p(2) * sin(p(1)*M_PI/180.0);
       typename T::value_type sqrt_x_sqr_plus_y_sqr = p(2) * cos(p(1)*M_PI/180.0);
 
       if (east_positive) {
-        return Vector3( sqrt_x_sqr_plus_y_sqr * cos(p(0)*M_PI/180.0),
+        return Vector3(sqrt_x_sqr_plus_y_sqr * cos(p(0)*M_PI/180.0),
                         sqrt_x_sqr_plus_y_sqr * sin(p(0)*M_PI/180.0),
                         z);
       } else {
-        return Vector3( sqrt_x_sqr_plus_y_sqr * cos(-p(0)*M_PI/180.0),
+        return Vector3(sqrt_x_sqr_plus_y_sqr * cos(-p(0)*M_PI/180.0),
                         sqrt_x_sqr_plus_y_sqr * sin(-p(0)*M_PI/180.0),
-                        z );
+                        z);
       }
     }
   };
-
 
   /// Takes an ImageView of Vector<ElemT,3> in cartesian 3 space and
   /// returns a ImageView of vectors that contains the lat, lon, and
@@ -297,19 +299,18 @@ namespace cartography {
   /// image.
   template <class ImageT>
   UnaryPerPixelView<ImageT, XYZtoLonLatRadEstimateFunctor>
-  inline xyz_to_lon_lat_radius_estimate( ImageViewBase<ImageT> const& image,
-                                         bool east_positive    = true, 
-                                         bool centered_on_zero = true ) {
-    return UnaryPerPixelView<ImageT,XYZtoLonLatRadEstimateFunctor>( image.impl(), XYZtoLonLatRadEstimateFunctor(east_positive, centered_on_zero ) );
+  inline xyz_to_lon_lat_radius_estimate(ImageViewBase<ImageT> const& image,
+                                         bool east_positive    = true,
+                                         bool centered_on_zero = true) {
+    return UnaryPerPixelView<ImageT,XYZtoLonLatRadEstimateFunctor>(image.impl(), XYZtoLonLatRadEstimateFunctor(east_positive, centered_on_zero));
   }
 
   template <class ElemT>
-  inline Vector<ElemT,3> xyz_to_lon_lat_radius_estimate( Vector<ElemT,3> const& xyz,
+  inline Vector<ElemT,3> xyz_to_lon_lat_radius_estimate(Vector<ElemT,3> const& xyz,
                                                           bool east_positive = true,
-                                                          bool centered_on_zero = true ) {
+                                                          bool centered_on_zero = true) {
     return XYZtoLonLatRadEstimateFunctor::apply(xyz, east_positive, centered_on_zero);
   }
-
 
   /// Takes an ImageView of Vector<ElemT,3> that contains longitude,
   /// latitude, and radius, and an ImageView of vectors that are in
@@ -328,27 +329,15 @@ namespace cartography {
   /// image.
   template <class ImageT>
   UnaryPerPixelView<ImageT, LonLatRadToXYZEstimateFunctor>
-  inline lon_lat_radius_to_xyz_estimate( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    return UnaryPerPixelView<ImageT,LonLatRadToXYZEstimateFunctor>( image.impl(), LonLatRadToXYZEstimateFunctor(east_positive) );
+  inline lon_lat_radius_to_xyz_estimate(ImageViewBase<ImageT> const& image, bool east_positive = true) {
+    return UnaryPerPixelView<ImageT,LonLatRadToXYZEstimateFunctor>(image.impl(), LonLatRadToXYZEstimateFunctor(east_positive));
   }
 
   template <class ElemT>
-  inline Vector<ElemT,3> lon_lat_radius_to_xyz_estimate( Vector<ElemT,3> const& lon_lat_alt, bool east_positive = true ) {
+  inline Vector<ElemT,3> lon_lat_radius_to_xyz_estimate(Vector<ElemT,3> const& lon_lat_alt, bool east_positive = true) {
     return LonLatRadToXYZEstimateFunctor::apply(lon_lat_alt, east_positive);
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_POINTIMAGEMANIPLULATION_H__
-
