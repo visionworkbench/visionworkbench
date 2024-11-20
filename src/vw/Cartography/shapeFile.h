@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -35,7 +35,7 @@ namespace vw { namespace geometry {
 
   // Convert a single point to OGRPoint
   void toOGR(double x, double y, OGRPoint & P);
-  
+
   // Convert a polygonal line to OGRLineString
   void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
 	     OGRLineString & L);
@@ -50,7 +50,7 @@ namespace vw { namespace geometry {
   // Read a polygon set from OGR
   void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly);
-  
+
   // Read an OGR polygonal line (line string)
   void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
                std::string const& layer_str, vw::geometry::dPoly & poly);
@@ -64,33 +64,33 @@ namespace vw { namespace geometry {
   void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
                std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
                bool append);
-  
+
   // Merge polygons into polyVec. The inputs are in ogr_polys, but they be
-  // changed by this function. The output is in polyVec. 
-  void mergeOGRPolygons(std::string const& poly_color, 
+  // changed by this function. The output is in polyVec.
+  void mergeOGRPolygons(std::string const& poly_color,
                         std::string const& layer_str,
-                        std::vector<OGRGeometry*>& ogr_polys, 
+                        std::vector<OGRGeometry*>& ogr_polys,
                         std::vector<vw::geometry::dPoly>& polyVec);
 
   // Read a shapefile
   void read_shapefile(std::string const& file,
 		      std::string const& poly_color,
-		      bool & has_geo, 
+		      bool & has_geo,
 		      vw::cartography::GeoReference & geo,
 		      std::vector<vw::geometry::dPoly> & polyVec);
 
   // Write a shapefile
   void write_shapefile(std::string const& file,
 		       bool has_geo,
-		       vw::cartography::GeoReference const& geo, 
+		       vw::cartography::GeoReference const& geo,
 		       std::vector<vw::geometry::dPoly> const& polyVec);
-  
+
   // Bounding box of a shapefile
   void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
 		       // outputs
 		       double & xll, double & yll,
 		       double & xur, double & yur);
-  
+
 }}
 
 #endif // VW_CARTOGRAPHY_SHAPEFILE_H
