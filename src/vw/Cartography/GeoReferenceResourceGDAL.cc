@@ -154,30 +154,26 @@ namespace cartography {
 
   // Read an arbitrary name = value pair from the geoheader.
   bool read_gdal_string(DiskImageResourceGDAL const& resource,
-                         std::string const& str_name,
-                         std::string & str_val) {
-
-    boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
-    if (!dataset)
-      vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
-                << "No file has been opened.");
-
-    char **metadata = dataset->GetMetadata();
-    if (CSLCount(metadata) > 0) {
-      for(int i = 0; metadata[i] != NULL; i++) {
-        std::vector<std::string> split_vec;
-        boost::split(split_vec, metadata[i], boost::is_any_of("="));
-        if (split_vec[0] == str_name && split_vec.size() >= 2){
-          str_val = split_vec[1];
-          return true;
-        }
-      }
+                        std::string const& str_name,
+                        std::string & str_val) {
+    
+    // Initialize the output string
+    str_val = "";
+    
+    // Call read_gdal_strings and then extract the value of the desired key.
+    std::map<std::string, std::string> value_pairs;
+    read_gdal_strings(resource, value_pairs);
+    auto it = value_pairs.find(str_name);
+    if (it != value_pairs.end()) {
+      str_val = it->second;
+      return true;
     }
+    
     return false;
   }
 
   bool read_gdal_strings(DiskImageResourceGDAL const& resource, 
-                          std::map<std::string, std::string>& value_pairs) {
+                         std::map<std::string, std::string>& value_pairs) {
 
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
@@ -185,16 +181,23 @@ namespace cartography {
                 << "No file has been opened.");
 
     char **metadata = dataset->GetMetadata();
-    if (CSLCount(metadata) > 0) {
-      for(int i = 0; metadata[i] != NULL; i++) {
-        std::vector<std::string> split_vec;
-        boost::split(split_vec, metadata[i], boost::is_any_of("="));
-        if (split_vec.size() >= 2){
-          value_pairs[split_vec[0]] = split_vec[1];
-        }
-      }
+    if (CSLCount(metadata) == 0)
+      return false;
+      
+    for (int i = 0; metadata[i] != NULL; i++) {
+      
+      // Find the location of the first equal sign
+      std::string line = metadata[i]; 
+      auto loc = line.find("=");
+      if (loc == std::string::npos) 
+        continue;
+      // The part before the equal sign is the key
+      std::string local_key = line.substr(0, loc);
+      // The part after the equal sign is the value
+      std::string local_val = line.substr(loc+1, line.size()-loc-1);
+      value_pairs[local_key] = local_val;
     }
-    return false;
+    return true;
   }
 
   // Write an arbitrary name = value pair in the geoheader.
