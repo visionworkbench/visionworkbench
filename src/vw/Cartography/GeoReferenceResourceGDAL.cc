@@ -203,7 +203,7 @@ namespace cartography {
     return true;
   }
 
-  // Write an arbitrary name = value pair in the geoheader.
+  // Write an arbitrary name=value pair in the geoheader.
   void write_gdal_string(DiskImageResourceGDAL& resource,
                           std::string const& str_name,
                           std::string const& str_val) {
