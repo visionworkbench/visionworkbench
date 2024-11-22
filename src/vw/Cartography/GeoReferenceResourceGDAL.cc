@@ -175,6 +175,9 @@ namespace cartography {
   bool read_gdal_strings(DiskImageResourceGDAL const& resource, 
                          std::map<std::string, std::string>& value_pairs) {
 
+    // Wipe the output
+    value_pairs.clear();
+    
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
       vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
