@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -55,17 +55,17 @@ namespace cartography {
       transform(1,0) = geo_transform[4];
       transform(1,1) = geo_transform[5];
       transform(1,2) = geo_transform[3];
-      
+
       // It is highly unusual for a georeference to have the y axis go up.
       // This breaks some assumptions in the code. Not sure if this should
       // be a fatal error.
       if (transform(1,1) > 0)
-        vw_out(WarningMessage) 
+        vw_out(WarningMessage)
           << "Found a georeference with a positive value of the y pixel component in file: "
           << resource.filename() << ".\n"
           << "This is not standard. Incorrect results may be produced. Check the "
           << "pixel size value with gdalinfo.\n";
-       
+
       georef.set_transform(transform);
 
       // Determine the pixel interpretation for the image.  See the
@@ -74,7 +74,7 @@ namespace cartography {
       georef.set_pixel_interpretation(GeoReference::PixelAsArea);
       char **metadata = dataset->GetMetadata();
       if (CSLCount(metadata) > 0) {
-        for(int i = 0; metadata[i] != NULL; i++) {
+        for (int i = 0; metadata[i] != NULL; i++) {
           std::vector<std::string> split_vec;
           boost::split(split_vec, metadata[i], boost::is_any_of("="));
           if (split_vec[0] == GDALMD_AREA_OR_POINT && split_vec.size() >= 2)
@@ -89,9 +89,9 @@ namespace cartography {
     // Update the lon-lat georef bbox using the image size. This greatly
     // helps disambiguate the longitude when it comes to a 360 degree offset.
     int cols = resource.format().cols;
-    int rows = resource.format().rows; 
+    int rows = resource.format().rows;
     georef.ll_box_from_pix_box(vw::BBox2(0, 0, cols, rows));
-    
+
     // Georeference functions need not be invertible. When we perform a reverse
     // lookup (e.g. during a geotransform) we rely on PROJ.4 to pick one
     // possible value.  However, the georeference might actually place the image
@@ -120,7 +120,7 @@ namespace cartography {
           resource.filename() << " contains a non-normal georeference." << std::endl;
       }
     }
-    
+
     return true;
   }
 
@@ -156,10 +156,10 @@ namespace cartography {
   bool read_gdal_string(DiskImageResourceGDAL const& resource,
                         std::string const& str_name,
                         std::string & str_val) {
-    
+
     // Initialize the output string
     str_val = "";
-    
+
     // Call read_gdal_strings and then extract the value of the desired key.
     std::map<std::string, std::string> value_pairs;
     read_gdal_strings(resource, value_pairs);
@@ -168,16 +168,16 @@ namespace cartography {
       str_val = it->second;
       return true;
     }
-    
+
     return false;
   }
 
-  bool read_gdal_strings(DiskImageResourceGDAL const& resource, 
+  bool read_gdal_strings(DiskImageResourceGDAL const& resource,
                          std::map<std::string, std::string>& value_pairs) {
 
     // Wipe the output
     value_pairs.clear();
-    
+
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
       vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
@@ -186,13 +186,13 @@ namespace cartography {
     char **metadata = dataset->GetMetadata();
     if (CSLCount(metadata) == 0)
       return false;
-      
+
     for (int i = 0; metadata[i] != NULL; i++) {
-      
+
       // Find the location of the first equal sign
-      std::string line = metadata[i]; 
+      std::string line = metadata[i];
       auto loc = line.find("=");
-      if (loc == std::string::npos) 
+      if (loc == std::string::npos)
         continue;
       // The part before the equal sign is the key
       std::string local_key = line.substr(0, loc);

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2024, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,13 +20,14 @@
 ///
 /// Basic classes and structures for storing image interest points.
 ///
-#include <fstream>
 #include <vw/InterestPoint/InterestData.h>
-
+#include <vw/FileIO/FileUtils.h>
+#include <fstream>
 namespace vw {
 namespace ip {
 
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip) {
+    vw::create_out_dir(ip_file);
 
     size_t num_pts = ip.size();
     if (num_pts == 0)
@@ -71,7 +72,7 @@ namespace ip {
   inline InterestPoint read_ip_record(std::ifstream &f) {
     if (!f)
       vw::vw_throw(vw::IOErr() << "Failed to read interest point from file.");
-      
+
     InterestPoint ip;
     f.read((char*)&(ip.x), sizeof(ip.x));
     f.read((char*)&(ip.y), sizeof(ip.y));
@@ -88,7 +89,7 @@ namespace ip {
     f.read((char*)&(size), sizeof(uint64));
     if (!f)
       return ip; // Nothing to read
-    
+
     ip.descriptor = Vector<double>(size);
     for (size_t i = 0; i < size; ++i)
       f.read((char*)&(ip.descriptor[i]), sizeof(ip.descriptor[i]));
@@ -96,12 +97,14 @@ namespace ip {
   }
 
   void write_binary_ip_file(std::string ip_file, InterestPointList ip) {
+    vw::create_out_dir(ip_file);
+
     std::ofstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::out);
     InterestPointList::iterator iter = ip.begin();
     uint64 size = ip.size();
     f.write((char*)&size, sizeof(uint64));
-    for ( ; iter != ip.end(); ++iter)
+    for (; iter != ip.end(); ++iter)
       write_ip_record(f, *iter);
     f.close();
   }
@@ -111,41 +114,45 @@ namespace ip {
 
     std::ifstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
-    if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
+    if (!f.is_open())
+      vw_throw(IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file.");
 
     uint64 size = 0;
     f.read((char*)&size, sizeof(uint64));
     if (!f)
       return result;
-    
+
     for (size_t i = 0; i < size; ++i)
       result.push_back(read_ip_record(f));
     f.close();
     return result;
   }
-  
+
   InterestPointList read_binary_ip_file_list(std::string ip_file) {
     InterestPointList result;
 
     std::ifstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
-    if ( !f.is_open() )
-      vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
+    if (!f.is_open())
+      vw_throw(IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file.");
 
     uint64 size = 0;
     f.read((char*)&size, sizeof(uint64));
     if (!f)
       return result;
-    
+
     for (size_t i = 0; i < size; ++i)
-      result.push_back( read_ip_record(f) );
+      result.push_back(read_ip_record(f));
     f.close();
     return result;
   }
 
   // Routines for reading & writing interest point match files
-  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) {
+  void write_binary_match_file(std::string match_file,
+                               std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) {
+
+    vw::create_out_dir(match_file);
+
     std::ofstream f;
     f.open(match_file.c_str(), std::ios::binary | std::ios::out);
     std::vector<InterestPoint>::const_iterator iter1 = ip1.begin();
@@ -153,19 +160,21 @@ namespace ip {
     uint64 size1 = ip1.size();
     uint64 size2 = ip2.size();
     if (size1 != size2)
-      vw_throw(IOErr() 
+      vw_throw(IOErr()
                << "The vectors of matching interest points must have the same size.\n");
-      
+
     f.write((char*)&size1, sizeof(uint64));
     f.write((char*)&size2, sizeof(uint64));
-    for ( ; iter1 != ip1.end(); ++iter1)
+    for (; iter1 != ip1.end(); ++iter1)
       write_ip_record(f, *iter1);
-    for ( ; iter2 != ip2.end(); ++iter2)
+    for (; iter2 != ip2.end(); ++iter2)
       write_ip_record(f, *iter2);
     f.close();
   }
 
-  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
+  void read_binary_match_file(std::string match_file,
+                              std::vector<InterestPoint> &ip1,
+                              std::vector<InterestPoint> &ip2) {
     ip1.clear();
     ip2.clear();
 
@@ -184,18 +193,18 @@ namespace ip {
       vw::vw_throw(vw::IOErr() << "Failed to read match file: " << match_file);
     if (f)
       f.read((char*)&size2, sizeof(uint64));
-    else 
+    else
       vw::vw_throw(vw::IOErr() << "Failed to read match file: " << match_file);
-    
+
     if (size1 != size2)
-      vw_throw(IOErr() 
+      vw_throw(IOErr()
                << "The vectors of matching interest points must have the same size.\n");
 
     if (!f) {
       // This is a bugfix for a crash. Apparently junk was being read.
       return;
     }
-    
+
     for (size_t i = 0; i < size1; ++i)
       ip1.push_back(read_ip_record(f));
     for (size_t i = 0; i < size2; ++i)
@@ -224,7 +233,7 @@ namespace ip {
   }
 */
   /// Helpful functors
-  void remove_descriptor( InterestPoint & ip ) {
+  void remove_descriptor(InterestPoint & ip) {
     ip.descriptor = ip::InterestPoint::descriptor_type(); // this should free up the memory
   }
 
