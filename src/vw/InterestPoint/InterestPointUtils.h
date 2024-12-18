@@ -68,7 +68,7 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
     subsection = crop( image.impl(), ip->ix-radius, ip->iy-radius, width, width );
     for ( typename CropImageT::iterator pixel = subsection.begin();
           pixel != subsection.end(); pixel++ ) {
-      if (*pixel <= nodata) {
+      if (*pixel == nodata) {
         ip = ip_list.erase(ip);
         ip--;
         break;
