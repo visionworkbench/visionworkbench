@@ -26,6 +26,7 @@
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/NoDataAlg.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 
@@ -37,32 +38,6 @@
 namespace po = boost::program_options;
 
 using namespace vw;
-
-// Function for highlighting spots of data
-template<class PixelT>
-class NotNoDataFunctor {
-  typedef typename CompoundChannelType<PixelT>::type channel_type;
-  channel_type m_nodata;
-  typedef ChannelRange<channel_type> range_type;
-public:
-  NotNoDataFunctor( channel_type nodata ) : m_nodata(nodata) {}
-
-  template <class Args> struct result {
-    typedef channel_type type;
-  };
-
-  inline channel_type operator()( channel_type const& val ) const {
-    return val != m_nodata ? range_type::max() : range_type::min();
-  }
-};
-
-template <class ImageT, class NoDataT>
-UnaryPerPixelView<ImageT,UnaryCompoundFunctor<NotNoDataFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type>  >
-inline notnodata( ImageViewBase<ImageT> const& image, NoDataT nodata ) {
-  typedef UnaryCompoundFunctor<NotNoDataFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type> func_type;
-  func_type func( nodata );
-  return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
-}
 
 // Linear Transfer Function
 class LinearTransFunc : public vw::UnaryReturnSameType {
