@@ -304,7 +304,7 @@ TEST(Log, ProgressCallback) {
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
-  EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
+  EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
 }
 
@@ -326,7 +326,7 @@ TEST(Log, HiresProgressCallback) {
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
-  EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
+  EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
 }
 

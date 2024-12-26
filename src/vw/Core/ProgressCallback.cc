@@ -27,7 +27,7 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
   return g_dummy_progress_callback_instance;
 }
 
-// Deprecrated Progress Bar
+// Deprecated Progress Bar
 vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std::string pre_progress_text, uint32_t precision) : m_level(level), m_namespace(".progress"), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
   boost::replace_all(m_pre_progress_text,"\t","        ");
   if ( m_level <  InfoMessage )
@@ -59,11 +59,12 @@ void vw::TerminalProgressCallback::report_aborted(std::string why) const {
 
 void vw::TerminalProgressCallback::report_finished() const {
   Mutex::Lock lock(m_mutex);
-  uint32 cbar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) -12;
+  // The logic below counts carefully the extra chars in the progress bar.
+  uint32 cbar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) - 7;
   std::ostringstream p;
-  for ( uint32 i = 0; i < cbar_length; i++ )
+  for (uint32 i = 0; i < cbar_length; i++)
     p << "*";
   VW_OUT(m_level, m_namespace) << "\r" << m_pre_progress_text
-                               << "[" << p.str() << "] Complete!\n";
+                               << "[" << p.str() << "]\n";
 }
 
