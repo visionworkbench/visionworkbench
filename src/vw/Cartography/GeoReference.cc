@@ -191,26 +191,27 @@ std::string GeoReference::overall_proj4_str() const {
 // from this datum, if the params agree. Note that WGS84
 // and GRS 80 (NAD83) semi-major axes are the same, but the
 // semi-minor axes differ by a bit more than 1e-4.
-void fixDatum(OGRSpatialReference & gdal_spatial_ref, 
-              vw::cartography::Datum const& datum) {
+// Return true if the data copy took place.
+bool copyFromDatum(OGRSpatialReference & gdal_spatial_ref, 
+                   vw::cartography::Datum const& datum) {
 
   // The datum name can be null, and this can result in a crash.
   // Cannot continue in this case.
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name == NULL)
-    return;
+    return false;
   
   std::string lc_datum_name = boost::to_lower_copy(std::string(datum_name));
   if (lc_datum_name.find("unknown") == std::string::npos &&
       lc_datum_name.find("user specified datum") == std::string::npos)
-    return; // The datum name is already good
+    return false; // The datum name is already good
     
   const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
   if (spheroid_name == NULL)
-    return;
+    return false;
   const char* meridian_name_ptr = gdal_spatial_ref.GetAttrValue("PRIMEM");
   if (meridian_name_ptr == NULL)
-    return;
+    return false;
   std::string meridian_name = meridian_name_ptr;
   double meridian_offset = gdal_spatial_ref.GetPrimeMeridian();
   double inv_flattening = gdal_spatial_ref.GetInvFlattening();
@@ -231,7 +232,10 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref,
                                 inv_flattening,
                                 datum.meridian_name().c_str(),
                                 meridian_offset);
+     return true;
   }
+  
+   return false;
 }
 
 // Try to fix datum name in the spatial ref by comparing to several
@@ -257,17 +261,17 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
     // Try WGS84
     vw::cartography::Datum datum;
     datum.set_well_known_datum("WGS84");
-    fixDatum(gdal_spatial_ref, datum);
+    copyFromDatum(gdal_spatial_ref, datum);
   } else if (semi_major == 1737400) {
     // Try the moon
     vw::cartography::Datum datum;
     datum.set_well_known_datum("D_MOON");
-    fixDatum(gdal_spatial_ref, datum);
+    copyFromDatum(gdal_spatial_ref, datum);
   } else if (semi_major == 3396190) {
     // Try Mars
     vw::cartography::Datum datum;
     datum.set_well_known_datum("D_MARS");
-    fixDatum(gdal_spatial_ref, datum);
+    copyFromDatum(gdal_spatial_ref, datum);
   } 
 
   return;  
@@ -616,10 +620,14 @@ void GeoReference::set_wkt(std::string const& wkt) {
   if (wkt.empty())
     return;
   
+  // A copy of the existing datum, before the reset.
+  vw::cartography::Datum prior_datum = m_datum;
+
+  // Set the spatial reference object from the WKT string  
   m_gdal_spatial_ref.importFromWkt(wkt.c_str());
   
   // If the datum name is not known, try to set it based on a datum with the same
-  // parameters
+  // parameters.
   fixDatum(m_gdal_spatial_ref);
 
   // If there is a PROJCS name, record it.
@@ -634,15 +642,22 @@ void GeoReference::set_wkt(std::string const& wkt) {
   
   // Create a new ProjContext object. This one has pointers to transforms, so a
   // new object is created to force a clean start. Same will happen on copy.
+  // Create the underlying datum. Use a local scope to force a deallocation.
   m_proj_context = ProjContext(); 
   m_proj_context.m_proj_crs = m_gdal_spatial_ref; // need a copy of this
   {
-    // Create the underlying datum. Use a local scope to force a deallocation.
     boost::shared_ptr<OGRSpatialReference> geoCS(m_gdal_spatial_ref.CloneGeogCS()); 
     geoCS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     m_datum.set_datum_from_spatial_ref(*geoCS);
     m_proj_context.m_lonlat_crs = *geoCS; // need a copy of this
   }
+  
+  // This is a fix for GDAL forgetting datum names for small bodies when setting
+  // a new projection.
+  bool copied = copyFromDatum(m_gdal_spatial_ref, prior_datum);
+  if (copied)
+    m_datum.set_datum_from_spatial_ref(m_gdal_spatial_ref);
+  
   // Create the lonlat vs proj coordinate transformations
   m_proj_context.init_transforms();  
 
@@ -651,8 +666,8 @@ void GeoReference::set_wkt(std::string const& wkt) {
   // TODO(oalexan1): Record the image width and height on loading and use here.
   ll_box_from_pix_box(vw::BBox2(0, 0, 2, 2)); // must be at least 2 pixels in size
   
-  // TODO(oalexan1): May need to wipe all below. In particular, don't want to set
-  // projection, as that will bring us back here.
+  // TODO(oalexan1): May need to wipe all below. Now that everything is based off
+  // the spatial ref, there may be no need for this. 
   
   // Read projection information out of the spatial ref. TODO(oalexan1): Wipe
   // this. The ultimate source of truth is the spatial ref.
