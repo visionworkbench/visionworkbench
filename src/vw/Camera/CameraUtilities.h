@@ -76,11 +76,15 @@ int auto_compute_sample_spacing(Vector2i const image_size);
  
 /// Adjust a pair of epipolar-aligned cameras so that the input images are fully
 /// contained in the transformed images.
-void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
-                                    PinholeModel      & epi_cam1,  PinholeModel      & epi_cam2,
-                                    BBox2i       const& roi1,      BBox2i       const& roi2,
-                                    Vector2i          & epi_size1, Vector2i          & epi_size2);
-
+// TODO(oalexan1): Move to EpipolarTransform.h.
+void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,
+                                    PinholeModel const& cam2,
+                                    PinholeModel      & epi_cam1,
+                                    PinholeModel      & epi_cam2,
+                                    BBox2i       const& roi1,
+                                    BBox2i       const& roi2,
+                                    Vector2i          & epi_size1,
+                                    Vector2i          & epi_size2);
 
 // Convert an optical model to a pinhole model without distortion
 // (The distortion will be taken care of later.)
@@ -132,7 +136,6 @@ public:
     if (m_xyz.size() != m_cameras.size()) 
       vw_throw( ArgumentErr() << "Error in CameraSolveRotTransScale: "
 		<< "There must be as many xyz sets as cameras.\n");
-    
   }
   
   /// Given the cameras, project xyz into them
@@ -148,7 +151,7 @@ public:
     for (size_t it = 0; it < m_xyz.size(); it++) {
       bool is_good = (m_xyz[it].size() >= 3);
       if (is_good)
-	result_size += m_xyz[it].size() * 2;
+        result_size += m_xyz[it].size() * 2;
     }
     
     result_type result;
@@ -158,13 +161,12 @@ public:
       
       bool is_good = (m_xyz[it].size() >= 3);
       if (is_good) {
-	for (size_t c = 0; c < m_xyz[it].size(); c++) {
-	  Vector2 pixel = cameras[it].point_to_pixel(m_xyz[it][c]);
-	  
-	  result[2*count  ] = pixel[0];
-	  result[2*count+1] = pixel[1];
-	  count++;
-	}
+        for (size_t c = 0; c < m_xyz[it].size(); c++) {
+          Vector2 pixel = cameras[it].point_to_pixel(m_xyz[it][c]);
+          result[2*count  ] = pixel[0];
+          result[2*count+1] = pixel[1];
+          count++;
+        }
       }
     }
     
@@ -247,42 +249,6 @@ struct DistortionOptimizeFunctor:
       out_vec[2*i+1] = loc[1];
     }
 
-    return out_vec;
-  }
-}; // End class LensOptimizeFunctor
-
-// TODO: Move this to RPCLensDistortion() as only that class needs it.
-/// Class to solve for undistortion coefficients. Applicable only for RPCLensDistortion.
-template <class DistModelT>
-struct UndistortionOptimizeFunctor:
-    public math::LeastSquaresModelBase< UndistortionOptimizeFunctor<DistModelT> > {
-  typedef Vector<double> result_type;
-  typedef Vector<double> domain_type;
-  typedef Matrix<double> jacobian_type;
-
-  const camera::PinholeModel& m_cam;
-  const std::vector<Vector2>& m_dist_coords;
-  
-  /// Init the object with the pinhole model and the list of undistorted image coordinates.
-  /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row) 
-  ///    must be passed to the solver function.
-  UndistortionOptimizeFunctor(const camera::PinholeModel& cam,
-                              const std::vector<Vector2>& dist_coords):
-    m_cam(cam), m_dist_coords(dist_coords) {}
-  
-  /// Return a Vector<double> of all the distorted pixel coordinates.
-  inline result_type operator()( domain_type const& x ) const {
-    DistModelT lens;
-    lens.set_distortion_parameters(x); // Won't be used, but is required by the API
-    lens.set_undistortion_parameters(x); // Construct lens distortion model with given parameters
-    result_type out_vec;
-    
-    out_vec.set_size(m_dist_coords.size()*2);
-    for (size_t i=0; i< m_dist_coords.size(); ++i) {
-      Vector2 loc = lens.undistorted_coordinates(m_cam, m_dist_coords[i]);
-      out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
-      out_vec[2*i+1] = loc[1];
-    }
     return out_vec;
   }
 }; // End class LensOptimizeFunctor
@@ -373,7 +339,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
         dist_pixel   = pin_model->lens_distortion()->distorted_coordinates(*pin_model,
                                                                            undist_pixel);
         
-      }else if (opb_model != NULL) {
+      } else if (opb_model != NULL) {
 
         // We will sample the image, which has distorted pixels. Then
         // we will determine the undistorted pixels.
@@ -381,10 +347,6 @@ double create_approx_pinhole_model(CameraModel * const input_model,
         
         dist_pixel = pix * pixel_pitch; // Distortion is in units of pixel_pitch
 
-        // Find a point on the ray emanating from the current pixel
-        //Vector3 xyz = vw::cartography::datum_intersection(datum, opb_model->camera_center(pix),
-        //                                                  opb_model->pixel_to_vector(pix));
-        
         Vector3 xyz = opb_model->camera_center(pix)
           + camera_to_ground_dist*opb_model->pixel_to_vector(pix);
 
@@ -525,6 +487,7 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
 
 // Given two epipolar rectified CAHV camera models and input images,
 // get the aligned version of the images suitable for writing to disk and processing.
+// TODO(oalexan1): De-templatize. Move to EpipolarTransform.h.
 template <class ImageInT, class ImageOutT>
 void get_epipolar_transformed_images(std::string const& left_camera_file,
                                      std::string const& right_camera_file,
@@ -604,6 +567,7 @@ void get_epipolar_transformed_images(std::string const& left_camera_file,
 
 }
 
+// TODO(oalexan1): De-templatize. Move to EpipolarTransform.h.
 template <class ImageInT, class ImageOutT,  class EdgeT, class InterpT>
 void get_epipolar_transformed_pinhole_images(std::string const& left_camera_file,
                                              std::string const& right_camera_file,

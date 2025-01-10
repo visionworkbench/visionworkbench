@@ -142,8 +142,8 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
   // by the given adjustments as:
   // x -> m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation.
   // If on top of that we apply the current R and T,
-  // that would be R*(m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation)
-  //               + T
+  // that would be:
+  // R*(m_rotation.rotate(x - m_rotation_center) + m_rotation_center + m_translation) + T
   // which is same as
   // (R*m_rotation).rotate(x-m_rotation_center) + m_rotation_center +
   // R*(m_rotation_center + m_translation) + T - m_rotation_center.
@@ -159,13 +159,18 @@ void AdjustedCameraModel::apply_transform(vw::Matrix4x4 const& M){
 // The adjusted camera center and pixel to vector are obtained
 // from the unadjusted ones by applying the translation
 // and rotation returned here.
-// TODO(oalexan1): Support here a scale factor.
+// No scale factor or pixel offset is applied here.
 vw::Matrix4x4 AdjustedCameraModel::ecef_transform() const {
 
   // Use the fact that the adjustment transform applied to a point x
   // on the camera acts like m_rotation.rotate(x - m_rotation_center)
   // + m_rotation_center + m_translation.
 
+  // Throw error if there is a scale factor or pixel offset.
+  if (std::abs(m_scale - 1.0) > 1e-10 || m_pixel_offset != Vector2(0, 0))
+    vw::vw_throw(vw::NoImplErr() 
+      << "ecef_transform() does not support scale or pixel offset.\n");
+    
   Matrix3x3 R = rotation_matrix();
   Vector3   S = -R * m_rotation_center + m_rotation_center + m_translation;
 
