@@ -321,11 +321,6 @@ namespace vw { namespace mosaic {
       os <<  "_sub" << scale << ".tif";
       std::string suffix = os.str();
 
-      if (level == 0) {
-        vw_out() << "Detected large image: " << base_file  << "." << std::endl;
-        vw_out() << "Will construct an image pyramid on disk."  << std::endl;
-      }
-
       ImageViewRef<PixelMask<PixelT>> masked
         = create_custom_mask(m_pyramid[level], m_nodata_val);
       double sub_scale   = 1.0/subsample;
@@ -361,27 +356,30 @@ namespace vw { namespace mosaic {
                                              unmasked.cols(), unmasked.rows());
 
       if (will_write) {
+
+        if (level == 0)
+          vw_out() << "Construct an image pyramid for: " << base_file << "\n";
+
         TerminalProgressCallback tpc("vw", ": ");
-        vw_out() << "Writing: " << curr_file << std::endl;
+        vw_out() << "Writing: " << curr_file << "\n";
         try{
           cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
                       has_nodata, m_nodata_val, opt, tpc);
-        }catch(...){
+        } catch(...) {
           vw_out() << "Failed to write: " << curr_file << "\n";
           curr_file = filename_from_suffix2(base_file, suffix);
           will_write = overwrite_if_no_good(base_file, curr_file,
                     unmasked.cols(), unmasked.rows());
           if (will_write) {
-            vw_out() << "Writing: " << curr_file << std::endl;
+            vw_out() << "Writing: " << curr_file << "\n";
             cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
                   has_nodata, m_nodata_val, opt, tpc);
           }
         }
       }
 
-
       if (!will_write)
-        vw_out() << "Using existing subsampled image: " << curr_file << std::endl;
+        vw_out() << "Using existing subsampled image: " << curr_file << "\n";
 
       // Note that m_pyramid contains a handle to DiskImageView.
       // DiskImageView's implementation will make it possible to
