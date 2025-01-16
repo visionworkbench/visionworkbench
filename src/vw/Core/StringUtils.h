@@ -88,6 +88,10 @@ namespace vw{
   // Parse a string with given separators into a vector of doubles.
   std::vector<double> str_to_std_vec(std::string const& str, std::string separators);
 
+ // Parses a string containing a list of numbers separated by commas or spaces
+ // TODO(oalexan1): Replace this with str_to_std_vec. Needs testing.
+ void split_number_string(const std::string &input, std::vector<double> &output);
+
 } // namespace vw
 
 #endif // __VW_CORE_STRINGUTILS_H__

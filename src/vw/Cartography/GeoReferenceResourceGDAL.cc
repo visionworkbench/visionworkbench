@@ -62,9 +62,8 @@ namespace cartography {
       if (transform(1,1) > 0)
         vw_out(WarningMessage)
           << "Found a georeference with a positive value of the y pixel component in file: "
-          << resource.filename() << ".\n"
-          << "This is not standard. Incorrect results may be produced. Check the "
-          << "pixel size value with gdalinfo.\n";
+          << resource.filename() << ". This is not standard. Incorrect results may be "
+          << "produced. Check the pixel size with gdalinfo.\n";
 
       georef.set_transform(transform);
 

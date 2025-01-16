@@ -15,8 +15,9 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <vw/Core/StringUtils.h>
+
+#include <algorithm>
 
 namespace vw {
 
@@ -60,5 +61,26 @@ std::vector<double> str_to_std_vec(std::string const& str, std::string separator
   
   return vec;
 } 
+
+// Parses a string containing a list of numbers separated by commas or spaces
+// TODO(oalexan1): Replace this with str_to_std_vec. Needs testing.
+void split_number_string(const std::string &input, std::vector<double> &output) {
+  
+  // Get a space delimited string
+  std::string delimiter = " ";
+  std::string s = input;
+  std::replace(s.begin(), s.end(), ',', ' ');
+
+  double val;
+  std::stringstream stream(s);
+  while (stream >> val)
+    output.push_back(val);
+  
+  // If the input is non-empty but the output is empty, that means
+  // an invalid string was passed.
+  if (!input.empty() && output.empty())
+    vw_throw(ArgumentErr() << "Invalid value for the DEM spacing: " << input << "\n");
+  
+}
 
 } // End namespace vw
