@@ -64,44 +64,20 @@ namespace vw { namespace cartography {
   // variable of optimization is position on the ray. The cost
   // function is difference between datum height and DEM height at
   // current point on the ray.
-  template <class DEMImageT>
   class RayDEMIntersectionLMA:
-    public math::LeastSquaresModelBase<RayDEMIntersectionLMA<DEMImageT>> {
+    public math::LeastSquaresModelBase<RayDEMIntersectionLMA> {
 
     // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
-    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>,
-                      BilinearInterpolation> m_dem;
+    InterpolationView<EdgeExtensionView<vw::ImageViewRef<vw::PixelMask<float>>, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
     GeoReference const& m_georef; // use an alias, as making a copy will likely leak memory
     Vector3      m_camera_ctr;
     Vector3      m_camera_vec;
     bool         m_treat_nodata_as_zero;
 
-    /// Provide safe interaction with DEMs that are scalar
-    /// - If m_dem(x,y) is in bounds, return the interpolated value.
-    /// - Otherwise return 0 or big_val()
-    template <class PixelT>
-    typename boost::enable_if<IsScalar<PixelT>, double>::type
-    inline Helper(double x, double y) const {
+    inline vw::PixelMask<float> Helper(double x, double y) const {
       if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
-           (0 <= y) && (y <= m_dem.rows() - 1)){
-        PixelT val = m_dem(x, y);
-        if (is_valid(val))
-          return val;
-      }
-
-      if (m_treat_nodata_as_zero)
-        return 0;
-
-      return big_val();
-    }
-
-    /// Provide safe interaction with DEMs that are compound
-    template <class PixelT>
-    typename boost::enable_if<IsCompound<PixelT>, double>::type
-    inline Helper(double x, double y) const {
-      if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
-           (0 <= y) && (y <= m_dem.rows() - 1)){
-        PixelT val = m_dem(x, y);
+          (0 <= y) && (y <= m_dem.rows() - 1)) {
+        vw::PixelMask<float> val = m_dem(x, y);
         if (is_valid(val))
           return val[0];
       }
@@ -124,7 +100,7 @@ namespace vw { namespace cartography {
     }
 
     /// Constructor
-    RayDEMIntersectionLMA(ImageViewBase<DEMImageT> const& dem_image,
+    RayDEMIntersectionLMA(vw::ImageViewRef<vw::PixelMask<float>> const& dem_image,
                           GeoReference const& georef,
                           Vector3 const& camera_ctr,
                           Vector3 const& camera_vec,
@@ -146,7 +122,7 @@ namespace vw { namespace cartography {
       // Return a measure of the elevation difference between the DEM and the guess
       // at its current location.
       result_type result;
-      result[0] = Helper<typename DEMImageT::pixel_type>(pix.x(), pix.y()) - llh[2];
+      result[0] = Helper(pix.x(), pix.y()) - llh[2];
       return result;
     }
   };
@@ -277,9 +253,9 @@ namespace vw { namespace cartography {
   // hole in the DEM where there is no data, we return no-intersection
   // or intersection with the datum, depending on whether the variable
   // treat_nodata_as_zero is false or true.
-  template <class DEMImageT>
+  inline // temporary
   Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera_vec,
-                                  ImageViewBase<DEMImageT> const& dem_image,
+                                  vw::ImageViewRef<vw::PixelMask<float>> const& dem_image,
                                   GeoReference const& georef,
                                   bool treat_nodata_as_zero,
                                   bool & has_intersection,
@@ -300,8 +276,9 @@ namespace vw { namespace cartography {
     try {
       has_intersection = false;
       // This is a very fragile function and things can easily go wrong. 
-      RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr,
-                                             camera_vec, treat_nodata_as_zero);
+      RayDEMIntersectionLMA model(pixel_cast<vw::PixelMask<float>>(dem_image), 
+                                  georef, camera_ctr,
+                                  camera_vec, treat_nodata_as_zero);
 
       Vector3 xyz;
       if (xyz_guess == Vector3()) { // If no guess provided
@@ -440,7 +417,7 @@ namespace vw { namespace cartography {
           
           // Use iterative solver call to compute an intersection of the pixel with the DEM	
           xyz = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
-                                        dem, dem_georef,
+                                        pixel_cast<vw::PixelMask<float>>(dem), dem_georef,
                                         treat_nodata_as_zero,
                                         has_intersection,
                                         height_error_tol, max_abs_tol, max_rel_tol,

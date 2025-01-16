@@ -22,9 +22,9 @@ using namespace vw;
 using vw::math::BresenhamLine;
 
 Vector3
-cartography::datum_intersection( Datum const& datum,
-                                 camera::CameraModel const* model,
-                                 Vector2 const& pix ) {
+cartography::datum_intersection(Datum const& datum,
+                                camera::CameraModel const* model,
+                                Vector2 const& pix ) {
   return datum_intersection(datum, model->camera_center(pix), model->pixel_to_vector(pix));
 }
 
