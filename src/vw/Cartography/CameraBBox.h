@@ -105,7 +105,8 @@ namespace vw { namespace cartography {
                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
                     int32 cols, int32 rows, float &mean_gsd,
                     bool quick=false,
-                    std::vector<Vector3> *coords=0);
+                    std::vector<Vector3> *coords = NULL,
+                    int num_samples = 1000);
   
   /// Overload of camera_bbox when we don't care about getting the mean_gsd back.
   BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
