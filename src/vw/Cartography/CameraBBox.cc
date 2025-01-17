@@ -121,7 +121,8 @@ namespace detail {
     GeoReference m_dem_georef, m_target_georef;
     boost::shared_ptr<camera::CameraModel> m_camera;
     vw::ImageViewRef<vw::PixelMask<float>> m_dem;
-    Vector2      m_last_intersect;
+    double m_height_guess;
+    Vector2 m_last_intersect;
     std::vector<Vector3> *m_coords;
 
   public:
@@ -135,11 +136,14 @@ namespace detail {
                      GeoReference const& dem_georef,
                      GeoReference const& target_georef, // return box in this projection
                      boost::shared_ptr<camera::CameraModel> camera,
+                     double height_guess,
                      bool center_on_zero,
                      std::vector<Vector3> *coords = NULL): 
         m_dem_georef(dem_georef),
         m_target_georef(target_georef),
-        m_camera(camera), m_dem(dem.impl()), m_coords(coords),
+        m_camera(camera), m_dem(dem.impl()), 
+        m_height_guess(height_guess),
+        m_coords(coords),
         m_last_valid(false), m_center_on_zero(center_on_zero),
         scale(std::numeric_limits<double>::max()) {
       if (m_coords)
@@ -155,8 +159,8 @@ namespace detail {
                               boost::shared_ptr<camera::CameraModel> camera,
                               bool center_on_zero,
                               vw::Vector3 const& xyz_guess, double height_guess,
-                              Vector2 & point, // output
-                              Vector3 & xyz) {
+                              // Outputs
+                              Vector2 & point, Vector3 & xyz) {
 
       // This is a very fragile function, and at many steps something can fail.
       try {
@@ -194,18 +198,14 @@ namespace detail {
 
     /// Intersect this pixel with the DEM and record some information about the intersection
     void operator()(Vector2 const& pixel) {
-
+      
       Vector2 point;
       Vector3 xyz_guess, xyz;
-      double height_guess = 0.0;
-      // TODO(oalexan1): Must pass the right height guess!
-      // TODO(oalexan1): This can change results!
-      // TODO(oalexan1): The height guess must be found once in the constructor!
       bool has_intersection
         = pix_to_pt_aux(pixel, m_dem, m_dem_georef, m_target_georef,
-                        m_camera, m_center_on_zero, xyz_guess, height_guess,
-                        point, // output
-                        xyz);
+                        m_camera, m_center_on_zero, xyz_guess, m_height_guess,
+                        point, xyz); // outputs
+
       // Quit if we did not find an intersection
       if (!has_intersection) {
         m_last_valid = false;
@@ -337,8 +337,8 @@ BBox2 camera_bbox(cartography::GeoReference const& georef,
   step_amount = std::max(step_amount, 1);      // step amount must be > 0
   detail::CameraDatumBBoxHelper functor(georef, camera_model, center_on_zero, coords);
 
-  // Running the edges. Note: The last valid point on a
-  // BresenhamLine is the last point before the endpoint.
+  // Running the edges. Note: The last valid point on a BresenhamLine is the
+  // last point before the endpoint.
   bresenham_apply(BresenhamLine(0, 0, cols, 0), step_amount, functor);
   functor.last_valid = false;
   bresenham_apply(BresenhamLine(cols-1, 0, cols-1, rows), step_amount, functor);
@@ -676,9 +676,8 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   std::vector<Vector3> *coords,
                   int num_samples) {
 
-  // This is helpful for intersecting with a DEM later
-  double height_guess = 0.0;
-  int num_heights = 0;
+  // An estimate of the DEM height above the datum
+  double height_guess = vw::cartography::demHeightGuess(dem);
 
   // Testing to see if we should be centering on zero. The logic here is consistent
   // with point2dem.
@@ -712,7 +711,8 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
 
   // Construct helper class with DEM and camera information.
   detail::CameraBBoxHelper functor(dem, dem_georef, target_georef,
-                                   camera_model, center_on_zero, coords);
+                                   camera_model, height_guess,
+                                   center_on_zero, coords);
 
   // Running the edges. Note: The last valid point on a
   // BresenhamLine is the last point before the endpoint.
@@ -839,9 +839,6 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
         cam_pixels.push_back(cam_pix);
 
         pix2xyz[std::make_pair(cam_pix.x(), cam_pix.y())] = xyz;
-
-        height_guess += height;
-        num_heights++;
       } catch(...) {
         // It is possible to hit exceptions in here from coordinate
         // transformation and such which do not cause further
@@ -854,12 +851,6 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
     } // End loop through points on the DEM
 
   } // End if (!quick)
-
-  // Find the average height. If no luck, sample the DEM even if outside the image domain
-  if (num_heights > 0)
-    height_guess = height_guess / num_heights;
-  else
-    height_guess = vw::cartography::demHeightGuess(dem);
 
   // Now estimate the gsd, in point units, by projecting onto the ground neighboring points
   std::vector<double> gsd;
@@ -887,8 +878,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
       = functor.pix_to_pt_aux(ctr_pix, dem, dem_georef,
                               target_georef,  camera_model, center_on_zero,
                               xyz_guess, height_guess,
-                              ctr_point, // output
-                              xyz);
+                              ctr_point, xyz); // outputs
 
     if (!has_intersection)
       continue;
@@ -908,8 +898,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
         = functor.pix_to_pt_aux(off_pix, dem, dem_georef,
                                 target_georef, camera_model, center_on_zero,
                                 xyz_guess, height_guess,
-                                off_point, // output
-                                xyz);
+                                off_point, xyz); // outputs
       if (!has_intersection)
         continue;
 
@@ -953,7 +942,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
 BBox2 camera_bbox(GeoReference const& dem_georef,
                   boost::shared_ptr<vw::camera::CameraModel> camera_model,
                   int32 cols, int32 rows) {
-  float scale;
+  float scale = -1.0; // will be updated
   return camera_bbox(dem_georef, camera_model, cols, rows, scale);
 }
 
@@ -964,7 +953,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   boost::shared_ptr<vw::camera::CameraModel> camera_model,
                   int32 cols, int32 rows) {
 
-  float mean_gsd = -1.0;
+  float mean_gsd = -1.0; // will be updated
   return camera_bbox(dem, dem_georef, target_georef, camera_model, cols, rows, mean_gsd);
 }
 
