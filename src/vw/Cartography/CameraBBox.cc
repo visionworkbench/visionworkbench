@@ -16,6 +16,11 @@
 // __END_LICENSE__
 
 #include <vw/Cartography/CameraBBox.h>
+#include <vw/Math/BresenhamLine.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/Math/LevenbergMarquardt.h>
+#include <vw/Cartography/PointImageManipulation.h>
 
 using vw::math::BresenhamLine;
 
@@ -564,9 +569,9 @@ void findInitPositionAboveDEM(RayDEMIntersectionLMA & model,
       }
     } // End k loop
 
-    if (has_intersection) {
+    if (has_intersection)
       break;
-    }
+
   } // End i loop
 } // End function
 
