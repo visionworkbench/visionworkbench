@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
     if (output_model_type == "TsaiLensDistortion") {
       //error =
       create_approx_pinhole_model<TsaiLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion,
+        (in_model, out_model, image_size, sample_spacing, force_conversion,
          rpc_degree, camera_to_ground_dist);
     }else if (output_model_type == "BrownConradyDistortion") {
       //error =
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     } else if (output_model_type == RPCLensDistortion::class_name()) {
       //error =
       create_approx_pinhole_model<RPCLensDistortion>
-	(in_model, out_model, image_size, sample_spacing, force_conversion,
+        (in_model, out_model, image_size, sample_spacing, force_conversion,
          rpc_degree, camera_to_ground_dist);
     }else{
       vw_out() << "Unsupported output model type: " << output_model_type << "\n";
@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
     }
     
     //vw_out() << "Approximation error = " << error << std::endl;
-    printf("Writing output model: %s\n", output_file_name.c_str());
+    vw_out() << "Writing output model: " << output_file_name.c_str() << "\n";
     out_model.write(output_file_name);
   }
   catch (const Exception& e) {

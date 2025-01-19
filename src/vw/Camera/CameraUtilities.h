@@ -61,6 +61,16 @@ void fit_camera_to_xyz(std::string const& camera_type,
 		       std::vector<Vector3> const& xyz_vec,
 		       std::vector<double> const& pixel_values,
 		       bool verbose, boost::shared_ptr<CameraModel> & out_cam);
+
+// Given some GCP so that at least two images have at at least three GCP each,
+// but each GCP is allowed to show in one image only, use the GCP
+// to transform cameras to ground coordinates.
+void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
+                             std::vector<std::vector<Vector2>> const& pix,
+                             std::vector<PinholeModel> & sfm_cams,
+                             vw::Matrix3x3 & rotation, 
+                             vw::Vector3 & translation,
+                             double & scale);
   
 /// Load a pinhole camera model of any supported type
 boost::shared_ptr<CameraModel> load_pinhole_camera_model(std::string const& path);
@@ -109,87 +119,6 @@ void apply_rot_trans_scale(CAM & P, Vector<double> const& C){
   // Apply the transform
   P.apply_transform(rotation, translation, scale);
 }
-
-/// Find the rotation + translation + scale that best projects given
-/// xyz points into given pixels for the input pinhole cameras (each
-/// pinhole camera has a few xyz and pixels).
-template <class CAM>
-class CameraSolveRotTransScale: public vw::math::LeastSquaresModelBase<CameraSolveRotTransScale<CAM> > {
-
-  std::vector< std::vector<Vector3> > const& m_xyz;
-  vw::Vector<double> const& m_pixel_vec; // for debugging
-  std::vector<CAM> m_cameras;
-  
-public:
-
-  typedef vw::Vector<double>    result_type;   // pixel residuals
-  typedef vw::Vector<double, 7> domain_type;   // axis angle + translation + scale
-  typedef vw::Matrix<double> jacobian_type;
-
-  /// Instantiate the solver with a set of xyz to pixel pairs and pinhole models
-  CameraSolveRotTransScale(std::vector< std::vector<Vector3> > const& xyz,
-		  vw::Vector<double> const& pixel_vec,
-		  std::vector<CAM> const& cameras):
-    m_xyz(xyz), m_pixel_vec(pixel_vec), m_cameras(cameras){
-    
-    // Sanity check
-    if (m_xyz.size() != m_cameras.size()) 
-      vw_throw( ArgumentErr() << "Error in CameraSolveRotTransScale: "
-		<< "There must be as many xyz sets as cameras.\n");
-  }
-  
-  /// Given the cameras, project xyz into them
-  inline result_type operator()(domain_type const& C, bool verbose = false) const {
-
-    // Create the camera models
-    std::vector<CAM> cameras = m_cameras; // make a copy local to this function
-    for (size_t it = 0; it < cameras.size(); it++) {
-      apply_rot_trans_scale(cameras[it], C); // update its parameters
-    }
-    
-    int result_size = 0;
-    for (size_t it = 0; it < m_xyz.size(); it++) {
-      bool is_good = (m_xyz[it].size() >= 3);
-      if (is_good)
-        result_size += m_xyz[it].size() * 2;
-    }
-    
-    result_type result;
-    result.set_size(result_size);
-    int count = 0;
-    for (size_t it = 0; it < m_xyz.size(); it++) {
-      
-      bool is_good = (m_xyz[it].size() >= 3);
-      if (is_good) {
-        for (size_t c = 0; c < m_xyz[it].size(); c++) {
-          Vector2 pixel = cameras[it].point_to_pixel(m_xyz[it][c]);
-          result[2*count  ] = pixel[0];
-          result[2*count+1] = pixel[1];
-          count++;
-        }
-      }
-    }
-    
-    if (2*count != result_size) {
-      vw_throw( LogicErr() << "Book-keeping failure in CameraSolveRotTransScale.\n");
-    }
-
-    if (verbose) {
-      vw_out() << "Pixels and pixel errors after optimizing the transform to the ground.";
-    }
-    double cost = 0;
-    for (int it = 0; it < result_size; it++) {
-      double diff = result[it] - m_pixel_vec[it];
-      cost += diff*diff;
-      if (verbose)
-        vw_out() << result[it] << ' ' << m_pixel_vec[it] << ' '
-                 << std::abs(result[it] - m_pixel_vec[it]) << std::endl;
-    }
-
-    return result;
-  }
-  
-}; // End class CameraSolveRotTransScale
 
 // These template functions are defined inline:
 

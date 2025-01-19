@@ -395,8 +395,8 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
         Vector3 xyz = opb_model.camera_center(pix)
           + camera_to_ground_dist*opb_model.pixel_to_vector(pix);
 
-	input_pixels.push_back(pix[0]);
-	input_pixels.push_back(pix[1]);
+        input_pixels.push_back(pix[0]);
+        input_pixels.push_back(pix[1]);
         input_xyz.push_back(xyz);
       }
       
@@ -437,6 +437,267 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
 
     return out_model;
   }
+
+/// Find the rotation + translation + scale that best projects given
+/// xyz points into given pixels for the input pinhole cameras (each
+/// pinhole camera has a few xyz and pixels).
+class CameraSolveRotTransScale: public vw::math::LeastSquaresModelBase<CameraSolveRotTransScale> {
+
+  std::vector< std::vector<Vector3> > const& m_xyz;
+  vw::Vector<double> const& m_pixel_vec; // for debugging
+  std::vector<vw::camera::PinholeModel> m_cameras;
+  
+public:
+
+  typedef vw::Vector<double>    result_type;   // pixel residuals
+  typedef vw::Vector<double, 7> domain_type;   // axis angle + translation + scale
+  typedef vw::Matrix<double> jacobian_type;
+
+  /// Instantiate the solver with a set of xyz to pixel pairs and pinhole models
+  CameraSolveRotTransScale(std::vector< std::vector<Vector3> > const& xyz,
+		  vw::Vector<double> const& pixel_vec,
+		  std::vector<vw::camera::PinholeModel> const& cameras):
+    m_xyz(xyz), m_pixel_vec(pixel_vec), m_cameras(cameras){
+    
+    // Sanity check
+    if (m_xyz.size() != m_cameras.size()) 
+      vw_throw( ArgumentErr() << "Error in CameraSolveRotTransScale: "
+		<< "There must be as many xyz sets as cameras.\n");
+  }
+  
+  /// Given the cameras, project xyz into them
+  inline result_type operator()(domain_type const& C, bool verbose = false) const {
+
+    // Create the camera models
+    std::vector<vw::camera::PinholeModel> cameras = m_cameras; // make a copy local to this function
+    for (size_t it = 0; it < cameras.size(); it++) {
+      apply_rot_trans_scale(cameras[it], C); // update its parameters
+    }
+    
+    int result_size = 0;
+    for (size_t it = 0; it < m_xyz.size(); it++) {
+      bool is_good = (m_xyz[it].size() >= 3);
+      if (is_good)
+        result_size += m_xyz[it].size() * 2;
+    }
+    
+    result_type result;
+    result.set_size(result_size);
+    int count = 0;
+    for (size_t it = 0; it < m_xyz.size(); it++) {
+      
+      bool is_good = (m_xyz[it].size() >= 3);
+      if (is_good) {
+        for (size_t c = 0; c < m_xyz[it].size(); c++) {
+          Vector2 pixel = cameras[it].point_to_pixel(m_xyz[it][c]);
+          result[2*count  ] = pixel[0];
+          result[2*count+1] = pixel[1];
+          count++;
+        }
+      }
+    }
+    
+    if (2*count != result_size) {
+      vw_throw( LogicErr() << "Book-keeping failure in CameraSolveRotTransScale.\n");
+    }
+
+    if (verbose) {
+      vw_out() << "Pixels and pixel errors after optimizing the transform to the ground.";
+    }
+    double cost = 0;
+    for (int it = 0; it < result_size; it++) {
+      double diff = result[it] - m_pixel_vec[it];
+      cost += diff*diff;
+      if (verbose)
+        vw_out() << result[it] << ' ' << m_pixel_vec[it] << ' '
+                 << std::abs(result[it] - m_pixel_vec[it]) << std::endl;
+    }
+
+    return result;
+  }
+  
+}; // End class CameraSolveRotTransScale
+
+// Given original cams in sfm_cams and individually scaled cameras in
+// aux_cams, get the median scale change from the first set to the second one.
+// It is important to do the median, since scaling the cameras individually
+// is a bit of a shaky business.
+double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & sfm_cams,
+				std::vector<vw::camera::PinholeModel> const & aux_cams,
+				std::vector< std::vector<vw::Vector3>> const& xyz){
+  
+  int num_cams = sfm_cams.size();
+
+  std::vector<double> scales;
+  
+  for (int it1 = 0; it1 < num_cams; it1++) {
+
+    bool is_good = (xyz[it1].size() >= 3);
+    if (!is_good)
+      continue;
+    
+    for (int it2 = it1 + 1; it2 < num_cams; it2++) {
+      
+      bool is_good = (xyz[it2].size() >= 3);
+      if (!is_good)
+        continue;
+    
+      double len1 = norm_2(sfm_cams[it1].camera_center()
+			   - sfm_cams[it2].camera_center());
+      double len2 = norm_2(aux_cams[it1].camera_center()
+			   - aux_cams[it2].camera_center());
+      
+      double scale = len2/len1;
+      scales.push_back(scale);
+    }
+  }
+
+  if (scales.empty())
+    vw_throw( LogicErr() << "Could not find two images with at least 3 GCP each.\n");
+    
+  double median_scale = vw::math::destructive_median(scales);
+
+  return median_scale;
+}
+
+// Given some GCP so that at least two images have at at least three GCP each,
+// but each GCP is allowed to show in one image only, use the GCP
+// to transform cameras to ground coordinates.
+void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
+                             std::vector<std::vector<Vector2>> const& pix,
+                             std::vector<PinholeModel> & sfm_cams,
+                             Matrix3x3 & rotation, 
+                             Vector3 & translation,
+                             double & scale) {
+  
+  std::string camera_type = "pinhole";
+  bool refine_camera = true;
+  bool verbose = false; 
+
+  // Cameras individually aligned to ground using GCP. They may not be
+  // self-consistent, and are only used to give an idea of the
+  // transform to apply to the unaligned cameras.
+  std::vector<PinholeModel> aux_cams;
+
+  int num_cams = sfm_cams.size();
+  for (int it = 0; it < num_cams; it++) {
+    // Export to the format used by the API
+    std::vector<double> pixel_values;
+    for (size_t c = 0; c < pix[it].size(); c++) {
+      pixel_values.push_back(pix[it][c][0]);
+      pixel_values.push_back(pix[it][c][1]);
+    }
+
+    vw::CamPtr out_cam(new PinholeModel(sfm_cams[it]));
+
+    bool is_good = (xyz[it].size() >= 3);
+    if (is_good) 
+      fit_camera_to_xyz(camera_type, refine_camera,  
+			xyz[it], pixel_values, verbose, out_cam);
+    
+    aux_cams.push_back(*((PinholeModel*)out_cam.get()));
+  }
+
+  double world_scale = find_median_scale_change(sfm_cams, aux_cams, xyz);
+  vw_out() << "Initial guess scale to apply when converting to world coordinates using GCP: "
+	   << world_scale << ".\n";
+
+  // So far we aligned both cameras individually to GCP and we got an
+  // idea of scale.  Yet we would like to align them without changing
+  // the relationship between them, so using a single transform for
+  // all not an individual transform for each.  This way we will
+  // transform the SfM-computed cameras to the new coordinate system.
+
+  // Start by estimating a such a transform.
+  int num_pts = 0;
+  for (int it = 0; it < num_cams; it++) {
+    bool is_good = (xyz[it].size() >= 3);
+    if (is_good) 
+      num_pts += pix[it].size();
+  }
+  
+  vw::Matrix<double> in_pts, out_pts;
+  in_pts.set_size(3, num_pts);
+  out_pts.set_size(3, num_pts);
+  
+  int col = 0;
+  for (int it = 0; it < num_cams; it++) {
+    
+    bool is_good = (xyz[it].size() >= 3);
+    if (is_good) {
+      // For each camera, find xyz values in the input cameras
+      // that map to GCP. Use the scale for that.
+      for (int c = 0; c < xyz[it].size(); c++) {
+        
+        // Distance from camera center to xyz for the individually aligned cameras
+        double len = norm_2(aux_cams[it].camera_center() - xyz[it][c]);
+        len = len / world_scale;
+        Vector3 trans_xyz = sfm_cams[it].camera_center()
+          + len * sfm_cams[it].pixel_to_vector(pix[it][c]);
+        for (int row = 0; row < in_pts.rows(); row++) {
+          in_pts(row, col)  = trans_xyz[row];
+          out_pts(row, col) = xyz[it][c][row];
+        }
+        col++;
+      }
+    }
+  }
+  
+  if (col != num_pts) 
+    vw_throw( LogicErr() << "Book-keeping failure in aligning cameras to ground.\n");
+
+  // The initial transform to world coordinates
+  Vector<double> C;
+  vw::math::find_3D_transform(in_pts, out_pts, rotation, translation, scale);
+
+  // Copy into C
+  transform_to_vector(C, rotation, translation, scale);
+
+  // Form the pixel vector
+  int pixel_vec_len = 0;
+  for (size_t it = 0; it < pix.size(); it++) {
+    bool is_good = (xyz[it].size() >= 3);
+    if (is_good)
+      pixel_vec_len += pix[it].size() * 2;
+  }
+  Vector<double> pixel_vec;
+  pixel_vec.set_size(pixel_vec_len);
+  int count = 0;
+  for (size_t it = 0; it < pix.size(); it++) {
+    bool is_good = (xyz[it].size() >= 3);
+    if (is_good) {
+      for (size_t c = 0; c < pix[it].size(); c++) {
+        Vector2 pixel = pix[it][c];
+        pixel_vec[2*count  ] = pixel[0];
+        pixel_vec[2*count+1] = pixel[1];
+        count++;
+      }
+    }
+  }
+  if (2*count != pixel_vec_len)
+    vw_throw( LogicErr() << "Book-keeping failure in cam_gen.\n");
+  
+  // Optimize the transform
+  double abs_tolerance  = 1e-24;
+  double rel_tolerance  = 1e-24;
+  int    max_iterations = 2000;
+  int status = 0;
+  CameraSolveRotTransScale lma_model(xyz, pixel_vec, sfm_cams);
+  Vector<double> final_params
+    = vw::math::levenberg_marquardt(lma_model, C, pixel_vec,
+				    status, abs_tolerance, rel_tolerance,
+				    max_iterations);
+
+  Vector<double> final_residual = lma_model(final_params, verbose);
+  
+  // Bring the cameras to world coordinates
+  for (int it = 0; it < num_cams; it++) 
+    apply_rot_trans_scale(sfm_cams[it], final_params);
+
+  // Unpack the final vector into a rotation + translation + scale
+  vector_to_transform(final_params, rotation, translation, scale);
+
+}
   
 }} // end namespace vw::camera
 
