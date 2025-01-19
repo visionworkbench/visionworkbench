@@ -186,7 +186,7 @@ private: // Functions
   /// Populate the lookup table m_adjacent_disp_lookup
   void populate_adjacent_disp_lookup_table();
 
-  /// Fill in m_disp_bound_image using image-wide contstants
+  /// Fill in m_disp_bound_image using image-wide constants
   void populate_constant_disp_bound_image();
 
   /// Fill in m_disp_bound_image using some image information.
@@ -347,24 +347,6 @@ private: // Functions
     dy += bounds[1];
   }
 
-  // The following functions are inlined for speed
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-  /// Use SSE instructions to simultaneousy compute the scores for up to 8 disparities in evaluate_path()
-  inline void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                                         uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
-                                         __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
-                                         int sse_index, int &output_index, AccumCostType* output);
-#endif
-
-  /// Non-sse backup for compute_path_internals_sse
-  inline void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, 
-                                     uint16* d2, uint16* d3,
-                                     uint16* d4, uint16* d5, uint16* d6, 
-                                     uint16* d7, uint16* d8,
-                                     AccumCostType dJ, AccumCostType dP, AccumCostType dp1,
-                                     uint16* dRes,
-                                     int sse_index, int &output_index, AccumCostType* output);
-
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
                                  bool left_bound = false, bool right_bound = false, 
@@ -401,80 +383,6 @@ calc_disparity_sgm(
   ImageView<uint8>       const* right_mask_ptr=0,
   SemiGlobalMatcher::DisparityImage const* prev_disparity=0);
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-void SemiGlobalMatcher::compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1, 
-                                                   uint16* d2, uint16* d3,
-                                                   uint16* d4, uint16* d5, uint16* d6, 
-                                                   uint16* d7, uint16* d8,
-                                                   __m128i& _dJ, __m128i& _dP, __m128i& _dp1, uint16* dRes,
-                                                   int sse_index, int &output_index,
-                                                   AccumCostType*       output) {
-  // Load data from arrays into SSE registers
-  __m128i _dL = _mm_load_si128((__m128i*) dL);
-  __m128i _d0 = _mm_load_si128((__m128i*) d0);
-  __m128i _d1 = _mm_load_si128((__m128i*) d1);
-  __m128i _d2 = _mm_load_si128((__m128i*) d2);
-  __m128i _d3 = _mm_load_si128((__m128i*) d3);
-  __m128i _d4 = _mm_load_si128((__m128i*) d4);
-  __m128i _d5 = _mm_load_si128((__m128i*) d5);
-  __m128i _d6 = _mm_load_si128((__m128i*) d6);
-  __m128i _d7 = _mm_load_si128((__m128i*) d7);
-  __m128i _d8 = _mm_load_si128((__m128i*) d8);
-
-  // Operation = min(min(d1...d8)+dp1, d0, dJ) + dL - dP
-  
-  // Start computing the min
-  __m128i _min12   = _mm_min_epu16(_d1, _d2);
-  __m128i _min34   = _mm_min_epu16(_d3, _d4);
-  __m128i _min56   = _mm_min_epu16(_d5, _d6);
-  __m128i _min78   = _mm_min_epu16(_d7, _d8);
-  // Keep computing the min
-  __m128i _min1234 = _mm_min_epu16(_min12, _min34);
-  __m128i _min5678 = _mm_min_epu16(_min56, _min78);
-  // Finish computing the min
-  __m128i _minAdj = _mm_min_epu16(_min1234, _min5678);
-  __m128i _minO   = _mm_min_epu16(_d0, _dJ);
- 
-  // Perform the required computations
-  __m128i _result = _mm_adds_epu16(_minAdj, _dp1);
-  _result = _mm_min_epu16(_result, _minO);
-  _result = _mm_adds_epu16(_result, _dL);
-  _result = _mm_subs_epu16(_result, _dP);
-
-  // Fetch results from the output register
-  _mm_store_si128((__m128i*) dRes, _result);
-
-  // Copy the valid results from the register.
-  for (int i=0; i<sse_index; ++i){
-    output[output_index++] = dRes[i];
-  }
-} // end function compute_path_internals_sse
-#endif
-
-void SemiGlobalMatcher::compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint16* d3,
-                                               uint16* d4, uint16* d5, uint16* d6, uint16* d7, uint16* d8,
-                                               AccumCostType dJ, AccumCostType dP, AccumCostType dp1, uint16* dRes,
-                                               int sse_index, int &output_index,
-                                               AccumCostType*       output) {
-  // Operation = min(min(d1...d8)+dp1, d0, dJ) + dL - dP
-
-  for (int i=0; i<sse_index; ++i){
-
-    uint16 minAdj = std::min(d1[i], d2[i]);
-    minAdj = std::min(minAdj, d3[i]);
-    minAdj = std::min(minAdj, d4[i]);
-    minAdj = std::min(minAdj, d5[i]);
-    minAdj = std::min(minAdj, d6[i]);
-    minAdj = std::min(minAdj, d7[i]);
-    minAdj = std::min(minAdj, d8[i]);
-    minAdj += dp1;
-
-    uint16 minVal = std::min(minAdj, d0[i]);
-           minVal = std::min(minVal, dJ);
-    output[output_index++] = minVal + (dL[i] - dP);
-  }
-} // end function compute_path_internals
-
 
 // From the census transformed input images, compute the cost of each disparity value.
 template <typename T>
@@ -498,7 +406,7 @@ void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_bina
       for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
         for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {
 
-          CostType cost = hamming_distance(left_binary_image (binary_col   , binary_row), 
+          CostType cost = hamming_distance(left_binary_image (binary_col, binary_row), 
                                            right_binary_image(binary_col+dx, binary_row+dy));
           m_cost_buffer[cost_index] = cost;
           ++cost_index;
