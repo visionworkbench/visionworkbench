@@ -25,7 +25,7 @@ void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
                                 int min_col, int max_col,
                                 int kernel_size,
                                 ImageView<Vector4i> const& disp_bound_image,
-                                boost::shared_array<SemiGlobalMatcher::CostType> cost_buffer) {
+                                boost::shared_array<SemiGlobalMatcher::CostType> cost_buf) {
 
   const int half_kernel = (kernel_size - 1) / 2;
 
@@ -47,7 +47,7 @@ void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
           SemiGlobalMatcher::CostType cost 
             = hamming_distance(left_binary_image(binary_col, binary_row), 
                                right_binary_image(binary_col+dx, binary_row+dy));
-          cost_buffer[cost_index] = cost;
+          cost_buf[cost_index] = cost;
           ++cost_index;
         }
       } // End disparity loops    
