@@ -15,8 +15,6 @@
   #include <smmintrin.h> // SSE4.1
 #endif
 
-// TODO(oalexan1): Remove templates and move the logic to the .cc file.
-
 namespace vw {
 
 namespace stereo {
@@ -131,7 +129,7 @@ public: // Functions
                             ImageView<uint8> const* right_image_mask,
                             DisparityImage const* prev_disparity);
 
-  /// Create a subpixel leves disparity image using parabola interpolation
+  /// Create a subpixel disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
 
    double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
@@ -161,9 +159,9 @@ private: // Variables
     int m_num_disp_x, m_num_disp_y, m_num_disp;
 
     // The two main memory buffers that must be allocated.
-    boost::shared_array<CostType     > m_cost_buffer;
+    boost::shared_array<CostType> m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
-    size_t                             m_buffer_lengths;
+    size_t m_buffer_lengths;
 
     /// Image containing the inclusive disparity bounds for each pixel.
     /// - Stored as min_col, min_row, max_col, max_row.
@@ -244,11 +242,6 @@ private: // Functions
   void fill_costs_census7x7(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
   void fill_costs_census9x9(ImageView<uint8> const& left_image, ImageView<uint8> const& right_image);
 
-  /// Used to finish computing the census-based disparity costs in the above functions.
-  template <typename T>
-  void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
-                                  ImageView<T> const& right_binary_image);
-
   /// Compute the mean and STD of a small image patch.
   /// - Does not perform bounds checking.
   void compute_patch_mean_std(ImageView<uint8> const& image, int x, int y,
@@ -262,16 +255,10 @@ private: // Functions
                     int left_x, int left_y, int right_x, int right_y, bool debug) const;
 
   /// Get a pointer to a cost vector
-  CostType * get_cost_vector(int col, int row) {
-    size_t start_index = m_buffer_starts(col, row);
-    return m_cost_buffer.get() + start_index;
-  };
+  CostType * get_cost_vector(int col, int row);
 
   /// Get a pointer to an accumulated cost vector
-  AccumCostType* get_accum_vector(int col, int row) {
-    size_t start_index = m_buffer_starts(col, row);
-    return m_accum_buffer.get() + start_index;
-  };
+  AccumCostType* get_accum_vector(int col, int row);
 
   /// Generate the output disparity view from the accumulated costs.
   DisparityImage create_disparity_view();
@@ -286,12 +273,7 @@ private: // Functions
 
   /// Get the pixel diff along a line at a specified output location.
   int get_path_pixel_diff(ImageView<uint8> const& left_image,
-                          int col, int row, int dir_x, int dir_y) const {
-    // Take the offset between the output location and the input pixel coordinates.
-    int a = left_image(col        +m_min_col, row        +m_min_row);
-    int b = left_image((col-dir_x)+m_min_col, (row-dir_y)+m_min_row);
-    return std::abs(a - b);
-  }
+                          int col, int row, int dir_x, int dir_y) const;
 
   /// Create an updated cost accumulation vector for the next pixel along an SGM evaluation path.
   /// - For each disparity in the current pixel, add that disparity's cost with the "cheapest"
@@ -324,28 +306,18 @@ private: // Functions
   friend class PixelPassTask;
   friend class SmoothPathAccumTask;
 
-  /// Given the dx and dy positions of a pixel, return the full size disparity index.
-  /// - Note that the big storage vectors do not store the entire disparity range for each pixel.
-  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) const {
-    return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
-  }
+  /// Given the dx and dy positions of a pixel, return the full size disparity
+  /// index. - Note that the big storage vectors do not store the entire
+  /// disparity range for each pixel.
+  DisparityType xy_to_disp(DisparityType dx, DisparityType dy) const;
 
   /// Converts from a linear disparity index to the dx, dy values it represents.
   /// - This function is too slow to use inside the inner loop!
-  void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) const {
-    dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
-    dx = (disp % m_num_disp_x) + m_min_disp_x;
-  }
+  void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) const;
 
   /// Convert a pixel's minimum disparity index to dx, dy.
-  void disp_index_to_xy(int min_index, int col, int row, DisparityType &dx, DisparityType &dy) const {
-    // Convert the disparity index to dx and dy
-    const Vector4i bounds = m_disp_bound_image(col,row);
-    int d_width  = bounds[2] - bounds[0] + 1;
-    dy = (min_index / d_width);
-    dx = min_index - (dy*d_width) + bounds[0];
-    dy += bounds[1];
-  }
+  void disp_index_to_xy(int min_index, int col, int row, 
+                        DisparityType &dx, DisparityType &dy) const;
 
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
@@ -382,39 +354,6 @@ calc_disparity_sgm(
   ImageView<uint8>       const* left_mask_ptr=0,  
   ImageView<uint8>       const* right_mask_ptr=0,
   SemiGlobalMatcher::DisparityImage const* prev_disparity=0);
-
-
-// From the census transformed input images, compute the cost of each disparity value.
-template <typename T>
-void SemiGlobalMatcher::get_hamming_distance_costs(ImageView<T> const& left_binary_image,
-                                                   ImageView<T> const& right_binary_image) {
-
-  const int half_kernel = (m_kernel_size - 1) / 2;
-
-  // Now compute the disparity costs for each pixel.
-  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
-  size_t cost_index = 0;
-  for (int r = m_min_row; r <= m_max_row; r++) { // For each row in left
-    int output_row = r - m_min_row;
-    int binary_row = r - half_kernel;
-    for (int c = m_min_col; c <= m_max_col; c++) { // For each column in left
-      int output_col = c - m_min_col;
-      int binary_col = c - half_kernel;
-
-      Vector4i pixel_disp_bounds = m_disp_bound_image(output_col, output_row);
-
-      for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
-        for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {
-
-          CostType cost = hamming_distance(left_binary_image (binary_col, binary_row), 
-                                           right_binary_image(binary_col+dx, binary_row+dy));
-          m_cost_buffer[cost_index] = cost;
-          ++cost_index;
-        }
-      } // End disparity loops   
-    } // End x loop
-  }// End y loop 
-}
 
 } // end namespace stereo
 } // end namespace vw

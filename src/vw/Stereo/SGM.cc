@@ -17,6 +17,44 @@ namespace vw {
 
 namespace stereo {
 
+// Helper function
+template <typename T>
+void get_hamming_distance_costs(ImageView<T> const& left_binary_image,
+                                ImageView<T> const& right_binary_image,
+                                int min_row, int max_row,
+                                int min_col, int max_col,
+                                int kernel_size,
+                                ImageView<Vector4i> const& disp_bound_image,
+                                boost::shared_array<SemiGlobalMatcher::CostType> cost_buffer) {
+
+  const int half_kernel = (kernel_size - 1) / 2;
+
+  // Now compute the disparity costs for each pixel.
+  // Make sure we don't go out of bounds here due to the disparity shift and kernel.
+  size_t cost_index = 0;
+  for (int r = min_row; r <= max_row; r++) { // For each row in left
+    int output_row = r - min_row;
+    int binary_row = r - half_kernel;
+    for (int c = min_col; c <= max_col; c++) { // For each column in left
+      int output_col = c - min_col;
+      int binary_col = c - half_kernel;
+
+      Vector4i pixel_disp_bounds = disp_bound_image(output_col, output_row);
+
+      for (int dy = pixel_disp_bounds[1]; dy <= pixel_disp_bounds[3]; dy++) { // For each disparity
+        for (int dx = pixel_disp_bounds[0]; dx <= pixel_disp_bounds[2]; dx++) {
+
+          SemiGlobalMatcher::CostType cost 
+            = hamming_distance(left_binary_image(binary_col, binary_row), 
+                               right_binary_image(binary_col+dx, binary_row+dy));
+          cost_buffer[cost_index] = cost;
+          ++cost_index;
+        }
+      } // End disparity loops    
+    } // End x loop
+  } // End y loop 
+}
+
 void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        bool use_mgm,
                                        int min_disp_x, int min_disp_y,
@@ -1729,7 +1767,8 @@ void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
     for (int r = 0; r < right_census.rows(); r++)
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_3x3(right_image, c+half_kernel, r+half_kernel);
-    get_hamming_distance_costs(left_census, right_census);
+    get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                               m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
   } else {
     ImageView<uint16> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                       right_census(right_image.cols()-padding, right_image.rows()-padding);
@@ -1740,7 +1779,8 @@ void SemiGlobalMatcher::fill_costs_census3x3(ImageView<uint8> const& left_image,
     for (int r = 0; r < right_census.rows(); r++)
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_3x3(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    get_hamming_distance_costs(left_census, right_census);
+    get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                               m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
   } 
 
 }
@@ -1771,7 +1811,8 @@ void SemiGlobalMatcher::fill_costs_census5x5(ImageView<uint8> const& left_image,
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_5x5(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
   }
-  get_hamming_distance_costs(left_census, right_census);
+  get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                             m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
 }
 
 void SemiGlobalMatcher::fill_costs_census7x7(ImageView<uint8> const& left_image,
@@ -1800,7 +1841,8 @@ void SemiGlobalMatcher::fill_costs_census7x7(ImageView<uint8> const& left_image,
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_7x7(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
   }
-  get_hamming_distance_costs(left_census, right_census);
+  get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                             m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
 }
 
 void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
@@ -1822,7 +1864,8 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
     for (int r = 0; r < right_census.rows(); r++)
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_9x9(right_image, c+half_kernel, r+half_kernel);  
-    get_hamming_distance_costs(left_census, right_census);
+    get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                               m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
   } else { // TERNARY_CENSUS_TRANSFORM
     ImageView<uint64> left_census (left_image.cols()-padding,  left_image.rows()-padding), 
                       right_census(right_image.cols()-padding, right_image.rows()-padding);
@@ -1833,7 +1876,8 @@ void SemiGlobalMatcher::fill_costs_census9x9(ImageView<uint8> const& left_image,
     for (int r = 0; r < right_census.rows(); r++)
       for (int c = 0; c < right_census.cols(); c++)
         right_census(c,r) = get_census_value_ternary_9x9(right_image, c+half_kernel, r+half_kernel, m_ternary_census_threshold);
-    get_hamming_distance_costs(left_census, right_census);
+    get_hamming_distance_costs(left_census, right_census, m_min_row, m_max_row, m_min_col, 
+                               m_max_col, m_kernel_size, m_disp_bound_image, m_cost_buffer);
   }
 }
 
@@ -2676,6 +2720,51 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
   }
                
 } // End function smooth_path_accumulation_multithreaded
+
+/// Get a pointer to a cost vector
+SemiGlobalMatcher::CostType * SemiGlobalMatcher::get_cost_vector(int col, int row) {
+  size_t start_index = m_buffer_starts(col, row);
+  return m_cost_buffer.get() + start_index;
+}
+
+/// Get a pointer to an accumulated cost vector
+SemiGlobalMatcher::AccumCostType* SemiGlobalMatcher::get_accum_vector(int col, int row) {
+  size_t start_index = m_buffer_starts(col, row);
+  return m_accum_buffer.get() + start_index;
+}
+
+/// Get the pixel diff along a line at a specified output location.
+int SemiGlobalMatcher::get_path_pixel_diff(ImageView<uint8> const& left_image,
+                        int col, int row, int dir_x, int dir_y) const {
+  // Take the offset between the output location and the input pixel coordinates.
+  int a = left_image(col        +m_min_col, row        +m_min_row);
+  int b = left_image((col-dir_x)+m_min_col, (row-dir_y)+m_min_row);
+  return std::abs(a - b);
+}
+
+SemiGlobalMatcher::DisparityType 
+SemiGlobalMatcher::xy_to_disp(DisparityType dx, DisparityType dy) const {
+    return (dy-m_min_disp_y)*m_num_disp_x + (dx-m_min_disp_x);
+}
+
+/// Converts from a linear disparity index to the dx, dy values it represents.
+/// - This function is too slow to use inside the inner loop!
+void SemiGlobalMatcher::disp_to_xy(DisparityType disp, DisparityType &dx, 
+                                   DisparityType &dy) const {
+  dy = (disp / m_num_disp_x) + m_min_disp_y; // 2D implementation
+  dx = (disp % m_num_disp_x) + m_min_disp_x;
+}
+
+/// Convert a pixel's minimum disparity index to dx, dy.
+void SemiGlobalMatcher::disp_index_to_xy(int min_index, int col, int row, 
+                        DisparityType &dx, DisparityType &dy) const {
+  // Convert the disparity index to dx and dy
+  const Vector4i bounds = m_disp_bound_image(col,row);
+  int d_width  = bounds[2] - bounds[0] + 1;
+  dy = (min_index / d_width);
+  dx = min_index - (dy*d_width) + bounds[0];
+  dy += bounds[1];
+}
 
 } // end namespace stereo
 } // end namespace vw
