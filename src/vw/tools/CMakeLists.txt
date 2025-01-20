@@ -65,10 +65,6 @@ add_executable(hillshade hillshade.cc Common.h Common.cc)
 target_link_libraries(hillshade ${COMMON_LIBS})
 install(TARGETS hillshade DESTINATION bin)
 
-add_executable(ipalign ipalign.cc)
-target_link_libraries(ipalign ${COMMON_LIBS} VwInterestPoint)
-install(TARGETS ipalign DESTINATION bin)
-
 add_executable(ipfind ipfind.cc)
 target_link_libraries(ipfind ${COMMON_LIBS} VwInterestPoint)
 install(TARGETS ipfind DESTINATION bin)

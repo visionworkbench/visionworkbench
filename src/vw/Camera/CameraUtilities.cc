@@ -22,6 +22,7 @@
 ///
 #include <vw/Camera/CameraUtilities.h>
 #include <vw/Math/Geometry.h>
+#include <vw/Cartography/Datum.h>
 
 namespace vw {
 namespace camera {
@@ -56,6 +57,31 @@ void transform_to_vector(Vector<double>  & C,
   C[6] = scale;
   
   return;
+}
+
+// Pack a pinhole or optical bar model's rotation and camera center into a vector
+template <class CAM>
+void camera_to_vector(CAM const& P, Vector<double> & C){
+
+  Vector3 ctr = P.camera_center();
+  Vector3 axis_angle = P.camera_pose().axis_angle();
+  C.set_size(6);
+  subvector(C, 0, 3) = ctr;
+  subvector(C, 3, 3) = axis_angle;
+}
+
+// Pack a vector into a pinhole or optical bar model. We assume the model
+// already has set its optical center, focal length, etc. 
+template <class CAM>
+void vector_to_camera(CAM & P, Vector<double> const& C){
+
+  if (C.size() != 6) 
+    vw_throw( LogicErr() << "Expecting a vector of size 6.\n" );
+
+  Vector3 ctr      = subvector(C, 0, 3);
+  Quat    rotation = axis_angle_to_quaternion(subvector(C, 3, 3));
+  P.set_camera_center(ctr);
+  P.set_camera_pose(rotation);
 }
 
 /// Find the camera model that best projects given xyz points into given pixels.
@@ -438,6 +464,24 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     return out_model;
   }
 
+// Apply a given rotation + translation + scale to a pinhole model. We
+// assume the model already has set its optical center, focal length,
+// etc.
+void apply_rot_trans_scale(vw::camera::PinholeModel & P, vw::Vector<double> const& C) {
+
+  if (C.size() != 7) 
+    vw_throw( LogicErr() << "Expecting a vector of size 7.\n" );
+
+  // Parse the transform
+  Matrix3x3 rotation;
+  Vector3   translation;
+  double    scale;
+  vector_to_transform(C, rotation, translation, scale);
+
+  // Apply the transform
+  P.apply_transform(rotation, translation, scale);
+}
+
 /// Find the rotation + translation + scale that best projects given
 /// xyz points into given pixels for the input pinhole cameras (each
 /// pinhole camera has a few xyz and pixels).
@@ -470,9 +514,8 @@ public:
 
     // Create the camera models
     std::vector<vw::camera::PinholeModel> cameras = m_cameras; // make a copy local to this function
-    for (size_t it = 0; it < cameras.size(); it++) {
+    for (size_t it = 0; it < cameras.size(); it++)
       apply_rot_trans_scale(cameras[it], C); // update its parameters
-    }
     
     int result_size = 0;
     for (size_t it = 0; it < m_xyz.size(); it++) {
@@ -518,15 +561,14 @@ public:
   
 }; // End class CameraSolveRotTransScale
 
-// Given original cams in sfm_cams and individually scaled cameras in
-// aux_cams, get the median scale change from the first set to the second one.
-// It is important to do the median, since scaling the cameras individually
-// is a bit of a shaky business.
-double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & sfm_cams,
+// Given orig_cams individually scaled cameras in aux_cams, get the median scale
+// change from the first set to the second one. It is important to do the
+// median, since scaling the cameras individually is a bit of a shaky business.
+double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & orig_cams,
 				std::vector<vw::camera::PinholeModel> const & aux_cams,
 				std::vector< std::vector<vw::Vector3>> const& xyz){
   
-  int num_cams = sfm_cams.size();
+  int num_cams = orig_cams.size();
 
   std::vector<double> scales;
   
@@ -542,10 +584,8 @@ double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & sf
       if (!is_good)
         continue;
     
-      double len1 = norm_2(sfm_cams[it1].camera_center()
-			   - sfm_cams[it2].camera_center());
-      double len2 = norm_2(aux_cams[it1].camera_center()
-			   - aux_cams[it2].camera_center());
+      double len1 = norm_2(orig_cams[it1].camera_center() - orig_cams[it2].camera_center());
+      double len2 = norm_2(aux_cams[it1].camera_center() - aux_cams[it2].camera_center());
       
       double scale = len2/len1;
       scales.push_back(scale);
@@ -565,7 +605,7 @@ double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & sf
 // to transform cameras to ground coordinates.
 void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
                              std::vector<std::vector<Vector2>> const& pix,
-                             std::vector<PinholeModel> & sfm_cams,
+                             std::vector<PinholeModel> & cams,
                              Matrix3x3 & rotation, 
                              Vector3 & translation,
                              double & scale) {
@@ -579,7 +619,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
   // transform to apply to the unaligned cameras.
   std::vector<PinholeModel> aux_cams;
 
-  int num_cams = sfm_cams.size();
+  int num_cams = cams.size();
   for (int it = 0; it < num_cams; it++) {
     // Export to the format used by the API
     std::vector<double> pixel_values;
@@ -588,7 +628,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
       pixel_values.push_back(pix[it][c][1]);
     }
 
-    vw::CamPtr out_cam(new PinholeModel(sfm_cams[it]));
+    vw::CamPtr out_cam(new PinholeModel(cams[it]));
 
     bool is_good = (xyz[it].size() >= 3);
     if (is_good) 
@@ -598,7 +638,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
     aux_cams.push_back(*((PinholeModel*)out_cam.get()));
   }
 
-  double world_scale = find_median_scale_change(sfm_cams, aux_cams, xyz);
+  double world_scale = find_median_scale_change(cams, aux_cams, xyz);
   vw_out() << "Initial guess scale to apply when converting to world coordinates using GCP: "
 	   << world_scale << ".\n";
 
@@ -632,8 +672,8 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
         // Distance from camera center to xyz for the individually aligned cameras
         double len = norm_2(aux_cams[it].camera_center() - xyz[it][c]);
         len = len / world_scale;
-        Vector3 trans_xyz = sfm_cams[it].camera_center()
-          + len * sfm_cams[it].pixel_to_vector(pix[it][c]);
+        Vector3 trans_xyz = cams[it].camera_center()
+          + len * cams[it].pixel_to_vector(pix[it][c]);
         for (int row = 0; row < in_pts.rows(); row++) {
           in_pts(row, col)  = trans_xyz[row];
           out_pts(row, col) = xyz[it][c][row];
@@ -682,7 +722,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
   double rel_tolerance  = 1e-24;
   int    max_iterations = 2000;
   int status = 0;
-  CameraSolveRotTransScale lma_model(xyz, pixel_vec, sfm_cams);
+  CameraSolveRotTransScale lma_model(xyz, pixel_vec, cams);
   Vector<double> final_params
     = vw::math::levenberg_marquardt(lma_model, C, pixel_vec,
 				    status, abs_tolerance, rel_tolerance,
@@ -692,12 +732,48 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
   
   // Bring the cameras to world coordinates
   for (int it = 0; it < num_cams; it++) 
-    apply_rot_trans_scale(sfm_cams[it], final_params);
+    apply_rot_trans_scale(cams[it], final_params);
 
   // Unpack the final vector into a rotation + translation + scale
   vector_to_transform(final_params, rotation, translation, scale);
 
 }
+
+/// Class to use with the LevenbergMarquardt solver to optimize the parameters
+/// of a desired lens to match the passed in pairs of undistorted (input) and
+/// distorted (output) points.
+template <class DistModelT>
+struct DistortionOptimizeFunctor:
+    public math::LeastSquaresModelBase< DistortionOptimizeFunctor<DistModelT> > {
+  typedef Vector<double> result_type;
+  typedef Vector<double> domain_type;
+  typedef Matrix<double> jacobian_type;
+
+  const camera::PinholeModel& m_cam;
+  const std::vector<Vector2>& m_undist_coords;
+  
+  /// Init the object with the pinhole model and the list of undistorted image coordinates.
+  /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row) 
+  ///    must be passed to the solver function.
+  DistortionOptimizeFunctor(const camera::PinholeModel& cam,
+                            const std::vector<Vector2>& undist_coords):
+    m_cam(cam), m_undist_coords(undist_coords) {}
+  
+  /// Return a Vector<double> of all the distorted pixel coordinates.
+  inline result_type operator()( domain_type const& x ) const {
+    DistModelT lens(x); // Construct lens distortion model with given parameters
+    result_type out_vec;
+    
+    out_vec.set_size(m_undist_coords.size()*2);
+    for (size_t i=0; i<m_undist_coords.size(); ++i) {
+      Vector2 loc = lens.distorted_coordinates(m_cam, m_undist_coords[i]);
+      out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
+      out_vec[2*i+1] = loc[1];
+    }
+
+    return out_vec;
+  }
+}; // End class LensOptimizeFunctor
 
 ///  Given a camera model (pinhole or optical bar), create an approximate pinhole model
 /// of the desired type.
@@ -946,6 +1022,313 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
     
   return out_model;
 }
+ 
+// Solve for best fitting camera that projects given xyz locations at
+// given pixels. If cam_weight > 0, try to constrain the camera height
+// above datum at the value of cam_height.
+// If camera center weight is given, use that to constrain the
+// camera center, not just its height.
+template <class CAM>
+class CameraSolveLmaHt: public vw::math::LeastSquaresModelBase<CameraSolveLmaHt<CAM>> {
+  std::vector<vw::Vector3> const& m_xyz;
+  CAM m_camera_model;
+  double m_cam_height, m_cam_weight, m_cam_ctr_weight;
+  vw::cartography::Datum m_datum;
+  Vector3 m_input_cam_ctr;
+  
+public:
+
+  typedef vw::Vector<double>    result_type;   // pixel residuals
+  typedef vw::Vector<double, 6> domain_type;   // camera parameters (camera center and axis angle)
+  typedef vw::Matrix<double> jacobian_type;
+
+  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
+  CameraSolveLmaHt(std::vector<vw::Vector3> const& xyz,
+                    CAM const& camera_model,
+                    double cam_height, double cam_weight, double cam_ctr_weight,
+                    vw::cartography::Datum const& datum):
+    m_xyz(xyz),
+    m_camera_model(camera_model), 
+    m_cam_height(cam_height), m_cam_weight(cam_weight), m_cam_ctr_weight(cam_ctr_weight),
+    m_datum(datum), m_input_cam_ctr(m_camera_model.camera_center(vw::Vector2())) {}
+
+  /// Given the camera, project xyz into it
+  inline result_type operator()(domain_type const& C) const {
+
+    // Create the camera model
+    CAM camera_model = m_camera_model;  // make a copy local to this function
+    vector_to_camera(camera_model, C);  // update its parameters
+
+    int xyz_len = m_xyz.size();
+    size_t result_size = xyz_len * 2;
+    if (m_cam_weight > 0)
+      result_size += 1;
+    else if (m_cam_ctr_weight > 0)
+      result_size += 3; // penalize deviation from original camera center
+     
+    // See where the xyz coordinates project into the camera.
+    result_type result;
+    result.set_size(result_size);
+    for (size_t i = 0; i < xyz_len; i++) {
+      Vector2 pixel = camera_model.point_to_pixel(m_xyz[i]);
+      result[2*i  ] = pixel[0];
+      result[2*i+1] = pixel[1];
+    }
+
+    if (m_cam_weight > 0) {
+      // Try to make the camera stay at given height
+      Vector3 cam_ctr = subvector(C, 0, 3);
+      Vector3 llh = m_datum.cartesian_to_geodetic(cam_ctr);
+      result[2*xyz_len] = m_cam_weight*(llh[2] - m_cam_height);
+    } else if (m_cam_ctr_weight > 0) {
+      // Try to make the camera stay close to given center
+      Vector3 cam_ctr = subvector(C, 0, 3);
+      for (int it = 0; it < 3; it++) 
+        result[2*xyz_len + it] = m_cam_ctr_weight*(m_input_cam_ctr[it] - cam_ctr[it]);
+    }
+    
+    return result;
+  }
+}; // End class CameraSolveLmaHt
+
+// Find the best-fitting optical bar model given xyz points and pixel values.
+void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
+                   double cam_height, double cam_weight, double cam_ctr_weight,
+                   vw::cartography::Datum const& datum, 
+                   std::vector<double> const& pixel_values,
+                   vw::camera::OpticalBarModel & out_cam) { 
+
+  Vector<double> out_vec; // must copy to this structure
+  int residual_len = pixel_values.size();
+
+  if (cam_weight > 0.0) 
+    residual_len += 1; // for camera height residual
+  else if (cam_ctr_weight > 0)
+    residual_len += 3; // for camera center residual
+
+  // Copy the image pixels
+  out_vec.set_size(residual_len);
+  for (size_t corner_it = 0; corner_it < pixel_values.size(); corner_it++) 
+    out_vec[corner_it] = pixel_values[corner_it];
+
+  // Use 0 for the remaining fields corresponding to camera height or 
+  // camera center constraint
+  for (int it = pixel_values.size(); it < residual_len; it++)
+    out_vec[it] = 0.0;
+    
+  double abs_tolerance  = 1e-24;
+  double rel_tolerance  = 1e-24;
+  int    max_iterations = 2000;
+  int status = 0;
+  Vector<double> final_params;
+  Vector<double> seed;
+
+  CameraSolveLmaHt<vw::camera::OpticalBarModel>
+    lma_model(xyz_vec, out_cam, cam_height, cam_weight, cam_ctr_weight, datum);
+  camera_to_vector(out_cam, seed);
+  
+  final_params = math::levenberg_marquardt(lma_model, seed, out_vec,
+              status, abs_tolerance, rel_tolerance, max_iterations);
+  
+  vector_to_camera(out_cam, final_params);
+
+  if (status < 1)
+    vw_out() << "The Levenberg-Marquardt solver failed. Results may be inaccurate.\n";
+
+  return;
+}
+
+// Find the best-fitting pinhole model given xyz points and pixel values.
+void fitPinhole(std::vector<Vector3> const& xyz_vec,
+                double cam_height, double cam_weight, double cam_ctr_weight,
+                vw::cartography::Datum const& datum, 
+                std::vector<double> const& pixel_values,
+                PinholeModel & out_cam) {
+
+  Vector<double> out_vec; // must copy to this structure
+  int residual_len = pixel_values.size();
+
+  if (cam_weight > 0.0) 
+    residual_len += 1; // for camera height residual
+  else if (cam_ctr_weight > 0)
+    residual_len += 3; // for camera center residual
+
+  // Copy the image pixels
+  out_vec.set_size(residual_len);
+  for (size_t corner_it = 0; corner_it < pixel_values.size(); corner_it++) 
+    out_vec[corner_it] = pixel_values[corner_it];
+
+  // Use 0 for the remaining fields corresponding to camera height or 
+  // camera center constraint
+  for (int it = pixel_values.size(); it < residual_len; it++)
+    out_vec[it] = 0.0;
+    
+  double abs_tolerance  = 1e-24;
+  double rel_tolerance  = 1e-24;
+  int    max_iterations = 2000;
+  int status = 0;
+  Vector<double> final_params;
+  Vector<double> seed;
+    
+  CameraSolveLmaHt<PinholeModel> 
+  lma_model(xyz_vec, out_cam, cam_height, cam_weight, cam_ctr_weight, datum);
+  camera_to_vector(out_cam, seed);
+  
+  final_params = math::levenberg_marquardt(lma_model, seed, out_vec,
+              status, abs_tolerance, rel_tolerance,
+              max_iterations);
+  
+  vector_to_camera(out_cam, final_params);
+
+  if (status < 1)
+    vw_out() << "The Levenberg-Marquardt solver failed. Results may be inaccurate.\n";
+ 
+  return;
+}
+ 
+// Apply the epipolar alignment to images  
+void epipolar_transformed_images(
+         std::string const& left_camera_file,
+         std::string const& right_camera_file,
+         boost::shared_ptr<CameraModel> const left_epi_cam,
+         boost::shared_ptr<CameraModel> const right_epi_cam,
+         vw::ImageViewRef<vw::PixelMask<float>> const& left_image_in,
+         vw::ImageViewRef<vw::PixelMask<float>> const& right_image_in,
+         vw::BBox2i const& left_image_in_roi,
+         vw::BBox2i const& right_image_in_roi,
+         vw::Vector2i       & left_image_out_size,
+         vw::Vector2i       & right_image_out_size,
+         vw::ImageViewRef<vw::PixelMask<float>> & left_image_out,
+         vw::ImageViewRef<vw::PixelMask<float>> & right_image_out,
+         vw::ValueEdgeExtension<vw::PixelMask<float>> const& edge_ext) {
+
+  auto interp_func = BilinearInterpolation();
+  
+  // Load the original camera models with distortion
+  boost::shared_ptr<PinholeModel> left_pin (new PinholeModel(left_camera_file ));
+  boost::shared_ptr<PinholeModel> right_pin(new PinholeModel(right_camera_file));
+
+  // If necessary, replace the lens distortion models with a approximated models
+  //  that will be much faster in the camera_transform calls below.
+  Vector2i left_image_in_size (left_image_in.cols(),  left_image_in.rows() );
+  Vector2i right_image_in_size(right_image_in.cols(), right_image_in.rows());
+  bool force_conversion = false;
+  *left_pin.get() = fitPinholeModel(left_pin.get(), left_image_in_size, 
+                                    "TsaiLensDistortion", force_conversion);
+  *right_pin.get() = fitPinholeModel(right_pin.get(), right_image_in_size, 
+                                     "TsaiLensDistortion", force_conversion);
+ 
+  // Make sure there are no adjustments on the aligned camera models
+  PinholeModel* left_epi_pin  = dynamic_cast<PinholeModel*>(unadjusted_model(&(*left_epi_cam)));
+  PinholeModel* right_epi_pin = dynamic_cast<PinholeModel*>(unadjusted_model(&(*right_epi_cam)));
+  
+  // If so, create an adjusted version of the input files from disk and then transform, otherwise just transform.
+  Vector3 ZERO_TRANSLATION(0,0,0);
+  Quat    ZERO_ROTATION(1,0,0,0);
+  double  NO_SCALE = 1.0;
+  if (left_image_in_roi.min() != Vector2i(0,0)) {
+    // Get the input raw camera model with the crop applied.
+    AdjustedCameraModel left_adj_cam(left_pin, ZERO_TRANSLATION,  ZERO_ROTATION, left_image_in_roi.min(), NO_SCALE);
+    
+    // Convert from the cropped input to the epipolar-aligned camera model.
+    left_image_out  = camera_transform(left_image_in,  left_adj_cam,  *left_epi_pin,
+                                     left_image_out_size, edge_ext, interp_func);
+  }
+  else { // Don't need to handle crops.
+    left_image_out  = camera_transform(left_image_in,  *left_pin,  *left_epi_pin,
+                                       left_image_out_size, edge_ext, interp_func);
+  }
+  // Repeat for the right camera.
+  if (right_image_in_roi.min() != Vector2i(0,0)) {
+    AdjustedCameraModel right_adj_cam(right_pin, ZERO_TRANSLATION,  ZERO_ROTATION, right_image_in_roi.min(), NO_SCALE);
+
+    right_image_out = camera_transform(right_image_in, right_adj_cam, *right_epi_pin,
+                                       right_image_out_size, edge_ext, interp_func);
+  }
+  else { // No crops
+        right_image_out = camera_transform(right_image_in, *right_pin, *right_epi_pin,
+                                       right_image_out_size, edge_ext, interp_func);
+  }
+}
+  
+// Given two epipolar rectified CAHV camera models and input images,
+// get the aligned version of the images suitable for writing to disk and processing.
+void epipolar_transformed_cahv_images(
+        std::string const& left_camera_file,
+        std::string const& right_camera_file,
+        boost::shared_ptr<CameraModel> const left_cahv_camera,
+        boost::shared_ptr<CameraModel> const right_cahv_camera,
+        vw::ImageViewRef<vw::PixelMask<float>> const& left_image_in,
+        vw::ImageViewRef<vw::PixelMask<float>> const& right_image_in,
+        vw::ImageViewRef<vw::PixelMask<float>> & left_image_out,
+        vw::ImageViewRef<vw::PixelMask<float>> & right_image_out,
+        vw::ValueEdgeExtension<vw::PixelMask<float>> const& edge_ext) {
+
+  auto interp_func = BilinearInterpolation();
+  
+  // In the epipolar alignment case, the "camera_models" function returns the CAHVModel type!
+  CAHVModel* left_epipolar_cahv  = dynamic_cast<CAHVModel*>(unadjusted_model(&(*left_cahv_camera )));
+  CAHVModel* right_epipolar_cahv = dynamic_cast<CAHVModel*>(unadjusted_model(&(*right_cahv_camera)));
+  if (!left_epipolar_cahv || !right_epipolar_cahv) {
+    vw_throw(ArgumentErr() << "load_cahv_pinhole_camera_model: CAHVModel cast failed!\n");
+  }
+
+  // Lens distortion is corrected in the transform from the input camera files
+  //  to the input distortionless CAHV camera models.
+
+  std::string lcase_file = boost::to_lower_copy(left_camera_file);
+
+  // Remove lens distortion and create epipolar rectified images.
+  if (boost::ends_with(lcase_file, ".cahvore")) {
+    CAHVOREModel left_cahvore (left_camera_file );
+    CAHVOREModel right_cahvore(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahvore,  *left_epipolar_cahv,
+                                       edge_ext, interp_func);
+    right_image_out = camera_transform(right_image_in, right_cahvore, *right_epipolar_cahv,
+                                       edge_ext, interp_func);
+    
+  } else if (boost::ends_with(lcase_file, ".cahvor") ||
+             boost::ends_with(lcase_file, ".cmod") ) {
+    CAHVORModel left_cahvor (left_camera_file );
+    CAHVORModel right_cahvor(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahvor,  *left_epipolar_cahv,
+                                       edge_ext, interp_func);
+    right_image_out = camera_transform(right_image_in, right_cahvor, *right_epipolar_cahv,
+                                       edge_ext, interp_func);
+
+  } else if ( boost::ends_with(lcase_file, ".cahv") ||
+              boost::ends_with(lcase_file, ".pin" )) {
+    CAHVModel left_cahv (left_camera_file );
+    CAHVModel right_cahv(right_camera_file);
+    left_image_out  = camera_transform(left_image_in,  left_cahv,  *left_epipolar_cahv,
+                                       edge_ext, interp_func);
+    right_image_out = camera_transform(right_image_in, right_cahv, *right_epipolar_cahv,
+                                       edge_ext, interp_func);
+
+  } else if ( boost::ends_with(lcase_file, ".pinhole") ||
+              boost::ends_with(lcase_file, ".tsai") ) {
+    PinholeModel left_pin (left_camera_file );
+    PinholeModel right_pin(right_camera_file);
+
+    // If necessary, replace the lens distortion models with a approximated models
+    //  that will be much faster in the camera_transform calls below.
+    Vector2i left_image_size (left_image_in.cols(),  left_image_in.rows() );
+    Vector2i right_image_size(right_image_in.cols(), right_image_in.rows());
+    bool force_conversion = false;
+    left_pin = fitPinholeModel(&left_pin, left_image_size, "TsaiLensDistortion", 
+                               force_conversion);
+    right_pin = fitPinholeModel(&right_pin, right_image_size, "TsaiLensDistortion", 
+                                force_conversion);
+    
+    left_image_out  = camera_transform(left_image_in,  left_pin,  *left_epipolar_cahv,
+                                       edge_ext, interp_func);
+    right_image_out = camera_transform(right_image_in, right_pin, *right_epipolar_cahv,
+                                       edge_ext, interp_func);
+
+  } else {
+    vw_throw(ArgumentErr() << "epipolar_transformed_cahv_images: unsupported camera file type.\n");
+  }
+
+}
   
 }} // end namespace vw::camera
-
