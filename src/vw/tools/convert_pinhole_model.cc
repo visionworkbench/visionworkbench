@@ -59,25 +59,31 @@ int main(int argc, char *argv[]) {
   std::string image_size_str;
 
   Options opt;
-  po::options_description general_options("Usage: convert_pinhole_model [options] <input image> <camera model> \n\nOptions");
+  po::options_description general_options
+  ("Usage: convert_pinhole_model [options] <input image> <camera model> ""\n\nOptions");
   general_options.add_options()
-    ("help,h",        "Display this help message.")
-    ("input-file",    po::value<std::string>(&image_file_name), 
-                      "Explicitly specify the input file.")
-    ("camera-file",    po::value<std::string>(&camera_file_name), 
-                      "Explicitly specify the camera file.")
+    ("help,h",
+     "Display this help message.")
+    ("input-file", po::value<std::string>(&image_file_name), 
+     "Explicitly specify the input file.")
+    ("camera-file", po::value<std::string>(&camera_file_name), 
+     "Explicitly specify the camera file.")
     ("sample-spacing", po::value(&sample_spacing)->default_value(0),    
-                       "Pick one out of this many consecutive pixels to sample. if not specified, it will be auto-computed.")
+     "Pick one out of this many consecutive pixels to sample. if not specified, it will "
+     "be auto-computed.")
     ("output-type", po::value<std::string>(&output_model_type)->default_value("TsaiLensDistortion"), 
      "The output model type. Options: TsaiLensDistortion, BrownConradyDistortion, RPC.")
-    ("rpc-degree", po::value(&rpc_degree)->default_value(3),    
-                       "The degree of the polynomials, if the output distortion model is RPC.")
+    ("rpc-degree", po::value(&rpc_degree)->default_value(3),
+     "The degree of the polynomials, if the output distortion model is RPC.")
     ("camera-to-ground-dist", po::value(&camera_to_ground_dist)->default_value(0),    
      "The distance from the camera to the ground, in meters. This is necessary to convert an optical bar model to pinhole.")
-    ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
+    ("output-file,o", 
+     po::value<std::string>(&output_file_name)->default_value("output.tsai"), 
      "Specify the output file. It is expected to have the .tsai extension.")
-    ("image-size",        po::value(&image_size_str)->default_value(""),
-     "Image width and height, specified as two numbers in quotes and separated by a space, unless the input image file is provided.");
+    ("image-size",
+     po::value(&image_size_str)->default_value(""),
+     "Image width and height, specified as two numbers in quotes and separated by a "
+     "space, unless the input image file is provided.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
   
@@ -153,7 +159,7 @@ int main(int argc, char *argv[]) {
 
   try {
     // Get the size of the input image, unless the dimensions were already specified
-    if (image_size[0] <=0 || image_size[1] <= 0) {
+    if (image_size[0] <= 0 || image_size[1] <= 0) {
       boost::shared_ptr<vw::DiskImageResource> image_in
         (vw::DiskImageResource::open(image_file_name));
       image_size = vw::Vector2(image_in->format().cols, image_in->format().rows);
@@ -186,42 +192,23 @@ int main(int argc, char *argv[]) {
         in_model = &opb;
         success = true;
         vw_out() << "Read an OpticalBarModel camera.\n";
-        if (camera_to_ground_dist <= 0){
+        if (camera_to_ground_dist <= 0) {
           vw_out() << "Must set the camera to ground distance "
                    << "if the input is an optical bar model.\n";
           return 1;
         }
-      }catch(...){}
+      } catch(...){}
     }
     
     if (!success) 
       vw_throw(ArgumentErr() << "Could not read the camera model.\n");
     
-    PinholeModel out_model;
     bool force_conversion = true;
-    
-    //double error;
-    if (output_model_type == "TsaiLensDistortion") {
-      //error =
-      create_approx_pinhole_model<TsaiLensDistortion>
-        (in_model, out_model, image_size, sample_spacing, force_conversion,
-         rpc_degree, camera_to_ground_dist);
-    }else if (output_model_type == "BrownConradyDistortion") {
-      //error =
-      create_approx_pinhole_model<BrownConradyDistortion>
-        (in_model, out_model, image_size, sample_spacing, force_conversion,
-         rpc_degree, camera_to_ground_dist);
-    } else if (output_model_type == RPCLensDistortion::class_name()) {
-      //error =
-      create_approx_pinhole_model<RPCLensDistortion>
-        (in_model, out_model, image_size, sample_spacing, force_conversion,
-         rpc_degree, camera_to_ground_dist);
-    }else{
-      vw_out() << "Unsupported output model type: " << output_model_type << "\n";
-      return 1;
-    }
-    
-    //vw_out() << "Approximation error = " << error << std::endl;
+    PinholeModel out_model 
+      = fitPinholeModel(in_model, image_size, output_model_type,
+                        force_conversion,
+                        sample_spacing, rpc_degree, camera_to_ground_dist);
+
     vw_out() << "Writing output model: " << output_file_name.c_str() << "\n";
     out_model.write(output_file_name);
   }

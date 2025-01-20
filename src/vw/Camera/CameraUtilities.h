@@ -185,15 +185,20 @@ struct DistortionOptimizeFunctor:
 ///  Given a camera model (pinhole or optical bar), create an approximate pinhole model
 /// of the desired type.
 template<class DistModelT>
-double create_approx_pinhole_model(CameraModel * const input_model,
+double create_approx_pinhole_model(CameraModel const* input_model,
                                    PinholeModel& out_model, Vector2i image_size,
                                    int sample_spacing, bool force_conversion,
                                    int rpc_degree, double camera_to_ground_dist) {
 
+  std::cout << "--sample spacing before: " << sample_spacing << std::endl;
+  if (sample_spacing <= 0) 
+    sample_spacing = auto_compute_sample_spacing(image_size);
+  std::cout << "--sample spacing after: " << sample_spacing << std::endl;
+  
   double pixel_pitch;
   std::string lens_name;
-  OpticalBarModel * opb_model = dynamic_cast<OpticalBarModel*>(input_model);
-  PinholeModel    * pin_model = dynamic_cast<PinholeModel*>(input_model);
+  OpticalBarModel const* opb_model = dynamic_cast<OpticalBarModel const*>(input_model);
+  PinholeModel    const* pin_model = dynamic_cast<PinholeModel const*>(input_model);
 
   // Handle the case when the input model is Pinhole
   if (pin_model != NULL) {
@@ -212,6 +217,7 @@ double create_approx_pinhole_model(CameraModel * const input_model,
           lens_name == "AdjustableTSAI"                 ||
           lens_name == RPCLensDistortion::class_name())) {
       //vw_out() << "Input distortion is: " << lens_name << ". Refusing to run.\n";
+      std::cout << "---tmp reusing to run!\n";
       return 0;
     }
   }
@@ -265,8 +271,8 @@ double create_approx_pinhole_model(CameraModel * const input_model,
       if (pin_model != NULL) {
 
         undist_pixel = pix * pixel_pitch;
-        dist_pixel   = pin_model->lens_distortion()->distorted_coordinates(*pin_model,
-                                                                           undist_pixel);
+        dist_pixel 
+          = pin_model->lens_distortion()->distorted_coordinates(*pin_model, undist_pixel);
         
       } else if (opb_model != NULL) {
 
@@ -393,6 +399,15 @@ double create_approx_pinhole_model(CameraModel * const input_model,
   return mean_error;
 } 
 
+// Approximate a given model with a pinhole model with given distortion
+PinholeModel fitPinholeModel(CameraModel const* in_model, 
+                             vw::Vector2 const& image_size,
+                             std::string const& out_distortion_type,
+                             bool force_conversion,
+                             int sample_spacing = 0,
+                             int rpc_degree = 0,
+                             double camera_to_ground_dist = 0);
+
 /// If necessary, replace the lens distortion model in the pinhole camera model
 ///  with an approximated model that has a fast distortion function needed for
 ///  quick computation of the point_to_pixel function.
@@ -403,8 +418,7 @@ double update_pinhole_for_fast_point2pixel(PinholeModel& pin_model, Vector2i ima
                                            int sample_spacing = 0,
                                            bool force_conversion = false) {
   
-  if (sample_spacing <= 0) 
-    sample_spacing = auto_compute_sample_spacing(image_size);
+  std::cout << "--now in update_pinhole_for_fast_point2pixel\n";
   
   PinholeModel in_model = pin_model;
   int rpc_degree = 0;

@@ -698,6 +698,36 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
   vector_to_transform(final_params, rotation, translation, scale);
 
 }
+
+PinholeModel fitPinholeModel(CameraModel const* in_model, 
+                             vw::Vector2 const& image_size,
+                             std::string const& out_distortion_type,
+                             bool force_conversion,
+                             int sample_spacing,
+                             int rpc_degree,
+                             double camera_to_ground_dist) {
+
+  PinholeModel out_model;
+
+  if (out_distortion_type == "TsaiLensDistortion") {
+    create_approx_pinhole_model<TsaiLensDistortion>
+      (in_model, out_model, image_size, sample_spacing, force_conversion,
+        rpc_degree, camera_to_ground_dist);
+  }else if (out_distortion_type == "BrownConradyDistortion") {
+    create_approx_pinhole_model<BrownConradyDistortion>
+      (in_model, out_model, image_size, sample_spacing, force_conversion,
+        rpc_degree, camera_to_ground_dist);
+  } else if (out_distortion_type == RPCLensDistortion::class_name()) {
+    create_approx_pinhole_model<RPCLensDistortion>
+      (in_model, out_model, image_size, sample_spacing, force_conversion,
+        rpc_degree, camera_to_ground_dist);
+  }else{
+    vw::vw_throw(vw::ArgumentErr() 
+                   << "Unsupported output model type: " << out_distortion_type << "\n");
+  }
+    
+  return out_model;
+}
   
 }} // end namespace vw::camera
 
