@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -14,7 +14,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // __END_LICENSE__
-
 
 /// \file CameraUtilities.h
 ///
@@ -38,34 +37,30 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
-  
-namespace cartography {
-  class Datum;
-}
-  
+
 namespace camera {
 
 // These functions are defined in the .cc file:
 
 /// Unpack a vector into a rotation + translation + scale
-void vector_to_transform(Vector<double> const & C, 
-			 Matrix3x3            & rotation,
-			 Vector3              & translation,
-			 double               & scale);
+void vector_to_transform(Vector<double> const & C,
+             Matrix3x3            & rotation,
+             Vector3              & translation,
+             double               & scale);
 
 // Pack a rotation + translation + scale into a vector
-void transform_to_vector(Vector<double>  & C, 
-			 Matrix3x3 const & rotation,
-			 Vector3   const & translation,
-			 double    const & scale);
+void transform_to_vector(Vector<double>  & C,
+             Matrix3x3 const & rotation,
+             Vector3   const & translation,
+             double    const & scale);
 
 /// Adjust a given camera so that the xyz points project project to
 /// the pixel values.
 void fit_camera_to_xyz(std::string const& camera_type,
-		       bool refine_camera, 
-		       std::vector<Vector3> const& xyz_vec,
-		       std::vector<double> const& pixel_values,
-		       bool verbose, boost::shared_ptr<CameraModel> & out_cam);
+               bool refine_camera,
+               std::vector<Vector3> const& xyz_vec,
+               std::vector<double> const& pixel_values,
+               bool verbose, boost::shared_ptr<CameraModel> & out_cam);
 
 // Given some GCP so that at least two images have at at least three GCP each,
 // but each GCP is allowed to show in one image only, use the GCP
@@ -73,10 +68,10 @@ void fit_camera_to_xyz(std::string const& camera_type,
 void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
                              std::vector<std::vector<Vector2>> const& pix,
                              std::vector<PinholeModel> & sfm_cams,
-                             vw::Matrix3x3 & rotation, 
+                             vw::Matrix3x3 & rotation,
                              vw::Vector3 & translation,
                              double & scale);
-  
+
 /// Load a pinhole camera model of any supported type
 boost::shared_ptr<CameraModel> load_pinhole_camera_model(std::string const& path);
 
@@ -85,10 +80,10 @@ boost::shared_ptr<CAHVModel>
 load_cahv_pinhole_camera_model(std::string const& image_path,
                                std::string const& camera_path);
 
-/// Compute a good sample spacing for the given input image so that 
+/// Compute a good sample spacing for the given input image so that
 /// the undistortion functions below won't take too long.
 int auto_compute_sample_spacing(Vector2i const image_size);
- 
+
 /// Adjust a pair of epipolar-aligned cameras so that the input images are fully
 /// contained in the transformed images.
 // TODO(oalexan1): Move to EpipolarTransform.h.
@@ -109,7 +104,7 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
 // quick computation of the point_to_pixel function. Does not replace the camera
 // if the approximation error is too high, unless forced. Does not force the
 // replacement of distortion for fast models, unless forced.
-PinholeModel fitPinholeModel(CameraModel const* in_model, 
+PinholeModel fitPinholeModel(CameraModel const* in_model,
                              vw::Vector2 const& image_size,
                              std::string const& out_distortion_type,
                              bool force_conversion,
@@ -117,21 +112,7 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
                              int rpc_degree = 0,
                              double camera_to_ground_dist = 0);
 
-// Find the best-fitting pinhole model given xyz points and pixel values.
-void fitPinhole(std::vector<Vector3> const& xyz_vec,
-                double cam_height, double cam_weight, double cam_ctr_weight,
-                vw::cartography::Datum const& datum, 
-                std::vector<double> const& pixel_values,
-                PinholeModel & out_cam);
-
-// Find the best-fitting optical bar model given xyz points and pixel values.
-void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
-                   double cam_height, double cam_weight, double cam_ctr_weight,
-                   vw::cartography::Datum const& datum, 
-                   std::vector<double> const& pixel_values,
-                   vw::camera::OpticalBarModel & out_cam); 
-
-// Apply the epipolar alignment to images  
+// Apply the epipolar alignment to images
 void epipolar_transformed_images(
          std::string const& left_camera_file,
          std::string const& right_camera_file,
