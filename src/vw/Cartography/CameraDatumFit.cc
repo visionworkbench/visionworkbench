@@ -127,13 +127,11 @@ void fitCam(std::vector<Vector3> const& xyz_vec,
   Vector<double> seed;
 
   CameraSolveLmaHt<CAM>
-    lma_model(xyz_vec, out_cam, cam_height, cam_weight, cam_ctr_weight, datum);
-  camera_to_vector(out_cam, seed);
-
+    lma_model(xyz_vec, out_cam, cam_height, cam_weight, cam_ctr_weight, datum); // setup
+  camera_to_vector(out_cam, seed); // initial guess
   final_params = math::levenberg_marquardt(lma_model, seed, out_vec,
-              status, abs_tolerance, rel_tolerance, max_iterations);
-
-  vector_to_camera(out_cam, final_params);
+              status, abs_tolerance, rel_tolerance, max_iterations); // solve
+  vector_to_camera(out_cam, final_params); // form the optimized camera
 
   if (status < 1)
     vw_out() << "The Levenberg-Marquardt solver failed. Results may be inaccurate.\n";
@@ -149,8 +147,7 @@ void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
                    vw::cartography::Datum const& datum,
                    std::vector<double> const& pixel_values,
                    vw::camera::OpticalBarModel & out_cam) {
-  fitCam<vw::camera::OpticalBarModel>(xyz_vec, cam_height, cam_weight, cam_ctr_weight, 
-                                      datum, pixel_values, out_cam);
+  fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
 }
 
 // Find the best-fitting pinhole model given xyz points and pixel values.
@@ -161,7 +158,6 @@ void fitPinhole(std::vector<Vector3> const& xyz_vec,
                 std::vector<double> const& pixel_values,
                 vw::camera::PinholeModel & out_cam) {
 
-  fitCam<vw::camera::PinholeModel>(xyz_vec, cam_height, cam_weight, cam_ctr_weight, 
-                                   datum, pixel_values, out_cam);
+  fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
 }
 }} // end namespace vw::cartography

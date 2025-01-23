@@ -867,10 +867,10 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
 /// Adjust a given camera so that the xyz points project project to
 /// the pixel values.
 void fit_camera_to_xyz(std::string const& camera_type,
-               bool refine_camera,
-               std::vector<Vector3> const& xyz_vec,
-               std::vector<double> const& pixel_values,
-               bool verbose, boost::shared_ptr<CameraModel> & out_cam) {
+                       bool refine_camera,
+                       std::vector<Vector3> const& xyz_vec,
+                       std::vector<double> const& pixel_values,
+                       bool verbose, boost::shared_ptr<CameraModel> & out_cam) {
 
   // Create fake points in space at given distance from this camera's
   // center and corresponding actual points on the ground.  Use 500

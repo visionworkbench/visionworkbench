@@ -401,6 +401,11 @@ public:
 
   /// Evaluator. See description above.
   inline result_type operator()(domain_type const& len) const {
+    
+    // Check for NaN. This is a bugfix.
+    if (len != len) 
+      return len[0]; 
+    
     // The proposed intersection point
     Vector3 xyz = m_camera_ctr + len[0]*m_camera_vec;
 
@@ -585,7 +590,7 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
     findInitPositionAboveDEM(model, camera_ctr, xyz,
       // outputs
       has_intersection, len);
-
+    
     // Call the secant method function to find the intersection with the
     // ground. Return has_intersection and len. This is 10x faster and more
     // robust than the Levenberg-Marquardt method used below (which used to be
@@ -701,7 +706,7 @@ void sampleImageBoundary(int cols, int rows, int num_samples, bool quick,
     // Do the x pattern
     functor.m_last_valid = false;
     bresenham_apply(math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor);
-
+    
     functor.m_last_valid = false;
     bresenham_apply(math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor);
     functor.m_last_valid = false;
@@ -929,7 +934,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   bool quick,
                   std::vector<Vector3> *coords,
                   int num_samples) {
-
+  
   // An estimate of the DEM height above the datum
   double height_guess = vw::cartography::demHeightGuess(dem);
 
@@ -938,7 +943,6 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
   bool center_on_zero = true;
   Vector3 cam_llh = // Compute lon/lat/height of camera center
     target_georef.datum().cartesian_to_geodetic(camera_model->camera_center(Vector2()));
-
   if (cam_llh[0] < -90 || cam_llh[0] > 90)
     center_on_zero = false;
 
@@ -949,7 +953,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
   // Image sampling. About 1000 samples are needed to not cut the corners
   // for complex geometry.
   sampleImageBoundary(cols, rows, num_samples, quick, functor);
-
+  
   // The bounding box collected so far.
   BBox2 cam_bbox = functor.box;
 
@@ -967,7 +971,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
   mean_gsd = calcMeanGsd(cols, rows, functor, cam_pixels, pix2xyz,
                          dem, dem_georef, target_georef, camera_model,
                          height_guess);
-  
+
   return cam_bbox;
 }
 
