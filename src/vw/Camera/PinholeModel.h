@@ -221,7 +221,7 @@ namespace camera {
 
     // Is a valid projection of point is possible?
     // This is equal to: Is the point in front of the camera (z > 0)
-    // after extinsic transformation?
+    // after extrinsic transformation?
     virtual bool projection_valid(Vector3 const& point) const;
 
     // Returns a (normalized) pointing vector from the camera center
@@ -240,7 +240,7 @@ namespace camera {
     void set_camera_pose(Matrix<double,3,3> const& pose);
     
     // WARNING: There may be a bug copying pose between cameras so use this function
-    //           instead of camera_pose() for copies until it is resolved!
+    //          instead of camera_pose() for copies until it is resolved!
     Matrix<double,3,3> const& get_rotation_matrix() const {return m_rotation;}
 
     //  u_direction, v_direction, and w_direction define how the coordinate
