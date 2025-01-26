@@ -35,11 +35,13 @@ void checkDatumConsistency(vw::cartography::Datum const& datum1,
   double rad = 1.0e+6; // 1000 km
   bool small_body = (datum1.semi_major_axis() < rad || datum1.semi_minor_axis() < rad ||
                      datum2.semi_major_axis() < rad || datum2.semi_minor_axis() < rad);
-                     
-  if (err >= 1e-6) {
+                 
+  // Do not warn for small errors, like between WGS84 and 3D CRS. This is meant
+  // to catch gross problems, such as planet mixup.                   
+  if (err >= 10.0) {
     std::ostringstream oss;
     oss.precision(8);
-    oss << "Found mis-matched datums. The difference in semi-axes is: " 
+    oss << "Found two distinct datums. The difference in semi-axes is: " 
         << err << " meters.\n"
         << "Datum 1: " << datum1 << "\n"
         << "Datum 2: " << datum2 << "\n";
