@@ -268,6 +268,13 @@ public:
     if (buffer_size > parent_ptr->m_buffer_lengths)
       buffer_size = parent_ptr->m_buffer_lengths;
 
+    // TODO(oalexan1): Two users reported failure that can be traced back to
+    // "Ran out of memory in the small buffer", and ultimately to choices made
+    // here. These choices are arbitrary. Why can't the buffer be made larger or
+    // grow with m_buffer_lengths? This logic is repeated in a different place
+    // in this file. We should allow the buffer size to be max of 
+    // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
+
     // If the buffer is over 128 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
@@ -591,9 +598,17 @@ public:
     if (buffer_size > parent_ptr->m_buffer_lengths)
       buffer_size = parent_ptr->m_buffer_lengths;
 
+    // TODO(oalexan1): Two users reported failure that can be traced back to
+    // "Ran out of memory in the small buffer", and ultimately to choices made
+    // here. These choices are arbitrary. Why can't the buffer be made larger or
+    // grow with m_buffer_lengths? This logic is repeated in a different place
+    // in this file. We should allow the buffer size to be max of
+    // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
+
     // If the buffer is over 64 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
     const size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
+    
     const double MAX_PERCENTAGE   = 0.02;
 
     if (buffer_size > SAFE_BUFFER_SIZE) {
