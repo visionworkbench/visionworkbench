@@ -82,16 +82,20 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       size_t k_cam_id = cp[k].image_id();
       
       // Make sure camera centers are not equal
-      auto const& c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
-      auto const& c2 = camera_models[k_cam_id]->camera_center(cp[k].position());
-      if (norm_2(c1 - c2) <= 1e-6)
+      try {
+        // This trips up the CSM frame camera model
+        auto const& c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
+        auto const& c2 = camera_models[k_cam_id]->camera_center(cp[k].position());
+        if (norm_2(c1 - c2) <= 1e-6)
+          continue;
+      } catch (...) {
         continue;
+      }
         
       try {
         bool least_squares = false;
         stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
                                 least_squares, angle_tol); // use angle_tol
-        
         Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
         // TODO: When forced_triangulation_distance > 0, one can check
         // if the triangulated point is behind the camera, and if yes,
