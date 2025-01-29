@@ -39,7 +39,7 @@ public:
   };
 
   inline channel_type operator()( channel_type const& val ) const {
-    return val != m_nodata ? range_type::max() : range_type::min();
+    return (val != m_nodata) && !std::isnan(val) ? range_type::max() : range_type::min();
   }
 };
 
