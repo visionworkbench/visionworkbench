@@ -36,7 +36,7 @@ namespace camera {
 
   /// This is a simple "generic" pinhole camera model.
   ///
-  /// To specify the EXTRINSIC paramters of the camera, we specify the
+  /// To specify the EXTRINSIC parameters of the camera, we specify the
   /// position of the camera center in the world frame (m_camera_center)
   /// and the pose (or orientation) of the camera in world frame (m_rotation)
   /// (which is the transformation from the camera's frame to the world frame).
