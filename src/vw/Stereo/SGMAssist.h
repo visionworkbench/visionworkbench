@@ -100,19 +100,11 @@ m = [1 1  1 -1 -1 1;
     }
     Vector2f offset((vals[2] * vals[4] - 2.0 * vals[1] * vals[3]) / denom,   // ce - 2bd
                      (vals[2] * vals[3] - 2.0 * vals[0] * vals[4]) / denom); // cd - 2ae
-    /*
-    if (norm_2(offset) > 0.99) {
-      //vw_throw(NoImplErr() << "DEBUG!\n");
-      return false;
-    }
-    dx = offset[0];
-    dy = offset[1];*/
-
 
     dx = offset[0];
     dy = offset[1];
 
-    // APPLY CORRECTION
+    // Apply correction to dx and dy
     double sX = 0.34574;
     double sY = 0.38944;
     dx = erf(dx/(sX*sqrt(2.0))) / 2.0;
@@ -216,10 +208,6 @@ private:
 
 }; // End class IterativeMaskBoxCounter
 
-
-//==================================================================================
-
-
 /**
  Helper class to manage the rolling accumulation buffer temporary memory
   until the results are added to the final accumulation buffer.  Used by 
@@ -280,6 +268,10 @@ public:
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
 
+    std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "Buffer size is        " << buffer_size << std::endl;
+    std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
       if (buffer_size < SAFE_BUFFER_SIZE)
@@ -379,10 +371,10 @@ public:
     SemiGlobalMatcher::AccumCostType* out_ptr = m_parent_ptr->m_accum_buffer.get();
     if (!m_vertical) { // horizontal
       for (int col=0; col<m_parent_ptr->m_num_output_cols; ++col) {
-        int num_disps = m_parent_ptr->get_num_disparities(col, m_current_row);
+        int num_disp = m_parent_ptr->get_num_disparities(col, m_current_row);
         for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
           size_t out_index = m_parent_ptr->m_buffer_starts(col, m_current_row);
-          for (int d=0; d<num_disps; ++d) {
+          for (int d=0; d<num_disp; ++d) {
             out_ptr[out_index++] += m_lead_buffer[buffer_index++];
             //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
             //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
@@ -391,10 +383,10 @@ public:
       } // end col loop
     } else { // vertical
       for (int row=0; row<m_parent_ptr->m_num_output_rows; ++row) {
-        int num_disps = m_parent_ptr->get_num_disparities(m_current_col, row);
+        int num_disp = m_parent_ptr->get_num_disparities(m_current_col, row);
         for (int pass=0; pass<m_num_paths_in_pass; ++pass) {
           size_t out_index = m_parent_ptr->m_buffer_starts(m_current_col, row);
-          for (int d=0; d<num_disps; ++d) {
+          for (int d=0; d<num_disp; ++d) {
             out_ptr[out_index++] += m_lead_buffer[buffer_index++];
             //printf("row, col, pass, d = %d, %d, %d, %d ->> %d ->> %d\n", 
             //    m_current_row, col, pass, d, m_trail_buffer[buffer_index], m_parent_ptr->m_accum_buffer[out_index]);
@@ -472,8 +464,8 @@ public:
   /// Get the pointer to write the output of the current pass to
   SemiGlobalMatcher::AccumCostType * get_output_accum_ptr(PassIndex pass) {
     
-    int    num_disps   = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
-    size_t pass_offset = num_disps*pass;
+    int    num_disp    = m_parent_ptr->get_num_disparities(m_current_col, m_current_row);
+    size_t pass_offset = num_disp*pass;
     size_t offset      = 0;
     if (m_vertical)
       offset = (m_offsets_lead[m_current_row] + pass_offset);
@@ -481,7 +473,8 @@ public:
       offset = (m_offsets_lead[m_current_col] + pass_offset);
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size)
+    // TODO(oalexan1): Look into this too.
+    if (offset + num_disp > m_buffer_size)
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, "
                              << "disparity image may be degenerate.\n");
 
@@ -494,8 +487,8 @@ public:
  
     int    col         = m_current_col + col_offset;
     int    row         = m_current_row + row_offset;
-    int    num_disps   = m_parent_ptr->get_num_disparities(col, row);
-    size_t pass_offset = num_disps*pass;
+    int    num_disp    = m_parent_ptr->get_num_disparities(col, row);
+    size_t pass_offset = num_disp*pass;
 
     // Just get the index of the column in the correct buffer, then add an offset for the selected pass.
     size_t offset = 0;
@@ -523,7 +516,7 @@ public:
     }
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disps > m_buffer_size)
+    if (offset + num_disp > m_buffer_size)
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, disparity "
                              << "image may be degenerate.\n");
     
@@ -607,9 +600,12 @@ public:
 
     // If the buffer is over 64 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
-    const size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
-    
-    const double MAX_PERCENTAGE   = 0.02;
+    size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
+    double MAX_PERCENTAGE   = 0.02;
+
+    std::cout << "2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "Buffer size is        " << buffer_size << std::endl;
+    std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
 
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
@@ -732,20 +728,21 @@ private:
 
 /// Performs SGM accumulation along one line and then adds it to the parent accumulation buffer
 /// - Task object which can be passed to a thread pool.
-class PixelPassTask : public Task {
+class PixelPassTask: public Task {
 public:
 
   /// Constructor, pass in all the needed links.
   PixelPassTask(ImageView<uint8>  const* image_ptr,
                 SemiGlobalMatcher      * parent_ptr,
                 OneLineBufferManager   * buffer_manager_ptr,
-                PixelLineIterator pixel_loc_iter)
-    : m_image_ptr(image_ptr), m_parent_ptr(parent_ptr), m_buffer_manager_ptr(buffer_manager_ptr),
-      m_pixel_loc_iter(pixel_loc_iter) {
-  }
+                PixelLineIterator pixel_loc_iter, 
+                int * success): 
+  m_image_ptr(image_ptr), m_parent_ptr(parent_ptr), 
+  m_buffer_manager_ptr(buffer_manager_ptr), m_pixel_loc_iter(pixel_loc_iter),
+  m_success(success) {}
 
-  /// Do the work!
-  virtual void operator()() {
+  /// Do the work in a thread
+  void PixelPassDoWork() {
 
     // Retrieve a memory buffer to work with
     size_t buffer_id = m_buffer_manager_ptr->get_free_buffer_id();
@@ -760,7 +757,7 @@ public:
     int col_prev = -1, row_prev = -1; // Previous row and column
 
     // Get the start of the output accumulation buffer
-    // - Storage here is simply num_disps for each pixel in the line, one after the other.
+    // - Storage here is simply num_disp for each pixel in the line, one after the other.
     size_t buffer_size   = 0;
     size_t consumed_size = 0;
     AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_buf_ptr(buffer_size);
@@ -783,6 +780,7 @@ public:
       CostType * const local_cost_ptr = m_parent_ptr->get_cost_vector(col, row);
 
       // Make sure we don't run out of memory in the buffer
+      // TODO(oalexan1): This is the problem
       consumed_size += num_disp;
       if (consumed_size > buffer_size)
         vw_throw(ArgumentErr() << "Ran out of memory in the small buffer, "
@@ -819,6 +817,19 @@ public:
     // Notify the buffer manager that we are finished with the buffer
     //std::cout << "Releasing buffer " << buffer_id << std::endl;
     m_buffer_manager_ptr->release_buffer(buffer_id);
+  } // end PixelPassDoWork()
+  
+  // Do the work while catching any exceptions in the thread, as those can abort the
+  // entire program.
+  virtual void operator()() {
+    
+    *m_success = 1; // Assume success until proven otherwise
+    
+    try {
+      PixelPassDoWork();
+    } catch (const std::exception& e) {
+      *m_success = 0;
+    }
 
   } // End operator() function
 
@@ -826,7 +837,7 @@ public:
   void update_accum_buffer(OneLineBuffer * buff_ptr) {
 
     // Get the start of the output accumulation buffer
-    // - Storage here is simply num_disps for each pixel in the line, one after the other.
+    // - Storage here is simply num_disp for each pixel in the line, one after the other.
     size_t buffer_size=0;
     AccumCostType* computed_accum_ptr = buff_ptr->get_output_accum_buf_ptr(buffer_size);
 
@@ -861,12 +872,9 @@ private:
   SemiGlobalMatcher      * m_parent_ptr;
   OneLineBufferManager   * m_buffer_manager_ptr;
   PixelLineIterator m_pixel_loc_iter; ///< Keeps track of the pixel position
+  int * m_success; // Will be set to zero if the task fails 
 
 }; // End class PixelPassTask
-
-
-
-
 
 /// Task wrapper for each of the required smooth accumulation passes.
 class SmoothPathAccumTask : public Task {
@@ -885,7 +893,7 @@ public:
   m_buffer_ptr(buffer_ptr), m_parent_ptr(parent_ptr),
   m_image_ptr(image_ptr), m_dir(dir), m_success(success) {
 
-    *success = 1; // Assume success until proven otherwise
+    *m_success = 1; // Assume success until proven otherwise
    
     // Init this buffer to bad scores representing disparities that were
     //  not in the search range for the given pixel. 
@@ -913,7 +921,7 @@ public:
       case R:  task_R (); return;
       case BL: task_BL(); return;
       case B:  task_B (); return;
-      default: task_BR(); return; // BR
+      default: task_BR(); return;
       };
     } catch (...) {
       *m_success = 0;

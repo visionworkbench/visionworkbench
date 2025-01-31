@@ -194,8 +194,9 @@ ImageView<PixelMask<Vector2i>> calc_disparity_sgm(
   u8_convert(crop(left_in.impl(), left_region),  left);
   u8_convert(crop(right_in.impl(), right_region), right);
 
-  // This is a bugfix for when the allocated buffers are insufficient.
-  // It happens for large disparity search range.
+  // This is a bugfix for when the allocated buffers are insufficient. It
+  // happens for large disparity search range. Try second time with a larger
+  // buffer, before failing and telling the user to increase the buffer.
   double buf_size_factor_vec[] = {1.0, 2.0};
   for (int i = 0; i < 2; i++) {
     try {
@@ -311,7 +312,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
           break; // Stop at first pixel
         }
       } // End first row loop
-      for (int i=0; i<right_image_mask->rows(); ++i) { // Bottom to top
+      for (int i = 0; i < right_image_mask->rows(); i++) { // Bottom to top
         if (right_image_mask->operator()(c, i) > 0) {
           if (i < min_valid_right_row)
             min_valid_right_row = i;
@@ -341,7 +342,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
         }
       }
       if (max_valid_right_column > 0) { // Only do if there are valid pixels
-        for (int i=0; i<right_image_mask->cols(); ++i) {
+        for (int i = 0; i < right_image_mask->cols(); i++) {
           if (right_image_mask->operator()(i, r) > 0) {
             min_valid_right_column = i;
             break;
@@ -551,7 +552,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
         // Look in a star pattern to cheaply search a larger space
         // - Keep expanding outward and quit when we find valid pixels.
         BBox2i new_range;
-        for (int i=1; i<=NEARBY_DISP_SEARCH_RANGE; ++i) {
+        for (int i=1; i<=NEARBY_DISP_SEARCH_RANGE; i++) {
           std::vector<Vector2i> coords;
           coords.push_back(Vector2i(c+i,r)); // Next set of pixels
           coords.push_back(Vector2i(c  ,r+i));
@@ -979,7 +980,7 @@ void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1,
   _mm_store_si128((__m128i*) dRes, _result);
 
   // Copy the valid results from the register.
-  for (int i=0; i<sse_index; ++i){
+  for (int i = 0; i < sse_index; i++){
     output[output_index++] = dRes[i];
   }
 } // end function compute_path_internals_sse
@@ -995,7 +996,7 @@ void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint
                             SemiGlobalMatcher::AccumCostType* output) {
   // Operation = min(min(d1...d8)+dp1, d0, dJ) + dL - dP
 
-  for (int i=0; i<sse_index; ++i){
+  for (int i = 0; i < sse_index; i++){
 
     uint16 minAdj = std::min(d1[i], d2[i]);
     minAdj = std::min(minAdj, d3[i]);
@@ -1278,7 +1279,7 @@ int SemiGlobalMatcher::select_best_disparity(AccumCostType * accum_vec,
 
   // Copy result back to the accum vector if needed
   if ((iter_count > 0) && (iter_count % 2 == 0)) {
-    for (int i=0; i<index; ++i)
+    for (int i = 0; i < index; i++)
       input_array[i] = output_array[i];
   }
 
@@ -1578,21 +1579,6 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
         delta_y = compute_subpixel_offset(accum_vec[min_index+y_up  ], accum_vec[min_index], accum_vec[min_index+y_down ], 
                                           top_bound, bottom_bound, false);
       }
-/*
-      if (debug) {
-        double ratio = 0.0;//compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
-        printf("up, center, down = %d, %d, %d, ratio = %lf\n", 
-        //       accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right], ratio);
-        rawFile << "col = " << i << ", row = " << j << ", dx = " << dx << ", dy = " << dy << ", left = " << accum_vec[min_index+x_left] << ", right = " << accum_vec[min_index+x_right] << ", up = " << accum_vec[min_index+y_up] <<  ", center = " << accum_vec[min_index]  << ", down = " << accum_vec[min_index+y_down] << ", y_up = " << y_up << ", y_down = " << y_down << ", min_index = " << min_index << ", bounds = " << bounds << ", up_index = " << min_index+y_up << ", down_index = " << min_index+y_down << ", delta_x = " << delta_x << ", delta_y = " << delta_y << "\n";
-        for (int j=0; j<height; ++j) {
-          for (int i=0; i<width; ++i) {
-            rawFile << accum_vec[j*width+i] << " ";
-          }
-          rawFile << "\n";
-        }
-        rawFile << "\n";
-
-      }*/
 
       // To assist development, write the internal subpixel input ratio to a file.
       //double temp = compute_subpixel_ratio(accum_vec[min_index+x_left], accum_vec[min_index], accum_vec[min_index+x_right]);
@@ -1625,7 +1611,6 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
 }
 
-
 void SemiGlobalMatcher::compute_patch_mean_std(ImageView<uint8> const& image, int x, int y,
                             double &mean, double &std) const {
 
@@ -1641,7 +1626,7 @@ void SemiGlobalMatcher::compute_patch_mean_std(ImageView<uint8> const& image, in
   mean = 0;
   double count=0;
   for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
-    for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+    for (int i=-half_kernel_size; i<=half_kernel_size; i++) {
       mean += static_cast<double>(image(x +i, y +j));
       count += 1.0;
     }
@@ -1651,7 +1636,7 @@ void SemiGlobalMatcher::compute_patch_mean_std(ImageView<uint8> const& image, in
   // Compute the STD
   std = 0;
   for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
-    for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+    for (int i=-half_kernel_size; i<=half_kernel_size; i++) {
       double val = static_cast<double>(image(x +i, y +j)) - mean;
       std += val*val;
     }
@@ -1661,10 +1646,12 @@ void SemiGlobalMatcher::compute_patch_mean_std(ImageView<uint8> const& image, in
 
 
 // TODO: Replace with ASP implementation?
-SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
-               ImageView<uint8> const& right_image,
-               double mean1, double std1,
-               int left_x, int left_y, int right_x, int right_y, bool debug) const{
+SemiGlobalMatcher::CostType 
+SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
+                                  ImageView<uint8> const& right_image,
+                                  double mean1, double std1,
+                                  int left_x, int left_y, int right_x, int right_y, 
+                                  bool debug) const {
 
   if (m_kernel_size == 1) { // Special handling for single pixel case
     int diff = static_cast<int>(left_image (left_x,  left_y)) - 
@@ -1686,7 +1673,7 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
     double sum=0;
     double coeff = 1.0 / (std1*std2);
     for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
-      for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+      for (int i=-half_kernel_size; i<=half_kernel_size; i++) {
         double a = static_cast<double>(left_image (left_x +i, left_y +j)) - mean1;
         double b = static_cast<double>(right_image(right_x+i, right_y+j)) - mean2;
         sum += a*b*coeff;
@@ -1704,7 +1691,7 @@ SemiGlobalMatcher::CostType SemiGlobalMatcher::get_cost_block(ImageView<uint8> c
   // Mean of abs differences
   int sum=0, diff=0;
   for (int j=-half_kernel_size; j<=half_kernel_size; ++j) {
-    for (int i=-half_kernel_size; i<=half_kernel_size; ++i) {
+    for (int i=-half_kernel_size; i<=half_kernel_size; i++) {
       diff = static_cast<int>(left_image (left_x +i, left_y +j)) - 
              static_cast<int>(right_image(right_x+i, right_y+j));
       sum += abs(diff);
@@ -1984,7 +1971,7 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
   //  not in the search range for the given pixel.
   boost::shared_array<AccumCostType> full_prior_buffer;
   full_prior_buffer.reset(new AccumCostType[m_num_disp]);
-  for (int i=0; i<m_num_disp; ++i)
+  for (int i = 0; i < m_num_disp; i++)
     full_prior_buffer[i] = get_bad_accum_val();  
 
   AccumCostType* full_prior_ptr = full_prior_buffer.get();
@@ -2145,7 +2132,7 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
   //  not in the search range for the given pixel.
   boost::shared_array<AccumCostType> full_prior_buffer;
   full_prior_buffer.reset(new AccumCostType[m_num_disp]);
-  for (int i=0; i<m_num_disp; ++i)
+  for (int i = 0; i < m_num_disp; i++)
     full_prior_buffer[i] = get_bad_accum_val();  
 
   AccumCostType* full_prior_ptr = full_prior_buffer.get();
@@ -2477,24 +2464,31 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   compute_disparity_costs(left_image, right_image);
 
   if (m_use_mgm)
-    //smooth_path_accumulation(left_image);
-    smooth_path_accumulation_multithreaded(left_image);
+    accum_mgm_multithread(left_image);
   else
-    //two_trip_path_accumulation(left_image);
-    multi_thread_accumulation(left_image);
-
-  vw_out(DebugMessage, "stereo") << "Accumulation finished, creating integer disparity image...\n";
+    accum_sgm_multithread(left_image);
 
   // Now that all the costs are calculated, fetch the best disparity for each pixel.
   // - This computes integer disparities.  Subpixel disparities are computed in CorrelationView.tcc
   return create_disparity_view();
 }
 
+// If some success values are 0, throw an exception that will be caught by the caller.
+void SgmThrowOnFailure(std::vector<int> const& success) {
+  for (int i = 0; i < (int)success.size(); i++) {
+    if (success[i] == 0)
+      vw_throw(vw::ArgumentErr() << "Failed to run correlation.\n");
+  }
+}
+
 // Perform standard SGM path accumulation using N threads.
-void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_image) {
+// Individual threads use a flag to indicate failure, as exceptions cannot be
+// thrown in a thread. Then, this function throws an exception if any thread
+// failed.
+void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image) {
 
-  //Timer timer_total("\tSGM Multi-Threaded Accumulation");
-
+  std::cout << "--now in sgm accumulation\n";
+  
   int num_threads = vw_settings().default_num_threads();
   int height = m_num_output_rows;
   int width  = m_num_output_cols;
@@ -2504,7 +2498,6 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
 
   // Start up the thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads() << " threads.\n";
 
   // Initialize a number of line buffers equal to the number of threads
   OneLineBufferManager mem_buf_mgr(num_threads, this);
@@ -2513,120 +2506,150 @@ void SemiGlobalMatcher::multi_thread_accumulation(ImageView<uint8> const& left_i
   //  as each direction finishes up but it allows the threads to simultaneously read/write
   //  the main accumulation buffer without any collisions.
 
+  //  Must track the success of each thread. That because exceptions cannot be
+  // thrown in a thread. A value of 1 in this vector means success.
+  std::vector<int> success;
+  int thread_id = 0;
+  int max_len = width + height; // To not use custom sizes for the vectors below
   typedef boost::shared_ptr<PixelPassTask> TaskPtrType;
 
   // Add lines going down
-  for (int i=0; i<width; ++i) { 
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) { 
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top(top_pixel, PixelLineIterator::B, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << "."; // TODO: Use a proper processing time bar!
+  SgmThrowOnFailure(success);
 
   // Add lines going up
-  for (int i=0; i<width; ++i) { 
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) { 
     Vector2i bottom_pixel(i, height-1);
     PixelLineIterator line_from_bottom(bottom_pixel, PixelLineIterator::T, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bottom));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bottom,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the left
-  for (int i=0; i<height; ++i) { 
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < height; i++) { 
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left (left_pixel, PixelLineIterator::R, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the right
-  for (int i=0; i<height; ++i) {
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < height; i++) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right(right_pixel, PixelLineIterator::L, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the top left
-  for (int i=0; i<width; ++i) {
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) {
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top_br(top_pixel, PixelLineIterator::BR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_br));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_br,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
-  for (int i=1; i<height; ++i) {
+  for (int i = 1; i < height; i++) {
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left_br(left_pixel, PixelLineIterator::BR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_br));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_br,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the top right
-  for (int i=0; i<width; ++i) {
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) {
     Vector2i top_pixel(i, 0);
     PixelLineIterator line_from_top_bl(top_pixel, PixelLineIterator::BL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_bl));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_top_bl,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
-  for (int i=1; i<height; ++i) {
+  for (int i = 1; i < height; i++) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right_bl(right_pixel, PixelLineIterator::BL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_bl));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_bl,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the bottom left
-  for (int i=0; i<width; ++i) {
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) {
     Vector2i bot_pixel(i, height-1);
     PixelLineIterator line_from_bot_tr(bot_pixel, PixelLineIterator::TR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tr));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tr,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
-  for (int i=0; i<height-1; ++i) {
+  for (int i = 0; i < height-1; i++) {
     Vector2i left_pixel(0, i);
     PixelLineIterator line_from_left_tr(left_pixel, PixelLineIterator::TR, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_tr));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_left_tr,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << ".";
+  SgmThrowOnFailure(success);
 
   // Add lines from the bottom right
-  for (int i=0; i<width; ++i) {
+  success.resize(max_len, 1); thread_id = 0;
+  for (int i = 0; i < width; i++) {
     Vector2i bot_pixel(i, height-1);
     PixelLineIterator line_from_bot_tl(bot_pixel, PixelLineIterator::TL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tl));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_bot_tl,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
-  for (int i=0; i<height-1; ++i) {
+  for (int i = 0; i < height-1; i++) {
     Vector2i right_pixel(width-1, i);
     PixelLineIterator line_from_right_tl(right_pixel, PixelLineIterator::TL, image_size);
-    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_tl));
-    thread_pool.add_task(task);
+    TaskPtrType task(new PixelPassTask(image_ptr, this, &mem_buf_mgr, line_from_right_tl,
+                                       &success[thread_id]));
+    thread_pool.add_task(task); thread_id++;
   }
   thread_pool.join_all(); // Wait for all tasks to complete
+  SgmThrowOnFailure(success);
 
-  // Finished!
+  // Finished
   vw_out(DebugMessage, "stereo") << "Finished multi-threaded accumulation.\n";
-} // End function multi_thread_accumulation
+} // End function accum_sgm_multithread
 
 // This version of the function requires four passes and is based on the paper:
-// MGM: A Significantly More Global Matching for Stereovision
-void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
-  (ImageView<uint8> const& left_image) {
+// MGM: A Significantly More Global Matching for Stereovision.
+// Individual threads use a flag to indicate failure, as exceptions cannot be
+// thrown in a thread. Then, this function throws an exception if any thread
+// failed.
+void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image) {
 
+  std::cout << "--now in mgm accumulation\n";
+  
   const int PATHS_PER_PASS = 1;
   const int MAX_USABLE_THREADS = 8;
 
@@ -2674,6 +2697,7 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
   //  Must track the success of each thread. That because exceptions
   // cannot be thrown in a thread.
   std::vector<int> success(8, 1);
+  
   // Load all eight required passes as tasks in the thread pool   
   typedef boost::shared_ptr<SmoothPathAccumTask> TaskPtrType;
   TaskPtrType task_L (new SmoothPathAccumTask
@@ -2714,12 +2738,9 @@ void SemiGlobalMatcher::smooth_path_accumulation_multithreaded
   vw_out(DebugMessage, "stereo") << "Finished multi-threaded smooth accumulation.\n";  
 
   // If some success values are 0, throw an exception that will be caught by the caller.
-  for (int i = 0; i < (int)success.size(); i++) {
-    if (success[i] == 0)
-      vw_throw(vw::ArgumentErr() << "Failed to run correlation.\n");
-  }
+  SgmThrowOnFailure(success);
                
-} // End function smooth_path_accumulation_multithreaded
+} // End function accum_mgm_multithread
 
 /// Get a pointer to a cost vector
 SemiGlobalMatcher::CostType * SemiGlobalMatcher::get_cost_vector(int col, int row) {

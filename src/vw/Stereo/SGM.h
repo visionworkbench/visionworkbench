@@ -293,10 +293,10 @@ private: // Functions
   /// - This method requires four passes and takes longer.
   void smooth_path_accumulation(ImageView<uint8> const& left_image);
 
-  void smooth_path_accumulation_multithreaded(ImageView<uint8> const& left_image);
+  void accum_mgm_multithread(ImageView<uint8> const& left_image);
 
   /// Multi-threaded version of the normal SGM accumulation method;
-  void multi_thread_accumulation(ImageView<uint8> const& left_image);
+  void accum_sgm_multithread(ImageView<uint8> const& left_image);
 
   /// Allow this helper class to access private members.
   /// - Some of these classes can be found in SGMAssist.h.
