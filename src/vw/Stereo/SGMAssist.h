@@ -268,9 +268,9 @@ public:
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
 
-    std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
-    std::cout << "Buffer size is        " << buffer_size << std::endl;
-    std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    // std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    // std::cout << "Buffer size is        " << buffer_size << std::endl;
+    // std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
     
     // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
     // But must test.
@@ -606,9 +606,9 @@ public:
     size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
     double MAX_PERCENTAGE   = 0.02;
 
-    std::cout << "2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
-    std::cout << "Buffer size is        " << buffer_size << std::endl;
-    std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    // std::cout << "2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    // std::cout << "Buffer size is        " << buffer_size << std::endl;
+    // std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
 
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;

@@ -2487,7 +2487,8 @@ void SgmThrowOnFailure(std::vector<int> const& success) {
 // failed.
 void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image) {
 
-  std::cout << "--now in sgm accumulation\n";
+  // TODO(oalexan1): Fix the code and wipe debug logic
+  //std::cout << "--now in sgm accumulation\n";
   
   int num_threads = vw_settings().default_num_threads();
   int height = m_num_output_rows;
@@ -2648,7 +2649,8 @@ void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image
 // failed.
 void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image) {
 
-  std::cout << "--now in mgm accumulation\n";
+  // TODO(oalexan1): Fix the code and wipe debug logic
+  // std::cout << "--now in mgm accumulation\n";
   
   const int PATHS_PER_PASS = 1;
   const int MAX_USABLE_THREADS = 8;
