@@ -555,9 +555,15 @@ namespace vw {
   /// invert_mask(view)
   ///
   /// Given a view with pixels of type PixelMask<T>, this will toggle
-  /// all valids to invalid, and invalid to valids.
+  /// all valid to invalid, and invalid to valid.
   template <class PixelT>
-  class InvertPixelMask;
+  class InvertPixelMask : public ReturnFixedType<PixelT> {
+  public:
+    inline PixelT operator()( PixelT value ) const {
+      toggle(value);
+      return value;
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> >
@@ -595,7 +601,13 @@ namespace vw {
   ///
   /// Given an image of PixelMasks, this will make all pixels invalid
   template <class PixelT>
-  class InvalidatePixelMask;
+  class InvalidatePixelMask : public ReturnFixedType<PixelT> {
+  public:
+    inline PixelT operator()( PixelT value ) const {
+      invalidate(value);
+      return value;
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,InvalidatePixelMask<typename ViewT::pixel_type> >
@@ -615,7 +627,19 @@ namespace vw {
   /// Unions 'mask' w/ view. View's data is returned
   ///
   template <class PixelT>
-  class UnionPixelMask;
+  class UnionPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+    typedef typename MaskedPixelType<PixelT>::type return_type;
+  public:
+    template <class MaskedPixelT>
+    inline return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+      return_type result = value;
+      if ( is_valid(value) || is_valid(mask) )
+        validate(result);
+      else
+        invalidate(result);
+      return result;
+    }
+  };
 
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> >
@@ -636,7 +660,19 @@ namespace vw {
   /// Intersects 'mask' w/ view. View's data is returned
   ///
   template <class PixelT>
-  class IntersectPixelMask;
+  class IntersectPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+    typedef typename MaskedPixelType<PixelT>::type return_type;
+  public:
+    template <class MaskedPixelT>
+    inline return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+      return_type result = value;
+      if ( is_valid(value) && is_valid(mask) )
+        validate(result);
+      else
+        invalidate(result);
+      return result;
+    }
+  };
 
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> >
@@ -652,7 +688,5 @@ namespace vw {
     : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
 
 } // namespace vw
-
-#include "MaskViews.tcc"
 
 #endif // __VW_IMAGE_MASK_VIEWS_H__
