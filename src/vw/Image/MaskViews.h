@@ -70,22 +70,132 @@ namespace vw {
   };
 
   /// Values are valid if nodata_val < val
+/// Mask values less than or equal to the nodata value.
   template <class PixelT>
-  class CreatePixelMaskLE;
+  class CreatePixelMaskLE: public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+    PixelT m_nodata_value;
+  public:
+    CreatePixelMaskLE( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      if ( value > m_nodata_value ) 
+	return MPixelT(value);
+
+      if (value != value) 
+        return  MPixelT();  // Mask NaN values
+
+      if (m_nodata_value != m_nodata_value) 
+        return MPixelT(value); // If value is non-NaN, but m_nodata_value is NaN, return good
+
+      // We arrive here only if both value and m_nodata_value are not NaN,
+      // and value <= m_nodata_value.
+      return MPixelT();
+    }
+    
+  };
 
   /// Values are valid if they min_val <= val <= max_val
+  /// Mask values fall within a range.
   template <class PixelT>
-  class CreatePixelRangeMask;
+  class CreatePixelRangeMask: public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+    PixelT m_valid_min;
+    PixelT m_valid_max;
+  public:
+    CreatePixelRangeMask( PixelT const& valid_min, PixelT const& valid_max ) : m_valid_min(valid_min), m_valid_max(valid_max) {}
+
+    // Helper to access only specific types of pixels
+    template <bool CompoundB, class Arg1T, class Arg2T>
+    struct Helper {
+      static inline bool greater_than( Arg1T const& /*arg1*/, Arg2T const& /*arg2*/ ) {
+        return true;
+      }
+      static inline bool less_than( Arg1T const& /*arg1*/, Arg2T const& /*arg2*/ ) {
+        return true;
+      }
+    };
+
+    // Specialization only for scalars
+    template <class Arg1T, class Arg2T>
+    struct Helper<false,Arg1T,Arg2T> {
+      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+        return arg1 > arg2;
+      }
+      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+        return arg1 < arg2;
+      }
+    };
+
+    // Specialization for compounds
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,Arg1T,Arg2T> {
+      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+        return arg1[0] > arg2[0];
+      }
+      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+        return arg1[0] < arg2[0];
+      }
+    };
+
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      // Create Pixel Mask doesn't support thresholding of pixels with multiple channels
+      BOOST_STATIC_ASSERT( CompoundNumChannels<PixelT>::value == 1 );
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+
+      typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
+      if (help_func::greater_than(value,m_valid_max) ||
+          help_func::less_than(value,m_valid_min)    ||
+	  value != value // need this for NaN
+	  ) {
+        return MPixelT();
+      }
+
+      return MPixelT(value);
+    }
+  }; // End class CreatePixelRangeMask
 
   /// Values are valid if nodata_val < val <= max_val
+  /// Mask values less than or equal to the nodata value and greater than the given value.
+  /// Use only with scalar types.
   template <class PixelT>
-  class CreatePixelRangeMask2;
+  class CreatePixelRangeMask2: public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+    PixelT m_nodata_value;
+    PixelT m_max_valid_value;
+  public:
+    CreatePixelRangeMask2(PixelT const& nodata_value, PixelT const& max_valid_value ):
+      m_nodata_value(nodata_value), m_max_valid_value(max_valid_value) {}
+
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      
+      if ( value > m_nodata_value && value <= m_max_valid_value)  
+	return MPixelT(value);
+
+      if (value != value) 
+        return  MPixelT();  // Mask NaN values
+
+      // This code was not tested if nodata_value or max_valid_value is NaN.
+      return MPixelT();
+    }
+    
+  };
 
   /// Masks out pixels which are equal to NaN
   /// - Only use this with floats and doubles!
+  /// Masks out pixels which are equal to NaN
+  /// - Only use this with floats and doubles!
   template <class PixelT>
-  class CreatePixelMaskNan;
-
+  class CreatePixelMaskNan : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+  public:
+    CreatePixelMaskNan(){}
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      if ( boost::math::isnan(value) ) {
+        return MPixelT();
+      }
+      return MPixelT(value);
+    }
+  };
 
   /// Simple single value nodata
   template <class ViewT>
