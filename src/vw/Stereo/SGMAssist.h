@@ -264,7 +264,7 @@ public:
     // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
 
     // If the buffer is over 128 MB, reduce its size to a percentage of the
-    //  size of the entire accumulation buffer.
+    // size of the entire accumulation buffer.
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
 
@@ -272,6 +272,8 @@ public:
     std::cout << "Buffer size is        " << buffer_size << std::endl;
     std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
     
+    // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
+    // But must test.
     if (buffer_size > SAFE_BUFFER_SIZE) {
       buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
       if (buffer_size < SAFE_BUFFER_SIZE)
@@ -598,6 +600,7 @@ public:
     // in this file. We should allow the buffer size to be max of
     // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
 
+    // TODO(oalexan1): Must use here max of 128 MB and the percentage. But must test.
     // If the buffer is over 64 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
     size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
