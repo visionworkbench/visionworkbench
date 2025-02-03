@@ -273,7 +273,14 @@ namespace vw {
   /// pixel value passed in as value.  The value is T() by default.
   ///
   template <class PixelT>
-  class ApplyPixelMask;
+  class ApplyPixelMask : public ReturnFixedType<PixelT> {
+    PixelT m_nodata_value;
+  public:
+    ApplyPixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+    inline PixelT operator()( PixelMask<PixelT> const& value ) const {
+      return value.valid() ? value.child() : m_nodata_value;
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
@@ -303,7 +310,18 @@ namespace vw {
   /// Copies a mask from one image to another.
   ///
   template <class PixelT>
-  class CopyPixelMask;
+  class CopyPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+  public:
+    template <class MaskPixelT>
+    inline typename MaskedPixelType<PixelT>::type
+    operator()( PixelT const& value, MaskPixelT const& mask ) const {
+      typename MaskedPixelType<PixelT>::type result = value;
+      if (is_transparent(mask)) {
+        result.invalidate();
+      }
+      return result;
+    }
+  };
 
   /// Return a copy of the first argument with a mask copied from the second argument.
   template <class ViewT, class MaskViewT>
@@ -327,7 +345,16 @@ namespace vw {
   /// is transparent wherever the data is masked.
   ///
   template <class PixelT>
-  class MaskToAlpha;
+  class MaskToAlpha : public ReturnFixedType<typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type> {
+  public:
+    typedef typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type result_type;
+    inline result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) {
+        return result_type();
+      }
+      else return result_type(pixel.child());
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,MaskToAlpha<typename ViewT::pixel_type> >
@@ -350,7 +377,16 @@ namespace vw {
   /// is transparent wherever the data has an alpha value of 0.
   ///
   template <class PixelT>
-  class AlphaToMask;
+  class AlphaToMask : public ReturnFixedType<typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type> {
+  public:
+    typedef typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type result_type;
+    inline result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) {
+        return result_type();
+      }
+      return result_type(non_alpha_channels(pixel));
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,AlphaToMask<typename ViewT::pixel_type> >
@@ -369,10 +405,118 @@ namespace vw {
   // *******************************************************************
   /// EdgeMaskView
   ///
-  /// Create an image with zero-valued (i.e. default contructor)
+  /// Create an image with zero-valued (i.e. default constructor)
   /// pixels around the edges masked out.
   template <class ViewT>
-  class EdgeMaskView;
+  class EdgeMaskView : public ImageViewBase<EdgeMaskView<ViewT> >
+  {
+    ViewT m_view;
+    //BlockCacheView<typename ViewT::pixel_type> m_view;
+
+    // These vectors contain the indices of the first good pixel from
+    // the edge of the image on each side.
+    Vector<int> m_left, m_right;
+    Vector<int> m_top,  m_bottom;
+
+    // Use the edge vectors to determine if a pixel is valid.  Note:
+    // this check fails for non convex edge masks!
+    inline bool valid(int32 i, int32 j) const {
+      if (i > m_left[j] && i < m_right[j] && j > m_top[i] && j < m_bottom[i])
+        return true;
+      else
+        return false;
+    }
+
+  public:
+    typedef typename ViewT::pixel_type            orig_pixel_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<orig_pixel_type>::type>::type unmasked_pixel_type;
+    typedef PixelMask<unmasked_pixel_type>        pixel_type;
+    typedef PixelMask<unmasked_pixel_type>        result_type;
+    typedef ProceduralPixelAccessor<EdgeMaskView> pixel_accessor;
+
+    // EdgeMaskView( ViewT const& view,
+    //               const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
+    //   m_view(view, Vector2i(512,512) ) {
+
+    EdgeMaskView( ViewT const& view,
+                  unmasked_pixel_type const& mask_value,
+                  int32 mask_buffer,
+                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
+      m_view(view) {
+
+      m_left.set_size(view.rows());
+      m_right.set_size(view.rows());
+
+      for (int i = 0; i < view.rows(); ++i) {
+        m_left[i] = 0;
+        m_right[i] = view.cols();
+      }
+
+      m_top.set_size(view.cols());
+      m_bottom.set_size(view.cols());
+
+      for (int j = 0; j < view.cols(); ++j) {
+        m_top[j] = 0;
+        m_bottom[j] = view.rows();
+      }
+
+      // Scan over the image
+      for (int j = 0; j < m_view.impl().rows(); ++j) {
+        progress_callback.report_progress(float(j)/m_view.impl().rows()*0.5);
+
+        // Search from the left side
+        int i = 0;
+        while ( i < m_view.impl().cols() && m_view.impl()(i,j) == mask_value )
+          i++;
+        m_left[j] = i + mask_buffer;
+
+        // Search from the right side
+        i = m_view.impl().cols() - 1;
+        while ( i >= 0 && m_view.impl()(i,j) == mask_value )
+          --i;
+        m_right[j] = i - mask_buffer;
+      }
+
+      for (int i = 0; i < m_view.impl().cols(); ++i) {
+        progress_callback.report_progress(0.5 + float(i)/m_view.impl().cols()*0.5);
+
+        // Search from the top side of the image for black pixels
+        int j = 0;
+        while ( j < m_view.impl().rows() && m_view.impl()(i,j) == mask_value )
+          ++j;
+        m_top[i] = j + mask_buffer;
+
+        // Search from the right side of the image for black pixels
+        j = m_view.impl().rows() - 1;
+        while ( j >= 0 && m_view.impl()(i,j) == mask_value )
+          --j;
+        m_bottom[i] = j - mask_buffer;
+      }
+
+      progress_callback.report_finished();
+    }
+
+    inline int32 cols  () const { return m_view.cols();   }
+    inline int32 rows  () const { return m_view.rows();   }
+    inline int32 planes() const { return m_view.planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+      if ( this->valid(i,j) )
+        return pixel_type(m_view(i,j,p));
+      else
+        return pixel_type();
+    }
+
+    /// \cond INTERNAL
+    typedef EdgeMaskView<ViewT> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
+    /// \endcond
+  };
 
   /// \cond INTERNAL
   template <class ViewT>
