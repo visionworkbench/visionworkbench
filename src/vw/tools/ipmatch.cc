@@ -38,6 +38,7 @@
 #include <vw/Camera/CameraGeometry.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/MatcherIO.h>
 #include <vw/FileIO/GdalWriteOptions.h>
 
 #include <vector>

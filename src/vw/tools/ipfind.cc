@@ -40,6 +40,7 @@
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/InterestPointUtils.h>
+#include <vw/InterestPoint/MatcherIO.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
 
@@ -265,7 +266,7 @@ int main(int argc, char** argv) {
       vw_out(DebugMessage,"interest_point") << "Image has a nodata value: " << nodata << "\n";
 
     const bool describeInDetect = true;
-
+  
     // Detecting Interest Points
     // - Note that only the OpenCV detectors handle masks.
     InterestPointList ip;

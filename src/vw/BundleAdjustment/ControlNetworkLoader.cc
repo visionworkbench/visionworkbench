@@ -18,7 +18,7 @@
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/BundleAdjustment/openMVG_tracks.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/MatcherIO.h>
 #include <vw/InterestPoint/InterestPointUtils.h>
 #include <vw/Math/RandomSet.h>
 #include <vw/Core/Stopwatch.h>

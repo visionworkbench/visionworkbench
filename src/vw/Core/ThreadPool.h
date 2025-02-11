@@ -103,7 +103,7 @@ namespace vw {
     // Otherwise, the worker terminates.
     //
     // *************************************************************
-    // IMPORANT NOTE: The worker_thread_complete() method is called
+    // IMPORTANT NOTE: The worker_thread_complete() method is called
     // from within child thread so that we can clean up the list of
     // available threads.  As such, one must be very careful about
     // what is done in this method, because for the duration of this

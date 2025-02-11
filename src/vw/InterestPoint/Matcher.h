@@ -235,27 +235,6 @@ namespace ip {
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
 
-  /// Return the basename with no extension, and shorten it if need be.
-  /// If filename starts with out_prefix followed by dash, strip those.
-  std::string strip_path(std::string out_prefix, std::string filename);
-
-  /// The name of the match file.
-  std::string match_filename(std::string const& out_prefix,
-                             std::string const& input_file1,
-                             std::string const& input_file2);
-
-  /// Convert match file name to clean match file name.
-  std::string clean_match_filename(std::string const& match_filename);
-
-  /// The name of the clean match file.
-  std::string clean_match_filename(std::string const& out_prefix,
-                                   std::string const& input_file1,
-                                   std::string const& input_file2);
-  
-  /// The name of an IP file.
-  std::string ip_filename(std::string const& out_prefix,
-                          std::string const& input_file);
-
 //==========================================================================
 // Fuction definitions
 

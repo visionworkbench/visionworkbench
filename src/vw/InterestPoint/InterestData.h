@@ -171,18 +171,6 @@ inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
   std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
   //std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist); // Avoid using, info is lost!
 
-  // Routines for reading & writing interest point data files
-  void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
-  void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
-  std::vector<InterestPoint> read_binary_ip_file     (std::string ip_file);
-  InterestPointList          read_binary_ip_file_list(std::string ip_file);
-
-  // Routines for reading & writing interest point match files
-  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
-                               std::vector<InterestPoint> const& ip2);
-  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
-                              std::vector<InterestPoint> &ip2);
-
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {

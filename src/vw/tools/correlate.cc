@@ -33,6 +33,7 @@
 #include <vw/Image/Transform.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/MatcherIO.h>
 #include <vw/Stereo/CorrelationView.h>
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/PreFilter.h>
