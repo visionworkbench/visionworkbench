@@ -99,7 +99,7 @@ namespace ip {
   /// - After the interest image is generated, a set of fixed functions extract local maxima to
   ///   obtain the output interest points.
   template <class InterestT>
-  class InterestPointDetector: public InterestDetectorBase<InterestPointDetector<InterestT> > {
+  class InterestPointDetector: public InterestDetectorBase<InterestPointDetector<InterestT>> {
   public:
 
     /// Setting max_points = 0 will disable interest point culling.
@@ -220,8 +220,6 @@ namespace ip {
                              OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
                              OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-
   /// Struct to convert a basic type to a single channel OpenCV type
   template <typename T> 
   struct GetOpenCvPixelType { static const int type=CV_8UC1; };
@@ -253,10 +251,9 @@ namespace ip {
    public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
 
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type 
-                                = OPENCV_IP_DETECTOR_TYPE_SIFT,
-                                bool normalize=true,
-                                bool add_descriptions=false, int max_points = 1000);
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
+                                bool normalize,
+                                bool add_description, int max_points);
 
     /// Detect interest points in the source image.
     template <class ViewT>
@@ -273,32 +270,6 @@ namespace ip {
     cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, int max_points) const;
 
   }; // End class OpenCvInterestPointDetector
-#else
-  // If OpenCV is not defined, make a dummy version of this that just fails.
-
-  /// Interest point detector build using OpenCV functions
-  class OpenCvInterestPointDetector: 
-    public InterestDetectorBase<OpenCvInterestPointDetector> {
-  public:
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK,
-                                bool normalize=true,
-                                bool add_descriptions=false, int max_points = 1000) {
-      vw_throw(ArgumentErr() 
-               << "Cannot use OpenCV IP detection functions if VW is not "
-               << "built with OpenCV.\n");
-    }
-
-    /// Detect interest points in the source image.
-    template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const {
-      vw_throw(ArgumentErr() 
-               << "Cannot use OpenCV IP detection functions if VW is not "
-               << "built with OpenCV!\n");
-      return InterestPointList();
-    }
-  }; // End class OpenCvInterestPointDetector
-
-#endif // End case with no OpenCV installed
 
   // -----------------------------------------------------------------------------
   // The next set of classes are for performing IP detection with thread pools.
@@ -340,7 +311,8 @@ namespace ip {
     InterestPointDetectionTask(ImageViewBase<ViewT> const& view,
                                DetectorT& detector, BBox2i const& bbox,
                                int desired_num_ip, int id, int max_id,
-                               InterestPointList& global_list, OrderedWorkQueue& write_queue):
+                               InterestPointList& global_list, 
+                               OrderedWorkQueue& write_queue):
       m_view(view.impl()), m_detector(detector), m_bbox(bbox),
       m_desired_num_ip(desired_num_ip), m_id(id), m_max_id(max_id),
       m_global_points(global_list), m_write_queue(write_queue) {}
@@ -1017,15 +989,18 @@ void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
       case OPENCV_IP_DETECTOR_TYPE_BRISK:
       case OPENCV_IP_DETECTOR_TYPE_ORB:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
+          iter->descriptor[d] 
+            = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
         break;
       case OPENCV_IP_DETECTOR_TYPE_SIFT:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
+          iter->descriptor[d] 
+            = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
         break;
       case OPENCV_IP_DETECTOR_TYPE_SURF:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
+          iter->descriptor[d] 
+            = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
         break;
       default: vw_throw(ArgumentErr() << "Unrecognized OpenCV detector type!\n");
     };
@@ -1039,6 +1014,9 @@ cv::Ptr<cv::FeatureDetector>
 OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
                                            int max_points) const {
 
+  // Ensure the --threads option and / or the .vwrc thread setting are respected.
+  cv::setNumThreads(vw_settings().default_num_threads());
+ 
   // Instantiate the feature detector
   // - There are a lot of detector variables that we just leave as the default here.
   switch (detector_type) {
@@ -1062,9 +1040,11 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
 
 inline
 OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
-                                                         bool normalize, bool add_descriptions, int max_points)
-: m_detector_type(detector_type), m_add_descriptions(add_descriptions),
-    m_normalize(normalize), m_max_points(max_points) {
+                                                         bool normalize, 
+                                                         bool add_descriptions, 
+                                                         int max_points): 
+m_detector_type(detector_type), m_add_descriptions(add_descriptions),
+m_normalize(normalize), m_max_points(max_points) {
 
   m_detector = init_detector(detector_type, max_points);
 }
