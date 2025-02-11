@@ -77,6 +77,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_subpixel_type   = subpixel;
   m_search_buffer   = search_buffer;
   m_memory_limit_mb = memory_limit_mb;
+  std::cout << "--set memory limit mb to " << m_memory_limit_mb << std::endl;
   m_buf_size_factor = buf_size_factor;
 
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
@@ -204,6 +205,7 @@ ImageView<PixelMask<Vector2i>> calc_disparity_sgm(
                         search_volume_inclusive[0], search_volume_inclusive[1], 
                         kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb,
                         buf_size_factor_vec[i]));
+      std::cout << "---will try!\n";
       return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
                                                     right_mask_ptr, prev_disparity);
 
@@ -214,8 +216,8 @@ ImageView<PixelMask<Vector2i>> calc_disparity_sgm(
 
   // Will arrive here on failure only
   vw::vw_throw(vw::ArgumentErr()
-                << "Failed to compute the correlation. Consider increasing "
-                << "--sgm-memory-limit-mb.\n");
+    << "Failed to compute the correlation. See the online documentation "
+    "(the page next_steps.html) for how to handle failures.\n");
   
   return ImageView<PixelMask<Vector2i>>();
 } // End function calc_disparity
@@ -677,27 +679,27 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
 
   // For each pixel, record the starting offset and add the disparity search area 
   //  of this pixel to the running offset total.
-  size_t total_offset = 0;
+  size_t main_buf_size = 0;
   for (int r=0; r<m_num_output_rows; ++r) {
     for (int c=0; c<m_num_output_cols; ++c) {   
-      m_buffer_starts(c,r) = total_offset;
-      total_offset += get_num_disparities(c, r);
+      m_buffer_starts(c,r) = main_buf_size;
+      main_buf_size += get_num_disparities(c, r);
     }
   }
   // Finished computing the pixel offsets.
 
-  vw_out(DebugMessage, "stereo") << "SGM: Total disparity search area = " << total_offset << "\n";
-
-  if (total_offset < 6)
+  if (main_buf_size < 6)
     vw_throw(ArgumentErr() << "SGM: Total disparity usage is too low.\n");
 
   const size_t BYTES_PER_MB      = 1024*1024;
-  const size_t main_buffer_bytes = total_offset * (sizeof(CostType) + sizeof(AccumCostType));
+  const size_t main_buffer_bytes = main_buf_size * (sizeof(CostType) + sizeof(AccumCostType));
 
-  vw_out(DebugMessage, "stereo") << "SGM: Estimating total large buffer size: " 
+  vw_out(DebugMessage, "stereo") << "SGM: Estimating main buffer size: " 
                                  << main_buffer_bytes/BYTES_PER_MB << " MB\n";
 
-  m_buffer_lengths = total_offset; // Record this value
+  std::cout << "--main buf size MB: " << main_buffer_bytes/BYTES_PER_MB << " MB\n";
+  m_buffer_lengths = main_buf_size; // Record this value
+  std::cout << "---will set buffer lengths to " << main_buf_size << std::endl;
 
   // Verify that allocating the "small" buffers won't put us over the limit.
   // - m_buffer_lengths must be set for this to work.
@@ -707,19 +709,23 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   if (m_use_mgm) {
     // Four vertical buffers and four horizontal buffers.
     small_buffer_size 
-      = MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, true,
-                                             m_buf_size_factor) * NUM_MGM_BUFFERS +
-        MultiAccumRowBuffer::get_buffer_size(this, PATHS_PER_PASS, false,
-                                             m_buf_size_factor) * NUM_MGM_BUFFERS;
+      = MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, true,
+                                            m_buf_size_factor) * NUM_MGM_BUFFERS +
+        MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, false,
+                                            m_buf_size_factor) * NUM_MGM_BUFFERS;
   } else {
     int num_threads   = vw_settings().default_num_threads();
-    small_buffer_size = OneLineBuffer::get_buffer_size(this)*num_threads;
+    small_buffer_size = OneLineBuffer::one_buf_size(this) * num_threads;
   }
   size_t small_buffer_size_bytes = small_buffer_size * sizeof(AccumCostType);
   vw_out(DebugMessage, "stereo") << "SGM: Estimating total small buffer size: " 
                                  << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
-  
+ 
+  std::cout << "--small buffer size mb: " << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
+   
   size_t total_num_bytes = main_buffer_bytes + small_buffer_size_bytes;
+  std::cout << "--total buf size mb = " << total_num_bytes/BYTES_PER_MB << " MB\n";
+  std::cout << "--m memory limit mb = " << m_memory_limit_mb << " MB\n";
   
   if (total_num_bytes/BYTES_PER_MB > m_memory_limit_mb) {
     vw_throw(ArgumentErr() 
@@ -730,7 +736,7 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   }
 
 
-  return total_offset;
+  return main_buf_size;
 }
 
 void SemiGlobalMatcher::allocate_large_buffers() {
@@ -2404,6 +2410,7 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
                                              ImageView<uint8> const* right_image_mask,
                                              DisparityImage const* prev_disparity) {
 
+  std::cout << "--now in semi_global_matching_func\n";
   // Compute safe bounds to search through given the disparity range and kernel size.
   // - Using inclusive bounds here.
 
@@ -2432,16 +2439,13 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   m_num_output_cols  = m_max_col - m_min_col + 1;
   m_num_output_rows  = m_max_row - m_min_row + 1;
 
-  vw_out(DebugMessage, "stereo") 
-    << "Computed SGM cost bounding box: " << "\n";
-  vw_out(DebugMessage, "stereo") 
-    << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
-    <<"), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
-  vw_out(DebugMessage, "stereo") 
-    << "min_row = "<< m_min_row <<", min_col = "<< m_min_col 
-    << ", max_row = "<< m_max_row <<", max_col = "<< m_max_col 
-    << ", output_height = "<< m_num_output_rows 
-    << ", output_width = "<< m_num_output_cols <<"\n";
+  std::cout << "Computed SGM cost bounding box: " << "\n";
+  std::cout << "Left image size = ("<<left_image.cols()<<","<<left_image.rows()
+            << "), right image size = ("<<right_image.cols()<<","<<right_image.rows()<<")\n";
+  std::cout << "min_row = "<< m_min_row <<", min_col = "<< m_min_col 
+            << ", max_row = "<< m_max_row <<", max_col = "<< m_max_col 
+            << ", output_height = "<< m_num_output_rows 
+            << ", output_width = "<< m_num_output_cols <<"\n";
 
   populate_adjacent_disp_lookup_table();
 
@@ -2458,9 +2462,10 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   }
 
   // All the hard work is done in the next few function calls!
-
+  std::cout << "--allocate large buffers\n";
   allocate_large_buffers();
 
+  std::cout << "--compute_disparity_costsx\n";
   compute_disparity_costs(left_image, right_image);
 
   if (m_use_mgm)
@@ -2488,7 +2493,7 @@ void SgmThrowOnFailure(std::vector<int> const& success) {
 void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image) {
 
   // TODO(oalexan1): Fix the code and wipe debug logic
-  //std::cout << "--now in sgm accumulation\n";
+  std::cout << "--now in sgm accumulation\n";
   
   int num_threads = vw_settings().default_num_threads();
   int height = m_num_output_rows;
@@ -2639,7 +2644,7 @@ void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image
   SgmThrowOnFailure(success);
 
   // Finished
-  vw_out(DebugMessage, "stereo") << "Finished multi-threaded accumulation.\n";
+  std::cout << "Finished multi-threaded accumulation.\n";
 } // End function accum_sgm_multithread
 
 // This version of the function requires four passes and is based on the paper:
@@ -2650,7 +2655,7 @@ void SemiGlobalMatcher::accum_sgm_multithread(ImageView<uint8> const& left_image
 void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image) {
 
   // TODO(oalexan1): Fix the code and wipe debug logic
-  // std::cout << "--now in mgm accumulation\n";
+  std::cout << "--now in mgm accumulation\n";
   
   const int PATHS_PER_PASS = 1;
   const int MAX_USABLE_THREADS = 8;
@@ -2693,7 +2698,7 @@ void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image
 
   // Start up thread pool
   FifoWorkQueue thread_pool(num_threads);
-  vw_out(DebugMessage, "stereo") << "Using " << thread_pool.max_threads()
+  std::cout << "Using " << thread_pool.max_threads()
                                  << " path accumulation threads.\n";
 
   //  Must track the success of each thread. That because exceptions
@@ -2737,7 +2742,7 @@ void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image
   thread_pool.add_task(task_BL);
 
   thread_pool.join_all(); // Wait for all tasks to complete
-  vw_out(DebugMessage, "stereo") << "Finished multi-threaded smooth accumulation.\n";  
+  std::cout << "Finished multi-threaded smooth accumulation.\n";  
 
   // If some success values are 0, throw an exception that will be caught by the caller.
   SgmThrowOnFailure(success);

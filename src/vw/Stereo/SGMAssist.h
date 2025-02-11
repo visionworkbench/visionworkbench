@@ -235,10 +235,10 @@ public:
                    PASS_TWO  = 1 };
 
   /// Return the number of elements in the buffer
-  static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr,
-                                const int  num_paths_in_pass,
-                                const bool vertical,
-                                double buf_size_factor) {
+  static size_t multi_buf_size(const SemiGlobalMatcher* parent_ptr,
+                               const int  num_paths_in_pass,
+                               const bool vertical,
+                               double buf_size_factor) {
 
     size_t line_size = parent_ptr->m_num_output_cols;
     if (vertical)
@@ -250,11 +250,11 @@ public:
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
     const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
-    size_t buffer_size = line_size*buffer_pixel_size;
+    size_t multi_buf_size = line_size*buffer_pixel_size;
     
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (buffer_size > parent_ptr->m_buffer_lengths)
-      buffer_size = parent_ptr->m_buffer_lengths;
+    if (multi_buf_size > parent_ptr->m_buffer_lengths)
+      multi_buf_size = parent_ptr->m_buffer_lengths;
 
     // TODO(oalexan1): Two users reported failure that can be traced back to
     // "Ran out of memory in the small buffer", and ultimately to choices made
@@ -268,22 +268,24 @@ public:
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
 
-    // std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
-    // std::cout << "Buffer size is        " << buffer_size << std::endl;
-    // std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "Multi Buffer size is        " << multi_buf_size << std::endl;
+    std::cout << "Multi Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
     
     // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
     // But must test.
-    if (buffer_size > SAFE_BUFFER_SIZE) {
-      buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
-      if (buffer_size < SAFE_BUFFER_SIZE)
-        buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+    if (multi_buf_size > SAFE_BUFFER_SIZE) {
+      multi_buf_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      std::cout << "---1 Multi will reduce buffer size to " << multi_buf_size << std::endl;
+      if (multi_buf_size < SAFE_BUFFER_SIZE)
+        multi_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
     }
+    std::cout << "--Multi final buffer size is " << multi_buf_size << std::endl;
 
     // This is a bugfix. Adjust the buffer size if a previous invocation failed.
-    buffer_size *= buf_size_factor;
+    multi_buf_size *= buf_size_factor;
     
-    return buffer_size;
+    return multi_buf_size;
   }
 
   /// Construct the buffers.
@@ -301,16 +303,16 @@ public:
     if (vertical)
       m_line_size = num_rows;
 
-    m_buffer_size = get_buffer_size(parent_ptr, num_paths_in_pass, vertical,
-                                    buf_size_factor);
-    m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
+    m_multi_buf_size = multi_buf_size(parent_ptr, num_paths_in_pass, vertical,
+                                   buf_size_factor);
+    m_multi_buf_size_bytes = m_multi_buf_size*sizeof(SemiGlobalMatcher::AccumCostType);
 
     vw_out(DebugMessage, "stereo") << "MultiAccumRowBuffer - allocating buffer size (MB): " 
-                                   << m_buffer_size_bytes/(1024*1024) << std::endl;
+                                   << m_multi_buf_size_bytes/(1024*1024) << std::endl;
 
     // Allocate buffers that store accumulation scores
-    m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
-    m_bufferB.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
+    m_bufferA.reset(new SemiGlobalMatcher::AccumCostType[m_multi_buf_size]);
+    m_bufferB.reset(new SemiGlobalMatcher::AccumCostType[m_multi_buf_size]);
     m_trail_buffer = m_bufferA.get();
     m_lead_buffer  = m_bufferB.get();
 
@@ -335,8 +337,8 @@ public:
     }
 
     // Set up lead buffers, trailing buffer is not used until the next row.
-    memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
-    //std::fill(m_lead_buffer, m_lead_buffer+m_buffer_size, m_parent_ptr->get_bad_accum_val());
+    memset(m_lead_buffer, 0, m_multi_buf_size_bytes); // Init this buffer to zero
+    //std::fill(m_lead_buffer, m_lead_buffer+m_multi_buf_size, m_parent_ptr->get_bad_accum_val());
     fill_lead_offset_buffer();
   }
 
@@ -433,8 +435,8 @@ public:
 
     // Swap accum buffer pointers and init the lead buffer
     std::swap(m_trail_buffer, m_lead_buffer);
-    //std::fill(m_lead_buffer, m_lead_buffer+m_buffer_size, m_parent_ptr->get_bad_accum_val());
-    memset(m_lead_buffer, 0, m_buffer_size_bytes); // Init this buffer to zero
+    //std::fill(m_lead_buffer, m_lead_buffer+m_multi_buf_size, m_parent_ptr->get_bad_accum_val());
+    memset(m_lead_buffer, 0, m_multi_buf_size_bytes); // Init this buffer to zero
 
     // Swap offset buffer pointers and init the lead buffer
     std::swap(m_offsets_trail, m_offsets_lead);
@@ -459,7 +461,7 @@ public:
     }
 
     // Set up lead buffers, trailing buffer is not used until the next row.
-    memset(m_lead_buffer, 0, m_buffer_size_bytes);    
+    memset(m_lead_buffer, 0, m_multi_buf_size_bytes);    
     fill_lead_offset_buffer();
   }
 
@@ -476,9 +478,12 @@ public:
 
     // Make sure there is enough memory left to support this location.
     // TODO(oalexan1): Look into this too.
-    if (offset + num_disp > m_buffer_size)
+    if (offset + num_disp > m_multi_buf_size) {
+      std::cout << "--2 will throw: Insufficient memory in small buffers, disparity "
+                << "image may be degenerate.\n";
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, "
                              << "disparity image may be degenerate.\n");
+    }
 
     return m_lead_buffer + offset;
   }
@@ -518,9 +523,12 @@ public:
     }
 
     // Make sure there is enough memory left to support this location.
-    if (offset + num_disp > m_buffer_size)
+    if (offset + num_disp > m_multi_buf_size) {
+      std::cout << "--3 will throw Insufficient memory in small buffers, disparity "
+                << "image may be degenerate.\n";
       vw_throw(ArgumentErr() << "Insufficient memory in small buffers, disparity "
                              << "image may be degenerate.\n");
+    }
     
     return output_ptr + offset;
 
@@ -537,7 +545,7 @@ private:
   int  m_num_paths_in_pass; ///< Must be 4 or 8
 
   int    m_line_size; ///< Length of a column(horizontal) or a row(vertical) in pixels.
-  size_t m_buffer_size, m_buffer_size_bytes;
+  size_t m_multi_buf_size, m_multi_buf_size_bytes;
   int    m_current_col, m_current_row; ///< The current position as we iterate through the pixels
   int    m_col_advance, m_row_advance; ///< These are set according to the current trip
 
@@ -575,7 +583,7 @@ public:
   }
 
   /// Returns the size it elements of the buffer.
-  static size_t get_buffer_size(const SemiGlobalMatcher* parent_ptr) {
+  static size_t one_buf_size(const SemiGlobalMatcher* parent_ptr) {
 
     // Figure out the max possible line length (diagonal line down the center)    
     const int num_cols = parent_ptr->m_num_output_cols;
@@ -587,11 +595,11 @@ public:
     // - Within each buffer, data is indexed in order [pixel][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
     //    initialized to be the maximum possible size.
-    size_t buffer_size = line_size*parent_ptr->m_num_disp;
+    size_t one_buf_size = line_size*parent_ptr->m_num_disp;
 
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (buffer_size > parent_ptr->m_buffer_lengths)
-      buffer_size = parent_ptr->m_buffer_lengths;
+    if (one_buf_size > parent_ptr->m_buffer_lengths)
+      one_buf_size = parent_ptr->m_buffer_lengths;
 
     // TODO(oalexan1): Two users reported failure that can be traced back to
     // "Ran out of memory in the small buffer", and ultimately to choices made
@@ -606,20 +614,22 @@ public:
     size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
     double MAX_PERCENTAGE   = 0.02;
 
-    // std::cout << "2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
-    // std::cout << "Buffer size is        " << buffer_size << std::endl;
-    // std::cout << "Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    std::cout << "one 2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "one Buffer size is        " << one_buf_size << std::endl;
+    std::cout << "one Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
 
-    if (buffer_size > SAFE_BUFFER_SIZE) {
-      buffer_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
-      if (buffer_size < SAFE_BUFFER_SIZE)
-        buffer_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+    if (one_buf_size > SAFE_BUFFER_SIZE) {
+      one_buf_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      std::cout << "--one 2 will reduce buffer size to " << one_buf_size << std::endl;
+      if (one_buf_size < SAFE_BUFFER_SIZE)
+        one_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
     }
+    std::cout << "--one final buffer size is " << one_buf_size << std::endl;
 
     // This is a bugfix. Adjust the buffer size if a previous invocation failed.
-    buffer_size *= parent_ptr->m_buf_size_factor;
+    one_buf_size *= parent_ptr->m_buf_size_factor;
 
-    return buffer_size;
+    return one_buf_size;
   }
 
   /// Initialize the buffer.
@@ -628,14 +638,14 @@ public:
 
     // Determine the buffer size
     m_num_disp          = parent_ptr->m_num_disp;
-    m_buffer_size       = get_buffer_size(parent_ptr);
-    m_buffer_size_bytes = m_buffer_size*sizeof(SemiGlobalMatcher::AccumCostType);
+    m_one_buf_size       = one_buf_size(parent_ptr);
+    m_one_buf_size_bytes = m_one_buf_size*sizeof(SemiGlobalMatcher::AccumCostType);
 
     vw_out(DebugMessage, "stereo") << "OneLineBuffer - allocating buffer size (MB): " 
-                                   << m_buffer_size_bytes/(1024*1024) << std::endl;
+                                   << m_one_buf_size_bytes/(1024*1024) << std::endl;
 
     // Allocate the accumulation buffer
-    m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_buffer_size]);
+    m_buffer.reset(new SemiGlobalMatcher::AccumCostType[m_one_buf_size]);
 
     // Set up the small buffer
     m_bad_disp_value = parent_ptr->get_bad_accum_val();
@@ -644,15 +654,15 @@ public:
 
   /// Clear both buffers
   void clear_buffers() {
-    memset(m_buffer.get(), 0, m_buffer_size_bytes);
+    memset(m_buffer.get(), 0, m_one_buf_size_bytes);
 
     for (size_t i=0; i<m_num_disp; ++i)
       m_full_prior_buffer[i] = m_bad_disp_value;
   }
 
   /// Get the pointer to the start of the output accumulation buffer
-  SemiGlobalMatcher::AccumCostType * get_output_accum_buf_ptr(size_t &buffer_size) {
-    buffer_size = m_buffer_size;
+  SemiGlobalMatcher::AccumCostType * get_output_accum_buf_ptr(size_t &one_buf_size) {
+    one_buf_size = m_one_buf_size;
     return m_buffer.get();
   }
 
@@ -664,7 +674,7 @@ public:
 private: // Variables
 
   SemiGlobalMatcher::AccumCostType m_bad_disp_value;
-  size_t m_buffer_size, m_buffer_size_bytes, m_num_disp;
+  size_t m_one_buf_size, m_one_buf_size_bytes, m_num_disp;
 
   /// Buffer which store the accumulated cost info before it is dumped to the main accum buffer
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_buffer;
@@ -785,9 +795,11 @@ public:
       // Make sure we don't run out of memory in the buffer
       // TODO(oalexan1): This is the problem
       consumed_size += num_disp;
-      if (consumed_size > buffer_size)
+      if (consumed_size > buffer_size) {
+        std::cout << "---1will throw: Ran out of memory in the small buffer, disparity image may be degenerate.\n";
         vw_throw(ArgumentErr() << "Ran out of memory in the small buffer, "
                                << "disparity image may be degenerate.\n");
+      }
 
       // Fill in the accumulated value in the bottom buffer
       int curr_pixel_val = static_cast<int>(m_image_ptr->operator()(input_col, input_row));
