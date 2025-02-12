@@ -1,3 +1,20 @@
+// __BEGIN_LICENSE__
+//  Copyright (c) 2009-2025, United States Government as represented by the
+//  Administrator of the National Aeronautics and Space Administration. All
+//  rights reserved.
+//
+//  The NGT platform is licensed under the Apache License, Version 2.0 (the
+//  "License"); you may not use this file except in compliance with the
+//  License. You may obtain a copy of the License at
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// __END_LICENSE__
+
 #ifndef __SEMI_GLOBAL_MATCHING_H__
 #define __SEMI_GLOBAL_MATCHING_H__
 
@@ -20,7 +37,7 @@ namespace vw {
 namespace stereo {
 
 /**
-A 2D implementation of the popular Semi-Global Matching (SGM) algorithm. This 
+A 2D implementation of the popular Semi-Global Matching (SGM) algorithm. This
 implementation has the following features:
 - 2D search using the passed in search range.
 - Uses the popular Census cost function in a variable kernel size.
@@ -33,7 +50,7 @@ implementation has the following features:
   of memory required.
 - SSE instructions are used to increase speed but currently they only provide
   a small improvement.
-  
+
 Even with the included optimizations this algorithm is slow and requires huge
 amounts of memory to operate on large images. Be careful not to exceed your
 available memory when using it!
@@ -63,13 +80,13 @@ public: // Definitions
   typedef int    DisparityType; ///< Contains the allowable dx, dy range.
   typedef uint8  CostType;      ///< Used to describe a single disparity cost.
   typedef uint16 AccumCostType; ///< Used to accumulate CostType values.
-  
+
   // For converting buffer sizes to MB
   static constexpr size_t BYTES_PER_MB = 1024 * 1024;
-  static constexpr double MainBufToMB 
+  static constexpr double MainBufToMB
     = double(sizeof(CostType) + sizeof(AccumCostType)) / BYTES_PER_MB;
-  static constexpr double SmallBufToMB = double(sizeof(AccumCostType)) / BYTES_PER_MB;  
-  
+  static constexpr double SmallBufToMB = double(sizeof(AccumCostType)) / BYTES_PER_MB;
+
   typedef ImageView<PixelMask<Vector2i>> DisparityImage; // The usual VW disparity type
 
   /// Available subpixel options
@@ -95,12 +112,10 @@ public: // Functions
                     SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                     Vector2i search_buffer=Vector2i(2,2),
                     size_t memory_limit_mb=6000,
-                    //double buf_size_factor=1.0,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
-    set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
-                   kernel_size, subpixel, search_buffer, memory_limit_mb, 
-                   //buf_size_factor, 
+    set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y,
+                   kernel_size, subpixel, search_buffer, memory_limit_mb,
                    p1, p2, ternary_census_threshold);
   }
 
@@ -109,7 +124,7 @@ public: // Functions
   /// - p1 and p2 are algorithm constants very similar to those from the original SGM algorithm.
   ///   If not provided, they well be set to defaults according to the kernel size and cost type.
   /// - The search buffer value is important, it defines the radius around each
-  ///   estimated disparity value that we will search.  A value of 2 means a 5x5 search 
+  ///   estimated disparity value that we will search.  A value of 2 means a 5x5 search
   ///   region.  A larger region directly affects the speed and memory usage of SGM.
   /// - memory_limit_mb is the maximum amount of memory that the algorithm is allowed to allocate
   ///   for its large buffers (total memory usage can go slightly over this).  The program will
@@ -123,7 +138,6 @@ public: // Functions
                       SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                       Vector2i search_buffer=Vector2i(2,2),
                       size_t memory_limit_mb=6000,
-                      //double buf_size_factor=1.0,
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
@@ -138,8 +152,6 @@ public: // Functions
 
   /// Create a subpixel disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
-
-   //double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
 
 private: // Variables
 
@@ -175,7 +187,7 @@ private: // Variables
     ImageView<Vector4i> m_disp_bound_image;
 
     /// Lookup table of the adjacent disparities for each disparity
-    /// - For each disparity index, store the disparity indices of the 
+    /// - For each disparity index, store the disparity indices of the
     ///   eight adjacent disparities.
     /// - Handles outer boundaries by repetition.
     /// - This vector stores a table of size m_num_disp*8.
@@ -185,7 +197,7 @@ private: // Variables
     /// For each output pixel, store the starting index in m_cost_buffer/m_accum_buffer
     ImageView<size_t> m_buffer_starts;
 
-    
+
 private: // Functions
 
   /// Populate the lookup table m_adjacent_disp_lookup
@@ -199,7 +211,7 @@ private: // Functions
   /// - The left and right image masks contain a nonzero value if the pixel is valid.
   ///   No search is performed at masked pixels.
   /// - prev_disparity is a half resolution disparity image.  This input is optional,
-  ///   pass in a null pointer to ignore it.  If provided, it will be used to limit 
+  ///   pass in a null pointer to ignore it.  If provided, it will be used to limit
   ///   the disparity range searched at each pixel.
   /// - The range of disparities searched controls the run time and memory usage of the
   ///   algorithm so this is an important function!
@@ -212,7 +224,7 @@ private: // Functions
   /// - conserve_memory controls how aggressive the function is in finding possible
   ///   search areas for uncertain pixels.  Level 0 uses full search ranges.
   /// - Returns false if there is a problem processing the image.
-  bool constrain_disp_bound_image(ImageView<uint8> const &full_search_image, 
+  bool constrain_disp_bound_image(ImageView<uint8> const &full_search_image,
                                   DisparityImage const* prev_disparity,
                                   double percent_trusted, double percent_masked, double area,
                                   int conserve_memory=0);
@@ -234,7 +246,7 @@ private: // Functions
     return (bounds[2] - bounds[0] + 1) * (bounds[3] - bounds[1] + 1);
   }
 
-  /// Populates m_cost_buffer with all the disparity costs 
+  /// Populates m_cost_buffer with all the disparity costs
   void compute_disparity_costs(ImageView<uint8> const& left_image,
                                ImageView<uint8> const& right_image);
 
@@ -295,7 +307,7 @@ private: // Functions
 
   /// Perform all eight path accumulations in two passes through the image
   void two_trip_path_accumulation(ImageView<uint8> const& left_image);
-  
+
   /// Perform a smoother path accumulation using the MGM algorithm.
   /// - This method requires four passes and takes longer.
   void smooth_path_accumulation(ImageView<uint8> const& left_image);
@@ -323,12 +335,12 @@ private: // Functions
   void disp_to_xy(DisparityType disp, DisparityType &dx, DisparityType &dy) const;
 
   /// Convert a pixel's minimum disparity index to dx, dy.
-  void disp_index_to_xy(int min_index, int col, int row, 
+  void disp_index_to_xy(int min_index, int col, int row,
                         DisparityType &dx, DisparityType &dy) const;
 
   /// Given disparity cost and adjacent costs, compute subpixel offset.
   double compute_subpixel_offset(AccumCostType prev, AccumCostType center, AccumCostType next,
-                                 bool left_bound = false, bool right_bound = false, 
+                                 bool left_bound = false, bool right_bound = false,
                                  bool debug = false);
 
   /// Crude two-element subpixel estimation.
@@ -358,7 +370,7 @@ calc_disparity_sgm(
   Vector2i               const  search_buffer, // Search buffer applied around prev_disparity
   size_t                 const memory_limit_mb,
   boost::shared_ptr<SemiGlobalMatcher> &matcher_ptr,
-  ImageView<uint8>       const* left_mask_ptr=0,  
+  ImageView<uint8>       const* left_mask_ptr=0,
   ImageView<uint8>       const* right_mask_ptr=0,
   SemiGlobalMatcher::DisparityImage const* prev_disparity=0);
 
