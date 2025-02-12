@@ -480,7 +480,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     constrain_disp_bound_image(full_search_image, prev_disparity, percent_trusted, 
                                percent_masked, area, conserve_level);
     try { // Check if the computed boundaries fall within the user specified memory limit
-      result = compute_buffer_length();
+      result = calc_main_buf_size();
       break; // Memory usage is ok!
     }
     catch(...) { // Used too much memory!
@@ -668,8 +668,10 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
 
 } // End populate_disp_bound_image
 
-
-size_t SemiGlobalMatcher::compute_buffer_length() {
+// Calculate the size of the main buffer. This will be used in 
+// populate_disp_bound_image() to shrink the search ranges if the total
+// buffer size is more than what the user expects.
+size_t SemiGlobalMatcher::calc_main_buf_size() {
 
   // Init the starts data storage
   m_buffer_starts.set_size(m_num_output_cols, m_num_output_rows);
@@ -688,48 +690,40 @@ size_t SemiGlobalMatcher::compute_buffer_length() {
   }
   // Finished computing the pixel offsets.
 
+  // It is not clear why this is needed
   if (main_buf_size < 6)
-    vw_throw(ArgumentErr() << "SGM: Total disparity usage is too low.\n");
+    main_buf_size = 6;
 
-  const size_t BYTES_PER_MB      = 1024*1024;
-  const size_t main_buffer_bytes = main_buf_size * (sizeof(CostType) + sizeof(AccumCostType));
-
-  vw_out(DebugMessage, "stereo") << "SGM: Estimating main buffer size: " 
-                                 << main_buffer_bytes/BYTES_PER_MB << " MB\n";
-
-  std::cout << "--main buf size MB: " << main_buffer_bytes/BYTES_PER_MB << " MB\n";
-  m_buffer_lengths = main_buf_size; // Record this value
-  std::cout << "---will set buffer lengths to " << main_buf_size << std::endl;
+  m_main_buf_size = main_buf_size; // Record this value
 
   // Verify that allocating the "small" buffers won't put us over the limit.
-  // - m_buffer_lengths must be set for this to work.
+  // - m_main_buf_size must be set for this to work.
   const int PATHS_PER_PASS  = 1;
   const int NUM_MGM_BUFFERS = 4;
-  size_t small_buffer_size = 0;
+  size_t small_buf_size = 0;
   if (m_use_mgm) {
     // Four vertical buffers and four horizontal buffers.
-    small_buffer_size 
+    small_buf_size 
       = MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, true,
                                             m_buf_size_factor) * NUM_MGM_BUFFERS +
         MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, false,
                                             m_buf_size_factor) * NUM_MGM_BUFFERS;
   } else {
     int num_threads   = vw_settings().default_num_threads();
-    small_buffer_size = OneLineBuffer::one_buf_size(this) * num_threads;
+    small_buf_size = OneLineBuffer::one_buf_size(this) * num_threads;
   }
-  size_t small_buffer_size_bytes = small_buffer_size * sizeof(AccumCostType);
-  vw_out(DebugMessage, "stereo") << "SGM: Estimating total small buffer size: " 
-                                 << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
- 
-  std::cout << "--small buffer size mb: " << small_buffer_size_bytes/BYTES_PER_MB << " MB\n";
-   
-  size_t total_num_bytes = main_buffer_bytes + small_buffer_size_bytes;
-  std::cout << "--total buf size mb = " << total_num_bytes/BYTES_PER_MB << " MB\n";
+  
+  double main_buf_MB  = double(main_buf_size) * MainBufToMB;
+  double small_buf_MB = double(small_buf_size) * SmallBufToMB;
+  double total_buf_MB = main_buf_MB + small_buf_MB;
+  
+  std::cout << "--total buf size mb = " << total_buf_MB << " MB\n";
+  
   std::cout << "--m memory limit mb = " << m_memory_limit_mb << " MB\n";
   
-  if (total_num_bytes/BYTES_PER_MB > m_memory_limit_mb) {
+  if (total_buf_MB > m_memory_limit_mb) {
     vw_throw(ArgumentErr() 
-             << "SGM: Required memory usage is "<< total_num_bytes 
+             << "SGM: Required memory usage is " << total_buf_MB
              << " MB which is greater than the cap of --corr-memory-mb "
              << m_memory_limit_mb << " MB. Consider increasing this or "
              << "reducing the number of threads.\n");
@@ -744,18 +738,18 @@ void SemiGlobalMatcher::allocate_large_buffers() {
   //Timer timer_total("Memory allocation");
 
   const size_t BYTES_PER_MB = 1024*1024;  
-  const size_t total_offset           = compute_buffer_length();
-  const size_t cost_buffer_num_bytes  = total_offset * sizeof(CostType);  
-  const size_t accum_buffer_num_bytes = total_offset * sizeof(AccumCostType);
+  const size_t main_buf_size          = calc_main_buf_size();
+  const size_t cost_buffer_num_bytes  = main_buf_size * sizeof(CostType);  
+  const size_t accum_buffer_num_bytes = main_buf_size * sizeof(AccumCostType);
 
   vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << cost_buffer_num_bytes/BYTES_PER_MB << " MB\n";
 
-  m_cost_buffer.reset(new CostType[total_offset]);
+  m_cost_buffer.reset(new CostType[main_buf_size]);
 
   vw_out(DebugMessage, "stereo") << "SGM: Allocating buffer of size: " << accum_buffer_num_bytes/BYTES_PER_MB << " MB\n";
 
   // Allocate the requested memory and init all to zero
-  m_accum_buffer.reset(new AccumCostType[total_offset]);
+  m_accum_buffer.reset(new AccumCostType[main_buf_size]);
   memset(m_accum_buffer.get(), 0, accum_buffer_num_bytes);
 }
 

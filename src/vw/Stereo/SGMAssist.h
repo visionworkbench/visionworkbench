@@ -1,4 +1,3 @@
-
 #ifndef __SGM_ASSIST_H__
 #define __SGM_ASSIST_H__
 
@@ -11,7 +10,6 @@
 /**
   This file contains supporting classes and functions for the SGM algorithm.
 */
-
 
 namespace vw {
 
@@ -253,13 +251,13 @@ public:
     size_t multi_buf_size = line_size*buffer_pixel_size;
     
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (multi_buf_size > parent_ptr->m_buffer_lengths)
-      multi_buf_size = parent_ptr->m_buffer_lengths;
+    if (multi_buf_size > parent_ptr->m_main_buf_size)
+      multi_buf_size = parent_ptr->m_main_buf_size;
 
     // TODO(oalexan1): Two users reported failure that can be traced back to
     // "Ran out of memory in the small buffer", and ultimately to choices made
     // here. These choices are arbitrary. Why can't the buffer be made larger or
-    // grow with m_buffer_lengths? This logic is repeated in a different place
+    // grow with m_main_buf_size? This logic is repeated in a different place
     // in this file. We should allow the buffer size to be max of 
     // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
 
@@ -268,14 +266,14 @@ public:
     const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
     const double MAX_PERCENTAGE   = 0.04;
 
-    std::cout << "1parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "1parent ptr buff len: " << parent_ptr->m_main_buf_size << std::endl;
     std::cout << "Multi Buffer size is        " << multi_buf_size << std::endl;
     std::cout << "Multi Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
     
     // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
     // But must test.
     if (multi_buf_size > SAFE_BUFFER_SIZE) {
-      multi_buf_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      multi_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
       std::cout << "---1 Multi will reduce buffer size to " << multi_buf_size << std::endl;
       if (multi_buf_size < SAFE_BUFFER_SIZE)
         multi_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
@@ -598,13 +596,13 @@ public:
     size_t one_buf_size = line_size*parent_ptr->m_num_disp;
 
     // No reason for the buffer size to be larger than the entire accumulator!
-    if (one_buf_size > parent_ptr->m_buffer_lengths)
-      one_buf_size = parent_ptr->m_buffer_lengths;
+    if (one_buf_size > parent_ptr->m_main_buf_size)
+      one_buf_size = parent_ptr->m_main_buf_size;
 
     // TODO(oalexan1): Two users reported failure that can be traced back to
     // "Ran out of memory in the small buffer", and ultimately to choices made
     // here. These choices are arbitrary. Why can't the buffer be made larger or
-    // grow with m_buffer_lengths? This logic is repeated in a different place
+    // grow with m_main_buf_size? This logic is repeated in a different place
     // in this file. We should allow the buffer size to be max of
     // SAFE_BUFFER_SIZE and a percentage of the entire accumulation buffer.
 
@@ -614,12 +612,12 @@ public:
     size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
     double MAX_PERCENTAGE   = 0.02;
 
-    std::cout << "one 2parent ptr buff len: " << parent_ptr->m_buffer_lengths << std::endl;
+    std::cout << "one 2parent ptr buff len: " << parent_ptr->m_main_buf_size << std::endl;
     std::cout << "one Buffer size is        " << one_buf_size << std::endl;
     std::cout << "one Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
 
     if (one_buf_size > SAFE_BUFFER_SIZE) {
-      one_buf_size = parent_ptr->m_buffer_lengths * MAX_PERCENTAGE;
+      one_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
       std::cout << "--one 2 will reduce buffer size to " << one_buf_size << std::endl;
       if (one_buf_size < SAFE_BUFFER_SIZE)
         one_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
@@ -683,10 +681,6 @@ private: // Variables
   boost::shared_array<SemiGlobalMatcher::AccumCostType> m_full_prior_buffer;
 
 }; // End class OneLineBuffer
-
-
-
-
 
 /// Assigns OneLineBuffer objects to processing threads so they do not conflict.
 class OneLineBufferManager {

@@ -64,7 +64,13 @@ public: // Definitions
   typedef uint8  CostType;      ///< Used to describe a single disparity cost.
   typedef uint16 AccumCostType; ///< Used to accumulate CostType values.
   
-  typedef ImageView<PixelMask<Vector2i> > DisparityImage; // The usual VW disparity type
+  // For converting buffer sizes to MB
+  static constexpr size_t BYTES_PER_MB = 1024 * 1024;
+  static constexpr double MainBufToMB 
+    = double(sizeof(CostType) + sizeof(AccumCostType)) / BYTES_PER_MB;
+  static constexpr double SmallBufToMB = double(sizeof(AccumCostType)) / BYTES_PER_MB;  
+  
+  typedef ImageView<PixelMask<Vector2i>> DisparityImage; // The usual VW disparity type
 
   /// Available subpixel options
   enum SgmSubpixelMode {SUBPIXEL_NONE     = 0, // Skip subpixel processing
@@ -161,7 +167,7 @@ private: // Variables
     // The two main memory buffers that must be allocated.
     boost::shared_array<CostType> m_cost_buffer;
     boost::shared_array<AccumCostType> m_accum_buffer;
-    size_t m_buffer_lengths;
+    size_t m_main_buf_size;
 
     /// Image containing the inclusive disparity bounds for each pixel.
     /// - Stored as min_col, min_row, max_col, max_row.
@@ -212,7 +218,7 @@ private: // Functions
 
   /// Return the number of elements in each of the large buffers.
   /// - Also perform a check to make sure our memory usage falls within the user specified limit.
-  size_t compute_buffer_length();
+  size_t calc_main_buf_size();
 
   /// Fills m_buffer_starts and allocates m_cost_buffer and m_accum_buffer
   void allocate_large_buffers();
