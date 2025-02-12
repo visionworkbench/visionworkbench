@@ -95,12 +95,13 @@ public: // Functions
                     SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                     Vector2i search_buffer=Vector2i(2,2),
                     size_t memory_limit_mb=6000,
-                    double buf_size_factor=1.0,
+                    //double buf_size_factor=1.0,
                     uint16 p1=0, uint16 p2=0,
                     int ternary_census_threshold=5) {
     set_parameters(cost_type, use_mgm, min_disp_x, min_disp_y, max_disp_x, max_disp_y, 
                    kernel_size, subpixel, search_buffer, memory_limit_mb, 
-                   buf_size_factor, p1, p2, ternary_census_threshold);
+                   //buf_size_factor, 
+                   p1, p2, ternary_census_threshold);
   }
 
   /// Set the parameters to be used for future SGM calls
@@ -122,7 +123,7 @@ public: // Functions
                       SgmSubpixelMode subpixel=SUBPIXEL_LC_BLEND,
                       Vector2i search_buffer=Vector2i(2,2),
                       size_t memory_limit_mb=6000,
-                      double buf_size_factor=1.0,
+                      //double buf_size_factor=1.0,
                       uint16 p1=0, uint16 p2=0,
                       int ternary_census_threshold=5);
 
@@ -138,7 +139,7 @@ public: // Functions
   /// Create a subpixel disparity image using parabola interpolation
   ImageView<PixelMask<Vector2f> > create_disparity_view_subpixel(DisparityImage const& integer_disparity);
 
-   double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
+   //double m_buf_size_factor; ///< Fixes a bug for when the buf size is not adequate
 
 private: // Variables
 

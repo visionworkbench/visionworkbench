@@ -235,8 +235,9 @@ public:
   /// Return the number of elements in the buffer
   static size_t multi_buf_size(const SemiGlobalMatcher* parent_ptr,
                                const int  num_paths_in_pass,
-                               const bool vertical,
-                               double buf_size_factor) {
+                               const bool vertical
+                               //, double buf_size_factor
+                               ) {
 
     size_t line_size = parent_ptr->m_num_output_cols;
     if (vertical)
@@ -250,7 +251,7 @@ public:
     const size_t buffer_pixel_size = num_paths_in_pass*parent_ptr->m_num_disp;
     size_t multi_buf_size = line_size*buffer_pixel_size;
     
-    // No reason for the buffer size to be larger than the entire accumulator!
+    // No reason for the small buffer size to be larger than the main buf size.
     if (multi_buf_size > parent_ptr->m_main_buf_size)
       multi_buf_size = parent_ptr->m_main_buf_size;
 
@@ -263,25 +264,30 @@ public:
 
     // If the buffer is over 128 MB, reduce its size to a percentage of the
     // size of the entire accumulation buffer.
-    const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
-    const double MAX_PERCENTAGE   = 0.04;
+    // const size_t SAFE_BUFFER_SIZE = (1024*1024*128) / sizeof(SemiGlobalMatcher::AccumCostType);
+    // const double MAX_PERCENTAGE   = 0.04;
 
-    std::cout << "1parent ptr buff len: " << parent_ptr->m_main_buf_size << std::endl;
-    std::cout << "Multi Buffer size is        " << multi_buf_size << std::endl;
-    std::cout << "Multi Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    std::cout << "parent ptr buff len: " 
+      << double(parent_ptr->m_main_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+    std::cout << "Multi Buffer size is        " 
+      << double(multi_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+      
+    // std::cout << "Multi Safe buffer size is   " 
+    //   << double(SAFE_BUFFER_SIZE) * parent_ptr->SmallBufToMB << " MB\n";
     
-    // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
-    // But must test.
-    if (multi_buf_size > SAFE_BUFFER_SIZE) {
-      multi_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
-      std::cout << "---1 Multi will reduce buffer size to " << multi_buf_size << std::endl;
-      if (multi_buf_size < SAFE_BUFFER_SIZE)
-        multi_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
-    }
-    std::cout << "--Multi final buffer size is " << multi_buf_size << std::endl;
+    // // TODO(oalexan1): Must use here instead max of safe buffer and the percentage.
+    // // But must test.
+    // if (multi_buf_size > SAFE_BUFFER_SIZE) {
+    //   multi_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
+    //   if (multi_buf_size < SAFE_BUFFER_SIZE)
+    //     multi_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+          
+    //   std::cout << "--Will reduce multi buffer to: " 
+    //   << double(multi_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+    // }
 
     // This is a bugfix. Adjust the buffer size if a previous invocation failed.
-    multi_buf_size *= buf_size_factor;
+    //multi_buf_size *= buf_size_factor;
     
     return multi_buf_size;
   }
@@ -290,8 +296,9 @@ public:
   /// - num_paths_in_pass can be 1, four (8 directions), or eight (16 directions)
   MultiAccumRowBuffer(const SemiGlobalMatcher* parent_ptr,
                       const int  num_paths_in_pass,
-                      const bool vertical, 
-                      double buf_size_factor) {
+                      const bool vertical
+                      //, double buf_size_factor
+                      ) {
     m_parent_ptr        = parent_ptr;  
     m_num_paths_in_pass = num_paths_in_pass;
     m_vertical          = vertical;
@@ -301,8 +308,9 @@ public:
     if (vertical)
       m_line_size = num_rows;
 
-    m_multi_buf_size = multi_buf_size(parent_ptr, num_paths_in_pass, vertical,
-                                   buf_size_factor);
+    m_multi_buf_size = multi_buf_size(parent_ptr, num_paths_in_pass, vertical
+                                      //,buf_size_factor
+                                      );
     m_multi_buf_size_bytes = m_multi_buf_size*sizeof(SemiGlobalMatcher::AccumCostType);
 
     vw_out(DebugMessage, "stereo") << "MultiAccumRowBuffer - allocating buffer size (MB): " 
@@ -589,13 +597,13 @@ public:
     int line_size = sqrt(num_cols*num_cols + num_rows*num_rows) + 1;
 
     // Instantiate single-row buffer that will be used to temporarily store
-    //  accumulated cost info until it can be added to the main SGM class buffer.
+    // accumulated cost info until it can be added to the main SGM class buffer.
     // - Within each buffer, data is indexed in order [pixel][disparity]
     // - The actual data size in the buffer will vary each line, so it is 
-    //    initialized to be the maximum possible size.
+    //   initialized to be the maximum possible size.
     size_t one_buf_size = line_size*parent_ptr->m_num_disp;
 
-    // No reason for the buffer size to be larger than the entire accumulator!
+    // No reason for the small buffer size to be larger than the main buf size.
     if (one_buf_size > parent_ptr->m_main_buf_size)
       one_buf_size = parent_ptr->m_main_buf_size;
 
@@ -609,23 +617,29 @@ public:
     // TODO(oalexan1): Must use here max of 128 MB and the percentage. But must test.
     // If the buffer is over 64 MB, reduce its size to a percentage of the
     //  size of the entire accumulation buffer.
-    size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
-    double MAX_PERCENTAGE   = 0.02;
+    // size_t SAFE_BUFFER_SIZE = (1024*1024*64) / sizeof(SemiGlobalMatcher::AccumCostType);
+    // double MAX_PERCENTAGE   = 0.02;
 
-    std::cout << "one 2parent ptr buff len: " << parent_ptr->m_main_buf_size << std::endl;
-    std::cout << "one Buffer size is        " << one_buf_size << std::endl;
-    std::cout << "one Safe buffer size is   " << SAFE_BUFFER_SIZE << std::endl;
+    std::cout << "Parent ptr buff size " << 
+      double(parent_ptr->m_main_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+    std::cout << "One buf size         " 
+      << double(one_buf_size) * parent_ptr->SmallBufToMB << " MB\n";   
+    // std::cout << "one Safe buf size     " << double(SAFE_BUFFER_SIZE) * parent_ptr->SmallBufToMB << " MB\n";
 
-    if (one_buf_size > SAFE_BUFFER_SIZE) {
-      one_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
-      std::cout << "--one 2 will reduce buffer size to " << one_buf_size << std::endl;
-      if (one_buf_size < SAFE_BUFFER_SIZE)
-        one_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
-    }
-    std::cout << "--one final buffer size is " << one_buf_size << std::endl;
+    // if (one_buf_size > SAFE_BUFFER_SIZE) {
+    //   one_buf_size = parent_ptr->m_main_buf_size * MAX_PERCENTAGE;
+    //   std::cout << "--one will reduce buffer size to " 
+    //     << double(one_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+        
+    //   if (one_buf_size < SAFE_BUFFER_SIZE)
+    //     one_buf_size = SAFE_BUFFER_SIZE; // Buffer can at least be this size
+        
+    //   std::cout << "--one final buffer size to " 
+    //     << double(one_buf_size) * parent_ptr->SmallBufToMB << " MB\n";
+    // }
 
     // This is a bugfix. Adjust the buffer size if a previous invocation failed.
-    one_buf_size *= parent_ptr->m_buf_size_factor;
+    //one_buf_size *= parent_ptr->m_buf_size_factor;
 
     return one_buf_size;
   }
@@ -730,9 +744,6 @@ private:
   std::vector<bool         > m_busy_vec;   ///< A mutex to lock each of the buffers.
 }; // End class OneLineBufferManager
 
-
-
-
 /// Performs SGM accumulation along one line and then adds it to the parent accumulation buffer
 /// - Task object which can be passed to a thread pool.
 class PixelPassTask: public Task {
@@ -791,6 +802,11 @@ public:
       consumed_size += num_disp;
       if (consumed_size > buffer_size) {
         std::cout << "---1will throw: Ran out of memory in the small buffer, disparity image may be degenerate.\n";
+        std::cout << "consumed size mb " 
+          << double(consumed_size) * m_parent_ptr->SmallBufToMB << " MB\n";
+        std::cout << "--available size mb " 
+          << double(buffer_size) * m_parent_ptr->SmallBufToMB << " MB\n";
+        
         vw_throw(ArgumentErr() << "Ran out of memory in the small buffer, "
                                << "disparity image may be degenerate.\n");
       }

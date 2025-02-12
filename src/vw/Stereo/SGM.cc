@@ -63,7 +63,7 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        SgmSubpixelMode subpixel,
                                        Vector2i search_buffer,
                                        size_t memory_limit_mb,
-                                       double buf_size_factor,
+                                       //double buf_size_factor,
                                        uint16 p1, uint16 p2,
                                        int ternary_census_threshold) {
   m_cost_type   = cost_type;
@@ -77,8 +77,8 @@ void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
   m_subpixel_type   = subpixel;
   m_search_buffer   = search_buffer;
   m_memory_limit_mb = memory_limit_mb;
-  std::cout << "--set memory limit mb to " << m_memory_limit_mb << std::endl;
-  m_buf_size_factor = buf_size_factor;
+  //std::cout << "--set memory limit mb to " << m_memory_limit_mb << std::endl;
+  //m_buf_size_factor = buf_size_factor;
 
   m_num_disp_x = m_max_disp_x - m_min_disp_x + 1;
   m_num_disp_y = m_max_disp_y - m_min_disp_y + 1;
@@ -195,29 +195,27 @@ ImageView<PixelMask<Vector2i>> calc_disparity_sgm(
   u8_convert(crop(left_in.impl(), left_region),  left);
   u8_convert(crop(right_in.impl(), right_region), right);
 
-  // This is a bugfix for when the allocated buffers are insufficient. It
-  // happens for large disparity search range. Try second time with a larger
-  // buffer, before failing and telling the user to increase the buffer.
-  double buf_size_factor_vec[] = {1.0, 2.0};
-  for (int i = 0; i < 2; i++) {
-    try {
-      matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
-                        search_volume_inclusive[0], search_volume_inclusive[1], 
-                        kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb,
-                        buf_size_factor_vec[i]));
-      std::cout << "---will try!\n";
-      return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
-                                                    right_mask_ptr, prev_disparity);
+  // // This is a bugfix for when the allocated buffers are insufficient. It
+  // // happens for large disparity search range. Try second time with a larger
+  // // buffer, before failing and telling the user to increase the buffer.
+  // double buf_size_factor_vec[] = {1.0, 2.0};
+  // for (int i = 0; i < 2; i++) {
+  try {
+    matcher_ptr.reset(new SemiGlobalMatcher(cost_type, use_mgm, 0, 0, 
+                      search_volume_inclusive[0], search_volume_inclusive[1], 
+                      kernel_size[0], subpixel_mode, search_buffer, memory_limit_mb
+                      //,buf_size_factor_vec[i])
+                      ));
+    //std::cout << "---will try!\n";
+    return matcher_ptr->semi_global_matching_func(left, right, left_mask_ptr, 
+                                                  right_mask_ptr, prev_disparity);
 
-    } catch (...) {
-      vw_out() << "Insufficient memory was allocated. Trying again with a larger buffer.\n";
-    }
+  } catch (const std::exception& e) {
+    vw::vw_throw(vw::ArgumentErr()
+      << "Failed to compute the correlation. See the online documentation "
+      << "(next_steps.html) for how to handle failures.\n"
+      << "Detailed error message: " << e.what() << "\n");
   }
-
-  // Will arrive here on failure only
-  vw::vw_throw(vw::ArgumentErr()
-    << "Failed to compute the correlation. See the online documentation "
-    "(the page next_steps.html) for how to handle failures.\n");
   
   return ImageView<PixelMask<Vector2i>>();
 } // End function calc_disparity
@@ -694,7 +692,9 @@ size_t SemiGlobalMatcher::calc_main_buf_size() {
   if (main_buf_size < 6)
     main_buf_size = 6;
 
-  m_main_buf_size = main_buf_size; // Record this value
+  // Record this value early, as it is used right below when calling one_buf_size()
+  // and/or multi_buf_size().
+  m_main_buf_size = main_buf_size; 
 
   // Verify that allocating the "small" buffers won't put us over the limit.
   // - m_main_buf_size must be set for this to work.
@@ -704,10 +704,12 @@ size_t SemiGlobalMatcher::calc_main_buf_size() {
   if (m_use_mgm) {
     // Four vertical buffers and four horizontal buffers.
     small_buf_size 
-      = MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, true,
-                                            m_buf_size_factor) * NUM_MGM_BUFFERS +
-        MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, false,
-                                            m_buf_size_factor) * NUM_MGM_BUFFERS;
+      = MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, true
+                                            //,m_buf_size_factor
+                                            ) * NUM_MGM_BUFFERS +
+        MultiAccumRowBuffer::multi_buf_size(this, PATHS_PER_PASS, false
+                                            //,m_buf_size_factor
+                                            ) * NUM_MGM_BUFFERS;
   } else {
     int num_threads   = vw_settings().default_num_threads();
     small_buf_size = OneLineBuffer::one_buf_size(this) * num_threads;
@@ -718,17 +720,14 @@ size_t SemiGlobalMatcher::calc_main_buf_size() {
   double total_buf_MB = main_buf_MB + small_buf_MB;
   
   std::cout << "--total buf size mb = " << total_buf_MB << " MB\n";
-  
   std::cout << "--m memory limit mb = " << m_memory_limit_mb << " MB\n";
   
-  if (total_buf_MB > m_memory_limit_mb) {
+  if (total_buf_MB > m_memory_limit_mb)
     vw_throw(ArgumentErr() 
              << "SGM: Required memory usage is " << total_buf_MB
              << " MB which is greater than the cap of --corr-memory-mb "
              << m_memory_limit_mb << " MB. Consider increasing this or "
              << "reducing the number of threads.\n");
-  }
-
 
   return main_buf_size;
 }
@@ -1965,7 +1964,8 @@ void SemiGlobalMatcher::two_trip_path_accumulation(ImageView<uint8> const& left_
   /// Create an object to manage the temporary accumulation buffers that need to be used here.
   const int  num_paths_in_pass=4;
   const bool vertical=false;
-  MultiAccumRowBuffer buf_mgr(this, num_paths_in_pass, vertical, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr(this, num_paths_in_pass, vertical);
+  //, m_buf_size_factor);
 
   // Init this buffer to bad scores representing disparities that were
   //  not in the search range for the given pixel.
@@ -2125,8 +2125,8 @@ void SemiGlobalMatcher::smooth_path_accumulation(ImageView<uint8> const& left_im
 
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - Two copies are needed here, one for the two horizontal passes and one for the two vertical passes
-  MultiAccumRowBuffer buf_mgr_horiz(this, PATHS_PER_PASS, false, m_buf_size_factor);
-  MultiAccumRowBuffer buf_mgr_vertical  (this, PATHS_PER_PASS, true,  m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_horiz(this, PATHS_PER_PASS, false); //, m_buf_size_factor);
+  MultiAccumRowBuffer buf_mgr_vertical  (this, PATHS_PER_PASS, true); //,  m_buf_size_factor);
   
   // Init this buffer to bad scores representing disparities that were
   //  not in the search range for the given pixel.
@@ -2667,22 +2667,22 @@ void SemiGlobalMatcher::accum_mgm_multithread(ImageView<uint8> const& left_image
   // Create objects to manage the temporary accumulation buffers that need to be used here.
   // - A separate copy instance is used for each direction to allow multithreading
   MultiAccumRowBuffer buf_mgr_horiz_left    
-    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+    (this, PATHS_PER_PASS, false); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_horiz_right
-    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+    (this, PATHS_PER_PASS, false); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_horiz_topleft
-    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+    (this, PATHS_PER_PASS, false); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_horiz_botright
-    (this, PATHS_PER_PASS, false, m_buf_size_factor);
+    (this, PATHS_PER_PASS, false); //, m_buf_size_factor);
 
   MultiAccumRowBuffer buf_mgr_vertical_top     
-    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+    (this, PATHS_PER_PASS, true); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_vertical_bot
-    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+    (this, PATHS_PER_PASS, true); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_vertical_topright
-    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+    (this, PATHS_PER_PASS, true); //, m_buf_size_factor);
   MultiAccumRowBuffer buf_mgr_vertical_botleft
-    (this, PATHS_PER_PASS, true, m_buf_size_factor);
+    (this, PATHS_PER_PASS, true); //, m_buf_size_factor);
 
   // Set some of the buffers to the reverse direction
   buf_mgr_horiz_right.switch_trips();
