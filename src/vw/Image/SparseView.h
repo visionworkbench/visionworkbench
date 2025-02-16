@@ -104,7 +104,7 @@ namespace vw {
     template <class InputT>
     void absorb( Vector2i starting_index,
                  ImageViewBase<InputT> const& image_base ) {
-      using namespace vw;
+
       InputT image = image_base.impl();
       VW_DEBUG_ASSERT( starting_index[0] >= 0 && starting_index[1] >= 0,
                        NoImplErr() << "SparseCompositeView doesn't support insertation behind image origin.\n" );
@@ -197,7 +197,6 @@ namespace vw {
 
     // Debug structure
     void print_structure() const {
-      using namespace vw;
       vw_out() << "SparseCompositeView Structure:\n";
       for ( uint32 i = 0; i < m_data->size(); ++i ) {
         vw_out() << i << " | ";

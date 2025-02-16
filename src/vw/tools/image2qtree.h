@@ -176,18 +176,10 @@ struct Options: vw::GdalWriteOptions {
 static float lo_value = vw::ScalarTypeLimits<float>::highest();
 static float hi_value = vw::ScalarTypeLimits<float>::lowest();
 
-vw::int32
-compute_resolution(const std::string& p,
-                   const vw::cartography::GeoTransform& t,
-                   const vw::Vector2& v);
-
-void
-get_normalize_vals(boost::shared_ptr<vw::DiskImageResource> file,
-                   const Options& opt);
-
+namespace vw {
+  
 template <class PixelT>
 void do_normal_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
-  using namespace vw;
   DiskImageView<PixelT> img(opt.input_files[0]);
   mosaic::QuadTreeGenerator quadtree(img, opt.output_file_name);
   quadtree.set_tile_size( 256 );
@@ -215,8 +207,6 @@ load_image_georeferences( const Options& opt, int& total_resolution );
 
 template <class PixelT>
 void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
-  using namespace vw;
-  using namespace vw::cartography;
 
   typedef typename PixelChannelType<PixelT>::type ChannelT;
 
@@ -229,14 +219,14 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   // Read in georeference info and compute total resolution.
   int total_resolution = 1024;
-  std::vector<GeoReference> georeferences = load_image_georeferences( opt, total_resolution );
+  std::vector<vw::cartography::GeoReference> georeferences = load_image_georeferences( opt, total_resolution );
 
   boost::shared_ptr<mosaic::QuadTreeConfig> config = mosaic::QuadTreeConfig::make(opt.mode);
 
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / opt.aspect_ratio, yresolution = total_resolution;
 
-  GeoReference output_georef = config->output_georef(xresolution, yresolution);
+  vw::cartography::GeoReference output_georef = config->output_georef(xresolution, yresolution);
   vw_out(VerboseDebugMessage, "tool") << "Output Georef:\n" << output_georef << std::endl;
 
   // Configure the composite.
@@ -246,11 +236,11 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   for(size_t i=0; i < opt.input_files.size(); i++) {
     // Get info for this file
     const std::string & filename     = opt.input_files[i];
-    const GeoReference& input_georef = georeferences[i];
+    const vw::cartography::GeoReference& input_georef = georeferences[i];
 
     // Load the image and georef from the file
     boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
-    GeoTransform geotx( input_georef, output_georef );
+    vw::cartography::GeoTransform geotx( input_georef, output_georef );
 
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
@@ -419,5 +409,7 @@ PROTOTYPE_ALL_CHANNEL_TYPES(PixelGrayA)
 PROTOTYPE_ALL_CHANNEL_TYPES(PixelRGBA)
 
 #undef PROTOTYPE_ALL_CHANNEL_TYPES
+
+} // end namespace vw
 
 #endif//__VW_TOOLS_IMAGE2QTREE_H__

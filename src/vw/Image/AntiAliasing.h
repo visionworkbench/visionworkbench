@@ -55,7 +55,6 @@ namespace vw {
 
     typedef vw::CropView<vw::ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( vw::BBox2i const& bbox ) const {
-      using namespace vw;
 
       // Fancy rasterize in section of m_tile_size
       std::vector<BBox2i> subregions = subdivide_bbox( bbox, m_tile_size.x(), m_tile_size.y() );
@@ -109,7 +108,6 @@ namespace vw {
 
     typedef vw::CropView<vw::ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( vw::BBox2i const& bbox ) const {
-      using namespace vw;
       ImageView<pixel_type> dest( bbox.width(), bbox.height(), m_image.planes() );
       rasterize(dest, bbox);
       return prerasterize_type( dest, BBox2i( -bbox.min().x(), -bbox.min().y(),
@@ -118,7 +116,6 @@ namespace vw {
 
     template <class DestT>
     void rasterize( DestT const& dest, vw::BBox2i const& bbox ) const {
-      using namespace vw;
 
       typedef typename UnmaskedPixelType<pixel_type>::type unmasked_type;
 
@@ -266,7 +263,6 @@ namespace vw {
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type
     operator()( PixelAccessorT acc ) const {
-      using namespace vw;
 
       typedef typename SumType<typename PixelAccessorT::pixel_type,
                                typename PixelAccessorT::pixel_type >::type sum_type;
@@ -296,7 +292,6 @@ namespace vw {
   template <class ViewT>
   vw::TransformView<vw::InterpolationView<WeightedSummationView<ViewT>, vw::NearestPixelInterpolation>, vw::ResampleTransform>
   resample_aa( vw::ImageViewBase<ViewT> const& input, double factor ) {
-    using namespace vw;
     typedef WeightedSummationView<ViewT> inner_type;
     typedef TransformView<InterpolationView<inner_type, NearestPixelInterpolation>, ResampleTransform> return_type;
     return return_type( InterpolationView<inner_type, NearestPixelInterpolation>( weighted_summation( input.impl(), int32(1.0/factor) ) ),

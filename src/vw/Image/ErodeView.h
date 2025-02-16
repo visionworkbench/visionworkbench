@@ -384,7 +384,6 @@ void ErodeView<ImageT>::rasterize( DestT const& dest, BBox2i const& bbox ) const
 template <class ImageT>
 void ErodeView<ImageT>::print_structure() const
 {
-  using namespace vw;
   vw_out() << "ErodeView Structure:\n";
   for ( uint32 r = 0; r < m_data->size(); ++r )  // For each row
   {

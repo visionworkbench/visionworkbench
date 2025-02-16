@@ -77,7 +77,7 @@ void get_normalize_vals(boost::shared_ptr<DiskImageResource> file,
 }
 
 std::vector<GeoReference>
-load_image_georeferences( const Options& opt, int& total_resolution ) {
+vw::load_image_georeferences( const Options& opt, int& total_resolution ) {
   std::vector<GeoReference> georeferences;
   georeferences.reserve( opt.input_files.size() );
 
@@ -87,7 +87,7 @@ load_image_georeferences( const Options& opt, int& total_resolution ) {
 
     if( opt.normalize ) get_normalize_vals(file, opt);
 
-    GeoReference input_georef = make_input_georef(file, opt);
+    GeoReference input_georef = vw::make_input_georef(file, opt);
     georeferences.push_back( input_georef );
 
     GeoReference output_georef(input_georef.datum());
@@ -122,8 +122,8 @@ load_image_georeferences( const Options& opt, int& total_resolution ) {
   return georeferences;
 }
 
-GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
-                               const Options& opt) {
+GeoReference vw::make_input_georef(boost::shared_ptr<DiskImageResource> file,
+                                   const Options& opt) {
   GeoReference input_georef;
   bool fail_read_georef = false;
   try {

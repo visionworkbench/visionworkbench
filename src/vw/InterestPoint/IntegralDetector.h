@@ -107,8 +107,7 @@ namespace ip {
 
   /// InterestDetector implementation for all detectors with operate off of an integral image.
   template <class InterestT>
-  class IntegralInterestPointDetector : public InterestDetectorBase<IntegralInterestPointDetector<InterestT> >,
-                                        private boost::noncopyable {
+  class IntegralInterestPointDetector: public InterestDetectorBase<IntegralInterestPointDetector<InterestT>>, private boost::noncopyable {
 
   public:
     static const int IP_DEFAULT_SCALES = 8;
@@ -133,12 +132,13 @@ namespace ip {
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
       // Rendering own standard copy of the image as the passed in view is just a cropview
-      ImageView<PixelGray<float> > original_image = pixel_cast_rescale<PixelGray<float> >(image);
+      vw::ImageView<vw::PixelGray<float> > original_image 
+        = vw::pixel_cast_rescale<vw::PixelGray<float> >(image);
 
       // Producing Integral Image
       ImageT integral_image;
       {
-        vw_out(DebugMessage, "interest_point") << "\tCreating Integral Image ...";
+        vw::vw_out(DebugMessage, "interest_point") << "\tCreating Integral Image ...";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         integral_image= IntegralImage( original_image );
       }
@@ -151,12 +151,12 @@ namespace ip {
       // Priming scales
       InterestPointList new_points;
       {
-        vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
+        vw::vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         m_interest( interest_data[0], 0 );
       }
       {
-        vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
+        vw::vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         m_interest( interest_data[1], 1 );
       }
@@ -165,7 +165,7 @@ namespace ip {
 
         interest_data.push_back( DataT(original_image, integral_image) );
         {
-          vw_out(DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
+          vw::vw_out(DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
           Timer t("done, elapsed time", DebugMessage, "interest_point");
           m_interest( interest_data[2], scale );
         }
@@ -217,18 +217,18 @@ namespace ip {
         curr_max_points = desired_num_ip;
 
       if ( curr_max_points > 0 ) { // Cull
-        vw_out(DebugMessage, "interest_point") << "\tCulling ...";
+        vw::vw_out(DebugMessage, "interest_point") << "\tCulling ...";
         Timer t("elapsed time", DebugMessage, "interest_point");
         int original_num_points = new_points.size();
         new_points.sort();
         if (curr_max_points < original_num_points)
           new_points.resize( curr_max_points );
-        vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size() 
+        vw::vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size() 
                                                << " interest points, " << new_points.size() << " remaining.)\n";
       }
 
       { // Assign orientations
-        vw_out(DebugMessage, "interest_point") << "\tAssigning Orientations... ";
+        vw::vw_out(DebugMessage, "interest_point") << "\tAssigning Orientations... ";
         Timer t("elapsed time", DebugMessage, "interest_point");
         std::for_each( new_points.begin(), new_points.end(),
                        AssignOrientation<ImageT >( integral_image ) );
@@ -287,10 +287,7 @@ namespace ip {
     }
   };
 
-
-
-
-// TODO: This inherits from the same base class two different ways!
+  // TODO: This inherits from the same base class two different ways!
 
   /// Implementation of IntegralInterestPointDetector based on OBALoGInterestOperator 
   class IntegralAutoGainDetector : public InterestDetectorBase<IntegralAutoGainDetector >,
@@ -307,10 +304,10 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(vw::ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
-      using namespace vw;
-      typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
-      typedef ip::ImageInterestData<ImageT,ip::OBALoGInterestOperator> DataT;
-      Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
+
+      typedef vw::ImageView<typename vw::PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
+      typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
+      vw::Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
       // The input image is a lazy view. We'll rasterize so we're not
       // hitting the cache all of the image.
@@ -325,7 +322,7 @@ namespace ip {
       // Producing Integral Image
       ImageT integral_image;
       {
-        vw_out(DebugMessage, "interest_point") << "\tCreating Integral Image ...";
+        vw::vw_out(vw::DebugMessage, "interest_point") << "\tCreating Integral Image ...";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         integral_image = ip::IntegralImage( original_image );
       }
@@ -338,12 +335,12 @@ namespace ip {
       // Priming scales
       vw::ip::InterestPointList new_points;
       {
-        vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
+        vw::vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         m_interest( interest_data[0], 0 );
       }
       {
-        vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
+        vw::vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
         m_interest( interest_data[1], 1 );
       }
@@ -353,12 +350,12 @@ namespace ip {
 
         interest_data.push_back( DataT(empty_image, integral_image) );
         {
-          vw_out(DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
+          vw::vw_out(vw::DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
           Timer t("done, elapsed time", DebugMessage, "interest_point");
           m_interest( interest_data[2], scale );
         }
 
-        ip::InterestPointList scale_points;
+        vw::ip::InterestPointList scale_points;
 
         // Detecting interest points in middle
         int32 cols = original_image.cols() - 2;
@@ -375,7 +372,7 @@ namespace ip {
           AccessT h_col = h_row;
           for ( int32 c=0; c < cols; c++ ) {
             if ( is_extrema( l_col, m_col, h_col ) ) {
-              scale_points.push_back(ip::InterestPoint(c+1,r+1,
+              scale_points.push_back(vw::ip::InterestPoint(c+1,r+1,
                                                        m_interest.float_scale(scale-1),
                                                        *m_col) );
             }
@@ -388,7 +385,7 @@ namespace ip {
           h_row.next_row();
         }
 
-        VW_OUT(DebugMessage, "interest_point") << "\tPrior to thresholding there was: "
+        vw::vw_out(vw::DebugMessage, "interest_point") << "\tPrior to thresholding there was: "
                                                << scale_points.size() << "\n";
 
         // Remove all interest points in the bottom 0.1% of our interest point range
@@ -442,9 +439,9 @@ namespace ip {
   protected:
 
     template <class DataT>
-    inline void threshold( vw::ip::InterestPointList& points,
-                           DataT const& img_data,
-                           int const& scale, float threshold_lvl ) const {
+    inline void threshold(vw::ip::InterestPointList& points,
+                          DataT const& img_data,
+                          int const& scale, float threshold_lvl) const {
       InterestPointList::iterator pos = points.begin();
       while (pos != points.end()) {
         if ( pos->interest < threshold_lvl ||
@@ -457,11 +454,6 @@ namespace ip {
       }
     }
   }; // End class IntegralAutoGainDetector
-
-
-
-
-
 
 }} // end vw::ip
 

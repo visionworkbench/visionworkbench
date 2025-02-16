@@ -41,7 +41,6 @@ namespace vw {
                        typename ContainerT::iterator end,
                        size_t clusters = 2) {
     namespace ba = boost::accumulators;
-    using namespace vw;
     typedef ba::accumulator_set<double, ba::stats<ba::tag::variance> > acc_set;
     typedef Vector<double, DimensionsT> VectorD;
     typedef typename ContainerT::iterator IterT;
@@ -169,7 +168,6 @@ namespace vw {
                        typename ContainerT::iterator end,
                        size_t clusters = 2) {
     namespace ba = boost::accumulators;
-    using namespace vw;
     typedef ba::accumulator_set<double, ba::stats<ba::tag::variance> > acc_set;
     typedef double VectorD;
     typedef typename ContainerT::iterator IterT;

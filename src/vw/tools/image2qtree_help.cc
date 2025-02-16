@@ -15,13 +15,14 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-// The helper source file is used to instantian different pixel
+// The helper source file is used to instantiate different pixel
 // versions of image2qtree into different object files. It works by using
 // the PIXEL_TYPE macro.
 
 #include <vw/tools/image2qtree.h>
 
+namespace vw {
+  
 #define INSTANTIATE_CUSTOM_MOSAIC(PIXELTYPEMACRO, CHANNELTYPE) INSTANTIATE_CUSTOM_MOSAIC_(PIXELTYPEMACRO, CHANNELTYPE)
 
 #define INSTANTIATE_CUSTOM_MOSAIC_(PIXELTYPEMACRO, CHANNELTYPE) INSTANTIATE_CUSTOM_MOSAIC__(PIXELTYPEMACRO, CHANNELTYPE, PIXELTYPEMACRO ## _ ## CHANNELTYPE)
@@ -33,3 +34,5 @@
   }
 
 INSTANTIATE_CUSTOM_MOSAIC( PIXEL_TYPE, CHANNEL_TYPE )
+
+} // end namespace vw

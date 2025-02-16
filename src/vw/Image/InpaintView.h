@@ -62,7 +62,6 @@ namespace vw {
         m_patches(sparse) {}
 
       void operator()() {
-        using namespace vw;
 
         typedef typename ViewT::pixel_type pixel_type;
 
@@ -185,7 +184,6 @@ namespace vw {
     typedef CropView<ImageView<pixel_type> >    inner_pre_type;
     typedef SparseCompositeView<inner_pre_type> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      using namespace vw;
 
       // Expand the preraster size to include all the area that our patches use
       // - This makes sure all contained blobs are identified and fully contained
