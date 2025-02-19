@@ -174,8 +174,10 @@ namespace {
 #define _VW_SET1(Name, Default)\
   m_ ## Name(Default), m_ ## Name ## _override(false)
 
-Settings::Settings()
-  : _VW_SET1(default_num_threads, VW_NUM_THREADS),
+// TODO(oalexan1): Default num threads must be number of cores
+// This can affect tools that use multiple processes though.
+Settings::Settings():
+    _VW_SET1(default_num_threads, VW_NUM_THREADS),
     _VW_SET1(system_cache_size, size_t(VW_CACHE_SIZE) * 1024 * 1024),
     _VW_SET1(write_pool_size, 21), // 21 threads is about 252MB of back data for RGB f32 1024x1024 blocks
     _VW_SET1(default_tile_size, 256),
@@ -198,6 +200,9 @@ Settings::Settings()
     m_ ## Name = x;                              \
     Callback                                     \
   }
+
+// TODO(oalexan1): Figure out here if number of threads is set or not in .vwrc.
+// If not, set it number of cores.
 
 GETSET(default_num_threads, uint32, ;);
 GETSET(system_cache_size, size_t, vw_system_cache().resize(x););

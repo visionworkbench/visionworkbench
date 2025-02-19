@@ -133,7 +133,7 @@ void GdalWriteOptions::setVwSettingsFromOpt() {
   
   // Print the message below just once per process.
   static bool verbose = true;
-  if (verbose){
+  if (verbose) {
     vw::vw_out() << "\t--> Setting number of processing threads to: "
                  <<  vw_settings().default_num_threads() << std::endl;
     verbose = false;

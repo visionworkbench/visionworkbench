@@ -17,7 +17,8 @@
 
 /// \file MaskedImageAlgs.cc
 ///
-/// Algorithms that operate on masked images.
+/// Algorithms that operate on masked float images. All computations are with
+/// double precision, for better accuracy.
 ///
 #include <vw/Image/MaskedImageAlgs.h>
 #include <vw/Image/PixelMask.h>
@@ -25,10 +26,12 @@
 #include <vw/Math/Statistics.h>
 #include <vw/Core/Exception.h>
 
+#include <omp.h>
+
 namespace vw {
 
 // Find the valid pixels. Use long long, to avoid integer overflow.
-long long validCount(vw::ImageView<vw::PixelMask<double>> const& img) {
+long long validCount(vw::ImageView<vw::PixelMask<float>> const& img) {
   
   long long count = 0;
   for (int col = 0; col < img.cols(); col++) {
@@ -42,10 +45,10 @@ long long validCount(vw::ImageView<vw::PixelMask<double>> const& img) {
 }
 
 // Compute the median of the valid pixels
-double maskedMedian(vw::ImageView<vw::PixelMask<double>> const& img) {
+double maskedMedian(vw::ImageView<vw::PixelMask<float>> const& img) {
 
   // Allocate enough space first  
-  std::vector<double> vals(img.cols()*img.rows());
+  std::vector<float> vals(img.cols()*img.rows());
   vals.clear();
   
   for (int col = 0; col < img.cols(); col++) {
@@ -62,11 +65,11 @@ double maskedMedian(vw::ImageView<vw::PixelMask<double>> const& img) {
 }
 
 // Comput normalized median absolute deviation
-double normalizedMad(vw::ImageView<vw::PixelMask<double>> const& img, 
+double normalizedMad(vw::ImageView<vw::PixelMask<float>> const& img, 
                      double median) {
   
   // Compute the median absolute deviation
-  std::vector<double> vals(img.cols()*img.rows());
+  std::vector<float> vals(img.cols()*img.rows());
   vals.clear();
   for (int col = 0; col < img.cols(); col++) {
     for (int row = 0; row < img.rows(); row++) {
@@ -85,7 +88,7 @@ double normalizedMad(vw::ImageView<vw::PixelMask<double>> const& img,
 }
 
 // Find the mean of valid pixels
-double maskedMean(vw::ImageView<vw::PixelMask<double>> const& img) {
+double maskedMean(vw::ImageView<vw::PixelMask<float>> const& img) {
   
   double sum = 0.0;
   long long count = 0;
@@ -105,7 +108,7 @@ double maskedMean(vw::ImageView<vw::PixelMask<double>> const& img) {
 }
 
 // Find the std dev of valid pixels
-double maskedStdDev(vw::ImageView<vw::PixelMask<double>> const& img, double mean) {
+double maskedStdDev(vw::ImageView<vw::PixelMask<float>> const& img, double mean) {
   
   double sum = 0.0;
   long long count = 0;
@@ -125,7 +128,7 @@ double maskedStdDev(vw::ImageView<vw::PixelMask<double>> const& img, double mean
 }
   
 // Filter outside this range
-void rangeFilter(vw::ImageView<vw::PixelMask<double>> & diff, 
+void rangeFilter(vw::ImageView<vw::PixelMask<float>> & diff, 
                  double min_val, double max_val) {
 
   for (int col = 0; col < diff.cols(); col++) {
@@ -138,8 +141,8 @@ void rangeFilter(vw::ImageView<vw::PixelMask<double>> & diff,
 }
 
 // Invalidate pixels in first image that are invalid in second image
-void intersectValid(vw::ImageView<vw::PixelMask<double>> & img1, 
-                    vw::ImageView<vw::PixelMask<double>> const& img2) {
+void intersectValid(vw::ImageView<vw::PixelMask<float>> & img1, 
+                    vw::ImageView<vw::PixelMask<float>> const& img2) {
   
   for (int col = 0; col < img1.cols(); col++) {
     for (int row = 0; row < img1.rows(); row++) {
@@ -150,7 +153,7 @@ void intersectValid(vw::ImageView<vw::PixelMask<double>> & img1,
 }
 
 // Filter by normalized median absolute deviation with given factor
-void madFilter(vw::ImageView<vw::PixelMask<double>> & diff, double outlierFactor) {
+void madFilter(vw::ImageView<vw::PixelMask<float>> & diff, double outlierFactor) {
   
   double median = maskedMedian(diff);
   double mad = normalizedMad(diff, median);
@@ -163,8 +166,8 @@ void madFilter(vw::ImageView<vw::PixelMask<double>> & diff, double outlierFactor
 // a statistic (like mean, sum, etc.) for each bin. This reimplements
 // scipy.stats.binned_statistic. Do not return bin number, as we don't need it.
 // Also some stats that are not needed were not implemented.
-void binnedStatistics(vw::ImageView<vw::PixelMask<double>> const& x, 
-                      vw::ImageView<vw::PixelMask<double>> const& y,
+void binnedStatistics(vw::ImageView<vw::PixelMask<float>> const& x, 
+                      vw::ImageView<vw::PixelMask<float>> const& y,
                       std::string stat, int nbins, 
                       vw::Vector2 const& bin_range,
                       // Outputs
@@ -192,8 +195,8 @@ void binnedStatistics(vw::ImageView<vw::PixelMask<double>> const& x,
   for (int i = 0; i < nbins; i++)
     bin_centers[i] = bin_edges[i] + bin_width / 2.0;
 
-  // Accumulate the values in each bin
-  std::vector<std::vector<double>> bin_values(nbins);
+  // Accumulate the values in each bin. It is enough to keep this as float.
+  std::vector<std::vector<float>> bin_values(nbins);
   for (int col = 0; col < x.cols(); col++) {
     for (int row = 0; row < x.rows(); row++) {
       
@@ -219,7 +222,7 @@ void binnedStatistics(vw::ImageView<vw::PixelMask<double>> const& x,
   for (int i = 0; i < nbins; i++) {
     
     if (bin_values[i].empty()) {
-      bin_stat[i] = std::numeric_limits<double>::quiet_NaN();
+      bin_stat[i] = 0;
       continue;
     }
     

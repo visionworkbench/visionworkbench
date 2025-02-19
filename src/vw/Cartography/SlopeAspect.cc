@@ -26,11 +26,11 @@ namespace cartography {
 //https://github.com/OSGeo/gdal/blob/46412f0fb7df3f0f71c6c31ff0ae97b7cef6fa61/apps/gdaldem_lib.cpp#L1363
 // It looks to be an approximation of the Zevenbergen and Thorne method, not the
 // real thing. Using same logic for consistency.
-void SlopeAspectZevenbergenThorneAlg(vw::ImageView<vw::PixelMask<double>> const& dem,
+void SlopeAspectZevenbergenThorneAlg(vw::ImageView<vw::PixelMask<float>> const& dem,
                                      vw::cartography::GeoReference const& georef,
                                      int col, int row,
-                                     vw::PixelMask<double> & slope,
-                                     vw::PixelMask<double> & aspect) {
+                                     vw::PixelMask<float> & slope,
+                                     vw::PixelMask<float> & aspect) {
 
   // The slope and aspect start as invalid
   slope.invalidate();
@@ -104,11 +104,11 @@ void SlopeAspectZevenbergenThorneAlg(vw::ImageView<vw::PixelMask<double>> const&
 }
 
 // Calculate the DEM slope and aspect in degrees. Use the same logic as gdaldem. 
-void calcSlopeAspect(vw::ImageView<vw::PixelMask<double>> const& dem, 
+void calcSlopeAspect(vw::ImageView<vw::PixelMask<float>> const& dem, 
                      vw::cartography::GeoReference const& georef,
                      // Outputs
-                     vw::ImageView<vw::PixelMask<double>> & slope,
-                     vw::ImageView<vw::PixelMask<double>> & aspect) {
+                     vw::ImageView<vw::PixelMask<float>> & slope,
+                     vw::ImageView<vw::PixelMask<float>> & aspect) {
 
   // Allocate space for the output slope and aspect
   slope.set_size(dem.cols(), dem.rows());

@@ -25,11 +25,11 @@ namespace vw {
 namespace cartography {
 
 // Calculate the DEM slope and aspect in degrees. Use the same logic as gdaldem. 
-void calcSlopeAspect(vw::ImageView<vw::PixelMask<double>> const& dem, 
+void calcSlopeAspect(vw::ImageView<vw::PixelMask<float>> const& dem, 
                      vw::cartography::GeoReference const& georef,
                      // Outputs
-                     vw::ImageView<vw::PixelMask<double>> & slope,
-                     vw::ImageView<vw::PixelMask<double>> & aspect);
+                     vw::ImageView<vw::PixelMask<float>> & slope,
+                     vw::ImageView<vw::PixelMask<float>> & aspect);
 
 }} // namespace vw::cartography
 

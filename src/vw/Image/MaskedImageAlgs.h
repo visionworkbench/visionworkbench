@@ -17,7 +17,8 @@
 
 /// \file MaskedImageAlgs.h
 ///
-/// Algorithms that operate on masked images.
+/// Algorithms that operate on masked float images. All computations are with
+/// double precision, for better accuracy.
 ///
 #ifndef __VW_IMAGE_MASKEDIMAGEALGS_H__
 #define __VW_IMAGE_MASKEDIMAGEALGS_H__
@@ -27,38 +28,38 @@
 namespace vw {
   
 // Find the valid pixels. Use long long, to avoid integer overflow.
-long long validCount(vw::ImageView<vw::PixelMask<double>> const& img);
+long long validCount(vw::ImageView<vw::PixelMask<float>> const& img);
 
 // Compute the median of the valid pixels
-double maskedMedian(vw::ImageView<vw::PixelMask<double>> const& img);
+double maskedMedian(vw::ImageView<vw::PixelMask<float>> const& img);
   
 // Comput normalized median absolute deviation
-double normalizedMad(vw::ImageView<vw::PixelMask<double>> const& img, 
+double normalizedMad(vw::ImageView<vw::PixelMask<float>> const& img, 
                      double median);
   
 // Find the mean of valid pixels
-double maskedMean(vw::ImageView<vw::PixelMask<double>> const& img);
+double maskedMean(vw::ImageView<vw::PixelMask<float>> const& img);
   
 // Find the std dev of valid pixels
-double maskedStdDev(vw::ImageView<vw::PixelMask<double>> const& img, double mean);
+double maskedStdDev(vw::ImageView<vw::PixelMask<float>> const& img, double mean);
   
 // Filter outside this range
-void rangeFilter(vw::ImageView<vw::PixelMask<double>> & diff, 
+void rangeFilter(vw::ImageView<vw::PixelMask<float>> & diff, 
                  double min_val, double max_val);
   
 // Invalidate pixels in first image that are invalid in second image
-void intersectValid(vw::ImageView<vw::PixelMask<double>> & img1, 
-                    vw::ImageView<vw::PixelMask<double>> const& img2);
+void intersectValid(vw::ImageView<vw::PixelMask<float>> & img1, 
+                    vw::ImageView<vw::PixelMask<float>> const& img2);
   
 // Filter by normalized median absolute deviation with given factor
-void madFilter(vw::ImageView<vw::PixelMask<double>> & diff, double outlierFactor);
+void madFilter(vw::ImageView<vw::PixelMask<float>> & diff, double outlierFactor);
   
 // Group y-values into bins based on their corresponding x-values and computes
 // a statistic (like mean, sum, etc.) for each bin. This reimplements
 // scipy.stats.binned_statistic. Do not return bin number, as we don't need it.
 // Also some stats that are not needed were not implemented.
-void binnedStatistics(vw::ImageView<vw::PixelMask<double>> const& x, 
-                      vw::ImageView<vw::PixelMask<double>> const& y,
+void binnedStatistics(vw::ImageView<vw::PixelMask<float>> const& x, 
+                      vw::ImageView<vw::PixelMask<float>> const& y,
                       std::string stat, int nbins, 
                       vw::Vector2 const& bin_range,
                       // Outputs
