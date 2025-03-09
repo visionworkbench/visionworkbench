@@ -69,21 +69,12 @@ fs::path make_file_relative_to_dir(fs::path const file, fs::path const dir) {
   }
 }
 
-
 std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
   if (index != -1)
     result.erase(index, result.size());
   return result;
-}
-
-std::string get_extension( std::string const& input, bool make_lower) {
-  boost::filesystem::path ipath( input );
-  std::string ext = ipath.extension().string();
-  if (make_lower)
-    boost::algorithm::to_lower(ext);
-  return ext;
 }
 
 extern "C" void openblas_set_num_threads(int num_threads);
@@ -94,7 +85,6 @@ void init_blas (){
   openblas_set_num_threads(1);
 }
   
-
 // If prefix is "dir/out", create directory "dir".
 // If the output prefix does not contain a directory, we will do nothing,
 // as the output will be written to the current directory.
@@ -114,20 +104,6 @@ void create_out_dir(std::string out_prefix){
   init_blas();
   
   return;
-}
-
-bool has_spot5_extension(std::string const& image_file, std::string const& camera_file){
-  // First check the image file
-  std::string image_ext = vw::get_extension(image_file);
-  boost::algorithm::to_lower(image_ext);
-  if ((image_ext == ".bip") || (image_ext == ".bil") || (image_ext == ".bsq"))
-    return true;
-  // If no camera file was provided it cannot be a Spot5 file
-  if ((camera_file.empty()) || (camera_file == image_file))
-    return false;
-  // The Spot5 file is the last thing we check
-  const std::string camera_ext = vw::get_extension(camera_file);
-  return ((camera_ext == ".DIM") || (camera_ext == ".dim"));
 }
 
 std::string strip_directory( std::string const& input){

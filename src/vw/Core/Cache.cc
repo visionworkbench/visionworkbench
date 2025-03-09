@@ -82,7 +82,7 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
     // to a representative subset.
     double factor = 1.5;
     double MB = 1024.0 * 1024.0; // 1 MB in bytes
-    if ( (m_size > m_max_size) && (m_size > factor*m_last_size)){
+    if ((m_size > m_max_size) && (m_size > factor*m_last_size)) {
       VW_OUT(WarningMessage, "cache")
         << "Cache size (" << m_size / MB
         << " MB) is larger than the requested maximum cache size (" << m_max_size / MB

@@ -107,7 +107,7 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt,
   (*this).add_options()
     ("cache-size-mb", po::value(&opt.cache_size_mb)->default_value(1024),
      "Set the system cache size, in MB, for each process.")
-    ("no-bigtiff",   "Tell GDAL to not create bigtiffs.")  // gets stored in vm.count("no-bigtiff")
+    ("no-bigtiff",   "Tell GDAL to not create BigTiff files.")
     ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
      "TIFF Compression method. [None, LZW, Deflate, Packbits]")
     ("version,v",    "Display the version of software.")

@@ -254,9 +254,8 @@ get_all_source_files( "Core/tests" VW_CORE_TEST_FILES)
 set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 
 # --- VW_FILEIO ------------------------------------------------------------
-# This is a complicated folder so we need to select files manually
-#get_all_source_files("FileIO" VW_FILEIO_SRC_FILES)
-#get_all_source_files("FileIO/tests" VW_FILEIO_TEST_FILES)
+get_all_source_files("FileIO" VW_FILEIO_SRC_FILES)
+get_all_source_files("FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
     ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})

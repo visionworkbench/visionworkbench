@@ -20,6 +20,9 @@
 ///
 /// Provides support for the HDF file format.
 /// - HDF refers to the Hierarchical Data Formats: HDF4 and HDF5.
+
+#ifdef VW_HAVE_PKG_HDF
+
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 #define __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 
@@ -130,3 +133,6 @@ namespace vw {
 } // namespace vw
 
 #endif // __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
+
+#endif // VW_HAVE_PKG_HDF
+

@@ -1,6 +1,6 @@
 /// \file FileIO/Fileutils.h
 ///
-/// An abstract base class referring to an image on disk.
+/// Functions to handle files.
 ///
 #ifndef __VW_FILEIO_FILEUTILS_H__
 #define __VW_FILEIO_FILEUTILS_H__
@@ -16,17 +16,9 @@ namespace vw{
   /// Remove file name extension
   std::string prefix_from_filename(std::string const& filename);
 
-  /// Return lower-case extension, such as .cub (so the dot is also present).
-  std::string get_extension(std::string const& input, bool make_lower = true);
-
   /// If prefix is "dir/out", create directory "dir"
   void create_out_dir(std::string out_prefix);
 
-  /// Return true if the image_file/camera file combination represents a SPOT5 camera file.
-  /// - Returns false if the camera_file input is empty.
-  bool has_spot5_extension(std::string const& image_file, std::string const& camera_file="");
-  
-  
   /// Strip the directory out of a file path
   std::string strip_directory( std::string const& input);
 

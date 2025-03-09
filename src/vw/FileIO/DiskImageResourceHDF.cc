@@ -27,6 +27,8 @@
 /// true-color MODIS imagery.
 ///
 
+#ifdef VW_HAVE_PKG_HDF
+
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
@@ -667,3 +669,5 @@ void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::s
 void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::string& result ) const {
   m_info->get_sds_attr( sds_name, attr_name, result );
 }
+
+#endif // VW_HAVE_HDF

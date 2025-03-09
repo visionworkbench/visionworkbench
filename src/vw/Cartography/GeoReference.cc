@@ -28,6 +28,7 @@
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/FileUtils.h>
+#include <vw/FileIO/FileTypes.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
