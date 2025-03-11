@@ -22,10 +22,10 @@ namespace matching {
 /// A sort operator exist in order to remove duplicates of IndMatch series.
 struct IndMatch
 {
-  IndMatch(IndexT i = 0, IndexT j = 0) : i_(i), j_(j)  {}
+  IndMatch(IndexT i = 0, IndexT j = 0) : m_left(i), m_right(j)  {}
 
   friend bool operator==(const IndMatch& m1, const IndMatch& m2)  {
-    return (m1.i_ == m2.i_ && m1.j_ == m2.j_);
+    return (m1.m_left == m2.m_left && m1.m_right == m2.m_right);
   }
 
   friend bool operator!=(const IndMatch& m1, const IndMatch& m2)  {
@@ -34,10 +34,10 @@ struct IndMatch
 
   // Lexicographical ordering of matches. Used to remove duplicates
   friend bool operator<(const IndMatch& m1, const IndMatch& m2)  {
-    return (m1.i_ < m2.i_ || (m1.i_ == m2.i_ && m1.j_ < m2.j_));
+    return (m1.m_left < m2.m_left || (m1.m_left == m2.m_left && m1.m_right < m2.m_right));
   }
 
-  /// Remove duplicates ((i_, j_) that appears multiple times)
+  /// Remove duplicates ((m_left, m_right) that appears multiple times)
   static bool getDeduplicated(std::vector<IndMatch> & vec_match)  {
 
     const size_t sizeBefore = vec_match.size();
@@ -46,23 +46,22 @@ struct IndMatch
     return sizeBefore != vec_match.size();
   }
 
-  IndexT i_, j_;  // Left, right index
+  IndexT m_left, m_right;  // Left, right index
 };
 
 inline std::ostream& operator<<(std::ostream & out, const IndMatch & obj) {
-  return out << obj.i_ << " " << obj.j_;
+  return out << obj.m_left << " " << obj.m_right;
 }
 
 inline std::istream& operator>>(std::istream & in, IndMatch & obj) {
-  return in >> obj.i_ >> obj.j_;
+  return in >> obj.m_left >> obj.m_right;
 }
 
 using IndMatches = std::vector<matching::IndMatch>;
 
 /// Pairwise matches (indexed matches for a pair <I,J>)
 /// The interface used to store corresponding point indexes per images pairs
-class PairWiseMatchesContainer
-{
+class PairWiseMatchesContainer {
 public:
   virtual ~PairWiseMatchesContainer() {}
   virtual void insert(std::pair<Pair, IndMatches>&& pairWiseMatches) = 0;
@@ -73,10 +72,8 @@ public:
 /// A structure used to store corresponding point indexes per images pairs
 struct PairWiseMatches :
   public PairWiseMatchesContainer,
-  public std::map< Pair, IndMatches >
-{
-  void insert(std::pair<Pair, IndMatches> && pairWiseMatches)override
-  {
+  public std::map<Pair, IndMatches> {
+  void insert(std::pair<Pair, IndMatches> && pairWiseMatches)override {
     std::map< Pair, IndMatches >::insert(
       std::forward<std::pair<Pair, IndMatches>>(pairWiseMatches));
   }

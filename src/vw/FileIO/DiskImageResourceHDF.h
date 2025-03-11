@@ -135,4 +135,3 @@ namespace vw {
 #endif // __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 
 #endif // VW_HAVE_PKG_HDF
-

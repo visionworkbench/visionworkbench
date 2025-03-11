@@ -260,6 +260,89 @@ void matchesToMvg(MATCH_MAP const& match_map,
     mvg_match_map[out_pair].insert(mvg_match_map[out_pair].end(), 
                                    mvg_matches.begin(), mvg_matches.end());
   }
+  
+}
+
+// Build tracks from pairwise matches. This logic was shown to be superior to the 
+// OpenMVG :TracksBuilder. It can merge pairs (i, k), (j, k) into (i, j, k), which
+// that one could not. It produces more long tracks in general.
+// The terminology is as follows. Each track has the form: 
+//  {TrackIndex => {(imageIndex, featureIndex), ..., (imageIndex, featureIndex)}
+// Below, pid is the track id, cid is camera index, fid is feature index.
+void buildTracks(VwOpenMVG::matching::PairWiseMatches const& mvg_match_map,
+                   VwOpenMVG::tracks::STLMAPTracks & pid_cid_fid) {
+
+  // Wipe the output
+  pid_cid_fid.clear();
+
+  // This alternative bookkeeping helps lookup a track based on cid.
+  std::map<int, std::map<int, int>> cid_fid_pid;
+  
+  // In mvg_match_map we have cid pairs as keys. For each such pair, we have fid pairs.
+  for (auto it = mvg_match_map.begin(); it != mvg_match_map.end(); it++) {
+    std::pair<int, int> const& cid_pair = it->first;     // alias
+    std::vector<VwOpenMVG::matching::IndMatch> const& mvg_matches = it->second;
+
+    int left_cid = cid_pair.first;
+    int right_cid = cid_pair.second;
+    for (size_t ip_it = 0; ip_it < mvg_matches.size(); ip_it++) {
+      int left_fid = mvg_matches[ip_it].m_left;
+      int right_fid = mvg_matches[ip_it].m_right;
+      
+      // See if the left feature is already in a track
+      auto left_cid_it = cid_fid_pid.find(left_cid);
+      int left_pid = -1;
+      if (left_cid_it != cid_fid_pid.end()) {
+        auto left_fid_it = left_cid_it->second.find(left_fid);
+        if (left_fid_it != left_cid_it->second.end())
+          left_pid = left_fid_it->second;
+      }
+      
+      // See if the right feature is already in a track
+      auto right_cid_it = cid_fid_pid.find(right_cid);
+      int right_pid = -1;
+      if (right_cid_it != cid_fid_pid.end()) {
+        auto right_fid_it = right_cid_it->second.find(right_fid);
+        if (right_fid_it != right_cid_it->second.end())
+          right_pid = right_fid_it->second;
+      }
+      
+      // If both left and right features are in some track, two options exist.
+      // Either they are in the same track, then nothing to do. Or they are in
+      // different tracks. It is not clear if merging the tracks is a good
+      // thing, as maybe this pair is wrong match. Just do nothing. Works well
+      // enough.
+      if (left_pid >= 0 && right_pid >= 0)
+        continue;
+      
+      // If the left feature is in a track, but the right one is not, add it to
+      // the left feature track.
+      if (left_pid >= 0 && right_pid < 0) {
+        cid_fid_pid[right_cid][right_fid] = left_pid;
+        pid_cid_fid[left_pid][right_cid] = right_fid;
+        continue;
+      }  
+    
+      // If the right feature is in a track, but the left one is not, add it to
+      // the right feature track.
+      if (left_pid < 0 && right_pid >= 0) {
+        cid_fid_pid[left_cid][left_fid] = right_pid;
+        pid_cid_fid[right_pid][left_cid] = left_fid;
+        continue;
+      }
+      
+      // If neither feature is in a track, create a new track.
+      if (left_pid < 0 && right_pid < 0) {
+        int pid = pid_cid_fid.size(); // one past the last existing pid
+        cid_fid_pid[left_cid][left_fid] = pid;
+        cid_fid_pid[right_cid][right_fid] = pid;
+        pid_cid_fid[pid][left_cid] = left_fid;
+        pid_cid_fid[pid][right_cid] = right_fid;
+      }
+    }
+  }
+  
+  return;
 }
 
 // Create tracks and a cnet from matches. Return false if the cnet is empty.
@@ -280,22 +363,24 @@ bool matchMapToCnet(std::vector<std::string> const& image_files,
   // If feature A in image I matches feather B in image J, which matches feature
   // C in image K, then (A, B, C) belong together in a track, and will have a
   // single triangulated xyz. Build such tracks.
+  VwOpenMVG::tracks::STLMAPTracks pid_cid_fid;
+#if 1 // The new and better track logic. See that function for more details.
+  buildTracks(mvg_match_map, pid_cid_fid);
+#else 
+  // The old OpenMVG logic
   VwOpenMVG::tracks::TracksBuilder trackBuilder;
   trackBuilder.Build(mvg_match_map);
-  
   // Remove tracks that have conflict
   trackBuilder.Filter();        
+  trackBuilder.ExportToSTL(pid_cid_fid);
+  trackBuilder = VwOpenMVG::tracks::TracksBuilder(); // wipe as no longer needed
+#endif  
 
-  // Export tracks as a map (each entry is a sequence of imageId and featureIndex):
-  //  {TrackIndex => {(imageIndex, featureIndex), ... ,(imageIndex, featureIndex)}
-  VwOpenMVG::tracks::STLMAPTracks map_tracks;
-  trackBuilder.ExportToSTL(map_tracks);
-  trackBuilder = VwOpenMVG::tracks::TracksBuilder();   // wipe it
-  if (map_tracks.empty())
+  if (pid_cid_fid.empty())
     return false; 
-
-  size_t num_elems = map_tracks.size();
-  for (auto pid = map_tracks.begin(); pid != map_tracks.end(); pid++) {
+  
+  // Convert to the control network format. Will triangulate later.
+  for (auto pid = pid_cid_fid.begin(); pid != pid_cid_fid.end(); pid++) {
     ControlPoint cpoint(ControlPoint::TiePoint);
     for (auto cid_fid = (pid->second).begin(); cid_fid != (pid->second).end(); cid_fid++) {
       int cid = cid_fid->first;

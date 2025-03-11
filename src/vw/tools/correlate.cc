@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
@@ -149,8 +148,7 @@ int main( int argc, char *argv[] ) {
   if (fs::exists(match_file)) {
     vw_out() << "Found a match file. Using it to pre-align images.\n";
     std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
-    ip::read_binary_match_file(match_file,
-                               matched_ip1, matched_ip2);
+    ip::read_binary_match_file(match_file, matched_ip1, matched_ip2);
     std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
     vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 
