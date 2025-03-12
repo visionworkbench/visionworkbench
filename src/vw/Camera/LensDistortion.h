@@ -200,6 +200,10 @@ namespace camera {
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     
+    // Apply the distortion to a normalized pixel a function object. To be used in
+    // Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+    
     virtual bool has_fast_distort  () const {return true;}
     
     virtual void write(std::ostream& os) const;
@@ -370,6 +374,10 @@ namespace camera {
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
 
+    // Apply the distortion to a normalized pixel a function object. To be used in
+    // Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+   
     virtual bool has_fast_distort  () const {return true;}
     virtual bool has_fast_undistort() const {return true;}
 

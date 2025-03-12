@@ -19,6 +19,8 @@
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/LevenbergMarquardt.h>
+#include <vw/Math/NewtonRaphson.h>
+
 #include <set>
 using namespace vw;
 using namespace camera;
@@ -61,6 +63,7 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBaseFixed<Distort
 // is provided below.
 // TODO(oalexan1): Apply this to all distortion models. It is 10x faster
 // than using UndistortOptimizeFunctor.
+// TODO(oalexan1): Integrate with the numerical jacbian version in NewtonRaphson.h.
 void newtonRaphson(double dx, double dy, double &ux, double &uy,
                     Vector<double> const& opticalDistCoeffs,
                     const double tolerance,
@@ -109,87 +112,6 @@ void newtonRaphson(double dx, double dy, double &ux, double &uy,
 
     return;
   }
-}
-
-// Inverse distortion using the numerical Jacobian. 
-// TODO(oalexan1): Compare with the analytical Jacobian above. The latter needs
-// a custom Jacobian for each distortion model, while the former is generic.
-// Typedefs for distortion and Jacobian of distortion function signatures
-typedef std::function<vw::Vector2(vw::Vector2 const&, vw::Vector<double> const&)> FunT;
-typedef std::function<vw::Vector<double>(vw::Vector2 const&, vw::Vector<double> const&, 
-                                      double, FunT)> JacT;
-
-// Find the Jacobian of a function at a given point using numerical
-// differentiation. A good value for the step is 1e-6. Note that in
-// fishEyeDistortionNorm() we used a tolerance of 1e-8 when dividing floating
-// point values, which is way smaller than this step. This helps avoid
-// numerical instability.
-vw::Vector<double> numericalJacobian(vw::Vector2 const& P,
-                                  vw::Vector<double> const& dist,
-                                  double step, FunT func) {
-
-  // The Jacobian has 4 elements.
-  vw::Vector<double> jacobian(4);
-  
-  // First column
-  vw::Vector2 JX = (func(P + vw::Vector2(step, 0), dist) - 
-                        func(P - vw::Vector2(step, 0), dist)) / (2*step);
-  // Second column
-  vw::Vector2 JY = (func(P + vw::Vector2(0, step), dist) - 
-                        func(P - vw::Vector2(0, step), dist)) / (2*step);
-  
-  // Put in the jacobian matrix
-  jacobian[0] = JX[0];
-  jacobian[1] = JY[0];
-  jacobian[2] = JX[1];
-  jacobian[3] = JY[1];  
-  
-  return jacobian;
-}
-
-// Find X solving func(X) - Y = 0. Use the Newton-Raphson method.
-// Update X as X - (func(X) - Y) * J^-1, where J is the Jacobian of func(X).
-vw::Vector2 newtonRaphson(vw::Vector2 const& Y,
-                          vw::Vector<double> const& distortion,
-                          FunT func, JacT jac) {
-
-  // The step for differentiating the function (1e-6) should be larger
-  // than the tolerance for finding the function value (1e-8).
-  double step = 1e-6;
-     
-  // Initial guess for the root
-  vw::Vector2 X = Y;
-
-  int count = 1, maxTries = 20;
-  while (count < maxTries) {
-    
-    vw::Vector2 F = func(X, distortion) - Y;
-    
-    // Compute the Jacobian
-    vw::Vector<double> J(4);
-    J = jac(X, distortion, step, func);
-    
-    // Find the determinant
-    double det = J[0]*J[3] - J[1]*J[2];
-    if (fabs(det) < 1e-6) {
-      // Near-zero determinant. Cannot continue. Return most recent result.
-      return X;
-    } 
-
-    vw::Vector2 DX;
-    DX[0] = (J[3]*F[0] - J[1]*F[1]) / det;
-    DX[1] = (J[0]*F[1] - J[2]*F[0]) / det;
-    
-    // Update X
-    X -= DX;
-    
-    // If DX is small enough, we are done
-    if (norm_2(DX) < 1e-6)
-      return X;
-      
-    count++;
-   }
-  return X;
 }
 
 // Isolate these local utilities to this file.
@@ -732,6 +654,12 @@ vw::Vector2 fishEyeDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const
   return vw::Vector2(x*scale, y*scale);
 }
 
+// Apply the distortion to a normalized pixel a function object. To be used in
+// Newton-Raphson.
+vw::Vector2 FisheyeLensDistortion::operator()(vw::Vector2 const& P) const {
+  return fishEyeDistortionNorm(P, m_distortion);
+}
+
 // This was validated to be in perfect agreement with rig_calibrator Fisheye
 // model, as long as the approach is as follows. (a) Take the undistorted pixel
 // and distort it with WV. (b) Take the undistorted pixel, subtract optical
@@ -762,7 +690,7 @@ Vector2 FisheyeLensDistortion::distorted_coordinates(const camera::PinholeModel&
 }
 
 Vector2 FisheyeLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
-                                                    Vector2 const& p) const {
+                                                       Vector2 const& p) const {
   
   Vector2 focal  = cam.focal_length(); // = [fu, fv] 
   Vector2 offset = cam.point_offset(); // = [cu, cv]
@@ -773,9 +701,12 @@ Vector2 FisheyeLensDistortion::undistorted_coordinates(const camera::PinholeMode
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
 
-  // Find the normalized undistorted pixel using Newton-Raphson
-  Vector2 U = newtonRaphson(p_0, m_distortion, 
-                            fishEyeDistortionNorm, numericalJacobian);
+  // Find the normalized undistorted pixel using Newton-Raphson. Great care is
+  // needed with tolerances.
+  vw::Vector2 guess = p_0;
+  double step = 1e-6, tol = 1e-6;
+  vw::math::NewtonRaphson nr(*this);
+  Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
   Vector2 p_undist = elem_prod(U, focal) + offset;
@@ -1124,7 +1055,8 @@ RPCLensDistortion::copy() const {
   return boost::shared_ptr<RPCLensDistortion>(new RPCLensDistortion(*this));
 }
 
-// RPC distortion model, after shifting relative to the principal point.
+// RPC distortion model, after shifting relative to the principal point. So,
+// the pixel is normalized and the output is also normalized.
 vw::Vector2 RpcDistortion(vw::Vector2 const& P, Vector<double> const& distortion) {
 
   int rpc_deg = RPCLensDistortion::rpc_degree(distortion.size());
@@ -1168,6 +1100,13 @@ vw::Vector2 RpcDistortion(vw::Vector2 const& P, Vector<double> const& distortion
   return vw::Vector2(vals[0]/vals[1], vals[2]/vals[3]);
 }
 
+// Apply the distortion to a normalized pixel a function object. To be used in
+// Newton-Raphson.
+vw::Vector2 RPCLensDistortion::operator()(vw::Vector2 const& p) const {
+  return RpcDistortion(p, m_distortion);
+}
+
+// A function object that applies the RPC distortion model.
 Vector2
 RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, 
                                          Vector2 const& p) const {
@@ -1193,6 +1132,7 @@ RPCLensDistortion::distorted_coordinates(const camera::PinholeModel& cam,
 // Use the numerical Jacobian to undistort the points.
 Vector2 RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, 
                                                    Vector2 const& p) const {
+  
   Vector2 focal  = cam.focal_length(); // = [fu, fv] 
   Vector2 offset = cam.point_offset(); // = [cu, cv]
 
@@ -1202,9 +1142,14 @@ Vector2 RPCLensDistortion::undistorted_coordinates(const camera::PinholeModel& c
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
 
-  // Find the normalized undistorted pixel using Newton-Raphson
-  Vector2 U = newtonRaphson(p_0, m_distortion, 
-                            RpcDistortion, numericalJacobian);
+  // Find the normalized undistorted pixel using Newton-Raphson. Using the
+  // distorted pixel as the initial guess. The step for differentiating the
+  // function (1e-6) should be larger than the tolerance for finding the
+  // function value (1e-8).
+  vw::Vector2 guess = p_0;
+  double step = 1e-6, tol = 1e-6;
+  vw::math::NewtonRaphson nr(*this);
+  Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
   Vector2 p_undist = elem_prod(U, focal) + offset;
