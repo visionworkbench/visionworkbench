@@ -69,16 +69,18 @@ namespace vw { namespace cartography {
   void Map2CamTrans::set_use_cache(bool use_cache) {
     m_use_cache = use_cache;
   }
-    
+
   // This function is not thread-safe by default. See above.
   vw::Vector2 Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
-    // If we have data for the location already cached
+    // If we have data for the location already cached. This is only useful
+    // when processing tiles. For individual samples need to turn off the caching
+    // ahead of time as it only adds overhead.
     if (m_use_cache && m_img_cache_box.contains(p)) {
       // Interpolate the output value using the cached data
       PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_img_cache_box.min().x(),
                                                  p.y() - m_img_cache_box.min().y());
-      // We can just return the value if it is valid!
+      // We can just return the value if it is valid
       if (is_valid(v)) return v.child();
       else             return m_invalid_pix;
     }
@@ -106,7 +108,7 @@ namespace vw { namespace cartography {
         box.min() = floor(p) - Vector2(1, 1);
         box.max() = ceil(p)  + Vector2(1, 1);
         cache_dem(box);
-        return reverse(p);
+        return reverse(p); // call itself, after caching
       }
       h = m_cropped_interp_dem(sdem_pix[0], sdem_pix[1]);
     } else {
@@ -139,7 +141,9 @@ namespace vw { namespace cartography {
   // failed.
   vw::Vector2 Map2CamTrans::forward(const vw::Vector2 &p) const {
     
-    // TODO(oalexan1): For fine steps with CERES this may not be accurate enough
+    // TODO(oalexan1): If this logic is used as an inner loop by a CERES solver,
+    // the tolerance here may not be good enough, as CERES makes very small
+    // steps, and the result from here may be jumpy.
     double height_error_tol = 1e-3; // 1 mm
     double max_abs_tol      = 1e-14; // abs cost function change
     double max_rel_tol      = 1e-14; // rel cost function change

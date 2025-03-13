@@ -225,23 +225,23 @@ void PinholeModel::read(std::string const& filename) {
     }
     lens_start = cam_file.tellg();
     std::getline(cam_file, line); // After reading the pitch, read the next line.
-  }
-  else // Pixel pitch not specified, use 1.0 as the default.
-  {
-    if (file_version > 2){
+  } else {
+    // Pixel pitch not specified, use 1.0 as the default.
+    if (file_version > 2) {
       cam_file.close();
-      vw_throw( IOErr() << "PinholeModel::read_file(): Pitch value required in this file version!\n" );
+      vw_throw(IOErr() 
+               << "PinholeModel::read_file(): Pitch value required in this file version!\n");
     }
     m_pixel_pitch = 1.0;
   }
 
-  // Now that we have loaded all the parameters, update the dependend class members.
+  // Now that we have loaded all the parameters, update the dependent class members.
   this->rebuild_camera_matrix();
 
   // This creates m_distortion but we still need to read the parameters.
   bool found_name = construct_lens_distortion(line, file_version);
 
-  if (!found_name && (file_version > 2)){
+  if (!found_name && (file_version > 2)) {
     cam_file.close();
     vw_throw( IOErr() << "PinholeModel::read_file(): Distortion name required in this file version!\n" );
   }
