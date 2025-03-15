@@ -204,10 +204,10 @@ LensDistortion::undistorted_coordinates(const PinholeModel& cam, Vector2 const& 
   double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
   double tol = 1e-10;
   if (err > tol)
-    vw_throw( PointToPixelErr() << "LensDistortion: Did not converge.\n" );
-  
-  //VW_ASSERT((status == math::optimization::eConvergedAbsTolerance), 
-  //                 PixelToRayErr() << "distorted_coordinates: failed to converge." );
+    vw_throw(PointToPixelErr() << "LensDistortion: Did not converge.\n");
+
+  //VW_ASSERT((status == math::optimization::eConvergedAbsTolerance),
+  //                 PixelToRayErr() << "distorted_coordinates: failed to converge.");
   //double error = norm_2(model(solution) - v);
   return solution;
 }
@@ -259,7 +259,7 @@ void NullLensDistortion::read(std::istream & is) {
   // Nothing to read
 }
 
-void NullLensDistortion::scale( double scale ) { }
+void NullLensDistortion::scale(double scale) { }
 
 // ======== TsaiLensDistortion ========
 
@@ -352,7 +352,7 @@ void TsaiDistortionJacobian(double x, double y, double *jacobian,
 // or translation.
 // For comparing with rig_calibrator, see the convention at:
 // Vector2 FisheyeLensDistortion::distorted_coordinates().
-Vector2 TsaiLensDistortion::distorted_coordinates(const PinholeModel& cam, 
+Vector2 TsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
                                                   Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv]
@@ -375,7 +375,7 @@ Vector2 TsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
   return Vector2(dx, dy);
 }
 
-Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam, 
+Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
                                                     Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv]
@@ -419,7 +419,7 @@ void TsaiLensDistortion::read(std::istream & is) {
   read_fields_in_vec(m_distortion_param_names, m_distortion, is, missing_ok);
 }
 
-void TsaiLensDistortion::scale( double scale ) {
+void TsaiLensDistortion::scale(double scale) {
   m_distortion *= scale;
 }
 
@@ -498,7 +498,7 @@ Vector2 FovLensDistortion::distorted_coordinates(const PinholeModel& cam,
   return p_dist;
 }
 
-Vector2 FovLensDistortion::undistorted_coordinates(const PinholeModel& cam, 
+Vector2 FovLensDistortion::undistorted_coordinates(const PinholeModel& cam,
                                                    Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv]
@@ -536,7 +536,7 @@ void FovLensDistortion::read(std::istream & is) {
   set_distortion_parameters(m_distortion); // This does some pre-computations and checks
 }
 
-void FovLensDistortion::scale( double scale ) {
+void FovLensDistortion::scale(double scale) {
   vw::vw_throw(vw::NoImplErr() << "FovLensDistortion::scale() is not implemented.");
 }
 
@@ -620,7 +620,7 @@ vw::Vector2 FisheyeLensDistortion::operator()(vw::Vector2 const& P) const {
 // center, add half the undistorted image size, and then apply the
 // rig_calibrator distortion model. For distortion the process is in reverse.
 // This is a minor convention difference.
-Vector2 FisheyeLensDistortion::distorted_coordinates(const PinholeModel& cam, 
+Vector2 FisheyeLensDistortion::distorted_coordinates(const PinholeModel& cam,
                                                      Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv]
@@ -642,7 +642,7 @@ Vector2 FisheyeLensDistortion::distorted_coordinates(const PinholeModel& cam,
   return p_dist;
 }
 
-Vector2 FisheyeLensDistortion::undistorted_coordinates(const PinholeModel& cam, 
+Vector2 FisheyeLensDistortion::undistorted_coordinates(const PinholeModel& cam,
                                                        Vector2 const& p) const {
 
   Vector2 focal  = cam.focal_length(); // = [fu, fv]
@@ -681,7 +681,7 @@ void FisheyeLensDistortion::read(std::istream & is) {
   set_distortion_parameters(m_distortion); // This does some checks
 }
 
-void FisheyeLensDistortion::scale( double scale ) {
+void FisheyeLensDistortion::scale(double scale) {
   vw::vw_throw(vw::NoImplErr() << "FisheyeLensDistortion::scale() is not implemented.");
 }
 
@@ -742,7 +742,7 @@ void BrownConradyDistortion::set_distortion_parameters(Vector<double> const& par
 // BrownConrady uses the base class distorted_coordinates implementation.
 
 Vector2
-BrownConradyDistortion::undistorted_coordinates(const PinholeModel& cam, 
+BrownConradyDistortion::undistorted_coordinates(const PinholeModel& cam,
                                                 Vector2 const& p) const {
   Vector2 offset       = cam.point_offset();
   Vector2 intermediate = p - m_principal_point - offset;
@@ -783,7 +783,7 @@ void BrownConradyDistortion::read(std::istream & is) {
 }
 
 
-void BrownConradyDistortion::scale( double scale ) {
+void BrownConradyDistortion::scale(double scale) {
   vw_throw(NoImplErr() << "BrownConradyDistortion doesn't support scaling");
 }
 
@@ -809,7 +809,7 @@ AdjustableTsaiLensDistortion::copy() const {
 }
 
 Vector2
-AdjustableTsaiLensDistortion::distorted_coordinates(const PinholeModel& cam, 
+AdjustableTsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
                                                     Vector2 const& p) const {
   Vector2 focal = cam.focal_length();
   Vector2 offset = cam.point_offset();
@@ -858,7 +858,7 @@ void AdjustableTsaiLensDistortion::read(std::istream & is) {
     is >> label >> label >> radial_vec;
     is >> label >> label >> tangential_vec;
   } catch(...) {
-    vw_throw(IOErr() 
+    vw_throw(IOErr()
              << "AdjustableTsaiLensDistortion::read(): Could not read vector params.\n");
   }
   while (is.peek() == '\n') // Get to the start of the next line
@@ -875,7 +875,7 @@ void AdjustableTsaiLensDistortion::read(std::istream & is) {
   m_distortion[m_distortion.size()-1]    = alpha;
 }
 
-void AdjustableTsaiLensDistortion::scale( double scale ) {
+void AdjustableTsaiLensDistortion::scale(double scale) {
   vw_throw(NoImplErr() << "AdjustableTsai doesn't support scaling.");
 }
 
@@ -890,7 +890,7 @@ PhotometrixLensDistortion::PhotometrixLensDistortion(Vector<double> const& param
   m_distortion(params) {
   PhotometrixLensDistortion::init_distortion_param_names();
   if (m_distortion.size() != m_distortion_param_names.size())
-    vw_throw(IOErr() 
+    vw_throw(IOErr()
              << "PhotometrixLensDistortion: Incorrect number of parameters was passed in.");
 }
 
@@ -922,7 +922,7 @@ PhotometrixLensDistortion::copy() const {
 }
 
 Vector2
-PhotometrixLensDistortion::undistorted_coordinates(const PinholeModel& cam, 
+PhotometrixLensDistortion::undistorted_coordinates(const PinholeModel& cam,
                                                    Vector2 const& p) const {
 
   double x_meas = p[0];
@@ -971,7 +971,7 @@ void PhotometrixLensDistortion::read(std::istream & is) {
   read_fields_in_vec(m_distortion_param_names, m_distortion, is);
 }
 
-void PhotometrixLensDistortion::scale( double scale ) {
+void PhotometrixLensDistortion::scale(double scale) {
   m_distortion *= scale;
 }
 
@@ -1121,7 +1121,7 @@ Vector2 RPCLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   return p_undist;
 }
 
-void RPCLensDistortion::scale( double scale ) {
+void RPCLensDistortion::scale(double scale) {
   // Throw an error. This is not a well-defined operation.
   vw_throw(NoImplErr() << "RPCLensDistortion::scale() is not implemented.");
   m_distortion *= scale;
