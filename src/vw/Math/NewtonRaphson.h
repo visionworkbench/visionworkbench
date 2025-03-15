@@ -43,9 +43,12 @@ namespace math {
 
 class NewtonRaphson {
 public:
-    using FunctionType = std::function<vw::Vector2(vw::Vector2)>;
+    using FuncType = std::function<vw::Vector2(vw::Vector2)>;
+    using JacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
     
-    NewtonRaphson(FunctionType func): m_func(func) {}
+    // TODO(oalexan1): Add the ability to pass in a jacobian, which can be 
+    // either analytical or numerical, then integrate the two versions.
+    NewtonRaphson(FuncType func, JacType jac = {}): m_func(func) {}
     
     // Newton-Raphson method to find X such that func(X) = outY.
     // Great care is needed for the step size and tol. See also the 
@@ -61,9 +64,19 @@ public:
     vw::Vector<double> numericalJacobian(vw::Vector2 const& P, double step);
     
 private:
-    FunctionType m_func;
+    FuncType m_func;
 };
-  
+
+// Newton-Raphson method with analytical Jacobian. 
+// TODO(oalexan1): Integrate with the numerical jacobian version.
+void newtonRaphson(double dx, double dy, double &ux, double &uy,
+                    Vector<double> const& extraArgs,
+                    const double tolerance,
+                    std::function<void(double, double, double &, double &,
+                                       Vector<double> const&)> func,
+                    std::function<void(double, double, double *, 
+                                       Vector<double> const&)> jac);
+
 }} // namespace vw::math
 
 #endif // __VW_MATH_NEWTON_RAPHSON_H__

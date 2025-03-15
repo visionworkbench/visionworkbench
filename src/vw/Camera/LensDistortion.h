@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,8 +20,8 @@
 ///
 /// This file contains the pinhole camera model.
 ///
-#ifndef __VW_CAMERA_LENSDISTORTION_H__
-#define __VW_CAMERA_LENSDISTORTION_H__
+#ifndef __VW_CAMERA_LENS_DISTORTION_H__
+#define __VW_CAMERA_LENS_DISTORTION_H__
 
 #include <vw/Math/Vector.h>
 
@@ -48,32 +48,34 @@ namespace camera {
 
     // For the two functions below, default implementations are provided in which a
     //  solver attempts to use the *other* function to find the answer.
-    
+
     /// From an undistorted input coordinate, compute the distorted coordinate.
-    /// - The input location is in the same units as the focal length that was provided to 
+    /// - The input location is in the same units as the focal length that was provided to
     ///   the PinholeModel class.
-    virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const&) const;
-   
+    /// Many derived classes override this with a faster implementation.
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const&) const;
+
     /// From a distorted input coordinate, compute the undistorted coordinate.
-    /// - The input location is in the same units as the focal length that was provided to 
+    /// - The input location is in the same units as the focal length that was provided to
     ///   the PinholeModel class.
-    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
-    
+    /// Many derived classes override this with a faster implementation.
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+
     /// Return true if the distorted_coordinates() implementation does not use a solver.
     virtual bool has_fast_distort  () const {return false;}
-    
+
     /// Return true if the undistorted_coordinates() implementation does not use a solver.
     virtual bool has_fast_undistort() const {return false;}
-    
+
     /// Write all the distortion parameters to the stream
     virtual void write(std::ostream & os) const = 0;
-    
+
     /// Read all the distortion parameters from the stream
-    virtual void read(std::istream & os) = 0;
-    
+    virtual void read(std::istream & is) = 0;
+
     /// Return a pointer to a copy of this distortion object
     virtual boost::shared_ptr<LensDistortion> copy() const = 0;
-    
+
     /// Return a vector containing all the distortion parameters.
     virtual Vector<double> distortion_parameters() const;
 
@@ -85,10 +87,10 @@ namespace camera {
 
     /// Each derived model needs to have a string name.
     virtual std::string name() const = 0;
-    
+
     /// Used to scale distortion with image size
     virtual void scale(double scale) = 0;
-    
+
     /// Used to scale distortion with image size
     std::vector<std::string> distortion_param_names() const { return m_distortion_param_names; }
   }; // End class LensDistortion
@@ -103,8 +105,8 @@ namespace camera {
 
   /// A NULL lens distortion model.
   struct NullLensDistortion: public LensDistortion {
-    virtual Vector2 distorted_coordinates  (const PinholeModel&, Vector2 const& v) const { return v; }
-    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
+    virtual Vector2 distorted_coordinates  (const PinholeModel& cam, Vector2 const& v) const { return v; }
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& v) const { return v; }
     virtual int num_dist_params() const { return 0; };
 
     virtual bool has_fast_distort  () const {return true;}
@@ -112,8 +114,8 @@ namespace camera {
 
     virtual boost::shared_ptr<LensDistortion> copy() const;
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
-    static  std::string class_name()       { return "NULL";       }
+    virtual void read (std::istream& is);
+    static  std::string class_name() { return "NULL";       }
     virtual std::string name      () const { return class_name(); }
     virtual void        scale(double /*scale*/);
   };
@@ -121,10 +123,10 @@ namespace camera {
   /// TSAI Lens Distortion Model
   /// This was validated to be in perfect agreement with the OpenCV implementation.
   /// https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
-  
+
   /// The function cv::projectPoints() was used for validation, with no rotation
-  /// or translation. 
-  
+  /// or translation.
+
   /// References: Roger Tsai, A Versatile Camera Calibration Technique for a High-Accuracy 3D
   /// Machine Vision Metrology Using Off-the-shelf TV Cameras and Lenses
   ///
@@ -142,15 +144,15 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
-    virtual bool has_fast_distort  () const {return true;}
-    
-    virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
 
-    static  std::string class_name()       { return "TSAI";       }
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "TSAI";       }
     virtual std::string name      () const { return class_name(); }
-    virtual void        scale( double scale );
+    virtual void        scale(double scale);
     void init_distortion_param_names();
 
   private:
@@ -169,15 +171,15 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
-    virtual bool has_fast_distort  () const {return true;}
-    
-    virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
 
-    static  std::string class_name()       { return "FOV";       }
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "FOV";       }
     virtual std::string name      () const { return class_name(); }
-    virtual void        scale( double scale );
+    virtual void        scale(double scale);
     void init_distortion_param_names();
 
   private:
@@ -199,19 +201,19 @@ namespace camera {
 
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
-    
+
     // Apply the distortion to a normalized pixel a function object. To be used in
     // Newton-Raphson.
     vw::Vector2 operator()(vw::Vector2 const& p) const;
-    
-    virtual bool has_fast_distort  () const {return true;}
-    
-    virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
 
-    static  std::string class_name()       { return "FISHEYE"; }
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "FISHEYE"; }
     virtual std::string name      () const { return class_name(); }
-    virtual void        scale( double scale );
+    virtual void        scale(double scale);
     void init_distortion_param_names();
 
   private:
@@ -232,26 +234,26 @@ namespace camera {
   public:
     static const size_t num_distortion_params = 8;
     BrownConradyDistortion();
-    BrownConradyDistortion( Vector<double> const& params );
-    BrownConradyDistortion( Vector<double> const& principal,
+    BrownConradyDistortion(Vector<double> const& params);
+    BrownConradyDistortion(Vector<double> const& principal,
                             Vector<double> const& radial,
                             Vector<double> const& centering,
-                            double const& angle );
+                            double const& angle);
 
     virtual Vector<double> distortion_parameters() const;
     virtual void set_distortion_parameters(Vector<double> const& params);
     virtual int num_dist_params() const { return num_distortion_params; }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
-    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
 
     virtual bool has_fast_undistort() const {return true;}
-    
+
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
-    static  std::string class_name()       { return "BrownConrady"; }
+    virtual void read (std::istream& is);
+    static  std::string class_name() { return "BrownConrady"; }
     virtual std::string name      () const { return class_name();   }
-    virtual void        scale( double /*scale*/ );
+    virtual void        scale(double /*scale*/);
     void init_distortion_param_names();
   private:
     Vector2 m_principal_point;      // xp, yp
@@ -263,7 +265,7 @@ namespace camera {
   /// Adjustable Tsai Distortion
   ///
   /// This is another implementation of TSAI but it supports arbitrary
-  /// number of radial coefficients ( but only on the even terms ). This
+  /// number of radial coefficients (but only on the even terms). This
   /// model is also different in that it's math follows what is available in
   /// the Matlab Camera Calibration Tool Box.
   ///
@@ -287,13 +289,13 @@ namespace camera {
     virtual bool has_fast_distort  () const {return true;}
 
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
+    virtual void read (std::istream& is);
 
-    static  std::string class_name()       { return "AdjustableTSAI"; }
+    static  std::string class_name() { return "AdjustableTSAI"; }
     virtual std::string name      () const { return class_name(); }
-    virtual void scale( double /*scale*/ );
+    virtual void scale(double /*scale*/);
   };
-  
+
   /// Photometrix Lens Distortion Model
   ///
   /// This model is similar to the TSAI model above but it differs slightly
@@ -301,7 +303,7 @@ namespace camera {
   /// This type of calibration was originally seen for the NASA IceBridge cameras.
   ///
   /// Parameters used: c, xp, yp, K1, K2, K3, P1, P2, B1, B2
-  ///  - c (focal length) comes from the base class so 
+  ///  - c (focal length) comes from the base class so
   ///    the parameters stored here are [xp, py, K1, K2, K3, P1, P2, B1, B2]
   ///
   /// As copied from a sample output calibration file:
@@ -312,7 +314,7 @@ namespace camera {
   ///
   /// r2 = x * x + y * y
   /// dr = K1*r3 + K2*r5 + K3*r7
-  /// 
+  ///
   /// x(corr) = x(meas) - xp + x*dr/r + P1*(r2 +2x^2) + 2*P2*x*y
   /// y(corr) = y(meas) - yp + y*dr/r + P2*(r2 +2y^2) + 2*P1*x*y
   ///
@@ -334,12 +336,12 @@ namespace camera {
     virtual bool has_fast_undistort() const {return true;}
 
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os);
+    virtual void read (std::istream& is);
 
-    static  std::string class_name()       { return "Photometrix"; }
+    static  std::string class_name() { return "Photometrix"; }
     virtual std::string name      () const { return class_name();  }
 
-    virtual void scale( double scale );
+    virtual void scale(double scale);
     void init_distortion_param_names();
   };
 
@@ -351,9 +353,9 @@ namespace camera {
     int m_rpc_degree;
     Vector2i m_image_size;
     Vector<double> m_distortion;
-    
+
   public:
-    
+
     RPCLensDistortion();
     RPCLensDistortion(Vector<double> const& params);
     void reset(int rpc_degree);  // Form the identity transform
@@ -364,7 +366,7 @@ namespace camera {
     virtual Vector<double> distortion_parameters() const;
     Vector<double> undistortion_parameters() const;
     void set_image_size(Vector2i const& image_size);
-    Vector2i image_size() const { return m_image_size; } 
+    Vector2i image_size() const { return m_image_size; }
     virtual void set_distortion_parameters(Vector<double> const& params);
     void set_undistortion_parameters(Vector<double> const& params);
     virtual int num_dist_params() const { return m_distortion.size(); }
@@ -377,18 +379,18 @@ namespace camera {
     // Apply the distortion to a normalized pixel a function object. To be used in
     // Newton-Raphson.
     vw::Vector2 operator()(vw::Vector2 const& p) const;
-   
+
     virtual bool has_fast_distort  () const {return true;}
     virtual bool has_fast_undistort() const {return true;}
 
     virtual void write(std::ostream& os) const;
-    virtual void read (std::istream& os); 
+    virtual void read (std::istream& is);
 
-    static  std::string class_name()       { return "RPC"; }
+    static  std::string class_name() { return "RPC"; }
     virtual std::string name      () const { return class_name();  }
 
-    virtual void scale( double scale );
-    
+    virtual void scale(double scale);
+
     static void init_as_identity(Vector<double> & params);
     static void increment_degree(Vector<double> & params);
   private:
@@ -400,7 +402,7 @@ namespace camera {
                             Vector<double> const& num_x, Vector<double> const& den_x,
                             Vector<double> const& num_y, Vector<double> const& den_y);
   };
-  
+
 }} // namespace vw::camera
 
-#endif // __VW_CAMERA_LENSDISTORTION_H__
+#endif // __VW_CAMERA_LENS_DISTORTION_H__

@@ -107,4 +107,56 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
   return bestX;
 }
 
+// Newton-Raphson method with analytical Jacobian. 
+// TODO(oalexan1): Integrate with the numerical jacobian version.
+void newtonRaphson(double dx, double dy, double &ux, double &uy,
+                    Vector<double> const& extraArgs,
+                    const double tolerance,
+                    std::function<void(double, double, double &, double &,
+                                       Vector<double> const&)> func,
+                    std::function<void(double, double, double *, 
+                                       Vector<double> const&)> jac) {
+
+  const int maxTries = 20;
+
+  double x, y, fx, fy, jacobian[4];
+
+  // Initial guess for the root
+  x = dx;
+  y = dy;
+
+  func(x, y, fx, fy, extraArgs);
+
+  for (int count = 1;
+        ((fabs(fx) + fabs(fy)) > tolerance) && (count < maxTries); count++) {
+    func(x, y, fx, fy, extraArgs);
+
+    fx = dx - fx;
+    fy = dy - fy;
+
+    jac(x, y, jacobian, extraArgs);
+
+    // Jxx * Jyy - Jxy * Jyx
+    double determinant =
+        jacobian[0] * jacobian[3] - jacobian[1] * jacobian[2];
+    if (fabs(determinant) < 1e-6) {
+      ux = x;
+      uy = y;
+      // Near-zero determinant. Cannot continue. Return most recent result.
+      return;
+    }
+
+    x = x + (jacobian[3] * fx - jacobian[1] * fy) / determinant;
+    y = y + (jacobian[0] * fy - jacobian[2] * fx) / determinant;
+  }
+
+  if ((fabs(fx) + fabs(fy)) <= tolerance) {
+    // The method converged to a root.
+    ux = x;
+    uy = y;
+
+    return;
+  }
+}
+
 }} // end namespace vw::math
