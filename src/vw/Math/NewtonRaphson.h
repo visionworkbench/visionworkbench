@@ -41,12 +41,28 @@
 namespace vw {
 namespace math {
 
+// TODO(oalexan1): Temporary
+using FuncType = std::function<vw::Vector2(vw::Vector2)>;
+using JacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
+
+// TODO(oalexan1): Temporary
+// Find the Jacobian of a function at a given point using numerical
+// differentiation. A good value for the step is 1e-6 or larger.  
+// It should be notably larger than the tolerance for finding the function
+// value or the magnitude of any noise.
+struct numericalJacobian {
+  
+  numericalJacobian(FuncType func);    
+  vw::Vector<double> operator()(vw::Vector2 const& P, double step);
+  FuncType m_func;       
+};
+
 // Newton-Raphson method to find the root of a function. Use either the provided
-// Jacobian or the internal numerical Jacobian.
+// Jacobian or the internal numerical Jacobian. The function and the jacobian
+// to evaluate must be function objects implementing operator() with expected
+// signatures.
 class NewtonRaphson {
 public:
-    using FuncType = std::function<vw::Vector2(vw::Vector2)>;
-    using JacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
     
     NewtonRaphson(FuncType func, JacType jac = {});
     
@@ -57,17 +73,12 @@ public:
     vw::Vector2 solve(vw::Vector2 const& guessX, vw::Vector2 const& outY,
                       double step_size, double tol);
   
-    // Find the Jacobian of a function at a given point using numerical
-    // differentiation. A good value for the step is 1e-6 or larger.  
-    // It should be notably larger than the tolerance for finding the function
-    // value or the magnitude of any noise.
-    vw::Vector<double> numericalJacobian(vw::Vector2 const& P, double step);
-    
 private:
     FuncType m_func;
     JacType m_jac;
 };
 
+// TODO(oalexan1): Temporary
 using FuncType2 = std::function<vw::Vector2(vw::Vector2, vw::Vector<double> const&)>;
 using JacType2 = std::function<vw::Vector<double>(vw::Vector2 const& P, double step,
                                                   vw::Vector<double> const& extra)>;

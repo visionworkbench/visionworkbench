@@ -22,18 +22,10 @@
 namespace vw {
 namespace math {
 
-NewtonRaphson::NewtonRaphson(FuncType func, JacType jac): m_func(func) {
+numericalJacobian::numericalJacobian(FuncType func): m_func(func) {}
+    
+vw::Vector<double> numericalJacobian::operator()(vw::Vector2 const& P, double step) {
   
-  // If a Jacobian function was passed in, use it. Otherwise use the numerical jacobian.
-  if (jac)
-    m_jac = jac;
-   else
-    m_jac = [this](vw::Vector2 const& P, double step) { return numericalJacobian(P, step); };
-}
-
-// See the .h file for description of this function.
-vw::Vector<double> NewtonRaphson::numericalJacobian(vw::Vector2 const& P, double step) {
-
   // The Jacobian has 4 elements
   vw::Vector<double> jacobian(4);
   
@@ -54,13 +46,19 @@ vw::Vector<double> NewtonRaphson::numericalJacobian(vw::Vector2 const& P, double
   return jacobian;
 }
 
-// See the .h file for description of this function.
+NewtonRaphson::NewtonRaphson(FuncType func, JacType jac): m_func(func) {
+  
+  // If a Jacobian function was passed in, use it. Otherwise use the numerical jacobian.
+  if (jac)
+    m_jac = jac;
+   else
+    m_jac = numericalJacobian(func);
+}
+
 vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
                                  vw::Vector2 const& outY,    // desired output
                                  double step_size, double tol) {
 
-  //std::cout << "--now in solve--" << std::endl;
-  
   // Start with initial guess
   vw::Vector2 X = guessX;
 
