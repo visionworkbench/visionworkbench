@@ -142,6 +142,10 @@ namespace camera {
     virtual int num_dist_params() const { return m_distortion.size(); }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
+    // Apply the distortion to a normalized pixel as function object. To be used in
+    // Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+
     virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
     virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
 

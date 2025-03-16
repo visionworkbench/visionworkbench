@@ -22,7 +22,7 @@
 namespace vw {
 namespace math {
 
-numericalJacobian::numericalJacobian(FuncType func): m_func(func) {}
+numericalJacobian::numericalJacobian(NewtFuncType func): m_func(func) {}
     
 vw::Vector<double> numericalJacobian::operator()(vw::Vector2 const& P, double step) {
   
@@ -46,9 +46,9 @@ vw::Vector<double> numericalJacobian::operator()(vw::Vector2 const& P, double st
   return jacobian;
 }
 
-NewtonRaphson::NewtonRaphson(FuncType func, JacType jac): m_func(func) {
+NewtonRaphson::NewtonRaphson(NewtFuncType func, NewtJacType jac): m_func(func) {
   
-  // If a Jacobian function was passed in, use it. Otherwise use the numerical jacobian.
+  // If a Jacobian function was passed in, use it. Otherwise use the numerical Jacobian.
   if (jac)
     m_jac = jac;
    else
@@ -114,62 +114,6 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
   
   // Fallback result, if the loop did not finish
   return bestX;
-}
-
-// Newton-Raphson method with analytical Jacobian. 
-// TODO(oalexan1): Integrate with the numerical jacobian version.
-void newtonRaphson(double dx, double dy, double &ux, double &uy,
-                    Vector<double> const& extraArgs,
-                    const double tolerance,
-                    FuncType2 func,
-                    JacType2 jac) {
-
-  const int maxTries = 20;
-
-  double x, y, jacobian[4];
-
-  // Initial guess for the root
-  x = dx;
-  y = dy;
-
-  vw::Vector2 fval = func(vw::Vector2(x, y), extraArgs);
-  double fx = fval[0];
-  double fy = fval[1];
-
-  for (int count = 1;
-        ((fabs(fx) + fabs(fy)) > tolerance) && (count < maxTries); count++) {
-  
-    fval = func(vw::Vector2(x, y), extraArgs);
-    fx = fval[0];
-    fy = fval[1];
-
-    fx = dx - fx;
-    fy = dy - fy;
-
-    double step = 1e-6; // not used, part of the interface
-    vw::Vector<double> jacobian = jac(vw::Vector2(x, y), step, extraArgs);
-
-    // Jxx * Jyy - Jxy * Jyx
-    double determinant =
-        jacobian[0] * jacobian[3] - jacobian[1] * jacobian[2];
-    if (fabs(determinant) < 1e-6) {
-      ux = x;
-      uy = y;
-      // Near-zero determinant. Cannot continue. Return most recent result.
-      return;
-    }
-
-    x = x + (jacobian[3] * fx - jacobian[1] * fy) / determinant;
-    y = y + (jacobian[0] * fy - jacobian[2] * fx) / determinant;
-  }
-
-  if ((fabs(fx) + fabs(fy)) <= tolerance) {
-    // The method converged to a root.
-    ux = x;
-    uy = y;
-
-    return;
-  }
 }
 
 }} // end namespace vw::math

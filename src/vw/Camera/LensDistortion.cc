@@ -300,7 +300,7 @@ TsaiLensDistortion::copy() const {
 }
 
 // Tsai distortion model, after normalizing the point to the unit focal plane
-vw::Vector2 TsaiDistortion(vw::Vector2 const& P, vw::Vector<double> const& distortion) {
+vw::Vector2 TsaiDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const& distortion) {
   
   double x = P[0];
   double y = P[1];
@@ -318,8 +318,14 @@ vw::Vector2 TsaiDistortion(vw::Vector2 const& P, vw::Vector<double> const& disto
   return vw::Vector2(x_out, y_out);
 }
 
-// Compute the jacobian for the Tsai distortion model
+// Apply the distortion to a normalized pixel a function object. To be used in
+// Newton-Raphson.
+vw::Vector2 TsaiLensDistortion::operator()(vw::Vector2 const& P) const {
+  return TsaiDistortionNorm(P, m_distortion);
+}
 
+// Compute the Jacobian for the Tsai distortion model. The step
+// size is not used but is part of the interface.
 vw::Vector<double> TsaiDistortionJacobian(vw::Vector2 const& P, double step,
                                           vw::Vector<double> const& distortion) {
 
@@ -360,6 +366,19 @@ vw::Vector<double> TsaiDistortionJacobian(vw::Vector2 const& P, double step,
   return jacobian;
 }
 
+// Function object around the the Jacobian for the Tsai distortion model.
+// Needed by the Newton-Raphson solver.
+struct TsaiDistortionJacFun {
+  
+  TsaiDistortionJacFun(vw::Vector<double> const& distortion): m_distortion(distortion) {}
+  
+  vw::Vector<double> operator()(vw::Vector2 const& P, double step) {
+    return TsaiDistortionJacobian(P, step, m_distortion);
+  }
+  
+  vw::Vector<double> m_distortion;
+};
+
 // This was validated to be in perfect agreement with the OpenCV implementation.
 // https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html
 // The function cv::projectPoints() was used for validation, with no rotation
@@ -382,7 +401,7 @@ Vector2 TsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
   double y = p_0[1];
 
   // Normalized distorted coordinates
-  vw::Vector2 dist_norm_pix = TsaiDistortion(vw::Vector2(x, y), m_distortion); 
+  vw::Vector2 dist_norm_pix = TsaiDistortionNorm(vw::Vector2(x, y), m_distortion); 
   double dx = dist_norm_pix[0];
   double dy = dist_norm_pix[1];
 
@@ -401,6 +420,7 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
+  // Normalize the distorted pixel
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
   double dx = p_0[0];
@@ -410,15 +430,17 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   // high focal length, such as 600,000, a tolerance such as 1e-6 may not be
   // accurate enough, given that these pixels are normalized by the focal
   // length.
-  // TODO(oalexan1): Examine how different the results are if the numerical
-  // jacobian is used instead of the analytical one. Also the run time.
   // TODO(oalexan1): Look at this
-  double tolerance = 1e-8;
-  double ux, uy;
-  vw::math::newtonRaphson(dx, dy, ux, uy, m_distortion, tolerance,
-                          TsaiDistortion, TsaiDistortionJacobian);
+  double tol = 1e-8; // stop when the change is less than this
+  double step = 1e-6; // not used, part of the interface
+  
+  // Newton-Raphson solver with the analytical jacobian
+  vw::math::NewtonRaphson nr(*this, TsaiDistortionJacFun(m_distortion));
+  vw::Vector2 undist_guess_pix(dx, dy), distorted_pix(dx, dy);
+  Vector2 U = nr.solve(undist_guess_pix, distorted_pix, step, tol);
 
-  // Multiply by focal length and add the offset
+  // Undo the normalization
+  double ux = U[0], uy = U[1];
   ux = ux * focal[0] + offset[0];
   uy = uy * focal[1] + offset[1];
 
@@ -485,9 +507,6 @@ FovLensDistortion::copy() const {
   return boost::shared_ptr<FovLensDistortion>(new FovLensDistortion(*this));
 }
 
-// This was validated to be in perfect agreement with rig_calibrator FOV model,
-// as long as one respects the convention at:
-// Vector2 FisheyeLensDistortion::distorted_coordinates().
 Vector2 FovLensDistortion::distorted_coordinates(const PinholeModel& cam,
                                                   Vector2 const& p) const {
 
