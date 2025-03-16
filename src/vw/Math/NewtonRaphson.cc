@@ -22,21 +22,30 @@
 namespace vw {
 namespace math {
 
+NewtonRaphson::NewtonRaphson(FuncType func, JacType jac): m_func(func) {
+  
+  // If a Jacobian function was passed in, use it. Otherwise use the numerical jacobian.
+  if (jac)
+    m_jac = jac;
+   else
+    m_jac = [this](vw::Vector2 const& P, double step) { return numericalJacobian(P, step); };
+}
+
 // See the .h file for description of this function.
-vw::Vector<double> NewtonRaphson::numericalJacobian(vw::Vector2 const& P,
-                                                    double step) {
+vw::Vector<double> NewtonRaphson::numericalJacobian(vw::Vector2 const& P, double step) {
 
   // The Jacobian has 4 elements
   vw::Vector<double> jacobian(4);
   
   // First column
-  vw::Vector2 JX = (m_func(P + vw::Vector2(step, 0)) - 
-                    m_func(P - vw::Vector2(step, 0))) / (2*step);
+  vw::Vector2 dx(step, 0);
+  vw::Vector2 JX = (m_func(P + dx) - m_func(P - dx)) / (2*step);
+ 
   // Second column
-  vw::Vector2 JY = (m_func(P + vw::Vector2(0, step)) - 
-                    m_func(P - vw::Vector2(0, step))) / (2*step);
+  vw::Vector2 dy(0, step);
+  vw::Vector2 JY = (m_func(P + dy) - m_func(P - dy)) / (2*step);
   
-  // Put in the jacobian matrix
+  // Form the Jacobian
   jacobian[0] = JX[0];
   jacobian[1] = JY[0];
   jacobian[2] = JX[1];
@@ -50,6 +59,8 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
                                  vw::Vector2 const& outY,    // desired output
                                  double step_size, double tol) {
 
+  //std::cout << "--now in solve--" << std::endl;
+  
   // Start with initial guess
   vw::Vector2 X = guessX;
 
@@ -79,8 +90,8 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
     // Compute the Jacobian
     vw::Vector<double> J(4);
     try {
-      J = numericalJacobian(X, step_size);
-    } catch(...) {
+      J = m_jac(X, step_size);
+    } catch (...) {
       // Something went wrong. Cannot continue. Return most recent result.
       return bestX;
     }
@@ -88,7 +99,7 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
     // Find the determinant
     double det = J[0]*J[3] - J[1]*J[2];
     if (std::abs(det) < 1e-6 || std::isnan(det)) 
-      return bestX; // bad determinant. Cannot continue. Return most recent result.
+      return bestX; // Bad determinant. Cannot continue. Return most recent result.
      
     // Update X
     vw::Vector2 DX;
@@ -112,29 +123,33 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
 void newtonRaphson(double dx, double dy, double &ux, double &uy,
                     Vector<double> const& extraArgs,
                     const double tolerance,
-                    std::function<void(double, double, double &, double &,
-                                       Vector<double> const&)> func,
-                    std::function<void(double, double, double *, 
-                                       Vector<double> const&)> jac) {
+                    FuncType2 func,
+                    JacType2 jac) {
 
   const int maxTries = 20;
 
-  double x, y, fx, fy, jacobian[4];
+  double x, y, jacobian[4];
 
   // Initial guess for the root
   x = dx;
   y = dy;
 
-  func(x, y, fx, fy, extraArgs);
+  vw::Vector2 fval = func(vw::Vector2(x, y), extraArgs);
+  double fx = fval[0];
+  double fy = fval[1];
 
   for (int count = 1;
         ((fabs(fx) + fabs(fy)) > tolerance) && (count < maxTries); count++) {
-    func(x, y, fx, fy, extraArgs);
+  
+    fval = func(vw::Vector2(x, y), extraArgs);
+    fx = fval[0];
+    fy = fval[1];
 
     fx = dx - fx;
     fy = dy - fy;
 
-    jac(x, y, jacobian, extraArgs);
+    double step = 1e-6; // not used, part of the interface
+    vw::Vector<double> jacobian = jac(vw::Vector2(x, y), step, extraArgs);
 
     // Jxx * Jyy - Jxy * Jyx
     double determinant =

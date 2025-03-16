@@ -202,6 +202,7 @@ LensDistortion::undistorted_coordinates(const PinholeModel& cam, Vector2 const& 
 
   Vector2 dist = this->distorted_coordinates(cam, solution);
   double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
+  // TODO(oalexan1): Look at this
   double tol = 1e-10;
   if (err > tol)
     vw_throw(PointToPixelErr() << "LensDistortion: Did not converge.\n");
@@ -226,6 +227,7 @@ LensDistortion::distorted_coordinates(const PinholeModel& cam, Vector2 const& v)
 
   // Check if it failed badly to converge. That it did not converge is not on its own
   // unreasonable, sometimes the inputs are bad. But then the user must know about it.
+  // TODO(oalexan1): Look at this
   Vector2 undist = this->undistorted_coordinates(cam, solution);
   double err = norm_2(undist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
   double tol = 1e-10;
@@ -298,8 +300,10 @@ TsaiLensDistortion::copy() const {
 }
 
 // Tsai distortion model, after normalizing the point to the unit focal plane
-void TsaiDistortion(double x, double y, double &dx, double &dy,
-                    Vector<double> const& distortion) {
+vw::Vector2 TsaiDistortion(vw::Vector2 const& P, vw::Vector<double> const& distortion) {
+  
+  double x = P[0];
+  double y = P[1];
   double k1 = distortion[0];
   double k2 = distortion[1];
   double p1 = distortion[2];
@@ -308,14 +312,22 @@ void TsaiDistortion(double x, double y, double &dx, double &dy,
 
   double r2 = x * x + y * y;
   double rdist = 1.0 + k1 * r2 + k2 * r2 * r2 + k3 * r2 * r2 * r2;
-  dx = x * rdist + (2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x));
-  dy = y * rdist + (p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y);
+  double x_out = x * rdist + (2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x));
+  double y_out = y * rdist + (p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y);
+  
+  return vw::Vector2(x_out, y_out);
 }
 
 // Compute the jacobian for the Tsai distortion model
-void TsaiDistortionJacobian(double x, double y, double *jacobian,
-                            Vector<double> const& distortion) {
 
+vw::Vector<double> TsaiDistortionJacobian(vw::Vector2 const& P, double step,
+                                          vw::Vector<double> const& distortion) {
+
+  // The Jacobian has 4 elements
+  vw::Vector<double> jacobian(4);
+
+  double x = P[0];
+  double y = P[1];
   double k1 = distortion[0];
   double k2 = distortion[1];
   double p1 = distortion[2];
@@ -344,6 +356,8 @@ void TsaiDistortionJacobian(double x, double y, double *jacobian,
   jacobian[3] = rdist
               + y * (k1 * dr2dy + k2 * dr2dy * 2.0 * r2 + k3 * dr2dy * 3.0 * r2 * r2)
               + p1 * (dr2dy + 4.0 * y) + 2.0 * p2 * x;
+              
+  return jacobian;
 }
 
 // This was validated to be in perfect agreement with the OpenCV implementation.
@@ -361,13 +375,16 @@ Vector2 TsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
   if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
+  // Normalize the pixel
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
   double x = p_0[0];
   double y = p_0[1];
 
-  double dx, dy;
-  TsaiDistortion(x, y, dx, dy, m_distortion);
+  // Normalized distorted coordinates
+  vw::Vector2 dist_norm_pix = TsaiDistortion(vw::Vector2(x, y), m_distortion); 
+  double dx = dist_norm_pix[0];
+  double dy = dist_norm_pix[1];
 
   // Multiply by focal length and add the offset
   dx = dx * focal[0] + offset[0];
@@ -395,6 +412,7 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   // length.
   // TODO(oalexan1): Examine how different the results are if the numerical
   // jacobian is used instead of the analytical one. Also the run time.
+  // TODO(oalexan1): Look at this
   double tolerance = 1e-8;
   double ux, uy;
   vw::math::newtonRaphson(dx, dy, ux, uy, m_distortion, tolerance,
@@ -654,13 +672,15 @@ Vector2 FisheyeLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
 
-  // Find the normalized undistorted pixel using Newton-Raphson. Great care is
-  // needed with tolerances.
-  // TODO(oalexan1): A tolerance of 1e-6 is likely too large for a focal
-  // length on the order of 600,000 or more which is quite usual for orbital
-  // images, given that these pixels are divided by the focal length.
+  // Find the normalized undistorted pixel using Newton-Raphson and the
+  // numerical Jacobian. Great care is needed with tolerances. 
+  
+  // TODO(oalexan1): A tolerance of 1e-6 is likely too large for a focal length
+  // on the order of 600,000 or more which is quite usual for orbital images,
+  // given that these pixels are divided by the focal length.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-6;
+  // TODO(oalexan1): Look at this
   vw::math::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
@@ -1110,6 +1130,7 @@ Vector2 RPCLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   // TODO(oalexan1): A tolerance of 1e-6 is likely too large for a focal
   // length on the order of 600,000 or more which is quite usual for orbital
   // images, given that these pixels are divided by the focal length.
+  // TODO(oalexan1): Look at this
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-6;
   vw::math::NewtonRaphson nr(*this);

@@ -41,14 +41,14 @@
 namespace vw {
 namespace math {
 
+// Newton-Raphson method to find the root of a function. Use either the provided
+// Jacobian or the internal numerical Jacobian.
 class NewtonRaphson {
 public:
     using FuncType = std::function<vw::Vector2(vw::Vector2)>;
     using JacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
     
-    // TODO(oalexan1): Add the ability to pass in a jacobian, which can be 
-    // either analytical or numerical, then integrate the two versions.
-    NewtonRaphson(FuncType func, JacType jac = {}): m_func(func) {}
+    NewtonRaphson(FuncType func, JacType jac = {});
     
     // Newton-Raphson method to find X such that func(X) = outY.
     // Great care is needed for the step size and tol. See also the 
@@ -65,17 +65,20 @@ public:
     
 private:
     FuncType m_func;
+    JacType m_jac;
 };
+
+using FuncType2 = std::function<vw::Vector2(vw::Vector2, vw::Vector<double> const&)>;
+using JacType2 = std::function<vw::Vector<double>(vw::Vector2 const& P, double step,
+                                                  vw::Vector<double> const& extra)>;
 
 // Newton-Raphson method with analytical Jacobian. 
 // TODO(oalexan1): Integrate with the numerical jacobian version.
 void newtonRaphson(double dx, double dy, double &ux, double &uy,
                     Vector<double> const& extraArgs,
                     const double tolerance,
-                    std::function<void(double, double, double &, double &,
-                                       Vector<double> const&)> func,
-                    std::function<void(double, double, double *, 
-                                       Vector<double> const&)> jac);
+                    FuncType2 func,
+                    JacType2 jac);
 
 }} // namespace vw::math
 
