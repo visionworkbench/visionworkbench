@@ -25,26 +25,7 @@ using namespace vw;
 using namespace camera;
 
 // Special LMA Models to reverse the distortion.
-// TODO(oalexan1): Better use Newton's method here. Should be much faster.
-// - Use the SQ version of the optimizer calls because our matrices are always 2x2.
-
-// Optimization functor for computing the undistorted coordinates
-// using levenberg marquardt.
-struct UndistortOptimizeFunctor: public math::LeastSquaresModelBaseFixed<UndistortOptimizeFunctor, 2, 2> {
-  typedef Vector2 result_type;
-  typedef Vector2 domain_type;
-  typedef Matrix<double, 2, 2> jacobian_type;
-
-  const camera::PinholeModel   &m_cam;
-  const camera::LensDistortion &m_distort;
-  UndistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d):
-    m_cam(cam), m_distort(d) {}
-
-  inline result_type operator()(domain_type const& x) const {
-    return m_distort.distorted_coordinates(m_cam, x);
-  }
-};
-
+// TODO(oalexan1): Standardize all to using Newton-Raphson.
 struct DistortOptimizeFunctor:  public math::LeastSquaresModelBaseFixed<DistortOptimizeFunctor, 2, 2> {
   typedef Vector2 result_type;
   typedef Vector2 domain_type;
@@ -188,30 +169,6 @@ Vector<double>
 LensDistortion::distortion_parameters() const { return Vector<double>(); }
 
 void LensDistortion::set_distortion_parameters(Vector<double> const& params) {}
-
-// Base class implementation for undistorted_coordinates. Many lens distortion
-// models override this with a faster implementation.
-Vector2
-LensDistortion::undistorted_coordinates(const PinholeModel& cam, Vector2 const& v) const {
-  UndistortOptimizeFunctor model(cam, *this);
-  int status;
-
-  // Must push the solver really hard, to make sure bundle adjust gets accurate values
-  // to play with.
-  Vector2 solution = math::levenberg_marquardtFixed(model, v, v, status, 1e-16, 1e-16, 100);
-
-  Vector2 dist = this->distorted_coordinates(cam, solution);
-  double err = norm_2(dist - v)/std::max(norm_2(v), 0.1); // don't make this way too strict
-  // TODO(oalexan1): Look at this
-  double tol = 1e-10;
-  if (err > tol)
-    vw_throw(PointToPixelErr() << "LensDistortion: Did not converge.\n");
-
-  //VW_ASSERT((status == math::optimization::eConvergedAbsTolerance),
-  //                 PixelToRayErr() << "distorted_coordinates: failed to converge.");
-  //double error = norm_2(model(solution) - v);
-  return solution;
-}
 
 // Base class distorted_coordinates implementation. Many lens distortion
 // models override this with a faster implementation.
@@ -429,7 +386,7 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   double step = 1e-6; // not used, part of the interface
   double tol = 1e-9; // stop when the change is less than this
   
-  // Newton-Raphson solver with the analytical jacobian
+  // Newton-Raphson solver with the analytical Jacobian
   vw::math::NewtonRaphson nr(*this, TsaiDistortionJacFun(m_distortion));
   vw::Vector2 undist_guess_pix(dx, dy), distorted_pix(dx, dy);
   Vector2 U = nr.solve(undist_guess_pix, distorted_pix, step, tol);
@@ -838,6 +795,40 @@ AdjustableTsaiLensDistortion::copy() const {
   return boost::shared_ptr<AdjustableTsaiLensDistortion>(new AdjustableTsaiLensDistortion(*this));
 }
 
+// Adjustable Tsai distortion model, after normalizing the point to the unit focal plane
+vw::Vector2 AdjTsaiDistortionNorm(vw::Vector2 const& p_0, 
+                                  vw::Vector<double> const& distortion) {
+
+  // Calculate radial effects
+  double r2 = norm_2_sqr(p_0);
+  double r_n = 1, radial = 0;
+  for (unsigned i = 0; i < distortion.size()-3; i++) {
+    r_n *= r2;
+    radial += distortion[i] * r_n;
+  }
+
+  // Calculate tangential effects
+  Vector2 tangent;
+  Vector2 swap_coeff(distortion[distortion.size()-2],
+                     distortion[distortion.size()-3]);
+  tangent += elem_prod(swap_coeff,elem_sum(r2,2*elem_prod(p_0, p_0)));
+  tangent += 2*prod(p_0) * subvector(distortion, distortion.size()-3, 2);
+
+  // Add the contributions
+  Vector2 result = p_0 + tangent + radial * p_0;
+
+  // Run back through intrinsic matrix (with alpha or skew)
+  result += Vector2(distortion[distortion.size()-1] * result.y(), 0);
+
+  return result;
+}
+
+// Apply the distortion to a normalized pixel a function object. To be used in
+// Newton-Raphson.
+vw::Vector2 AdjustableTsaiLensDistortion::operator()(vw::Vector2 const& P) const {
+  return AdjTsaiDistortionNorm(P, m_distortion);
+}
+
 Vector2
 AdjustableTsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
                                                     Vector2 const& p) const {
@@ -847,29 +838,45 @@ AdjustableTsaiLensDistortion::distorted_coordinates(const PinholeModel& cam,
   if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
-  // Create normalized coordinates
+  // Create normalized undistorted coordinates
   Vector2 p_0 = elem_quot(p - offset, focal); // represents x and y
-  double r2 = norm_2_sqr(p_0);
 
-  // Calculating Radial effects
-  double r_n = 1, radial = 0;
-  for (unsigned i = 0; i < m_distortion.size()-3; i++) {
-    r_n *= r2;
-    radial += m_distortion[i]*r_n;
-  }
+  // Compute the normalized distorted coordinates
+  vw::Vector2 result = AdjTsaiDistortionNorm(p_0, m_distortion);
+  
+  // Undo the normalization
+  return elem_prod(result, focal) + offset;
+}
 
-  // Calculating Tangential effects
-  Vector2 tangent;
-  Vector2 swap_coeff(m_distortion[m_distortion.size()-2],
-                     m_distortion[m_distortion.size()-3]);
-  tangent += elem_prod(swap_coeff,elem_sum(r2,2*elem_prod(p_0,p_0)));
-  tangent += 2*prod(p_0)*subvector(m_distortion,m_distortion.size()-3,2);
+Vector2 AdjustableTsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
+                                                              Vector2 const& p) const {
 
-  // Final normalized result
-  Vector2 result = p_0 + tangent + radial*p_0;
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
 
-  // Running back through intrinsic matrix (with alpha or skew)
-  return elem_prod(result+Vector2(m_distortion[m_distortion.size()-1]*result.y(),0),focal)+offset;
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Normalize the distorted pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+  double dx = p_0[0];
+  double dy = p_0[1];
+  
+  double step = 1e-6; // Numerical Jacobian differentiation step
+  double tol = 1e-9; // stop when the change is less than this
+  
+  // Newton-Raphson solver with the numerical Jacobian
+  vw::math::NewtonRaphson nr(*this);
+  vw::Vector2 undist_guess_pix(dx, dy), distorted_pix(dx, dy);
+  Vector2 U = nr.solve(undist_guess_pix, distorted_pix, step, tol);
+
+  // Undo the normalization
+  double ux = U[0], uy = U[1];
+  ux = ux * focal[0] + offset[0];
+  uy = uy * focal[1] + offset[1];
+
+  return Vector2(ux, uy);
 }
 
 void AdjustableTsaiLensDistortion::write(std::ostream & os) const {

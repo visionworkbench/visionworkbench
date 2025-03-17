@@ -58,8 +58,9 @@ namespace camera {
     /// From a distorted input coordinate, compute the undistorted coordinate.
     /// - The input location is in the same units as the focal length that was provided to
     ///   the PinholeModel class.
-    /// Many derived classes override this with a faster implementation.
-    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    /// A derived class must reimplement this.
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, 
+                                            Vector2 const& p) const = 0;
 
     /// Return true if the distorted_coordinates() implementation does not use a solver.
     virtual bool has_fast_distort  () const {return false;}
@@ -288,7 +289,12 @@ namespace camera {
     virtual int num_dist_params() const { return m_distortion.size(); }
     virtual boost::shared_ptr<LensDistortion> copy() const;
 
+    // Apply the distortion to a normalized pixel as function object. To be used in
+    // Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+
     virtual Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
 
     virtual bool has_fast_distort  () const {return true;}
 

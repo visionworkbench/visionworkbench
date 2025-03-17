@@ -61,7 +61,7 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
 
   // Start with initial guess
   vw::Vector2 X = guessX;
-
+  
   // If an iteration fails, will fall back to best found so far.
   // This is unlikely, but cannot be ruled out.
   vw::Vector2 bestX = X;

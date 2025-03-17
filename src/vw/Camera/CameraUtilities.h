@@ -27,7 +27,6 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/CAHVOREModel.h>
 #include <vw/Camera/CameraTransform.h>
-#include <vw/Camera/LensDistortion.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Image/Transform.h>
