@@ -182,7 +182,7 @@ void write_param(std::string const& param_name, std::ostream & os, double val) {
 
 } // end of anonymous namespace
 
-// Default implementations for Lens Distortion -------------------
+// Default implementations for Lens Distortion
 
 Vector<double>
 LensDistortion::distortion_parameters() const { return Vector<double>(); }
@@ -243,9 +243,9 @@ std::ostream& camera::operator<<(std::ostream & os,
   return os;
 }
 
-// Specific Implementations -------------------------------------
+// Specific Implementations
 
-// ======== NullLensDistortion ========
+// NullLensDistortion 
 
 boost::shared_ptr<LensDistortion> NullLensDistortion::copy() const {
   return boost::shared_ptr<NullLensDistortion>(new NullLensDistortion(*this));
@@ -263,7 +263,7 @@ void NullLensDistortion::read(std::istream & is) {
 
 void NullLensDistortion::scale(double scale) { }
 
-// ======== TsaiLensDistortion ========
+// TsaiLensDistortion 
 
 TsaiLensDistortion::TsaiLensDistortion() {
   TsaiLensDistortion::init_distortion_param_names();
@@ -425,14 +425,9 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
   double dx = p_0[0];
   double dy = p_0[1];
-
-  // Excessively low tolerance may result in numerical instability. But for very
-  // high focal length, such as 600,000, a tolerance such as 1e-6 may not be
-  // accurate enough, given that these pixels are normalized by the focal
-  // length.
-  // TODO(oalexan1): Look at this
-  double tol = 1e-8; // stop when the change is less than this
+  
   double step = 1e-6; // not used, part of the interface
+  double tol = 1e-9; // stop when the change is less than this
   
   // Newton-Raphson solver with the analytical jacobian
   vw::math::NewtonRaphson nr(*this, TsaiDistortionJacFun(m_distortion));
@@ -463,7 +458,7 @@ void TsaiLensDistortion::scale(double scale) {
   m_distortion *= scale;
 }
 
-// ======== FovLensDistortion ========
+// FovLensDistortion 
 // Single-parameter wide-angle lens distortion model.
 FovLensDistortion::FovLensDistortion() {
   FovLensDistortion::init_distortion_param_names();
@@ -577,7 +572,7 @@ void FovLensDistortion::scale(double scale) {
   vw::vw_throw(vw::NoImplErr() << "FovLensDistortion::scale() is not implemented.");
 }
 
-// ======== FisheyeLensDistortion ========
+// FisheyeLensDistortion 
 // Four-parameter wide-angle lens distortion model.
 FisheyeLensDistortion::FisheyeLensDistortion() {
   FisheyeLensDistortion::init_distortion_param_names();
@@ -692,14 +687,10 @@ Vector2 FisheyeLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
 
   // Find the normalized undistorted pixel using Newton-Raphson and the
-  // numerical Jacobian. Great care is needed with tolerances. 
-  
-  // TODO(oalexan1): A tolerance of 1e-6 is likely too large for a focal length
-  // on the order of 600,000 or more which is quite usual for orbital images,
-  // given that these pixels are divided by the focal length.
+  // numerical Jacobian. The step size for numerical differentiation 
+  // better not be too small. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
-  double step = 1e-6, tol = 1e-6;
-  // TODO(oalexan1): Look at this
+  double step = 1e-6, tol = 1e-9;
   vw::math::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
@@ -724,7 +715,7 @@ void FisheyeLensDistortion::scale(double scale) {
   vw::vw_throw(vw::NoImplErr() << "FisheyeLensDistortion::scale() is not implemented.");
 }
 
-// ======== BrownConradyDistortion ========
+// BrownConradyDistortion 
 
 BrownConradyDistortion::BrownConradyDistortion() {
   BrownConradyDistortion::init_distortion_param_names();
@@ -918,7 +909,7 @@ void AdjustableTsaiLensDistortion::scale(double scale) {
   vw_throw(NoImplErr() << "AdjustableTsai doesn't support scaling.");
 }
 
-// ======== PhotometrixLensDistortion ========
+// PhotometrixLensDistortion 
 
 PhotometrixLensDistortion::PhotometrixLensDistortion() {
   PhotometrixLensDistortion::init_distortion_param_names();
@@ -989,7 +980,7 @@ PhotometrixLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   double drr = K1*r2 + K2*r2*r2 + K3*r2*r2*r2; // This is dr/r, not dr
 
   // The cal document includes -xp/yp in these lines, but they are removed
-  //  so that the results are relative to 0,0 instead of relative to the principal point.
+  // so that the results are relative to 0,0 instead of relative to the principal point.
   double x_corr = x_meas + x*drr + P1*(r2 + 2.0*x2) + 2.0*P2*x*y;
   double y_corr = y_meas + y*drr + P2*(r2 + 2.0*y2) + 2.0*P1*x*y;
 
@@ -1014,7 +1005,7 @@ void PhotometrixLensDistortion::scale(double scale) {
   m_distortion *= scale;
 }
 
-// ======== RPCLensDistortion ========
+// RPCLensDistortion 
 // This class is not fully formed until both distortion and
 // undistortion parameters are computed.
 // One must always call set_undistortion_parameters()
@@ -1142,16 +1133,11 @@ Vector2 RPCLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   Vector2 dudv = p - offset; // Subtract the offset
   Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
 
-  // Find the normalized undistorted pixel using Newton-Raphson. Using the
-  // distorted pixel as the initial guess. The step for differentiating the
-  // function (1e-6) should be larger than the tolerance for finding the
-  // function value (1e-8).
-  // TODO(oalexan1): A tolerance of 1e-6 is likely too large for a focal
-  // length on the order of 600,000 or more which is quite usual for orbital
-  // images, given that these pixels are divided by the focal length.
-  // TODO(oalexan1): Look at this
+  // Find the normalized undistorted pixel using Newton-Raphson and the
+  // numerical Jacobian. The step size for numerical differentiation 
+  // better not be too small. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
-  double step = 1e-6, tol = 1e-6;
+  double step = 1e-6, tol = 1e-9;
   vw::math::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
