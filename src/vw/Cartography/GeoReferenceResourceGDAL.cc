@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2024, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -35,6 +35,10 @@
 namespace vw {
 namespace cartography {
 
+  // This is to ensure a given warning for a given file is printed only once.
+  static std::set<std::string> pix_sign_warning, non_normal_georef_warning;
+  static Mutex warning_mutex; // protect as shared resource
+
   bool read_gdal_georeference(GeoReference& georef,
                               DiskImageResourceGDAL const& resource) {
     boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
@@ -57,13 +61,20 @@ namespace cartography {
       transform(1,2) = geo_transform[3];
 
       // It is highly unusual for a georeference to have the y axis go up.
-      // This breaks some assumptions in the code. Not sure if this should
-      // be a fatal error.
-      if (transform(1,1) > 0)
-        vw_out(WarningMessage)
-          << "Found a georeference with a positive value of the y pixel component in file: "
-          << resource.filename() << ". This is not standard. Incorrect results may be "
-          << "produced. Check the pixel size with gdalinfo.\n";
+      // This breaks some assumptions in the code. Do not throw a fatal
+      // error as sometimes the georeference is not used.
+      if (transform(1, 1) > 0) {
+        // Ensure the warning is printed once for each file.
+        Mutex::Lock lock(warning_mutex);
+        std::string fileName = resource.filename();
+        if (pix_sign_warning.find(fileName) == pix_sign_warning.end()) {
+          pix_sign_warning.insert(fileName);
+          vw_out(WarningMessage)
+            << "Found a georeference with a positive value of the y pixel component "
+            << "in file: " << fileName << ". This is not standard. Incorrect results "
+            << "may be produced. Check the pixel size with gdalinfo.\n";
+        }
+      }
 
       georef.set_transform(transform);
 
@@ -115,8 +126,14 @@ namespace cartography {
         have_error = true;
       }
       if (error > 0.1 || have_error) {
-        vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
-          resource.filename() << " contains a non-normal georeference." << std::endl;
+        // Print the warning just once per file
+        Mutex::Lock lock(warning_mutex);
+        std::string fileName = resource.filename();
+        if (non_normal_georef_warning.find(fileName) == non_normal_georef_warning.end()) {
+          non_normal_georef_warning.insert(fileName);
+          vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " 
+            << fileName << " contains a non-normal georeference.\n";
+        }
       }
     }
 

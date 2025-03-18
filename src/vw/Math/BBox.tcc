@@ -347,7 +347,7 @@ inline bool operator!=( BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> cons
 
 template <class RealT>
 std::ostream& operator<<( std::ostream& os, BBox<RealT,2> const& bbox ) {
-  return os << "Origin: (" << bbox.min()[0] << ", " << bbox.min()[1] << ") width: " << bbox.width() << " height: " << bbox.height();
+  return os << "Min: (" << bbox.min()[0] << ", " << bbox.min()[1] << ") width: " << bbox.width() << " height: " << bbox.height();
 }
 
 template <class RealT, size_t DimN, class VectorT>
