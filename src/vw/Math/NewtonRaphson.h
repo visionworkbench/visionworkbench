@@ -29,9 +29,6 @@
 namespace vw {
 namespace math {
 
-using NewtFuncType = std::function<vw::Vector2(vw::Vector2)>;
-using NewtJacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
-
 // Newton-Raphson method to find X in 2D such that func(X) = outY. Use either the
 // supplied Jacobian or the internal numerical Jacobian. The function and the
 // Jacobian to evaluate must be function objects implementing operator() with
@@ -40,6 +37,9 @@ using NewtJacType = std::function<vw::Vector<double>(vw::Vector2 const& P, doubl
 // Great care is needed for the step size and tol. See also the
 // numericalJacobian function for an explanation of the step size. The user must
 // check how small func(X) - outY is.
+
+using NewtFuncType = std::function<vw::Vector2(vw::Vector2 const&)>;
+using NewtJacType = std::function<vw::Vector<double>(vw::Vector2 const& P, double step)>;
 
 class NewtonRaphson {
     

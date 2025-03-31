@@ -174,7 +174,7 @@ namespace detail {
                                       height_error_tol, max_abs_tol, max_rel_tol,
                                       num_max_iter, xyz_guess, height_guess);
         // Quit if we did not find an intersection
-        if (!has_intersection)
+        if (!has_intersection || xyz == Vector3())
           return false;
 
         // Use the datum to convert GCC coordinate to lon/lat/height
@@ -183,7 +183,7 @@ namespace detail {
         point = target_georef.lonlat_to_point(Vector2(llh.x(), llh.y()));
 
         return has_intersection;
-      } catch(...) {
+      } catch (...) {
         return false;
       }
     }
@@ -349,24 +349,24 @@ double demHeightGuess(vw::ImageViewRef<vw::PixelMask<float>> const& dem) {
   return height_guess;
 } // End function demHeightGuess()
 
-// Define an LMA model to solve for a DEM intersecting a ray. The
-// variable of optimization is position on the ray. The cost
-// function is difference between datum height and DEM height at
-// current point on the ray.
+// Define an LMA model to solve for a DEM intersecting a ray. The variable of
+// optimization is position on the ray. The cost function is difference between
+// datum height and interpolated DEM height at current point on the ray.
 class RayDEMIntersectionLMA:
   public math::LeastSquaresModelBase<RayDEMIntersectionLMA> {
 
-  // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
-  InterpolationView<EdgeExtensionView<vw::ImageViewRef<vw::PixelMask<float>>, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
+  // TODO(oalexan1): Must use nodata edge extension, not constant edge extension.
+  // We don't want to extrapolate. Check if this changes results. It should not.
+  InterpolationView<EdgeExtensionView<vw::ImageViewRef<vw::PixelMask<float>>, ConstantEdgeExtension>, BilinearInterpolation> m_interp_dem;
   vw::cartography::GeoReference const& m_georef; // alias
   Vector3      m_camera_ctr;
   Vector3      m_camera_vec;
   bool         m_treat_nodata_as_zero;
 
   inline vw::PixelMask<float> Helper(double x, double y) const {
-    if ((0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
-        (0 <= y) && (y <= m_dem.rows() - 1)) {
-      vw::PixelMask<float> val = m_dem(x, y);
+    if ((0 <= x) && (x <= m_interp_dem.cols() - 1) && // for interpolation
+        (0 <= y) && (y <= m_interp_dem.rows() - 1)) {
+      vw::PixelMask<float> val = m_interp_dem(x, y);
       if (is_valid(val))
         return val[0];
     }
@@ -394,7 +394,11 @@ public:
                         Vector3 const& camera_ctr,
                         Vector3 const& camera_vec,
                         bool treat_nodata_as_zero):
-    m_dem(interpolate(dem_image)), // create an interpolation object
+    // Create an interpolation object.
+    // TODO(oalexan1): Specify the interpolation method and edge extension method.
+    // Likely it will not make a difference, as the default is used correctly,
+    // but it is good to be explicit.
+    m_interp_dem(interpolate(dem_image)), 
     m_georef(georef),
     m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
     m_treat_nodata_as_zero(treat_nodata_as_zero) {}
@@ -435,6 +439,8 @@ void secantMethod(RayDEMIntersectionLMA & model, Vector3 const& camera_ctr,
 
   // Do several attempts with different starting values for x1. The value of j
   // will control the step size.
+  // TODO(oalexan1): The logic below will fail if the slope of the DEM
+  // is steeper than the slope of the ray.
   int num_j = 100; // will use this variable in two places below
   Vector<double, 1> len1, len2;
 
