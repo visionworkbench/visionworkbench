@@ -232,4 +232,10 @@ namespace cartography {
     dataset->SetMetadataItem(str_name.c_str(), str_val.c_str());
   }
 
+  // This is helpful with geoid correction tables. Call this before reading
+  // a file that may trigger this warning.
+  void silence_warning_for_non_normal_georef(std::string const& filename) {
+    non_normal_georef_warning.insert(filename);
+  }
+
 }} // namespace vw::cartography

@@ -50,6 +50,10 @@ namespace cartography {
   void write_gdal_string( DiskImageResourceGDAL& resource, std::string const& str_name,
                           std::string const& str_val );
 
+  // This is helpful with geoid correction tables. Call this before reading
+  // a file that may trigger this warning.
+  void silence_warning_for_non_normal_georef(std::string const& filename);
+   
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_GEOREFERENCEHELPERGDAL_H__
