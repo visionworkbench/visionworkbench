@@ -24,7 +24,6 @@ endif()
 #===============================================================================
 # Configuration options
 
-set(VW_ENABLE_SSE "1" CACHE BOOL "Allow SSE optimizations.")
 set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
 set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
 
@@ -67,6 +66,27 @@ option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
 # --- Fixed options ---
 set(Boost_USE_STATIC_LIBS   OFF)
 set(Boost_USE_MULTITHREADED ON )
+
+# Enable/disable SSE optimizations
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+  set(VW_ENABLE_SSE 0)
+else()
+  set(VW_ENABLE_SSE 1)
+endif()
+if (VW_ENABLE_SSE)
+  set(CXXFLAGS "${CXXFLAGS} -msse4.1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+  message(STATUS "Enabling SSE")
+else()
+  if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+    message(STATUS "SSE optimizations are not available on Mac Arm.")
+  else()
+    # Older Intel CPUs do not support SSE4.1
+    message(STATUS, "Disabling SSE.")
+    set(CXXFLAGS "${CXXFLAGS} -mno-sse4.1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-sse4.1")
+  endif()
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -190,17 +210,6 @@ set(VW_ENABLE_EXCEPTIONS 1)
 
 # Until it is needed we don't support this in CMake.
 set(VW_ENABLE_PYTHON 0)
-
-# enable SSE optimizations in some places (development) 
-if (VW_ENABLE_SSE)
-  set(CXXFLAGS "${CXXFLAGS} -msse4.1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
-   message(STATUS, "Enabling SSE")
-else() # Compatibility with older systems.
-  message(STATUS, "Disabling SSE")
-  set(CXXFLAGS "${CXXFLAGS} -mno-sse4.1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-sse4.1")
-endif()
 
 
 # Define to `int' if <sys/types.h> does not define. 
