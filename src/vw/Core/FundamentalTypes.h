@@ -31,11 +31,13 @@
 #include <complex>
 #include <boost/cstdint.hpp>
 #include <boost/type_traits.hpp>
-#include <boost/mpl/integral_c.hpp>
+//#include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/numeric/conversion/bounds.hpp>
 #include <boost/version.hpp>
 #pragma GCC diagnostic pop
+
+#include <type_traits>
 
 #ifdef _MSC_VER
 // FIXME: We're blindly assuming that any MSC box is little-endian!
@@ -80,8 +82,10 @@ namespace vw {
   typedef double float64;
 
   /// Basic true and false types
-  typedef boost::mpl::integral_c<bool,true> true_type;
-  typedef boost::mpl::integral_c<bool,false> false_type;
+  //typedef boost::mpl::integral_c<bool,true> true_type;
+  //typedef boost::mpl::integral_c<bool,false> false_type;
+  typedef std::true_type true_type;   // Standard equivalent for bool true
+  typedef std::false_type false_type; // Standard equivalent for bool false
 
   /// Given a type, these traits classes identify whether or not the
   /// type is a scalar (in the mathematical sense of the word.)  This
