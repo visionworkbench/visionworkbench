@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     ("interest-operator",    po::value(&opt.interest_operator)->default_value("sift"), 
      "Choose an interest point detector from: sift (default), orb, OBALoG, LoG, Harris, IAGD.")
     ("descriptor-generator", po::value(&opt.descriptor_generator)->default_value("sift"), 
-     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch, pca. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch, and pca).")
+     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch).")
     ("ip-per-image",           po::value(&opt.ip_per_image)->default_value(0), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
     ("ip-per-tile",           po::value(&opt.ip_per_tile)->default_value(250), 
@@ -182,7 +182,6 @@ int main(int argc, char** argv) {
 
   // Determine if opt.descriptor_generator is legitimate
   if (!(opt.descriptor_generator == "patch"  ||
-          opt.descriptor_generator == "pca"    ||
           opt.descriptor_generator == "sgrad"  ||
           opt.descriptor_generator == "sgrad2" ||
           //opt.descriptor_generator == "brisk"  ||
@@ -190,7 +189,7 @@ int main(int argc, char** argv) {
           //opt.descriptor_generator == "surf"   ||
           opt.descriptor_generator == "sift"   )) {
     vw_out() << "Unkown descriptor generator: " << opt.descriptor_generator
-             << ". Options are: sift, orb, sgrad, sgrad2, patch, pca.\n";
+             << ". Options are: sift, orb, sgrad, sgrad2, patch.\n";
     exit(1);
   }
 
@@ -205,7 +204,7 @@ int main(int argc, char** argv) {
     vw_out() <<"The value of --descriptor-generator is '" << opt.descriptor_generator << "'. ";
     opt.descriptor_generator = "sgrad";
     vw_out() << "Switching it to '" << opt.descriptor_generator << "' to match --interest-operator.\n";
-    vw_out() << "Can use any of: 'sgrad', 'sgrad2', 'patch', 'pca'.\n";
+    vw_out() << "Can use any of: 'sgrad', 'sgrad2', 'patch'.\n";
   }
 
   // Iterate over the input files and find interest points in each.
@@ -351,12 +350,10 @@ int main(int argc, char** argv) {
     }
 
     // Generate descriptors for interest points.
-    vw_out(InfoMessage) << "\tRunning " << opt.descriptor_generator << " descriptor generator.\n";
+    vw_out(InfoMessage) << "\tRunning " << opt.descriptor_generator 
+      << " descriptor generator.\n";
     if (opt.descriptor_generator == "patch") {
       PatchDescriptorGenerator descriptor;
-      describe_interest_points(image, descriptor, ip);
-    } else if (opt.descriptor_generator == "pca") {
-      PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       describe_interest_points(image, descriptor, ip);
     } else if (opt.descriptor_generator == "sgrad") {
       SGradDescriptorGenerator descriptor;
