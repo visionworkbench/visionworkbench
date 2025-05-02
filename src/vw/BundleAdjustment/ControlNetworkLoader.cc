@@ -546,6 +546,9 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
   
   std::vector<std::string> const& image_files = cnet.get_image_list();
 
+  // Initalize this as the datum passed from outside. 
+  vw::cartography::Datum local_datum = datum;
+
   // Creating a version of image_files that doesn't contain the path.
   typedef std::map<std::string,size_t> LookupType;
   LookupType image_lookup;
@@ -582,14 +585,20 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
         cartography::Datum gcp_datum;
         if (!parseDatum(line, gcp_datum)) 
           continue;
+        
+        // Use the datum from the GCP file
+        local_datum = gcp_datum;
+          
         if (skip_datum_check) 
           continue;
         double tol = 1e-6;
         if (std::abs(gcp_datum.semi_major_axis() - datum.semi_major_axis()) > tol ||
             std::abs(gcp_datum.semi_minor_axis() - datum.semi_minor_axis()) > tol ||
             std::abs(gcp_datum.meridian_offset() - datum.meridian_offset()) > tol) {
-          vw_throw(ArgumentErr() << "The datum of the GCP file " << *gcp_iter
-                   << " does not match the datum passed on input.");
+          vw::vw_out(vw::WarningMessage)
+            << "The datum of the GCP file " << *gcp_iter
+            << " does not match the datum passed on input. Will use the datum "
+            << "from the GCP file.\n";
         } 
         continue;
       }
@@ -623,10 +632,9 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
         std::string image_name;
         Vector4 pix_std;
         if (is >> image_name >> pix_std[0] >> pix_std[1] >> pix_std[2] >> pix_std[3]){
-          if (pix_std[2] <= 0 || pix_std[3] <= 0) {
+          if (pix_std[2] <= 0 || pix_std[3] <= 0)
             vw_throw(ArgumentErr() << "Standard deviations must be positive "
                                     << "when loading ground control points.");
-          }
 
           measure_locations.push_back(pix_std);
           measure_cameras.push_back(image_name);
@@ -645,7 +653,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       // Convert GCP from lon,lat,height to ECEF
       // TODO(oalexan1): Support here projected coordinates. Use
       // the input georef to convert them to ECEF.
-      Vector3 xyz = datum.geodetic_to_cartesian(world_location);
+      Vector3 xyz = local_datum.geodetic_to_cartesian(world_location);
 
       vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: " << xyz << std::endl;
       ControlPoint cpoint(ControlPoint::GroundControlPoint);
