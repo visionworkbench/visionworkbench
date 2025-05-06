@@ -22,7 +22,6 @@
 ///
 
 #include <vw/config.h>
-
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
 
 #ifdef _MSC_VER

@@ -182,9 +182,10 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_photo       opencv_xphoto)
 find_external_library(OPENCV ${ASP_DEPS_DIR} "opencv4" "${OPENCV_LIB_NAMES}" REQUIRED)
 
-set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
+# Dependence on OpenExr removed
+# set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
+# find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
+# find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
 
 # CMake will try to find these packages if needed. They are not part
 # of the usual dependencies.

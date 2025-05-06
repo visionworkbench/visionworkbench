@@ -179,7 +179,7 @@
 #cmakedefine VW_HAVE_PKG_OPENCV 1
 
 /* Define to 1 if the OPENEXR package is available. */
-#cmakedefine VW_HAVE_PKG_OPENEXR 1
+#cmakedefine VW_HAVE_PKG_OPENEXR 0
 
 /* Define to 1 if the PLATE module is available. */
 #cmakedefine VW_HAVE_PKG_PLATE 1
