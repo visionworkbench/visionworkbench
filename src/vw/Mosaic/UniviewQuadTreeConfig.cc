@@ -20,7 +20,7 @@
 
 #include <sstream>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <functional>
 namespace fs = boost::filesystem;
@@ -91,7 +91,7 @@ namespace mosaic {
 
 
   boost::shared_ptr<DstImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& /*qtree*/,QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath ).parent_path() );
+    fs::create_directories(fs::path( info.filepath ).parent_path());
     return boost::shared_ptr<DstImageResource>( new UniviewTerrainResource( info.filepath+info.filetype, format ) );
   }
 

@@ -18,7 +18,7 @@
 
 #include <vw/Mosaic/GMapQuadTreeConfig.h>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
 
@@ -56,7 +56,7 @@ namespace mosaic {
   }
 
   boost::shared_ptr<DstImageResource> GMapQuadTreeConfig::tile_resource( QuadTreeGenerator const& /*qtree*/, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath ).parent_path() );
+    fs::create_directories(fs::path( info.filepath ).parent_path());
     return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath + info.filetype, format, info.filetype ) );
   }
 

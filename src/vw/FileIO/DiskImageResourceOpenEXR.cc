@@ -21,6 +21,8 @@
 /// Provides support for the OpenEXR file format.
 ///
 
+#include <vw/config.h>
+
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
 
 #ifdef _MSC_VER

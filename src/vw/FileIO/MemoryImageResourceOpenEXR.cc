@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <vw/config.h>
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
 
 #include <vw/FileIO/MemoryImageResourceOpenEXR.h>

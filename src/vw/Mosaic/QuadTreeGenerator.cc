@@ -17,8 +17,8 @@
 
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
+#include <boost/filesystem.hpp>
 
-#include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 
 #include <vw/FileIO/DiskImageResource.h>
@@ -79,7 +79,7 @@ namespace mosaic {
   }
 
   boost::shared_ptr<DstImageResource> QuadTreeGenerator::default_tile_resource_func::operator()( QuadTreeGenerator const&, TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath ).parent_path() );
+    fs::create_directories(fs::path( info.filepath ).parent_path());
     return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
   }
 
