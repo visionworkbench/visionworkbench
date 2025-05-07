@@ -28,7 +28,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
 using vw::cartography::GeoReference;

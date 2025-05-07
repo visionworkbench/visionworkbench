@@ -19,7 +19,6 @@
 #include <vw/Mosaic/CelestiaQuadTreeConfig.h>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <functional>
 

@@ -65,7 +65,6 @@
 #include <set>
 #include <map>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
 // TODO: Clean up properly so valgrind does not report memory leaks!

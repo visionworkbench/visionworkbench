@@ -40,7 +40,6 @@
 
 #include <list>
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/foreach.hpp>
 
 #include <gdal.h>

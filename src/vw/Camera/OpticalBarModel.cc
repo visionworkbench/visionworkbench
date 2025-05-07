@@ -22,7 +22,6 @@
 #include <vw/Camera/OrbitalCorrections.h>
 
 #include <iomanip>
-#include <boost/filesystem/convenience.hpp>
 
 namespace vw {
 namespace camera {

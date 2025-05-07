@@ -31,7 +31,6 @@
 #define __VW_MOSAIC_TOASTQUADTREECONFIG_H__
 
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
 

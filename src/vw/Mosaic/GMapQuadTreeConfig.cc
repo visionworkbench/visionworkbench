@@ -19,7 +19,6 @@
 #include <vw/Mosaic/GMapQuadTreeConfig.h>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
 

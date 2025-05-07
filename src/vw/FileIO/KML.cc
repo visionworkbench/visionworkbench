@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <vw/FileIO/KML.h>
 #include <vw/Math/EulerAngles.h>
+#include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
 

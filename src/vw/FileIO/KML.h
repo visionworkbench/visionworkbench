@@ -36,7 +36,6 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/xtime.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 
 namespace vw {

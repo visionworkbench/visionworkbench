@@ -27,7 +27,7 @@
 #include <cstring>
 
 #include <boost/smart_ptr/scoped_array.hpp>
-#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
 

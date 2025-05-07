@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
 
 #include <vw/FileIO/MemoryImageResourceOpenEXR.h>
 #include <vw/Core/Debugging.h>
@@ -293,3 +294,5 @@ const uint8* DstMemoryImageResourceOpenEXR::data() const {
 size_t DstMemoryImageResourceOpenEXR::size() const {
   return m_data->size();
 }
+
+#endif // VW_HAVE_PKG_OPENEXR

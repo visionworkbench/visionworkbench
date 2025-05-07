@@ -19,7 +19,6 @@
 #include <vw/Mosaic/QuadTreeGenerator.h>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
 #include <vw/FileIO/DiskImageResource.h>
