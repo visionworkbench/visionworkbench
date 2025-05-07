@@ -21,6 +21,8 @@
 /// Provides support for the OpenEXR file format.
 ///
 
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
@@ -409,3 +411,5 @@ vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_create( std::stri
                                                                        ImageFormat const& format ) {
   return new DiskImageResourceOpenEXR( filename, format );
 }
+
+#endif // VW_HAVE_PKG_OPENEXR
