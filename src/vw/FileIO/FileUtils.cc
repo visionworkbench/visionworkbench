@@ -32,6 +32,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -137,16 +138,15 @@ size_t get_files_in_folder(std::string              const& folder,
   boost::filesystem::directory_iterator it(folder);
   boost::filesystem::directory_iterator endit;
 
-  if (ext != ""){ // Check the extension
-    while(it != endit) {
-        if(boost::filesystem::is_regular_file(*it) && it->path().extension() == ext) 
+  if (ext != "") { // Check the extension
+    while (it != endit) {
+        if (boost::filesystem::is_regular_file(*it) && it->path().extension() == ext) 
           output.push_back(it->path().filename().string());
         ++it;
     }
-  }
-  else{ // No extension check
-    while(it != endit) {
-        if(boost::filesystem::is_regular_file(*it)) 
+  } else { // No extension check
+    while (it != endit) {
+        if (boost::filesystem::is_regular_file(*it)) 
           output.push_back(it->path().filename().string());
         ++it;
     }
