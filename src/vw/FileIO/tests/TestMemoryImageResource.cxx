@@ -27,6 +27,7 @@
 #include <vw/Image/UtilityViews.h>
 #include <vw/FileIO/MemoryImageResource.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/config.h>
 
 #include <fstream>
 

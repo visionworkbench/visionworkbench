@@ -182,9 +182,15 @@ set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
                      opencv_photo       opencv_xphoto)
 find_external_library(OPENCV ${ASP_DEPS_DIR} "opencv4" "${OPENCV_LIB_NAMES}" REQUIRED)
 
-set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
+if (USE_OPENEXR)
+  set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
+  find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
+  find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
+  set(VW_HAVE_PKG_OPENEXR 1)
+else()
+  message(STATUS "OpenEXR will not be used.")
+  set(VW_HAVE_PKG_OPENEXR 0)
+endif()
 
 # CMake will try to find these packages if needed. They are not part
 # of the usual dependencies.
@@ -272,7 +278,10 @@ get_all_source_files("FileIO" VW_FILEIO_SRC_FILES)
 get_all_source_files("FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
-    ${ILMBASE_LIBRARIES} ${OPENEXR_LIBRARIES} ${Z_LIBRARIES})
+    ${ILMBASE_LIBRARIES} ${Z_LIBRARIES})
+if (USE_OPENEXR)
+  list(APPEND VW_FILEIO_LIB_DEPENDENCIES ${OPENEXR_LIBRARIES})
+endif()
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
