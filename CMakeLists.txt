@@ -3,11 +3,9 @@ cmake_minimum_required(VERSION 3.15.5)
 project(visionworkbench)
 
 if(APPLE)
-    # Needed for conda build on OSX with conda
-    cmake_policy(SET CMP0025 NEW) 
+    cmake_policy(SET CMP0025 NEW)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
 endif(APPLE)
-
-cmake_minimum_required (VERSION 3.15)
 
 # Make it possible to append to these from the command line
 set(CMAKE_CXX_FLAGS "" CACHE STRING "")
