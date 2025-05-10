@@ -465,8 +465,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   if (num_load_rejected != 0)
     vw_out(WarningMessage,"ba")
-      << "Did not load " << num_load_rejected << " matches "
-      << "due to inadequacy. Decrease the --min-matches parameter "
+      << "Did not load a total of " << num_load_rejected << " matches due to "
+      << "pairwise application of the --min-matches parameter. Decrease this "
       << "to load smaller sets of matches.\n";
   vw_out() << "Loaded " << num_loaded << " matches from all files.\n";
 
