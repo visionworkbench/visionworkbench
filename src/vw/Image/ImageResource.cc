@@ -62,23 +62,28 @@ void channel_convert_uint8_to_uint16( uint8* src, uint16* dest ) {
 }
 
 /// Convert any integer into a float in the -1 to +1 range.
+/// First convert from int to double, do the multiplication, then cast to float.
 template <class SrcT, class DestT>
-void channel_convert_int_to_float( SrcT* src, DestT* dest ) {
-  *dest = DestT(*src) * (DestT(1.0)/boost::integer_traits<SrcT>::const_max);
+void channel_convert_int_to_float(SrcT* src, DestT* dest) {
+  *dest = DestT(double(*src) * (double(1.0)/double(boost::integer_traits<SrcT>::const_max)));
 }
 
 /// Convert a float in the range -1 to +1 to an integer type.
 template <class SrcT, class DestT>
 void channel_convert_float_to_int( SrcT* src, DestT* dest ) {
-  if( *src > SrcT(1.0) ) *dest = boost::integer_traits<DestT>::const_max;
-  else if( *src < SrcT(0.0) ) *dest = DestT(0);
-  else *dest = DestT( *src * boost::integer_traits<DestT>::const_max );
+  if (*src > SrcT(1.0))
+    *dest = boost::integer_traits<DestT>::const_max;
+  else if (*src < SrcT(0.0))
+    *dest = DestT(0);
+  else
+    *dest = DestT(double(*src) * double(boost::integer_traits<DestT>::const_max));
 }
 
 /// Pointers to two maps:  <type pair> -> conversion function
 /// - One is for rescaling conversions, the other for non-rescaling.
-std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func> *channel_convert_map = 0,
-                                                                          *channel_convert_rescale_map = 0;
+std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func>
+  *channel_convert_map = 0,
+  *channel_convert_rescale_map = 0;
 
 /// Helper class for adding entries to the two conversion maps mentioned above.
 class ChannelConvertMapEntry {
