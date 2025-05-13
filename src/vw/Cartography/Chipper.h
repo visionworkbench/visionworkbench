@@ -1,6 +1,8 @@
 #ifndef CHIPPER_H
 #define CHIPPER_H
 
+// This class is adapted from PDAL. See the .cc file for more info.
+
 /******************************************************************************
  * $Id$
  *
@@ -46,22 +48,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Cartography/GeoReference.h>
 
-
-/**
-The objective is to split the region into non-overlapping blocks, each
-containing approximately the same number of points, as specified by the
-user.  We'd also like the blocks closer to square than not.
-
-**/
-
-namespace pdal
-{
-
-//class Stage;
-
-namespace filters
-
-{
+namespace vw {
 
 typedef boost::uint64_t PointId;
 typedef boost::uint64_t point_count_t;
@@ -181,7 +168,6 @@ private:
     Chipper(const Chipper&); // not implemented
 };
 
-} // namespace filters
-} // namespace pdal
+} // namespace vw
 
 #endif

@@ -1,3 +1,7 @@
+// This class is adapted from PDAL for use in ASP. The chips are converted to
+// Cartesian xyz values and store then in a tif image. Each chip will be stored
+// in the tif image as a block of size blockSize x blockSize.
+  
 /******************************************************************************
  * Copyright (c) 2010, Andrew Bell
  *
@@ -68,19 +72,8 @@ from the narrow array so that the appropiate extrema of the block can
 be stored.
 */
 
-// Adapted for use in ASP. The chips are converted to Cartesian xyz values and
-// store then in a tif image. Each chip will be stored in the tif image as a
-// block of size blockSize x blockSize.
-  
-namespace pdal
-{
-namespace filters
-{
+namespace vw {
 
-using namespace vw;
-
-// TODO(oalexan1): Move this to the vw namespace.
-  
 Chipper::Chipper(PointBuffer& buffer, int blockSize, 
                  bool have_georef, vw::cartography::GeoReference const& georef,
                  int num_out_cols, int num_out_rows,
@@ -89,7 +82,7 @@ Chipper::Chipper(PointBuffer& buffer, int blockSize,
    m_have_georef(have_georef), m_georef(georef),
    m_numMaxPtsInChip(blockSize*blockSize),
   m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE),
-   m_outImg(outImg){
+   m_outImg(outImg) {
 
   // First initialize the output
   m_outImg.set_size(num_out_cols, num_out_rows);
@@ -118,8 +111,7 @@ Chipper::Chipper(PointBuffer& buffer, int blockSize,
 
 
 void Chipper::load(PointBuffer const& buffer, ChipRefList& xvec, ChipRefList& yvec, 
-    ChipRefList& spare)
-{
+    ChipRefList& spare) {
     boost::uint32_t idx;
     std::vector<ChipPtRef>::iterator it;
 
@@ -372,21 +364,6 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
   
   // Be ready for the next block
   m_currChip++;
-  
-    /**
-    // We currently don't write the bounds in the buffer.
-    //
-    Bounds<double> bounds;
-    if (wide.m_dir == DIR_X)
-        bounds = Bounds<double>(wide[widemin].m_pos, narrow[narrowmin].m_pos,
-            wide[widemax].m_pos, narrow[narrowmax].m_pos);
-    else
-        bounds = Bounds<double>(narrow[narrowmin].m_pos, wide[widemin].m_pos,
-            narrow[narrowmax].m_pos, wide[widemax].m_pos);
-    **/
-  //m_out_buffers.push_back(buf);
 }
-
   
-} // namespace filters
-} // namespace pdal
+} // namespace vw
