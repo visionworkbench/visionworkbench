@@ -276,7 +276,7 @@ void cutToHalfSpace(// inputs
   static int c = -1;
   c++;
   char file[100];
-  sprintf(file, "beforeCleanup%d.xg", c);
+  snprintf(file, sizeof(file), "beforeCleanup%d.xg", c);
   cout << "\nWriting to " << file << endl;
   ofstream before(file);
   for (int s = 0; s < (int)cutX.size(); s++){
@@ -382,7 +382,7 @@ void cutToHalfSpace(// inputs
   cutNumPolys = P;
 
 #if DEBUG_CUT_POLY
-  sprintf(file, "afterCleanup%d.xg", c);
+  snprintf(file, sizeof(file), "afterCleanup%d.xg", c);
   cout << "Writing to " << file << endl;
   ofstream after(file);
   for (int s = 0; s < (int)cutX.size(); s++){

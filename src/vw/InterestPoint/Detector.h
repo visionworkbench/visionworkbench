@@ -878,32 +878,32 @@ int ScaledInterestPointDetector<InterestT>::write_images(std::vector<DataT> cons
     char fname[256];
 
     // Save the scale
-    sprintf(fname, "scale_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "scale_%02d.jpg", imagenum);
     ImageView<float> scale_image = normalize(img_data[k].source());
     vw::write_image(fname, scale_image);
 
     // Save the X gradient
-    sprintf(fname, "grad_x_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "grad_x_%02d.jpg", imagenum);
     ImageView<float> grad_x_image = normalize(img_data[k].gradient_x());
     vw::write_image(fname, grad_x_image);
 
     // Save the Y gradient
-    sprintf(fname, "grad_y_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "grad_y_%02d.jpg", imagenum);
     ImageView<float> grad_y_image = normalize(img_data[k].gradient_y());
     vw::write_image(fname, grad_y_image);
 
     // Save the edge orientation image
-    sprintf(fname, "ori_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "ori_%02d.jpg", imagenum);
     ImageView<float> ori_image = normalize(img_data[k].orientation());
     vw::write_image(fname, ori_image);
 
     // Save the edge magnitude image
-    sprintf(fname, "mag_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "mag_%02d.jpg", imagenum);
     ImageView<float> mag_image = normalize(img_data[k].magnitude());
     vw::write_image(fname, mag_image);
 
     // Save the interest function image
-    sprintf(fname, "interest_%02d.jpg", imagenum);
+    snprintf(fname, sizeof(fname), "interest_%02d.jpg", imagenum);
     ImageView<float> interest_image = normalize(img_data[k].interest());
     vw::write_image(fname, interest_image);
   }

@@ -209,7 +209,7 @@ public:
     // Save each image plane in the octave
     for (int k=0; k<num_planes; k++){
       imagenum = (int)(log((float)base_scale)/log(2.0)) * num_planes + k;
-      sprintf( fname, "scale_%02d.jpg", imagenum );
+      snprintf(fname, sizeof(fname), "scale_%02d.jpg", imagenum);
       vw::write_image( fname, scales[k] );
     }
   }
