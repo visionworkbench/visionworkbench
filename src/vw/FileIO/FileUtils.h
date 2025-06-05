@@ -6,6 +6,7 @@
 #define __VW_FILEIO_FILEUTILS_H__
 
 #include <string>
+#include <vector>
 #include <boost/filesystem/path.hpp>
 
 namespace vw{
