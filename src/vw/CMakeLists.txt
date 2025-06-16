@@ -254,6 +254,8 @@ foreach(f ${MAIN_HEADER_FILES})
   INSTALL(FILES ${f} DESTINATION include/vw)
 endforeach()
 
+# Install a small tif file for testing when conda-forge builds the package
+install(FILES Cartography/tests/tinyDemAN.tif DESTINATION share/vw/tests)
 
 #=========================================================================
 # Define each of the libaries

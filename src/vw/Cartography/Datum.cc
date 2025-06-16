@@ -270,8 +270,7 @@ double vw::cartography::Datum::inverse_flattening() const {
 }
 
 // NED to ECEF transform. This takes into account that the planet is an
-// ellipsoid and the curent elevation above it. See the .h file for 
-// more info.
+// ellipsoid and the curent elevation above it. 
 vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector3 const& llh) const {
   
   double lon = llh.x();
