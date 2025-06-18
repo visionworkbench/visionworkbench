@@ -46,7 +46,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
 
   // The vectors corresponding to angles multiple of 45 degree
   int numAngles = 8;
-  double xs[numAngles], ys[numAngles];
+  std::vector<double> xs(numAngles), ys(numAngles);
   for (int a = 0; a < numAngles; a++){
     double theta = a*45*M_PI/180;
     xs[a] = cos(theta);
@@ -60,9 +60,8 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   for (int v = 0; v < numVerts - 1; v++){
 
     bool snap2ndClosest = false; // snap to closest, not second closest
-    snapOneEdgeTo45(numAngles, xs, ys, snap2ndClosest,  // inputs
-                    xv[v], yv[v], xv[v + 1], yv[v + 1]  // in-out
-                    );
+    snapOneEdgeTo45(numAngles, &xs[0], &ys[0], snap2ndClosest,   // inputs
+                    xv[v], yv[v], xv[v + 1], yv[v + 1]); // in-out
 
   }
 
@@ -80,9 +79,8 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
     double yp = yv[vp], yc = yv[vc], yc2 = yv[vc], yn = yv[vn];
 
     bool snap2ndClosest = false;
-    snapOneEdgeTo45(numAngles, xs, ys, snap2ndClosest,  // inputs
-                   xn, yn, xc2, yc2                     // in-out
-                   );
+    snapOneEdgeTo45(numAngles, &xs[0], &ys[0], snap2ndClosest, // inputs
+                   xn, yn, xc2, yc2);                          // in-out
 
     // Find the intersection of the edges
     // (xp, yp) --> (xc, yc) and (xc2, yc2) --> (xn, yn).
@@ -114,7 +112,6 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
       cerr << "Error: Expecting integer vertices with 45 degree angles."  << endl;
       cerr << "Instead, got the vector (" << dx << ", " << dy << ") "
            << "with starting point " << xv[v] << ' ' << yv[v] << endl;
-      //assert(false);
     }
   }
 
@@ -176,8 +173,7 @@ void minDistFromPtToSeg(//inputs
                                double x1, double y1,
                                // outputs
                                double & minX, double & minY,
-                               double & minDist
-                               ){
+                               double & minDist){
 
   // Given the point (xin, yin) and the segment going from (x0, y0) to
   // (x1, y1), find the point (minX, minY) on this segment (not on its
@@ -203,8 +199,7 @@ void minDistFromPtToSeg(//inputs
 
 
 void searchForColor(std::string lineStr, // input, not a reference on purpose
-                           std::string & color  // output
-                           ){
+                           std::string & color) {  // output
 
 //   const char * xgraph_colors[] =
 //     {"black", "white", "red", "blue", "green", "violet",
@@ -330,10 +325,10 @@ double signedPolyArea(int numV, const double* xv, const double* yv, bool counter
 }
 
 void expandBoxToGivenRatio(// inputs
-                                  double aspectRatio,
-                                  // inputs/outputs
-                                  double & xll,  double & yll,
-                                  double & widx, double & widy){
+                           double aspectRatio,
+                           // inputs/outputs
+                           double & xll,  double & yll,
+                           double & widx, double & widy){
 
   // Expand the given box to have the aspect ratio equal to the number aspectRatio.
   assert(widx > 0.0 && widy > 0.0 && aspectRatio > 0.0);

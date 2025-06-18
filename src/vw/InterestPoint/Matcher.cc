@@ -56,8 +56,8 @@ float HammingMetric::operator()( InterestPoint const& ip1,
   const int num_32 = d / uint32_len;
   
   // Pack the date into vectors as raw bytes (instead of integer values casted as floats)
-  uint8 packed1[desc_len];
-  uint8 packed2[desc_len];
+  std::vector<uint8> packed1(desc_len), packed2(desc_len);
+  
   for (int k=0; k<desc_len; ++k) {
     packed1[k] = static_cast<uint8>(ip1.descriptor[k]);
     packed2[k] = static_cast<uint8>(ip2.descriptor[k]);
