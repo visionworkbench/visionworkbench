@@ -20,6 +20,7 @@
 #include <vw/Camera/CameraSolve.h>
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/OrbitalCorrections.h>
+#include <vw/Math/NewtonRaphson.h>
 
 #include <iomanip>
 
@@ -196,13 +197,108 @@ Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
   return output_vector;
 }
 
+// Find two vectors that are perpendicular to each other and to the input unit
+// vector.
+void findPerpVecs(vw::Vector3 const& vec,
+                  vw::Vector3 & perp1, vw::Vector3 & perp2) {
+
+   // The input vec must have norm of 1, with tolerance
+   if (std::abs(norm_2(vec) - 1.0) > 1e-5)
+     vw_throw(ArgumentErr() << "findPerpVecs: Input vector must be a unit vector.\n");
+     
+   // Find the smallest coordinate in vec
+   int min_i = 0;
+   for (int i = 1; i < 3; i++) {
+     if (std::abs(vec[i]) < std::abs(vec[min_i]))
+       min_i = i;
+   }
+   
+   // Find the other two indices
+   int j = 0, k = 0;
+   if (min_i == 0) {
+     j = 1; k = 2;
+   } else if (min_i == 1) {
+     j = 0; k = 2;
+   } else { // min_i == 2
+     j = 0; k = 1;
+   }
+   
+   // Find the vector that swaps j and k and keeps min_i at 0. This is a vector
+   // that is perpendicular to vec.
+   perp1 = Vector3(0, 0, 0);
+   perp1[min_i] = 0; // Keep the smallest coordinate at 0
+   perp1[j] = -vec[k]; // Set the other two coordinates to be perpendicular
+   perp1[k] =  vec[j]; // This is the swap, so it is perpendicular to vec
+
+   // Normalize 
+   perp1 = normalize(perp1);
+    
+  // The second perpendicular vector is the cross product of the two
+  perp2 = cross_prod(vec, perp1);
+  // Normalize 
+  perp2 = normalize(perp2);
+}
+
+// Given a 3D point on the ground and a pixel in the camera, find the difference
+// between the camera-to-ground vector and the pixel direction vector, then
+// measure how much they differ in a plane at the ground level and approximately
+// parallel to the ground. When that difference is zero, we found the camera
+// pixel that corresponds to the ground point.
+class LinescanErr {
+  const CameraModel* m_model;
+  Vector3 m_point;
+  // Two vectors in plane that is mostly perpendicular to camera-to-ground vectors
+  vw::Vector3 m_perp1, m_perp2;
+public:
+
+LinescanErr(const CameraModel* model, const vw::Vector3& pt, vw::Vector2 const& guess):
+  m_model(model), m_point(pt) {
+  
+  // Find a direction from the camera to the ground
+  vw::Vector3 cam_ctr = m_model->camera_center(guess);  
+  vw::Vector3 ground_dir = normalize(m_point - cam_ctr);
+  findPerpVecs(ground_dir, m_perp1, m_perp2);
+}
+
+// This must have the signature expected by Newton's method. Can throw
+// exceptions. The math is described above.
+vw::Vector2 operator()(vw::Vector2 const& pix) const {
+  
+  // if (debug)  std::cout << "--pix is " << pix << std::endl;
+  vw::Vector3 cam_ctr = m_model->camera_center(pix);
+  
+  // Normalized direction from camera to ground point
+  double dist_to_ground = norm_2(m_point - cam_ctr);
+  vw::Vector3 ground_dir = (m_point - cam_ctr) / dist_to_ground;
+  
+  // Normalized direction from pixel to ground
+  vw::Vector3 pix_dir = m_model->pixel_to_vector(pix);
+  
+  vw::Vector3 diff = pix_dir - ground_dir;
+
+  // Find the components on this in a plane that is mostly perpendicular to vectors
+  // from the cameras to the ground, so the diff vector is projected onto this plane.
+  double dot1 = dot_prod(diff, m_perp1);
+  double dot2 = dot_prod(diff, m_perp2);
+  
+  // Multiply by dist to ground so we can measure these at ground level.
+  dot1 *= dist_to_ground;
+  dot2 *= dist_to_ground;
+
+  return vw::Vector2(dot1, dot2);
+}
+
+}; // End class LinescanErr
+
 Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
+
+#if 0 
 
   // Use the generic solver to find the pixel 
   // - This method will be slower but works for more complicated geometries
-  CameraGenericLMA model( this, point );
-  int status;
-  Vector2 start = m_image_size / 2.0; // Use the center as the initial guess
+  CameraGenericLMA model(this, point);
+  int status = -1;
+  Vector2 guess = m_image_size / 2.0; // Use the center as the initial guess
 
   // Solver constants
   const double ABS_TOL = 1e-16;
@@ -211,13 +307,37 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
 
   Vector3 objective(0, 0, 0);
   Vector2 solution = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>
-    (model, start, objective, status,
+    (model, guess, objective, status,
      ABS_TOL, REL_TOL, MAX_ITERATIONS);
   VW_ASSERT(status > 0,
             camera::PointToPixelErr()
             << "OpticalBarModel::point_to_pixel: Unable to project point into camera.");
 
   return solution;
+
+#else  
+
+  // Use the image center as the initial guess for the pixel
+  Vector2 guess = m_image_size / 2.0;
+
+  // The step size for numerical differentiation in pixel units. This is for
+  // finding the Jacobian, so it need not be perfect. A small step size can
+  // result in numerical error.   
+  double step = 1e-2;
+
+  // The error for this tol is measured at the ground level in LinescanErr.
+  double tol = 1e-10;
+  
+  // Find pix so that err_func(pix) = ans, where guess is the pix initial guess
+  LinescanErr err_func(this, point, guess);
+  vw::math::NewtonRaphson nr(err_func);
+  vw::Vector2 Y(0, 0); // Solve err_func(solution) = Y
+  
+  Vector2 solution2 = nr.solve(guess, Y, step, tol);
+  
+  return solution2;
+#endif
+
 }
 
 void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
@@ -236,7 +356,6 @@ void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
   this->set_camera_center(position);
   this->set_camera_pose  (pose.axis_angle());
 }
-
 
 void OpticalBarModel::read(std::string const& filename) {
 
@@ -296,13 +415,6 @@ void OpticalBarModel::read(std::string const& filename) {
     cam_file.close();
     vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the scan time\n" );
   }
-  /*
-  std::getline(cam_file, line);
-  if (!cam_file.good() || sscanf(line.c_str(),"scan_rate = %lf", &m_scan_rate_radians) != 1) {
-    cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the scan rate\n" );
-  }
-  */
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"forward_tilt = %lf", &m_forward_tilt_radians) != 1) {
@@ -330,21 +442,6 @@ void OpticalBarModel::read(std::string const& filename) {
   }
   Quat q(rot_mat);
   m_initial_orientation = q.axis_angle();
-
-  /*
-  std::getline(cam_file, line);
-  if (!cam_file.good() || sscanf(line.c_str(),"iR = %lf %lf %lf", 
-        &m_initial_orientation(0), &m_initial_orientation(1), &m_initial_orientation(2)) != 3) {
-    cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the initial orientation\n" );
-  }
-  //// !!! DEBUG !!! -> Ignore the orientation, point it locally NED down.
-  //vw::cartography::Datum d("WGS84");
-  //Vector3 llh = d.cartesian_to_geodetic(m_initial_position);
-  //Matrix3x3 m = d.lonlat_to_ned_matrix(llh);
-  //Quat q(m);
-  //m_initial_orientation = q.axis_angle();
-  */
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"speed = %lf", &m_speed) != 1) {
@@ -378,7 +475,6 @@ void OpticalBarModel::read(std::string const& filename) {
   
   compute_scan_rate(); // This needs to be updated!
 }
-
 
 void OpticalBarModel::write(std::string const& filename) const {
 
@@ -426,8 +522,6 @@ void OpticalBarModel::write(std::string const& filename) const {
   cam_file.close();
 }
 
-
-
 std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model) {
   os << "\n------------------------ Optical Bar Model -----------------------\n\n";
   os << " Image size:             " << camera_model.m_image_size             << "\n";
@@ -447,7 +541,6 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   os << "\n------------------------------------------------------------------------\n\n";
   return os;
 }
-
 
 }} // namespace asp::camera
 

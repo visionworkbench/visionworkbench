@@ -46,7 +46,7 @@ Vector2 LinescanModel::point_to_pixel(Vector3 const& point, double starty) const
 
   // Use the generic solver to find the pixel 
   // - This method will be slower but works for more complicated geometries
-  CameraGenericLMA model( this, point );
+  CameraGenericLMA model(this, point);
   int status;
   Vector2 start = m_image_size / 2.0; // Use the center as the initial guess
   if (starty >= 0) // If the user provided a line number guess..
