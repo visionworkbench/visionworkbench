@@ -265,7 +265,6 @@ LinescanErr(const CameraModel* model, const vw::Vector3& pt, vw::Vector2 const& 
 // exceptions. The math is described above.
 vw::Vector2 operator()(vw::Vector2 const& pix) const {
   
-  // if (debug)  std::cout << "--pix is " << pix << std::endl;
   vw::Vector3 cam_ctr = m_model->camera_center(pix);
   
   // Normalized direction from camera to ground point
