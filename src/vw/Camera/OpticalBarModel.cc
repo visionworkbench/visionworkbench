@@ -199,6 +199,7 @@ Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
 
 // Find two vectors that are perpendicular to each other and to the input unit
 // vector.
+// TODO(oalexan1): Can move this to a lower-level location.
 void findPerpVecs(vw::Vector3 const& vec,
                   vw::Vector3 & perp1, vw::Vector3 & perp2) {
 
@@ -290,32 +291,13 @@ vw::Vector2 operator()(vw::Vector2 const& pix) const {
 
 }; // End class LinescanErr
 
+// TODO(oalexan1): This could be sped up further, after putting in Newton's method as below.
+// - The m_perp1 and m_perp2 vectors could be found once, when the object is created.
+// - Then can implement the approach from the usgscsm linescan class, of finding an initial
+//   affine transform for ground-to-image. 
+// - Disable velocity aberration and atmospheric refraction corrections, as they are needed
+//   only with high quality input geolocation, as here the camera is very rough.
 Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
-
-#if 0 
-
-  // Use the generic solver to find the pixel 
-  // - This method will be slower but works for more complicated geometries
-  CameraGenericLMA model(this, point);
-  int status = -1;
-  Vector2 guess = m_image_size / 2.0; // Use the center as the initial guess
-
-  // Solver constants
-  const double ABS_TOL = 1e-16;
-  const double REL_TOL = 1e-16;
-  const int    MAX_ITERATIONS = 1e+5;
-
-  Vector3 objective(0, 0, 0);
-  Vector2 solution = math::levenberg_marquardtFixed<CameraGenericLMA, 2,3>
-    (model, guess, objective, status,
-     ABS_TOL, REL_TOL, MAX_ITERATIONS);
-  VW_ASSERT(status > 0,
-            camera::PointToPixelErr()
-            << "OpticalBarModel::point_to_pixel: Unable to project point into camera.");
-
-  return solution;
-
-#else  
 
   // Use the image center as the initial guess for the pixel
   Vector2 guess = m_image_size / 2.0;
@@ -336,7 +318,6 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
   Vector2 solution2 = nr.solve(guess, Y, step, tol);
   
   return solution2;
-#endif
 
 }
 
