@@ -32,6 +32,7 @@
 #include <vw/Image/Interpolation.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/PinholeModel.h>
+#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/CameraUtilities.h>
 #include <vw/FileIO/GdalWriteOptions.h>
 #include <vw/FileIO/FileUtils.h>

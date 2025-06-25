@@ -18,6 +18,8 @@
 #include <vw/Cartography/CameraDatumFit.h>
 #include <vw/Math/LevenbergMarquardt.h>
 
+#include <vw/Camera/PinholeModel.h>
+#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/CameraParamsPack.h>
 
 namespace vw { namespace cartography {

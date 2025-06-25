@@ -21,6 +21,7 @@
 ///
 #include <vw/Camera/CameraUtilities.h>
 #include <vw/Camera/CameraParamsPack.h>
+#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Math/Geometry.h>
 

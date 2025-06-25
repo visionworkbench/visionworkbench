@@ -20,14 +20,19 @@
 
 /// \file CameraDatumFit.h
 
-#include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Cartography/Datum.h>
 
 /// Fit a camera to given pixels and ground points. This 
 // makes use of the datum, so cannot be in the Camera module.
 
-namespace vw { namespace cartography {
+namespace vw { 
+
+namespace camera {              
+  class PinholeModel;
+  class OpticalBarModel;
+}
+
+namespace cartography {
 
 // Find the best-fitting pinhole model given xyz points and pixel values.
 void fitPinhole(std::vector<Vector3> const& xyz_vec,

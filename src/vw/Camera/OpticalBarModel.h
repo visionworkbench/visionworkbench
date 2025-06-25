@@ -162,9 +162,6 @@ namespace camera {
     /// Get position on the (flattened) sensor (film) plane in meters.
     vw::Vector2 pixel_to_sensor_plane(vw::Vector2 const& pixel) const;
 
-    /// Does not incluce velocity aberration and atmospheric correction.
-    vw::Vector3 pixel_to_vector_uncorrected(vw::Vector2 const& pixel) const;
-
     /// Returns the velocity in the GCC frame, not the sensor frame.
     vw::Vector3 get_velocity(vw::Vector2 const& pixel) const;
 
@@ -215,13 +212,6 @@ namespace camera {
 
     /// Apply this fraction of the nominal motion compensation.
     double m_motion_compensation;
-
-    /// Set this flag to enable velocity aberration correction.
-    /// - For satellites this makes a big difference, make sure it is set!
-    bool m_correct_velocity_aberration;
-
-    /// Set this flag to enable atmospheric refraction correction.
-    bool m_correct_atmospheric_refraction;
 
   protected:
 

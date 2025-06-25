@@ -28,7 +28,6 @@
 #include <vw/Camera/CAHVOREModel.h>
 #include <vw/Camera/CameraTransform.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/Camera/OpticalBarModel.h>
 #include <vw/Image/Transform.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -95,10 +94,6 @@ void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,
                                     Vector2i          & epi_size1,
                                     Vector2i          & epi_size2);
 
-// Convert an optical model to a pinhole model without distortion
-// (The distortion will be taken care of later.)
-PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spacing,
-                                double camera_to_ground_dist);
 // Fit a pinhole model with one that has a fast distortion function needed for
 // quick computation of the point_to_pixel function. Does not replace the camera
 // if the approximation error is too high, unless forced. Does not force the

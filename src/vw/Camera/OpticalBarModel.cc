@@ -28,14 +28,10 @@ namespace vw {
 namespace camera {
 
 OpticalBarModel::OpticalBarModel(): 
-  m_motion_compensation(1.0),
-  m_correct_velocity_aberration(true),
-  m_correct_atmospheric_refraction(true) {}
+  m_motion_compensation(1.0) {}
 
 OpticalBarModel::OpticalBarModel(std::string const& path):
-  m_motion_compensation(1.0),
-  m_correct_velocity_aberration(true),
-  m_correct_atmospheric_refraction(true) {
+  m_motion_compensation(1.0) {
   // Create from file. This will read m_mean_earth_radius and m_mean_surface_elevation.    
   read(path);
 } 
@@ -62,8 +58,6 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_initial_orientation (initial_orientation),
     m_speed               (speed),
     m_motion_compensation(motion_compensation_factor),
-    m_correct_velocity_aberration(true),
-    m_correct_atmospheric_refraction(true),
     m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
     m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {
   
@@ -133,7 +127,7 @@ Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
   return axis_angle_to_quaternion(m_initial_orientation);
 }
 
-Vector3 OpticalBarModel::pixel_to_vector_uncorrected(Vector2 const& pixel) const {
+Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
  
   Vector2 sensor_plane_pos = pixel_to_sensor_plane(pixel);
   Vector3 cam_center       = camera_center(pixel);
@@ -165,36 +159,6 @@ Vector3 OpticalBarModel::pixel_to_vector_uncorrected(Vector2 const& pixel) const
   Vector3 result = cam_pose.rotate(r);
 
   return result;
-}
-
-Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
-
-  Vector3 output_vector;
-
-  try {
-    output_vector = pixel_to_vector_uncorrected(pixel);
-
-    Vector3 cam_ctr = camera_center(pixel);
-    if (m_correct_atmospheric_refraction) {
-      vw::Quaternion<double> corr_rot; 
-      output_vector
-        = apply_atmospheric_refraction_correction(cam_ctr, m_mean_earth_radius,
-                                                  m_mean_surface_elevation, output_vector, corr_rot);
-    }
-    
-    if (m_correct_velocity_aberration) {
-      vw::Quaternion<double> corr_rot;
-      output_vector
-        = apply_velocity_aberration_correction(cam_ctr, get_velocity(pixel),
-                                               m_mean_earth_radius, output_vector, corr_rot);
-    }
-  } catch(const vw::Exception &e) {
-    // Repackage any of our exceptions thrown below this point as a 
-    //  pixel to ray exception that other code will be able to handle.
-    vw_throw(vw::camera::PixelToRayErr() << e.what());
-  }
-  
-  return output_vector;
 }
 
 // Find two vectors that are perpendicular to each other and to the input unit
@@ -294,8 +258,6 @@ vw::Vector2 operator()(vw::Vector2 const& pix) const {
 // - The m_perp1 and m_perp2 vectors could be found once, when the object is created.
 // - Then can implement the approach from the usgscsm linescan class, of finding an initial
 //   affine transform for ground-to-image. 
-// - Disable velocity aberration and atmospheric refraction corrections, as they are needed
-//   only with high quality input geolocation, as here the camera is very rough.
 Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
 
   // Use the image center as the initial guess for the pixel
@@ -494,7 +456,7 @@ void OpticalBarModel::write(std::string const& filename) const {
   cam_file << "speed = " << m_speed << "\n";
   cam_file << "mean_earth_radius = "          << m_mean_earth_radius      << "\n";
   cam_file << "mean_surface_elevation = "     << m_mean_surface_elevation << "\n";
-  cam_file << "motion_compensation_factor = " << m_motion_compensation << "\n";
+  cam_file << "motion_compensation_factor = " << m_motion_compensation    << "\n";
   if (m_scan_left_to_right)
     cam_file << "scan_dir = right\n";
   else
@@ -516,7 +478,7 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   os << " Speed:                  " << camera_model.m_speed                  << "\n";
   os << " Mean earth radius:      " << camera_model.m_mean_earth_radius      << "\n";
   os << " Mean surface elevation: " << camera_model.m_mean_surface_elevation << "\n";
-  os << " Motion comp factor:     " << camera_model.m_motion_compensation<< "\n";
+  os << " Motion comp factor:     " << camera_model.m_motion_compensation    << "\n";
   os << " Left to right scan:     " << camera_model.m_scan_left_to_right     << "\n";
   os << "\n------------------------------------------------------------------------\n\n";
   return os;
