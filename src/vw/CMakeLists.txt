@@ -142,6 +142,7 @@ set(NOT_REQUIRED False)
 find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
 find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
 set(VW_HAVE_PKG_LAPACK 1)
+set(VW_HAVE_PKG_FLAPACK 1)
 
 find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
 find_external_library(LZ4     ${ASP_DEPS_DIR} "" "lz4"       REQUIRED)
