@@ -139,18 +139,13 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
-find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
-set(LAPACK_FOUND 1)
-    
-if(LAPACK_FOUND)
-  set(VW_HAVE_PKG_LAPACK 1)
-  #if (APPLE)
-  #  set(VW_HAVE_PKG_APPLE_LAPACK 1)
-  #else()
-    set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
-                               #      How to check this if the user provides Fortran?
-  #endif()
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+  # It fails to compile on Mac Arm without this
+  find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
 endif()
+  
+find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
+set(VW_HAVE_PKG_LAPACK 1)
 
 find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
 find_external_library(LZ4     ${ASP_DEPS_DIR} "" "lz4"       REQUIRED)
