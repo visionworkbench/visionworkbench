@@ -139,11 +139,7 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-  # It fails to compile on Mac Arm without this
-  find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
-endif()
-  
+find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED) # For arm
 find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
 set(VW_HAVE_PKG_LAPACK 1)
 
