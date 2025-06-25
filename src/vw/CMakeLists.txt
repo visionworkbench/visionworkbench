@@ -139,7 +139,7 @@ message("--------------------------------------------------------------")
 set(REQUIRED     True )
 set(NOT_REQUIRED False)
 
-find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED) # For arm
+find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
 find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
 set(VW_HAVE_PKG_LAPACK 1)
 
@@ -300,7 +300,8 @@ set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${LAPACK_LIBRARIES} ${LZ4_LIBRARIES})
+set(VW_MATH_LIB_DEPENDENCIES VwCore ${FLANN_LIBRARIES} ${OPENBLAS_LIBRARIES}
+    ${LAPACK_LIBRARIES} ${LZ4_LIBRARIES})
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
