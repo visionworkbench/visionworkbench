@@ -28,14 +28,17 @@ namespace vw {
 
 namespace camera {
 
-  // Levenberg Marquardt solver for line number (y) and column
-  // number (x) for the given point in space (ie, point_to_pixel)
-  // The obtained solution pixel (x, y) must be such that the vector
-  // from this camera pixel goes through the given point. This
-  // version does uses only functions declared in CameraModel class
-  // and should work for any camera. Some cameras may be able to use a faster
-  // implementation that solves for y first and then for x separately.
-  class CameraGenericLMA : public math::LeastSquaresModelBaseFixed<CameraGenericLMA, 2, 3> {
+  // Levenberg Marquardt solver for line number (y) and column number (x) for
+  // the given point in space (ie, point_to_pixel) The obtained solution pixel
+  // (x, y) must be such that the vector from this camera pixel goes through the
+  // given point. This version does uses only functions declared in CameraModel
+  // class and should work for any camera. Some cameras may be able to use a
+  // faster implementation that solves for y first and then for x separately.
+  
+  // See LinescanErr.h for an alternative 2D to 2D implementation which is about
+  // 3x faster.
+  
+  class CameraGenericLMA: public math::LeastSquaresModelBaseFixed<CameraGenericLMA, 2, 3> {
     const CameraModel* m_model;
     Vector3 m_point;
   public:

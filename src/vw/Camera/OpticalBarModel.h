@@ -130,24 +130,56 @@ namespace camera {
     bool         get_scan_dir      () const { return m_scan_left_to_right;  }
     double       get_forward_tilt  () const { return m_forward_tilt_radians;}
 
+    // TODO(oalexan1): Move this to .cc
 
-    void set_image_size    (vw::Vector2i image_size    ) { m_image_size           = image_size;
-                                                           compute_scan_rate(); }
-    void set_optical_center(vw::Vector2  optical_center) { m_center_loc_pixels    = optical_center;
-                                                           compute_scan_rate(); }
-    void set_focal_length  (double       focal_length  ) { m_focal_length         = focal_length;
-                                                           compute_scan_rate(); }
-    //void set_scan_rate     (double       scan_rate     ) { m_scan_rate_radians    = scan_rate;      }
-    void set_speed         (double       speed         ) { m_speed                = speed;          }
-    void set_pixel_size    (double       pixel_size    ) { m_pixel_size           = pixel_size;
-                                                           compute_scan_rate(); }
-    void set_scan_time     (double       scan_time     ) { m_scan_time   = scan_time;     
-                                                           compute_scan_rate(); }
-    void set_scan_dir      (bool         scan_l_to_r   ) { m_scan_left_to_right   = scan_l_to_r;    }
-    void set_forward_tilt  (double       tilt_angle    ) { m_forward_tilt_radians = tilt_angle;     }
+    void set_image_size(vw::Vector2i image_size) { 
+      m_image_size = image_size;
+    }
+    void set_optical_center(vw::Vector2  optical_center) { 
+      m_center_loc_pixels = optical_center;
+    }
+    void set_focal_length(double focal_length) {
+      m_focal_length         = focal_length;
+    }
+    
+    // TODO(oalexan1): Wipe most of these
+    void set_speed(double speed) { 
+      m_speed = speed;
+    }
+    
+    void set_pixel_size(double pixel_size) { 
+      m_pixel_size = pixel_size;
+    }
+     
+    void set_scan_time(double scan_time) { 
+      m_scan_time   = scan_time;
+    }
+         
+    void set_scan_dir(bool scan_l_to_r) { 
+      m_scan_left_to_right = scan_l_to_r;
+    }
+    
+    void set_forward_tilt(double tilt_angle) { 
+      m_forward_tilt_radians = tilt_angle;
+    }
+    
+    // Set the constant velocity in ECEF
+    void set_velocity(vw::Vector3 const& velocity) {
+      m_velocity = velocity;
+    }
 
-    double get_motion_compensation() const           { return m_motion_compensation;    }
-    void   set_motion_compensation(double mc_factor) { m_motion_compensation = mc_factor;}
+    /// Returns the constant velocity in ECEF
+    vw::Vector3 get_velocity() const {
+      return m_velocity;
+    }
+    
+    double get_motion_compensation() const { 
+      return m_motion_compensation; 
+    }
+    
+    void set_motion_compensation(double mc_factor) { 
+      m_motion_compensation = mc_factor;
+    }
 
     friend std::ostream& operator<<(std::ostream&, OpticalBarModel const&);
 
@@ -156,16 +188,10 @@ namespace camera {
     /// Get the alpha (scanner rotation) angle from a location on the sensor (film) plane.
     double sensor_to_alpha(vw::Vector2 const& sensor_loc) const;
 
-    /// Compute and record the scan rate into m_scan_rate.
-    void compute_scan_rate();
-
     /// Get position on the (flattened) sensor (film) plane in meters.
     vw::Vector2 pixel_to_sensor_plane(vw::Vector2 const& pixel) const;
 
-    /// Returns the velocity in the GCC frame, not the sensor frame.
-    vw::Vector3 get_velocity(vw::Vector2 const& pixel) const;
-
-    /// Compute the time since start of scan for a given pixel.
+    /// Compute the normalized time since start of scan for a given pixel.
     double pixel_to_time_delta(vw::Vector2 const& pixel) const;
 
   protected:
@@ -205,7 +231,8 @@ namespace camera {
     vw::Vector3 m_initial_position;
     vw::Vector3 m_initial_orientation; // TODO: Record as matrix
     double      m_speed; /// Velocity in the sensor Y axis only.
-
+    vw::Vector3 m_velocity; // velocity in ECEF, will supersede m_speed
+    
     // These are used for ray corrections.
     double m_mean_earth_radius;
     double m_mean_surface_elevation;

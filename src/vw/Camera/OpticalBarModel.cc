@@ -17,7 +17,7 @@
 
 #include <vw/Math/EulerAngles.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Camera/CameraSolve.h>
+#include <vw/Camera/LinescanErr.h>
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/OrbitalCorrections.h>
 #include <vw/Math/NewtonRaphson.h>
@@ -59,10 +59,7 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_speed               (speed),
     m_motion_compensation(motion_compensation_factor),
     m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
-    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {
-  
-  compute_scan_rate();
-}
+    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {}
 
 Vector2 OpticalBarModel::pixel_to_sensor_plane(Vector2 const& pixel) const {
   Vector2 result = (pixel - m_center_loc_pixels) * m_pixel_size;
@@ -74,19 +71,7 @@ double OpticalBarModel::sensor_to_alpha(vw::Vector2 const& sensor_loc) const {
   return sensor_loc[0] / m_focal_length;
 }
 
-void OpticalBarModel::compute_scan_rate() {
-
-  // Compute the scan angle using pixel information.
-  Vector2 p1 = pixel_to_sensor_plane(Vector2(0,0));
-  Vector2 p2 = pixel_to_sensor_plane(Vector2(m_image_size - Vector2i(1,1)));
-  
-  double alpha1     = sensor_to_alpha(p1);
-  double alpha2     = sensor_to_alpha(p2);
-  double scan_angle = alpha2 - alpha1;
-  
-  m_scan_rate_radians = scan_angle / m_scan_time;
-}
-
+// Return normalized time. Time at last row is 1.
 double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
 
   // Since the camera sweeps a scan through columns, use that to
@@ -97,33 +82,20 @@ double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
     scan_fraction = pix[0] / max_col; // TODO: Add 0.5 pixels to calculation?
   else // Right to left scan direction
     scan_fraction = (max_col - pix[0]) / max_col;
-  double time_delta = scan_fraction * m_scan_time;
-  return time_delta;
-}
 
-Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
-
-  // TODO: For speed, store the pose*velocity vector.
-  // Convert the velocity from sensor coords to GCC coords
-  Matrix3x3 pose = camera_pose(pixel).rotation_matrix();
-
-  // Recover the satellite attitude relative to the tilted camera position
-  //Matrix3x3 m = vw::math::rotation_x_axis(-m_forward_tilt_radians)*pose;
-  Matrix3x3 m = pose*vw::math::rotation_x_axis(m_forward_tilt_radians);
-  
-  return m*Vector3(0,m_speed,0);
+  return scan_fraction;
 }
 
 Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
-  // We model with a constant velocity.
+
+  // We model with a constant velocity
   double dt = pixel_to_time_delta(pix);
 
-  return m_initial_position + dt*get_velocity(pix);
+  return m_initial_position + dt * get_velocity();
 }
 
-
+// Camera pose is treated as constant for the duration of a scan.
 Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
-  // Camera pose is treated as constant for the duration of a scan.
   return axis_angle_to_quaternion(m_initial_orientation);
 }
 
@@ -141,123 +113,28 @@ Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
 
   // Distortion caused by compensation for the satellite's forward motion during the image.
   // - The film was actually translated underneath the lens to compensate for the motion.
-  double image_motion_compensation = ((m_focal_length * m_speed) / (H*m_scan_rate_radians))
-                                      * sin(alpha) * m_motion_compensation;
+  // TODO(oalexan1): Must revisit this
+  double image_motion_compensation = m_focal_length * sin(alpha) * m_motion_compensation;
+  
   if (!m_scan_left_to_right) // Sync alpha with motion compensation.
     image_motion_compensation *= -1.0;
 
-
+  // r is the ray vector in the local camera system
   // This vector is ESD format, consistent with the linescan model.
   Vector3 r(m_focal_length * sin(alpha),
             sensor_plane_pos[1] + image_motion_compensation,
             m_focal_length * cos(alpha));
   r = normalize(r);
 
-  // r is the ray vector in the local camera system
-
   // Convert the ray vector into GCC coordinates.
+  // TODO(oalexan1): Must revisit this!
   Vector3 result = cam_pose.rotate(r);
 
   return result;
 }
 
-// Find two vectors that are perpendicular to each other and to the input unit
-// vector.
-// TODO(oalexan1): Can move this to a lower-level location.
-void findPerpVecs(vw::Vector3 const& vec,
-                  vw::Vector3 & perp1, vw::Vector3 & perp2) {
-
-   // The input vec must have norm of 1, with tolerance
-   if (std::abs(norm_2(vec) - 1.0) > 1e-5)
-     vw_throw(ArgumentErr() << "findPerpVecs: Input vector must be a unit vector.\n");
-     
-   // Find the smallest coordinate in vec
-   int min_i = 0;
-   for (int i = 1; i < 3; i++) {
-     if (std::abs(vec[i]) < std::abs(vec[min_i]))
-       min_i = i;
-   }
-   
-   // Find the other two indices
-   int j = 0, k = 0;
-   if (min_i == 0) {
-     j = 1; k = 2;
-   } else if (min_i == 1) {
-     j = 0; k = 2;
-   } else { // min_i == 2
-     j = 0; k = 1;
-   }
-   
-   // Find the vector that swaps j and k and keeps min_i at 0. This is a vector
-   // that is perpendicular to vec.
-   perp1 = Vector3(0, 0, 0);
-   perp1[min_i] = 0; // Keep the smallest coordinate at 0
-   perp1[j] = -vec[k]; // Set the other two coordinates to be perpendicular
-   perp1[k] =  vec[j]; // This is the swap, so it is perpendicular to vec
-
-   // Normalize 
-   perp1 = normalize(perp1);
-    
-  // The second perpendicular vector is the cross product of the two
-  perp2 = cross_prod(vec, perp1);
-  // Normalize 
-  perp2 = normalize(perp2);
-}
-
-// Given a 3D point on the ground and a pixel in the camera, find the difference
-// between the camera-to-ground vector and the pixel direction vector, then
-// measure how much they differ in a plane at the ground level and approximately
-// parallel to the ground. When that difference is zero, we found the camera
-// pixel that corresponds to the ground point.
-class LinescanErr {
-  const CameraModel* m_model;
-  Vector3 m_point;
-  // Two vectors in plane that is mostly perpendicular to camera-to-ground vectors
-  vw::Vector3 m_perp1, m_perp2;
-public:
-
-LinescanErr(const CameraModel* model, const vw::Vector3& pt, vw::Vector2 const& guess):
-  m_model(model), m_point(pt) {
-  
-  // Find a direction from the camera to the ground
-  vw::Vector3 cam_ctr = m_model->camera_center(guess);  
-  vw::Vector3 ground_dir = normalize(m_point - cam_ctr);
-  findPerpVecs(ground_dir, m_perp1, m_perp2);
-}
-
-// This must have the signature expected by Newton's method. Can throw
-// exceptions. The math is described above.
-vw::Vector2 operator()(vw::Vector2 const& pix) const {
-  
-  vw::Vector3 cam_ctr = m_model->camera_center(pix);
-  
-  // Normalized direction from camera to ground point
-  double dist_to_ground = norm_2(m_point - cam_ctr);
-  vw::Vector3 ground_dir = (m_point - cam_ctr) / dist_to_ground;
-  
-  // Normalized direction from pixel to ground
-  vw::Vector3 pix_dir = m_model->pixel_to_vector(pix);
-  
-  vw::Vector3 diff = pix_dir - ground_dir;
-
-  // Find the components on this in a plane that is mostly perpendicular to vectors
-  // from the cameras to the ground, so the diff vector is projected onto this plane.
-  double dot1 = dot_prod(diff, m_perp1);
-  double dot2 = dot_prod(diff, m_perp2);
-  
-  // Multiply by dist to ground so we can measure these at ground level.
-  dot1 *= dist_to_ground;
-  dot2 *= dist_to_ground;
-
-  return vw::Vector2(dot1, dot2);
-}
-
-}; // End class LinescanErr
-
-// TODO(oalexan1): This could be sped up further, after putting in Newton's method as below.
-// - The m_perp1 and m_perp2 vectors could be found once, when the object is created.
-// - Then can implement the approach from the usgscsm linescan class, of finding an initial
-//   affine transform for ground-to-image. 
+// TODO(oalexan1): This could be sped up further, as done in the usgscsm linescan class,
+// where an initial affine transform for ground-to-image is found.
 Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
 
   // Use the image center as the initial guess for the pixel
@@ -292,8 +169,8 @@ void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
   vw::Quat rotation_quaternion(rotation);
   
   // New position and rotation
-  position = scale*rotation*position + translation;
-  pose     = rotation_quaternion*pose;
+  position = scale * rotation * position + translation;
+  pose     = rotation_quaternion * pose;
 
   this->set_camera_center(position);
   this->set_camera_pose  (pose.axis_angle());
@@ -322,8 +199,9 @@ void OpticalBarModel::read(std::string const& filename) {
   // Read the camera type
   std::getline(cam_file, line);
   if (line.find("OPTICAL_BAR") == std::string::npos)
-        vw_throw( ArgumentErr() << "OpticalBarModel::read_file: Expected OPTICAL_BAR type, but got type "
-                                << line );
+        vw_throw( ArgumentErr() 
+                 << "OpticalBarModel::read_file: Expected OPTICAL_BAR type, but got type "
+                 << line );
 
   // Start parsing all the parameters from the lines.
   std::getline(cam_file, line);
@@ -413,9 +291,20 @@ void OpticalBarModel::read(std::string const& filename) {
   std::getline(cam_file, line);
   m_scan_left_to_right = line.find("scan_dir = left") == std::string::npos;
 
-  cam_file.close();
+  // Get the line with velocity. This is optional. If not set, use 0.
+  std::getline(cam_file, line);
+  if (line.find("velocity = ") != std::string::npos) {
+    if (sscanf(line.c_str(),"velocity = %lf %lf %lf",
+               &m_velocity[0], &m_velocity[1], &m_velocity[2]) != 3) {
+      cam_file.close();
+      vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n" );
+    }
+  } else {
+    // If not set, use 0.
+    m_velocity = Vector3(0, 0, 0);
+  }
   
-  compute_scan_rate(); // This needs to be updated!
+  cam_file.close();
 }
 
 void OpticalBarModel::write(std::string const& filename) const {
@@ -440,16 +329,12 @@ void OpticalBarModel::write(std::string const& filename) const {
   cam_file << "pitch = "        << m_pixel_size             << "\n";
   cam_file << "f = "            << m_focal_length           << "\n";
   cam_file << "scan_time = "   << m_scan_time     << "\n";
-  //cam_file << "scan_rate = "    << m_scan_rate_radians      << "\n";
   cam_file << "forward_tilt = " << m_forward_tilt_radians   << "\n";
   cam_file << "iC = " << m_initial_position[0] << " "
                       << m_initial_position[1] << " "
                       << m_initial_position[2] << "\n";
   // Store in the same format as the pinhole camera model.
   Matrix3x3 rot_mat = camera_pose(Vector2(0,0)).rotation_matrix();
-  //cam_file << "iR = " << rot_mat[0] << " " rot_mat[1] << " " rot_mat[2] << " "
-  //                    << m_initial_orientation[1] << " "
-  //                    << m_initial_orientation[2] << "\n";
   cam_file << "iR = " << rot_mat(0,0) << " " << rot_mat(0,1) << " " << rot_mat(0,2) << " "
                       << rot_mat(1,0) << " " << rot_mat(1,1) << " " << rot_mat(1,2) << " "
                       << rot_mat(2,0) << " " << rot_mat(2,1) << " " << rot_mat(2,2) << "\n";
@@ -461,6 +346,12 @@ void OpticalBarModel::write(std::string const& filename) const {
     cam_file << "scan_dir = right\n";
   else
     cam_file << "scan_dir = left\n";
+  
+  // Write the 3 values of m_velocity
+  cam_file << "velocity = " << m_velocity[0] << " "
+                            << m_velocity[1] << " "
+                            << m_velocity[2] << "\n";
+                              
   cam_file.close();
 }
 
@@ -471,7 +362,6 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   os << " Pixel size (m):         " << camera_model.m_pixel_size             << "\n";
   os << " Focal length (m):       " << camera_model.m_focal_length           << "\n";
   os << " Scan time (s):          " << camera_model.m_scan_time              << "\n";
-  os << " Scan rate (rad/s):      " << camera_model.m_scan_rate_radians      << "\n";
   os << " Forward tilt (rad):     " << camera_model.m_forward_tilt_radians   << "\n";
   os << " Initial position:       " << camera_model.m_initial_position       << "\n";
   os << " Initial pose:           " << camera_model.m_initial_orientation    << "\n";
@@ -480,9 +370,9 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   os << " Mean surface elevation: " << camera_model.m_mean_surface_elevation << "\n";
   os << " Motion comp factor:     " << camera_model.m_motion_compensation    << "\n";
   os << " Left to right scan:     " << camera_model.m_scan_left_to_right     << "\n";
+  os << " Velocity (m/s):         " << camera_model.m_velocity               << "\n";
   os << "\n------------------------------------------------------------------------\n\n";
   return os;
 }
 
 }} // namespace asp::camera
-
