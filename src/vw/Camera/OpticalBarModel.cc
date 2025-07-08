@@ -50,6 +50,7 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
                 vw::Vector3  initial_orientation,
                 double   speed,
                 double   motion_compensation_factor,
+                bool have_velocity_vec,
                 vw::Vector3 const& velocity):
     m_image_size          (image_size),
     m_center_loc_pixels   (center_offset_pixels),
@@ -62,12 +63,10 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_initial_orientation (initial_orientation),
     m_speed               (speed),
     m_motion_compensation(motion_compensation_factor),
+    m_have_velocity_vec(have_velocity_vec),
     m_velocity            (velocity),
     m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
-    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) { 
-
-    m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
-
+    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {
   compute_scan_rate();
 }
 vw::Vector2i OpticalBarModel::get_image_size() const { 
@@ -442,7 +441,7 @@ void OpticalBarModel::read(std::string const& filename) {
   std::getline(cam_file, line);
   m_scan_left_to_right = line.find("scan_dir = left") == std::string::npos;
 
-  // Get the line with velocity. This is optional. If not set, use 0.
+  // Read the velocity vector. If not set, this is not modeled.
   std::getline(cam_file, line);
   if (line.find("velocity = ") != std::string::npos) {
     if (sscanf(line.c_str(),"velocity = %lf %lf %lf",
@@ -450,11 +449,11 @@ void OpticalBarModel::read(std::string const& filename) {
       cam_file.close();
       vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n" );
     }
+    m_have_velocity_vec = true;
   } else {
     m_velocity = Vector3(0, 0, 0);
+    m_have_velocity_vec = false;
   }
-  
-  m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
   
   compute_scan_rate();
   

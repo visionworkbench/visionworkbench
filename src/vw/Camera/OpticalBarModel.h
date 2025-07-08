@@ -79,6 +79,7 @@ namespace camera {
                     vw::Vector3  initial_orientation,
                     double   speed,
                     double   motion_compensation_factor,
+                    bool have_velocity_vec = false,
                     vw::Vector3 const& velocity = vw::Vector3(0, 0, 0));
     
     virtual ~OpticalBarModel() {}
