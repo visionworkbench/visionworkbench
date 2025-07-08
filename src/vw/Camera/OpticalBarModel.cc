@@ -15,14 +15,13 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/Math/EulerAngles.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/CameraSolve.h>
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/OrbitalCorrections.h>
-#include <vw/Math/NewtonRaphson.h>
-
 #include <vw/Camera/LinescanErr.h>
+#include <vw/Math/NewtonRaphson.h>
+#include <vw/Math/EulerAngles.h>
 
 #include <iomanip>
 
@@ -31,13 +30,11 @@ namespace camera {
 
 OpticalBarModel::OpticalBarModel(): 
   m_motion_compensation(1.0),
-  m_have_velocity_vec(false)
-  {}
+  m_have_velocity_vec(false) {}
 
 OpticalBarModel::OpticalBarModel(std::string const& path):
   m_motion_compensation(1.0),
-  m_have_velocity_vec(false)
-   {
+  m_have_velocity_vec(false) {
   // Create from file. This will read m_mean_earth_radius and m_mean_surface_elevation.    
   read(path);
 } 
@@ -65,9 +62,12 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_initial_orientation (initial_orientation),
     m_speed               (speed),
     m_motion_compensation(motion_compensation_factor),
+    m_velocity            (velocity),
     m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
-    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION),
-    m_have_velocity_vec(false) { 
+    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) { 
+
+    m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
+
   compute_scan_rate();
 }
 vw::Vector2i OpticalBarModel::get_image_size() const { 
@@ -107,8 +107,10 @@ bool OpticalBarModel::get_have_velocity_vec() const {
 }
 
 void OpticalBarModel::set_velocity(vw::Vector3 const& velocity) {
-  m_velocity = velocity;
-  m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
+  if (!m_have_velocity_vec)
+    vw_throw(ArgumentErr() 
+             << "OpticalBarModel: Cannot set velocity vector without velocity modeling.\n");
+   m_velocity = velocity;
 }
 
 void OpticalBarModel::set_camera_center(vw::Vector3 const& position) {
