@@ -28,10 +28,14 @@ namespace vw {
 namespace camera {
 
 OpticalBarModel::OpticalBarModel(): 
-  m_motion_compensation(1.0) {}
+  m_motion_compensation(1.0),
+  m_scan_rate_radians(0.0),
+  m_have_velocity_vec(false) {}
 
 OpticalBarModel::OpticalBarModel(std::string const& path):
-  m_motion_compensation(1.0) {
+  m_motion_compensation(1.0),
+  m_scan_rate_radians(0.0),
+  m_have_velocity_vec(false) {
   // Create from file. This will read m_mean_earth_radius and m_mean_surface_elevation.    
   read(path);
 } 
@@ -46,7 +50,8 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
                 vw::Vector3  initial_position,
                 vw::Vector3  initial_orientation,
                 double   speed,
-                double   motion_compensation_factor):
+                double   motion_compensation_factor,
+                vw::Vector3 const& velocity):
     m_image_size          (image_size),
     m_center_loc_pixels   (center_offset_pixels),
     m_pixel_size          (pixel_size),
@@ -59,7 +64,104 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_speed               (speed),
     m_motion_compensation(motion_compensation_factor),
     m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
-    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {}
+    m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION),
+    m_velocity(velocity),
+    m_scan_rate_radians(0.0) {
+      
+    m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
+    
+    compute_scan_rate();
+}
+
+vw::Vector2i OpticalBarModel::get_image_size() const { 
+  return m_image_size;          
+}
+vw::Vector2 OpticalBarModel::get_optical_center() const { 
+  return m_center_loc_pixels;   
+}
+double OpticalBarModel::get_focal_length() const { 
+  return m_focal_length;        
+}
+double OpticalBarModel::get_scan_rate() const { 
+  return m_scan_rate_radians;   
+}
+double OpticalBarModel::get_speed() const { 
+  return m_speed;               
+}
+double OpticalBarModel::get_pixel_size() const { 
+  return m_pixel_size;          
+}
+double OpticalBarModel::get_scan_time() const { 
+  return m_scan_time;  
+}
+bool OpticalBarModel::get_scan_dir() const { 
+  return m_scan_left_to_right;  
+}
+double OpticalBarModel::get_forward_tilt() const { 
+  return m_forward_tilt_radians;
+}
+
+double OpticalBarModel::get_motion_compensation() const { 
+  return m_motion_compensation; 
+}
+
+bool OpticalBarModel::get_have_velocity_vec() const {
+  return m_have_velocity_vec;
+}
+
+void OpticalBarModel::set_camera_center(vw::Vector3 const& position) {
+  m_initial_position  = position;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_camera_pose(vw::Vector3 const& orientation) {
+  m_initial_orientation = orientation;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_camera_pose(vw::Quaternion<double> const& pose) {
+  set_camera_pose(pose.axis_angle());
+  compute_scan_rate();
+}
+void OpticalBarModel::set_image_size(vw::Vector2i image_size) { 
+  m_image_size = image_size;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_optical_center(vw::Vector2  optical_center) { 
+  m_center_loc_pixels = optical_center;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_focal_length(double focal_length) {
+  m_focal_length = focal_length;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_speed(double speed) { 
+  m_speed = speed;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_pixel_size(double pixel_size) { 
+  m_pixel_size = pixel_size;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_scan_time(double scan_time) { 
+  m_scan_time   = scan_time;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_scan_dir(bool scan_l_to_r) { 
+  m_scan_left_to_right = scan_l_to_r;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_forward_tilt(double tilt_angle) { 
+  m_forward_tilt_radians = tilt_angle;
+  compute_scan_rate();
+}
+void OpticalBarModel::set_velocity(vw::Vector3 const& velocity) {
+  m_velocity = velocity;
+  m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
+  compute_scan_rate();
+}
+void OpticalBarModel::set_motion_compensation(double mc_factor) { 
+  m_motion_compensation = mc_factor;
+  compute_scan_rate();
+}
 
 Vector2 OpticalBarModel::pixel_to_sensor_plane(Vector2 const& pixel) const {
   Vector2 result = (pixel - m_center_loc_pixels) * m_pixel_size;
@@ -71,7 +173,40 @@ double OpticalBarModel::sensor_to_alpha(vw::Vector2 const& sensor_loc) const {
   return sensor_loc[0] / m_focal_length;
 }
 
-// Return normalized time. Time at last row is 1.
+void OpticalBarModel::compute_scan_rate() {
+
+  // This is only needed when not modeling the velocity as a 3D vector. 
+  if (m_have_velocity_vec)
+    return;
+
+  // Compute the scan angle using pixel information.
+  Vector2 p1 = pixel_to_sensor_plane(Vector2(0,0));
+  Vector2 p2 = pixel_to_sensor_plane(Vector2(m_image_size - Vector2i(1,1)));
+  
+  double alpha1     = sensor_to_alpha(p1);
+  double alpha2     = sensor_to_alpha(p2);
+  double scan_angle = alpha2 - alpha1;
+  
+  m_scan_rate_radians = scan_angle / m_scan_time;
+}
+
+Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
+
+  // Independent velocity vector in the new approach
+  if (m_have_velocity_vec)
+    return m_velocity;
+
+  // TODO: For speed, store the pose*velocity vector.
+  // Convert the velocity from sensor coords to GCC coords
+  Matrix3x3 pose = camera_pose(pixel).rotation_matrix();
+
+  // Recover the satellite attitude relative to the tilted camera position
+  Matrix3x3 m = pose*vw::math::rotation_x_axis(m_forward_tilt_radians);
+  
+  return m * Vector3(0, m_speed, 0);
+}
+
+// Return time at the given pixel. In the latest approach the time at last row is 1.
 double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
 
   // Since the camera sweeps a scan through columns, use that to
@@ -82,8 +217,15 @@ double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
     scan_fraction = pix[0] / max_col; // TODO: Add 0.5 pixels to calculation?
   else // Right to left scan direction
     scan_fraction = (max_col - pix[0]) / max_col;
-
-  return scan_fraction;
+    
+  // Normalized scan time in the newer approach
+  if (m_have_velocity_vec)
+    return scan_fraction;
+  
+  // In the prior approach, an actual scan time was used, but this is redundant
+  // given other parameters.
+  double time_delta = scan_fraction * m_scan_time;
+  return time_delta;
 }
 
 Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
@@ -91,7 +233,7 @@ Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
   // We model with a constant velocity
   double dt = pixel_to_time_delta(pix);
 
-  return m_initial_position + dt * get_velocity();
+  return m_initial_position + dt * get_velocity(pix);
 }
 
 // Camera pose is treated as constant for the duration of a scan.
@@ -108,26 +250,34 @@ Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
   // This is the horizontal angle away from the center point (from straight out of the camera)
   double alpha = sensor_to_alpha(sensor_plane_pos);
 
-  // Distance from the camera center to the ground.
-  double H = norm_2(cam_center) - (m_mean_surface_elevation + m_mean_earth_radius);
-
   // Distortion caused by compensation for the satellite's forward motion during the image.
-  // - The film was actually translated underneath the lens to compensate for the motion.
-  // TODO(oalexan1): Must revisit this
-  double image_motion_compensation = m_focal_length * sin(alpha) * m_motion_compensation;
+  // The film was actually translated underneath the lens to compensate for the motion.
+  double image_motion_compensation = 0.0;
+
+  if (m_have_velocity_vec) {
+    // Newer approach. Many params that are correlated are combined.
+    image_motion_compensation = m_focal_length * sin(alpha) * m_motion_compensation;
+  } else {
   
+    // Older approach
+    // Distance from the camera center to the ground.
+    double H = norm_2(cam_center) - (m_mean_surface_elevation + m_mean_earth_radius);
+    image_motion_compensation = ((m_focal_length * m_speed) / (H*m_scan_rate_radians))
+                                        * sin(alpha) * m_motion_compensation;
+                                      
+  }
+                                        
   if (!m_scan_left_to_right) // Sync alpha with motion compensation.
     image_motion_compensation *= -1.0;
 
-  // r is the ray vector in the local camera system
-  // This vector is ESD format, consistent with the linescan model.
+  // This vector is ESD format, consistent with the linescan model. It is in 
+  // camera coordinates.
   Vector3 r(m_focal_length * sin(alpha),
             sensor_plane_pos[1] + image_motion_compensation,
             m_focal_length * cos(alpha));
   r = normalize(r);
 
-  // Convert the ray vector into GCC coordinates.
-  // TODO(oalexan1): Must revisit this!
+  // Convert the ray vector into ECEF coordinates.
   Vector3 result = cam_pose.rotate(r);
 
   return result;
@@ -149,14 +299,12 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
   double tol = 1e-10;
   
   // Find pix so that err_func(pix) = ans, where guess is the pix initial guess
+  vw::Vector2 ans(0, 0);
   LinescanErr err_func(this, point, guess);
   vw::math::NewtonRaphson nr(err_func);
-  vw::Vector2 Y(0, 0); // Solve err_func(solution) = Y
+  Vector2 pix = nr.solve(guess, ans, step, tol);
   
-  Vector2 solution2 = nr.solve(guess, Y, step, tol);
-  
-  return solution2;
-
+  return pix;
 }
 
 void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
@@ -300,9 +448,12 @@ void OpticalBarModel::read(std::string const& filename) {
       vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n" );
     }
   } else {
-    // If not set, use 0.
     m_velocity = Vector3(0, 0, 0);
   }
+  
+  m_have_velocity_vec = (m_velocity != vw::Vector3(0, 0, 0));
+  
+  compute_scan_rate();
   
   cam_file.close();
 }
@@ -348,9 +499,10 @@ void OpticalBarModel::write(std::string const& filename) const {
     cam_file << "scan_dir = left\n";
   
   // Write the 3 values of m_velocity
-  cam_file << "velocity = " << m_velocity[0] << " "
-                            << m_velocity[1] << " "
-                            << m_velocity[2] << "\n";
+  if (m_have_velocity_vec)
+    cam_file << "velocity = " << m_velocity[0] << " "
+                              << m_velocity[1] << " "
+                              << m_velocity[2] << "\n";
                               
   cam_file.close();
 }

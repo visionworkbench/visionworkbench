@@ -78,7 +78,7 @@ LinescanErr::LinescanErr(const CameraModel* model,
 }
 
 // This must have the signature expected by Newton's method. Can throw
-// exceptions. The math is described above.
+// exceptions. The math is described above. See the .h file for more info.
 vw::Vector2 LinescanErr::operator()(vw::Vector2 const& pix) const {
   
   vw::Vector3 cam_ctr = m_model->camera_center(pix);

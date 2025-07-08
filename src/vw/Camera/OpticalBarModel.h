@@ -34,7 +34,11 @@ namespace camera {
   // A camera model to approximate the type of optical bar cameras
   // that were used in the Corona and Hexagon satellites.
   
-  // This implements the logic in: 
+  // The latest version models the velocity as a 3D vector, per: A Pipeline for
+  // Automated Processing of Declassified Corona KH-4 (1962–1972) Stereo Imagery
+  // https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9863653
+  
+  // The earlier version implements the logic in: 
   // Rigorous Panoramic Camera Model for DISP Imagery
   // Tony Schenk, Beata Csatho, Sung Woong Shin
   // - Proceedings of Joint Workshop of ISPRS Working Groups, 2003
@@ -74,7 +78,9 @@ namespace camera {
                     vw::Vector3  initial_position,
                     vw::Vector3  initial_orientation,
                     double   speed,
-                    double   motion_compensation_factor);
+                    double   motion_compensation_factor,
+                    vw::Vector3 const& velocity = vw::Vector3(0, 0, 0));
+    
     virtual ~OpticalBarModel() {}
 
     virtual std::string type() const { return "OpticalBar"; }
@@ -113,73 +119,33 @@ namespace camera {
                          vw::Vector3   const & translation,
                          double                scale);
 
-    // Parameter accessors
-
-    void set_camera_center(vw::Vector3 const& position   )     {m_initial_position    = position;}
-    void set_camera_pose  (vw::Vector3 const& orientation)     {m_initial_orientation = orientation;}
-    void set_camera_pose  (vw::Quaternion<double> const& pose) {set_camera_pose(pose.axis_angle());}
-
-    /// Returns the image size in pixels
-    vw::Vector2i get_image_size    () const { return m_image_size;          }
-    vw::Vector2  get_optical_center() const { return m_center_loc_pixels;   }
-    double       get_focal_length  () const { return m_focal_length;        }
-    double       get_scan_rate     () const { return m_scan_rate_radians;   }
-    double       get_speed         () const { return m_speed;               }
-    double       get_pixel_size    () const { return m_pixel_size;          }
-    double       get_scan_time     () const { return m_scan_time;  }
-    bool         get_scan_dir      () const { return m_scan_left_to_right;  }
-    double       get_forward_tilt  () const { return m_forward_tilt_radians;}
-
-    // TODO(oalexan1): Move this to .cc
-
-    void set_image_size(vw::Vector2i image_size) { 
-      m_image_size = image_size;
-    }
-    void set_optical_center(vw::Vector2  optical_center) { 
-      m_center_loc_pixels = optical_center;
-    }
-    void set_focal_length(double focal_length) {
-      m_focal_length         = focal_length;
-    }
+    vw::Vector2i get_image_size    () const;
+    vw::Vector2  get_optical_center() const;
+    double       get_focal_length  () const;
+    double       get_scan_rate     () const;
+    double       get_speed         () const;
+    double       get_pixel_size    () const;
+    double       get_scan_time     () const;
+    bool         get_scan_dir      () const;
+    double       get_forward_tilt  () const;
+    vw::Vector3 get_velocity       (vw::Vector2 const& pix = vw::Vector2(0, 0)) const;
+    double get_motion_compensation () const;
+    bool get_have_velocity_vec() const;
     
-    // TODO(oalexan1): Wipe most of these
-    void set_speed(double speed) { 
-      m_speed = speed;
-    }
-    
-    void set_pixel_size(double pixel_size) { 
-      m_pixel_size = pixel_size;
-    }
-     
-    void set_scan_time(double scan_time) { 
-      m_scan_time   = scan_time;
-    }
-         
-    void set_scan_dir(bool scan_l_to_r) { 
-      m_scan_left_to_right = scan_l_to_r;
-    }
-    
-    void set_forward_tilt(double tilt_angle) { 
-      m_forward_tilt_radians = tilt_angle;
-    }
-    
-    // Set the constant velocity in ECEF
-    void set_velocity(vw::Vector3 const& velocity) {
-      m_velocity = velocity;
-    }
-
-    /// Returns the constant velocity in ECEF
-    vw::Vector3 get_velocity() const {
-      return m_velocity;
-    }
-    
-    double get_motion_compensation() const { 
-      return m_motion_compensation; 
-    }
-    
-    void set_motion_compensation(double mc_factor) { 
-      m_motion_compensation = mc_factor;
-    }
+    // TODO(oalexan1): See which of these to wipe once the model works well
+    void set_camera_center(vw::Vector3 const& position);
+    void set_camera_pose  (vw::Vector3 const& orientation);
+    void set_camera_pose(vw::Quaternion<double> const& pose);
+    void set_image_size(vw::Vector2i image_size);
+    void set_optical_center(vw::Vector2  optical_center);
+    void set_focal_length(double focal_length);
+    void set_speed(double speed);
+    void set_pixel_size(double pixel_size);
+    void set_scan_time(double scan_time);
+    void set_scan_dir(bool scan_l_to_r);
+    void set_forward_tilt(double tilt_angle);
+    void set_velocity(vw::Vector3 const& velocity);
+    void set_motion_compensation(double mc_factor);
 
     friend std::ostream& operator<<(std::ostream&, OpticalBarModel const&);
 
@@ -193,6 +159,9 @@ namespace camera {
 
     /// Compute the normalized time since start of scan for a given pixel.
     double pixel_to_time_delta(vw::Vector2 const& pixel) const;
+
+    /// Compute and record the scan rate into m_scan_rate.
+    void compute_scan_rate();
 
   protected:
 
@@ -239,6 +208,10 @@ namespace camera {
 
     /// Apply this fraction of the nominal motion compensation.
     double m_motion_compensation;
+    
+    // In the recent implementation the velocity is modeled as a 3D vector.
+    // Old logic is kept for backward compatibility.
+    bool m_have_velocity_vec;
 
   protected:
 
@@ -247,10 +220,8 @@ namespace camera {
 
   }; // End class OpticalBarModel
 
-
-  /// Output stream method.
+  /// Output stream method
   std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model);
-
 
 }}      // namespace asp::camera
 
