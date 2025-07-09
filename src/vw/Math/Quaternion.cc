@@ -56,10 +56,10 @@ Quat slerp(double alpha, Quat const& a, Quat const& b, int spin) {
     alpha = -alpha;
 
   // interpolate
-  return Quat( beta*a(0) + alpha*b(0),
-	       beta*a(1) + alpha*b(1),
-	       beta*a(2) + alpha*b(2),
-	       beta*a(3) + alpha*b(3) );
+  return Quat(beta*a(0) + alpha*b(0),
+              beta*a(1) + alpha*b(1),
+              beta*a(2) + alpha*b(2),
+              beta*a(3) + alpha*b(3));
 }
 
 // Compute the n-weight slerp, analogous to the linear combination

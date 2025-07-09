@@ -34,8 +34,9 @@ namespace camera {
   // A camera model to approximate the type of optical bar cameras
   // that were used in the Corona and Hexagon satellites.
   
-  // The latest version models the velocity as a 3D vector, per: A Pipeline for
-  // Automated Processing of Declassified Corona KH-4 (1962–1972) Stereo Imagery
+  // The latest version models the velocity as a 3D vector and time-varying
+  // pose, per: A Pipeline for Automated Processing of Declassified Corona KH-4
+  // (1962-1972) Stereo Imagery
   // https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9863653
   
   // The earlier version implements the logic in: 
@@ -76,11 +77,13 @@ namespace camera {
                     bool     scan_left_to_right,
                     double   forward_tilt_radians,
                     vw::Vector3  initial_position,
-                    vw::Vector3  initial_orientation,
+                    vw::Vector3  initial_pose,
                     double   speed,
                     double   motion_compensation_factor,
                     bool have_velocity_vec = false,
-                    vw::Vector3 const& velocity = vw::Vector3(0, 0, 0));
+                    vw::Vector3 const& velocity = vw::Vector3(0, 0, 0),
+                    vw::Vector3 const& final_pose 
+                      = vw::Vector3(std::numeric_limits<double>::quiet_NaN(), 0, 0));
     
     virtual ~OpticalBarModel() {}
 
@@ -129,7 +132,9 @@ namespace camera {
     double       get_scan_time     () const;
     bool         get_scan_dir      () const;
     double       get_forward_tilt  () const;
-    vw::Vector3 get_velocity       (vw::Vector2 const& pix = vw::Vector2(0, 0)) const;
+    vw::Vector3  get_velocity(vw::Vector2 const& pix = vw::Vector2(0, 0)) const;
+    vw::Vector3  get_final_pose() const;
+    
     double get_motion_compensation () const;
     bool get_have_velocity_vec() const;
     
@@ -145,8 +150,9 @@ namespace camera {
     void set_scan_time(double scan_time);
     void set_scan_dir(bool scan_l_to_r);
     void set_forward_tilt(double tilt_angle);
-    void set_velocity(vw::Vector3 const& velocity);
     void set_motion_compensation(double mc_factor);
+    void set_velocity(vw::Vector3 const& velocity);
+    void set_final_pose(vw::Vector3 const& final_pose);
 
     friend std::ostream& operator<<(std::ostream&, OpticalBarModel const&);
 
@@ -199,9 +205,10 @@ namespace camera {
     bool m_scan_left_to_right;
     
     vw::Vector3 m_initial_position;
-    vw::Vector3 m_initial_orientation; // TODO: Record as matrix
+    vw::Vector3 m_initial_pose; // Axis angle
     double      m_speed; /// Velocity in the sensor Y axis only.
-    vw::Vector3 m_velocity; // velocity in ECEF, will supersede m_speed
+    vw::Vector3 m_velocity; // Velocity in ECEF. Supersedes m_speed in new impl.
+    vw::Vector3 m_final_pose; // Final pose (axis angle)
     
     // These are used for ray corrections.
     double m_mean_earth_radius;
@@ -210,7 +217,8 @@ namespace camera {
     /// Apply this fraction of the nominal motion compensation.
     double m_motion_compensation;
     
-    // In the recent implementation the velocity is modeled as a 3D vector.
+    // In the recent implementation the velocity is modeled as a 3D vector,
+    // and the final pose is modeled as well.
     // Old logic is kept for backward compatibility.
     bool m_have_velocity_vec;
 

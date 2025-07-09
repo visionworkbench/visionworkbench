@@ -49,7 +49,7 @@ TEST(OpticalBarModel, CreateCamera) {
   bool     scan_left_to_right = true;
   double   forward_tilt_radians = 0;
   Vector3  initial_position(gcc);
-  Vector3  initial_orientation(angles);
+  Vector3  initial_pose(angles);
   double   velocity = 7800;
   bool     use_motion_comp = true;
   */
@@ -60,7 +60,7 @@ TEST(OpticalBarModel, CreateCamera) {
                      0.98475442576259453,  -0.15167306578477252, -0.085170429471915887);
   vw::Quat q(rot_mat);
   Vector3  initial_position(gcc);
-  Vector3  initial_orientation = q.axis_angle();
+  Vector3  initial_pose = q.axis_angle();
   
   double   pixel_size =  0.000112;
   Vector2i image_size(3910, 2290);
@@ -78,7 +78,7 @@ TEST(OpticalBarModel, CreateCamera) {
   OpticalBarModel* raw_ptr = new OpticalBarModel(image_size, center_loc_pixels, pixel_size,
                                                  focal_length, scan_time, scan_left_to_right,
                                                  forward_tilt_radians,
-                                                 initial_position, initial_orientation,
+                                                 initial_position, initial_pose,
                                                  velocity, use_motion_comp);
 
   //OpticalBarModel* raw_ptr = new OpticalBarModel("/home/smcmich1/data/KH7/left16.tsai");
@@ -120,7 +120,7 @@ TEST(OpticalBarModel, CreateCamera) {
                       0.98163067185652575,  -0.15077152852202924, -0.11691522679974731);
   vw::Quat q2(rot_mat);
   Vector3  initial_position2(gcc2);
-  Vector3  initial_orientation2 = q2.axis_angle();
+  Vector3  initial_pose2 = q2.axis_angle();
   
   double   pixel_size2 =  0.000112;
   Vector2i image_size2(3958, 2289);
@@ -136,7 +136,7 @@ TEST(OpticalBarModel, CreateCamera) {
   OpticalBarModel* raw_ptr2 = new OpticalBarModel(image_size2, center_loc_pixels, pixel_size2,
                                                  focal_length, scan_angle_radians, scan_rate_radians, scan_left_to_right,
                                                  forward_tilt_radians,
-                                                 initial_position2, initial_orientation2,
+                                                 initial_position2, initial_pose2,
                                                  velocity, use_motion_comp);
   
   //OpticalBarModel* raw_ptr2 = new OpticalBarModel("/home/smcmich1/data/KH7/right16.tsai");

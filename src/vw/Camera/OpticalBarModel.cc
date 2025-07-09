@@ -47,11 +47,12 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
                 bool     scan_left_to_right,
                 double   forward_tilt_radians,
                 vw::Vector3  initial_position,
-                vw::Vector3  initial_orientation,
+                vw::Vector3  initial_pose,
                 double   speed,
                 double   motion_compensation_factor,
                 bool have_velocity_vec,
-                vw::Vector3 const& velocity):
+                vw::Vector3 const& velocity,
+                vw::Vector3 const& final_pose):
     m_image_size          (image_size),
     m_center_loc_pixels   (center_offset_pixels),
     m_pixel_size          (pixel_size),
@@ -60,13 +61,19 @@ OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
     m_scan_left_to_right  (scan_left_to_right),
     m_forward_tilt_radians(forward_tilt_radians),
     m_initial_position    (initial_position),
-    m_initial_orientation (initial_orientation),
+    m_initial_pose (initial_pose),
     m_speed               (speed),
-    m_motion_compensation(motion_compensation_factor),
-    m_have_velocity_vec(have_velocity_vec),
+    m_motion_compensation (motion_compensation_factor),
+    m_have_velocity_vec   (have_velocity_vec),
     m_velocity            (velocity),
-    m_mean_earth_radius(DEFAULT_EARTH_RADIUS),
+    m_final_pose          (final_pose),
+    m_mean_earth_radius   (DEFAULT_EARTH_RADIUS),
     m_mean_surface_elevation(DEFAULT_SURFACE_ELEVATION) {
+  
+  // If the final pose is nan, set it to the initial pose.
+  if (m_final_pose != m_final_pose)
+    m_final_pose = m_initial_pose;
+
   compute_scan_rate();
 }
 vw::Vector2i OpticalBarModel::get_image_size() const { 
@@ -112,12 +119,19 @@ void OpticalBarModel::set_velocity(vw::Vector3 const& velocity) {
    m_velocity = velocity;
 }
 
+void OpticalBarModel::set_final_pose(vw::Vector3 const& final_pose) {
+  if (!m_have_velocity_vec)
+    vw_throw(ArgumentErr() 
+             << "OpticalBarModel: Cannot set final pose without velocity modeling.\n");
+   m_final_pose = final_pose;
+}
+
 void OpticalBarModel::set_camera_center(vw::Vector3 const& position) {
   m_initial_position  = position;
 }
 
 void OpticalBarModel::set_camera_pose(vw::Vector3 const& orientation) {
-  m_initial_orientation = orientation;
+  m_initial_pose = orientation;
 }
 
 void OpticalBarModel::set_camera_pose(vw::Quaternion<double> const& pose) {
@@ -195,12 +209,19 @@ void OpticalBarModel::compute_scan_rate() {
 // Return time at the given pixel. In the latest approach the time at last row is 1.
 double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
 
+  // No testcase exists with right-to-left scan and velocity vector modeling.
+  // Will need to change how m_final_pose is handled likely in this case.
+  if (!m_scan_left_to_right && m_have_velocity_vec) 
+    vw::vw_throw(ArgumentErr() 
+             << "OpticalBarModel: Right-to-left scan mode was not tested with "
+             << "velocity vector modeling.\n");
+    
   // Since the camera sweeps a scan through columns, use that to
   //  determine the fraction of the way it is through the image.
   const int max_col = m_image_size[0]-1;
   double scan_fraction = 0;
   if (m_scan_left_to_right)
-    scan_fraction = pix[0] / max_col; // TODO: Add 0.5 pixels to calculation?
+    scan_fraction = pix[0] / max_col;
   else // Right to left scan direction
     scan_fraction = (max_col - pix[0]) / max_col;
     
@@ -220,6 +241,7 @@ Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
   if (m_have_velocity_vec)
     return m_velocity;
 
+  // Old approach
   // TODO: For speed, store the pose*velocity vector.
   // Convert the velocity from sensor coords to GCC coords
   Matrix3x3 pose = camera_pose(pixel).rotation_matrix();
@@ -228,6 +250,10 @@ Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
   Matrix3x3 m = pose*vw::math::rotation_x_axis(m_forward_tilt_radians);
   
   return m * Vector3(0, m_speed, 0);
+}
+
+Vector3 OpticalBarModel::get_final_pose() const {
+  return m_final_pose;
 }
 
 Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
@@ -240,15 +266,28 @@ Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
 
 // Camera pose is treated as constant for the duration of a scan.
 Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
-  return axis_angle_to_quaternion(m_initial_orientation);
+  
+  if (!m_have_velocity_vec)
+    return axis_angle_to_quaternion(m_initial_pose); // old approach
+
+  // Ensure time delta is clamped.
+  double dt = pixel_to_time_delta(pix);
+  dt = std::max(0.0, dt);
+  dt = std::min(1.0, dt); 
+
+  // Pose interpolation in time
+  Quat q_initial = axis_angle_to_quaternion(m_initial_pose);
+  Quat q_final   = axis_angle_to_quaternion(m_final_pose); 
+  int spin = 0; // No spin
+  return vw::math::slerp(dt, q_initial, q_final, spin);
 }
 
-Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pixel) const {
+Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pix) const {
  
-  Vector2 sensor_plane_pos = pixel_to_sensor_plane(pixel);
-  Vector3 cam_center       = camera_center(pixel);
-  Quat    cam_pose         = camera_pose  (pixel);
-
+  Vector2 sensor_plane_pos = pixel_to_sensor_plane(pix);
+  Vector3 cam_center       = camera_center(pix);
+  Quat cam_pose            = camera_pose(pix);
+  
   // This is the horizontal angle away from the center point (from straight out of the camera)
   double alpha = sensor_to_alpha(sensor_plane_pos);
 
@@ -315,15 +354,23 @@ void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
   // Extract current parameters
   vw::Vector3 position = this->camera_center();
   vw::Quat    pose     = this->camera_pose();
-
   vw::Quat rotation_quaternion(rotation);
   
   // New position and rotation
   position = scale * rotation * position + translation;
   pose     = rotation_quaternion * pose;
-
   this->set_camera_center(position);
-  this->set_camera_pose  (pose.axis_angle());
+  this->set_camera_pose(pose.axis_angle());
+  
+  // Apply the transform to the velocity and final pose
+  // TODO(oalexan1): Must test this, but it should work as follows same logic as above.
+  if (m_have_velocity_vec) {
+    m_velocity = scale * rotation * m_velocity;
+    vw::Quat final_quat = axis_angle_to_quaternion(m_final_pose);
+    final_quat = rotation_quaternion * final_quat;
+    m_final_pose = final_quat.axis_angle();
+  }
+  
 }
 
 void OpticalBarModel::read(std::string const& filename) {
@@ -411,7 +458,7 @@ void OpticalBarModel::read(std::string const& filename) {
     vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the rotation matrix\n" );
   }
   Quat q(rot_mat);
-  m_initial_orientation = q.axis_angle();
+  m_initial_pose = q.axis_angle();
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"speed = %lf", &m_speed) != 1) {
@@ -446,13 +493,24 @@ void OpticalBarModel::read(std::string const& filename) {
   if (line.find("velocity = ") != std::string::npos) {
     if (sscanf(line.c_str(),"velocity = %lf %lf %lf",
                &m_velocity[0], &m_velocity[1], &m_velocity[2]) != 3) {
-      cam_file.close();
       vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n" );
     }
     m_have_velocity_vec = true;
   } else {
     m_velocity = Vector3(0, 0, 0);
     m_have_velocity_vec = false;
+  }
+  
+  // Read the final pose. Only modeled if m_have_velocity_vec is true. If not present,
+  // it is set to the initial pose.
+  std::getline(cam_file, line);
+  if (line.find("final_pose = ") != std::string::npos) {
+    if (sscanf(line.c_str(),"final_pose = %lf %lf %lf",
+               &m_final_pose[0], &m_final_pose[1], &m_final_pose[2]) != 3) {
+      vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the final pose\n" );
+    }
+  } else {
+    m_final_pose = m_initial_pose;
   }
   
   compute_scan_rate();
@@ -501,11 +559,17 @@ void OpticalBarModel::write(std::string const& filename) const {
     cam_file << "scan_dir = left\n";
   
   // Write the 3 values of m_velocity
-  if (m_have_velocity_vec)
+  if (m_have_velocity_vec) {
     cam_file << "velocity = " << m_velocity[0] << " "
                               << m_velocity[1] << " "
                               << m_velocity[2] << "\n";
-                              
+
+    cam_file << "final_pose = "
+             << m_final_pose[0] << " "
+             << m_final_pose[1] << " "
+             << m_final_pose[2] << "\n";
+  }
+  
   cam_file.close();
 }
 
@@ -518,13 +582,18 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   os << " Scan time (s):          " << camera_model.m_scan_time              << "\n";
   os << " Forward tilt (rad):     " << camera_model.m_forward_tilt_radians   << "\n";
   os << " Initial position:       " << camera_model.m_initial_position       << "\n";
-  os << " Initial pose:           " << camera_model.m_initial_orientation    << "\n";
+  os << " Initial pose:           " << camera_model.m_initial_pose           << "\n";
   os << " Speed:                  " << camera_model.m_speed                  << "\n";
   os << " Mean earth radius:      " << camera_model.m_mean_earth_radius      << "\n";
   os << " Mean surface elevation: " << camera_model.m_mean_surface_elevation << "\n";
   os << " Motion comp factor:     " << camera_model.m_motion_compensation    << "\n";
   os << " Left to right scan:     " << camera_model.m_scan_left_to_right     << "\n";
-  os << " Velocity (m/s):         " << camera_model.m_velocity               << "\n";
+  
+  if (camera_model.m_have_velocity_vec) {
+    os << " Velocity (m/s):         " << camera_model.m_velocity   << "\n";
+    os << " Final pose (axis angle):" << camera_model.m_final_pose << "\n";
+  }
+  
   os << "\n------------------------------------------------------------------------\n\n";
   return os;
 }
