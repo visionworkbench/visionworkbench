@@ -276,21 +276,27 @@ namespace ip {
   // TODO: Maybe they should be moved to another file.
 
   /// This task class is used to insure that interest points are
-  /// written to their list in a repeatable order that is not effected
+  /// written to their list in a repeatable order that is not affected
   /// by the order in which the detection threads start and finish.
   class InterestPointWriteTask: public Task, private boost::noncopyable {
     InterestPointList  m_points;
     InterestPointList& m_global_points;
+    vw::TerminalProgressCallback & m_tpc;
+    double m_inc_amt;
 
   public:
     InterestPointWriteTask(InterestPointList  local_points,
-                            InterestPointList& global_points):
-      m_points(local_points), m_global_points(global_points) {}
+                           InterestPointList& global_points,
+                           vw::TerminalProgressCallback & tpc,
+                           double inc_amt):
+      m_points(local_points), m_global_points(global_points),
+      m_tpc(tpc), m_inc_amt(inc_amt) {}
 
     virtual ~InterestPointWriteTask() {}
 
     virtual void operator() () {
       m_global_points.splice(m_global_points.end(), m_points);
+      m_tpc.report_incremental_progress(m_inc_amt);
     }
   };
 
@@ -303,19 +309,25 @@ namespace ip {
     DetectorT        & m_detector;       ///< Interest point detection class instance (TODO: const?)
     BBox2i             m_bbox;           ///< Region of the source image to check for points
     int                m_desired_num_ip;
-    int                m_id, m_max_id;
+    int                m_job_id, m_num_jobs;
     InterestPointList& m_global_points;
     OrderedWorkQueue & m_write_queue;
+    vw::TerminalProgressCallback & m_tpc;
+    double m_inc_amt;
 
   public:
     InterestPointDetectionTask(ImageViewBase<ViewT> const& view,
                                DetectorT& detector, BBox2i const& bbox,
-                               int desired_num_ip, int id, int max_id,
+                               int desired_num_ip, int id, int num_jobs,
                                InterestPointList& global_list, 
-                               OrderedWorkQueue& write_queue):
+                               OrderedWorkQueue& write_queue,
+                               vw::TerminalProgressCallback & tpc):
       m_view(view.impl()), m_detector(detector), m_bbox(bbox),
-      m_desired_num_ip(desired_num_ip), m_id(id), m_max_id(max_id),
-      m_global_points(global_list), m_write_queue(write_queue) {}
+      m_desired_num_ip(desired_num_ip), m_job_id(id), m_num_jobs(num_jobs),
+      m_global_points(global_list), m_write_queue(write_queue),
+      m_tpc(tpc) {
+        m_inc_amt = 1.0 / double(m_num_jobs);
+      }
 
     virtual ~InterestPointDetectionTask() {}
 
@@ -341,6 +353,7 @@ namespace ip {
     int                 m_desired_num_ip;
     Mutex               m_mutex;
     size_t              m_index;
+    vw::TerminalProgressCallback & m_tpc;
 
     typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
 
@@ -348,7 +361,8 @@ namespace ip {
 
     InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                           int tile_size, int desired_num_ip=0);
+                           int tile_size, int desired_num_ip, 
+                           vw::TerminalProgressCallback & tpc);
 
     size_t size() { return m_bboxes.size(); }
 
@@ -401,7 +415,7 @@ template <class ViewT, class DetectorT>
 void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
 
   vw_out(InfoMessage, "interest_point") 
-    << "Locating interest points in block " << m_id + 1 << "/" << m_max_id << "   [ " 
+    << "Locating interest points in block " << m_job_id + 1 << "/" << m_num_jobs << "   [ " 
     << m_bbox << " ] with " << m_desired_num_ip << " ip.\n";
 
   // Use the m_detector object to find a set of image points in the cropped
@@ -415,14 +429,16 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
     (*pt).iy += m_bbox.min().y();
   }
 
-  // Append these interest points to the master list
-  // owned by the detect_interest_points() function.
-  boost::shared_ptr<Task> write_task(new InterestPointWriteTask(new_ip_list, 
-                                                                m_global_points));
-  m_write_queue.add_task(write_task, m_id);
+  // Append these interest points to the master list owned by the
+  // detect_interest_points() function. It appears that m_write_queue
+  // is accessed by only one thread at a time, so this is thread-safe.
+  boost::shared_ptr<Task> 
+    write_task(new InterestPointWriteTask(new_ip_list, m_global_points,
+                                          m_tpc, m_inc_amt));
+  m_write_queue.add_task(write_task, m_job_id);
 
   vw_out(InfoMessage, "interest_point") 
-    << "Finished block " << m_id + 1 << "/" << m_max_id << std::endl;
+    << "Finished block " << m_job_id + 1 << "/" << m_num_jobs << std::endl;
 }
 
 //-------------------------------------------------------------------
@@ -432,15 +448,15 @@ template <class ViewT, class DetectorT>
 InterestDetectionQueue<ViewT, DetectorT>::
 InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
                        OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                       int tile_size, int desired_num_ip):
+                       int tile_size, int desired_num_ip,
+                       vw::TerminalProgressCallback & tpc):
      m_view(view.impl()), m_detector(detector),
      m_write_queue(write_queue), m_ip_list(ip_list), m_tile_size(tile_size),
-     m_desired_num_ip(desired_num_ip), m_index(0) {
+     m_desired_num_ip(desired_num_ip), m_index(0), m_tpc(tpc) {
 
   m_bboxes = subdivide_bbox(m_view, tile_size, tile_size);
   this->notify();
 }
-
 
 template <class ViewT, class DetectorT>
 boost::shared_ptr<Task>
@@ -469,7 +485,8 @@ InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
 
   return boost::shared_ptr<Task>(new task_type(m_view, m_detector,
                                                m_bboxes[m_index-1], num_ip, m_index-1,
-                                               m_bboxes.size(), m_ip_list, m_write_queue));
+                                               m_bboxes.size(), m_ip_list, m_write_queue,
+                                               m_tpc));
 }
 
 //-------------------------------------------------------------------
@@ -491,15 +508,22 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
   if (tile_size < 1024)
     tile_size = 1024;
 
+  // Progress dialog
+  vw::TerminalProgressCallback tpc("asp", "Detect interest points: ");
+  tpc.report_progress(0);
+
   // Create an ordered thread pool with one thread. Ensure that interest points
   // are written in a specific order and not by the random way threads finish.
   OrderedWorkQueue write_queue(1);
   InterestPointList ip_list;
+
   InterestDetectionQueue<ViewT, DetectorT> 
-    detect_queue(view, detector, write_queue, ip_list, tile_size, desired_num_ip);
+    detect_queue(view, detector, write_queue, ip_list, tile_size, desired_num_ip, tpc);
   VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
   detect_queue.join_all();
   write_queue.join_all();
+  tpc.report_finished();
+
   VW_OUT(DebugMessage, "interest_point") << "MT interest point detection complete.  "
                                          << ip_list.size() << " interest point detected.\n";
   return ip_list;
