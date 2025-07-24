@@ -122,6 +122,27 @@ namespace cartography {
     Vector3 operator()(Vector3 const& v) const;
   };
 
+  /// Functor to convert col/row/alt values to projected point and alt
+  template <class PixelT>
+  class DemToProj: public ReturnFixedType<Vector3> {
+    // Use an alias, which is apparently thread-safe, as a copy is very expensive
+    // for dynamic CRS.
+    GeoReference const& m_georef;
+  public:
+    DemToProj(GeoReference const& georef): m_georef(georef) {}
+
+    Vector3 operator()(Vector2 const& loc, PixelT alt) const {
+      if (is_transparent(alt))
+        return Vector3(0,0,std::numeric_limits<double>::quiet_NaN());
+
+      Vector3 result;
+      subvector(result, 0, 2) = m_georef.pixel_to_point(loc);
+      result.z() = alt;
+
+      return result;
+    }
+  };
+
   // Image View operations
 
 
@@ -174,6 +195,16 @@ namespace cartography {
   inline projection_to_geodetic(ImageViewBase<ImageT> const& prj_image, GeoReference const& r) {
     typedef UnaryPerPixelView<ImageT,ProjectionToGeodetic> result_type;
     return result_type(prj_image.impl(), ProjectionToGeodetic(r));
+  }
+
+  /// Function to convert col/row/alt values to projected point and alt
+  template <class ImageT>
+  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToProj<typename ImageT::pixel_type>>
+  inline dem_to_proj(ImageViewBase<ImageT> const& dem, GeoReference const& georef) {
+    typedef DemToProj<typename ImageT::pixel_type> func_type;
+    typedef BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, func_type> result_type;
+    func_type func(georef);
+    return result_type(pixel_index_view(dem), dem.impl(), func);
   }
 
   // Point is the intermediate projection step that is in units of the

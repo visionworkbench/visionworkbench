@@ -264,7 +264,7 @@ Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
   return m_initial_position + dt * get_velocity(pix);
 }
 
-// Camera pose is treated as constant for the duration of a scan.
+// Camera pose is interpolated in the newer approach.
 Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
   
   if (!m_have_velocity_vec)
