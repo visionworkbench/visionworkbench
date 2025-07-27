@@ -349,9 +349,13 @@ namespace cartography {
   /// Format a GeoReference to a text stream
   std::ostream& operator<<(std::ostream& os, const GeoReference& georef);
 
-  //
+  // Update a georeference based on an srs string and/or datum.
+  // This function is more likely to remember the datum name than set_wkt().
+  void set_srs_string(std::string srs_string, bool have_user_datum,
+                      vw::cartography::Datum const& user_datum,
+                      vw::cartography::GeoReference & georef);
+
   // Georeference I/O operations
-  //
 
   /// Read georeferencing information from an image resource.
   bool read_georeference(GeoReference& georef, ImageResource const& resource);

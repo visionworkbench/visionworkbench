@@ -15,20 +15,19 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/Core/StringUtils.h>
-#include <vw/Math/Geometry.h>
 #include <vw/Cartography/GeoReference.h>
-
 #include <vw/Cartography/GeoReferenceResourceGDAL.h>
-#include <vw/FileIO/DiskImageResourceGDAL.h>
-#include "ogr_spatialref.h"
-#include "cpl_string.h"
-
-#include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/FileTypes.h>
+#include <vw/Core/StringUtils.h>
+#include <vw/Math/Geometry.h>
+#include <vw/Math/BresenhamLine.h>
+
+#include <ogr_spatialref.h>
+#include <cpl_string.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -47,6 +46,41 @@
 
 namespace vw {
 namespace cartography {
+
+// Update a georeference based on an srs string and/or datum.
+// This function is more likely to remember the datum name than set_wkt().
+void set_srs_string(std::string srs_string, bool have_user_datum,
+                    vw::cartography::Datum const& user_datum,
+                    vw::cartography::GeoReference & georef) {
+
+  // When an EPSG code is provided, store the name so that
+  //  it shows up when the GeoReference object is written
+  //  out to disk.
+  if (srs_string.find("EPSG") != std::string::npos)
+    georef.set_projcs_name(srs_string);
+
+  // Set srs_string into given georef. Note that this may leave the
+  // georef's affine transform inconsistent.
+
+  // TODO: The line below needs more thought
+  if (srs_string == "")
+    srs_string = "+proj=longlat";
+
+  // TODO(oalexan1): It is not clear this will be enough to remember the datum
+  // name. May need to call set_datum() at the end, if have_user_datum is true,
+  // and if the georef does not have the datum name but the datum has it.
+  if (have_user_datum)
+    srs_string += " " + user_datum.proj4_str();
+  
+  OGRSpatialReference gdal_spatial_ref;
+  if (gdal_spatial_ref.SetFromUserInput(srs_string.c_str()) != OGRERR_NONE)
+    vw::vw_throw(vw::ArgumentErr() << "Failed to parse: \"" << srs_string << "\".");
+  char *wkt_str_tmp = NULL;
+  gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
+  srs_string = wkt_str_tmp;
+  CPLFree(wkt_str_tmp);
+  georef.set_wkt(srs_string);
+}
 
 bool read_georeference(GeoReference& georef,
                         ImageResource const& resource) {
@@ -174,20 +208,6 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
   return num_kept;
 }
   
-std::string GeoReference::proj4_str() const {
-  return m_proj_projection_str;
-}
-
-std::string GeoReference::overall_proj4_str() const {
-  // Make sure these elements exist but prevent duplicate entries
-  std::string proj4_str = boost::trim_copy(m_proj_projection_str) + " "
-                          + boost::trim_copy(m_datum.proj4_str()) + " +no_defs";
-  std::string proj4_str_no_dups;
-  remove_proj4_duplicates(proj4_str, proj4_str_no_dups);
-
-  return proj4_str_no_dups;
-}
-
 // If there are no names for the datum and ellipsoid, copy
 // from this datum, if the params agree. Note that WGS84
 // and GRS 80 (NAD83) semi-major axes are the same, but the
@@ -285,6 +305,20 @@ std::string ogr_wkt(OGRSpatialReference const & ogr) {
   std::string result(wkt);
   CPLFree(wkt);
   return result;
+}
+
+std::string GeoReference::proj4_str() const {
+  return m_proj_projection_str;
+}
+
+std::string GeoReference::overall_proj4_str() const {
+  // Make sure these elements exist but prevent duplicate entries
+  std::string proj4_str = boost::trim_copy(m_proj_projection_str) + " "
+                          + boost::trim_copy(m_datum.proj4_str()) + " +no_defs";
+  std::string proj4_str_no_dups;
+  remove_proj4_duplicates(proj4_str, proj4_str_no_dups);
+
+  return proj4_str_no_dups;
 }
 
 // This will recreate the GeoReference object
@@ -510,7 +544,7 @@ void GeoReference::set_UTM(int zone, int north) {
 }
 
 // This function does not set the datum radius based on the projection, which is wrong.
-// Consider using asp::set_srs_string().
+// Use instead set_srs_string().
 // TODO(oalexan1): This must be made private as it does not fully create
 // the object.
 void GeoReference::set_proj4_projection_str(std::string const& s) {
