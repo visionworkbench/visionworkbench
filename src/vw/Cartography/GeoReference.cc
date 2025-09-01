@@ -386,7 +386,7 @@ void GeoReference::set_transform(Matrix3x3 transform) {
   // Otherwise this is called from a constructor, and a subsequent 
   // step will result in this being set.
   if (m_proj_context.is_initialized())
-    ll_box_from_pix_box(vw::BBox2(0, 0, 2, 2)); // must be at least 2 pixels in size
+    ll_box_from_pix_box(vw::BBox2(0, 0, 0, 0));
 }
 
 // Set the datum. Keep the projection.
@@ -699,7 +699,7 @@ void GeoReference::set_wkt(std::string const& wkt) {
   // Find the lon-lat bbox. This will be updated later if the transform
   // is set or if the georef is read from disk.
   // TODO(oalexan1): Record the image width and height on loading and use here.
-  ll_box_from_pix_box(vw::BBox2(0, 0, 2, 2)); // must be at least 2 pixels in size
+  ll_box_from_pix_box(vw::BBox2(0, 0, 0, 0));
   
   // TODO(oalexan1): May need to wipe all below. Now that everything is based off
   // the spatial ref, there may be no need for this. 
@@ -1232,10 +1232,21 @@ vw::Vector2 GeoReference::lonlat_to_pixel(Vector2 lon_lat) const {
 // Update the lon-lat box based on the current pixel box.
 void GeoReference::ll_box_from_pix_box(BBox2 const& pixel_bbox) {
   
-  if (pixel_bbox.empty())
-    vw_throw(LogicErr() << "GeoReference::ll_box_from_pix_box: Empty pixel box.\n");
+  BBox2 ll_box;
+  if (pixel_bbox.empty()) {
+    // We do not know the extent of the image for this georef. It is best to set
+    // here a small box centered on lon-lat of pixel (0,0). Otherwise, problems
+    // arise in lonlat_to_point() when longitude is close to -180 or 180. This
+    // was only tested for georefs centered on (0,0) and the logic is very
+    // rough.
+    vw::Vector2 ll = 180.0 * round(pixel_to_lonlat(Vector2(0,0)) / 180.0);
+    double tol = 1.0/4.0; // this is represented exactly in binary
+    ll_box.min() = ll - Vector2(tol, tol);
+    ll_box.max() = ll + Vector2(tol, tol);
+  } else {
+    ll_box = pixel_to_lonlat_bbox(pixel_bbox);
+  }
   
-  BBox2 ll_box = pixel_to_lonlat_bbox(pixel_bbox);
   set_image_ll_box(ll_box);
   return; 
 }
