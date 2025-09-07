@@ -24,26 +24,33 @@
 namespace vw{
 namespace math{
 
-  // Given a vector of integers, pick a random subset. Must have
-  // output_len <= input_len. The output elements are not sorted.
+  // Given a vector of integers, pick a random subset. 
   
   // Note: The complexity of this is O(input_len * log(input_len)), which
   // may be not be good enough for some applications.
   
-  void pick_random_subset(int input_len, int output_len,
-                          std::vector<int> const& input, std::vector<int> & output) {
+  void pick_random_subset(int output_len, std::vector<int> const& input, 
+                          std::vector<int> & output) {
 
-    if (output_len > input_len)
-      vw_throw(ArgumentErr() << "pick_random_subset: The specified output length"
-               << " is bigger than the input length.");
-
-    // First thing, wipe the output
-    output.clear();
-
+    // output_len must be non-negative
+    if (output_len < 0)
+      vw::vw_throw(vw::ArgumentErr() 
+        << "pick_random_subset: The specified output length"
+        << " is negative.");
+      
     // Shuffle the input
     std::vector<int> shuffled = input;
     std::mt19937 g; // Each time this is run same random numbers should be produced
     std::shuffle(shuffled.begin(), shuffled.end(), g);
+
+    int input_len = shuffled.size();
+    if (output_len >= input_len) {
+      output = shuffled;
+      return;
+    }
+
+    // Wipe the output
+    output.clear();
 
     // Copy the first several randomly shuffled elements to the output
     output.resize(output_len);
@@ -54,12 +61,18 @@ namespace math{
   // Pick unsorted random indices in [0, ..., input_len - 1]
   void pick_random_indices_in_range(int input_len, int output_len,
                                     std::vector<int> & output) {
-    
+   
+    // input and output len must be non-negative
+    if (input_len < 0 || output_len < 0)
+      vw::vw_throw(vw::ArgumentErr() 
+        << "pick_random_indices_in_range: The specified input or output length"
+        << " is negative.");
+
     std::vector<int> input(input_len);
     for (int it = 0; it < input_len; it++)
       input[it] = it;
     
-    pick_random_subset(input_len, output_len, input, output);
+    pick_random_subset(output_len, input, output);
   }
   
 }} // End namespace vw::math
