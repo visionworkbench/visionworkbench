@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2024, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -101,7 +101,7 @@ void mergeOGRPolygons(std::string const& poly_color,
                       std::vector<vw::geometry::dPoly>& polyVec); // output
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
-void convexHull(std::vector<vw::Vector3> const& points, 
+void convexHull(std::vector<vw::Vector3> const& points,
                 std::vector<vw::geometry::dPoly> & polyVec); // output
 
 }} // end namespace vw::geometry

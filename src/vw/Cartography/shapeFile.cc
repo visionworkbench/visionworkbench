@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2024, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -113,7 +113,7 @@ void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P) {
 
 // Convert a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P) {
-  
+
   // First make a dPoly
   vw::geometry::dPoly poly;
   std::vector<double> x, y;
@@ -126,7 +126,7 @@ void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P) {
   std::string color = "green", layer = "layer0"; // needed by the API
   poly.setPolygon(x.size(), vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
                   isPolyClosed, color, layer);
-  
+
   // Covert to OGR polygon
   toOGR(poly, P);
 }
@@ -566,7 +566,7 @@ void mergeOGRPolygons(std::string const& poly_color,
 }
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
-void convexHull(std::vector<vw::Vector3> const& points, 
+void convexHull(std::vector<vw::Vector3> const& points,
                 std::vector<vw::geometry::dPoly> & polyVec) {
 
   if (points.size() == 0) {
@@ -577,14 +577,14 @@ void convexHull(std::vector<vw::Vector3> const& points,
   // First convert the points to ogr with the toOGR function
   OGRPolygon P;
   toOGR(points, P);
-  
+
   // Find the convex hull
   OGRGeometry * hull_poly = P.ConvexHull();
-  
+
   // Must not be null
   if (hull_poly == NULL)
     vw_throw(ArgumentErr() << "Failed to compute convex hull.\n");
-  
+
   // Convert to dPoly
   std::string poly_color = "green", layer_str = "layer0"; // needed by the API
   bool append = false;
