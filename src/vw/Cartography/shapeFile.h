@@ -102,7 +102,7 @@ void mergeOGRPolygons(std::string const& poly_color,
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void convexHull(std::vector<vw::Vector3> const& points,
-                std::vector<vw::geometry::dPoly> & polyVec); // output
+                vw::geometry::dPoly & poly); // output
 
 }} // end namespace vw::geometry
 

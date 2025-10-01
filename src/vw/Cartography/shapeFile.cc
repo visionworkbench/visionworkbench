@@ -495,9 +495,9 @@ void write_shapefile(std::string const& file,
 
 // Bounding box of a shapefile
 void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
-                      // outputs
-                      double & xll, double & yll,
-                      double & xur, double & yur) {
+                     // outputs
+                     double & xll, double & yll,
+                     double & xur, double & yur) {
 
   double big = std::numeric_limits<double>::max();
   xll = big; yll = big; xur = -big; yur = -big;
@@ -567,12 +567,13 @@ void mergeOGRPolygons(std::string const& poly_color,
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void convexHull(std::vector<vw::Vector3> const& points,
-                std::vector<vw::geometry::dPoly> & polyVec) {
+                vw::geometry::dPoly & poly) {
 
-  if (points.size() == 0) {
-    polyVec.clear();
+  // Initalize the output
+  poly = vw::geometry::dPoly();
+  
+  if (points.size() == 0)
     return;
-  }
 
   // First convert the points to ogr with the toOGR function
   OGRPolygon P;
@@ -588,7 +589,18 @@ void convexHull(std::vector<vw::Vector3> const& points,
   // Convert to dPoly
   std::string poly_color = "green", layer_str = "layer0"; // needed by the API
   bool append = false;
+  std::vector<vw::geometry::dPoly> polyVec;
   fromOGR(hull_poly, poly_color, layer_str, polyVec, append);
+  
+  // If the polyVec is empty, make sure we return an empty vector
+  if (polyVec.size() == 0) {
+    poly = vw::geometry::dPoly();
+    return;
+  }
+  
+  // If there are multiple polygons, just keep the first one. It is likely that
+  // there is just one polygon.
+  poly = polyVec[0];
 }
 
 }} // end namespace vw::geometry
