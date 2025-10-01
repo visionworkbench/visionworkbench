@@ -812,6 +812,8 @@ void sampleDemBoundary(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
       // point_to_pixel and pixel_to_vector may not be too great
       // perhaps if a numerical solver is used, hence the
       // tolerance is not made too tight.
+      // TODO(oalexan1): A better check may be to see how close
+      // xyz is to the ray.
       vw::Vector3 camera_dir = camera_model->pixel_to_vector(cam_pix);
       double DIRECTION_TOLERANCE = 1e-3;
       if (norm_2(camera_dir - ray_vec) > DIRECTION_TOLERANCE)
@@ -954,7 +956,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
 
   // Construct helper class with DEM and camera information.
   detail::CameraDemHelper functor(dem, dem_georef, target_georef,
-                                   camera_model, height_guess, coords);
+                                  camera_model, height_guess, coords);
 
   // Image sampling. About 1000 samples are needed to not cut the corners
   // for complex geometry.
@@ -965,13 +967,20 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
 
   // Sampled camera pixels collected so far
   std::vector<Vector2> cam_pixels = functor.cam_pixels;
-
+  
   // From the DEM project points in the camera. This is important when the DEM
-  // is very small.
+  // is very small. Will grow cam_pixels and cam_bbox.
   std::map<std::pair<double, double>, vw::Vector3> pix2xyz;
-  if (!quick)
-    sampleDemBoundary(dem, dem_georef, target_georef, camera_model, cols, rows,
-                      num_samples, cam_bbox, cam_pixels, pix2xyz);
+  if (!quick) {
+    sampleDemBoundary(dem, dem_georef, target_georef, camera_model, cols, rows, num_samples, 
+                      cam_bbox, cam_pixels, pix2xyz); // outputs
+    // If coords is not null, append the xyz from pix2xyz. Thse are ECEF samples
+    // within the footprint of the camera on the ground.
+    if (coords) {
+      for (auto const& kv : pix2xyz)
+        coords->push_back(kv.second);
+    }
+  }
 
   // Find the mean GSD
   mean_gsd = calcMeanGsd(cols, rows, functor, cam_pixels, pix2xyz,
