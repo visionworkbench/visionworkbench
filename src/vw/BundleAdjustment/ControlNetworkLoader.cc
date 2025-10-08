@@ -408,7 +408,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    size_t min_matches,
                                    double min_angle_radians,
                                    double forced_triangulation_distance,
-                                   int max_pairwise_matches) {
+                                   int max_pairwise_matches,
+                                   std::map<std::pair<int, int>, double> const& 
+                                   match_sigmas) {
 
   // TODO(oalexan1): Must be able to handle the case when the matches
   // are from an image later in the list to an image earlier in the list.
@@ -451,10 +453,24 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     
     num_loaded += ip1.size();
 
+    // The sigma value is optional. It can be used to give more weight (less sigma)
+    // to matches from a certain file. These are typically files with few user-selected 
+    // matches. 
+    double sigma = 1.0;
+    auto sigma_it = match_sigmas.find(pair_ind);
+    if (sigma_it != match_sigmas.end())
+      sigma = sigma_it->second;
+    // Apply the sigma adjustment to the interest point scale. These will be used
+    // both in keypoint map and later in matchMapToCnet().          
+    for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
+      ip1[ip_it].scale *= sigma;
+      ip2[ip_it].scale *= sigma;
+    }
+    
+    // Initialize the keypoint map to zero. Will populate the entities later.
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
       auto dist_right_ip = ipTriplet(ip2[ip_it].x, ip2[ip_it].y, ip2[ip_it].scale);
-      // Initialize the keypoint map to zero. Will populate the entities later.
       keypoint_map[index1][dist_left_ip] = 0;
       keypoint_map[index2][dist_right_ip] = 0;
     }

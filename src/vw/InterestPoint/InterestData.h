@@ -55,7 +55,8 @@ namespace vw { namespace ip {
     // as seen in the constructor below.
     // TODO: There is no way to enforce that ix be in sync with x or
     // iy with y.
-    InterestPoint(float x = 0, float y = 0, float scale=1.0, float interest=0.0, float ori=0.0,
+    InterestPoint(float x = 0, float y = 0, float scale = 1.0, 
+                  float interest = 0.0, float ori = 0.0,
                   bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0)
       : x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), interest(interest),
         polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
@@ -65,7 +66,8 @@ namespace vw { namespace ip {
 
     /// Scale of point.  This may come from the pyramid level, from
     /// interpolating the interest function between levels, or from some
-    /// other scale detector like the Laplace scale used by Mikolajczyk & Schmid
+    /// other scale detector like the Laplace scale used by Mikolajczyk & Schmid.
+    /// This will eventually become the ip uncertainty (sigma).
     float scale;
 
     /// Integer location, mainly for internal use.
