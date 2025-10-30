@@ -432,7 +432,6 @@ bool mergePolys(int an,
 
   while (1) {
 
-
     bool foundIntersection = false;
     double x = 0.0, y = 0.0;
 
@@ -497,8 +496,7 @@ bool mergePolys(int an,
   return mergeWasSuccessful;
 }
 
-bool isPointInPolyOrOnEdges(double x, double y,
-                                   int n, const double* xv, const double*  yv) {
+bool isPointInPolyOrOnEdges(double x, double y, int n, const double* xv, const double*  yv) {
 
   // Is the given point either completely inside or on the edges
   // of the given polygon.
@@ -521,14 +519,18 @@ bool isPointInPolyOrOnEdges(double x, double y,
     if (x < x0 || x > x1) continue;
 
     if (x0 == x1) {
-      if (y >= std::min(y0, y1) && y <= std::max(y0, y1)) return true;
-      else                                      continue;
+      if (y >= std::min(y0, y1) && y <= std::max(y0, y1)) 
+        return true;
+      else
+        continue;
     }
 
     double det = (y - y0)*(x1 - x0) - (x - x0)*(y1 - y0);
-    if (det == 0) return true; // is on edge
+    if (det == 0) 
+      return true; // is on edge
 
-    if (x < x1 && det < 0) isInsideOrOnEdges = !isInsideOrOnEdges;
+    if (x < x1 && det < 0) 
+      isInsideOrOnEdges = !isInsideOrOnEdges;
   }
 
   return isInsideOrOnEdges;
