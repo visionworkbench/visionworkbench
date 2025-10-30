@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -30,13 +30,13 @@ namespace vw { namespace geometry {
 
 using namespace std;
 
-std::ostream& operator<<(std::ostream& os, const anno& A){
+std::ostream& operator<<(std::ostream& os, const anno& A) {
   os << A.x << ' ' << A.y << ' ' << A.label << std::endl;
   return os;
 }
 
 void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
-                               int numVerts, double * xv, double * yv){
+                               int numVerts, double * xv, double * yv) {
 
   // Given a polygonal line, transform it such that all vertices are
   // integers and all edges make an angle multiple of 45 degrees
@@ -47,7 +47,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   // The vectors corresponding to angles multiple of 45 degree
   int numAngles = 8;
   std::vector<double> xs(numAngles), ys(numAngles);
-  for (int a = 0; a < numAngles; a++){
+  for (int a = 0; a < numAngles; a++) {
     double theta = a*45*M_PI/180;
     xs[a] = cos(theta);
     ys[a] = sin(theta);
@@ -57,7 +57,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   xv[0] = round(xv[0]);
   yv[0] = round(yv[0]);
 
-  for (int v = 0; v < numVerts - 1; v++){
+  for (int v = 0; v < numVerts - 1; v++) {
 
     bool snap2ndClosest = false; // snap to closest, not second closest
     snapOneEdgeTo45(numAngles, &xs[0], &ys[0], snap2ndClosest,   // inputs
@@ -71,7 +71,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   // Form a closed polygon satisfying the requirements. To do that,
   // walk backwards from vertex 0 and adjust edges until all edges
   // intersect on the integer grid and make 45 degree angles.
-  for (int v = numVerts; v >= 0; v--){
+  for (int v = numVerts; v >= 0; v--) {
     int vp = (v + 1)            % numVerts;
     int vc = v                  % numVerts;
     int vn = (v + numVerts - 1) % numVerts;
@@ -84,12 +84,12 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
 
     // Find the intersection of the edges
     // (xp, yp) --> (xc, yc) and (xc2, yc2) --> (xn, yn).
-    double det = ( (xc-xp)*(yn-yc2)  - (yc-yp)*(xn-xc2)  );
-    double top = ( (xc2-xp)*(yn-yc2) - (yc2-yp)*(xn-xc2) );
+    double det = ((xc-xp)*(yn-yc2)  - (yc-yp)*(xn-xc2));
+    double top = ((xc2-xp)*(yn-yc2) - (yc2-yp)*(xn-xc2));
     double t = top/det;
-    double xi = round( 2*( t*(xc-xp) + xp ) )/2.0;
-    double yi = round( 2*( t*(yc-yp) + yp ) )/2.0;
-    if (det != 0 &&  xi == round(xi) && yi == round(yi) ){
+    double xi = round(2*(t*(xc-xp) + xp))/2.0;
+    double yi = round(2*(t*(yc-yp) + yp))/2.0;
+    if (det != 0 &&  xi == round(xi) && yi == round(yi)) {
       // Finally arrived at a point at which all vertices
       // are on grid
       xv[vc] = xi;
@@ -103,12 +103,12 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
   }
 
   // Validate
-  for (int v = 0; v < numVerts; v++){
+  for (int v = 0; v < numVerts; v++) {
     double dx = xv[(v+1)%numVerts] - xv[v];
     double dy = yv[(v+1)%numVerts] - yv[v];
-    if ( xv[v] != round(xv[v]) ||
+    if (xv[v] != round(xv[v]) ||
          yv[v] != round(yv[v]) ||
-         !( dx == 0 || dy == 0 || std::abs(dx) == std::abs(dy) ) ){
+         !(dx == 0 || dy == 0 || std::abs(dx) == std::abs(dy))) {
       cerr << "Error: Expecting integer vertices with 45 degree angles."  << endl;
       cerr << "Instead, got the vector (" << dx << ", " << dy << ") "
            << "with starting point " << xv[v] << ' ' << yv[v] << endl;
@@ -121,7 +121,7 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
 void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
                      bool snap2ndClosest,
                      double & x0, double & y0,
-                     double & x1, double & y1){
+                     double & x1, double & y1) {
 
 
   double dx = x1 - x0, dy = y1 - y0;
@@ -134,9 +134,9 @@ void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
   // Find the closest angle multiple of 45 degrees from (dx, dy)
   int minAngle   = 0;
   double minDist = DBL_MAX;
-  for (int a = 0; a < numAngles; a++){
+  for (int a = 0; a < numAngles; a++) {
     double dist = distance(dx, dy, xs[a], ys[a]);
-    if (dist <= minDist){
+    if (dist <= minDist) {
       minDist  = dist;
       minAngle = a;
     }
@@ -144,13 +144,13 @@ void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
 
   // We prefer to snap to the second closest angle if for some reason
   // we know that snapping to the closest angle does not work.
-  if (snap2ndClosest){
+  if (snap2ndClosest) {
     int minAngle2   = 0;
     double minDist2 = DBL_MAX;
 
-    for (int a = 0; a < numAngles; a++){
+    for (int a = 0; a < numAngles; a++) {
       double dist = distance(dx, dy, xs[a], ys[a]);
-      if (dist <= minDist2 && a != minAngle){
+      if (dist <= minDist2 && a != minAngle) {
         minDist2  = dist;
         minAngle2 = a;
       }
@@ -161,8 +161,8 @@ void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
   // Snap to integer coordinates in the direction of minAngle
   double factor =  std::abs(xs[minAngle]) + std::abs(ys[minAngle]); // 1 or sqrt(2)
   len = factor*round(len/factor);
-  x1 = x0 + round( len*xs[minAngle] );
-  y1 = y0 + round( len*ys[minAngle] );
+  x1 = x0 + round(len*xs[minAngle]);
+  y1 = y0 + round(len*ys[minAngle]);
 
   return;
 }
@@ -173,7 +173,7 @@ void minDistFromPtToSeg(//inputs
                         double x1, double y1,
                         // outputs
                         double & minX, double & minY,
-                        double & minDist){
+                        double & minDist) {
 
   // Given the point (xin, yin) and the segment going from (x0, y0) to
   // (x1, y1), find the point (minX, minY) on this segment (not on its
@@ -191,7 +191,7 @@ void minDistFromPtToSeg(//inputs
   minX = x0 + t*(x1 - x0);
   minY = y0 + t*(y1 - y0);
 
-  minDist = sqrt ( (xin  - minX)*(xin - minX) + (yin  - minY)*(yin - minY) );
+  minDist = sqrt ((xin  - minX)*(xin - minX) + (yin  - minY)*(yin - minY));
 
   return;
 }
@@ -221,9 +221,9 @@ void searchForColor(std::string lineStr, // input, not a reference on purpose
   start += strlen(col);
 
   // Strip the equal sign, quotes, etc.
-  for (int i = 0; i < (int)strlen(start); i++){
+  for (int i = 0; i < (int)strlen(start); i++) {
 
-    if (start[i] == '"' || start[i] == '=' || start[i] == '\''){
+    if (start[i] == '"' || start[i] == '=' || start[i] == '\'') {
       start[i] = ' ';
     }
 
@@ -239,15 +239,15 @@ void searchForColor(std::string lineStr, // input, not a reference on purpose
 
   // If the color is given as a number, per xgraph's conventions
   // (e.g., red is color 2), convert that number to the color name.
-  if ('0' <= pch[0] && pch[0] <= '9'){
+  if ('0' <= pch[0] && pch[0] <= '9') {
     int colorIndex = atoi(pch)%numColors;
-    color = string( xgraph_colors[colorIndex] );
+    color = string(xgraph_colors[colorIndex]);
   }
 
   return;
 }
 
-bool searchForAnnotation(std::string lineStr, anno & annotation){
+bool searchForAnnotation(std::string lineStr, anno & annotation) {
 
   // Search for annotations, which have the form:
   // anno xval yval label
@@ -257,7 +257,7 @@ bool searchForAnnotation(std::string lineStr, anno & annotation){
   string an, label;
   double x, y;
 
-  if ( ( !(iss >> an >> x >> y) ) || an != "anno" ){
+  if ((!(iss >> an >> x >> y)) || an != "anno") {
     return false;
   }
 
@@ -309,8 +309,8 @@ double signedPolyArea(int numV, const double* xv, const double* yv, bool counter
   double sign = 1.0;
   if (!counter_cc)
     sign = -1.0; // clockwise polygons
-  
-  for (int vIter = 0; vIter < numV; vIter++){
+
+  for (int vIter = 0; vIter < numV; vIter++) {
 
     int vNext = (vIter + 1)%numV;
     area += sign * ((xv[vIter] - xv[0])*(yv[vNext] - yv[0]) -
@@ -324,11 +324,11 @@ double signedPolyArea(int numV, const double* xv, const double* yv, bool counter
 }
 
 vw::BBox2 expandBoxToRatio(vw::BBox2 const& box, double aspect) {
-  
+
   // The aspect must be positive
   if (aspect <= 0.0)
     vw::vw_throw(vw::ArgumentErr() << "Aspect ratio must be positive.\n");
-    
+
   BBox2 in_box = box; // local copy
   if (in_box.empty())
     in_box = BBox2(0, 0, 1, 1); // if it came to worst
@@ -350,7 +350,7 @@ vw::BBox2 expandBoxToRatio(vw::BBox2 const& box, double aspect) {
 }
 
 bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
-                    double xl2, double yl2, double xh2, double yh2){
+                    double xl2, double yl2, double xh2, double yh2) {
 
   assert(xl1 <= xh1 && yl1 <= yh1);
   assert(xl2 <= xh2 && yl2 <= yh2);
@@ -361,7 +361,7 @@ bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
 
 }
 
-linTrans composeTransforms(linTrans P, linTrans Q){
+linTrans composeTransforms(linTrans P, linTrans Q) {
 
   // Composition of two transforms
 
@@ -378,7 +378,7 @@ linTrans composeTransforms(linTrans P, linTrans Q){
   return R;
 }
 
-linTrans transAroundPt(const matrix2 & M, dPoint P){
+linTrans transAroundPt(const matrix2 & M, dPoint P) {
 
   // Find the linear transformation which applies a given matrix
   // transform around the current point (for example, rotation around
@@ -397,7 +397,7 @@ bool mergePolys(int an,
                 int bn,
                 const double * bx_in, const double * by_in,
                 std::vector<double> & mergedX,
-                std::vector<double> & mergedY){
+                std::vector<double> & mergedY) {
 
   // Merge two polygons. This function is INCOMPLETE and BUGGY.
   // To be finished.
@@ -418,7 +418,7 @@ bool mergePolys(int an,
   int i = 0, in = 0, j = 0;
 
   // Start at a vertex of A which is not inside of B.
-  for (int t = 0; t < an; t++){
+  for (int t = 0; t < an; t++) {
     if (isPointInPolyOrOnEdges(ax[t], ay[t], bn, bx, by)) continue;
     i = t; in = t; j = t;
     break;
@@ -430,7 +430,7 @@ bool mergePolys(int an,
   mergedX.push_back(currX);
   mergedY.push_back(currY);
 
-  while(1){
+  while (1) {
 
 
     bool foundIntersection = false;
@@ -446,15 +446,14 @@ bool mergePolys(int an,
     // Make initial minDistA big on purpose by some value.
     double minDistA = 2.0*distance(currX, currY, ax[in], ay[in]) + 1.0;
     double minDistB_beg = -1.0, maxDistB_end = -1.0;
-    for (int jl = 0; jl < bn; jl++){
+    for (int jl = 0; jl < bn; jl++) {
       int jnl = (jl + 1) % bn;
       double xl, yl;
       if (edgesIntersect(currX, currY, ax[in], ay[in],
                          bx[jl], by[jl], bx[jnl], by[jnl],
                          xl, yl) &&
           isPointOnEdge(currX, currY, ax[in], ay[in], xl, yl) &&
-          (std::abs(currX - xl) > tol || std::abs(currY - yl) > tol)
-          ){
+          (std::abs(currX - xl) > tol || std::abs(currY - yl) > tol)) {
         foundIntersection  = true;
         mergeWasSuccessful = true;
         double distA     = distance(currX,  currY,  xl, yl);
@@ -465,8 +464,7 @@ bool mergePolys(int an,
         if (distA < minDistA                                   ||
             (distA == minDistA && distB_beg < minDistB_beg)    ||
             (distA == minDistA && distB_beg == minDistB_beg
-             && distB_end >= maxDistB_end )
-            ){
+             && distB_end >= maxDistB_end)) {
           minDistA = distA;
           minDistB_beg = distB_beg;
           maxDistB_end = distB_end;
@@ -475,7 +473,7 @@ bool mergePolys(int an,
       }
     }
 
-    if (!foundIntersection){
+    if (!foundIntersection) {
       i = in;
       if (sx == ax[i] && sy == ay[i]) break; // reached the starting point
       currX = ax[i]; currY = ay[i];
@@ -500,7 +498,7 @@ bool mergePolys(int an,
 }
 
 bool isPointInPolyOrOnEdges(double x, double y,
-                                   int n, const double* xv, const double*  yv){
+                                   int n, const double* xv, const double*  yv) {
 
   // Is the given point either completely inside or on the edges
   // of the given polygon.
@@ -509,20 +507,20 @@ bool isPointInPolyOrOnEdges(double x, double y,
 
   bool isInsideOrOnEdges = false;
 
-  for (int i = 0; i < n; i++){
+  for (int i = 0; i < n; i++) {
     int j = (i + 1)%n;
 
     double x0 = xv[i], x1 = xv[j];
     double y0 = yv[i], y1 = yv[j];
 
-    if (x0 > x1){
+    if (x0 > x1) {
       std::swap(x0, x1);
       std::swap(y0, y1);
     }
 
     if (x < x0 || x > x1) continue;
 
-    if (x0 == x1){
+    if (x0 == x1) {
       if (y >= std::min(y0, y1) && y <= std::max(y0, y1)) return true;
       else                                      continue;
     }
