@@ -18,6 +18,8 @@
 #ifndef VW_GEOMETRY_GEOMUTILS_H
 #define VW_GEOMETRY_GEOMUTILS_H
 
+#include <vw/Math/BBox.h>
+
 #include <sstream>
 #include <vector>
 #include <fstream>
@@ -83,12 +85,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
 
   bool searchForAnnotation(std::string lineStr, anno & annotation);
 
-  void expandBoxToGivenRatio(// inputs
-                             double aspectRatio,
-                             // inputs/outputs
-                             double & xll,  double & yll,
-                             double & widx, double & widy);
-
+  BBox2 expandBoxToRatio(vw::BBox2 const& box, double aspect);
 
   struct dRect{
     dRect(double xl_in = 0.0, double yl_in = 0.0,
@@ -102,8 +99,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
     
   };
 
-
-  struct dRectWithId: public dRect{
+  struct dRectWithId: public dRect {
     int id;
     dRectWithId(double xl_in = 0.0, double yl_in = 0.0,
                 double xh_in = 0.0, double yh_in = 0.0,

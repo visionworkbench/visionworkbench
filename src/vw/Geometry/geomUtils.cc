@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A){
 }
 
 void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
-                                      int numVerts, double * xv, double * yv){
+                               int numVerts, double * xv, double * yv){
 
   // Given a polygonal line, transform it such that all vertices are
   // integers and all edges make an angle multiple of 45 degrees
@@ -119,9 +119,9 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
 }
 
 void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
-                            bool snap2ndClosest,
-                            double & x0, double & y0,
-                            double & x1, double & y1){
+                     bool snap2ndClosest,
+                     double & x0, double & y0,
+                     double & x1, double & y1){
 
 
   double dx = x1 - x0, dy = y1 - y0;
@@ -168,12 +168,12 @@ void snapOneEdgeTo45(int numAngles, double* xs, double* ys,
 }
 
 void minDistFromPtToSeg(//inputs
-                               double xin, double yin,
-                               double x0, double y0,
-                               double x1, double y1,
-                               // outputs
-                               double & minX, double & minY,
-                               double & minDist){
+                        double xin, double yin,
+                        double x0, double y0,
+                        double x1, double y1,
+                        // outputs
+                        double & minX, double & minY,
+                        double & minDist){
 
   // Given the point (xin, yin) and the segment going from (x0, y0) to
   // (x1, y1), find the point (minX, minY) on this segment (not on its
@@ -199,7 +199,7 @@ void minDistFromPtToSeg(//inputs
 
 
 void searchForColor(std::string lineStr, // input, not a reference on purpose
-                           std::string & color) {  // output
+                    std::string & color) {  // output
 
 //   const char * xgraph_colors[] =
 //     {"black", "white", "red", "blue", "green", "violet",
@@ -271,8 +271,7 @@ bool searchForAnnotation(std::string lineStr, anno & annotation){
 }
 
 void searchForLayer(std::string   lineStr, // input
-                           std::string & layer    // output
-                           ){
+                    std::string & layer) { // out
 
   layer = "";
 
@@ -301,7 +300,7 @@ void searchForLayer(std::string   lineStr, // input
   return;
 }
 
-double signedPolyArea(int numV, const double* xv, const double* yv, bool counter_cc){
+double signedPolyArea(int numV, const double* xv, const double* yv, bool counter_cc) {
 
   // Subtract the first vertex when computing the area to handle more
   // accurately polygons very far from the origin.
@@ -324,45 +323,34 @@ double signedPolyArea(int numV, const double* xv, const double* yv, bool counter
   return area;
 }
 
-void expandBoxToGivenRatio(// inputs
-                           double aspectRatio,
-                           // inputs/outputs
-                           double & xll,  double & yll,
-                           double & widx, double & widy){
+vw::BBox2 expandBoxToRatio(vw::BBox2 const& box, double aspect) {
+  
+  // The aspect must be positive
+  if (aspect <= 0.0)
+    vw::vw_throw(vw::ArgumentErr() << "Aspect ratio must be positive.\n");
+    
+  BBox2 in_box = box; // local copy
+  if (in_box.empty())
+    in_box = BBox2(0, 0, 1, 1); // if it came to worst
 
-  // Expand the given box to have the aspect ratio equal to the number aspectRatio.
-  assert(widx > 0.0 && widy > 0.0 && aspectRatio > 0.0);
-  double nwidx = widx, nwidy = widy;
-  if (widy/widx <= aspectRatio) nwidy = widx*aspectRatio;
-  else                          nwidx = widy/aspectRatio;
-
-  // Sanity checks
-  double tol = 1.0e-3;
-  bool check = ( nwidx >= widx*(1 - tol) && nwidy >= widy*(1 - tol)
-                 && std::abs(nwidy/nwidx - aspectRatio) < tol*aspectRatio );
-  if (!check){
-    cout << "ERROR!" << endl;
-    cout << "widx widy are "   << widx  << ' ' << widy  << endl;
-    cout << "nwidx nwidy are " << nwidx << ' ' << nwidy << endl;
-    cout << "Aspect ratio is " << aspectRatio << endl;
-    cout << "|nwidy/nwidx - aspectRatio| = " << std::abs(nwidy/nwidx - aspectRatio) << endl;
-    cout << "Max allowed error is " << tol*aspectRatio << endl;
+  BBox2 out_box = in_box;
+  if (in_box.width() / in_box.height() < aspect) {
+    // Width needs to grow
+    double new_width = in_box.height() * aspect;
+    double delta = (new_width - in_box.width())/2.0;
+    out_box.min().x() -= delta; out_box.max().x() += delta;
+  } else if (in_box.width() / in_box.height() > aspect) {
+    // Height needs to grow
+    double new_height = in_box.width() / aspect;
+    double delta = (new_height - in_box.height())/2.0;
+    out_box.min().y() -= delta; out_box.max().y() += delta;
   }
-  assert(check);
 
-  // Make the new bounding box have the same center as the old one
-  xll += widx/2.0 - nwidx/2.0;
-  yll += widy/2.0 - nwidy/2.0;
-
-  // Overwrite the previous box
-  widx = nwidx;
-  widy = nwidy;
-
-  return;
+  return out_box;
 }
 
 bool boxesIntersect(double xl1, double yl1, double xh1, double yh1,
-		    double xl2, double yl2, double xh2, double yh2){
+                    double xl2, double yl2, double xh2, double yh2){
 
   assert(xl1 <= xh1 && yl1 <= yh1);
   assert(xl2 <= xh2 && yl2 <= yh2);
