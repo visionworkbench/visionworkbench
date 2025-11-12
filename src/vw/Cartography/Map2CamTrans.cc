@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2009-2013, United States Government as represented by the
+//  Copyright (c) 2009-2025, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -35,7 +35,7 @@ namespace vw { namespace cartography {
                               bool nearest_neighbor):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem_file(dem_file), m_dem(dem_file), m_image_size(image_size),
-    m_call_from_mapproject(call_from_mapproject), 
+    m_call_from_mapproject(call_from_mapproject),
     m_nearest_neighbor(nearest_neighbor), m_has_nodata(false),
     m_nodata(std::numeric_limits<double>::quiet_NaN()),
     m_use_cache(true) {
@@ -47,22 +47,22 @@ namespace vw { namespace cartography {
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
 
     m_invalid_pix = vw::camera::CameraModel::invalid_pixel();
-    
+
     // This is the full masked DEM. There is also m_cropped_masked_dem,
     // which should be used per tile.
     m_masked_dem = create_mask(m_dem, m_nodata);
-   
+
     // An estimate of the DEM height can help the reliability of intersecting
-    // a ray with the DEM. 
+    // a ray with the DEM.
     m_height_guess = vw::cartography::demHeightGuess(m_masked_dem);
-    
-    // Set up interpolation interface to the data we loaded into memory
-    // TODO(oalexan1): It is not clear if m_nearest_neighbor is useful.
+
+    // Set up interpolation interface to the data we loaded into memory. The
+    // nearest neighbor logic is useful when mapprojecting a mask.
     if (m_nearest_neighbor)
-      m_interp_dem = interpolate(m_masked_dem, 
+      m_interp_dem = interpolate(m_masked_dem,
                                  NearestPixelInterpolation(), ZeroEdgeExtension());
     else
-      m_interp_dem = interpolate(m_masked_dem, 
+      m_interp_dem = interpolate(m_masked_dem,
                                  BicubicInterpolation(), ZeroEdgeExtension());
   }
 
@@ -91,6 +91,8 @@ namespace vw { namespace cartography {
       b = NearestPixelInterpolation::pixel_buffer;
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
+    //std::cout.precision(17);
+    //std::cout << "--dem pix is " << dem_pix << std::endl;
     if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
         (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)) {
       // No DEM data
@@ -114,11 +116,11 @@ namespace vw { namespace cartography {
     } else {
       h = m_interp_dem(dem_pix[0], dem_pix[1]);
     }
-    
+
     if (!is_valid(h))
       return m_invalid_pix;
 
-    Vector3 xyz 
+    Vector3 xyz
       = m_dem_georef.datum().geodetic_to_cartesian(Vector3(lonlat[0], lonlat[1], h.child()));
     Vector2 pt;
     try {
@@ -140,7 +142,7 @@ namespace vw { namespace cartography {
   // on the mapprojected image. This throws an exception if the intersection
   // failed.
   vw::Vector2 Map2CamTrans::forward(const vw::Vector2 &p) const {
-    
+
     // TODO(oalexan1): If this logic is used as an inner loop by a CERES solver,
     // the tolerance here may not be good enough, as CERES makes very small
     // steps, and the result from here may be jumpy.
@@ -155,7 +157,7 @@ namespace vw { namespace cartography {
     vw::Vector3 xyz = vw::cartography::camera_pixel_to_dem_xyz
        (m_cam->camera_center(p), m_cam->pixel_to_vector(p), m_masked_dem,
         m_dem_georef, treat_nodata_as_zero, has_intersection,
-        height_error_tol, max_abs_tol, max_rel_tol, num_max_iter, 
+        height_error_tol, max_abs_tol, max_rel_tol, num_max_iter,
         prev_xyz, m_height_guess);
 
     // If the intersection failed, throw an exception
@@ -198,10 +200,10 @@ namespace vw { namespace cartography {
     }
     // Set up interpolation interface to the data we loaded into memory
     if (m_nearest_neighbor)
-      m_cropped_interp_dem = interpolate(m_cropped_masked_dem, 
+      m_cropped_interp_dem = interpolate(m_cropped_masked_dem,
                                          NearestPixelInterpolation(), ZeroEdgeExtension());
     else
-      m_cropped_interp_dem = interpolate(m_cropped_masked_dem, 
+      m_cropped_interp_dem = interpolate(m_cropped_masked_dem,
                                          BicubicInterpolation(), ZeroEdgeExtension());
   } // End function cache_dem
 
@@ -224,11 +226,11 @@ namespace vw { namespace cartography {
       local_cache_box.expand(NearestPixelInterpolation::pixel_buffer); // for interpolation
     else
       local_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
-    
+
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
-    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y){
-      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x){
+    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y) {
+      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x) {
         Vector2 p = reverse(Vector2(x,y));
         m_cache(x - local_cache_box.min().x(), y - local_cache_box.min().y()) = p;
         if (p == m_invalid_pix) continue;
@@ -239,7 +241,7 @@ namespace vw { namespace cartography {
 
     // Must happen after all calls to reverse finished.
     m_img_cache_box = local_cache_box;
-    
+
     if (m_nearest_neighbor)
       m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
                                         NearestPixelInterpolation(), ZeroEdgeExtension());
@@ -253,14 +255,14 @@ namespace vw { namespace cartography {
       out_box = vw::BBox2i(0, 0, 0, 0);
 
     m_cached_rv_box = out_box;
-    
+
     return m_cached_rv_box;
   }
-  
+
   /// This applies the forward transformation to an entire bounding box of pixels.
-  BBox2i Map2CamTrans::forward_bbox( BBox2i const& /*output_bbox*/ ) const { 
+  BBox2i Map2CamTrans::forward_bbox(BBox2i const& /*output_bbox*/) const {
     vw::vw_throw(vw::NoImplErr() << "forward_bbox() is not implemented for Map2CamTrans.");
-    return BBox2i(); 
+    return BBox2i();
   }
 
   // Make a copy of Map2CamTrans. If later queuing a very dense number of pixels
@@ -284,7 +286,7 @@ namespace vw { namespace cartography {
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem_height(dem_height), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject),
-    m_nearest_neighbor(nearest_neighbor){
+    m_nearest_neighbor(nearest_neighbor) {
 
     m_invalid_pix = camera::CameraModel::invalid_pixel();
   }
@@ -294,7 +296,7 @@ namespace vw { namespace cartography {
     Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
     Vector3 lonlatAlt(lonlat[0], lonlat[1], m_dem_height);
     Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian(lonlatAlt);
-    
+
     int b = BicubicInterpolation::pixel_buffer;
     if (m_nearest_neighbor)
       b = NearestPixelInterpolation::pixel_buffer;
@@ -303,11 +305,11 @@ namespace vw { namespace cartography {
       pt = m_cam->point_to_pixel(xyz);
       if (m_call_from_mapproject &&
           (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
-            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)){
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)) {
         // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
-    }catch(...){ // If a point failed to project
+    } catch(...) { // If a point failed to project
       return m_invalid_pix;
     }
 
@@ -316,12 +318,12 @@ namespace vw { namespace cartography {
 
   BBox2i Datum2CamTrans::reverse_bbox(BBox2i const& bbox) const {
 
-    BBox2 out_box;      
-    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y){
-      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x){
-      
+    BBox2 out_box;
+    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y) {
+      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x) {
+
         Vector2 p = reverse(Vector2(x,y));
-        if (p == m_invalid_pix) 
+        if (p == m_invalid_pix)
           continue;
         out_box.grow(p);
       }
