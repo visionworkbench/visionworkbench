@@ -91,8 +91,6 @@ namespace vw { namespace cartography {
       b = NearestPixelInterpolation::pixel_buffer;
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
-    //std::cout.precision(17);
-    //std::cout << "--dem pix is " << dem_pix << std::endl;
     if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
         (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)) {
       // No DEM data
@@ -100,28 +98,28 @@ namespace vw { namespace cartography {
     }
 
     PixelMask<float> h;
+    bool no_cache = true;
     if (m_use_cache) {
-      Vector2 sdem_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
+      no_cache = false;
+      Vector2 crop_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
       if (m_dem_cache_box.empty() ||
-          (sdem_pix[0] < b - 1) || (sdem_pix[0] >= m_cropped_dem.cols() - b) ||
-          (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)) {
-        // Cache miss. Will not happen often.
-        BBox2i box;
-        box.min() = floor(p) - Vector2(1, 1);
-        box.max() = ceil(p)  + Vector2(1, 1);
-        cache_dem(box);
-        return reverse(p); // call itself, after caching
+          (crop_pix[0] < b - 1) || (crop_pix[0] >= m_cropped_dem.cols() - b) ||
+          (crop_pix[1] < b - 1) || (crop_pix[1] >= m_cropped_dem.rows() - b)) {
+        no_cache = true;
+      } else {
+        h = m_cropped_interp_dem(crop_pix[0], crop_pix[1]);
       }
-      h = m_cropped_interp_dem(sdem_pix[0], sdem_pix[1]);
-    } else {
-      h = m_interp_dem(dem_pix[0], dem_pix[1]);
     }
+    
+    // If there is no cached data, use the full DEM
+    if (no_cache) 
+      h = m_interp_dem(dem_pix[0], dem_pix[1]);
 
     if (!is_valid(h))
       return m_invalid_pix;
-
-    Vector3 xyz
-      = m_dem_georef.datum().geodetic_to_cartesian(Vector3(lonlat[0], lonlat[1], h.child()));
+    
+    vw::Vector3 llh = Vector3(lonlat[0], lonlat[1], h.child());
+    Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian(llh);
     Vector2 pt;
     try {
       pt = m_cam->point_to_pixel(xyz);
@@ -216,7 +214,7 @@ namespace vw { namespace cartography {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
     if (!m_cached_rv_box.empty()) return m_cached_rv_box;
-
+    
     cache_dem(bbox);
 
     // Cache the reverse transform
@@ -229,8 +227,8 @@ namespace vw { namespace cartography {
 
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
-    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y) {
-      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x) {
+    for (int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); y++) {
+      for (int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); x++) {
         Vector2 p = reverse(Vector2(x,y));
         m_cache(x - local_cache_box.min().x(), y - local_cache_box.min().y()) = p;
         if (p == m_invalid_pix) continue;
@@ -319,8 +317,8 @@ namespace vw { namespace cartography {
   BBox2i Datum2CamTrans::reverse_bbox(BBox2i const& bbox) const {
 
     BBox2 out_box;
-    for (int32 y=bbox.min().y(); y<bbox.max().y(); ++y) {
-      for (int32 x=bbox.min().x(); x<bbox.max().x(); ++x) {
+    for (int32 y=bbox.min().y(); y<bbox.max().y(); y++) {
+      for (int32 x=bbox.min().x(); x<bbox.max().x(); x++) {
 
         Vector2 p = reverse(Vector2(x,y));
         if (p == m_invalid_pix)
