@@ -84,17 +84,27 @@ namespace vw { namespace cartography {
       if (is_valid(v)) return v.child();
       else             return m_invalid_pix;
     }
-
-    // No cached data
+    
+    // Check if we are within the interpolation bounds of the DEM
     int b = BicubicInterpolation::pixel_buffer;
     if (m_nearest_neighbor)
       b = NearestPixelInterpolation::pixel_buffer;
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
-    if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
-        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)) {
-      // No DEM data
-      return m_invalid_pix;
+    if (dem_pix[0] < b - 1 || dem_pix[0] >= m_dem.cols() - b ||
+        dem_pix[1] < b - 1 || dem_pix[1] >= m_dem.rows() - b) {
+    
+      // This is a bug fix for unnecessary erosion at DEM boundary when the
+      // image pixel is same as DEM pixel up to numerical precision.
+      vw::Vector2 grid_pix = round(dem_pix);
+      bool snap_to_grid
+         = (vw::math::norm_2(dem_pix - grid_pix) < 1e-6 &&
+            m_dem_georef.transform()(0,0) == m_image_georef.transform()(0,0));
+      if (snap_to_grid)
+        dem_pix = grid_pix;
+      
+      if (!snap_to_grid)
+        return m_invalid_pix; // Out of DEM bounds
     }
 
     PixelMask<float> h;
@@ -103,10 +113,11 @@ namespace vw { namespace cartography {
       no_cache = false;
       Vector2 crop_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
       if (m_dem_cache_box.empty() ||
-          (crop_pix[0] < b - 1) || (crop_pix[0] >= m_cropped_dem.cols() - b) ||
-          (crop_pix[1] < b - 1) || (crop_pix[1] >= m_cropped_dem.rows() - b)) {
+          crop_pix[0] < b - 1 || crop_pix[0] >= m_cropped_dem.cols() - b ||
+          crop_pix[1] < b - 1 || crop_pix[1] >= m_cropped_dem.rows() - b) {
         no_cache = true;
       } else {
+        // Successfully use the cached DEM data
         h = m_cropped_interp_dem(crop_pix[0], crop_pix[1]);
       }
     }
