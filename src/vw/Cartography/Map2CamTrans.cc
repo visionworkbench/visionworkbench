@@ -172,12 +172,17 @@ namespace vw { namespace cartography {
 
     // TODO: This may fail around poles. Need to do the standard X trick, traverse
     // the edges and diagonals of the box. Use here the function sample_float_bbox().
+    // Form the box corners, then grow the box.
+    std::vector<Vector2> corners = {Vector2(bbox.min().x(),   bbox.min().y()),
+                                    Vector2(bbox.max().x()-1, bbox.min().y()),
+                                    Vector2(bbox.min().x(),   bbox.max().y()-1),
+                                    Vector2(bbox.max().x()-1, bbox.max().y()-1)};
     BBox2 dbox;
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.min().y())))); // Top left
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.min().y())))); // Top right
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.min().x(),   bbox.max().y()-1)))); // Bottom left
-    dbox.grow(m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat(Vector2(bbox.max().x()-1, bbox.max().y()-1)))); // Bottom right
-
+    for (const auto& corner_px: corners) {
+      Vector2 lonlat = m_image_georef.pixel_to_lonlat(corner_px);
+      dbox.grow(m_dem_georef.lonlat_to_pixel(lonlat));
+    }
+    
     // A lot of care is needed here when going from real box to int
     // box, and if in doubt, better expand more rather than less.
     dbox.expand(1);
