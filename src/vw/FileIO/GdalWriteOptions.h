@@ -42,7 +42,6 @@
 #include <map>
 
 #include <vw/FileIO/DiskImageResourceGDAL.h>
-#include <boost/program_options.hpp>
 
 namespace vw {
 
@@ -60,11 +59,6 @@ namespace vw {
     GdalWriteOptions();
 
     void setVwSettingsFromOpt();
-  };
-
-  /// An object to let Program Options know about our GdalWriteOptions
-  struct GdalWriteOptionsDescription: public boost::program_options::options_description {
-    GdalWriteOptionsDescription(GdalWriteOptions& opt, bool adjust_tile_size_opt = false);
   };
   
 } // namespace vw

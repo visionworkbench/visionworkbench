@@ -29,6 +29,7 @@
 #include <vw/Cartography/Hillshade.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 #include <vw/tools/Common.h>
 
 #include <boost/program_options.hpp>

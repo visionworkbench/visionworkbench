@@ -40,6 +40,7 @@
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 
 #include <vector>
 #include <string>

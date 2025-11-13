@@ -35,6 +35,7 @@
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/CameraUtilities.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 #include <vw/FileIO/FileUtils.h>
 
 #include <iostream>

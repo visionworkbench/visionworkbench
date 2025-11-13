@@ -24,6 +24,8 @@
 /// in KML, TMS, Uniview, and Google Maps formats.
 
 #include <vw/tools/image2qtree.h>
+#include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <boost/program_options.hpp>
 

@@ -39,6 +39,7 @@
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>

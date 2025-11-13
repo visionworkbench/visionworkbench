@@ -43,6 +43,7 @@
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 
 using namespace vw;
 using namespace vw::ip;

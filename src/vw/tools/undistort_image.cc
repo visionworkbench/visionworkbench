@@ -38,6 +38,8 @@
 #include <vw/Camera/LensDistortion.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/tools/Common.h>
+#include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/FileIO/GdalWriteOptionsDesc.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 
 #include <iostream>
