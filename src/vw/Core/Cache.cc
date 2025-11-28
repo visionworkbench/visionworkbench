@@ -15,10 +15,10 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file Core/Cache.cc
 ///
-/// Types and functions to assist caching regeneratable data.
+/// Types and functions to assist caching data that can be regenerated
+/// on-the-fly.
 ///
 #include <vw/Core/Cache.h>
 
@@ -136,7 +136,6 @@ void vw::Cache::deallocate( size_t size, CacheLineBase *line ) {
   VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
-
 // TODO: Could we use some sort of linked list class to handle this stuff?
 
 void vw::Cache::validate( CacheLineBase *line ) {
@@ -170,7 +169,6 @@ void vw::Cache::validate( CacheLineBase *line ) {
     m_last_valid = line;
 }
 
-
 void vw::Cache::invalidate( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
   // Update first and last pointers if they point to the line
@@ -186,7 +184,6 @@ void vw::Cache::invalidate( CacheLineBase *line ) {
   m_first_invalid = line;
 }
 
-
 void vw::Cache::remove( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
   // Update list pointers if they pointed to the line
@@ -198,7 +195,6 @@ void vw::Cache::remove( CacheLineBase *line ) {
   if( line->m_prev ) line->m_prev->m_next = line->m_next;
   line->m_next = line->m_prev = 0;
 }
-
 
 void vw::Cache::deprioritize( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
@@ -215,5 +211,3 @@ void vw::Cache::deprioritize( CacheLineBase *line ) {
   m_last_valid->m_next = line;
   m_last_valid = line;
 }
-
-
