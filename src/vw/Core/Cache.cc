@@ -41,8 +41,9 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
 
   uint64 local_evictions = 0;
 
-  validate( line ); // Call here to insure that last_valid is not us!
-                    // This places the line at the beginning of the valid list.
+  // Call here to insure that last_valid is not us. This places the line at the
+  // beginning of the valid list.
+  validate( line ); 
                     
   m_size += size;   // Update the size after adding the new line
   VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache allocated " << size
@@ -107,7 +108,7 @@ void vw::Cache::resize( size_t size ) {
   }
   // Keep deallocating objects until we shrink under the new size limit
   while ( local_size > local_max_size ) {
-    VW_ASSERT( local_last_valid, LogicErr() << "Cache is empty but has nonzero size!" );
+    VW_ASSERT( local_last_valid, LogicErr() << "Cache is empty but has nonzero size" );
     // Deallocate the last invalid CacheLine object
     m_last_valid->invalidate(); // Problem ( probably grabs a line's mutex too )
     { // Update local buffer by grabbing cache buffer
