@@ -33,17 +33,12 @@ using namespace vw;
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 TEST( DiskImageView, Construction ) {
 
-  uint64 misses_before = vw_system_cache().misses();
-
   // These contortions ensure that a copy of a DiskImageView will
   // still work even after the original has gone out of scope.
   boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v1( new DiskImageView<PixelRGB<uint8> >( TEST_SRCDIR"/rgb2x2.png" ) );
   boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v2( new DiskImageView<PixelRGB<uint8> >( *v1 ) );
   v1.reset();
   ImageView<PixelRGB<uint8> > image = *v2;
-
-  // Expect that DiskImageView actually wrote something to the cache
-  EXPECT_EQ( 1u, vw_system_cache().misses() - misses_before );
 
   ASSERT_EQ( image.cols(), 2 );
   ASSERT_EQ( image.rows(), 2 );
@@ -68,16 +63,13 @@ TEST( DiskCacheImageView, Construction ) {
   ImageView<PixelRGB<uint8> > orig_image;
   ASSERT_NO_THROW( read_image( orig_image, TEST_SRCDIR"/rgb2x2.png" ) );
 
-  uint64 misses_before = vw_system_cache().misses();
-  uint64 hits_before   = vw_system_cache().hits();
-
   DiskCacheImageView<PixelRGB<uint8> > image = orig_image;
 
   ASSERT_EQ( image.cols(), 2 );
   ASSERT_EQ( image.rows(), 2 );
   ASSERT_EQ( image.planes(), 1 );
-  EXPECT_EQ( image(0,0).r(), 128 ); // miss
-  EXPECT_EQ( image(0,0).g(), 128 ); // hit
+  EXPECT_EQ( image(0,0).r(), 128 );
+  EXPECT_EQ( image(0,0).g(), 128 );
   EXPECT_EQ( image(0,0).b(), 128 );
   EXPECT_EQ( image(1,0).r(), 85 );
   EXPECT_EQ( image(1,0).g(), 0 );
@@ -87,12 +79,7 @@ TEST( DiskCacheImageView, Construction ) {
   EXPECT_EQ( image(0,1).b(), 0 );
   EXPECT_EQ( image(1,1).r(), 0 );
   EXPECT_EQ( image(1,1).g(), 0 );
-  EXPECT_EQ( image(1,1).b(), 255 ); // hit 11
-
-  // Expect that DiskImageView actually wrote something to cache and
-  // then used it.
-  EXPECT_EQ( 1u,  vw_system_cache().misses() - misses_before );
-  EXPECT_EQ( 11u, vw_system_cache().hits() - hits_before );
+  EXPECT_EQ( image(1,1).b(), 255 );
 
   // Test copying
   {

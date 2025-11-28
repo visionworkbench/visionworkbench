@@ -27,7 +27,6 @@
 #include <vector>
 #include <list>
 
-#include <vw/Core/Cache.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>

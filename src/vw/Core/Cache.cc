@@ -39,8 +39,6 @@ void vw::Cache::allocate(size_t size, CacheLineBase* line) {
   // thread, it can still be accessed by this thread, but not by others.
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
 
-  uint64 local_evictions = 0;
-
   // Call here to insure that last_valid is not us. This places the line at the
   // beginning of the valid list.
   validate(line);
@@ -63,7 +61,6 @@ void vw::Cache::allocate(size_t size, CacheLineBase* line) {
     // Deallocate the oldest CacheLine object if nothing is using it.
     bool invalidated = local_last_valid->try_invalidate();
     if (invalidated) { // If we were able to clear it...
-      local_evictions++;
       local_last_valid = m_last_valid;  // Update the local pointer to the new oldest CacheLine.
     } else {
       // If we can't deallocate current line,
@@ -73,14 +70,10 @@ void vw::Cache::allocate(size_t size, CacheLineBase* line) {
   }
 
   {
-    Mutex::WriteLock cache_lock(m_stats_mutex);
-    m_evictions += local_evictions; // Update class evictions stat
-
-    // Warn about exceeding the cache size. Note that the warning is
-    // printed only if the size now is a multiple of the previous size
-    // at which the warning was printed, so it will warn say when the
-    // cache size is 1.5^n GB. This will limit the number of warnings
-    // to a representative subset.
+    // Warn about exceeding the cache size. Note that the warning is printed
+    // only if the size now is a multiple of the previous size at which the
+    // warning was printed, so it will warn say when the cache size is 1.5^n GB.
+    // This will limit the number of warnings to a representative subset.
     double factor = 1.5;
     double MB = 1024.0 * 1024.0; // 1 MB in bytes
     if ((m_size > m_max_size) && (m_size > factor*m_last_size)) {

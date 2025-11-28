@@ -153,12 +153,6 @@ namespace vw {
     void   resize(size_t size); ///< Change the maximum size in bytes of the Cache.
     size_t max_size();            ///< Return the maximum permissible size in bytes.
 
-    // Statistics functions to query and clear hit, miss, and eviction counts.
-    uint64 hits       () { Mutex::ReadLock  cache_lock(m_stats_mutex);  return m_hits;      }
-    uint64 misses     () { Mutex::ReadLock  cache_lock(m_stats_mutex);  return m_misses;    }
-    uint64 evictions  () { Mutex::ReadLock  cache_lock(m_stats_mutex);  return m_evictions; }
-    void   clear_stats() { Mutex::WriteLock cache_lock(m_stats_mutex);  m_hits=m_misses=m_evictions = 0; }
-
     /// Interface class for safe user access to CacheLine objects.
     template <class GeneratorT>
     class Handle {
@@ -203,8 +197,8 @@ namespace vw {
                         m_max_size; ///< Maximum permissible size in bytes
     RecursiveMutex      m_line_mgmt_mutex; ///< Mutex for adjusting the CacheLineBase pointers above.
     Mutex               m_stats_mutex;     ///< Separate mutex for the statistics variables below.
-    volatile vw::uint64 m_hits, m_misses, m_evictions, ///< Cache statistics
-                        m_last_size; ///< Record the last size at which we printed a size warning to screen
+    ///< Record the last size at which we printed a size warning for
+    volatile vw::uint64 m_last_size;
 
     // Cache class private functions
 
@@ -220,10 +214,10 @@ namespace vw {
     void remove      (CacheLineBase *line); ///< Remove the cache line from the cache lists.
     void deprioritize(CacheLineBase *line); ///< Move the cache line to the bottom of the valid list.
 
-    //TODO: Why does CacheLineBase exist?  Do we need a base class?  It is not used outside this file.
-
-    /// The abstract base class for all cache line objects.
-    /// - This just redirects everything to a referenced Cache object.
+    /// CacheLineBase is the abstract base class for all cache line objects.
+    /// Enables type erasure: Allows the non-templated Cache class to manage a
+    /// heterogeneous linked list of resources redirects everything to a
+    /// referenced Cache object.
     class CacheLineBase {
     private:
       /// Reference to parent Cache object
@@ -363,15 +357,7 @@ typename Cache::CacheLine<GeneratorT>::value_type const& Cache::CacheLine<Genera
 
   m_mutex.lock_shared(); // Grab a shared lock
   bool hit = (m_value.get() != NULL);
-  { // Grab a temporary mutex to update our cache statistics
-    { // TODO: This should be abstracted into a call
-      Mutex::WriteLock cache_lock(cache().m_stats_mutex);
-      if (hit)
-        cache().m_hits++;
-      else
-        cache().m_misses++;
-    }
-  }
+
   if (!hit) { // Then we need to load the data into memory.
     VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n";);
     m_mutex.unlock_shared(); // Release shared
@@ -473,8 +459,7 @@ bool Cache::Handle<GeneratorT>::attached() const {
 
 Cache::Cache(size_t max_size) :
   m_first_valid(0), m_last_valid(0), m_first_invalid(0),
-  m_size(0), m_max_size(max_size),
-  m_hits(0), m_misses(0), m_evictions(0), m_last_size(0) {
+  m_size(0), m_max_size(max_size), m_last_size(0) {
 }
 
 template <class GeneratorT>
