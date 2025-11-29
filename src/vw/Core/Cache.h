@@ -168,11 +168,57 @@ public:
 // - Call insert() to add a new GeneratorT object (internally wrapped in a
 //   CacheLine object) to the Cache and you will get out a Handle object.
 
+// Forward declaration
+class Cache;
+
+// Private class to wrap a data generator object and keep a pointer to the generated data.
+// Always follow this order of mutexes to avoid deadlock:
+// - Acquire line
+// - Acquire cache's line management
+template <class GeneratorT>
+class CacheLine: public CacheLineBase {
+
+  typedef typename boost::shared_ptr<typename core::detail::GenValue<GeneratorT>::type> value_type;
+  GeneratorT m_generator;
+  value_type m_value;
+  Mutex      m_mutex; // Mutex for m_value and generation of this cache line
+  uint64     m_generation_count;
+
+public:
+  // Constructor
+  CacheLine(Cache& cache, GeneratorT const& generator);
+
+  virtual ~CacheLine();
+
+  // If data is in memory deallocate it, otherwise do nothing.  Blocks.
+  // - Note that this does not call Base::invalidate()
+  // - Maybe this function should have been called something else?
+  virtual void invalidate();
+
+  // Non-blocking version of invalidate.
+  virtual bool try_invalidate();
+
+  // Print some information about this object.
+  std::string info();
+
+  // Load the data if needed and then return a pointer to it.
+  // - This grabs a (shared) lock and never releases it. User must unlock
+  //   themselves because we are passing them a pointer to an object
+  //   that another thread could delete.
+  value_type const& value();
+
+  // Release all access to the data.
+  void release();
+
+  // Check whether the data is currently loaded into memory.
+  bool valid();
+
+  // Call deprioritize from the Cache class
+  void deprioritize();
+}; // End class Cacheline
+
 class Cache {
 
-// Forward declarations
-private:
-  template <class GeneratorT> class CacheLine;
 public:
   template <class GeneratorT> class Handle;
 
@@ -188,7 +234,7 @@ public:
   Handle<GeneratorT> insert(GeneratorT const& generator);
 
   void   resize(size_t size); // Change the maximum size in bytes of the Cache.
-  size_t max_size();            // Return the maximum permissible size in bytes.
+  size_t max_size();          // Return the maximum permissible size in bytes.
 
   // Interface class for safe user access to CacheLine objects.
   template <class GeneratorT>
@@ -249,52 +295,6 @@ private:
 
   friend class CacheLineBase; // Make this a friend of the Cache class
 
-  // Private class to wrap a data generator object and keep a pointer to the generated data.
-  // Always follow the order of mutexs is:
-  // ACQUIRE LINE FIRST
-  // ACQUIRE CACHE's LINE MGMT SECOND
-  template <class GeneratorT>
-  class CacheLine: public CacheLineBase {
-
-    typedef typename boost::shared_ptr<typename core::detail::GenValue<GeneratorT>::type> value_type;
-    GeneratorT m_generator;
-    value_type m_value;
-    Mutex      m_mutex; // Mutex for m_value and generation of this cache line
-    uint64     m_generation_count;
-
-  public:
-    // Constructor
-    CacheLine(Cache& cache, GeneratorT const& generator);
-
-    virtual ~CacheLine();
-
-    // If data is in memory deallocate it, otherwise do nothing.  Blocks.
-    // - Note that this does not call Base::invalidate()
-    // - Maybe this function should have been called something else?
-    virtual void invalidate();
-
-    // Non-blocking version of invalidate.
-    virtual bool try_invalidate();
-
-    // Print some information about this object.
-    std::string info();
-
-    // Load the data if needed and then return a pointer to it.
-    // - This grabs a (shared) lock and never releases it. User must unlock
-    //   themselves because we are passing them a pointer to an object
-    //   that another thread could delete.
-    value_type const& value();
-
-    // Release all access to the data.
-    void release();
-
-    // Check whether the data is currently loaded into memory.
-    bool valid();
-
-    // Call deprioritize from the Cache class
-    void deprioritize();
-  }; // End class Cacheline
-
 }; // End class Cache
 
 // Define these CacheLineBase functions here because now 'Cache' is fully defined
@@ -310,7 +310,7 @@ inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return t
 
 // Start class CacheLine
 template <class GeneratorT>
-Cache::CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
+CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
   : CacheLineBase(cache,core::detail::getPtr(generator)->size()), m_generator(generator), m_generation_count(0) {
   VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " 
                  << info() << "\n";)
@@ -318,7 +318,7 @@ Cache::CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generato
 }
 
 template <class GeneratorT>
-Cache::CacheLine<GeneratorT>::~CacheLine() {
+CacheLine<GeneratorT>::~CacheLine() {
   VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
                  << "Cache destroying CacheLine " << info() << "\n";)
   invalidate(); // Clean up the allocated data.
@@ -326,7 +326,7 @@ Cache::CacheLine<GeneratorT>::~CacheLine() {
 }
 
 template <class GeneratorT>
-void Cache::CacheLine<GeneratorT>::invalidate() {
+void CacheLine<GeneratorT>::invalidate() {
   VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
                  << "Cache invalidating CacheLine " << info() << "\n";);
 
@@ -334,11 +334,11 @@ void Cache::CacheLine<GeneratorT>::invalidate() {
   if (m_value.get() == NULL) return; // Not in memory, don't need to do anything.
 
   CacheLineBase::deallocate(); // Calls invalidate internally which redirects to the parent Cache class
-  m_value.reset(); // After the base class function is done, delete the last shared pointer to the data.
+  m_value.reset(); // After base class function is done, delete last shared pointer to data
 }
 
 template <class GeneratorT>
-bool Cache::CacheLine<GeneratorT>::try_invalidate() {
+bool CacheLine<GeneratorT>::try_invalidate() {
   bool have_lock = m_mutex.try_lock();
   if (!have_lock)
     return false;
@@ -357,7 +357,7 @@ bool Cache::CacheLine<GeneratorT>::try_invalidate() {
 }
 
 template <class GeneratorT>
-std::string Cache::CacheLine<GeneratorT>::info() {
+std::string CacheLine<GeneratorT>::info() {
   Mutex::ReadLock line_lock(m_mutex);
   std::ostringstream oss;
   oss << typeid(this).name() << " " << this
@@ -366,8 +366,8 @@ std::string Cache::CacheLine<GeneratorT>::info() {
 }
 
 template <class GeneratorT>
-typename Cache::CacheLine<GeneratorT>::value_type const& 
-Cache::CacheLine<GeneratorT>::value() {
+typename CacheLine<GeneratorT>::value_type const& 
+CacheLine<GeneratorT>::value() {
 
   m_mutex.lock_shared(); // Grab a shared lock
   bool hit = (m_value.get() != NULL);
@@ -391,18 +391,18 @@ Cache::CacheLine<GeneratorT>::value() {
 }
 
 template <class GeneratorT>
-void Cache::CacheLine<GeneratorT>::release() {
+void CacheLine<GeneratorT>::release() {
   m_mutex.unlock_shared();
 }
 
 template <class GeneratorT>
-bool Cache::CacheLine<GeneratorT>::valid() {
+bool CacheLine<GeneratorT>::valid() {
   Mutex::WriteLock line_lock(m_mutex);
   return (m_value.get() != NULL);
 }
 
 template <class GeneratorT>
-void Cache::CacheLine<GeneratorT>::deprioritize() {
+void CacheLine<GeneratorT>::deprioritize() {
   bool exists = valid();
   if (exists) {
     Mutex::WriteLock line_lock(m_mutex);
@@ -484,7 +484,7 @@ Cache::Handle<GeneratorT> Cache::insert(GeneratorT const& generator) {
   VW_ASSERT(line, NullPtrErr() << "Error creating new cache line");
   return Handle<GeneratorT>(line);
 }
-
+                  
 } // namespace vw
 
 #endif  // __VW_CORE_CACHE_H__
