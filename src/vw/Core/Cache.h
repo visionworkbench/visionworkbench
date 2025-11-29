@@ -99,6 +99,50 @@ namespace detail {
 
 namespace vw {
 
+  // Forward declaration of class Cache so CacheLineBase can hold a reference to it.
+  class Cache;
+
+  // Class CacheLineBase: the abstract base class for all cache line objects.
+  // Enables type erasure: Allows the non-templated Cache class to manage a
+  // heterogeneous linked list of resources using a common interface.
+  class CacheLineBase {
+  private:
+    /// Reference to parent Cache object
+    Cache& m_cache;
+    
+    /// These are used to form an ordered linked list of CacheLine objects
+    CacheLineBase *m_prev, *m_next;
+    
+    /// Size in bytes of the CacheLine data object.
+    const size_t m_size;
+
+    // Cache needs access to m_prev/m_next to manage the linked list
+    friend class Cache;
+
+  protected:
+    Cache& cache() const { return m_cache; }
+
+    // These link the CacheLine to the Cache manager.
+    // They are declared here but DEFINED at the bottom of the file
+    // because Cache is not fully defined yet.
+    void allocate();
+    void deallocate();
+    void validate();
+    void remove();
+    void deprioritize();
+
+  public:
+    CacheLineBase(Cache& cache, size_t size): 
+      m_cache(cache), m_prev(0), m_next(0), m_size(size) {}
+    
+    virtual ~CacheLineBase() {}
+
+    // These must be virtual so Cache can call them on a generic pointer
+    virtual void   invalidate(); 
+    virtual bool   try_invalidate();
+    virtual size_t size() const { return m_size; }
+  };
+  
   // TODO(oalexan1): This class design is a tangled mess
 
   // Cache contains a list of pointers to CacheLine CacheLine is
@@ -132,9 +176,8 @@ namespace vw {
 
   */
   class Cache {
-  // Do some forward declarations so we can put the public interface first
+
   private:
-    class CacheLineBase;
     template <class GeneratorT> class CacheLine;
   public:
     template <class GeneratorT> class Handle;
@@ -214,39 +257,6 @@ namespace vw {
     void remove      (CacheLineBase *line); ///< Remove the cache line from the cache lists.
     void deprioritize(CacheLineBase *line); ///< Move the cache line to the bottom of the valid list.
 
-    /// CacheLineBase is the abstract base class for all cache line objects.
-    /// Enables type erasure: Allows the non-templated Cache class to manage a
-    /// heterogeneous linked list of resources redirects everything to a
-    /// referenced Cache object.
-    class CacheLineBase {
-    private:
-      /// Reference to parent Cache object
-      Cache& m_cache;
-      /// These are used to form an ordered linked list of CacheLine objects
-      CacheLineBase *m_prev, *m_next;
-      /// Size in bytes of the CacheLine data object.
-      const size_t m_size;
-      friend class Cache;
-
-    protected:
-      Cache& cache() const { return m_cache; }
-
-      inline void allocate    () { m_cache.allocate  (m_size, this); }
-      inline void deallocate  () { m_cache.deallocate(m_size, this); }
-      inline void validate    () { m_cache.validate    (this); }
-      inline void remove      () { m_cache.remove      (this); }
-      inline void deprioritize() { m_cache.deprioritize(this); }
-
-    public:
-      CacheLineBase(Cache& cache, size_t size) : m_cache(cache),
-                                                   m_prev(0), m_next(0),
-                                                   m_size(size) {}
-      virtual ~CacheLineBase() {}
-
-      virtual inline void   invalidate    () { m_cache.invalidate(this); }
-      virtual inline bool   try_invalidate() { m_cache.invalidate(this); return true; }
-      virtual inline size_t size          () const { return m_size; }
-    }; // End class CacheLineBase
     friend class CacheLineBase; // Make this a friend of the Cache class
 
     /// Private class to wrap a data generator object and keep a pointer to the generated data.
@@ -297,9 +307,18 @@ namespace vw {
 
   }; // End class Cache
 
+  // Define these CacheLineBase functions here because now 'Cache' is fully defined
+  inline void CacheLineBase::allocate()     { m_cache.allocate(m_size, this);   }
+  inline void CacheLineBase::deallocate()   { m_cache.deallocate(m_size, this); }
+  inline void CacheLineBase::validate()     { m_cache.validate(this);           }
+  inline void CacheLineBase::remove()       { m_cache.remove(this);             }
+  inline void CacheLineBase::deprioritize() { m_cache.deprioritize(this);       }
+  
+  // Virtual redirects
+  inline void CacheLineBase::invalidate()     { m_cache.invalidate(this); }
+  inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return true; }
+  
 // Start class CacheLine
-
-
 template <class GeneratorT>
 Cache::CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
   : CacheLineBase(cache,core::detail::getPtr(generator)->size()), m_generator(generator), m_generation_count(0) {
