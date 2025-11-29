@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file DiskImageView.h
 ///
 /// A read-only disk image view.  This is now just a thin
@@ -38,8 +37,7 @@ namespace vw {
 
   /// A view of an image on disk.
   template <class PixelT>
-  class DiskImageView : public ImageViewBase<DiskImageView<PixelT> >
-  {
+  class DiskImageView: public ImageViewBase<DiskImageView<PixelT>> {
     typedef BlockRasterizeView<ImageResourceView<PixelT>> impl_type;
     // This is sort of redundant, but holding both the resource and
     // the block rasterize view simplifies construction and access
@@ -54,9 +52,9 @@ namespace vw {
 
     /// Constructs a DiskImageView of the given file on disk
     /// using the specified cache area. NULL cache means skip it.
-    DiskImageView( std::string const& filename, Cache* cache = &vw_system_cache() )
-      : m_rsrc( DiskImageResource::open( filename ) ),       // Init file interface
-        m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), // Init memory storage
+    DiskImageView( std::string const& filename, Cache* cache = &vw_system_cache() ):
+      m_rsrc( DiskImageResource::open( filename ) ),       // Init file interface
+      m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), // Init memory storage
                 m_rsrc->block_read_size(), 1, cache ) {
         // Check for type errors now instead of running into them when we access the image
         try {
@@ -108,95 +106,6 @@ namespace vw {
 
   };
 
-
-  template <class PixelT>
-    class DiskCacheHandle : private boost::noncopyable {
-    DiskImageView<PixelT> m_disk_image_view;
-    std::string m_filename;
-
-  public:
-    template <class ViewT>
-    DiskCacheHandle(ImageViewBase<ViewT> const& /*view*/, std::string const& filename) :
-      m_disk_image_view(filename), m_filename(filename) {
-    }
-
-    ~DiskCacheHandle() {
-      VW_OUT(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
-      boost::filesystem::remove( m_filename );
-    }
-
-    inline const DiskImageView<PixelT>& view() const { return m_disk_image_view; }
-  };
-
-  /// This is an assignable image view that stores the assigned data
-  /// to a temporary file on disk, and then provides a cached
-  /// interface (a la DiskImageView) to that data.  The temporary file
-  /// persists until this object and all copies of this object are destroyed.
-  template <class PixelT>
-  class DiskCacheImageView : public ImageViewBase< DiskCacheImageView<PixelT> > {
-  private:
-    boost::shared_ptr<DiskCacheHandle<PixelT> > m_handle;
-    std::string m_file_type, m_directory;
-
-    template <class ViewT>
-    void initialize(ImageViewBase<ViewT> const& view,
-                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      TemporaryFile file(m_directory, false, "vw_cache_", "." + m_file_type);
-
-      VW_OUT(InfoMessage, "fileio") << "Creating disk cache of image in: " << file.filename() << "\n";
-
-      ImageFormat fmt(view.format());
-      fmt.pixel_format = PixelFormatID<PixelT>::value;
-
-      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create( file.filename(), fmt));
-      if (r->has_block_write())
-        r->set_block_write_size(Vector2i(vw_settings().default_tile_size(), vw_settings().default_tile_size()));
-      block_write_image(*r, pixel_cast_rescale<PixelT>(view), progress_callback);
-      r->flush();
-
-      m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), file.filename()));
-    }
-
-  public:
-    typedef typename DiskImageView<PixelT>::pixel_type     pixel_type;
-    typedef typename DiskImageView<PixelT>::result_type    result_type;
-    typedef typename DiskImageView<PixelT>::pixel_accessor pixel_accessor;
-
-    /// Create a temporary image view cache file on disk using a
-    /// system supplied temporary filename.
-    template <class ViewT>
-    DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif",
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
-                       std::string const& directory = "/tmp" ) :
-      m_file_type(file_type), m_directory(directory) {
-      this->initialize(view.impl(), progress_callback);
-    }
-
-    inline int32 cols  () const { return m_handle->view().cols();   }
-    inline int32 rows  () const { return m_handle->view().rows();   }
-    inline int32 planes() const { return m_handle->view().planes(); }
-
-    inline pixel_accessor origin() const { return m_handle->view().origin(); }
-
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_handle->view()(i, j, p); }
-
-    template <class ViewT>
-    DiskCacheImageView& operator=( ImageViewBase<ViewT> const& view ) {
-      this->initialize(view.impl());
-      return *this;
-    }
-
-    /// \cond INTERNAL
-    typedef typename DiskImageView<PixelT>::prerasterize_type prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return m_handle->view().prerasterize(bbox);
-    }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
-    }
-    /// \endcond
-  };
-  
 } // namespace vw
 
 #endif // __VW_FILEIO_DISKIMAGEVIEW_H__

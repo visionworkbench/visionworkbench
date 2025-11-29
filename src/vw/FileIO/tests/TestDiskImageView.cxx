@@ -18,6 +18,7 @@
 
 #include <gtest/gtest_VW.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskCacheImageView.h>
 #include <vw/FileIO/DiskImageResourceRaw.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Image/ImageMath.h>
