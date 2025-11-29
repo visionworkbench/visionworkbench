@@ -164,9 +164,6 @@ public:
 // - The CacheLine class is where objects are created and destroyed (using
 //   smart pointers and the provided GeneratorT class))
 
-// - TODO: The Cache class should support different allocation strategies
-//   besides just deleting the oldest resource every time
-
 // User interface:
 // - Call insert() to add a new GeneratorT object (internally wrapped in a
 //   CacheLine object) to the Cache and you will get out a Handle object.
@@ -186,12 +183,12 @@ public:
 
   // Wrap a GeneratorT in a CacheLine in a Handle object and return it.
   // - By creating the CacheLine object it is automatically registered with the Cache object.
-  //   Retrieving the value of the CacheLine object will cause it to be added to the Cache.
+  // - Retrieving the value of the CacheLine object will cause it to be added to the Cache.
   template <class GeneratorT>
   Handle<GeneratorT> insert(GeneratorT const& generator);
 
-  void   resize(size_t size); //< Change the maximum size in bytes of the Cache.
-  size_t max_size();            //< Return the maximum permissible size in bytes.
+  void   resize(size_t size); // Change the maximum size in bytes of the Cache.
+  size_t max_size();            // Return the maximum permissible size in bytes.
 
   // Interface class for safe user access to CacheLine objects.
   template <class GeneratorT>
@@ -211,34 +208,30 @@ public:
     // Destructor - release the Cacheline object
     ~Handle();
 
-    boost::shared_ptr<value_type> operator->() const; //< Get pointer   to the Cacheline's value
-    value_type const&             operator* () const; //< Get const ref to the Cacheline's value
+    boost::shared_ptr<value_type> operator->() const; // Get pointer to the Cacheline's value
+    value_type const&             operator* () const; // Get const ref to the Cacheline's value
 
     // TODO: Can we delete this?
     // Define conversion to the underlying data type
     operator boost::shared_ptr<value_type>() const;
 
     // These functions just redirect to the underlying Cacheline object
-    void   release     () const; //< Release the shared mutex to the underlying data.
-    bool   valid       () const; //< Return true if the data is in memory.
-    size_t size        () const; //< Return the size in bytes of the underlying data.
-    void   reset       ();       //< Disconnect the handle from the underlying data.
-    void   deprioritize() const; //< Send the underlying data to the front of the "next to free" list.
-    bool   attached    () const; //< Return true if there is a wrapped Cacheline object.
+    void   release     () const; // Release the shared mutex to the underlying data.
+    bool   valid       () const; // Return true if the data is in memory.
+    size_t size        () const; // Return the size in bytes of the underlying data.
+    void   reset       ();       // Disconnect the handle from the underlying data.
+    void   deprioritize() const; // Send the underlying data to the front of the "next to free" list.
+    bool   attached    () const; // Return true if there is a wrapped Cacheline object.
   }; // End class Handle
 
 private:
 
   // Cache class private variables
-  CacheLineBase      *m_first_valid,
-                      *m_last_valid,
-                      *m_first_invalid;
-  size_t              m_size,     //< Currently loaded size in bytes
-                      m_max_size; //< Maximum permissible size in bytes
-  RecursiveMutex      m_line_mgmt_mutex; //< Mutex for adjusting the CacheLineBase pointers above.
-  Mutex               m_stats_mutex;     //< Separate mutex for the statistics variables below.
-  //< Record the last size at which we printed a size warning for
-  volatile vw::uint64 m_last_size;
+  CacheLineBase *m_first_valid, *m_last_valid, *m_first_invalid;
+  size_t         m_size, m_max_size; // Current and maximum permissible size in bytes
+  RecursiveMutex m_line_mgmt_mutex; // Mutex for adjusting the CacheLineBase pointers above
+  Mutex          m_stats_mutex; // Separate mutex for the statistics variables below
+  volatile vw::uint64 m_last_size; // Last size at which we printed a size warning for
 
   // Cache class private functions
 
@@ -249,10 +242,10 @@ private:
   // Call invalidate() on the line then decrement m_size.
   void deallocate(size_t size, CacheLineBase *line);
 
-  void validate    (CacheLineBase *line); //< Move the cache line to the top of the valid list.
-  void invalidate  (CacheLineBase *line); //< Move the cache line to the top of the invalid list.
-  void remove      (CacheLineBase *line); //< Remove the cache line from the cache lists.
-  void deprioritize(CacheLineBase *line); //< Move the cache line to the bottom of the valid list.
+  void validate    (CacheLineBase *line); // Move the cache line to the top of the valid list
+  void invalidate  (CacheLineBase *line); // Move the cache line to top of the invalid list
+  void remove      (CacheLineBase *line); // Remove the cache line from the cache lists
+  void deprioritize(CacheLineBase *line); // Move cache line to bottom of the valid list
 
   friend class CacheLineBase; // Make this a friend of the Cache class
 
@@ -305,11 +298,11 @@ private:
 }; // End class Cache
 
 // Define these CacheLineBase functions here because now 'Cache' is fully defined
-inline void CacheLineBase::allocate() { m_cache.allocate(m_size, this);   }
+inline void CacheLineBase::allocate() { m_cache.allocate(m_size, this); }
 inline void CacheLineBase::deallocate() { m_cache.deallocate(m_size, this); }
-inline void CacheLineBase::validate() { m_cache.validate(this);           }
-inline void CacheLineBase::remove() { m_cache.remove(this);             }
-inline void CacheLineBase::deprioritize() { m_cache.deprioritize(this);       }
+inline void CacheLineBase::validate() { m_cache.validate(this); }
+inline void CacheLineBase::remove() { m_cache.remove(this); }
+inline void CacheLineBase::deprioritize() { m_cache.deprioritize(this); }
 
 // Virtual redirects
 inline void CacheLineBase::invalidate() { m_cache.invalidate(this); }
@@ -319,20 +312,23 @@ inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return t
 template <class GeneratorT>
 Cache::CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
   : CacheLineBase(cache,core::detail::getPtr(generator)->size()), m_generator(generator), m_generation_count(0) {
-  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " << info() << "\n";)
+  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " 
+                 << info() << "\n";)
   CacheLineBase::invalidate(); // Move to the start of the Cache class invalid list.
 }
 
 template <class GeneratorT>
 Cache::CacheLine<GeneratorT>::~CacheLine() {
-  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n";)
+  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
+                 << "Cache destroying CacheLine " << info() << "\n";)
   invalidate(); // Clean up the allocated data.
   remove();
 }
 
 template <class GeneratorT>
 void Cache::CacheLine<GeneratorT>::invalidate() {
-  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n";);
+  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
+                 << "Cache invalidating CacheLine " << info() << "\n";);
 
   Mutex::WriteLock line_lock(m_mutex); // Grab a lock until the function exits.
   if (m_value.get() == NULL) return; // Not in memory, don't need to do anything.
@@ -351,7 +347,8 @@ bool Cache::CacheLine<GeneratorT>::try_invalidate() {
     return true;
   }
 
-  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n";);
+  VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
+                 << "Cache invalidating CacheLine " << info() << "\n";);
   CacheLineBase::deallocate(); // Calls invalidate internally
   m_value.reset();
 
@@ -376,7 +373,8 @@ Cache::CacheLine<GeneratorT>::value() {
   bool hit = (m_value.get() != NULL);
 
   if (!hit) { // Then we need to load the data into memory.
-    VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n";);
+    VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") 
+                   << "Cache generating CacheLine " << info() << "\n";);
     m_mutex.unlock_shared(); // Release shared
     m_mutex.lock_upgrade();  // Get upgrade status
     m_mutex.unlock_upgrade_and_lock(); // Upgrade to exclusive access
