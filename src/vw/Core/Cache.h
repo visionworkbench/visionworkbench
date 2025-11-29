@@ -109,10 +109,10 @@ namespace vw {
   private:
     /// Reference to parent Cache object
     Cache& m_cache;
-    
+
     /// These are used to form an ordered linked list of CacheLine objects
     CacheLineBase *m_prev, *m_next;
-    
+
     /// Size in bytes of the CacheLine data object.
     const size_t m_size;
 
@@ -132,51 +132,48 @@ namespace vw {
     void deprioritize();
 
   public:
-    CacheLineBase(Cache& cache, size_t size): 
+    CacheLineBase(Cache& cache, size_t size):
       m_cache(cache), m_prev(0), m_next(0), m_size(size) {}
-    
+
     virtual ~CacheLineBase() {}
 
     // These must be virtual so Cache can call them on a generic pointer
-    virtual void   invalidate(); 
+    virtual void   invalidate();
     virtual bool   try_invalidate();
     virtual size_t size() const { return m_size; }
   };
-  
-  // TODO(oalexan1): This class design is a tangled mess
 
   // Cache contains a list of pointers to CacheLine CacheLine is
   // virtual and contains {generator,object,valid} Handle contains a
   // shared pointer to CacheLine
 
-  /// An LRU-based data cache
-  /**
-    - This class contains three pointers (*m_first_valid, *m_last_valid,
-      *m_first_invalid) which keep track of two double-linked lists, the valid
-      list and the invalid list.
-    - Each list is made up of CacheLine objects, each each CacheLine object has
-      m_prev and m_next member variables which are used to maintain the lists.
-    - The four private functions validate(), invalidate(), remove(),
-      deprioritize() rearrange the position of CacheLine objects in the valid
-      and invalid lists.
+  // An LRU-based data cache
+  // - This class contains three pointers (*m_first_valid, *m_last_valid,
+  //   *m_first_invalid) which keep track of two double-linked lists, the valid
+  //   list and the invalid list.
+  // - Each list is made up of CacheLine objects, each each CacheLine object has
+  //   m_prev and m_next member variables which are used to maintain the lists.
+  // - The four private functions validate(), invalidate(), remove(),
+  //   deprioritize() rearrange the position of CacheLine objects in the valid
+  //   and invalid lists.
 
-    - The Cache class itself does not directly allocate or free any memory.  It
-      manages the two lists, monitors total reported memory usage, and calls
-      functions on the CacheLine objects.  It also records cache hit and miss
-      statistics.
-    - The CacheLine class is where objects are created and destroyed (using
-      smart pointers and the provided GeneratorT class))
+  // - The Cache class itself does not directly allocate or free any memory.  It
+  //   manages the two lists, monitors total reported memory usage, and calls
+  //   functions on the CacheLine objects.  It also records cache hit and miss
+  //   statistics.
+  // - The CacheLine class is where objects are created and destroyed (using
+  //   smart pointers and the provided GeneratorT class))
 
-    - TODO: The Cache class should support different allocation strategies
-      besides just deleting the oldest resource every time
+  // - TODO: The Cache class should support different allocation strategies
+  //   besides just deleting the oldest resource every time
 
-    User interface:
-    - Call insert() to add a new GeneratorT object (internally wrapped in a
-      CacheLine object) to the Cache and you will get out a Handle object.
+  // User interface:
+  // - Call insert() to add a new GeneratorT object (internally wrapped in a
+  //   CacheLine object) to the Cache and you will get out a Handle object.
 
-  */
   class Cache {
-
+  
+  // Forward declarations
   private:
     template <class GeneratorT> class CacheLine;
   public:
@@ -264,7 +261,7 @@ namespace vw {
     // ACQUIRE LINE FIRST
     // ACQUIRE CACHE's LINE MGMT SECOND
     template <class GeneratorT>
-    class CacheLine : public CacheLineBase {
+    class CacheLine: public CacheLineBase {
 
       typedef typename boost::shared_ptr<typename core::detail::GenValue<GeneratorT>::type> value_type;
       GeneratorT m_generator;
@@ -308,16 +305,16 @@ namespace vw {
   }; // End class Cache
 
   // Define these CacheLineBase functions here because now 'Cache' is fully defined
-  inline void CacheLineBase::allocate()     { m_cache.allocate(m_size, this);   }
-  inline void CacheLineBase::deallocate()   { m_cache.deallocate(m_size, this); }
-  inline void CacheLineBase::validate()     { m_cache.validate(this);           }
-  inline void CacheLineBase::remove()       { m_cache.remove(this);             }
+  inline void CacheLineBase::allocate() { m_cache.allocate(m_size, this);   }
+  inline void CacheLineBase::deallocate() { m_cache.deallocate(m_size, this); }
+  inline void CacheLineBase::validate() { m_cache.validate(this);           }
+  inline void CacheLineBase::remove() { m_cache.remove(this);             }
   inline void CacheLineBase::deprioritize() { m_cache.deprioritize(this);       }
-  
+
   // Virtual redirects
-  inline void CacheLineBase::invalidate()     { m_cache.invalidate(this); }
+  inline void CacheLineBase::invalidate() { m_cache.invalidate(this); }
   inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return true; }
-  
+
 // Start class CacheLine
 template <class GeneratorT>
 Cache::CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
