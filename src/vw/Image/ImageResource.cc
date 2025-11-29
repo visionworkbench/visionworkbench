@@ -593,7 +593,7 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
 
 
 // TODO: Lots of duplicated code here, would be nice to clean up these functions.
-void vw::check_convertability( ImageFormat const& dst, ImageFormat const& src ) {
+void vw::can_convert( ImageFormat const& dst, ImageFormat const& src ) {
   VW_ASSERT( dst.cols==src.cols && dst.rows==src.rows,
              ArgumentErr() << "Destination buffer has wrong size." );
 
@@ -608,14 +608,14 @@ void vw::check_convertability( ImageFormat const& dst, ImageFormat const& src ) 
       ImageFormat new_dst = dst;
       new_dst.pixel_format = VW_PIXEL_SCALAR;
       new_dst.planes = src.planes;
-      return check_convertability( new_dst, src );
+      return can_convert( new_dst, src );
     }
     else if( dst.pixel_format==VW_PIXEL_SCALAR && src.planes==1
              && dst.planes==num_channels( src.pixel_format ) ) {
       ImageFormat new_src = src;
       new_src.pixel_format = VW_PIXEL_SCALAR;
       new_src.planes = dst.planes;
-      return check_convertability( dst, new_src );
+      return can_convert( dst, new_src );
     }
     // We support conversions between user specified generic pixel
     // types and the pixel types with an identical number of channels.

@@ -96,7 +96,7 @@ namespace vw {
   
   /// Throws an exception if src cannot be converted to dst using the convert() function.
   /// - Using this function allows us to throw a legible error message instead of gibberish.
-  void check_convertability(ImageFormat const& dst, ImageFormat const& src);
+  void can_convert(ImageFormat const& dst, ImageFormat const& src);
 
 
   /// A read-only image resource
