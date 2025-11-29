@@ -294,17 +294,6 @@ private:
 
 }; // End class Cache
 
-// Define these CacheLineBase functions here because now 'Cache' is fully defined
-inline void CacheLineBase::allocate() { m_cache.allocate(m_size, this); }
-inline void CacheLineBase::deallocate() { m_cache.deallocate(m_size, this); }
-inline void CacheLineBase::validate() { m_cache.validate(this); }
-inline void CacheLineBase::remove() { m_cache.remove(this); }
-inline void CacheLineBase::deprioritize() { m_cache.deprioritize(this); }
-
-// Virtual redirects
-inline void CacheLineBase::invalidate() { m_cache.invalidate(this); }
-inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return true; }
-
 // Start class CacheLine
 template <class GeneratorT>
 CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
@@ -470,7 +459,7 @@ bool Cache::Handle<GeneratorT>::attached() const {
   return (bool)m_line_ptr;
 }
 
-Cache::Cache(size_t max_size) :
+Cache::Cache(size_t max_size):
   m_first_valid(0), m_last_valid(0), m_first_invalid(0),
   m_size(0), m_max_size(max_size), m_last_size(0) {
 }

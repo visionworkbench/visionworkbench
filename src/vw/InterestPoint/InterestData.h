@@ -122,48 +122,14 @@ namespace vw { namespace ip {
     }
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-    // TODO: Move the definitions to the cc file!
-
-    /// Copy IP information from an OpenCV KeyPoint object.
-    void setFromCvKeypoint(cv::KeyPoint const& cvKey) {
-      x  = cvKey.pt.x;
-      y  = cvKey.pt.y;
-      ix = round(x);
-      iy = round(y);
-      interest    = cvKey.response;
-      octave      = cvKey.octave;
-      scale_lvl   = cvKey.octave;
-      scale       = cvKey.size;
-      orientation = cvKey.angle;
-      polarity    = false;
-    }
-
+    /// Copy IP information from an OpenCV KeyPoint object
+    void setFromCvKeypoint(cv::KeyPoint const& cvKey);
     /// Create an OpenCV KeyPoint object from this IP.
-    cv::KeyPoint makeOpenCvKeypoint() const {
-      cv::KeyPoint cvKey;
-      cvKey.pt.x     = x;
-      cvKey.pt.y     = y;
-      cvKey.response = interest;
-      cvKey.octave   = octave;
-      cvKey.size     = scale;
-      cvKey.angle    = orientation;
-      return cvKey;
-    }
-
+    cv::KeyPoint makeOpenCvKeypoint() const;
 #endif
   }; // End class InterestPoint
 
-inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
-    if (P1.x           < P2.x           ) return true; if (P1.x           > P2.x           ) return false;
-    if (P1.y           < P2.y           ) return true; if (P1.y           > P2.y           ) return false;
-    if (P1.scale       < P2.scale       ) return true; if (P1.scale       > P2.scale       ) return false;
-    if (P1.orientation < P2.orientation ) return true; if (P1.orientation > P2.orientation ) return false;
-    if (P1.interest    < P2.interest    ) return true; if (P1.interest    > P2.interest    ) return false;
-    if (P1.polarity    < P2.polarity    ) return true; if (P1.polarity    > P2.polarity    ) return false;
-    if (P1.octave      < P2.octave      ) return true; if (P1.octave      > P2.octave      ) return false;
-    if (P1.scale_lvl   < P2.scale_lvl   ) return true; if (P1.scale_lvl   > P2.scale_lvl   ) return false;
-    return false;
-}
+  bool InterestPointLessThan (InterestPoint P1, InterestPoint P2);
   
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
