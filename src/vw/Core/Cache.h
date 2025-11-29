@@ -74,7 +74,6 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
-namespace core {
 namespace detail {
 
   // These template tools are used to extract a desired output type for several
@@ -92,12 +91,10 @@ namespace detail {
   };
 
   template <typename T>
-  struct GenValue<boost::shared_ptr<T> > {
+  struct GenValue<boost::shared_ptr<T>> {
     typedef typename T::value_type type;
   };
-}}} // namespace vw::core::detail_changed
-
-namespace vw {
+} // namespace detail
 
 // Forward declaration of class Cache so CacheLineBase can hold a reference to it.
 class Cache;
@@ -178,7 +175,7 @@ class Cache;
 template <class GeneratorT>
 class CacheLine: public CacheLineBase {
 
-  typedef typename boost::shared_ptr<typename core::detail::GenValue<GeneratorT>::type> value_type;
+  typedef typename boost::shared_ptr<typename detail::GenValue<GeneratorT>::type> value_type;
   GeneratorT m_generator;
   value_type m_value;
   Mutex      m_mutex; // Mutex for m_value and generation of this cache line
@@ -243,13 +240,13 @@ public:
     mutable bool m_is_locked;
 
   public:
-    typedef typename core::detail::GenValue<GeneratorT>::type value_type;
+    typedef typename detail::GenValue<GeneratorT>::type value_type;
 
     // Default constructor
-    Handle() : m_is_locked(false) {}
+    Handle(): m_is_locked(false) {}
 
     // Constructor with a CacheLine object
-    Handle(boost::shared_ptr<CacheLine<GeneratorT> > line_ptr) : m_line_ptr(line_ptr), m_is_locked(false) {}
+    Handle(boost::shared_ptr<CacheLine<GeneratorT>> line_ptr) : m_line_ptr(line_ptr), m_is_locked(false) {}
 
     // Destructor - release the Cacheline object
     ~Handle();
@@ -262,12 +259,12 @@ public:
     operator boost::shared_ptr<value_type>() const;
 
     // These functions just redirect to the underlying Cacheline object
-    void   release     () const; // Release the shared mutex to the underlying data.
-    bool   valid       () const; // Return true if the data is in memory.
-    size_t size        () const; // Return the size in bytes of the underlying data.
-    void   reset       ();       // Disconnect the handle from the underlying data.
-    void   deprioritize() const; // Send the underlying data to the front of the "next to free" list.
-    bool   attached    () const; // Return true if there is a wrapped Cacheline object.
+    void   release     () const; // Release the shared mutex to the underlying data
+    bool   valid       () const; // Return true if the data is in memory
+    size_t size        () const; // Return the size in bytes of the underlying data
+    void   reset       ();       // Disconnect the handle from the underlying data
+    void   deprioritize() const; // Send underlying data to front of the "next to free" list
+    bool   attached    () const; // Return true if there is a wrapped Cacheline object
   }; // End class Handle
 
 private:
@@ -311,7 +308,7 @@ inline bool CacheLineBase::try_invalidate() { m_cache.invalidate(this); return t
 // Start class CacheLine
 template <class GeneratorT>
 CacheLine<GeneratorT>::CacheLine(Cache& cache, GeneratorT const& generator)
-  : CacheLineBase(cache,core::detail::getPtr(generator)->size()), m_generator(generator), m_generation_count(0) {
+  : CacheLineBase(cache,detail::getPtr(generator)->size()), m_generator(generator), m_generation_count(0) {
   VW_CACHE_DEBUG(VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " 
                  << info() << "\n";)
   CacheLineBase::invalidate(); // Move to the start of the Cache class invalid list.
@@ -382,7 +379,7 @@ CacheLine<GeneratorT>::value() {
 
     //TODO: Why allocate and then generate?
     m_generation_count++; // Update stats
-    m_value = core::detail::getPtr(m_generator)->generate();
+    m_value = detail::getPtr(m_generator)->generate();
     // Downgrade from exclusive access down to shared access
     m_mutex.unlock_and_lock_upgrade();
     m_mutex.unlock_upgrade_and_lock_shared();
