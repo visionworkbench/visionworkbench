@@ -75,11 +75,15 @@ void read_shapefile(std::string const& file,
         vw::cartography::GeoReference & geo,
         std::vector<vw::geometry::dPoly> & polyVec);
 
-// Write a set of dPolys to a shapefile
+// Write a set of dPolys to a shapefile. Can also have a field with values that 
+// will be displayed in QGIS at the centroid of each polygon. In the latter 
+// case have to also write a QML file.
 void write_shapefile(std::string const& file,
           bool has_geo,
           vw::cartography::GeoReference const& geo,
-          std::vector<vw::geometry::dPoly> const& polyVec);
+          std::vector<vw::geometry::dPoly> const& polyVec,
+          std::string const& fieldName = "",
+          std::vector<int> const& fieldValues = std::vector<int>()); 
 
 // Write a single dPoly to a shapefile (this can still have multiple polygons)
 void write_shapefile(std::string const& file,
@@ -103,6 +107,10 @@ void mergeOGRPolygons(std::string const& poly_color,
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void convexHull(std::vector<vw::Vector3> const& points,
                 vw::geometry::dPoly & poly); // output
+
+// Write a QML file for displaying data associated with a field in a shapefile.
+// The qml and shapefile must have same base name.
+void writeQml(std::string const& qml_file, std::string const& field_name);
 
 }} // end namespace vw::geometry
 

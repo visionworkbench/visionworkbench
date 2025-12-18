@@ -350,15 +350,18 @@ void read_shapefile(std::string const& file,
   GDALClose(poDS);
 }
 
-// Write a set of dPolys to a shapefile
-void write_shapefile(std::string const& file,
-                      bool has_geo,
-                      vw::cartography::GeoReference const& geo,
-                      std::vector<vw::geometry::dPoly> const& polyVec) {
+// Write a set of dPolys to a shapefile. Can also have a field with values that 
+// will be displayed in QGIS at the centroid of each polygon. In the latter 
+// case have to also write a QML file.
+void write_shapefile(std::string const& shapeFile,
+                     bool has_geo, vw::cartography::GeoReference const& geo,
+                     std::vector<vw::geometry::dPoly> const& polyVec,
+                     std::string const& fieldName,
+                     std::vector<int> const& fieldValues) {
 
-  vw::create_out_dir(file);
+  vw::create_out_dir(shapeFile);
 
-  std::string layer_str = boost::filesystem::path(file).stem().string();
+  std::string layer_str = boost::filesystem::path(shapeFile).stem().string();
 
   const char *pszDriverName = "ESRI Shapefile";
   GDALDriver *poDriver;
@@ -368,9 +371,9 @@ void write_shapefile(std::string const& file,
     vw_throw(ArgumentErr() << "Could not find driver: " << pszDriverName << ".\n");
 
   GDALDataset *poDS;
-  poDS = poDriver->Create(file.c_str(), 0, 0, 0, GDT_Unknown, NULL);
+  poDS = poDriver->Create(shapeFile.c_str(), 0, 0, 0, GDT_Unknown, NULL);
   if (poDS == NULL)
-    vw_throw(ArgumentErr() << "Failed writing file: " << file << ".\n");
+    vw_throw(ArgumentErr() << "Failed writing file: " << shapeFile << ".\n");
 
   // Write the georef
   OGRSpatialReference spatial_ref;
@@ -408,8 +411,8 @@ void write_shapefile(std::string const& file,
     }
   }
 
-  // Create either a layer of polygons, lines, or points. A
-  // shapefile cannot mix these.
+  // Create either a layer of polygons, lines, or points. A shapefile cannot mix
+  // these.
   OGRLayer *polyLayer = NULL;
   if (min_verts == 1 && max_verts == 1)
     polyLayer = poDS->CreateLayer(layer_str.c_str(), spatial_ref_ptr, wkbPoint, NULL);
@@ -424,7 +427,15 @@ void write_shapefile(std::string const& file,
   if (polyLayer == NULL)
     vw_throw(ArgumentErr() << "Failed creating layer: " << layer_str << ".\n");
 
+  // Add the field value
+  if (fieldName != "") { 
+    OGRFieldDefn oField(fieldName.c_str(), OFTInteger);
+    if (polyLayer->CreateField(&oField) != OGRERR_NONE)
+        vw_throw(ArgumentErr() << "Failed creating a field in the shapefile.\n");
+  }
+
   // Iterate over the vector of polygons
+  size_t featureId = 0;
   for (size_t vecIter = 0; vecIter < polyVec.size(); vecIter++) {
 
     vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
@@ -443,6 +454,11 @@ void write_shapefile(std::string const& file,
       int numCurrPolyVerts = numVerts[pIter];
 
       OGRFeature *poFeature = OGRFeature::CreateFeature(polyLayer->GetLayerDefn());
+
+      // Add the field value for the current polygon
+      if (fieldName != "" && featureId < fieldValues.size())
+        poFeature->SetField(fieldName.c_str(), fieldValues[featureId]);
+      featureId++;
 
       if (numCurrPolyVerts >= 3) {  // Save a polygon
 
@@ -480,13 +496,22 @@ void write_shapefile(std::string const& file,
   }
 
   GDALClose(poDS);
-}
+  
+  // Must write a QML file if saving a field with values. The caller may want 
+  // to print a message about this.
+  if (fieldName != "") {
+    std::string qmlFile 
+      = boost::filesystem::path(shapeFile).replace_extension(".qml").string();
+    vw::geometry::writeQml(qmlFile, fieldName);
+  }
+  
+} // end write_shapefile
 
 // Write a single dPoly to a shapefile (this can still have multiple polygons)
 void write_shapefile(std::string const& file,
-          bool has_geo,
-          vw::cartography::GeoReference const& geo,
-          vw::geometry::dPoly const& poly) {
+                     bool has_geo,
+                     vw::cartography::GeoReference const& geo,
+                     vw::geometry::dPoly const& poly) {
 
   std::vector<vw::geometry::dPoly> polyVec;
   polyVec.push_back(poly);
@@ -601,6 +626,47 @@ void convexHull(std::vector<vw::Vector3> const& points,
   // If there are multiple polygons, just keep the first one. It is likely that
   // there is just one polygon.
   poly = polyVec[0];
+}
+
+const std::string QML_STR1 = 
+R"(<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+<qgis version="3.0" styleCategories="Symbology|Labeling" labelsEnabled="1">
+  <renderer-v2 type="singleSymbol" enableorderby="0" symbollevels="0">
+    <symbols>
+      <symbol type="fill" name="0" alpha="1" clip_to_extent="1">
+        <layer pass="0" class="SimpleFill" locked="0" enabled="1">
+          <prop k="style" v="no"/> 
+          <prop k="outline_color" v="35,35,35,255"/>
+          <prop k="outline_style" v="solid"/>
+          <prop k="outline_width" v="0.26"/>
+          <prop k="outline_width_unit" v="MM"/>
+        </layer>
+      </symbol>
+    </symbols>
+  </renderer-v2>
+  <labeling type="simple">
+    <settings calloutType="simple">
+      <text-style fieldName=")";
+
+const std::string QML_STR2 = 
+R"(" fontFamily="Arial" fontSize="12" textColor="0,0,0,255">
+          <buffer draw="0" size="1" color="255,255,255,255"/>
+      </text-style>
+      <placement placement="1" centroidWhole="1"/>
+    </settings>
+  </labeling>
+</qgis>
+)";
+
+// Write a QML file for displaying data associated with a field in a shapefile.
+// The qml and shapefile must have same base name.
+void writeQml(std::string const& qml_file, std::string const& field_name) {
+
+  std::ofstream fs(qml_file.c_str());
+  if (fs.is_open()) {
+    fs << QML_STR1 << field_name << QML_STR2;
+    fs.close();
+  }
 }
 
 }} // end namespace vw::geometry
