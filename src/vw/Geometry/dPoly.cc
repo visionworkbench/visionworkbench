@@ -18,6 +18,10 @@
 // For MS Windows
 #define _USE_MATH_DEFINES 
 
+#include <vw/Geometry/cutPoly.h>
+#include <vw/Geometry/dPoly.h>
+#include <vw/Core/Log.h>
+
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -28,8 +32,6 @@
 #include <cstring>
 #include <string>
 #include <map>
-#include <vw/Geometry/cutPoly.h>
-#include <vw/Geometry/dPoly.h>
 
 namespace vw { namespace geometry {
 
@@ -205,7 +207,7 @@ void dPoly::get_annoByType(std::vector<anno> & annotations, AnnoType annoType) {
   }else if (annoType == layerAnno) {
     get_layerAnno(annotations);
   }else{
-    std::cout << "Unknown annotation type." << std::endl;
+    vw::vw_out() << "Unknown annotation type.\n";
   }
 
   return;
@@ -222,7 +224,7 @@ void dPoly::set_annoByType(const std::vector<anno> & annotations, AnnoType annoT
   }else if (annoType == layerAnno) {
     set_layerAnno(annotations);
   }else{
-    std::cout << "Unknown annotation type." << std::endl;
+    vw::vw_out() << "Unknown annotation type.\n";
   }
 
   return;
@@ -1208,6 +1210,8 @@ void dPoly::enforce45() {
   return;
 };
 
+// This is not used in stereo_gui as it cannot handle mutiple columns.
+// See instead read_poly_file() in ASP.
 bool dPoly::readPoly(std::string filename,
                      // If isPointCloud is true, treat each point as a
                      // singleton polygon
@@ -1220,7 +1224,7 @@ bool dPoly::readPoly(std::string filename,
   // To do: The test below will succeed if filename is a directory.
   // This is probably not right.
   ifstream fh(filename.c_str());
-  if( !fh ) {
+  if (!fh) {
     cerr << "Error: Could not open " << filename << endl;
     return false;
   }
@@ -1232,12 +1236,24 @@ bool dPoly::readPoly(std::string filename,
   string layer, line;
   string color = "yellow"; // default color for polygons
 
-  while( getline(fh, line) ) {
+  while (getline(fh, line)) {
 
-    bool isLastLine = ( fh.peek() == EOF );
+    bool isLastLine = (fh.peek() == EOF);
+    
+    // If line starts with "anno "
+    if (line.find("anno ") == 0 && searchForAnnotation(line, annotation)) {
+      m_annotations.push_back(annotation);
+      continue;
+    }
 
-    // Convert to lowercase
+    // Convert to lowercase, after extracting the annotation
     transform(line.begin(), line.end(), line.begin(), ::tolower);
+
+    // If the current line has a color, store it in 'color'. Such a line can
+    // start with 'color='. Here we do not just skip the remaining logic below
+    // as would like to record the color later.
+    if (line.find("color") == 0)
+      searchForColor(line, color);
 
     char * linePtr = (char*)line.c_str(); // To do: Avoid this casting hack.
 
@@ -1254,14 +1270,6 @@ bool dPoly::readPoly(std::string filename,
         }
         break;
       }
-    }
-
-    // If the current line has a color, store it in 'color'.
-    // Else keep 'color' unchanged.
-    searchForColor(line, color);
-
-    if (searchForAnnotation(line, annotation)) {
-      m_annotations.push_back(annotation);
     }
 
     // Extract the coordinates of the current vertex and the layer

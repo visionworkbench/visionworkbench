@@ -196,9 +196,7 @@ void minDistFromPtToSeg(//inputs
   return;
 }
 
-
-
-void searchForColor(std::string lineStr, // input, not a reference on purpose
+bool searchForColor(std::string lineStr, // input, not a reference on purpose
                     std::string & color) {  // output
 
 //   const char * xgraph_colors[] =
@@ -216,8 +214,8 @@ void searchForColor(std::string lineStr, // input, not a reference on purpose
   const char * col   = "color";
   char       * start = strstr(line, col);
 
-  if (start == NULL) return;
-  if (strlen(start) <= strlen(col)) return;
+  if (start == NULL) return false;
+  if (strlen(start) <= strlen(col)) return false;
   start += strlen(col);
 
   // Strip the equal sign, quotes, etc.
@@ -231,10 +229,9 @@ void searchForColor(std::string lineStr, // input, not a reference on purpose
 
   const char *delimiter = " \t";
   char * pch = strtok (start, delimiter);
-  if (pch == NULL) return;
+  if (pch == NULL) return false;
 
   color = string(pch);
-
   int numColors = sizeof(xgraph_colors)/sizeof(char*);
 
   // If the color is given as a number, per xgraph's conventions
@@ -244,7 +241,10 @@ void searchForColor(std::string lineStr, // input, not a reference on purpose
     color = string(xgraph_colors[colorIndex]);
   }
 
-  return;
+  if (!color.empty()) 
+    return true;
+
+  return false;
 }
 
 bool searchForAnnotation(std::string lineStr, anno & annotation) {
