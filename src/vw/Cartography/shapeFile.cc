@@ -215,8 +215,8 @@ void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
 
 // Extract a multi-polygon from OGR
 void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
-              std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
-              bool append) {
+             std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
+             bool append) {
 
   if (!append) polyVec.clear();
 
@@ -276,12 +276,13 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
   }
 }
 
-// Read a shapefile
+// Read a shapefile. Integer values stored at fieldName will become annotations.
 void read_shapefile(std::string const& file,
                     std::string const& poly_color,
                     bool & has_geo,
                     vw::cartography::GeoReference & geo,
-                    std::vector<vw::geometry::dPoly> & polyVec) {
+                    std::vector<vw::geometry::dPoly> & polyVec,
+                    std::string const& fieldName) {
 
   // Make sure the outputs are initialized
   has_geo = false;
@@ -338,12 +339,39 @@ void read_shapefile(std::string const& file,
   // to be the identity.
   geo.set_pixel_interpretation(vw::cartography::GeoReference::PixelAsPoint);
 
-  OGRFeature *poFeature;
+  OGRFeature *poFeature = NULL;
   poLayer->ResetReading();
   while ((poFeature = poLayer->GetNextFeature()) != NULL) {
     OGRGeometry *poGeometry = poFeature->GetGeometryRef();
     bool append = true;
     fromOGR(poGeometry, poly_color, layer_str, polyVec, append);
+    std::cout << "--poly vec size is " << polyVec.size() << "\n";
+    
+    // Read integer field values if requested. It is assumed there is one
+    // value per polygon.
+    if (fieldName != "") {
+       int val = poFeature->GetFieldAsInteger(fieldName.c_str());
+       std::cout << "---val is " << val << "\n";
+       double xll = -1.0, yll = -1.0, xur = -1.0, yur = -1.0;
+       if (!polyVec.empty()) {
+         polyVec.back().bdBox(xll, yll, xur, yur);
+         std::cout << "--bounds are " << xll << " " << yll << " "
+                   << xur << " " << yur << "\n";
+          
+          // Form the annotation         
+          double midx = 0.5 * (xll + xur);
+          double midy = 0.5 * (yll + yur);
+          vw::geometry::anno a;
+          a.x = midx;
+          a.y = midy;
+          a.label = num2str(val);
+          // form and push to vector of annotations
+          std::vector<vw::geometry::anno> annotations;
+          annotations.push_back(a);
+          polyVec.back().set_annotations(annotations);
+       }
+    }
+                
     OGRFeature::DestroyFeature(poFeature);
   }
 

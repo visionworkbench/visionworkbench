@@ -68,12 +68,13 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
               std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
               bool append);
 
-// Read a shapefile
+// Read a shapefile. Integer values stored at fieldName will become annotations.
 void read_shapefile(std::string const& file,
         std::string const& poly_color,
         bool & has_geo,
         vw::cartography::GeoReference & geo,
-        std::vector<vw::geometry::dPoly> & polyVec);
+        std::vector<vw::geometry::dPoly> & polyVec,
+        std::string const& fieldName = "");
 
 // Write a set of dPolys to a shapefile. Can also have a field with values that 
 // will be displayed in QGIS at the centroid of each polygon. In the latter 
