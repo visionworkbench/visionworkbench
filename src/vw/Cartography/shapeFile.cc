@@ -340,9 +340,9 @@ void read_shapefile(std::string const& file,
       OGRGeomFieldDefn* poGFldDefn =
         poLayer->GetLayerDefn()->GetGeomFieldDefn(iGeom);
       OGRSpatialReference* poSRS = (OGRSpatialReference*)poGFldDefn->GetSpatialRef();
-      if (poSRS == NULL)
+      if (poSRS == NULL) {
         pszWKT = CPLStrdup("(unknown)");
-      else {
+      } else {
         has_geo = true;
         poSRS->exportToPrettyWkt(&pszWKT);
         // Stop at the first geom
@@ -350,21 +350,23 @@ void read_shapefile(std::string const& file,
       }
     }
   } else {
-    if (poLayer->GetSpatialRef() == NULL)
+    if (poLayer->GetSpatialRef() == NULL) {
       pszWKT = CPLStrdup("(unknown)");
-    else {
+    } else {
       has_geo = true;
       poLayer->GetSpatialRef()->exportToPrettyWkt(&pszWKT);
     }
   }
-  geo.set_wkt(pszWKT);
+  if (has_geo)
+    geo.set_wkt(pszWKT);
   if (pszWKT != NULL)
     CPLFree(pszWKT);
 
   // There is no georef per se, as there is no image. The below forces
   // that the map from projected coordinates to pixel coordinates (point_to_pixel())
   // to be the identity.
-  geo.set_pixel_interpretation(vw::cartography::GeoReference::PixelAsPoint);
+  if (has_geo)
+    geo.set_pixel_interpretation(vw::cartography::GeoReference::PixelAsPoint);
 
   OGRFeature *poFeature = NULL;
   poLayer->ResetReading();
