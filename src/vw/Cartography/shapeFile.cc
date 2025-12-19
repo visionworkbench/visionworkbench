@@ -286,7 +286,14 @@ void readField(OGRFeature *poFeature,
   if (polyVec.empty() || polyVec.back().get_totalNumVerts() == 0)
     return; 
     
-  int val = poFeature->GetFieldAsInteger(fieldName.c_str());
+  int fieldIndex = poFeature->GetFieldIndex(fieldName.c_str());
+  if (fieldIndex < 0)
+    return; // field does not exist
+
+  if (!poFeature->IsFieldSetAndNotNull(fieldIndex))
+    return; // field is not set
+
+  int val = poFeature->GetFieldAsInteger(fieldIndex);
 
   double xll = -1.0, yll = -1.0, xur = -1.0, yur = -1.0;
   polyVec.back().bdBox(xll, yll, xur, yur);
