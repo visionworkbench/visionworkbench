@@ -1243,7 +1243,7 @@ bool dPoly::readPoly(std::string filename,
     // If line starts with "anno "
     if (line.find("anno ") == 0 && searchForAnnotation(line, annotation)) {
       m_annotations.push_back(annotation);
-      continue;
+      // Continue with rest of processing, to handle the isLastLine case
     }
 
     // Convert to lowercase, after extracting the annotation
