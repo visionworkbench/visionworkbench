@@ -497,14 +497,6 @@ void write_shapefile(std::string const& shapeFile,
 
   GDALClose(poDS);
   
-  // Must write a QML file if saving a field with values. The caller may want 
-  // to print a message about this.
-  if (fieldName != "") {
-    std::string qmlFile 
-      = boost::filesystem::path(shapeFile).replace_extension(".qml").string();
-    vw::geometry::writeQml(qmlFile, fieldName);
-  }
-  
 } // end write_shapefile
 
 // Write a single dPoly to a shapefile (this can still have multiple polygons)
