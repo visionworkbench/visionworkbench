@@ -108,6 +108,8 @@ std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log
   }
 }
 
+vw::Log::Log() : m_console_log(new LogInstance(std::cout, false)) { }
+vw::Log::~Log() {}
 
 std::ostream& vw::Log::operator() (int log_level, std::string const& log_namespace) {
   // First, check to see if the rc file has been updated.

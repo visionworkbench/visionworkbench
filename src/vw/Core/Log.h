@@ -437,7 +437,8 @@ namespace vw {
     /// using this constructor.  Instead, you can access a global
     /// instance of the log class using the static Log::system_log()
     /// method below.
-    Log() : m_console_log(new LogInstance(std::cout, false)) { }
+    Log();
+    ~Log();
 
     /// The call operator returns a subclass of the basic_ostream
     /// object, which is suitable for use with the C++ << operator.
