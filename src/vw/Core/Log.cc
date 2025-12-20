@@ -79,23 +79,23 @@ vw::LogInstance::LogInstance(std::string const& log_filename, bool prepend_infos
 
   *m_log_ostream_ptr << "\n\n" << "Vision Workbench log started at " << current_posix_time_string() << ".\n\n";
 
-  m_log_stream.set_stream(*m_log_ostream_ptr);
+  m_log_stream = new PerThreadBufferedStream<char>(*m_log_ostream_ptr);
 }
 
-vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(log_ostream),
+vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(new PerThreadBufferedStream<char>(log_ostream)),
                                                                                   m_log_ostream_ptr(NULL),
                                                                                   m_prepend_infostamp(prepend_infostamp) {}
 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
     if (m_prepend_infostamp)
-      m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
+      *m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
     switch (log_level) {
-    case ErrorMessage:   m_log_stream << "Error: ";   break;
-    case WarningMessage: m_log_stream << "Warning: "; break;
+    case ErrorMessage:   *m_log_stream << "Error: ";   break;
+    case WarningMessage: *m_log_stream << "Warning: "; break;
     default: break;
     }
-    return m_log_stream;
+    return *m_log_stream;
   } else {
     return g_null_ostream;
   }

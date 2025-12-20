@@ -368,7 +368,7 @@ namespace vw {
   // -------------------------------------------------------
   //
   class LogInstance : private boost::noncopyable {
-    PerThreadBufferedStream<char> m_log_stream;
+    PerThreadBufferedStream<char>* m_log_stream;
     std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
@@ -385,9 +385,10 @@ namespace vw {
     LogInstance(std::ostream& log_ostream, bool prepend_infostamp = true);
 
     ~LogInstance() {
-      m_log_stream.set_stream(std::cout);
+      m_log_stream->set_stream(std::cout);
       if (m_log_ostream_ptr)
         delete static_cast<std::ofstream*>(m_log_ostream_ptr);
+      delete m_log_stream;
     }
 
     /// This method return an ostream that you can write a log message
