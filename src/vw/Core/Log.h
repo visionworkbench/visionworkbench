@@ -22,14 +22,14 @@
 /// classes provides:
 ///
 /// - Buffering of the log messages on a per-thread messages so that
-///   messages form different threads are nicelely interleaved in the
+///   messages form different threads are nicely interleaved in the
 ///   log.
 ///
 /// Some notes on the behavior of the log.
 ///
 /// - A new line in the logfile starts every time a newline character
 ///   appears at the end of a string of characters, or when you
-///   exlicitly add std::flush() to the stream of operators.
+///   explicitly add std::flush() to the stream of operators.
 
 #ifndef __VW_CORE_LOG_H__
 #define __VW_CORE_LOG_H__
@@ -184,7 +184,7 @@ namespace vw {
   // Some handy typedefs
   //
   // These are made to be lower case names to jive with the C++ std
-  // library naming convertion for streams (i.e. std::cin, std::cout,
+  // library naming convention for streams (i.e. std::cin, std::cout,
   // etc.)
   typedef NullOutputStream<char> null_ostream;
   typedef MultiOutputStream<char> multi_ostream;
@@ -193,7 +193,7 @@ namespace vw {
   // In order to create our own C++ streams compatible ostream object,
   // we must first define a subclass of basic_streambuf<>, which
   // handles stream output on a character by character basis.  This is
-  // not the most elegent block of code, but this seems to be the
+  // not the most elegant block of code, but this seems to be the
   // "approved" method for defining custom behaviour in a subclass of
   // basic_ostream<>.
   template<class CharT, class traits = std::char_traits<CharT> >
@@ -226,7 +226,7 @@ namespace vw {
         buffer.push_back(static_cast<CharT>(c));
       }
 
-      // If the last character is a newline or cairrage return, then
+      // If the last character is a newline or carrage return, then
       // we force a call to sync().
       if ( c == '\n' || c == '\r' )
         locked_sync(buffer);
