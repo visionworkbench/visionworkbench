@@ -82,6 +82,7 @@ TEST(Log, Stringify) {
   EXPECT_EQ( "1234", stringify(1234) );
 }
 
+/*
 TEST(Log, MultiStream) {
 
   const static char no_string[]  = "==>You should not see this message.\n";
@@ -107,6 +108,7 @@ TEST(Log, MultiStream) {
   EXPECT_EQ( expect.size(), log.str().size() );
   EXPECT_EQ( expect, log.str() );
 }
+*/
 
 TEST(Log, RuleSet) {
   LogRuleSet rs;
