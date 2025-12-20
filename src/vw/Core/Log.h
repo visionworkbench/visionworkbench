@@ -132,7 +132,7 @@ namespace vw {
 
   // -------------------------------------------------------
   class LogInstance : private boost::noncopyable {
-    PerThreadBufferedStream* m_log_stream;
+    boost::shared_ptr<PerThreadBufferedStream> m_log_stream;
     std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;

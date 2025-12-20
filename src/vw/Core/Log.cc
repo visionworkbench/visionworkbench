@@ -309,7 +309,7 @@ vw::LogInstance::LogInstance(std::string const& log_filename, bool prepend_infos
 
   *m_log_ostream_ptr << "\n\n" << "Vision Workbench log started at " << current_posix_time_string() << ".\n\n";
 
-  m_log_stream = new PerThreadBufferedStream(*m_log_ostream_ptr);
+  m_log_stream = boost::shared_ptr<PerThreadBufferedStream>(new PerThreadBufferedStream(*m_log_ostream_ptr));
 }
 
 vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(new PerThreadBufferedStream(log_ostream)),
@@ -320,7 +320,6 @@ vw::LogInstance::~LogInstance() {
   m_log_stream->set_stream(std::cout);
   if (m_log_ostream_ptr)
     delete static_cast<std::ofstream*>(m_log_ostream_ptr);
-  delete m_log_stream;
 }
 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log_namespace) {
