@@ -86,6 +86,13 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
                                                                                   m_log_ostream_ptr(NULL),
                                                                                   m_prepend_infostamp(prepend_infostamp) {}
 
+vw::LogInstance::~LogInstance() {
+  m_log_stream->set_stream(std::cout);
+  if (m_log_ostream_ptr)
+    delete static_cast<std::ofstream*>(m_log_ostream_ptr);
+  delete m_log_stream;
+}
+
 std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
     if (m_prepend_infostamp)

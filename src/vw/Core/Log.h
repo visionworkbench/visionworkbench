@@ -384,12 +384,7 @@ namespace vw {
     // object _before_ closing and de-allocating the stream.
     LogInstance(std::ostream& log_ostream, bool prepend_infostamp = true);
 
-    ~LogInstance() {
-      m_log_stream->set_stream(std::cout);
-      if (m_log_ostream_ptr)
-        delete static_cast<std::ofstream*>(m_log_ostream_ptr);
-      delete m_log_stream;
-    }
+    ~LogInstance();
 
     /// This method return an ostream that you can write a log message
     /// to if the rule_set matches the log level and namespace
