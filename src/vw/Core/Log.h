@@ -76,17 +76,17 @@ namespace vw {
   /// \cond INTERNAL
 
   // Forward declarations for internal stream classes
-  template<typename CharT, typename traits = std::char_traits<CharT> > class NullOutputStream;
-  template<typename CharT, typename traits = std::char_traits<CharT> > class MultiOutputStream;
-  template<class CharT, class traits = std::char_traits<CharT> > class PerThreadBufferedStream;
+  class NullOutputStream;
+  class MultiOutputStream;
+  class PerThreadBufferedStream;
 
   // Some handy typedefs
   //
   // These are made to be lower case names to jive with the C++ std
   // library naming convention for streams (i.e. std::cin, std::cout,
   // etc.)
-  typedef NullOutputStream<char> null_ostream;
-  typedef MultiOutputStream<char> multi_ostream;
+  typedef NullOutputStream null_ostream;
+  typedef MultiOutputStream multi_ostream;
 
   /// \endcond
 
@@ -131,11 +131,8 @@ namespace vw {
 
 
   // -------------------------------------------------------
-  //                         LogInstance
-  // -------------------------------------------------------
-  //
   class LogInstance : private boost::noncopyable {
-    PerThreadBufferedStream<char>* m_log_stream;
+    PerThreadBufferedStream* m_log_stream;
     std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
