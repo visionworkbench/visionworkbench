@@ -15,7 +15,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++14")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 set(CMAKE_EXE_LINKER_FLAGS "-pthread -lpthread")
 
-set(USE_OPENEXR ON CACHE BOOL "Use EXR (default ON)")
+# VisionWorkbench cannot be built with latest OpenEXR due to API changes.
+# The few places where this library was used were changed to use text files
+# instead of .exr files. So we disable OpenEXR support by default.
+set(USE_OPENEXR OFF CACHE BOOL "Use EXR (default OFF)")
 
 if (APPLE)
     # A workaround for the clang included with conda build
