@@ -233,7 +233,7 @@ namespace ip {
                                  Vector2i( x - lobe, y + 1 ),
                                  Vector2i( x, y + lobe + 1 ) );
 
-    // Adding positve bottom right
+    // Adding positive bottom right
     derivative += IntegralBlock( integral,
                                  Vector2i( x + 1, y + 1 ),
                                  Vector2i( x + 1 + lobe, y + 1 + lobe ) );

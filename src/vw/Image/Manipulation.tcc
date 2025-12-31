@@ -1023,6 +1023,22 @@ struct PixelChannelCastFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChanne
 
 
 // *******************************************************************
+// channel_cast_round_and_clamp()
+// *******************************************************************
+
+/// A pixel channel casting, rounding and clamping functor, used by
+/// \ref channel_cast_round_and_clamp().
+/// This uses the function with the same name from vw/Image/PixelTypeInfo.h.
+template <class ChannelT>
+struct PixelChannelCastRoundClampFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChannelCast,ChannelT> {
+  template <class ArgT>
+  inline typename CompoundChannelCast<ArgT,ChannelT>::type operator()( ArgT const& pixel ) const {
+    return channel_cast_round_and_clamp<ChannelT>(pixel);
+  }
+};
+
+
+// *******************************************************************
 // channel_cast_rescale()
 // *******************************************************************
 

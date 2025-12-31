@@ -15,14 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file Manipulation.h
 ///
-/// Simple image manipulation functions, such as flipping and
-/// cropping.  All of the functions in this file except copy() return
-/// <i>shallow</i> views of the ImageView.  That is, they do not copy
-/// the data underneath but instead they refer to the same data,
-/// indexing and accessing it in a different way.
+/// Simple image manipulation functions, such as flipping and cropping.  All of
+/// the functions in this file except copy() return shallow views of the
+/// ImageView.  That is, they do not copy the data underneath but instead they
+/// refer to the same data, indexing and accessing it in a different way.
 ///
 /// The first collection of functions in this file perform basic
 /// transformations to the domain of the image, such as transposition,
@@ -42,7 +40,9 @@
 /// - pixel_cast_rescale  () : same as above, but rescales pixel values appropriately
 /// - channel_cast        () : casts the channels of an image while retaining the pixel format
 /// - channel_cast_rescale() : same as above, but rescales pixel values appropriately
-///
+/// - channel_cast_round_and_clamp(): round, clamp, then cast. 
+/// See PixelMath.h for round(), Algorithms.h for clamp(), etc.
+
 #ifndef __VW_IMAGE_MANIPULATION_H__
 #define __VW_IMAGE_MANIPULATION_H__
 
@@ -498,6 +498,23 @@ namespace vw {
   template <class ChannelT, class ImageT>
   inline UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> > channel_cast( ImageViewBase<ImageT> const& image ) {
     return UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> >( image.impl() );
+  }
+
+
+  // *******************************************************************
+  // channel_cast_round_and_clamp()
+  // *******************************************************************
+
+  /// A pixel channel casting, rounding and clamping functor, used by
+  /// \ref channel_cast_round_and_clamp().
+  template <class ChannelT>
+  struct PixelChannelCastRoundClampFunctor;
+
+  /// Create a new image view by casting, rounding, and clamping the channels of
+  /// the pixels to a new type.
+  template <class ChannelT, class ImageT>
+  inline UnaryPerPixelView<ImageT,PixelChannelCastRoundClampFunctor<ChannelT> > channel_cast_round_and_clamp( ImageViewBase<ImageT> const& image ) {
+    return UnaryPerPixelView<ImageT,PixelChannelCastRoundClampFunctor<ChannelT> >( image.impl() );
   }
 
 
