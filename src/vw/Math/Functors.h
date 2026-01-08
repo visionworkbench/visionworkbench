@@ -37,7 +37,6 @@
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
-#include <vw/config.h>
 
 #include <queue>
 
@@ -460,7 +459,7 @@ namespace vw {
         return m_values.size();
       }
       
-      ValT value() {
+      double value() {
         return destructive_median(m_values);
       }
     };

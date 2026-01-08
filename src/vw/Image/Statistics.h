@@ -156,7 +156,7 @@ namespace vw {
   /// values in the image, which is time- and memory-intensive, so
   /// this operation is not recommended for large images.
   template <class ViewT>
-  typename PixelChannelType<typename ViewT::pixel_type>::type
+  double
   median_channel_value( const ImageViewBase<ViewT> &view ) {
     typedef typename PixelChannelType<typename ViewT::pixel_type>::type accum_type;
     ChannelAccumulator<MedianAccumulator<accum_type> > accumulator;
