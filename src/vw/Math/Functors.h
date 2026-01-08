@@ -389,54 +389,34 @@ namespace vw {
     };
 
     // Note: This function modifies the input!
+    // Note that we always return double, for precision.
     template <class T>
-    T destructive_median(std::vector<T> & vec) {
+    double destructive_median(std::vector<T> & vec) {
       int len = vec.size();
       VW_ASSERT(len, ArgumentErr() << "median: no valid samples.");
       std::sort(vec.begin(), vec.end());
-      return len%2 ? vec[len/2] : (vec[len/2 - 1] + vec[len/2]) / 2;
+      return len%2 ? vec[len/2] : (vec[len/2 - 1] + vec[len/2]) / 2.0;
     }
-
-    // Computes the median of the values to which it is applied.
-    template <class ValT>
-    class MedianAccumulator : public ReturnFixedType<void> {
-      std::vector<ValT> m_values;
-    public:
-      typedef ValT value_type;
-
-      void operator()( ValT const& value ) {
-        m_values.push_back( value );
-      }
-
-      // This is to check if there are any values
-      size_t size() {
-        return m_values.size();
-      }
-      
-      ValT value() {
-        return destructive_median(m_values);
-      }
-    };
 
     // Compute the normalized median absolute deviation:
     // nmad = 1.4826 * median(abs(X - median(X)))  
     // Note: This function modifies the input!
+    // This always return double, for precision.
     template <class T>
-    T destructive_nmad(std::vector<T> & vec){
+    double destructive_nmad(std::vector<T> & vec){
       int len = vec.size();
       VW_ASSERT(len, ArgumentErr() << "nmad: no valid samples.");
       
       // Find the median. This sorts the vector, but that is not a problem.
-      T median = destructive_median(vec);
+      double median = destructive_median(vec);
       
+      // It is safer to make a copy of the vector specifically for the
+      // mad calculation, so that not to mess up the sorted values in vec.
+      std::vector<double> abs_diffs(len);
       for (size_t it = 0; it < vec.size(); it++)
-        vec[it] = std::abs(vec[it] - median);
+        abs_diffs[it] = std::abs(vec[it] - median);
       
-      median = destructive_median(vec);
-      
-      median *= 1.4826;
-      
-      return median;
+      return 1.4826 * destructive_median(abs_diffs);
     }
   
     // Compute the percentile using
@@ -463,6 +443,27 @@ namespace vw {
         
       return vec[index];
     }
+
+    // Computes the median of the values to which it is applied.
+    template <class ValT>
+    class MedianAccumulator : public ReturnFixedType<void> {
+      std::vector<ValT> m_values;
+    public:
+      typedef ValT value_type;
+
+      void operator()( ValT const& value ) {
+        m_values.push_back( value );
+      }
+
+      // This is to check if there are any values
+      size_t size() {
+        return m_values.size();
+      }
+      
+      ValT value() {
+        return destructive_median(m_values);
+      }
+    };
 
     /// Computes the mean of the values to which it is applied.
     template <class ValT>
