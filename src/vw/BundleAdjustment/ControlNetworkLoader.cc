@@ -115,9 +115,50 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       // good test.
       
       try {
-        stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
-                               angle_tol);
-        Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
+        
+        Vector3 pt;
+        bool do_bathy = false;
+        
+        // Check if we need to do bathymetry
+        if (bathy_data.refraction_index > 1.0 && !bathy_data.bathy_masks.empty() &&
+            j_cam_id < bathy_data.bathy_masks.size() &&
+            k_cam_id < bathy_data.bathy_masks.size()) {
+          
+          if (areMasked(bathy_data.bathy_masks[j_cam_id], bathy_data.bathy_masks[k_cam_id],
+                        cp[j].position(), cp[k].position())) {
+            do_bathy = true;
+          }
+        }
+
+        if (do_bathy) {
+          BathyStereoModel bsm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(), angle_tol);
+          
+          std::vector<BathyPlane> planes;
+          if (j_cam_id < bathy_data.bathy_planes.size() && k_cam_id < bathy_data.bathy_planes.size()) {
+            planes.push_back(bathy_data.bathy_planes[j_cam_id]);
+            planes.push_back(bathy_data.bathy_planes[k_cam_id]);
+          } else if (!bathy_data.bathy_planes.empty()) {
+             planes.push_back(bathy_data.bathy_planes[0]);
+             planes.push_back(bathy_data.bathy_planes[0]);
+          }
+          
+          bsm.set_bathy(bathy_data.refraction_index, planes);
+          
+          std::vector<Vector2> pixVec;
+          pixVec.push_back(cp[j].position());
+          pixVec.push_back(cp[k].position());
+          Vector3 errorVec;
+          bool do_bathy = true;
+          bool did_bathy = false; // will change
+          pt = bsm(pixVec, errorVec, do_bathy, did_bathy);
+          error = norm_2(errorVec);
+          
+        } else {
+          stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
+                                 angle_tol);
+          pt = sm(cp[j].position(), cp[k].position(), error);
+        }
+
         if (pt != Vector3()) {
           count++;
           position_sum += pt;
