@@ -24,7 +24,7 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Stereo/BathyStereoModel.h>
+#include <vw/Cartography/BathyStereoModel.h>
 #include <vw/Core/Exception.h>
 
 #include <iostream>

@@ -23,7 +23,7 @@
 #include <vw/Core/ThreadPool.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/Image/Algorithms.h>
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>

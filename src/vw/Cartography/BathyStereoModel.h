@@ -15,8 +15,10 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_BATHYSTEREOMODEL_H__
-#define __VW_STEREO_BATHYSTEREOMODEL_H__
+// This file is here because it depends on the Cartography module.
+
+#ifndef __VW_CARTOGRAPHY_BATHYSTEREOMODEL_H__
+#define __VW_CARTOGRAPHY_BATHYSTEREOMODEL_H__
 
 #include <vw/Math/Vector.h>
 #include <vw/Stereo/StereoModel.h>
@@ -110,4 +112,4 @@ private:
 
 } // namespace vw
 
-#endif  // __VW_STEREO_BATHYSTEREOMODEL_H__
+#endif  // __VW_CARTOGRAPHY_BATHYSTEREOMODEL_H__

@@ -279,7 +279,7 @@ set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 # --- VW_CARTOGRAPHY ------------------------------------------------------------
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
-set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry VwStereo
     ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
