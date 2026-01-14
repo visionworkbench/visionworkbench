@@ -82,27 +82,27 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   cp.set_position((Vector3(0, 0, 0)));
   
   // Do pairwise triangulation then average the results. For speed, consider
-  // only each ray and next 10 rays. Should be enough. Note that as long as at
-  // least two of the rays meet with a triangulation angle no less than
-  // min_angle_radians, triangulation will succeed, and these successful
-  // triangulation points will be averaged. Hence, while some of the rays can
-  // meet at a very small angle, their intersection, being unreliable, will not
-  // be added to the mix. This allows, for example, for a triplet of rays, R1,
-  // R2, R3, all corresponding to matching features and converging to the same
-  // triangulated point, so that R1 and R2 have a very small angle, but R1 and
-  // R3, then R2 and R3 have a very solid angle. This triangulated point should
-  // be robust enough if the min triangulation angle is, say, no less than 5
-  // degrees, and ideally 15-20 degrees or more.
+  // only each ray and next 10 rays. Note that as long as at least two of the
+  // rays meet with a triangulation angle no less than min_angle_radians,
+  // triangulation will succeed, and these successful triangulation points will
+  // be averaged. Hence, while some of the rays can meet at a very small angle,
+  // their intersection, being unreliable, will not be added to the mix. This
+  // allows, for example, for a triplet of rays, R1, R2, R3, all corresponding
+  // to matching features and converging to the same triangulated point, so that
+  // R1 and R2 have a very small angle, but R1 and R3, then R2 and R3 have a
+  // very solid angle. This triangulated point should be robust enough if the
+  // min triangulation angle is, say, no less than 5 degrees, and ideally 15-20
+  // degrees or more. Maybe need to weigh less the triangulated points with very
+  // small angles or even exclude them if there is better data.
   for (size_t j = 0; j < cp.size(); j++) {
     for (size_t k = j + 1; k < std::min(j + 11, cp.size()); k++) {
       size_t j_cam_id = cp[j].image_id();
       size_t k_cam_id = cp[k].image_id();
       
-      // Make sure camera centers are not equal
+      // The cameras must not be at the same position. Catch exceptions too.
       try {
-        // This trips up the CSM frame camera model
-        auto const& c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
-        auto const& c2 = camera_models[k_cam_id]->camera_center(cp[k].position());
+        vw::Vector3 c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
+        vw::Vector3 c2 = camera_models[k_cam_id]->camera_center(cp[k].position());
         if (norm_2(c1 - c2) <= 1e-6)
           continue;
       } catch (...) {
@@ -116,10 +116,8 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       
       try {
         
-        Vector3 pt;
-        bool do_bathy = false;
-        
         // Check if we need to do bathymetry
+        bool do_bathy = false;
         if (bathy_data.refraction_index > 1.0 && !bathy_data.bathy_masks.empty() &&
             j_cam_id < bathy_data.bathy_masks.size() &&
             k_cam_id < bathy_data.bathy_masks.size()) {
@@ -129,34 +127,24 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
             do_bathy = true;
           }
         }
-
+        
+        // Do triangulation, without or with bathymetry
+        Vector3 pt;
+        std::vector<Vector2> pixVec = {cp[j].position(), cp[k].position()};
         if (do_bathy) {
-          BathyStereoModel bsm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(), angle_tol);
-          
-          std::vector<BathyPlane> planes;
-          if (j_cam_id < bathy_data.bathy_planes.size() && k_cam_id < bathy_data.bathy_planes.size()) {
-            planes.push_back(bathy_data.bathy_planes[j_cam_id]);
-            planes.push_back(bathy_data.bathy_planes[k_cam_id]);
-          } else if (!bathy_data.bathy_planes.empty()) {
-             planes.push_back(bathy_data.bathy_planes[0]);
-             planes.push_back(bathy_data.bathy_planes[0]);
-          }
-          
+          BathyStereoModel bsm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
+                               angle_tol);
+          std::vector<BathyPlane> planes = {bathy_data.bathy_planes.at(j_cam_id),
+                                            bathy_data.bathy_planes.at(k_cam_id)};
           bsm.set_bathy(bathy_data.refraction_index, planes);
-          
-          std::vector<Vector2> pixVec;
-          pixVec.push_back(cp[j].position());
-          pixVec.push_back(cp[k].position());
           Vector3 errorVec;
-          bool do_bathy = true;
-          bool did_bathy = false; // will change
+          bool do_bathy = true, did_bathy = false;
           pt = bsm(pixVec, errorVec, do_bathy, did_bathy);
           error = norm_2(errorVec);
-          
         } else {
           stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
                                  angle_tol);
-          pt = sm(cp[j].position(), cp[k].position(), error);
+          pt = sm(pixVec, error);
         }
 
         if (pt != Vector3()) {
