@@ -73,10 +73,9 @@ namespace stereo {
 
     StereoView( DisparityImageT const& disparity_map,
                 vw::camera::CameraModel const* camera_model1,
-                vw::camera::CameraModel const* camera_model2,
-                bool least_squares_refine = false) :
+                vw::camera::CameraModel const* camera_model2) :
       m_disparity_map(disparity_map),
-      m_stereo_model(camera_model1, camera_model2, least_squares_refine) {}
+      m_stereo_model(camera_model1, camera_model2) {}
 
     StereoView( DisparityImageT const& disparity_map,
                 StereoModel const& stereo_model) :
@@ -128,13 +127,6 @@ namespace stereo {
                                          vw::camera::CameraModel const* camera1,
                                          vw::camera::CameraModel const* camera2 ) {
     return StereoView<ImageT>( v.impl(), camera1, camera2 );
-  }
-
-  template <class ImageT>
-  StereoView<ImageT> lsq_stereo_triangulate( ImageViewBase<ImageT> const& v,
-                                             vw::camera::CameraModel const* camera1,
-                                             vw::camera::CameraModel const* camera2 ) {
-    return StereoView<ImageT>( v.impl(), camera1, camera2, true );
   }
 
   // This per pixel functor applies a universe radius to a point

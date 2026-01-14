@@ -47,47 +47,25 @@ namespace vw { namespace stereo {
     return 0.5 * (closestPoint1 + closestPoint2);
   }
 
-namespace detail {
-  
-  class PointLMA: public math::LeastSquaresModelBase<PointLMA> {
-    vector<const camera::CameraModel *> m_cameras;
-    
-  public:
-    typedef Vector<double,4> result_type;
-    typedef Vector<double,3> domain_type;
-    typedef Matrix<double> jacobian_type;
-    
-    PointLMA(vector<const camera::CameraModel *>  const& cameras):
-      m_cameras(cameras) {}
-    
-    inline result_type operator()( domain_type const& x ) const {
-      Vector4 output;
-      subvector(output,0,2) = m_cameras[0]->point_to_pixel( x );
-      subvector(output,2,2) = m_cameras[1]->point_to_pixel( x );
-      return output;
-    }
-  };
-} // end namespace detail (still staying within namespace vw::stereo)
+
   
 // Constructor with n cameras
 StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
-                         bool least_squares_refine, double angle_tol):
+                         double angle_tol):
   m_cameras(cameras),
-  m_least_squares(least_squares_refine), m_angle_tol(angle_tol) {}
+  m_angle_tol(angle_tol) {}
   
 // Constructor with two cameras
 StereoModel::StereoModel(camera::CameraModel const* camera_model1,
                          camera::CameraModel const* camera_model2,
-                         bool least_squares_refine, double angle_tol) {
+                         double angle_tol) {
   m_cameras.clear();
   m_cameras.push_back(camera_model1);
   m_cameras.push_back(camera_model2);
-  m_least_squares = least_squares_refine;
   m_angle_tol = angle_tol;
 }
 
-bool StereoModel::are_nearly_parallel(bool least_squares,
-                                      double angle_tol,
+bool StereoModel::are_nearly_parallel(double angle_tol,
                                       std::vector<Vector3> const& camDirs) {
 
   // If the camera directions are nearly parallel, there will be very
@@ -100,9 +78,7 @@ bool StereoModel::are_nearly_parallel(bool least_squares,
   // This threshold was chosen empirically for now, but should
   // probably be revisited once a more rigorous analysis has
   // been completed. -mbroxton (11-MAR-07)
-  double tol;
-  if (least_squares) tol = 1e-5;
-  else               tol = 1e-4;
+  double tol = 1e-4;
 
   if (angle_tol > 0) tol = angle_tol; // can be over-ridden from the outside
 
@@ -150,18 +126,11 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     if (camDirs.size() < 2) 
       return Vector3();
 
-    if (are_nearly_parallel(m_least_squares, m_angle_tol, camDirs)) 
+    if (are_nearly_parallel(m_angle_tol, camDirs)) 
       return Vector3();
 
     // Determine range by triangulation
     Vector3 result = triangulate_point(camDirs, camCtrs, errorVec);
-    if ( m_least_squares ){
-      if (num_cams == 2)
-        refine_point(pixVec[0], pixVec[1], result);
-      else
-        vw::vw_throw(vw::NoImplErr() << "Least squares refinement is not "
-                     << "implemented for multi-view stereo.");
-    }
     
     // Reflect points that fall behind one of the two cameras.
     bool reflect = false;
@@ -280,21 +249,6 @@ Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
   errorVec = Vector3(err, 0, 0);
     
   return P;
-}
-
-void StereoModel::refine_point(Vector2 const& pix1,
-                               Vector2 const& pix2,
-                               Vector3& point) const {
-
-  // Refine the point by minimizing the least squares error in pixel domain.
-
-  detail::PointLMA model( m_cameras );
-  Vector4 objective( pix1[0], pix1[1], pix2[0], pix2[1] );
-  int status = 0;
-  Vector3 npoint = levenberg_marquardt( model, point,
-                                        objective, status, 1e-3, 1e-6, 10 );
-  if ( status > 0 )
-    point = npoint;
 }
 
 ImageView<Vector3>
