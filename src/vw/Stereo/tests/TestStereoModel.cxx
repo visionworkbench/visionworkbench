@@ -55,12 +55,6 @@ TEST( StereoModel, PinholeStereo ) {
     Vector3 pt2 = st(px1, px2, error);
     EXPECT_VECTOR_NEAR( point, pt2, 1e-6 );
   }
-  {
-    StereoModel st(&pin1,&pin2,true);
-    double error;
-    Vector3 pt2 = st(px1, px2, error);
-    EXPECT_VECTOR_NEAR( point, pt2, 1e-8 );
-  }
 }
 
 TEST( StereoModel, AdjustedStereo ) {
@@ -99,12 +93,6 @@ TEST( StereoModel, AdjustedStereo ) {
     Vector3 pt2 = st(px1, px2, error);
 
     EXPECT_VECTOR_NEAR( point, pt2, 1e-6 );
-  }
-  {
-    StereoModel st(&adj1,&adj2,true);
-    double error;
-    Vector3 pt2 = st(px1, px2, error);
-    EXPECT_VECTOR_NEAR( point, pt2, 1e-8 );
   }
 }
 
@@ -159,10 +147,6 @@ TEST( StereoView, Vec2 ) {
   EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
   EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
   EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
-  ImageView<Vector3> lpc = lsq_stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_NEAR( lpc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
-  EXPECT_VECTOR_NEAR( lpc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( lpc(2,0), Vector3(0.769,0,0.769), 1e-2 );
 }
 
 TEST( StereoView, PixelMaskFloat ) {
@@ -189,11 +173,6 @@ TEST( StereoView, PixelMaskFloat ) {
   EXPECT_VECTOR_DOUBLE_EQ( pc(0,0), Vector3() );
   EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
   EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
-  ImageView<Vector3> lpc = lsq_stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_DOUBLE_EQ( lpc(0,0), Vector3() );
-  EXPECT_VECTOR_NEAR( lpc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( lpc(2,0), Vector3(0.769,0,0.769), 1e-2 );
-
 }
 
 TEST( StereoView, Float ) {
@@ -221,9 +200,4 @@ TEST( StereoView, Float ) {
   EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
   EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
   EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
-  ImageView<Vector3> lpc = lsq_stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_NEAR( lpc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
-  EXPECT_VECTOR_NEAR( lpc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( lpc(2,0), Vector3(0.769,0,0.769), 1e-2 );
-
 }

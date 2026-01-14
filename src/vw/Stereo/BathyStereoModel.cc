@@ -21,6 +21,7 @@
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Stereo/BathyStereoModel.h>

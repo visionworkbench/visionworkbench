@@ -25,9 +25,6 @@
 
 namespace vw {
 
-template <class PixelT> class ImageView;
-template <class PixelT> struct PixelMask;
-
 // forward declaration
 namespace camera {
   class CameraModel;
