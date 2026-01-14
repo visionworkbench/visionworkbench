@@ -23,6 +23,8 @@
 #include <vw/Math/Vector.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/PixelMask.h>
 
 namespace vw {
 
@@ -44,6 +46,22 @@ struct BathyPlane {
 
   BathyPlane(): use_curved_water_surface(false) {}
 };
+
+// A struct to hold the bathymetry settings and data
+struct BathyData {
+  std::vector<vw::ImageViewRef<vw::PixelMask<float>>> bathy_masks;
+  std::vector<BathyPlane> bathy_planes;
+  float refraction_index;
+  BathyData(): refraction_index(1.0) {}
+};
+
+// Read a bathy mask. Return the nodata value.
+vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
+                                                       float & nodata_val);
+
+// Read a set of bathy masks.
+void read_bathy_masks(std::vector<std::string> const& mask_filenames,
+                      std::vector<vw::ImageViewRef<vw::PixelMask<float>>> & bathy_masks);
 
 // Read the bathy planes and associated data. More often than not they will be
 // identical. If there is more than one bathy plane file, they are all kept in

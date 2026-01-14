@@ -26,12 +26,34 @@
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/BathyStereoModel.h>
 #include <vw/Core/Exception.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageUtils.h>
+#include <vw/Image/MaskViews.h>
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
 namespace vw {
+
+vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
+                                                       float & nodata_val) {
+  float local_nodata = -std::numeric_limits<float>::max();
+  if (!vw::read_nodata_val(filename, local_nodata))
+    vw::vw_throw(vw::ArgumentErr() << "Unable to read the nodata value from "
+             << filename);
+  nodata_val = local_nodata;
+  return vw::create_mask(vw::DiskImageView<float>(filename), local_nodata);
+}
+
+void read_bathy_masks(std::vector<std::string> const& mask_filenames,
+                      std::vector<vw::ImageViewRef<vw::PixelMask<float>>> & bathy_masks) {
+  bathy_masks.clear();
+  for (size_t i = 0; i < mask_filenames.size(); i++) {
+    float nodata_val = -std::numeric_limits<float>::max(); // part of API
+    bathy_masks.push_back(read_bathy_mask(mask_filenames[i], nodata_val));
+  }
+}
 
 // Check if the given left and right pixels are in the masked region (invalid in
 // the mask). That will mean bathymetry correction should be applied.
