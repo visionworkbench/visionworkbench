@@ -29,12 +29,18 @@ namespace camera {
   class CameraModel;
 }
 
-struct BathyPlaneSettings {
+// Check if the given left and right pixels are in the masked region (invalid in
+// the mask). That will mean bathymetry correction should be applied.
+bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
+               ImageViewRef<PixelMask<float>> const& right_mask,
+               Vector2 const& lpix, Vector2 const& rpix);
+
+struct BathyPlane {
   std::vector<double> bathy_plane;
   bool use_curved_water_surface;
   vw::cartography::GeoReference water_surface_projection;
 
-  BathyPlaneSettings(): use_curved_water_surface(false) {}
+  BathyPlane(): use_curved_water_surface(false) {}
 };
 
 // Read the bathy planes and associated data. More often than not they will be
@@ -42,7 +48,7 @@ struct BathyPlaneSettings {
 // the same string, separated by space.
 void readBathyPlanes(std::string const& bathy_plane_files,
                      int num_images,
-                     std::vector<BathyPlaneSettings> & bathy_plane_set);
+                     std::vector<BathyPlane> & bathy_plane_vec);
 
 // Given a ray going down towards Earth, starting at point in_xyz and
 // with unit direction in_dir, a plane 'p' to the water surface with four
@@ -93,13 +99,13 @@ public:
   // Settings used for bathymetry correction. The left and right images
   // get individual bathy plane settings, but they may be identical.
   void set_bathy(double refraction_index,
-                 std::vector<BathyPlaneSettings> const& bathy_set);
+                 std::vector<BathyPlane> const& bathy_plane_vec);
 
 private:
   bool m_bathy_correct;                        // If to do bathy correction
   bool m_single_bathy_plane;                   // if the left and right images use same plane 
   double m_refraction_index;                   // Water refraction index
-  std::vector<BathyPlaneSettings> m_bathy_set; // Bathy plane settings
+  std::vector<BathyPlane> m_bathy_plane_vec;   // Bathy plane settings
 };
 
 } // namespace vw

@@ -106,15 +106,16 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       } catch (...) {
         continue;
       }
-        
+      
+      // TODO(oalexan1): When forced_triangulation_distance > 0, one can check
+      // if the triangulated point is behind the camera, and if yes, to replace
+      // it with an artificial point in front of the camera. This will need a
+      // good test.
+      
       try {
         stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
-                               angle_tol); // use angle_tol
+                               angle_tol);
         Vector3 pt = sm(cp[j].position(), cp[k].position(), error);
-        // TODO: When forced_triangulation_distance > 0, one can check
-        // if the triangulated point is behind the camera, and if yes,
-        // to replace it with an artificial point in front of the camera.
-        // This will need a good test.
         if (pt != Vector3()) {
           count++;
           position_sum += pt;

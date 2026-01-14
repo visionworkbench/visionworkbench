@@ -33,6 +33,25 @@
 
 namespace vw {
 
+// Check if the given left and right pixels are in the masked region (invalid in
+// the mask). That will mean bathymetry correction should be applied.
+bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
+               ImageViewRef<PixelMask<float>> const& right_mask,
+               Vector2 const& lpix, Vector2 const& rpix) {
+
+  Vector2i ilpix(round(lpix.x()), round(lpix.y()));
+  Vector2i irpix(round(rpix.x()), round(rpix.y()));
+
+  if (ilpix.x() < 0 || ilpix.x() >= left_mask.cols() ||
+      ilpix.y() < 0 || ilpix.y() >= left_mask.rows()) return false;
+
+  if (irpix.x() < 0 || irpix.x() >= right_mask.cols() ||
+      irpix.y() < 0 || irpix.y() >= right_mask.rows()) return false;
+
+  return (!is_valid(left_mask(ilpix.x(), ilpix.y())) &&
+          !is_valid(right_mask(irpix.x(), irpix.y())));
+}
+
 // Read the bathy plane. Normally it should be in some local projection which is
 // read as well.
 void readBathyPlane(std::string const& bathy_plane_file,
@@ -103,27 +122,27 @@ void readBathyPlane(std::string const& bathy_plane_file,
 // the same string, separated by space.
 void readBathyPlanes(std::string const& bathy_plane_files,
                      int num_images,
-                     std::vector<BathyPlaneSettings> & bathy_plane_set) {
+                     std::vector<BathyPlane> & bathy_plane_vec) {
 
-  bathy_plane_set.clear();
+  bathy_plane_vec.clear();
 
   std::string bathy_plane_file;
   std::istringstream iss(bathy_plane_files);
   while (iss >> bathy_plane_file) {
-    bathy_plane_set.push_back(BathyPlaneSettings());
+    bathy_plane_vec.push_back(BathyPlane());
     readBathyPlane(bathy_plane_file,
                    // Outputs
-                   bathy_plane_set.back().bathy_plane,
-                   bathy_plane_set.back().use_curved_water_surface,
-                   bathy_plane_set.back().water_surface_projection);
+                   bathy_plane_vec.back().bathy_plane,
+                   bathy_plane_vec.back().use_curved_water_surface,
+                   bathy_plane_vec.back().water_surface_projection);
   }
 
-  if (bathy_plane_set.size() != 1 && bathy_plane_set.size() != num_images)
+  if (bathy_plane_vec.size() != 1 && bathy_plane_vec.size() != (size_t)num_images)
     vw_throw(vw::ArgumentErr() << "1 or " << num_images << " bathy planes expected.\n");
 
   // Clone the bathy plane if there's only one
-  while (bathy_plane_set.size() < (size_t)num_images)
-    bathy_plane_set.push_back(bathy_plane_set[0]);
+  while (bathy_plane_vec.size() < (size_t)num_images)
+    bathy_plane_vec.push_back(bathy_plane_vec[0]);
 }
 
 // Given a plane as four values a, b, c, d, with the plane being 
@@ -155,11 +174,11 @@ inline Vector3 unproj_point(vw::cartography::GeoReference const& projection,
 // Given a ECEF point xyz, and two planes, find if xyz is above or below each of the
 // plane by finding the signed distances to them.
 void signed_distances_to_planes(bool use_curved_water_surface,
-                                std::vector<BathyPlaneSettings> const& bathy_set,
+                                std::vector<BathyPlane> const& bathy_plane_vec,
                                 vw::Vector3 const& xyz,
                                 std::vector<double> & distances) {
 
-  if (bathy_set.size() != 2)
+  if (bathy_plane_vec.size() != 2)
     vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
 
   distances.resize(2);
@@ -167,10 +186,10 @@ void signed_distances_to_planes(bool use_curved_water_surface,
     // For a curved water surface need to first convert xyz to projected coordinates
     if (use_curved_water_surface)
       distances[it]
-        = signed_dist_to_plane(bathy_set[it].bathy_plane,
-                               proj_point(bathy_set[it].water_surface_projection, xyz));
+        = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
+                               proj_point(bathy_plane_vec[it].water_surface_projection, xyz));
     else
-      distances[it] = signed_dist_to_plane(bathy_set[it].bathy_plane, xyz);
+      distances[it] = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane, xyz);
   }
 }
 
@@ -425,24 +444,24 @@ bool curvedSnellLaw(Vector3 const& in_xyz, Vector3 const& in_dir,
 
 // Settings used for bathymetry correction
 void BathyStereoModel::set_bathy(double refraction_index,
-                                 std::vector<BathyPlaneSettings> const& bathy_set) {
+                                 std::vector<BathyPlane> const& bathy_plane_vec) {
 
   m_bathy_correct = true;
   m_refraction_index = refraction_index;
-  m_bathy_set = bathy_set;
+  m_bathy_plane_vec = bathy_plane_vec;
 
   if (m_refraction_index <= 1)
     vw::vw_throw(vw::ArgumentErr() << "The water refraction index must be bigger than 1.");
 
-  if (m_bathy_set.size() != 2)
+  if (m_bathy_plane_vec.size() != 2)
     vw::vw_throw(vw::ArgumentErr() << "Expecting two bathy planes (left and right).");
 
   for (int it = 0; it < 2; it++) {
-    if (m_bathy_set[it].bathy_plane.size() != 4)
+    if (m_bathy_plane_vec[it].bathy_plane.size() != 4)
       vw::vw_throw(vw::ArgumentErr() << "The bathy plane must have 4 coefficients.");
   }
 
-  if (m_bathy_set[0].use_curved_water_surface != m_bathy_set[1].use_curved_water_surface)
+  if (m_bathy_plane_vec[0].use_curved_water_surface != m_bathy_plane_vec[1].use_curved_water_surface)
     vw::vw_throw(vw::ArgumentErr()
                   << "Either both or none of the bathy planes must model the "
                   << "curvature of the water surface.");
@@ -450,12 +469,12 @@ void BathyStereoModel::set_bathy(double refraction_index,
   // The default behavior is for the left and right bathy planes to be the same.
   // Yet we allow them to be different. Here need to check.
   m_single_bathy_plane = true;
-  if (m_bathy_set[0].use_curved_water_surface != m_bathy_set[1].use_curved_water_surface)
+  if (m_bathy_plane_vec[0].use_curved_water_surface != m_bathy_plane_vec[1].use_curved_water_surface)
     m_single_bathy_plane = false;
-  if (m_bathy_set[0].water_surface_projection.proj4_str()
-      != m_bathy_set[1].water_surface_projection.proj4_str())
+  if (m_bathy_plane_vec[0].water_surface_projection.proj4_str()
+      != m_bathy_plane_vec[1].water_surface_projection.proj4_str())
       m_single_bathy_plane = false;
-  if (m_bathy_set[0].bathy_plane != m_bathy_set[1].bathy_plane)
+  if (m_bathy_plane_vec[0].bathy_plane != m_bathy_plane_vec[1].bathy_plane)
     m_single_bathy_plane = false;
 }
 
@@ -475,7 +494,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
   // It was verified beforehand that both bathy planes have the same
   // value for use_curved_water_surface.
-  bool use_curved_water_surface = m_bathy_set[0].use_curved_water_surface;
+  bool use_curved_water_surface = m_bathy_plane_vec[0].use_curved_water_surface;
 
   int num_cams = m_cameras.size();
   VW_ASSERT((int)pixVec.size() == num_cams,
@@ -541,7 +560,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
       if (!use_curved_water_surface) {
 
-        double ht_val = signed_dist_to_plane(m_bathy_set[0].bathy_plane, uncorr_tri_pt);
+        double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, uncorr_tri_pt);
         if (ht_val >= 0) {
           // the rays intersect above the water surface, no need to go on
           did_bathy = false;
@@ -550,7 +569,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
         // The simple case, when the water surface is a plane in ECEF
         for (size_t it = 0; it < 2; it++) {
-          bool ans = snellLaw(camCtrs[it], camDirs[it], m_bathy_set[it].bathy_plane,
+          bool ans = snellLaw(camCtrs[it], camDirs[it], m_bathy_plane_vec[it].bathy_plane,
                               m_refraction_index,
                               waterCtrs[it], waterDirs[it]);
           // If Snell's law failed to work, return the result before it
@@ -564,8 +583,8 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
         // The more complex case, the water surface is curved. It is
         // however flat (a plane) if we switch to proj coordinates.
-        Vector3 proj_pt = proj_point(m_bathy_set[0].water_surface_projection, uncorr_tri_pt);
-        double ht_val = signed_dist_to_plane(m_bathy_set[0].bathy_plane, proj_pt);
+        Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].water_surface_projection, uncorr_tri_pt);
+        double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
         if (ht_val >= 0) {
           // the rays intersect above the water surface
           did_bathy = false;
@@ -575,8 +594,8 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
         for (size_t it = 0; it < 2; it++) {
           // Bend each ray at the surface according to Snell's law.
           bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
-                                    m_bathy_set[it].bathy_plane,
-                                    m_bathy_set[it].water_surface_projection,
+                                    m_bathy_plane_vec[it].bathy_plane,
+                                    m_bathy_plane_vec[it].water_surface_projection,
                                     m_refraction_index,
                                     waterCtrs[it], waterDirs[it]);
           if (!ans) {
@@ -599,7 +618,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     if (!use_curved_water_surface) {
       for (size_t it = 0; it < 2; it++) {
         bool ans = snellLaw(camCtrs[it], camDirs[it],
-                            m_bathy_set[it].bathy_plane,
+                            m_bathy_plane_vec[it].bathy_plane,
                             m_refraction_index,
                             waterCtrs[it], waterDirs[it]);
         if (!ans)
@@ -609,8 +628,8 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       for (size_t it = 0; it < 2; it++) {
         // Bend each ray at the surface according to Snell's law.
         bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
-                                  m_bathy_set[it].bathy_plane,
-                                  m_bathy_set[it].water_surface_projection,
+                                  m_bathy_plane_vec[it].bathy_plane,
+                                  m_bathy_plane_vec[it].water_surface_projection,
                                   m_refraction_index,
                                   waterCtrs[it], waterDirs[it]);
         if (!ans)
@@ -629,7 +648,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
     // See if the unbent portions intersect above their planes
     tri_pt = vw::stereo::triangulate_pair(camDirs[0], camCtrs[0], camDirs[1], camCtrs[1], err);
-    signed_distances_to_planes(use_curved_water_surface, m_bathy_set, tri_pt, signed_dists);
+    signed_distances_to_planes(use_curved_water_surface, m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] >= 0 && signed_dists[1] >= 0) {
       did_bathy = false; // since the rays did not reach the bathy plane
       errorVec = err;
@@ -638,7 +657,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
     // See if the bent portions intersect below their planes
     tri_pt = vw::stereo::triangulate_pair(waterDirs[0], waterCtrs[0], waterDirs[1], waterCtrs[1], err);
-    signed_distances_to_planes(use_curved_water_surface, m_bathy_set, tri_pt, signed_dists);
+    signed_distances_to_planes(use_curved_water_surface, m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] <= 0 && signed_dists[1] <= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;
@@ -648,7 +667,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // See if the left unbent portion intersects the right bent portion,
     // above left's water plane and below right's water plane
     tri_pt = vw::stereo::triangulate_pair(camDirs[0], camCtrs[0], waterDirs[1], waterCtrs[1], err);
-    signed_distances_to_planes(use_curved_water_surface, m_bathy_set, tri_pt, signed_dists);
+    signed_distances_to_planes(use_curved_water_surface, m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] >= 0 && signed_dists[1] <= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;
@@ -658,7 +677,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // See if the left bent portion intersects the right unbent portion,
     // below left's water plane and above right's water plane
     tri_pt = vw::stereo::triangulate_pair(waterDirs[0], waterCtrs[0], camDirs[1], camCtrs[1], err);
-    signed_distances_to_planes(use_curved_water_surface, m_bathy_set, tri_pt, signed_dists);
+    signed_distances_to_planes(use_curved_water_surface, m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] <= 0 && signed_dists[1] >= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;
