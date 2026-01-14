@@ -24,6 +24,7 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/Cartography/Datum.h>
+#include <vw/Cartography/BathyStereoModel.h>
 #include <boost/filesystem/operations.hpp>
 #include <boost/foreach.hpp>
 
@@ -50,7 +51,8 @@ namespace ba {
                              double forced_triangulation_distance,
                              int max_pairwise_matches = -1,
                              std::map<std::pair<int, int>, double> const& match_sigmas 
-                             = std::map<std::pair<int, int>, double>());
+                             = std::map<std::pair<int, int>, double>(),
+                             vw::BathyData const& bathy_data = vw::BathyData());
   
   // Triangulate the points in a control network. Do not triangulate
   // GCP or points constrained to a DEM.
@@ -58,7 +60,8 @@ namespace ba {
                                    std::vector<boost::shared_ptr<camera::CameraModel>>
                                    const& camera_models,
                                    double min_angle_radians,
-                                   double forced_triangulation_distance);
+                                   double forced_triangulation_distance,
+                                   vw::BathyData const& bathy_data = vw::BathyData());
 
   /// Recomputes the world location of a point based on camera observations.
   /// - Returns the mean triangulation error.
@@ -66,7 +69,8 @@ namespace ba {
                                    std::vector<boost::shared_ptr<camera::CameraModel>>
                                    const& camera_models,
                                    double min_angle_radians,
-                                   double forced_triangulation_distance);
+                                   double forced_triangulation_distance,
+                                   vw::BathyData const& bathy_data = vw::BathyData());
 
   /// Adds ground control points from GCP files to an already built
   /// Control Network. The image names in the GCP files must match the image

@@ -16,6 +16,7 @@
 // __END_LICENSE__
 
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
+#include <vw/Cartography/BathyStereoModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/InterestPoint/InterestPointUtils.h>
@@ -68,7 +69,8 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
                                          std::vector<boost::shared_ptr<camera::CameraModel>>
                                          const& camera_models,
                                          double min_angle_radians,
-                                         double forced_triangulation_distance) {
+                                         double forced_triangulation_distance,
+                                         vw::BathyData const& bathy_data) {
   
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
@@ -172,7 +174,8 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
 void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
                                          std::vector<vw::CamPtr> const& camera_models,
                                          double min_angle_radians,
-                                         double forced_triangulation_distance) {
+                                         double forced_triangulation_distance,
+                                         vw::BathyData const& bathy_data) {
 
   std::int64_t num_total_points = 0, num_failed_points = 0;
   TerminalProgressCallback progress("ba", "Triangulating: ");
@@ -186,7 +189,7 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
       continue; // Skip GCPs and points from a DEM
     
     int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
-                                            forced_triangulation_distance);
+                                            forced_triangulation_distance, bathy_data);
     num_total_points++;
     if (ans < 0) 
       num_failed_points++;
@@ -415,7 +418,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches,
                                    std::map<std::pair<int, int>, double> const& 
-                                   match_sigmas) {
+                                   match_sigmas,
+                                   vw::BathyData const& bathy_data) {
 
   // TODO(oalexan1): Must be able to handle the case when the matches
   // are from an image later in the list to an image earlier in the list.
@@ -529,7 +533,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   // Triangulate the points in a control network
   if (triangulate_control_points)
     vw::ba::triangulate_control_network(cnet, camera_models, min_angle_radians,
-                                        forced_triangulation_distance);
+                                        forced_triangulation_distance, bathy_data);
 
   return true;
 }
