@@ -81,6 +81,38 @@ bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
               std::vector<double> const& plane, double refraction_index,
               vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
 
+// Like snellLaw, but for a curved water surface. The water surface is modeled as
+// a plane in local stereographic projection coordinates. The ray is bent in that
+// coordinate system, then transformed back to ECEF.
+bool curvedSnellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
+                    std::vector<double> const& plane,
+                    vw::cartography::GeoReference const& water_surface_projection,
+                    double refraction_index,
+                    vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
+
+// Compute signed distance from a 3D point to a plane defined by coefficients
+// [a, b, c, d] where the plane equation is a*x + b*y + c*z + d = 0.
+double signed_dist_to_plane(std::vector<double> const& plane, vw::Vector3 const& point);
+
+// Project an ECEF point to local stereographic projection coordinates.
+vw::Vector3 proj_point(vw::cartography::GeoReference const& projection,
+                       vw::Vector3 const& xyz);
+
+// Unproject from local stereographic projection coordinates back to ECEF.
+vw::Vector3 unproj_point(vw::cartography::GeoReference const& projection,
+                         vw::Vector3 const& proj_pt);
+
+// Intersect a ray from camera center along camera direction with the datum at
+// given semi-axes, with optional bathymetry correction. If the ray passes
+// through the bathy plane (water surface) before it meets the datum, apply
+// Snell's law refraction and continue with the new bent ray until reaching the
+// datum. Returns the intersection point, or zero vector on failure.
+vw::Vector3 datumBathyIntersection(vw::Vector3 const& cam_ctr, 
+                                   vw::Vector3 const& cam_dir,
+                                   double major_axis, double minor_axis,
+                                   BathyPlane const& bathy_plane,
+                                   double refraction_index);
+
 class BathyStereoModel: public vw::stereo::StereoModel {
 public:
 
