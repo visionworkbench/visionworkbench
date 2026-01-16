@@ -203,9 +203,9 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
 void testSnellLaw(std::vector<double> const& plane,
                   vw::cartography::GeoReference const& water_surface_projection,
                   double refraction_index,
-                  vw::Vector3 const& out_unproj_xyz,
-                  vw::Vector3 const& in_unproj_dir, vw::Vector3 const& out_unproj_dir,
-                  vw::Vector3 const& out_proj_xyz,
+                  vw::Vector3 const& out_ecef,
+                  vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,
+                  vw::Vector3 const& out_proj_pt,
                   vw::Vector3 const& in_proj_dir, vw::Vector3 const& out_proj_dir) {
 
   // 1. In projected coordinates
@@ -214,13 +214,13 @@ void testSnellLaw(std::vector<double> const& plane,
   double sin_out = sin(acos(dot_prod(-proj_normal, out_proj_dir)));
 
   // 2. In unprojected coordinates
-  Vector3 proj_xyz_above_normal = out_proj_xyz + 1.0 * proj_normal; // go 1 m along the normal
-  Vector3 unproj_xyz_above_normal = unproj_point(water_surface_projection,
-                                                  proj_xyz_above_normal);
-  Vector3 unproj_normal = unproj_xyz_above_normal - out_unproj_xyz;
-  unproj_normal /= norm_2(unproj_normal); // normalize
-  sin_in = sin(acos(dot_prod(unproj_normal, -in_unproj_dir)));
-  sin_out = sin(acos(dot_prod(-unproj_normal, out_unproj_dir)));
+  Vector3 proj_pt_above_normal = out_proj_pt + 1.0 * proj_normal; // go 1 m along the normal
+  Vector3 ecef_above_normal = unproj_point(water_surface_projection,
+                                           proj_pt_above_normal);
+  Vector3 ecef_normal = ecef_above_normal - out_ecef;
+  ecef_normal /= norm_2(ecef_normal); // normalize
+  sin_in = sin(acos(dot_prod(ecef_normal, -in_ecef_dir)));
+  sin_out = sin(acos(dot_prod(-ecef_normal, out_ecef_dir)));
 
   // Verify that the incoming ray, outgoing ray, and the
   // normal are in the same plane in projected coordinates
@@ -230,8 +230,8 @@ void testSnellLaw(std::vector<double> const& plane,
   double plane_error = dot_prod(in_out_normal, proj_normal);
 
   // 2. In unprojected coordinates
-  in_out_normal = vw::math::cross_prod(in_unproj_dir, out_unproj_dir);
-  plane_error = dot_prod(in_out_normal, unproj_normal);
+  in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
+  plane_error = dot_prod(in_out_normal, ecef_normal);
 }
 
 // See the .h file for more info
@@ -362,11 +362,11 @@ public:
 // a point on the outgoing ray in projected coordinates Find another
 // close point further along it. Undo the projection for these two
 // points. That will give the outgoing direction in ECEF.
-bool curvedSnellLaw(Vector3 const& in_xyz, Vector3 const& in_dir,
+bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
                     std::vector<double> const& plane,
                     vw::cartography::GeoReference const& water_surface_projection,
                     double refraction_index,
-                    Vector3 & out_xyz, Vector3 & out_dir) {
+                    Vector3 & out_ecef, Vector3 & out_dir) {
 
   // Find the mean water surface
   double mean_ht = -plane[3] / plane[2];
@@ -379,52 +379,52 @@ bool curvedSnellLaw(Vector3 const& in_xyz, Vector3 const& in_dir,
   // give us the initial guess for intersecting with that
   // surface. The precise value of this is not important, as
   // long as it is rather close to the plane and on that ray.
-  Vector3 guess_xyz = vw::cartography::datum_intersection(major_radius, minor_radius,
-                                                          in_xyz, in_dir);
+  Vector3 guess_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
+                                                           in_ecef, in_dir);
 
   // Move a little up the ray
-  Vector3 prev_xyz = guess_xyz - 1.0 * in_dir;
+  Vector3 prev_ecef = guess_ecef - 1.0 * in_dir;
 
-  Vector3 in_proj_xyz = proj_point(water_surface_projection, guess_xyz);
-  Vector3 prev_proj_xyz = proj_point(water_surface_projection, prev_xyz);
+  Vector3 in_proj_pt = proj_point(water_surface_projection, guess_ecef);
+  Vector3 prev_proj_pt = proj_point(water_surface_projection, prev_ecef);
 
-  Vector3 in_proj_dir = in_proj_xyz - prev_proj_xyz;
+  Vector3 in_proj_dir = in_proj_pt - prev_proj_pt;
   in_proj_dir /= norm_2(in_proj_dir);
 
   // Snell's law in projected coordinates
-  Vector3 out_proj_xyz, out_proj_dir;
-  bool ans = snellLaw(in_proj_xyz, in_proj_dir,
+  Vector3 out_proj_pt, out_proj_dir;
+  bool ans = snellLaw(in_proj_pt, in_proj_dir,
                       plane, refraction_index,
-                      out_proj_xyz, out_proj_dir);
+                      out_proj_pt, out_proj_dir);
 
   // If Snell's law failed to work, exit early
   if (!ans)
     return ans;
 
-  Vector3 next_proj_xyz = out_proj_xyz + 1.0 * out_proj_dir;
+  Vector3 next_proj_pt = out_proj_pt + 1.0 * out_proj_dir;
 
   // Convert back to ECEF
-  out_xyz = unproj_point(water_surface_projection, out_proj_xyz);
-  Vector3 next_xyz = unproj_point(water_surface_projection, next_proj_xyz);
+  out_ecef = unproj_point(water_surface_projection, out_proj_pt);
+  Vector3 next_ecef = unproj_point(water_surface_projection, next_proj_pt);
 
   // Finally get the outgoing direction according to Snell's law in ECEF
-  out_dir = next_xyz - out_xyz;
+  out_dir = next_ecef - out_ecef;
   out_dir /= norm_2(out_dir);
 
 #if 0
-  // Refine out_xyz with a solver, with 1e-16 tolerance, after using
+  // Refine out_ecef with a solver, with 1e-16 tolerance, after using
   // that 1 m perturbation, as above. The parameter determining the
   // position on the ray changes by under 2.6e-8, so it is not worth
   // it. It is rather slow too.  Then one would need to still
   // recompute out_dir somehow, if doing things this way.
-  SolveCurvedPlaneIntersection model(in_xyz, in_dir, water_surface_projection, plane);
+  SolveCurvedPlaneIntersection model(in_ecef, in_dir, water_surface_projection, plane);
   vw::Vector<double> objective(1), start(1);
-  start[0] = norm_2(out_xyz - in_xyz);
+  start[0] = norm_2(out_ecef - in_ecef);
   objective[0] = 0.0;
   int status = -1; // will change
   Vector<double> solution = math::levenberg_marquardt(model, start, objective, status);
 
-  out_xyz = in_xyz + solution[0] * in_dir;
+  out_ecef = in_ecef + solution[0] * in_dir;
 #endif
 
 #if 0
@@ -432,8 +432,8 @@ bool curvedSnellLaw(Vector3 const& in_xyz, Vector3 const& in_dir,
   testSnellLaw(plane,
                water_surface_projection,
                refraction_index,
-               out_xyz, in_dir, out_dir,
-               out_proj_xyz, in_proj_dir, out_proj_dir);
+               out_ecef, in_dir, out_dir,
+               out_proj_pt, in_proj_dir, out_proj_dir);
 #endif
 
   return true;

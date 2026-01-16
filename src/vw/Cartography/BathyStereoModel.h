@@ -81,11 +81,11 @@ bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
 // Like snellLaw, but for a curved water surface. The water surface is modeled as
 // a plane in local stereographic projection coordinates. The ray is bent in that
 // coordinate system, then transformed back to ECEF.
-bool curvedSnellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
+bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
                     std::vector<double> const& plane,
                     vw::cartography::GeoReference const& water_surface_projection,
                     double refraction_index,
-                    vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
+                    vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
 
 // Compute signed distance from a 3D point to a plane defined by coefficients
 // [a, b, c, d] where the plane equation is a*x + b*y + c*z + d = 0.
