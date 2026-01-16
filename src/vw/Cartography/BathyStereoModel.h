@@ -41,10 +41,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 
 struct BathyPlane {
   std::vector<double> bathy_plane;
-  bool use_curved_water_surface;
   vw::cartography::GeoReference water_surface_projection;
-
-  BathyPlane(): use_curved_water_surface(false) {}
 };
 
 // A struct to hold the bathymetry settings and data
