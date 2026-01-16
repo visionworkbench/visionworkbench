@@ -123,6 +123,8 @@ void readBathyPlane(std::string const& bathy_plane_file,
   vw::cartography::Datum datum("WGS_1984");
   water_surface_projection.set_datum(datum);
   water_surface_projection.set_stereographic(proj_lat, proj_lon, scale);
+  vw_out() << "Read projection: " <<  water_surface_projection.overall_proj4_str()
+            << "\n";
 }
 
 // Read the bathy planes and associated data. More often than not they will be
