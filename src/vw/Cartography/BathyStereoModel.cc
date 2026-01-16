@@ -259,6 +259,73 @@ bool rayPlaneIntersect(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
   return true;
 }
 
+// Find where a ray (in ECEF) intersects a curved bathy plane. The plane is
+// modeled as flat in local stereographic projection. Returns the intersection
+// point in ECEF, the intersection point in projected coordinates, and the ray
+// direction at that location in projected coordinates.
+// Returns false if intersection fails.
+bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef, 
+                            vw::Vector3 const& in_dir,
+                            std::vector<double> const& plane,
+                            vw::cartography::GeoReference const& water_surface_projection,
+                            vw::Vector3 & intersect_ecef,
+                            vw::Vector3 & intersect_proj_pt,
+                            vw::Vector3 & intersect_proj_dir) {
+  
+  // Find the mean water surface
+  double mean_ht = -plane[3] / plane[2];
+  double major_radius
+    = water_surface_projection.datum().semi_major_axis() + mean_ht;
+  double minor_radius
+    = water_surface_projection.datum().semi_minor_axis() + mean_ht;
+
+  // Intersect the ray with the mean water surface, this will
+  // give us the initial guess for intersecting with that
+  // surface. The precise value of this is not important, as
+  // long as it is rather close to the plane and on that ray.
+  intersect_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
+                                                       in_ecef, in_dir);
+
+  // The fact that we trace a ray below in projected coordinates, even if very
+  // close to the bathy plane and very short, can still introduce some small
+  // error. So refine intersect_ecef so it is both along the ray in ECEF and on the
+  // curved plane.
+  for (int pass = 0; pass < 2; pass++) {
+    // Move a little up the ray. Move less on second pass.
+    vw::Vector3 prev_ecef = intersect_ecef - 1.0 * in_dir / (1.0 + 10.0 * pass);
+
+    intersect_proj_pt = proj_point(water_surface_projection, intersect_ecef);
+    vw::Vector3 prev_proj_pt = proj_point(water_surface_projection, prev_ecef);
+
+    intersect_proj_dir = intersect_proj_pt - prev_proj_pt;
+    intersect_proj_dir /= norm_2(intersect_proj_dir);
+
+    // Intersect with the proj plane
+    vw::Vector3 refined_intersect_proj_pt;
+    if (!rayPlaneIntersect(intersect_proj_pt, intersect_proj_dir, plane, 
+                           refined_intersect_proj_pt))
+      return false;
+    
+    // Convert back to ECEF
+    intersect_ecef = unproj_point(water_surface_projection, refined_intersect_proj_pt);
+
+    // See if the produced intersection is along the original ECEF ray
+    vw::Vector3 intersect_dir = intersect_ecef - in_ecef;
+    intersect_dir /= norm_2(intersect_dir);
+    
+    // It never happened in tests that one needed to do a second pass. If
+    // direction discrepancy is close to 1e-10, a second pass barely improves
+    // things. It is not clear why this direction error can be as high as 2e-10
+    // sometimes, and why it does not decrease in that case after a second pass.
+    // Note that a 5e-10 error in direction at 600 km above Earth results in 0.3
+    // mm error on the ground, so it is negligible.
+    if (norm_2(intersect_dir - in_dir) < 5e-10)
+      break;
+  }
+  
+  return true;
+}
+
 // See the .h file for more info
 bool snellLaw(Vector3 const& in_xyz, Vector3 const& in_dir,
               std::vector<double> const& plane,
@@ -384,61 +451,16 @@ bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
                     double refraction_index,
                     Vector3 & out_ecef, Vector3 & out_dir) {
 
+  // Intersect the ray with the curved water surface. Return the intersection
+  // point in ecef, that point in projected coordinates, and the ray direction
+  // at that location in projected coordinates.
   Vector3 intersect_ecef, intersect_proj_pt, intersect_proj_dir;
-
-  // Find the mean water surface
-  double mean_ht = -plane[3] / plane[2];
-  double major_radius
-    = water_surface_projection.datum().semi_major_axis() + mean_ht;
-  double minor_radius
-    = water_surface_projection.datum().semi_minor_axis() + mean_ht;
-
-  // Intersect the ray with the mean water surface, this will
-  // give us the initial guess for intersecting with that
-  // surface. The precise value of this is not important, as
-  // long as it is rather close to the plane and on that ray.
-  intersect_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
-                                                       in_ecef, in_dir);
-
-  // The fact that we trace a ray below in projected coordinates, even if very
-  // close to the bathy plane and very short, can still introduce some small
-  // error. So refine intersect_ecef so it is both along the ray in ECEF and on the
-  // curved plane.
-  for (int pass = 0; pass < 2; pass++) {
-    // Move a little up the ray. Move less on second pass.
-    Vector3 prev_ecef = intersect_ecef - 1.0 * in_dir / (1.0 + 10.0 * pass);
-
-    intersect_proj_pt = proj_point(water_surface_projection, intersect_ecef);
-    Vector3 prev_proj_pt = proj_point(water_surface_projection, prev_ecef);
-
-    intersect_proj_dir = intersect_proj_pt - prev_proj_pt;
-    intersect_proj_dir /= norm_2(intersect_proj_dir);
-
-    // Intersect with the proj plane
-    vw::Vector3 refined_intersect_proj_pt;
-    if (!rayPlaneIntersect(intersect_proj_pt, intersect_proj_dir, plane, 
-                           refined_intersect_proj_pt))
-      return false;
-    
-    // Convert back to ECEF
-    intersect_ecef = unproj_point(water_surface_projection, refined_intersect_proj_pt);
-
-    // See if the produced intersection is along the original ECEF ray
-    vw::Vector3 intersect_dir = intersect_ecef - in_ecef;
-    intersect_dir /= norm_2(intersect_dir);
-    
-    // It never happened in tests that one needed to do a second pass. If
-    // direction discrepancy is close to 1e-10, a second pass barely improves
-    // things. It is not clear why this direction error can be as high as 2e-10
-    // sometimes, and why it does not decrease in that case after a second pass.
-    // Note that a 5e-10 error in direction at 600 km above Earth results in 0.3
-    // mm error on the ground, so it is negligible.
-    if (norm_2(intersect_dir - in_dir) < 5e-10)
-      break;
-  }  
-
+  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, water_surface_projection,
+                              intersect_ecef, intersect_proj_pt, intersect_proj_dir))
+    return false;
+  
   // Snell's law in projected coordinates
-  Vector3 out_proj_pt, out_proj_dir;
+  Vector3 out_proj_pt, out_proj_dir; // in the water
   bool ans = snellLaw(intersect_proj_pt, intersect_proj_dir,
                       plane, refraction_index,
                       out_proj_pt, out_proj_dir);
@@ -454,7 +476,9 @@ bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
   out_ecef = unproj_point(water_surface_projection, out_proj_pt);
   Vector3 next_ecef = unproj_point(water_surface_projection, next_proj_pt);
 
-  // Finally get the outgoing direction according to Snell's law in ECEF
+  // Finally get the outgoing direction according to Snell's law in ECEF.
+  // The assumption here is that at ground level a short vector in ECEF
+  // is very close to the same short vector in projected coordinates.
   out_dir = next_ecef - out_ecef;
   out_dir /= norm_2(out_dir);
 
