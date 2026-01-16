@@ -74,6 +74,7 @@ void readBathyPlanes(std::string const& bathy_plane_files,
 // upwards away from Earth, and water refraction index, find where
 // this ray meets the water plane named out_xyz, and the ray direction out_dir
 // after it bends according to Snell's law. Return true on success.
+// This also works in projected coordinates.
 bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
               std::vector<double> const& plane, double refraction_index,
               vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
