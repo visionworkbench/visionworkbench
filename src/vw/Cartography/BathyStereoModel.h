@@ -41,7 +41,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 
 struct BathyPlane {
   std::vector<double> bathy_plane;
-  vw::cartography::GeoReference water_surface_projection;
+  vw::cartography::GeoReference plane_proj;
 };
 
 // A struct to hold the bathymetry settings and data
@@ -84,7 +84,7 @@ bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
 // coordinate system, then transformed back to ECEF.
 bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
                     std::vector<double> const& plane,
-                    vw::cartography::GeoReference const& water_surface_projection,
+                    vw::cartography::GeoReference const& plane_proj,
                     double refraction_index,
                     vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
 

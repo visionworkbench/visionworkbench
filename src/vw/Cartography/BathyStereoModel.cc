@@ -79,7 +79,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 // comment line, then projection lat/lon.
 void readBathyPlane(std::string const& bathy_plane_file,
                     std::vector<double> & bathy_plane,
-                    vw::cartography::GeoReference & water_surface_projection) {
+                    vw::cartography::GeoReference & plane_proj) {
 
   std::ifstream handle;
   handle.open(bathy_plane_file.c_str());
@@ -121,9 +121,9 @@ void readBathyPlane(std::string const& bathy_plane_file,
       vw_throw(vw::IOErr() << "Could not read the projection latitude and longitude.\n");
   }
   vw::cartography::Datum datum("WGS_1984");
-  water_surface_projection.set_datum(datum);
-  water_surface_projection.set_stereographic(proj_lat, proj_lon, scale);
-  vw_out() << "Read projection: " <<  water_surface_projection.overall_proj4_str()
+  plane_proj.set_datum(datum);
+  plane_proj.set_stereographic(proj_lat, proj_lon, scale);
+  vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str()
             << "\n";
 }
 
@@ -143,7 +143,7 @@ void readBathyPlanes(std::string const& bathy_plane_files,
     readBathyPlane(bathy_plane_file,
                    // Outputs
                    bathy_plane_vec.back().bathy_plane,
-                   bathy_plane_vec.back().water_surface_projection);
+                   bathy_plane_vec.back().plane_proj);
   }
 
   if (bathy_plane_vec.size() != 1 && bathy_plane_vec.size() != (size_t)num_images)
@@ -195,13 +195,13 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
     // Convert xyz to projected coordinates, then compute signed distance
     distances[it]
       = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
-                             proj_point(bathy_plane_vec[it].water_surface_projection, xyz));
+                             proj_point(bathy_plane_vec[it].plane_proj, xyz));
   }
 }
 
 // Test Snell's law in projected and unprojected coordinates
 void testSnellLaw(std::vector<double> const& plane,
-                  vw::cartography::GeoReference const& water_surface_projection,
+                  vw::cartography::GeoReference const& plane_proj,
                   double refraction_index,
                   vw::Vector3 const& out_ecef,
                   vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,
@@ -215,7 +215,7 @@ void testSnellLaw(std::vector<double> const& plane,
 
   // 2. In unprojected coordinates
   Vector3 proj_pt_above_normal = out_proj_pt + 1.0 * proj_normal; // go 1 m along the normal
-  Vector3 ecef_above_normal = unproj_point(water_surface_projection,
+  Vector3 ecef_above_normal = unproj_point(plane_proj,
                                            proj_pt_above_normal);
   Vector3 ecef_normal = ecef_above_normal - out_ecef;
   ecef_normal /= norm_2(ecef_normal); // normalize
@@ -267,7 +267,7 @@ bool rayPlaneIntersect(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
 bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef, 
                             vw::Vector3 const& in_dir,
                             std::vector<double> const& plane,
-                            vw::cartography::GeoReference const& water_surface_projection,
+                            vw::cartography::GeoReference const& plane_proj,
                             vw::Vector3 & intersect_ecef,
                             vw::Vector3 & intersect_proj_pt,
                             vw::Vector3 & intersect_proj_dir) {
@@ -275,9 +275,9 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
   // Find the mean water surface
   double mean_ht = -plane[3] / plane[2];
   double major_radius
-    = water_surface_projection.datum().semi_major_axis() + mean_ht;
+    = plane_proj.datum().semi_major_axis() + mean_ht;
   double minor_radius
-    = water_surface_projection.datum().semi_minor_axis() + mean_ht;
+    = plane_proj.datum().semi_minor_axis() + mean_ht;
 
   // Intersect the ray with the mean water surface, this will
   // give us the initial guess for intersecting with that
@@ -294,8 +294,8 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
     // Move a little up the ray. Move less on second pass.
     vw::Vector3 prev_ecef = intersect_ecef - 1.0 * in_dir / (1.0 + 10.0 * pass);
 
-    intersect_proj_pt = proj_point(water_surface_projection, intersect_ecef);
-    vw::Vector3 prev_proj_pt = proj_point(water_surface_projection, prev_ecef);
+    intersect_proj_pt = proj_point(plane_proj, intersect_ecef);
+    vw::Vector3 prev_proj_pt = proj_point(plane_proj, prev_ecef);
 
     intersect_proj_dir = intersect_proj_pt - prev_proj_pt;
     intersect_proj_dir /= norm_2(intersect_proj_dir);
@@ -307,7 +307,7 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
       return false;
     
     // Convert back to ECEF
-    intersect_ecef = unproj_point(water_surface_projection, refined_intersect_proj_pt);
+    intersect_ecef = unproj_point(plane_proj, refined_intersect_proj_pt);
 
     // See if the produced intersection is along the original ECEF ray
     vw::Vector3 intersect_dir = intersect_ecef - in_ecef;
@@ -447,7 +447,7 @@ public:
 // ECEF.
 bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
                     std::vector<double> const& plane,
-                    vw::cartography::GeoReference const& water_surface_projection,
+                    vw::cartography::GeoReference const& plane_proj,
                     double refraction_index,
                     Vector3 & out_ecef, Vector3 & out_dir) {
 
@@ -455,7 +455,7 @@ bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
   // point in ecef, that point in projected coordinates, and the ray direction
   // at that location in projected coordinates.
   Vector3 intersect_ecef, intersect_proj_pt, intersect_proj_dir;
-  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, water_surface_projection,
+  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, plane_proj,
                               intersect_ecef, intersect_proj_pt, intersect_proj_dir))
     return false;
   
@@ -473,8 +473,8 @@ bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
   Vector3 next_proj_pt = out_proj_pt + 1.0 * out_proj_dir;
 
   // Convert back to ECEF
-  out_ecef = unproj_point(water_surface_projection, out_proj_pt);
-  Vector3 next_ecef = unproj_point(water_surface_projection, next_proj_pt);
+  out_ecef = unproj_point(plane_proj, out_proj_pt);
+  Vector3 next_ecef = unproj_point(plane_proj, next_proj_pt);
 
   // Finally get the outgoing direction according to Snell's law in ECEF.
   // The assumption here is that at ground level a short vector in ECEF
@@ -485,7 +485,7 @@ bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
 #if 0
   // Sanity check
   testSnellLaw(plane,
-               water_surface_projection,
+               plane_proj,
                refraction_index,
                out_ecef, in_dir, out_dir,
                out_proj_pt, intersect_proj_dir, out_proj_dir);
@@ -514,7 +514,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
     return Vector3(0, 0, 0);
   
   // Project the intersection point to local coordinates
-  Vector3 proj_pt = proj_point(bathy_plane.water_surface_projection, xyz);
+  Vector3 proj_pt = proj_point(bathy_plane.plane_proj, xyz);
   
   // Check signed distance to bathy plane
   double ht_val = signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
@@ -527,7 +527,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   Vector3 out_xyz, out_dir;
   bool success = curvedSnellLaw(cam_ctr, cam_dir,
                                 bathy_plane.bathy_plane,
-                                bathy_plane.water_surface_projection,
+                                bathy_plane.plane_proj,
                                 refraction_index,
                                 out_xyz, out_dir);
   
@@ -568,8 +568,8 @@ void BathyStereoModel::set_bathy(double refraction_index,
   // The default behavior is for the left and right bathy planes to be the same.
   // Yet we allow them to be different. Here need to check.
   m_single_bathy_plane = true;
-  if (m_bathy_plane_vec[0].water_surface_projection.proj4_str()
-      != m_bathy_plane_vec[1].water_surface_projection.proj4_str())
+  if (m_bathy_plane_vec[0].plane_proj.proj4_str()
+      != m_bathy_plane_vec[1].plane_proj.proj4_str())
       m_single_bathy_plane = false;
   if (m_bathy_plane_vec[0].bathy_plane != m_bathy_plane_vec[1].bathy_plane)
     m_single_bathy_plane = false;
@@ -653,7 +653,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
       // The water surface is curved. It is however flat (a plane) if we
       // switch to proj coordinates.
-      Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].water_surface_projection,
+      Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].plane_proj,
                                    uncorr_tri_pt);
       double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
       if (ht_val >= 0) {
@@ -666,7 +666,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
         // Bend each ray at the surface according to Snell's law.
         bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
                                   m_bathy_plane_vec[it].bathy_plane,
-                                  m_bathy_plane_vec[it].water_surface_projection,
+                                  m_bathy_plane_vec[it].plane_proj,
                                   m_refraction_index,
                                   waterCtrs[it], waterDirs[it]);
         if (!ans) {
@@ -689,7 +689,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       // Bend each ray at the surface according to Snell's law.
       bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
                                 m_bathy_plane_vec[it].bathy_plane,
-                                m_bathy_plane_vec[it].water_surface_projection,
+                                m_bathy_plane_vec[it].plane_proj,
                                 m_refraction_index,
                                 waterCtrs[it], waterDirs[it]);
       if (!ans)
