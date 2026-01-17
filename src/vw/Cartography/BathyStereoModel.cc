@@ -274,15 +274,11 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
   
   // Find the mean water surface
   double mean_ht = -plane[3] / plane[2];
-  double major_radius
-    = plane_proj.datum().semi_major_axis() + mean_ht;
-  double minor_radius
-    = plane_proj.datum().semi_minor_axis() + mean_ht;
+  double major_radius = plane_proj.datum().semi_major_axis() + mean_ht;
+  double minor_radius = plane_proj.datum().semi_minor_axis() + mean_ht;
 
-  // Intersect the ray with the mean water surface, this will
-  // give us the initial guess for intersecting with that
-  // surface. The precise value of this is not important, as
-  // long as it is rather close to the plane and on that ray.
+  // Intersect the ray with the mean water surface, this will give us the
+  // initial guess for intersecting with that surface.
   intersect_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
                                                        in_ecef, in_dir);
 
@@ -290,17 +286,23 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
   // close to the bathy plane and very short, can still introduce some small
   // error. So refine intersect_ecef so it is both along the ray in ECEF and on the
   // curved plane.
-  for (int pass = 0; pass < 2; pass++) {
-    // Move a little up the ray. Move less on second pass.
+  for (int pass = 0; pass < 5; pass++) {
+  
+    // Move a little up the ray. Move less on later passes.
     vw::Vector3 prev_ecef = intersect_ecef - 1.0 * in_dir / (1.0 + 10.0 * pass);
 
+    // Compute projected entries. These will be exported out of this function.
     intersect_proj_pt = proj_point(plane_proj, intersect_ecef);
     vw::Vector3 prev_proj_pt = proj_point(plane_proj, prev_ecef);
-
     intersect_proj_dir = intersect_proj_pt - prev_proj_pt;
     intersect_proj_dir /= norm_2(intersect_proj_dir);
+  
+    // Stop when we are within 0.1 mm of the plane, while along the ray. Going
+    // beyond that seems not useful. This is usually reached on second pass.
+    if (std::abs(signed_dist_to_plane(plane, intersect_proj_pt)) < 1e-4) 
+      break;
 
-    // Intersect with the proj plane
+    // Intersect the proj ray with the proj plane
     vw::Vector3 refined_intersect_proj_pt;
     if (!rayPlaneIntersect(intersect_proj_pt, intersect_proj_dir, plane, 
                            refined_intersect_proj_pt))
@@ -308,19 +310,9 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
     
     // Convert back to ECEF
     intersect_ecef = unproj_point(plane_proj, refined_intersect_proj_pt);
-
-    // See if the produced intersection is along the original ECEF ray
-    vw::Vector3 intersect_dir = intersect_ecef - in_ecef;
-    intersect_dir /= norm_2(intersect_dir);
     
-    // It never happened in tests that one needed to do a second pass. If
-    // direction discrepancy is close to 1e-10, a second pass barely improves
-    // things. It is not clear why this direction error can be as high as 2e-10
-    // sometimes, and why it does not decrease in that case after a second pass.
-    // Note that a 5e-10 error in direction at 600 km above Earth results in 0.3
-    // mm error on the ground, so it is negligible.
-    if (norm_2(intersect_dir - in_dir) < 5e-10)
-      break;
+    // Put the point back on the ray. Then it may become slightly off the plane.
+    intersect_ecef = in_ecef + dot_prod(intersect_ecef - in_ecef, in_dir) * in_dir;
   }
   
   return true;
