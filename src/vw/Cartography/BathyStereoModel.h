@@ -33,12 +33,8 @@ namespace camera {
   class CameraModel;
 }
 
-// Check if the given left and right pixels are in the masked region (invalid in
-// the mask). That will mean bathymetry correction should be applied.
-bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
-               ImageViewRef<PixelMask<float>> const& right_mask,
-               Vector2 const& lpix, Vector2 const& rpix);
-
+typedef boost::shared_ptr<camera::CameraModel> CamPtr;
+ 
 struct BathyPlane {
   std::vector<double> bathy_plane;
   vw::cartography::GeoReference plane_proj;
@@ -51,6 +47,12 @@ struct BathyData {
   float refraction_index;
   BathyData(): refraction_index(1.0) {}
 };
+
+// Check if the given left and right pixels are in the masked region (invalid in
+// the mask). That will mean bathymetry correction should be applied.
+bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
+               ImageViewRef<PixelMask<float>> const& right_mask,
+               Vector2 const& lpix, Vector2 const& rpix);
 
 // Read a bathy mask. Return the nodata value.
 vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
@@ -110,6 +112,14 @@ vw::Vector3 datumBathyIntersection(vw::Vector3 const& cam_ctr,
                                    double major_axis, double minor_axis,
                                    BathyPlane const& bathy_plane,
                                    double refraction_index);
+
+// Project an ECEF point to pixel, accounting for bathymetry if the point
+// is below the bathy plane (water surface).
+vw::Vector2 point_to_pixel(vw::CamPtr const& cam,
+                           vw::cartography::Datum const& datum,
+                           vw::BathyPlane const& bathy_plane,
+                           double refraction_index,
+                           vw::Vector3 const& ecef_point);
 
 class BathyStereoModel: public vw::stereo::StereoModel {
 public:
