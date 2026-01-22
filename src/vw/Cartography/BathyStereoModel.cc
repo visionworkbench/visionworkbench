@@ -547,7 +547,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
 class BathyFunctor {
 public:
   BathyFunctor(vw::Vector3 const& ecef_point,
-               vw::CamPtr const& cam,
+               vw::camera::CameraModel const* cam,
                vw::BathyPlane const& bathy_plane,
                double refraction_index): m_cam(cam), m_origin(ecef_point),
                                          m_bathy_plane(bathy_plane),
@@ -599,7 +599,7 @@ public:
     return rayPlaneIntersect(refracted_pt, refracted_dir);
   }
 
-  vw::CamPtr m_cam;                 // Camera pointer
+  vw::camera::CameraModel const* m_cam; // Camera pointer
   vw::Vector3 m_origin;             // Origin of tangent plane (ECEF point P)
   vw::BathyPlane m_bathy_plane;     // Bathy plane for refraction
   double m_refraction_index;        // Index of refraction
@@ -610,7 +610,7 @@ public:
 
 // Project an ECEF point to pixel, accounting for bathymetry if the point
 // is below the bathy plane (water surface).
-vw::Vector2 point_to_pixel(vw::CamPtr const& cam,
+vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
                            vw::Vector3 const& ecef_point) {

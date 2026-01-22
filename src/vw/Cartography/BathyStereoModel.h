@@ -115,7 +115,7 @@ vw::Vector3 datumBathyIntersection(vw::Vector3 const& cam_ctr,
 
 // Project an ECEF point to pixel, accounting for bathymetry if the point
 // is below the bathy plane (water surface).
-vw::Vector2 point_to_pixel(vw::CamPtr const& cam,
+vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
                            vw::Vector3 const& ecef_point);
