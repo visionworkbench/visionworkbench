@@ -21,6 +21,7 @@
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/VectorUtils.h>
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Math/NewtonRaphson.h>
 #include <vw/Camera/CameraModel.h>
@@ -546,41 +547,20 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
 class BathyFunctor {
 public:
   BathyFunctor(vw::Vector3 const& ecef_point,
-               vw::cartography::Datum const& datum,
                vw::CamPtr const& cam,
                vw::BathyPlane const& bathy_plane,
                double refraction_index): m_cam(cam), m_origin(ecef_point),
                                          m_bathy_plane(bathy_plane),
                                          m_refraction_index(refraction_index) {
-    // Bathy planes require WGS_1984 datum
-    if (datum.name() != "WGS_1984")
-      vw::vw_throw(vw::ArgumentErr() << "Bathy plane processing requires WGS_1984 datum.\n");
-
-    // Convert ECEF to geodetic
-    vw::Vector3 llh = datum.cartesian_to_geodetic(ecef_point);
-
-    // Get the NED matrix at this location
-    // Columns are: [North | East | Down] in ECEF coordinates
-    vw::Matrix3x3 ned_matrix = datum.lonlat_to_ned_matrix(llh);
-
-    // X axis is East (column 1 of NED matrix)
-    m_x_axis = vw::math::select_col(ned_matrix, 1);
-
-    // Y axis is North (column 0 of NED matrix)
-    m_y_axis = vw::math::select_col(ned_matrix, 0);
-
-    // Normal is Down (column 2 of NED matrix), but we want it pointing up
-    m_normal = -vw::math::select_col(ned_matrix, 2);
+    // Form local coordinate system using the ECEF point
+    vw::math::formBasis(ecef_point, m_x_axis, m_y_axis, m_normal);
   }
 
   // Intersect a ray with the tangent plane and return 2D coordinates in the tangent
   // plane coordinate system.
   vw::Vector2 rayPlaneIntersect(vw::Vector3 const& ray_pt,
                                  vw::Vector3 const& ray_dir) const {
-    // Intersect the ray with the tangent plane at m_origin
-    // Plane equation: dot(X - m_origin, m_normal) = 0
-    // Ray equation: X = ray_pt + t * ray_dir
-    // Solve: dot(ray_pt + t * ray_dir - m_origin, m_normal) = 0
+
     double denom = vw::math::dot_prod(ray_dir, m_normal);
     if (std::abs(denom) < 1e-10)
       vw::vw_throw(vw::ArgumentErr() << "Ray is parallel to tangent plane.\n");
@@ -631,7 +611,6 @@ public:
 // Project an ECEF point to pixel, accounting for bathymetry if the point
 // is below the bathy plane (water surface).
 vw::Vector2 point_to_pixel(vw::CamPtr const& cam,
-                           vw::cartography::Datum const& datum,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
                            vw::Vector3 const& ecef_point) {
@@ -651,7 +630,7 @@ vw::Vector2 point_to_pixel(vw::CamPtr const& cam,
 
   // Point is below water surface - need to account for refraction
   // Set up the BathyFunctor for Newton-Raphson iteration
-  BathyFunctor bathy_func(ecef_point, datum, cam, bathy_plane, refraction_index);
+  BathyFunctor bathy_func(ecef_point, cam, bathy_plane, refraction_index);
 
   // Set up Newton-Raphson solver with numerical Jacobian
   vw::math::NewtonRaphson nr(bathy_func);
