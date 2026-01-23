@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -43,7 +43,7 @@ namespace {
 
   // Map from TrackID -> (ImageID -> FeatureID)
   // This replaces VwOpenMVG::tracks::STLMAPTracks
-  typedef std::map<int, std::map<int, int>> TrackMap; 
+  typedef std::map<int, std::map<int, int>> TrackMap;
 }
 
 const int MAX_TRI_FAILURE_WARNINGS = 100;
@@ -53,7 +53,7 @@ struct ContainsEqualIP {
   ContainsEqualIP(ip::InterestPoint& comp) : m_compare(comp) {}
 
   bool operator()(boost::shared_ptr<IPFeature> in) {
-    if ( m_compare.x == in->m_ip.x &&
+    if (m_compare.x == in->m_ip.x &&
           m_compare.y == in->m_ip.y)
       return true;
     return false;
@@ -71,16 +71,16 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
                                          double min_angle_radians,
                                          double forced_triangulation_distance,
                                          vw::BathyData const& bathy_data) {
-  
+
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
-  
+
   double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
 
   // Ensure this is initialized
   cp.set_position((Vector3(0, 0, 0)));
-  
+
   // Do pairwise triangulation then average the results. For speed, consider
   // only each ray and next 10 rays. Note that as long as at least two of the
   // rays meet with a triangulation angle no less than min_angle_radians,
@@ -98,7 +98,7 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
     for (size_t k = j + 1; k < std::min(j + 11, cp.size()); k++) {
       size_t j_cam_id = cp[j].image_id();
       size_t k_cam_id = cp[k].image_id();
-      
+
       // The cameras must not be at the same position. Catch exceptions too.
       try {
         vw::Vector3 c1 = camera_models[j_cam_id]->camera_center(cp[j].position());
@@ -108,26 +108,26 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       } catch (...) {
         continue;
       }
-      
+
       // TODO(oalexan1): When forced_triangulation_distance > 0, one can check
       // if the triangulated point is behind the camera, and if yes, to replace
       // it with an artificial point in front of the camera. This will need a
       // good test.
-      
+
       try {
-        
+
         // Check if we need to do bathymetry
         bool do_bathy = false;
         if (bathy_data.refraction_index > 1.0 && !bathy_data.bathy_masks.empty() &&
             j_cam_id < bathy_data.bathy_masks.size() &&
             k_cam_id < bathy_data.bathy_masks.size()) {
-          
+
           if (areMasked(bathy_data.bathy_masks[j_cam_id], bathy_data.bathy_masks[k_cam_id],
                         cp[j].position(), cp[k].position())) {
             do_bathy = true;
           }
         }
-        
+
         // Do triangulation, without or with bathymetry
         Vector3 pt;
         std::vector<Vector2> pixVec = {cp[j].position(), cp[k].position()};
@@ -158,7 +158,7 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
       }
     }
   }
-  
+
   // Summing, averaging, and storing
   if (count == 0) {
     // It failed to triangulate. At the very least we can provide a point that is some
@@ -169,7 +169,7 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
     // It is not clear if that should be done. This may end up in too many points
     // thrown out.
     double dist = 1000000.0; // 1000 km
-    if (forced_triangulation_distance > 0) 
+    if (forced_triangulation_distance > 0)
       dist = forced_triangulation_distance;
     try {
       cp.set_position(camera_models[j]->camera_center(cp[0].position()) +
@@ -183,14 +183,14 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
         return -1; // nothing can be done
       }
     }
-    
-    if (forced_triangulation_distance > 0) 
+
+    if (forced_triangulation_distance > 0)
       return 1; // mark triangulation as successful
-    
+
     cp.set_ignore(true);
     return -1;
   }
-  
+
   error_sum /= double(count);
   Vector3 position = position_sum / double(count);
   cp.set_position(position);
@@ -206,21 +206,24 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
                                          double forced_triangulation_distance,
                                          vw::BathyData const& bathy_data) {
 
+  Stopwatch watch;
+  watch.start();
+
   std::int64_t num_total_points = 0, num_failed_points = 0;
   TerminalProgressCallback progress("ba", "Triangulating: ");
   progress.report_progress(0);
   double inc_prog = 1.0/double(cnet.size());
   BOOST_FOREACH(ba::ControlPoint& cpoint, cnet) {
     progress.report_incremental_progress(inc_prog);
-    
+
     if (cpoint.type() == ControlPoint::GroundControlPoint ||
         cpoint.type() == ControlPoint::PointFromDem)
       continue; // Skip GCPs and points from a DEM
-    
+
     int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
                                             forced_triangulation_distance, bathy_data);
     num_total_points++;
-    if (ans < 0) 
+    if (ans < 0)
       num_failed_points++;
   }
   progress.report_finished();
@@ -231,15 +234,19 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
   if (num_failed_points > 0 || num_total_points == 0) {
     vw_out() << "Triangulated successfully "
              << num_total_points - num_failed_points << " out of " << num_total_points
-             << " control points (ratio: " 
+             << " control points (ratio: "
              << 1.0 - failed_ratio << ").\n";
     if (num_total_points < 30 || failed_ratio > 0.5)
       vw_out() << "If too many failures, perhaps your baseline/convergence angle "
-              << "is too small. Consider deleting your run directory and rerunning "
-              << "with more match points, decreasing --min-triangulation-angle, or using "
-              << "--forced-triangulation-distance.\n";
+               << "is too small. Consider deleting your run directory and rerunning "
+               << "with more match points, decreasing --min-triangulation-angle, or using "
+               << "--forced-triangulation-distance.\n";
   }
-  
+
+  watch.stop();
+  vw_out() << "Triangulating the control network took " << watch.elapsed_seconds()
+    << " seconds.\n";
+
   return;
 }
 
@@ -249,7 +256,7 @@ typedef std::map<std::pair<int, int>, MATCH_PAIR> MATCH_MAP;
 typedef std::tuple<double, double, double> ipTriplet; // (ip.x, ip.y, ip.scale)
 
 // Convert the matches to the MVG format, so their track-building code can be used.
-void matchesToMvg(MATCH_MAP const& match_map, 
+void matchesToMvg(MATCH_MAP const& match_map,
                   std::vector<std::map<ipTriplet, int>> const& keypoint_map,
                   std::vector<std::vector<ipTriplet>> const& keypoint_vec,
                   std::map<std::pair<int, int>, std::string> const& match_files,
@@ -257,16 +264,16 @@ void matchesToMvg(MATCH_MAP const& match_map,
 
   // Wipe the output
   mvg_match_map.clear();
-  
+
   for (auto it = match_map.begin(); it != match_map.end(); it++) {
     std::pair<int, int> const& cid_pair = it->first;     // alias
-    
+
     int left_cid = cid_pair.first;
     int right_cid = cid_pair.second;
-    
+
     // Must not have left_cid == right_cid
-    if (left_cid == right_cid) 
-      vw::vw_throw(ArgumentErr() 
+    if (left_cid == right_cid)
+      vw::vw_throw(ArgumentErr()
                    << "Bookkeeping error: Cannot have matches from an image to itself.\n");
 
     // This potential swap ensures that the pair is always ordered
@@ -274,9 +281,9 @@ void matchesToMvg(MATCH_MAP const& match_map,
     // of the order of images vs order of matches.
     bool swap = (left_cid > right_cid);
     std::pair<int, int> out_pair = cid_pair;
-    if (swap) 
+    if (swap)
       out_pair = std::make_pair(right_cid, left_cid);
-      
+
     MATCH_PAIR const& match_pair = it->second;  // alias
     std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
     std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
@@ -288,10 +295,10 @@ void matchesToMvg(MATCH_MAP const& match_map,
                                       right_ip_vec[ip_it].scale);
 
       auto left_it = keypoint_map[left_cid].find(dist_left_ip);
-      if (left_it == keypoint_map[left_cid].end()) 
+      if (left_it == keypoint_map[left_cid].end())
         vw::vw_throw(ArgumentErr() << "Bookkeeping error in matchesToMvg().\n");
       auto right_it = keypoint_map[right_cid].find(dist_right_ip);
-      if (right_it == keypoint_map[right_cid].end()) 
+      if (right_it == keypoint_map[right_cid].end())
         vw::vw_throw(ArgumentErr() << "Bookkeeping error in matchesToMvg().\n");
       int left_fid = left_it->second;
       int right_fid = right_it->second;
@@ -304,10 +311,10 @@ void matchesToMvg(MATCH_MAP const& match_map,
 
     // Append to vector mvg_match_map[out_pair] the vector mvg_matches.
     // As such, can have both left-to-right and right-to-left matches.
-    mvg_match_map[out_pair].insert(mvg_match_map[out_pair].end(), 
+    mvg_match_map[out_pair].insert(mvg_match_map[out_pair].end(),
                                    mvg_matches.begin(), mvg_matches.end());
   }
-  
+
 }
 
 // Build tracks from pairwise matches. This logic was shown to be superior to the 
@@ -324,7 +331,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
 
   // This alternative bookkeeping helps lookup a track based on cid.
   std::map<int, std::map<int, int>> cid_fid_pid;
-  
+
   // In mvg_match_map we have cid pairs as keys. For each such pair, we have fid pairs.
   for (auto it = mvg_match_map.begin(); it != mvg_match_map.end(); it++) {
     std::pair<int, int> const& cid_pair = it->first;     // alias
@@ -335,7 +342,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
     for (size_t ip_it = 0; ip_it < mvg_matches.size(); ip_it++) {
       int left_fid = mvg_matches[ip_it].m_left;
       int right_fid = mvg_matches[ip_it].m_right;
-      
+
       // See if the left feature is already in a track
       auto left_cid_it = cid_fid_pid.find(left_cid);
       int left_pid = -1;
@@ -344,7 +351,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
         if (left_fid_it != left_cid_it->second.end())
           left_pid = left_fid_it->second;
       }
-      
+
       // See if the right feature is already in a track
       auto right_cid_it = cid_fid_pid.find(right_cid);
       int right_pid = -1;
@@ -353,7 +360,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
         if (right_fid_it != right_cid_it->second.end())
           right_pid = right_fid_it->second;
       }
-      
+
       // If both left and right features are in some track, two options exist.
       // Either they are in the same track, then nothing to do. Or they are in
       // different tracks. It is not clear if merging the tracks is a good
@@ -361,15 +368,15 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
       // enough.
       if (left_pid >= 0 && right_pid >= 0)
         continue;
-      
+
       // If the left feature is in a track, but the right one is not, add it to
       // the left feature track.
       if (left_pid >= 0 && right_pid < 0) {
         cid_fid_pid[right_cid][right_fid] = left_pid;
         pid_cid_fid[left_pid][right_cid] = right_fid;
         continue;
-      }  
-    
+      }
+
       // If the right feature is in a track, but the left one is not, add it to
       // the right feature track.
       if (left_pid < 0 && right_pid >= 0) {
@@ -377,7 +384,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
         pid_cid_fid[right_pid][left_cid] = left_fid;
         continue;
       }
-      
+
       // If neither feature is in a track, create a new track.
       if (left_pid < 0 && right_pid < 0) {
         int pid = pid_cid_fid.size(); // one past the last existing pid
@@ -388,7 +395,7 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
       }
     }
   }
-  
+
   return;
 }
 
@@ -414,8 +421,8 @@ bool matchMapToCnet(std::vector<std::string> const& image_files,
   buildTracks(mvg_match_map, pid_cid_fid);
 
   if (pid_cid_fid.empty())
-    return false; 
-  
+    return false;
+
   // Convert to the control network format. Will triangulate later.
   for (auto pid = pid_cid_fid.begin(); pid != pid_cid_fid.end(); pid++) {
     ControlPoint cpoint(ControlPoint::TiePoint);
@@ -429,7 +436,7 @@ bool matchMapToCnet(std::vector<std::string> const& image_files,
                                         std::get<2>(dist_ip), // row sigma
                                         cid)); // image index
     }
-    
+
     if (cpoint.size() > 0)
       cnet.add_control_point(cpoint);
   }
@@ -446,7 +453,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double min_angle_radians,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches,
-                                   std::map<std::pair<int, int>, double> const& 
+                                   std::map<std::pair<int, int>, double> const&
                                    match_sigmas,
                                    vw::BathyData const& bathy_data) {
 
@@ -461,11 +468,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
   size_t num_load_rejected = 0, num_loaded = 0;
   for (auto it = match_files.begin(); it != match_files.end(); it++) {
-    
+
     std::pair<int, int> pair_ind = it->first;
     std::string const& match_file = it->second; // alias
-    int index1 = pair_ind.first; 
-    int index2 = pair_ind.second; 
+    int index1 = pair_ind.first;
+    int index2 = pair_ind.second;
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
     // vw_out() << "Loading: " << match_file << std::endl;
@@ -488,7 +495,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
       pick_pair_subset(ip1, ip2, max_pairwise_matches);
     }
-    
+
     num_loaded += ip1.size();
 
     // The sigma value is optional. It can be used to give more weight (less sigma)
@@ -496,13 +503,13 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     // matches. 
     auto sigma_it = match_sigmas.find(pair_ind);
     if (sigma_it != match_sigmas.end()) {
-      double sigma = sigma_it->second; 
+      double sigma = sigma_it->second;
       for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
         ip1[ip_it].scale *= sigma;
         ip2[ip_it].scale *= sigma;
       }
     }
-  
+
     // Initialize the keypoint map to zero. Will populate the entities later.
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
@@ -542,23 +549,23 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   // Convert the matches to the MVG format, so their track-building code can be used.
   PairWiseMatches mvg_match_map;
   matchesToMvg(match_map, keypoint_map, keypoint_vec, match_files, mvg_match_map);
-  
+
   // Deallocate data that is not needed anymore
   match_map = MATCH_MAP();
   keypoint_map = std::vector<std::map<ipTriplet, int>>();
 
   // Build the tracks and the control network using MVG
   bool ans = matchMapToCnet(image_files, keypoint_vec, mvg_match_map, cnet);
-  if (!ans) 
+  if (!ans)
    return false;
- 
+
   // Wipe this, no longer needed
   mvg_match_map.clear();
-  
+
   watch.stop();
-  vw_out() << "Building the control network took " << watch.elapsed_seconds() 
+  vw_out() << "Building the control network took " << watch.elapsed_seconds()
     << " seconds.\n";
-  
+
   // Triangulate the points in a control network
   if (triangulate_control_points)
     vw::ba::triangulate_control_network(cnet, camera_models, min_angle_radians,
@@ -569,7 +576,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
 // A little function to parse the WKT
 bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
-  
+
   std::string buff, val;
   std::istringstream is(wkt);
 
@@ -579,13 +586,13 @@ bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
     if (val.find("WKT:") != std::string::npos) continue;
     buff += val + " ";
   }
-  
+
   // Empty buff means that the string was empty
-  if (buff.empty()) 
+  if (buff.empty())
     return false;
-  
+
   datum.set_wkt(buff);
-  
+
   return true;
 }
 
@@ -593,9 +600,9 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                       std::vector<std::string> const& gcp_files,
                                       cartography::Datum const& datum,
                                       bool skip_datum_check) {
-  
+
   namespace fs = boost::filesystem;
-  
+
   std::vector<std::string> const& image_files = cnet.get_image_list();
 
   // Initalize this as the datum passed from outside. 
@@ -626,22 +633,22 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
     std::string line;
     int count = 0;
     while (getline(ifile, line, '\n')) {
-      
+
       // Skip empty lines
       if (line.size() == 0) continue;
-      
+
       // The first line can be the WKT string. Then read and validate it.
       if (line.size() > 0 && line[0] == '#' && line.find("WKT:") != std::string::npos &&
-          count == 0) { 
+          count == 0) {
         count++; // for next time
         cartography::Datum gcp_datum;
-        if (!parseDatum(line, gcp_datum)) 
+        if (!parseDatum(line, gcp_datum))
           continue;
-        
+
         // Use the datum from the GCP file
         local_datum = gcp_datum;
-          
-        if (skip_datum_check) 
+
+        if (skip_datum_check)
           continue;
         double tol = 1e-6;
         if (std::abs(gcp_datum.semi_major_axis() - datum.semi_major_axis()) > tol ||
@@ -651,11 +658,11 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
             << "The datum of the GCP file " << *gcp_iter
             << " does not match the datum passed on input. Will use the datum "
             << "from the GCP file.\n";
-        } 
+        }
         continue;
       }
       count++;
-      
+
       // Skip lines starting with comments
       if (line.size() > 0 && line[0] == '#') continue;
 
@@ -683,7 +690,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       while (1) {
         std::string image_name;
         Vector4 pix_std;
-        if (is >> image_name >> pix_std[0] >> pix_std[1] >> pix_std[2] >> pix_std[3]){
+        if (is >> image_name >> pix_std[0] >> pix_std[1] >> pix_std[2] >> pix_std[3]) {
           if (pix_std[2] <= 0 || pix_std[3] <= 0)
             vw_throw(ArgumentErr() << "Standard deviations must be positive "
                                     << "when loading ground control points.");
@@ -709,7 +716,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
       vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: " << xyz << std::endl;
       ControlPoint cpoint(ControlPoint::GroundControlPoint);
-      cpoint.set_position(xyz[0],         xyz[1],         xyz[2]       );
+      cpoint.set_position(xyz[0],         xyz[1],         xyz[2]);
       cpoint.set_sigma   (world_sigma[0], world_sigma[1], world_sigma[2]);
 
       // Adding measures
@@ -736,7 +743,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
         cnet.add_control_point(cpoint);
         num_gcp++;
       }
-      
+
     } // End line loop
     ifile.close();
 
