@@ -83,6 +83,7 @@ void readBathyPlane(std::string const& bathy_plane_file,
                     std::vector<double> & bathy_plane,
                     vw::cartography::GeoReference & plane_proj) {
 
+  vw::vw_out() << "Reading bathy plane: " << bathy_plane_file << "\n";
   std::ifstream handle;
   handle.open(bathy_plane_file.c_str());
   if (handle.fail())
@@ -125,8 +126,7 @@ void readBathyPlane(std::string const& bathy_plane_file,
   vw::cartography::Datum datum("WGS_1984");
   plane_proj.set_datum(datum);
   plane_proj.set_stereographic(proj_lat, proj_lon, scale);
-  vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str()
-            << "\n";
+  vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str() << "\n";
 }
 
 // Read the bathy planes and associated data. More often than not they will be
