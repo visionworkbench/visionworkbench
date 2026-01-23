@@ -17,7 +17,7 @@
 
 
 #include <vw/FileIO/TemporaryFile.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>

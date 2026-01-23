@@ -15,7 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Cache.h>
 #include <vw/Core/Settings.h>

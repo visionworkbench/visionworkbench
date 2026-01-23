@@ -105,7 +105,7 @@
 #define __VW_CORE_EXCEPTION_H__
 
 #include <vw/Core/Features.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #include <string>
 #include <sstream>

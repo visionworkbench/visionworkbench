@@ -36,7 +36,7 @@
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
 #define __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <string>
 #include <map>
 

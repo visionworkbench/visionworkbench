@@ -19,7 +19,7 @@
 #ifndef __VW_STEREO_DISPARITY_MAP_H__
 #define __VW_STEREO_DISPARITY_MAP_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>

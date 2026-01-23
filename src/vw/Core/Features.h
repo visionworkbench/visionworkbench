@@ -23,7 +23,7 @@
 #ifndef __VW_CORE_FEATURES_H__
 #define __VW_CORE_FEATURES_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #if defined(VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED)
 #define VW_DEPRECATED __attribute__((deprecated))

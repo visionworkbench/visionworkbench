@@ -60,7 +60,7 @@
 #ifndef __VW_IMAGE_IMAGEMATH_H__
 #define __VW_IMAGE_IMAGEMATH_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/Functors.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PixelMask.h>

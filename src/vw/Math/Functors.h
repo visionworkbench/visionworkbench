@@ -32,7 +32,7 @@
 #include <vector>
 #include <algorithm>
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>

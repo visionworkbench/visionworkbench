@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/FileIO/MemoryImageResource.h>
 
 #if defined(VW_HAVE_PKG_JPEG)

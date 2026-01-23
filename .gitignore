@@ -1,4 +1,3 @@
 # Generally ignorable files.
 /build
-src/vw/config.h
 

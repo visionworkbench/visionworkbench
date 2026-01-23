@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 #include <vw/Core/Log.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>

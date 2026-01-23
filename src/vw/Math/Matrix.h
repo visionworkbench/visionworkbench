@@ -47,7 +47,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #include <stack>
 

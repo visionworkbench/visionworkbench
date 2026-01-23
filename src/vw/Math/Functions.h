@@ -28,7 +28,7 @@
 #ifndef __VW_MATH_FUNCTIONS_H__
 #define __VW_MATH_FUNCTIONS_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 
 #include <cmath>

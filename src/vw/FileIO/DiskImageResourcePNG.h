@@ -23,7 +23,7 @@
 #ifndef __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
 #define __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <string>
 #include <vector>

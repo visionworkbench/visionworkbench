@@ -22,7 +22,7 @@
 #ifndef __VW_IMAGE_IMAGERESOURCEIMPL_H__
 #define __VW_IMAGE_IMAGERESOURCEIMPL_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #define __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__ 1
 

@@ -28,7 +28,7 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #ifdef VW_HAVE_PKG_GDAL
 

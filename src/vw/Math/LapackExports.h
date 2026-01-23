@@ -19,7 +19,7 @@
 #ifndef __VW_MATH_LAPACK_EXPORTS_H__
 #define __VW_MATH_LAPACK_EXPORTS_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 
 #if (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)

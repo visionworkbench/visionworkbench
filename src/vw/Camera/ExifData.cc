@@ -34,7 +34,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 #include <cstdio>
 #include <cstring>

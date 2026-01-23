@@ -23,7 +23,7 @@
 #ifndef __VW_IMAGE_PIXELMATH_H__
 #define __VW_IMAGE_PIXELMATH_H__
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <boost/utility/enable_if.hpp>
 
 #include <vw/Core/Functors.h>

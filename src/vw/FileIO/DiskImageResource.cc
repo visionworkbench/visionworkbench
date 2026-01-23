@@ -27,7 +27,7 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 // For RunOnce
 #include <vw/Core/RunOnce.h>

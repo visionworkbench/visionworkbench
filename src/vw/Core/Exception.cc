@@ -22,7 +22,7 @@
 ///
 /// See Core/Exception.h for documentation.
 ///
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Features.h>
 
