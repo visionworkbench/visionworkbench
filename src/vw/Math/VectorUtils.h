@@ -34,6 +34,12 @@ namespace math {
   // - All three form a right-handed orthonormal coordinate system
   void formBasis(Vector3 const& V, Vector3& X, Vector3& Y, Vector3& Z);
 
+  // Generate two orthogonal tangent vectors that lie in a plane defined by its normal.
+  // The vectors are scaled by the given offset distance.
+  // The tangent vectors are perpendicular to the normal and to each other.
+  void computePlaneTangents(Vector3 const& normal, double offset,
+                            Vector3& tangent1, Vector3& tangent2);
+
 }} // namespace vw::math
 
 #endif // __VW_MATH_VECTOR_UTILS_H__

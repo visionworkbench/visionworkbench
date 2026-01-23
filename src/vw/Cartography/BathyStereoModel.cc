@@ -628,24 +628,7 @@ std::vector<double> fitLocalEcefPlane(vw::BathyPlane const& bathy_plane,
   // Sample 3 points on the plane by moving along tangent vectors
   // Generate two orthogonal tangent vectors that lie in the plane
   vw::Vector3 tangent1, tangent2;
-  if (std::abs(normal[2]) > 0.1) {
-    // If plane isn't too vertical, use X and Y directions projected onto plane
-    tangent1 = vw::Vector3(1, 0, -normal[0]/normal[2]);
-    tangent2 = vw::Vector3(0, 1, -normal[1]/normal[2]);
-  } else if (std::abs(normal[1]) > 0.1) {
-    // Plane is nearly vertical in Z, use X and Z
-    tangent1 = vw::Vector3(1, -normal[0]/normal[1], 0);
-    tangent2 = vw::Vector3(0, -normal[2]/normal[1], 1);
-  } else {
-    // Plane is nearly vertical in Y and Z, use Y and Z
-    tangent1 = vw::Vector3(-normal[1]/normal[0], 1, 0);
-    tangent2 = vw::Vector3(-normal[2]/normal[0], 0, 1);
-  }
-
-  // Normalize tangent vectors and scale by offset
-  tangent1 = normalize(tangent1) * offset;
-  tangent2 = normalize(tangent2) * offset;
-
+  vw::math::computePlaneTangents(normal, offset, tangent1, tangent2);
   vw::Vector3 pt0 = proj_on_plane;
   vw::Vector3 pt1 = proj_on_plane + tangent1;
   vw::Vector3 pt2 = proj_on_plane + tangent2;
