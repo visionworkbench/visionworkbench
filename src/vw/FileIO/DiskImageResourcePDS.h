@@ -40,7 +40,7 @@ namespace vw {
         m_image_data_offset( 0 ),
         m_invalid_as_alpha( false )
     {
-      m_pds_data_filename = ""; // For PDS images that have a seperate file with image data.
+      m_pds_data_filename = ""; // For PDS images that have a separate file with image data.
       open( filename );
     }
 

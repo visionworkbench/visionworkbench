@@ -16,8 +16,49 @@
 // __END_LICENSE__
 
 #include <vw/Image/Fourier.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/Statistics.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageResourceView.h>
+#include <vw/Image/ImageResourceImpl.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <opencv2/imgproc.hpp>
+#include <boost/core/null_deleter.hpp>
 
 namespace vw {
+
+// Helper function to convert VW image to OpenCV format
+void fourier_get_opencv_wrapper(ImageViewRef<float> const& input_image,
+                                cv::Mat & cv_image,
+                                ImageView<vw::uint8> &image_buffer,
+                                cv::Mat & cv_mask,
+                                bool normalize = true) {
+
+  // Rasterize the input image
+  ImageView<float> input_buffer = input_image.impl();
+
+  if (normalize) // Convert to uint8 with 2%-98% intensity scaling
+    percentile_scale_convert(input_buffer, image_buffer, 0.02, 0.98);
+  else {
+    double standard_min = ChannelRange<float>::min();
+    double standard_max = ChannelRange<float>::max();
+    image_buffer = pixel_cast_rescale<vw::uint8>(clamp(input_buffer, standard_min, standard_max));
+  }
+
+  // Create OpenCV wrapper for the buffer
+  int     cv_data_type = CV_8UC1;
+  void*   raw_data_ptr = reinterpret_cast<void*>(image_buffer.data());
+  size_t  pixel_size   = sizeof(vw::uint8);
+  size_t  step_size    = image_buffer.cols() * pixel_size;
+
+  cv_image = cv::Mat(image_buffer.rows(), image_buffer.cols(),
+                     cv_data_type, raw_data_ptr, step_size);
+
+  // No mask handling needed for Fourier transforms
+  cv_mask = cv::Mat();
+}
 
 void get_dft(ImageViewRef<float> const& input_view, cv::Mat &output_image) {
 

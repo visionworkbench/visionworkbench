@@ -50,13 +50,42 @@ namespace po = boost::program_options;
   default:                 do_mosaic_##PIXELTYPE##_float32(opt,progress); break; \
   }
 
+// Small local utilities
+namespace local {
+  namespace kml {
+    // Returns the number of pixels per planetary circumference,
+    // rounding up to a power of two.
+    template <class TransformT>
+    inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+      Vector2 pos      = tx.forward( pixel );
+      Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
+      Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
+      double degrees_per_pixel        = (std::min)( norm_2(x_vector), norm_2(y_vector) );
+      double pixels_per_circumference = 360.0 / degrees_per_pixel;
+      int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2.0) );
+      if (scale_exponent >= 31) scale_exponent = 30;
+      return 1 << scale_exponent;
+    }
+  } // namespace local::kml
+
+  namespace tms {
+    // Returns the number of pixels per planetary circumference,
+    // rounding up to a power of two.
+    template <class TransformT>
+    inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+      // It's exactly the same as the one for KML.
+      return local::kml::compute_resolution(tx, pixel);
+    }
+  } // namespace local::tms
+} // namespace local
+
 int32 compute_resolution(const std::string& p, const GeoTransform& t, const Vector2& v) {
-  if (p == "KML")      return vw::cartography::output::kml::compute_resolution(t,v);
-  if (p == "TMS")      return vw::cartography::output::tms::compute_resolution(t,v);
-  if (p == "UNIVIEW")  return vw::cartography::output::tms::compute_resolution(t,v);
-  if (p == "GMAP")     return vw::cartography::output::tms::compute_resolution(t,v);
-  if (p == "CELESTIA") return vw::cartography::output::tms::compute_resolution(t,v);
-  if (p == "GIGAPAN")  return vw::cartography::output::tms::compute_resolution(t,v);
+  if (p == "KML")      return local::kml::compute_resolution(t,v);
+  if (p == "TMS")      return local::tms::compute_resolution(t,v);
+  if (p == "UNIVIEW")  return local::tms::compute_resolution(t,v);
+  if (p == "GMAP")     return local::tms::compute_resolution(t,v);
+  if (p == "CELESTIA") return local::tms::compute_resolution(t,v);
+  if (p == "GIGAPAN")  return local::tms::compute_resolution(t,v);
   vw_throw(LogicErr() << "Asked to compute resolution for unknown quadtree type.");
 }
 

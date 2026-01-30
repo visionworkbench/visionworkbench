@@ -109,7 +109,7 @@ namespace stereo {
   /// - The goal is to isolate high-disparity range portions of the image
   ///   into small regions so that only those regions get searched over
   ///   the large disparity ranges while at the same time keeping
-  ///   the number of seperate regions (list.size()) small.
+  ///   the number of separate regions (list.size()) small.
   /// - This is a recursive function. It might be ideal to make this a
   ///   template. However in all cases so far, I've only applied to
   ///   PixelMask<Vector2i>. 

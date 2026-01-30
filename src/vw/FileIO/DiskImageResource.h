@@ -40,7 +40,6 @@
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
-#include <vw/Image/Manipulation.h>
 
 namespace vw {
 
@@ -153,7 +152,7 @@ namespace vw {
 
   /// Write an image view to disk.  If you supply a filename with an
   /// asterisk ('*'), each plane of the image will be saved as a
-  /// seperate file with the asterisk replaced with the plane number.
+  /// separate file with the asterisk replaced with the plane number.
   template <class ImageT>
   void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
@@ -187,7 +186,7 @@ namespace vw {
 
   /// Write a std::vector of image views.  Supply a filename with an
   /// asterisk ('*') and, each image in the vector will be saved as
-  /// a seperate file on disk with the asterisk will be replaced with
+  /// a separate file on disk with the asterisk will be replaced with
   /// the image number.
   template <class ElemT>
   void write_image( const std::string &filename, std::vector<ElemT> const& out_image_vector ) {

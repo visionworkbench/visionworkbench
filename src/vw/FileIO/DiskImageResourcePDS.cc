@@ -110,7 +110,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   fclose(input_file);
 
   // The the data into an associative contain (std::map).  Key/value
-  // pairs are located by searching for strings seperated by the
+  // pairs are located by searching for strings separated by the
   // equals sign "=".
   parse_pds_header(header);
 
@@ -187,11 +187,11 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   if ( query( keys, value ) ) {
     // Check to see if the label contained a quoted string.  If so,
     // then we take this to mean that the actual image data is in a
-    // seperate file, and the filename is contained in this key.
+    // separate file, and the filename is contained in this key.
     // Otherwise, we set the data filename to be the same as the
     // filename that contains the image header.
     if (value[0] == '\"' && value[value.size()-1] == '\"') {
-      VW_OUT(InfoMessage, "fileio") << "PDS header points to a seperate data file: " << value << ".\n";
+      VW_OUT(InfoMessage, "fileio") << "PDS header points to a separate data file: " << value << ".\n";
       m_pds_data_filename = value.substr(1,value.size()-2);
       m_image_data_offset = 0;
     } else {
@@ -268,7 +268,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
 
   // Re-open the file, and shift the file offset to the position of
   // the first image byte (as indicated by the PDS header).  Some PDS
-  // files will have the actual data in a seperate file that is
+  // files will have the actual data in a separate file that is
   // pointed to by the PDS image header, so we may actually be opening
   // that file here instead of the original file that the user
   // specified.

@@ -288,7 +288,7 @@ namespace ip {
 
 
 
-// TODO: Seperate the definitions!
+// TODO: Separate the definitions!
 
 //================================================================================================
 // Function definitions

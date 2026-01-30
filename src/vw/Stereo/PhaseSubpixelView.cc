@@ -19,6 +19,12 @@
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/Fourier.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageResourceView.h>
+#include <vw/Image/ImageResourceImpl.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <boost/core/null_deleter.hpp>
 
 namespace vw {
 namespace stereo {

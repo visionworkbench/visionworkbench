@@ -285,7 +285,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   }
 
   if (m_format.pixel_format == VW_PIXEL_SCALAR) {
-    // Multi-plane images with simple pixel types are stored in seperate
+    // Multi-plane images with simple pixel types are stored in separate
     // planes in the TIFF image.
     check_retval(TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE), 0);
     check_retval(

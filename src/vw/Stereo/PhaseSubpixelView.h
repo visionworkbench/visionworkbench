@@ -19,8 +19,8 @@
 #define __VW_STEREO_PHASESUBPIXEL_VIEW__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/Fourier.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <opencv2/core.hpp>
 
 // Implement the subpixel phase correlation algorithm from the following paper:
 // Manuel Guizar-Sicairos, Samuel T. Thurman, and James R. Fienup,
