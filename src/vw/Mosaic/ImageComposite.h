@@ -38,6 +38,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/Image/SparseImageCheck.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 namespace mosaic {

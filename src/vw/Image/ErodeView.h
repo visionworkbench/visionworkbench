@@ -29,6 +29,7 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/BlobIndex.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 

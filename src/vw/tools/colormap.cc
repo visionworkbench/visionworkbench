@@ -48,6 +48,7 @@
 #include <boost/foreach.hpp>
 
 #include <cstdlib>
+#include <vw/Image/Manipulation.h>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;

@@ -27,7 +27,6 @@
 #include <vw/Image/AlgorithmFunctions.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Statistics.h>
-#include <vw/Image/Manipulation.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageViewRef.h>

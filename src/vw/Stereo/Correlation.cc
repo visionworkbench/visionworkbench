@@ -23,6 +23,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/AlgorithmFunctions.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw { namespace stereo {
 

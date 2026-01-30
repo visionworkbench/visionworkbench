@@ -24,6 +24,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Manipulation.h>
 
 #if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
   #include <emmintrin.h>

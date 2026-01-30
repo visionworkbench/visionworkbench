@@ -36,6 +36,7 @@
 #include <vw/Image/SparseView.h>
 
 #include <boost/foreach.hpp>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
   namespace inpaint_p {

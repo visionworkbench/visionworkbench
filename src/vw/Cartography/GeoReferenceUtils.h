@@ -27,6 +27,7 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/FileIO/GdalWriteOptions.h>
+#include <vw/Image/Manipulation.h>
 
 /// \file GeoReferenceUtils.h Tools for working with GeoReference objects
 

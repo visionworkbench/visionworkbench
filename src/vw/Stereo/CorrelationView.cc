@@ -27,6 +27,7 @@
 
 #include <boost/foreach.hpp>
 #include <ctime>
+#include <vw/Image/Manipulation.h>
 
 namespace vw { namespace stereo {
 

@@ -24,6 +24,7 @@
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/CorrelationAlgorithms.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw { namespace stereo {
 

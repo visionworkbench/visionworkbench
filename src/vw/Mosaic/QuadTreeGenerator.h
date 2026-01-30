@@ -45,6 +45,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/Manipulation.h>
 
 
 namespace vw {

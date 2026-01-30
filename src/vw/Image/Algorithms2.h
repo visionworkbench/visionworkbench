@@ -26,6 +26,7 @@
 #define __VW_IMAGE_ALGORITHMS2_H__
 
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 
