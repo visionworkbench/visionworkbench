@@ -36,6 +36,7 @@ GdalWriteOptions::GdalWriteOptions() {
                               vw_settings().default_tile_size());
   num_threads      = vw_settings().default_num_threads();
   cache_size_mb    = vw_settings().system_cache_size() / (1024.0 * 1024.0); // bytes to MB
+  cog              = false;
 }
 
 void GdalWriteOptions::setVwSettingsFromOpt() {

@@ -100,6 +100,8 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt,
     ("no-bigtiff",   "Tell GDAL to not create BigTiff files.")
     ("tif-compress", po::value(&opt.tif_compress)->default_value("LZW"),
      "TIFF Compression method. [None, LZW, Deflate, Packbits]")
+    ("cog",          po::bool_switch(&opt.cog)->default_value(false),
+     "Write a cloud-optimized GeoTIFF (COG).")
     ("version,v",    "Display the version of software.")
     ("help,h",       "Display this help message.");
 }

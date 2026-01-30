@@ -55,6 +55,7 @@ namespace vw {
     int32        num_threads;
     std::int64_t cache_size_mb; // Set the cache size, in MB. Modifies VW's system_cache_size.
     std::string  tif_compress;
+    bool         cog;
 
     GdalWriteOptions();
 
