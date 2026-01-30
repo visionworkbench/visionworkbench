@@ -31,6 +31,9 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/PixelAccessors.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
 
@@ -296,6 +299,33 @@ namespace vw {
   /// Specifies that ImageView objects are fast to access.
   template <class PixelT>
   struct IsMultiplyAccessible<ImageView<PixelT>> : public true_type {};
+
+  // Explicit template instantiation declarations for common types.
+  // These are instantiated once in ImageView.cc to reduce
+  // compilation time and object file size.
+  extern template class ImageView<float>;
+  extern template class ImageView<double>;
+  extern template class ImageView<uint8>;
+  extern template class ImageView<int16>;
+  extern template class ImageView<uint16>;
+  extern template class ImageView<int32>;
+  extern template class ImageView<uint32>;
+  extern template class ImageView<PixelGray<float>>;
+  extern template class ImageView<PixelGray<double>>;
+  extern template class ImageView<PixelGray<uint8>>;
+  extern template class ImageView<PixelRGB<uint8>>;
+  extern template class ImageView<PixelRGB<float>>;
+  extern template class ImageView<PixelRGB<double>>;
+  extern template class ImageView<PixelRGBA<uint8>>;
+  extern template class ImageView<PixelMask<uint8>>;
+  extern template class ImageView<PixelMask<float>>;
+  extern template class ImageView<PixelMask<double>>;
+  extern template class ImageView<PixelMask<PixelGray<uint8>>>;
+  extern template class ImageView<PixelMask<PixelGray<float>>>;
+  extern template class ImageView<PixelMask<Vector2f>>;
+  extern template class ImageView<PixelMask<Vector2i>>;
+  extern template class ImageView<Vector2>;
+  extern template class ImageView<Vector3>;
 
 } // namespace vw
 

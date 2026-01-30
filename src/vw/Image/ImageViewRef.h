@@ -273,6 +273,22 @@ namespace vw {
     }
   };
 
+  // Explicit template instantiation declarations for common types.
+  // These are instantiated once in ImageViewRef.cc to reduce
+  // compilation time and object file size.
+  extern template class ImageViewRef<float>;
+  extern template class ImageViewRef<double>;
+  extern template class ImageViewRef<uint8>;
+  extern template class ImageViewRef<PixelGray<float>>;
+  extern template class ImageViewRef<PixelGray<uint8>>;
+  extern template class ImageViewRef<PixelRGB<uint8>>;
+  extern template class ImageViewRef<PixelMask<float>>;
+  extern template class ImageViewRef<PixelMask<double>>;
+  extern template class ImageViewRef<PixelMask<uint8>>;
+  extern template class ImageViewRef<PixelMask<Vector2f>>;
+  extern template class ImageViewRef<PixelMask<PixelRGB<uint8>>>;
+  extern template class ImageViewRef<Vector2>;
+  extern template class ImageViewRef<Vector3>;
 
 } // namespace vw
 
