@@ -45,9 +45,6 @@ cv::Mat fftshift(cv::Mat const& in, bool reverse=false);
 /// Convert the magnitude image into an easy to view format.
 void get_pretty_magnitude(cv::Mat &magI, bool do_fftshift=true);
 
-/// Get the magnitude of a frequency domain image and write it to disk.
-void save_mag_from_ft(cv::Mat const& input, std::string const& path, bool do_fftshift=true);
-
 /// Increase the size of a frequency domain image with zero padding,
 ///  keeping everything in the correct place.
 cv::Mat pad_fourier_transform(cv::Mat const& input, int new_width, int new_height);

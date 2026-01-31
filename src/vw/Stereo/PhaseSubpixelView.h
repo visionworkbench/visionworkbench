@@ -19,7 +19,8 @@
 #define __VW_STEREO_PHASESUBPIXEL_VIEW__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Stereo/DisparityMap.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/PixelMask.h>
 #include <opencv2/core.hpp>
 
 // Implement the subpixel phase correlation algorithm from the following paper:
@@ -40,10 +41,10 @@ namespace stereo {
 cv::Mat partial_upsample_dft(cv::Mat const& input, int upsampled_height, int upsampled_width, 
                              int upscale, int row_offset=0, int col_offset=0);
 
-/// Compute the subpixel translation between two images using a two-pass frequency based method.
-/// - The images must be the same size!
-/// - Maximum accuracy is 1/subpixel_accuracy
-/// - Images are converted to float internally, so use ImageViewRef<float> for efficiency.
+/// Compute the subpixel translation between two images using a two-pass
+/// frequency based method. The images must be the same size. Maximum accuracy
+/// is 1/subpixel_accuracy. Images are converted to float internally, so use
+/// ImageViewRef<float> for efficiency.
 void phase_correlation_subpixel(ImageViewRef<float> const& left_image,
                                 ImageViewRef<float> const& right_image,
                                 Vector2f &offset,

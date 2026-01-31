@@ -29,6 +29,16 @@
 namespace vw {
 namespace stereo {
 
+// Helper function to save Fourier transform magnitude for debugging
+void save_mag_from_ft(cv::Mat const& input, std::string const& path, bool do_fftshift=true) {
+  cv::Mat mag;
+  vw::get_magnitude(input, mag);
+  vw::get_pretty_magnitude(mag, do_fftshift);
+  boost::shared_ptr<cv::Mat> ocv_ptr(&mag, boost::null_deleter());
+  ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
+  write_image(path, ocv_view);
+}
+
 cv::Mat partial_upsample_dft(cv::Mat const& input, int upsampled_height, int upsampled_width, 
                              int upscale, int row_offset, int col_offset) {
 

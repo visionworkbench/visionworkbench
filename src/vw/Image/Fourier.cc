@@ -136,15 +136,6 @@ void get_pretty_magnitude(cv::Mat &magI, bool do_fftshift) {
     magI = fftshift(magI);
 }
 
-void save_mag_from_ft(cv::Mat const& input, std::string const& path, bool do_fftshift) {
-  cv::Mat mag;
-  get_magnitude(input, mag);
-  get_pretty_magnitude(mag, do_fftshift);
-  boost::shared_ptr<cv::Mat> ocv_ptr(&mag, boost::null_deleter());
-  ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
-  write_image(path, ocv_view);
-}
-
 cv::Mat pad_fourier_transform(cv::Mat const& input, int new_width, int new_height) {
 
   if ((new_width < input.cols) || (new_height < input.rows))
