@@ -195,42 +195,44 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description general_options("");
   general_options.add_options()
     ("output-file,o", po::value(&opt.output_file_name),
-                      "Specify the output file.")
-    ("colormap-style",po::value(&opt.colormap_style)->default_value("binary-red-blue"),
-     "Specify the colormap style. Options: binary-red-blue (default), "
-     "jet, black-body, viridis, kindlmann, cubehelix, plasma, inferno, rainbow, turbo. "
-     "Or specify the name of a file having the colormap, on each line of "
-     "which there must be a normalized or percentage intensity and "
-     "the three integer rgb values it maps to.")
-    ("nodata-value",  po::value(&opt.nodata_value)->default_value
-     (std::numeric_limits<float>::max()),
-                      "Remap the nodata default value to the min altitude value.")
-    ("min",           po::value(&opt.min_val)->default_value(0),
-                      "Minimum height of the color map.")
-    ("max",           po::value(&opt.max_val)->default_value(0),
-                      "Maximum height of the color map.")
-    ("moon",          "Set the min and max values to [-8499 10208] meters, which is "
-     "suitable for covering elevations on the Moon.")
-    ("mars",          "Set the min and max values to [-8208 21249] meters, which is "
-     "suitable for covering elevations on Mars.")
+     "Specify the output file.")
+    ("colormap-style", po::value(&opt.colormap_style)->default_value("binary-red-blue"),
+     "Specify the colormap style. Options: binary-red-blue (default), jet, "
+     "black-body, viridis, kindlmann, cubehelix, plasma, inferno, rainbow, turbo. "
+     "Or specify the name of a file having the colormap, on each line of which "
+     "there must be a normalized or percentage intensity and the three integer "
+     "rgb values it maps to.")
+    ("nodata-value", po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
+     "Remap the nodata default value to the min altitude value.")
+    ("min", po::value(&opt.min_val)->default_value(0),
+     "Minimum height of the color map.")
+    ("max", po::value(&opt.max_val)->default_value(0),
+     "Maximum height of the color map.")
+    ("moon",
+     "Set the min and max values to [-8499 10208] meters, which is suitable for "
+     "covering elevations on the Moon.")
+    ("mars",
+     "Set the min and max values to [-8208 21249] meters, which is suitable for "
+     "covering elevations on Mars.")
     ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
-      "Specify a shaded relief image (grayscale) to apply to the colorized image. "
-      "For example, this can be a hillshade image.")
-    ("hillshade",    "Create a hillshaded image first, then incorporate it in the "
-     "colormap. This is equivalent to using an external file with the "
-     "--shaded-relief-file option.")
-    ("azimuth,a",       po::value(&opt.azimuth)->default_value(300), 
-     "Sets the direction the light source is coming from (in degrees). "
-     "Zero degrees is to the right, with positive degree counter-clockwise. "
-     "To be used with the --hillshade option.")
-    ("elevation,e",     po::value(&opt.elevation)->default_value(20), 
-     "Set the elevation of the light source (in degrees). To be used with "
-     "the --hillshade option.")
-    ("legend",        "Generate the colormap legend.  This image is saved (without "
-     "labels) as 'legend.png'.");
+     "Specify a shaded relief image (grayscale) to apply to the colorized image. "
+     "For example, this can be a hillshade image.")
+    ("hillshade",
+     "Create a hillshaded image first, then incorporate it in the colormap. This "
+     "is equivalent to using an external file with the --shaded-relief-file option.")
+    ("azimuth,a", po::value(&opt.azimuth)->default_value(300),
+     "Sets the direction the light source is coming from (in degrees). Zero "
+     "degrees is to the right, with positive degree counter-clockwise. To be used "
+     "with the --hillshade option.")
+    ("elevation,e", po::value(&opt.elevation)->default_value(20),
+     "Set the elevation of the light source (in degrees). To be used with the "
+     "--hillshade option.")
+    ("legend",
+     "Generate the colormap legend. This image is saved (without labels) as "
+     "legend.png.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
-  
+
   po::options_description positional("");
   positional.add_options()
     ("input-file", po::value(&opt.input_file_name), "Input disparity map.");
