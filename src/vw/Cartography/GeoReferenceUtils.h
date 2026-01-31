@@ -64,11 +64,12 @@ double get_image_meters_per_pixel(int width, int height, GeoReference const& geo
 // Functions for writing GDAL images - multithreaded.
 
 template <class ImageT>
-DiskImageResourceGDAL* build_gdal_rsrc(const std::string& filename,
-                                       ImageViewBase<ImageT> const& image,
-                                       GdalWriteOptions const& opt) {
-  return new DiskImageResourceGDAL(filename, image.impl().format(), opt.raster_tile_size,
-                                   opt.gdal_options);
+boost::shared_ptr<DiskImageResourceGDAL> build_gdal_rsrc(const std::string& filename,
+                                                          ImageViewBase<ImageT> const& image,
+                                                          GdalWriteOptions const& opt) {
+  return boost::shared_ptr<DiskImageResourceGDAL>(
+    new DiskImageResourceGDAL(filename, image.impl().format(), opt.raster_tile_size,
+                              opt.gdal_options));
 }
 
 /// Multi-threaded block write image with, if available, nodata, georef, and
@@ -151,9 +152,10 @@ void write_gdal_image(
     ProgressCallback const& progress_callback = ProgressCallback::dummy_instance(),
     StrMap const& keywords = StrMap());
 
-//=============================================================================
-//=============================================================================
 // Function definitions
+
+// Helper function to add overviews to a GeoTIFF for COG compatibility
+void convert_to_cog(const std::string& filename, GdalWriteOptions const& opt);
 
 // Multi-threaded block write image with, if available, nodata, georef, and
 // keywords to geoheader.
@@ -167,7 +169,7 @@ void block_write_gdal_image(const std::string& filename,
                             GdalWriteOptions const& opt,
                             ProgressCallback const& progress_callback,
                             StrMap const& keywords) {
-  boost::scoped_ptr<DiskImageResourceGDAL> rsrc(build_gdal_rsrc(filename, image, opt));
+  auto rsrc = build_gdal_rsrc(filename, image, opt);
 
   if (has_nodata) rsrc->set_nodata_write(nodata);
 
@@ -177,6 +179,12 @@ void block_write_gdal_image(const std::string& filename,
   if (has_georef) cartography::write_georeference(*rsrc, georef);
 
   block_write_image(*rsrc, image.impl(), progress_callback, opt.num_threads);
+  
+  // Convert to COG if requested
+  if (opt.cog) {
+    rsrc.reset();  // Close file before COG conversion
+    convert_to_cog(filename, opt);
+  }
 }
 
 // Block write image without georef and nodata.
@@ -224,7 +232,7 @@ void write_gdal_image(const std::string& filename,
                       GdalWriteOptions const& opt,
                       ProgressCallback const& progress_callback,
                       StrMap const& keywords) {
-  boost::scoped_ptr<DiskImageResourceGDAL> rsrc(build_gdal_rsrc(filename, image, opt));
+  auto rsrc = build_gdal_rsrc(filename, image, opt);
 
   if (has_nodata) rsrc->set_nodata_write(nodata);
 
@@ -234,6 +242,12 @@ void write_gdal_image(const std::string& filename,
   if (has_georef) cartography::write_georeference(*rsrc, georef);
 
   write_image(*rsrc, image.impl(), progress_callback);
+  
+  // Convert to COG if requested
+  if (opt.cog) {
+    rsrc.reset();  // Close file before COG conversion
+    convert_to_cog(filename, opt);
+  }
 }
 
 // Single-threaded write image with georef and keywords to geoheader.

@@ -17,13 +17,17 @@
 
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Cartography/GeoTransform.h>
+#include <gdal_priv.h>
+#include <gdal_utils.h>
+#include <cpl_string.h>
+#include <boost/filesystem.hpp>
 
 namespace vw {
 namespace cartography {
 
 GeoReference crop(GeoReference const& input,
-                   double upper_left_x, double upper_left_y,
-                   double /*width*/, double /*height*/) {
+                  double upper_left_x, double upper_left_y,
+                  double /*width*/, double /*height*/) {
   Vector2 top_left_ll;
   if (input.pixel_interpretation() == GeoReference::PixelAsArea) {
     top_left_ll = input.pixel_to_point(Vector2(upper_left_x, upper_left_y) - Vector2(0.5,0.5));
@@ -40,8 +44,7 @@ GeoReference crop(GeoReference const& input,
   return output;
 }
 
-GeoReference crop(GeoReference const& input,
-                   BBox2 const& bbox) {
+GeoReference crop(GeoReference const& input, BBox2 const& bbox) {
   // Redirect to the other georeference crop call
   // TODO(oalexan1): Need to update m_image_ll_box here!
   return crop(input, bbox.min().x(), bbox.min().y(),
@@ -89,6 +92,98 @@ double get_image_meters_per_pixel(int width, int height, GeoReference const& geo
   double d1 = haversine_circle_distance(lonlat_tl, lonlat_br, radius) / diag_pixel_dist;
   double d2 = haversine_circle_distance(lonlat_tr, lonlat_bl, radius) / diag_pixel_dist;
   return (d1 + d2) / 2.0;
+}
+
+void convert_to_cog(const std::string& filename, GdalWriteOptions const& opt) {
+  
+  vw_out() << "Converting to cloud-optimized GeoTIFF.\n";
+  
+  // Open file to check data type
+  GDALDataset* check_dataset = (GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly);
+  if (check_dataset == NULL) {
+    vw_out(WarningMessage) << "Failed to open file to check data type for COG conversion.\n";
+    return;
+  }
+  GDALDataType dtype = check_dataset->GetRasterBand(1)->GetRasterDataType();
+  GDALClose(check_dataset);
+  
+  // Determine appropriate predictor
+  std::string predictor_opt;
+  if (dtype == GDT_Float32 || dtype == GDT_Float64)
+    predictor_opt = "PREDICTOR=3";  // Float predictor
+  else
+    predictor_opt = "PREDICTOR=2";
+  
+  // Create temp filename
+  std::string temp_file = filename + ".tmp_cog.tif";
+  
+  // Move original to temp
+  try {
+    boost::filesystem::rename(filename, temp_file);
+  } catch (const boost::filesystem::filesystem_error& e) {
+    vw_out(WarningMessage) << "Failed to rename file for COG conversion: " << e.what() << "\n";
+    return;
+  }
+  
+  // Open source file
+  GDALDataset* src_dataset = (GDALDataset*)GDALOpen(temp_file.c_str(), GA_ReadOnly);
+  if (src_dataset == NULL) {
+    vw_out(WarningMessage) << "Failed to open source file for COG conversion.\n";
+    boost::filesystem::rename(temp_file, filename);
+    return;
+  }
+  
+  // Get BIGTIFF setting from user options
+  std::string bigtiff = "IF_SAFER";
+  auto it = opt.gdal_options.find("BIGTIFF");
+  if (it != opt.gdal_options.end())
+    bigtiff = it->second;
+  
+  // Set up GDALTranslate options for COG
+  std::string bigtiff_opt = "BIGTIFF=" + bigtiff;
+  char* argv[] = {
+    const_cast<char*>("-of"), const_cast<char*>("COG"),
+    const_cast<char*>("-co"), const_cast<char*>("COMPRESS=DEFLATE"),
+    const_cast<char*>("-co"), const_cast<char*>(predictor_opt.c_str()),
+    const_cast<char*>("-co"), const_cast<char*>("BLOCKSIZE=512"),
+    const_cast<char*>("-co"), const_cast<char*>(bigtiff_opt.c_str()),
+    const_cast<char*>("-co"), const_cast<char*>("NUM_THREADS=ALL_CPUS"),
+    nullptr
+  };
+  
+  vw_out() << "COG options: COMPRESS=DEFLATE, " << predictor_opt 
+           << ", BLOCKSIZE=512, " << bigtiff_opt << "\n";
+  
+  GDALTranslateOptions* opts = GDALTranslateOptionsNew(argv, nullptr);
+  if (opts == NULL) {
+    vw_out(WarningMessage) << "Failed to create GDALTranslate options.\n";
+    GDALClose(src_dataset);
+    boost::filesystem::rename(temp_file, filename);
+    return;
+  }
+  
+  // Perform translation to COG
+  GDALDatasetH dst_dataset = GDALTranslate(filename.c_str(), 
+                                           (GDALDatasetH)src_dataset, 
+                                           opts, nullptr);
+  
+  GDALTranslateOptionsFree(opts);
+  GDALClose(src_dataset);
+  
+  if (dst_dataset == NULL) {
+    vw_out(WarningMessage) << "COG conversion failed. Restoring original file.\n";
+    boost::filesystem::rename(temp_file, filename);
+    return;
+  }
+  
+  GDALClose(dst_dataset);
+  
+  // Remove temp file
+  try {
+    boost::filesystem::remove(temp_file);
+  } catch (const boost::filesystem::filesystem_error& e) {
+    vw_out(WarningMessage) << "Failed to remove temporary file: " << e.what() << "\n";
+  }
 }
 
 }} // vw::cartography

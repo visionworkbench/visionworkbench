@@ -23,7 +23,6 @@
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Geometry/dPoly.h>
 
 #include <vector>
