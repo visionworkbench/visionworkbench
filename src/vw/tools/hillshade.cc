@@ -102,7 +102,8 @@ int main(int argc, char *argv[]) {
     vw::cartography::do_multitype_hillshade(opt.input_file_name,
                                             opt.output_file_name,
                                             opt.azimuth, opt.elevation, opt.scale,
-                                            opt.nodata_value, opt.blur_sigma, opt.align_to_georef);
+                                            opt.nodata_value, opt.blur_sigma,
+                                            opt.align_to_georef, opt);
 
   } catch (const ArgumentErr& e) {
     vw_out() << e.what() << std::endl;

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -37,6 +37,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/tools/Common.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>
@@ -146,47 +147,33 @@ ImageViewRef<PixelMask<PixelRGB<uint8>>> do_colormap(Options& opt) {
   return colorized_image;
 }
 
-void save_colormap(Options const& opt, ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image) {
+void save_colormap(Options const& opt, 
+                   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image) {
 
   cartography::GeoReference georef;
   bool has_georef = cartography::read_georeference(georef, opt.input_file_name);
+
+  bool has_nodata = false;
+  double nodata_val = std::numeric_limits<double>::quiet_NaN();
 
   if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
     vw_out() << "\t--> Incorporating hillshading from: "
              << opt.shaded_relief_file_name << ".\n";
     DiskImageView<PixelGray<float>>
-      shaded_relief_image(opt.shaded_relief_file_name); // It's okay to throw  away the
-                                                        // second channel if it exists.
+      shaded_relief_image(opt.shaded_relief_file_name);
     ImageViewRef<PixelMask<PixelRGB<uint8>>> shaded_image =
       copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
                 colorized_image);
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
-    boost::scoped_ptr<DiskImageResource>
-      r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
-
-    if (r->has_block_write())
-      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
-                                       vw_settings().default_tile_size()));
-
-    if (has_georef) 
-      write_georeference(*r, georef);
-    
-    block_write_image(*r, shaded_image,
-                       TerminalProgressCallback("tools.colormap", "Writing:"));
+    vw::cartography::block_write_gdal_image(opt.output_file_name, shaded_image,
+                                            has_georef, georef, has_nodata, nodata_val, opt,
+                                            TerminalProgressCallback("tools.colormap", "Writing:"));
 
   } else { // Not using a hillshade file
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
-
-    boost::scoped_ptr<DiskImageResource>
-      r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
-    if (r->has_block_write())
-      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size()));
-    if (has_georef)
-      write_georeference(*r, georef);
-
-    block_write_image(*r, colorized_image,
-                      TerminalProgressCallback("tools.colormap", "Writing:"));
+    vw::cartography::block_write_gdal_image(opt.output_file_name, colorized_image,
+                                            has_georef, georef, has_nodata, nodata_val, opt,
+                                            TerminalProgressCallback("tools.colormap", "Writing:"));
   }
 }
 
@@ -333,16 +320,16 @@ int main(int argc, char *argv[]) {
         fs::path(opt.output_file_name).replace_extension().string();
       // Remove _CMAP
       int len = opt.shaded_relief_file_name.size();
-      if (len >= 5 && opt.shaded_relief_file_name.substr(len - 5) == "_CMAP") 
+      if (len >= 5 && opt.shaded_relief_file_name.substr(len - 5) == "_CMAP")
         opt.shaded_relief_file_name = opt.shaded_relief_file_name.substr(0, len - 5);
       // In either case, append _HILLSHADE.tif
       opt.shaded_relief_file_name = opt.shaded_relief_file_name + "_HILLSHADE.tif";
-      // Create the hillshade and save it to disk  
+      // Create the hillshade and save it to disk
       vw::cartography::do_multitype_hillshade(opt.input_file_name,
                                               opt.shaded_relief_file_name,
                                               opt.azimuth, opt.elevation, opt.scale,
-                                              opt.nodata_value, opt.blur_sigma, 
-                                              opt.align_to_georef);
+                                              opt.nodata_value, opt.blur_sigma,
+                                              opt.align_to_georef, opt);
     }
 
     save_colormap(opt, out);

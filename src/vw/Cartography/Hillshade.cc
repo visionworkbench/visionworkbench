@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -28,8 +28,9 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/Cartography/Hillshade.h>
 
 #include <string>
@@ -42,13 +43,14 @@ namespace vw {
 namespace cartography {
 
   /// Do the hillshade work.
-  /// This templated logic is very slow to compile. 
+  /// This templated logic is very slow to compile.
   template <class PixelT>
   void do_hillshade(std::string const& input_file_name,
                     std::string const& output_file_name,
                     double azimuth, double elevation, double scale,
                     double nodata_value, double blur_sigma,
-                    bool align_to_georef) {
+                    bool align_to_georef,
+                    vw::GdalWriteOptions const& opt) {
 
     cartography::GeoReference georef;
     bool has_georef = cartography::read_georeference(georef, input_file_name);
@@ -120,20 +122,16 @@ namespace cartography {
     }
 
     // The final result is the dot product of the light source with the normals
-    ImageViewRef<PixelMask<PixelGray<uint8> > > shaded_image =
+    ImageViewRef<PixelMask<PixelGray<uint8>>> shaded_image =
       channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
 
     // Save the result
     vw_out() << "Writing shaded relief image: " << output_file_name << "\n";
-
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(output_file_name,
-                                                                     shaded_image.format()));
-    if (r->has_block_write())
-      r->set_block_write_size(Vector2i(vw_settings().default_tile_size(),
-                                         vw_settings().default_tile_size()));
-    write_georeference(*r, georef);
-    block_write_image(*r, shaded_image,
-                       TerminalProgressCallback("hillshade", "Writing:"));
+    bool has_nodata = false;
+    double nodata_val = std::numeric_limits<double>::quiet_NaN();
+    vw::cartography::block_write_gdal_image(output_file_name, shaded_image,
+                                            has_georef, georef, has_nodata, nodata_val, opt,
+                                            TerminalProgressCallback("hillshade", "Writing:"));
   } // End function do_hillshade()
 
   /// Redirect to the function with the required data type.
@@ -141,7 +139,8 @@ namespace cartography {
                               std::string const& output_file,
                               double azimuth, double elevation, double scale,
                               double nodata_value, double blur_sigma,
-                              bool align_to_georef) {
+                              bool align_to_georef,
+                              vw::GdalWriteOptions const& opt) {
 
     ImageFormat fmt = vw::image_format(input_file);
 
@@ -154,22 +153,22 @@ namespace cartography {
       case VW_CHANNEL_UINT8:
         do_hillshade<PixelGray<uint8>>(input_file, output_file,
                                        azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef);
+                                       nodata_value, blur_sigma, align_to_georef, opt);
         break;
       case VW_CHANNEL_INT16:
         do_hillshade<PixelGray<int16>>(input_file, output_file,
                                        azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef);
+                                       nodata_value, blur_sigma, align_to_georef, opt);
         break;
       case VW_CHANNEL_UINT16:
         do_hillshade<PixelGray<uint16>>(input_file, output_file,
                                         azimuth, elevation, scale,
-                                        nodata_value, blur_sigma, align_to_georef);
+                                        nodata_value, blur_sigma, align_to_georef, opt);
         break;
       default:
         do_hillshade<PixelGray<float>>(input_file, output_file,
                                        azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef);
+                                       nodata_value, blur_sigma, align_to_georef, opt);
         break;
       }
       break;

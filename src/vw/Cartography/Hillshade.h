@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -18,6 +18,7 @@
 #ifndef __VW_CARTOGRAPHY_HILLSHADE_H__
 #define __VW_CARTOGRAPHY_HILLSHADE_H__
 
+#include <vw/FileIO/GdalWriteOptions.h>
 #include <string>
 
 /// \file Hillshade.h. Hillshade images with georeference.
@@ -30,8 +31,10 @@ namespace cartography {
                               std::string const& output_file,
                               double azimuth, double elevation, double scale,
                               double nodata_value, double blur_sigma,
-                              bool align_to_georef);
-  
+                              bool align_to_georef,
+                              vw::GdalWriteOptions const& opt);
+
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_HILLSHADE_H__
+
