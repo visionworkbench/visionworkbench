@@ -53,8 +53,9 @@ namespace vw {
   /// MemoryImageView, or StandardImageView, but it is so ubiquitous
   /// that we decided to keep the name short.
   ///
-  /// - WARNING: Never refer to these objects by reference!  The
-  ///            behaviour is undefined.
+  /// - WARNING: Never store references to these objects or take references to
+  ///            temporaries! Passing such an object by reference to functions is fine as
+  ///            long as the parent object remains alive.
   /// - The user manual discourages users from having multiple PLANES.
   ///   This is distinct from multiple CHANNELS which is achieved by
   ///   using a pixel type container object with multiple values, such

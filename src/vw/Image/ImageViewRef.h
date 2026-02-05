@@ -27,8 +27,11 @@
 /// hold a virtualized reference to an arbitrary image view with a given pixel
 /// type.
 ///
-/// - WARNING: Never refer to these objects by reference!  The
-//             behaviour is undefined.
+///  WARNING: Never store references to these objects or take references to
+///  temporaries. Passing such an object by reference to functions is fine as
+///  long as the parent object remains alive. This should be treated as an 
+///  iterator in terms of use and lifetime.
+
 #ifndef __VW_IMAGE_IMAGEVIEWREF_H__
 #define __VW_IMAGE_IMAGEVIEWREF_H__
 
