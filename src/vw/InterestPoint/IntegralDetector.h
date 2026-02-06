@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file IntegralDetector.h
 ///
 /// Detectors that operate off of the use of integral images
