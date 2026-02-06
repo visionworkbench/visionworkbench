@@ -2,3 +2,4 @@
 
 /* Commit ID */
 #define VW_COMMIT_ID "@VW_COMMIT_ID@"
+
