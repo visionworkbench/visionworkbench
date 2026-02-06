@@ -74,10 +74,6 @@ void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
                         cv::Mat & cv_mask,
                         bool normalize = true);
 
-template <class LIST_ITER>
-void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
-                                    cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type);
-
 /// Interest point detector build using OpenCV functions
 class OpenCvInterestPointDetector: 
   public InterestDetectorBase<OpenCvInterestPointDetector> {
@@ -154,16 +150,19 @@ void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
   return;
 }
 
-template <class LIST_ITER>
-void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end,
-                                   cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type) {
+// TODO(oalexan1): Move to .cc
+inline
+void copy_opencv_descriptor_matrix(InterestPointList::iterator begin, 
+                                   InterestPointList::iterator end,
+                                   cv::Mat const& cvDescriptors, 
+                                   OpenCvIpDetectorType detector_type) {
 
   size_t num_ip_descriptors = cvDescriptors.rows;
   size_t descriptor_length  = cvDescriptors.cols;
   // Copy the data to the output iterator
   // - Each IP needs the descriptor (a vector of floats) updated
   size_t ip_index = 0;
-  for (LIST_ITER iter = begin; iter != end; ++iter) {
+  for (auto iter = begin; iter != end; ++iter) {
 
     if (ip_index == num_ip_descriptors)
       vw_throw(LogicErr() << "copy_opencv_descriptor_matrix: IP sizes do not match!\n");
