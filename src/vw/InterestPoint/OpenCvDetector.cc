@@ -15,13 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-/// \file OpenCvDetector.h
+/// \file OpenCvDetector.cc
 ///
 /// Built-in classes and functions for interest point detection with OpenCV.
 ///
 
-#ifndef __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
-#define __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
+#include <vw/InterestPoint/OpenCvDetector.h>
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 #include <vw/Core/Settings.h>
@@ -47,11 +46,6 @@
 namespace vw {
 namespace ip {
 
-enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
-                            OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
-                            OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
-                            OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
-
 /// Struct to convert a basic type to a single channel OpenCV type
 template <typename T> 
 struct GetOpenCvPixelType { static const int type=CV_8UC1; };
@@ -66,41 +60,7 @@ struct GetOpenCvPixelType<float> { static const int type=CV_32FC1; };
 template <>
 struct GetOpenCvPixelType<double> { static const int type=CV_64FC1; };
 
-/// Get an OpenCV wrapper, rasterizing the VW image to a provided buffer.
-template <class ViewT>
-void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
-                        cv::Mat & cv_image,
-                        ImageView<vw::uint8> &image_buffer,
-                        cv::Mat & cv_mask,
-                        bool normalize = true);
-
-/// Interest point detector build using OpenCV functions
-class OpenCvInterestPointDetector: 
-  public InterestDetectorBase<OpenCvInterestPointDetector> {
-public:
-
-  OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
-                              bool normalize,
-                              bool add_description, int max_points);
-
-  /// Detect interest points in the source image.
-  template <class ViewT>
-  InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const;
-
-private:
-  OpenCvIpDetectorType m_detector_type;
-  bool                 m_add_descriptions;
-  bool                 m_normalize;
-  int                  m_max_points;
-  cv::Ptr<cv::FeatureDetector> m_detector;
-
-  /// Initialize an OpenCV detector object
-  cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, int max_points) const;
-
-}; // End class OpenCvInterestPointDetector
-
-template <class ViewT>
-void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
+void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
                         cv::Mat & cv_image,
                         ImageView<vw::uint8> &image_buffer,
                         cv::Mat & cv_mask,
@@ -108,14 +68,14 @@ void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
 
   // Rasterize the input image so we don't suffer from slow disk access or something.
   std::cout << "--opencv rasterize\n";
-  ImageView<typename ViewT::pixel_type> input_buffer = input_image.impl();
+  ImageView<float> input_buffer = input_image.impl();
 
   if (normalize) // Convert the input image to uint8 with 2%-98% intensity scaling.
     percentile_scale_convert(input_buffer, image_buffer, 0.02, 0.98);
   else {
     // Convert to uint8 using the default ranges for the input data type
-    double standard_min = ChannelRange<typename ViewT::pixel_type>::min();
-    double standard_max = ChannelRange<typename ViewT::pixel_type>::max();
+    double standard_min = ChannelRange<float>::min();
+    double standard_max = ChannelRange<float>::max();
     image_buffer = pixel_cast_rescale<vw::uint8>(clamp(input_buffer, standard_min, standard_max));
   }
 
@@ -151,8 +111,6 @@ void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
   return;
 }
 
-// TODO(oalexan1): Move to .cc
-inline
 void copy_opencv_descriptor_matrix(InterestPointList::iterator begin, 
                                    InterestPointList::iterator end,
                                    cv::Mat const& cvDescriptors, 
@@ -198,7 +156,6 @@ void copy_opencv_descriptor_matrix(InterestPointList::iterator begin,
 }
 
 
-inline
 cv::Ptr<cv::FeatureDetector>
 OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
                                            int max_points) const {
@@ -227,7 +184,6 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
   };
 }
 
-inline
 OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
                                                          bool normalize, 
                                                          bool add_descriptions, 
@@ -239,9 +195,8 @@ m_normalize(normalize), m_max_points(max_points) {
 }
 
 /// Detect interest points in the source image.
-template <class ViewT>
 InterestPointList
-OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image,
+OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
                                            int desired_num_ip) const {
   // If the image is too small to use, don't return any interest points.
   const int MIN_DETECTOR_SIZE = 32;
@@ -291,4 +246,3 @@ OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image,
 }} // namespace vw::ip
 
 #endif // End case with OpenCV installed
-#endif // __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
