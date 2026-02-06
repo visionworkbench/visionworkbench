@@ -107,6 +107,7 @@ void get_opencv_wrapper(ImageViewBase<ViewT> const& input_image,
                         bool normalize) {
 
   // Rasterize the input image so we don't suffer from slow disk access or something.
+  std::cout << "--opencv rasterize\n";
   ImageView<typename ViewT::pixel_type> input_buffer = input_image.impl();
 
   if (normalize) // Convert the input image to uint8 with 2%-98% intensity scaling.
