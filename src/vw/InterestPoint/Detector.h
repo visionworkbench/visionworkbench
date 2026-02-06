@@ -349,8 +349,8 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
   // section of the image.
   // This is a lazy crop. The actual cropping and bringing into memory will happen
   // in each detector implementation.
-  std::cout << "--will cast to float and crop\n";
-  InterestPointList new_ip_list = m_detector(crop(vw::pixel_cast<float>(m_view.impl()), m_bbox), m_desired_num_ip);
+  InterestPointList new_ip_list = m_detector(crop(vw::pixel_cast<float>(m_view.impl()), m_bbox),
+                                             m_desired_num_ip);
 
   for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
     (*pt).x  += m_bbox.min().x();
@@ -505,7 +505,6 @@ template <class ViewT>
 InterestPointList
 InterestPointDetector<InterestT>::process_image(ImageViewBase<ViewT> const& image,
                                                 int desired_num_ip) const {
-  std::cout << "---now in base process image\n";
 
   // Calculate gradients, orientations and magnitudes
 
@@ -633,7 +632,6 @@ template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
 process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
   
-  std::cout << "---now in process image2\n";
   // Create scale space
   typedef ImageInterestData<ImageView<PixelGray<float> >,InterestT> DataT;
 

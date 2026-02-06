@@ -55,7 +55,6 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
                         bool normalize) {
 
   // Rasterize the input image so we don't suffer from slow disk access or something.
-  std::cout << "--opencv rasterize\n";
   ImageView<float> input_buffer = input_image.impl();
 
   if (normalize) // Convert the input image to uint8 with 2%-98% intensity scaling.
@@ -84,7 +83,8 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
   }
 
   // Just make sure the masked input image pixels are zero to create the opencv mask
-  ImageView<vw::uint8> mask_buffer = channel_cast_rescale<uint8>(select_channel(input_buffer, 1));
+  ImageView<vw::uint8> mask_buffer 
+    = channel_cast_rescale<uint8>(select_channel(input_buffer, 1));
 
   // Wrap our mask object with OpenCV
   raw_data_ptr = reinterpret_cast<void*>(mask_buffer.data());
@@ -93,14 +93,14 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
 
   // Use OpenCV call to erode some pixels off the mask
   const int ERODE_RADIUS = 5;
-  cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(ERODE_RADIUS, ERODE_RADIUS));
+  cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(ERODE_RADIUS, 
+                                                                         ERODE_RADIUS));
   cv::erode(full_cv_mask, cv_mask, kernel);
 
   return;
 }
 
-void copy_opencv_descriptor_matrix(InterestPointList::iterator begin, 
-                                   InterestPointList::iterator end,
+void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
                                    cv::Mat const& cvDescriptors, 
                                    OpenCvIpDetectorType detector_type) {
 
@@ -109,7 +109,7 @@ void copy_opencv_descriptor_matrix(InterestPointList::iterator begin,
   // Copy the data to the output iterator
   // - Each IP needs the descriptor (a vector of floats) updated
   size_t ip_index = 0;
-  for (auto iter = begin; iter != end; ++iter) {
+  for (auto iter = ip_list.begin(); iter != ip_list.end(); iter++) {
 
     if (ip_index == num_ip_descriptors)
       vw_throw(LogicErr() << "copy_opencv_descriptor_matrix: IP sizes do not match!\n");
@@ -184,15 +184,14 @@ m_normalize(normalize), m_max_points(max_points) {
 
 /// Detect interest points in the source image.
 InterestPointList
-OpenCvInterestPointDetector::process_image_impl(vw::ImageViewRef<float> const& image,
-                                                int desired_num_ip) const {
+OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
+                                           int desired_num_ip) const {
   // If the image is too small to use, don't return any interest points.
   const int MIN_DETECTOR_SIZE = 32;
   if ((image.impl().cols() < MIN_DETECTOR_SIZE) || (image.impl().rows() < MIN_DETECTOR_SIZE))
     return InterestPointList();
 
   // Convert the image into a plain uint8 image buffer wrapped by OpenCV
-  std::cout << "--now in OpenCvInterestPointDetector::process_image\n";
   ImageView<vw::uint8> image_buffer;
   cv::Mat cv_image, cv_mask;
   try {
@@ -225,7 +224,7 @@ OpenCvInterestPointDetector::process_image_impl(vw::ImageViewRef<float> const& i
   }
 
   if (m_add_descriptions)
-    copy_opencv_descriptor_matrix(ip_list.begin(), ip_list.end(), cvDescriptors, m_detector_type);
+    copy_opencv_descriptor_matrix(ip_list, cvDescriptors, m_detector_type);
 
   return ip_list;
 }

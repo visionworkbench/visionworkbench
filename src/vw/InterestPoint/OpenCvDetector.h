@@ -27,25 +27,11 @@
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
-#include <vw/Core/Settings.h>
-#include <vw/Core/ThreadPool.h>
-#include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/Statistics.h>
-#include <vw/Image/Filter.h>
 #include <vw/InterestPoint/Detector.h>
-
-#include <vw/InterestPoint/InterestData.h>
-#include <vw/InterestPoint/Extrema.h>
-#include <vw/InterestPoint/Localize.h>
-#include <vw/InterestPoint/InterestOperator.h>
-#include <vw/InterestPoint/WeightedHistogram.h>
-#include <vw/InterestPoint/ImageOctaveHistory.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/features2d.hpp>
-#include <vw/Image/Manipulation.h>
 
 namespace vw {
 namespace ip {
@@ -85,19 +71,11 @@ public:
                               bool normalize,
                               bool add_description, int max_points);
 
-  /// Detect interest points in the source image. This must be templated to respect
-  // caller's interface. Convert to ImageViewRef<float> and call the
-  // implementation that works with this type.
-  template <class ViewT>
-  InterestPointList process_image(ImageViewBase<ViewT> const& image, 
-                                  int desired_num_ip=0) const {
-    // Convert input to ImageViewRef<float> and call implementation
-    return process_image_impl(vw::ImageViewRef<float>(image.impl()), desired_num_ip);
-  }
+  /// Detect interest points in the source image. 
+  InterestPointList process_image(vw::ImageViewRef<float> const& image, 
+                                  int desired_num_ip=0) const;
 
 private:
-  /// Implementation that works with ImageViewRef<float>
-  InterestPointList process_image_impl(vw::ImageViewRef<float> const& image, int desired_num_ip=0) const;
   OpenCvIpDetectorType m_detector_type;
   bool                 m_add_descriptions;
   bool                 m_normalize;
@@ -105,7 +83,8 @@ private:
   cv::Ptr<cv::FeatureDetector> m_detector;
 
   /// Initialize an OpenCV detector object
-  cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, int max_points) const;
+  cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, 
+                                             int max_points) const;
 
 }; // End class OpenCvInterestPointDetector
 
