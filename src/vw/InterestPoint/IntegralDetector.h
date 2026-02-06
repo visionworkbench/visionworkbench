@@ -302,13 +302,12 @@ namespace ip {
       : IntegralInterestPointDetector<OBALoGInterestOperator>( OBALoGInterestOperator(0), scales, max_points ) {}
 
     /// Detect Interest Points in the source image.
-    template <class ViewT>
-    InterestPointList process_image(vw::ImageViewBase<ViewT> const& image,
+    InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                     int desired_num_ip=0 ) const {
       
-      std::cout << "---now in IntegralAutoGainDetector::process_image\n";
+      std::cout << "---now in IntegralAutoGainDetector::process_image2\n";
                                       
-      typedef vw::ImageView<typename vw::PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
+      typedef vw::ImageView<float> ImageT;
       typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
       vw::Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
