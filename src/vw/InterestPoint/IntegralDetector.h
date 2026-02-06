@@ -126,12 +126,14 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
+      std::cout << "---now in IntegralInterestPointDetector::process_image\n";
       typedef ImageView<typename PixelChannelType<PixelGray<float> >::type> ImageT;
       typedef ImageInterestData<ImageT,InterestT> DataT;
 
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
       // Rendering own standard copy of the image as the passed in view is just a cropview
+      std::cout << "--get crop\n";
       vw::ImageView<vw::PixelGray<float> > original_image 
         = vw::pixel_cast_rescale<vw::PixelGray<float> >(image);
 
@@ -304,13 +306,16 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(vw::ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
-
+      
+      std::cout << "---now in IntegralAutoGainDetector::process_image\n";
+                                      
       typedef vw::ImageView<typename vw::PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
       typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
       vw::Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
-      // The input image is a lazy view. We'll rasterize so we're not
-      // hitting the cache all of the image.
+      // The input image is a lazy view. We'll rasterize so we're not hitting
+      // the cache all of the image.
+      std::cout << "--will rasterize the input image to avoid cache issues\n";
       ImageT original_image = image.impl();
 
       // The ImageInterestData structure doesn't really apply to

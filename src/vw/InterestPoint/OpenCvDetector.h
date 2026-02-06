@@ -248,6 +248,7 @@ OpenCvInterestPointDetector::process_image(ImageViewBase<ViewT> const& image,
     return InterestPointList();
 
   // Convert the image into a plain uint8 image buffer wrapped by OpenCV
+  std::cout << "--now in OpenCvInterestPointDetector::process_image\n";
   ImageView<vw::uint8> image_buffer;
   cv::Mat cv_image, cv_mask;
   try {
