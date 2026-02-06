@@ -1,4 +1,4 @@
-/* src/vw/config.h.in.  Used by CMake to generate config.h.  */
+/* src/vw/vw_config.h.in.  Used by CMake to generate stable config.h.  */
 
 /* The version of Boost with which the software built. */
 #define VW_BOOST_VERSION @Boost_VERSION@
@@ -264,9 +264,6 @@
 /* Define to the version of this package. */
 #define VW_PACKAGE_VERSION @PACKAGE_VERSION@
 
-///* Define to 1 if you have the ANSI C header files. */
-//#cmakedefine VW_STDC_HEADERS // Only used by plate
-
 /* Version number of package */
 #define VW_VERSION @VERSION@
 
@@ -277,7 +274,8 @@
 //#error You are using a different version of Boost than you used to build VW_!
 //#endif
 
-#define VW_COMMIT_ID "@VW_COMMIT_ID@"
+///* Define to 1 if you have the ANSI C header files. */
+//#cmakedefine VW_STDC_HEADERS // Only used by plate
 
 /* Define to `int' if <sys/types.h> does not define. */
 #ifndef HAVE_SSIZET

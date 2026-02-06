@@ -1,0 +1,4 @@
+/* src/vw/vw_date_config.h.in.  Used by CMake to generate version/date info.  */
+
+/* Commit ID */
+#define VW_COMMIT_ID "@VW_COMMIT_ID@"

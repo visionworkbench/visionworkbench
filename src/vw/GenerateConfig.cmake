@@ -78,17 +78,16 @@ set(VW_HAVE_PKG_BUNDLEADJUSTMENT 1)
 
 set(VW_HAVE_PKG_TOOLS 1)
 
-
-
-
-
 #######################################################################
-# Finished setting up variables, now call the function to paste them into a file
+# Finished setting up variables, now call the function to paste them into files
 
-# Each value like "@VAR@ is replaced by the CMake variable of the same name
+# Generate stable config file (feature detection - rarely changes)
 message("Generating config file: ${CMAKE_BINARY_DIR}/src/vw/vw_config.h")
 configure_file(${CMAKE_SOURCE_DIR}/src/vw/vw_config.h.in ${CMAKE_BINARY_DIR}/src/vw/vw_config.h)
 
+# Generate config file with elements that change often 
+message("Generating config file: ${CMAKE_BINARY_DIR}/src/vw/vw_date_config.h")
+configure_file(${CMAKE_SOURCE_DIR}/src/vw/vw_date_config.h.in ${CMAKE_BINARY_DIR}/src/vw/vw_date_config.h)
 
 
 ###

@@ -240,8 +240,9 @@ foreach(f ${MAIN_HEADER_FILES})
   INSTALL(FILES ${f} DESTINATION include/vw)
 endforeach()
 
-# Install the generated config header from build directory
+# Install the generated config headers from build directory
 install(FILES ${CMAKE_BINARY_DIR}/src/vw/vw_config.h DESTINATION include/vw)
+install(FILES ${CMAKE_BINARY_DIR}/src/vw/vw_date_config.h DESTINATION include/vw)
 
 # Install a small tif file for testing when conda-forge builds the package
 install(FILES Cartography/tests/tinyDemAN.tif DESTINATION share/vw/tests)
