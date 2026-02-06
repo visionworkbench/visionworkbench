@@ -82,7 +82,6 @@ namespace ip {
 
   }; // End class DescriptorGeneratorBase
 
-
   /// A basic example descriptor class. The descriptor for an interest
   /// point is simply the pixel values in the support region around
   /// the point. It is normalized to provide some tolerance to changes in illumination.
@@ -135,85 +134,6 @@ namespace ip {
     int descriptor_size() { return 180; }
   };
 
-
-
-/* Probably don't need this, just get OpenCV descriptions when the IP's are found.
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-  /// Wrapper for OpenCV description generator.
-  /// - Maybe delete this class since OpenCV works better generating the descriptors at the
-  ///   same time as detection is performed.
-  struct OpenCVDescriptorGenerator : public DescriptorGeneratorBase<OpenCVDescriptorGenerator> {
-
-    bool m_passthrough;
-    OpenCvIpDetectorType m_detector_type; ///< Specifies the OpenCV detector type to use
-
-    cv::Ptr<cv::DescriptorExtractor> m_extractor; ///< Description extractor object
-
-    /// The detector type is specified in the constructor
-    /// - If passthrough is set to true, this functor will do nothing!
-    ///   This can be useful if you know the descriptors have already been generated.
-    OpenCVDescriptorGenerator(OpenCvIpDetectorType detector_type=OPENCV_IP_DETECTOR_TYPE_ORB,
-			      bool passthrough = false)
-	: m_passthrough(passthrough), m_detector_type(detector_type) {
-      cv::initModule_nonfree();
-      // Set up the OpenCV descriptor object
-
-      switch (m_detector_type)
-      {
-	//case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
-	//case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::ORB::create();    break;
-	case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::DescriptorExtractor::create("BRISK");  break;
-	case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::DescriptorExtractor::create("ORB"  );  break;
-	case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_extractor = cv::DescriptorExtractor::create("SIFT" );  break;
-	case OPENCV_IP_DETECTOR_TYPE_SURF:  m_extractor = cv::DescriptorExtractor::create("SURF" );  break;
-	default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-      };
-    }
-
-    /// Overload that takes the list of IP's as two iterators.
-    /// - For the OpenCV class we need to override this function do describe all the
-    ///    ip's in one call.
-    template <class ViewT, class IterT>
-    void operator() ( ImageViewBase<ViewT> const& image,
-		      IterT start, IterT end ) {
-      // Timing
-      Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
-      if (m_passthrough)
-	return;
-
-      // Count the number of IPs
-      size_t num_ips = 0;
-      for (InterestPointList::iterator i = start; i != end; ++i)
-	++num_ips;
-
-      // Loop through input IP's and convert to the OpenCV IP structure
-      std::vector<cv::KeyPoint> cvIpList;
-      cvIpList.reserve(num_ips);
-      for (InterestPointList::iterator i = start; i != end; ++i)
-	cvIpList.push_back(i->makeOpenCvKeypoint());
-
-      // Convert the image into a plain uint8 image buffer wrapped by OpenCV
-      ImageView<PixelGray<vw::uint8> > buffer_image;
-      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
-
-      // Call the OpenCV function to describe all of the points
-      cv::Mat cvDescriptors;
-      m_extractor->compute(cv_image, cvIpList, cvDescriptors);
-      size_t descriptor_length = cvDescriptors.cols;
-      if (static_cast<size_t>(cvDescriptors.rows) != num_ips)
-	vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
-
-      // Copy the data to the output iterator
-      // - Each IP needs the descriptor (a vector of floats) updated
-      copy_opencv_descriptor_matrix(start, end, cvDescriptors, m_detector_type);
-    }
-
-  }; // End class OpenCVDescriptorGenerator
-#endif
-*/
-
-
-  //---------------------------------------------------------------------------------
   // The remaining declarations are for a thread pool based description processor.
 
   template <class ViewT, class DescriptorT>
@@ -286,19 +206,12 @@ namespace ip {
   void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
 				 InterestPointList& list );
 
-
-
 // TODO: Separate the definitions!
 
-//================================================================================================
 // Function definitions
 // TODO: Move to .tcc file
 
-
-//-----------------------------------------------------
 // DescriptorGeneratorBase
-
-
 
 template <class ImplT>
 template <class ViewT, class IterT>
@@ -344,9 +257,6 @@ DescriptorGeneratorBase<ImplT>::get_support( InterestPoint const& pt,
 		   impl().support_size(), impl().support_size() );
 }
 
-
-
-//-----------------------------------------------------
 // InterestPointDescriptionTask
 
 template <class ViewT, class DescriptorT>
@@ -394,10 +304,7 @@ void InterestPointDescriptionTask<ViewT, DescriptorT>::operator()() {
   }
 }
 
-
-//-----------------------------------------------------
 // InterestDescriptionQueue
-
 
 template <class ViewT, class DescriptorT>
 boost::shared_ptr<Task> InterestDescriptionQueue<ViewT, DescriptorT>::
@@ -414,8 +321,6 @@ get_next_task() {
   return boost::shared_ptr<Task> ( new task_type( m_view, m_descriptor, m_index-1, m_bboxes.size(),
 						  sstart, sstop ) );
 }
-
-
 
 // This function implements multithreaded interest point
 // description. Threads are spun off to process the image in 1024 x
@@ -452,7 +357,6 @@ void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& de
   return;
 }
 
-//-----------------------------------------------------
 // PatchDescriptorGenerator
 
 template <class ViewT, class IterT>
@@ -476,7 +380,6 @@ void PatchDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const& s
 }
 
 
-//-----------------------------------------------------
 // PCASIFTDescriptorGenerator
 
 template <class ViewT, class IterT>
@@ -513,9 +416,7 @@ void PCASIFTDescriptorGenerator::compute_descriptor( ImageViewBase<ViewT> const&
   }
 }
 
-//-----------------------------------------------------
 // SGradDescriptorGenerator
-
 
 template <class ViewT, class IterT>
 void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& support,
@@ -583,8 +484,6 @@ void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
     (*first) *= sqr_length_inv;
 }
 
-
 }} // namespace vw::ip
-
 
 #endif //__VW_INTERESTPOINT_DESCRIPTOR_H__
