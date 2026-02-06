@@ -20,7 +20,8 @@
 /// Built-in classes and functions for interest point detection with OpenCV.
 ///
 
-#include <vw/InterestPoint/OpenCvDetector.h>
+#include <vw/vw_config.h> // defines VW_HAVE_PKG_OPENCV
+
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 #include <vw/Core/Settings.h>
@@ -30,6 +31,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Filter.h>
 #include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/OpenCvDetector.h>
 
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Extrema.h>
@@ -45,20 +47,6 @@
 
 namespace vw {
 namespace ip {
-
-/// Struct to convert a basic type to a single channel OpenCV type
-template <typename T> 
-struct GetOpenCvPixelType { static const int type=CV_8UC1; };
-template <>
-struct GetOpenCvPixelType<short> { static const int type=CV_16SC1; };
-template <>
-struct GetOpenCvPixelType<unsigned short> { static const int type=CV_16UC1; };
-template <>
-struct GetOpenCvPixelType<int> { static const int type=CV_32SC1; };
-template <>
-struct GetOpenCvPixelType<float> { static const int type=CV_32FC1; };
-template <>
-struct GetOpenCvPixelType<double> { static const int type=CV_64FC1; };
 
 void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
                         cv::Mat & cv_image,
@@ -196,8 +184,8 @@ m_normalize(normalize), m_max_points(max_points) {
 
 /// Detect interest points in the source image.
 InterestPointList
-OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
-                                           int desired_num_ip) const {
+OpenCvInterestPointDetector::process_image_impl(vw::ImageViewRef<float> const& image,
+                                                int desired_num_ip) const {
   // If the image is too small to use, don't return any interest points.
   const int MIN_DETECTOR_SIZE = 32;
   if ((image.impl().cols() < MIN_DETECTOR_SIZE) || (image.impl().rows() < MIN_DETECTOR_SIZE))

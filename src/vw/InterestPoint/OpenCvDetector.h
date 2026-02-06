@@ -22,6 +22,9 @@
 
 #ifndef __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
 #define __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
+
+#include <vw/vw_config.h> // defines VW_HAVE_PKG_OPENCV
+
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 #include <vw/Core/Settings.h>
@@ -82,10 +85,19 @@ public:
                               bool normalize,
                               bool add_description, int max_points);
 
-  /// Detect interest points in the source image.
-  InterestPointList process_image(vw::ImageViewRef<float> const& image, int desired_num_ip=0) const;
+  /// Detect interest points in the source image. This must be templated to respect
+  // caller's interface. Convert to ImageViewRef<float> and call the
+  // implementation that works with this type.
+  template <class ViewT>
+  InterestPointList process_image(ImageViewBase<ViewT> const& image, 
+                                  int desired_num_ip=0) const {
+    // Convert input to ImageViewRef<float> and call implementation
+    return process_image_impl(vw::ImageViewRef<float>(image.impl()), desired_num_ip);
+  }
 
 private:
+  /// Implementation that works with ImageViewRef<float>
+  InterestPointList process_image_impl(vw::ImageViewRef<float> const& image, int desired_num_ip=0) const;
   OpenCvIpDetectorType m_detector_type;
   bool                 m_add_descriptions;
   bool                 m_normalize;
