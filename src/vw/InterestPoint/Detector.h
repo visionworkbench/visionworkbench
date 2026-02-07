@@ -79,9 +79,9 @@ namespace ip {
   /// produce a blended average of those two directions, and if those
   /// two directions are opposites, then they will cancel each other
   /// out.  However, this seems to work well enough for the time being.
-  inline float get_orientation(vw::ImageViewRef<float> const& x_grad,
-                               vw::ImageViewRef<float> const& y_grad,
-                               float i0, float j0, float sigma_ratio = 1.0);
+  float get_orientation(vw::ImageViewRef<float> const& x_grad,
+                        vw::ImageViewRef<float> const& y_grad,
+                        float i0, float j0, float sigma_ratio = 1.0);
 
   // The next set of classes are for performing IP detection with thread pools.
   // TODO: Maybe they should be moved to another file.
@@ -340,40 +340,6 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
 // produce a blended average of those two directions, and if those
 // two directions are opposites, then they will cancel each other
 // out.  However, this seems to work well enough for the time being.
-inline float get_orientation(vw::ImageViewRef<float> const& x_grad,
-                             vw::ImageViewRef<float> const& y_grad,
-                             float i0, float j0, float sigma_ratio) {
-
-  // The size, in pixels, of the image patch used to compute the orientation.
-  static const int IP_ORIENTATION_WIDTH = 10;
-
-  // Nominal feature support patch is WxW at the base scale, with
-  // W = IP_ORIENTATION_HALF_WIDTH * 2 + 1, and
-  // we multiply by sigma[k]/sigma[1] for other planes.
-  //
-  // Get bounds for scaled WxW window centered at (i,j) in plane k
-  int halfwidth = (int)(IP_ORIENTATION_WIDTH/2*sigma_ratio + 0.5);
-  int left  = int(roundf(i0 - halfwidth));
-  int top   = int(roundf(j0 - halfwidth));
-
-  // Compute (gaussian weight)*(edge magnitude) kernel
-  ImageView<float> weight(IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
-  make_gaussian_kernel_2d(weight, 6 * sigma_ratio, IP_ORIENTATION_WIDTH);
-
-  // We must compute the average orientation in quadrature.
-  double weight_sum = sum_of_pixel_values(weight);
-
-  // Compute the gaussian weighted average x_gradient
-  ImageView<float> weighted_grad = weight * crop(edge_extend(x_grad.impl()),left,top,IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
-  double avg_x_grad = sum_of_pixel_values(weighted_grad) / weight_sum;
-
-  // Compute the gaussian weighted average y_gradient
-  weighted_grad = weight * crop(edge_extend(y_grad.impl()),left,top,IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
-  double avg_y_grad = sum_of_pixel_values(weighted_grad) / weight_sum;
-
-  return atan2(avg_y_grad,avg_x_grad);
-}
-
 
 }} // namespace vw::ip
 
