@@ -26,6 +26,8 @@
 #include <vw/InterestPoint/Detector.h>
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
+#include <vw/InterestPoint/ImageInterestData.h>
+
 #include <deque>
 
 namespace vw {

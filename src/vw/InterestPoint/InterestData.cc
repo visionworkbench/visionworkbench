@@ -106,4 +106,17 @@ void remove_descriptor(InterestPoint & ip) {
   ip.descriptor = ip::InterestPoint::descriptor_type(); // this should free up the memory
 }
 
+/// Generates a human readable string
+std::string InterestPoint::to_string() const {
+  std::stringstream s;
+  s << "IP: ("<<x<<","<<y<<")  scale: "<<scale<<"  orientation: "<<orientation
+    <<"  interest: "<<interest<< "  polarity: "<<polarity<<"  octave: "<<octave
+    <<"  scale_lvl: "<<scale_lvl<<"\n";
+  s << "  descriptor: ";
+  for (size_t i=0; i<descriptor.size(); ++i)
+    s << descriptor[i] << "  ";
+  s << std::endl;
+  return s.str();
+}
+
 }} // namespace vw::ip

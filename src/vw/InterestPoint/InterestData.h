@@ -31,7 +31,6 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Functors.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/Algorithms.h>
 #include <vw/InterestPoint/InterestTraits.h>
 
 #if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV == 1)
@@ -57,9 +56,9 @@ namespace vw { namespace ip {
     // iy with y.
     InterestPoint(float x = 0, float y = 0, float scale = 1.0, 
                   float interest = 0.0, float ori = 0.0,
-                  bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0)
-      : x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), interest(interest),
-        polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
+                  bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0):
+      x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), 
+      interest(interest), polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
 
     /// Subpixel (col,row) location of point
     float x,y;
@@ -110,16 +109,7 @@ namespace vw { namespace ip {
     }
 
     /// Generates a human readable string
-    std::string to_string() const {
-      std::stringstream s;
-      s << "IP: ("<<x<<","<<y<<")  scale: "<<scale<<"  orientation: "<<orientation<<"  interest: "<<interest<<
-           "  polarity: "<<polarity<<"  octave: "<<octave<<"  scale_lvl: "<<scale_lvl<<"\n";
-      s << "  descriptor: ";
-      for (size_t i=0; i<descriptor.size(); ++i)
-        s << descriptor[i] << "  ";
-      s << std::endl;
-      return s.str();
-    }
+    std::string to_string() const;
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     /// Copy IP information from an OpenCV KeyPoint object
@@ -143,7 +133,7 @@ namespace vw { namespace ip {
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
     InterestPointList return_val;
-    for (InterestPointList::const_iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
+    for (auto i = interest_points.begin(); i != interest_points.end(); ++i) {
       if (bbox.contains(Vector<RealT,2>(RealT((*i).x), RealT((*i).y))))
         return_val.push_back(*i);
     }
@@ -153,7 +143,6 @@ namespace vw { namespace ip {
   /// Helpful functors
   void remove_descriptor( InterestPoint & ip );
 
-  
   /// Convert a an InterestPointList into a dense matrix of IP descriptors, one per row.
   template <class LIST_T, typename T>
   void ip_list_to_matrix(LIST_T const& ip_list, math::Matrix<T> &ip_matrix) {
@@ -170,110 +159,6 @@ namespace vw { namespace ip {
       ++matrix_row;
     }
   }
-
-  /// ImageInterestData
-  ///
-  /// This struct encapsulates some basic and widely useful processed
-  /// views of a source image: the horizontal and vertical gradients,
-  /// the orientation image, the gradient magnitude image, and the
-  /// interest image. This is useful to ensure that these images are
-  /// not redundantly calculated by different steps of the feature
-  /// detection algorithm.
-  ///
-  /// The interest type is used to determine at compile-time which processed
-  /// views should be fully rasterized. For speed in feature detection, the
-  /// source type should be ImageView<T> or a simple manipulation of it.
-  /// For memory efficiency, the source type should be ImageViewRef<T>.
-  ///
-  /// If some other sort of shared data is needed or any of the temporaries
-  /// should be calculated in a different fashion, ImageInterestData can be
-  /// partially specialized on InterestT.
-  template <class SrcT, class InterestT>
-  class ImageInterestData {
-  public:
-    /// The image types defined by InterestTraits control whether each processed
-    /// view is fully rasterized or not. Only those used in calculating each
-    /// pixel's interest measure should be fully rasterized. Later operations
-    /// (thresholding, orientation assignment, etc.) require at most support
-    /// regions around the interest points.
-    typedef          SrcT             source_type;
-    typedef typename SrcT::pixel_type pixel_type;
-
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::rasterize_type rasterize_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::gradient_type  gradient_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type       mag_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type       ori_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type  interest_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::integral_type  integral_type;
-
-    static const int peak_type = InterestPeakType<InterestT>::peak_type;
-
-    /// Constructor which sets the source image and creates the processed views.
-    /// This is a generic constructor that assumes the requires grad x/y.
-    template <class ViewT>
-    ImageInterestData(ImageViewBase<ViewT> const& img) :
-      m_src(img.impl()),
-      m_grad_x(derivative_filter(m_src, 1, 0).impl()),
-      m_grad_y(derivative_filter(m_src, 0, 1).impl()),
-      m_mag(hypot(m_grad_x, m_grad_y).impl()),
-      m_ori(atan2(m_grad_y, m_grad_x).impl()),
-      m_interest(NULL),
-      m_integral(NULL) {}
-
-    template <class ViewT>
-    ImageInterestData(ImageViewBase<ViewT> const& img,
-                      ImageViewBase<integral_type> const& integral ) :
-      m_src(img.impl()),
-      m_interest(NULL),
-      m_integral(&integral.impl()) {}
-
-    ~ImageInterestData() {
-      if (m_interest) delete m_interest;
-    }
-
-    /// Accessors to immutable processed views.
-    inline source_type   const& source     () const { return m_src;    }
-    inline gradient_type const& gradient_x () const { return m_grad_x; }
-    inline gradient_type const& gradient_y () const { return m_grad_y; }
-    inline mag_type      const& magnitude  () const { return m_mag;    }
-    inline ori_type      const& orientation() const { return m_ori;    }
-
-    /// Accessors to mutable interest image.
-    inline interest_type& interest() const {
-      if (!m_interest) 
-        vw_throw(LogicErr() << "ImageInterestData::interest() Interest image has not yet been computed.");
-      return *m_interest;
-    }
-
-    template <class ViewT>
-    inline void set_interest(ImageViewBase<ViewT> const& interest) {
-      if (m_interest) 
-        delete m_interest;
-      m_interest = new interest_type(interest.impl());
-    }
-
-    /// Accessors to mutable integral image.
-    inline integral_type const& integral() const {
-      if (!m_integral) 
-        vw_throw(LogicErr() << "ImageInterestData::integral() Integral image has not yet been computed.");
-      return *m_integral;
-    }
-
-    template <class ViewT>
-    inline void set_integral(ImageViewBase<ViewT> const& integral) {
-      // I don't really recommend using this -ZMM
-      m_integral = &integral;
-    }
-
-  protected:
-    /// Cached processed data
-    source_type   m_src;
-    gradient_type m_grad_x, m_grad_y;
-    mag_type      m_mag;
-    ori_type      m_ori;
-          interest_type *m_interest;
-    const integral_type *m_integral;
-  }; // End class ImageInterestData
 
 }} // namespace vw::ip
 

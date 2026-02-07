@@ -79,10 +79,9 @@ namespace ip {
   /// produce a blended average of those two directions, and if those
   /// two directions are opposites, then they will cancel each other
   /// out.  However, this seems to work well enough for the time being.
-  template <class OriT, class MagT>
-  float get_orientation(ImageViewBase<OriT> const& x_grad,
-                         ImageViewBase<MagT> const& y_grad,
-                         float i0, float j0, float sigma_ratio = 1.0);
+  inline float get_orientation(vw::ImageViewRef<float> const& x_grad,
+                               vw::ImageViewRef<float> const& y_grad,
+                               float i0, float j0, float sigma_ratio = 1.0);
 
   // The next set of classes are for performing IP detection with thread pools.
   // TODO: Maybe they should be moved to another file.
@@ -341,10 +340,9 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
 // produce a blended average of those two directions, and if those
 // two directions are opposites, then they will cancel each other
 // out.  However, this seems to work well enough for the time being.
-template <class OriT, class MagT>
-float get_orientation(ImageViewBase<OriT> const& x_grad,
-                      ImageViewBase<MagT> const& y_grad,
-                      float i0, float j0, float sigma_ratio) {
+inline float get_orientation(vw::ImageViewRef<float> const& x_grad,
+                             vw::ImageViewRef<float> const& y_grad,
+                             float i0, float j0, float sigma_ratio) {
 
   // The size, in pixels, of the image patch used to compute the orientation.
   static const int IP_ORIENTATION_WIDTH = 10;
