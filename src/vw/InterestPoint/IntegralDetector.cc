@@ -151,20 +151,13 @@ InterestPointList
 IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
                                               int desired_num_ip) const {
 
-  std::cout << "---now in IntegralInterestPointDetector::process_image4\n";
-
-  Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
-
   // Rendering own standard copy of the image as the passed in view is just a cropview
-  std::cout << "--get crop\n";
   vw::ImageView<vw::PixelGray<float>> original_image
     = vw::pixel_cast_rescale<vw::PixelGray<float>>(image);
 
   // Producing Integral Image
   ImageT integral_image;
   {
-    vw::vw_out(DebugMessage, "interest_point") << "\tCreating Integral Image ...";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     integral_image= IntegralImage(original_image);
   }
 
@@ -176,13 +169,9 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
   // Priming scales
   InterestPointList new_points;
   {
-    vw::vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     m_interest(interest_data[0], 0);
   }
   {
-    vw::vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     m_interest(interest_data[1], 1);
   }
   // Finally processing scales
@@ -190,8 +179,6 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
 
     interest_data.push_back(DataT(original_image, integral_image));
     {
-      vw::vw_out(DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
-      Timer t("done, elapsed time", DebugMessage, "interest_point");
       m_interest(interest_data[2], scale);
     }
 
@@ -242,19 +229,13 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
     curr_max_points = desired_num_ip;
 
   if (curr_max_points > 0) { // Cull
-    vw::vw_out(DebugMessage, "interest_point") << "\tCulling ...";
-    Timer t("elapsed time", DebugMessage, "interest_point");
     int original_num_points = new_points.size();
     new_points.sort();
     if (curr_max_points < original_num_points)
       new_points.resize(curr_max_points);
-    vw::vw_out(DebugMessage, "interest_point") << "     (removed " << original_num_points - new_points.size()
-                                            << " interest points, " << new_points.size() << " remaining.)\n";
   }
 
   { // Assign orientations
-    vw::vw_out(DebugMessage, "interest_point") << "\tAssigning Orientations... ";
-    Timer t("elapsed time", DebugMessage, "interest_point");
     std::for_each(new_points.begin(), new_points.end(),
                     AssignOrientation<ImageT >(integral_image));
   }
@@ -284,13 +265,8 @@ InterestPointList
 IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
                                         int desired_num_ip) const {
 
-  std::cout << "---now in IntegralAutoGainDetector::process_image4\n";
-
-  vw::Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
-
   // The input image is a lazy view. We'll rasterize so we're not hitting
   // the cache all of the image.
-  std::cout << "--will rasterize the input image to avoid cache issues\n";
   ImageT original_image = image.impl();
 
   // The ImageInterestData structure doesn't really apply to
@@ -302,8 +278,6 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
   // Producing Integral Image
   ImageT integral_image;
   {
-    vw::vw_out(vw::DebugMessage, "interest_point") << "\tCreating Integral Image ...";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     integral_image = ip::IntegralImage(original_image);
   }
 
@@ -315,13 +289,9 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
   // Priming scales
   vw::ip::InterestPointList new_points;
   {
-    vw::vw_out(DebugMessage, "interest_point") << "\tScale 0 ... ";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     m_interest(interest_data[0], 0);
   }
   {
-    vw::vw_out(DebugMessage, "interest_point") << "\tScale 1 ... ";
-    Timer t("done, elapsed time", DebugMessage, "interest_point");
     m_interest(interest_data[1], 1);
   }
 
@@ -330,8 +300,6 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
 
     interest_data.push_back(DataT(empty_image, integral_image));
     {
-      vw::vw_out(vw::DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
-      Timer t("done, elapsed time", DebugMessage, "interest_point");
       m_interest(interest_data[2], scale);
     }
 
@@ -365,20 +333,13 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
       h_row.next_row();
     }
 
-    vw::vw_out(vw::DebugMessage, "interest_point") << "\tPrior to thresholding there was: "
-                                            << scale_points.size() << "\n";
-
     // Remove all interest points in the bottom 0.1% of our interest point range
     float imin, imax;
     min_max_pixel_values(interest_data[1].interest(), imin, imax);
     float threshold_lvl = imin + 0.001 * (imax - imin);
-    VW_OUT(DebugMessage, "interest_point") << "\tInterest threshold for scale: " << threshold_lvl << "\n";
 
     // Thresholding (in OBALOG this also does Harris)
     threshold(scale_points, interest_data[1], scale-1, threshold_lvl);
-
-    VW_OUT(DebugMessage, "interest_point") << "\tAfter thresholding there was: "
-                                            << scale_points.size() << "\n";
 
     // Appending to the greater set
     new_points.insert(new_points.end(),
@@ -396,21 +357,12 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
 
   // Are all points good?
   if (curr_max_points < int(new_points.size()) && (curr_max_points > 0)) {
-    VW_OUT(DebugMessage, "interest_point") << "\tCulling ...\n";
-    Timer t("elapsed time", DebugMessage, "interest_point");
 
     int original_num_points = new_points.size();
 
     // Sort the interest of the points and pull out the top amount that the user wants
     new_points.sort();
-    VW_OUT(DebugMessage, "interest_point") << "\t     Best IP : " << new_points.front().interest << std::endl;
-    VW_OUT(DebugMessage, "interest_point") << "\t     Worst IP: " << new_points.back().interest << std::endl;
     new_points.resize(curr_max_points);
-
-    VW_OUT(DebugMessage, "interest_point") << "\t     (removed " << original_num_points - new_points.size()
-                                            << " interest points, " << new_points.size() << " remaining.)\n";
-  } else {
-    VW_OUT(DebugMessage, "interest_point") << "\t     Not culling anything.\n";
   }
 
   return new_points;
