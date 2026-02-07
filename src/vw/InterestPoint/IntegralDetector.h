@@ -23,7 +23,6 @@
 #ifndef __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 #define __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 
-#include <vw/Image/Interpolation.h>
 #include <vw/InterestPoint/Detector.h>
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>

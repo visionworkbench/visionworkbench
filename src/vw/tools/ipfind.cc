@@ -35,6 +35,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/InterestPointDetector.h>
 #include <vw/InterestPoint/OpenCvDetector.h>
 #include <vw/InterestPoint/IntegralDescriptor.h>
 #include <vw/InterestPoint/IntegralDetector.h>
