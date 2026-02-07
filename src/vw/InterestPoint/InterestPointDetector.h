@@ -181,25 +181,17 @@ InterestPointDetector<InterestT>::process_image(vw::ImageViewRef<float> const& i
   ImageInterestData<blurred_image_type, InterestT> img_data(gaussian_filter(float_image,0.5));
 
   // Compute interest image
-  {
-    m_interest(img_data);
-  }
+  m_interest(img_data);
 
   // Find extrema in interest image
   InterestPointList points;
-  {
-    find_extrema(points, img_data);
-  }
+  find_extrema(points, img_data);
 
   // Subpixel localization
-  {
-    localize(points, img_data);
-  }
+  localize(points, img_data);
 
   // Threshold (after localization)
-  {
-    threshold(points, img_data);
-  }
+  threshold(points, img_data);
 
   // Handle max_points override
   int curr_max_points = m_max_points;
@@ -207,17 +199,13 @@ InterestPointDetector<InterestT>::process_image(vw::ImageViewRef<float> const& i
     curr_max_points = desired_num_ip;
 
   // Cull (limit the number of interest points to the N "most interesting" points)
-  {
-    int original_num_points = points.size();
-    points.sort();
-    if ((curr_max_points > 0) && (curr_max_points < original_num_points))
-       points.resize(curr_max_points);
-  }
+  int original_num_points = points.size();
+  points.sort();
+  if ((curr_max_points > 0) && (curr_max_points < original_num_points))
+     points.resize(curr_max_points);
 
   // Assign orientations
-  {
-    assign_orientations(points, img_data);
-  }
+  assign_orientations(points, img_data);
 
   // Return vector of interest points
   return points;
@@ -317,27 +305,19 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
     }
 
     // Compute interest images
-    {
-      for (int k = 0; k < octave.num_planes; ++k) {
-        m_interest(img_data[k], octave.plane_index_to_scale(k));
-      }
+    for (int k = 0; k < octave.num_planes; ++k) {
+      m_interest(img_data[k], octave.plane_index_to_scale(k));
     }
 
     // Find extrema in interest image
     InterestPointList new_points;
-    {
-      find_extrema(new_points, img_data, octave);
-    }
+    find_extrema(new_points, img_data, octave);
 
     // Subpixel localization
-    {
-      localize(new_points, img_data, octave);
-    }
+    localize(new_points, img_data, octave);
 
     // Threshold
-    {
-      threshold(new_points, img_data, octave);
-    }
+    threshold(new_points, img_data, octave);
 
     // Handle max_points override
     int curr_max_points = m_max_points;
@@ -345,17 +325,13 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
       curr_max_points = desired_num_ip;
 
     // Cull (limit the number of interest points to the N "most interesting" points)
-    {
-      int original_num_points = new_points.size();
-      new_points.sort();
-      if ((curr_max_points > 0) && (curr_max_points/m_octaves < (int)new_points.size()))
-        new_points.resize(curr_max_points/m_octaves);
-    }
+    int original_num_points = new_points.size();
+    new_points.sort();
+    if ((curr_max_points > 0) && (curr_max_points/m_octaves < (int)new_points.size()))
+      new_points.resize(curr_max_points/m_octaves);
 
     // Assign orientations
-    {
-      assign_orientations(new_points, img_data, octave);
-    }
+    assign_orientations(new_points, img_data, octave);
 
     // Scale subpixel location to move back to original coords
     for (InterestPointList::iterator i = new_points.begin(); i != new_points.end(); ++i) {
