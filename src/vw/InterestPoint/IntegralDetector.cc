@@ -262,6 +262,23 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
   return new_points;
 } // End function process_image
 
+// Helper function
+void IntegralAutoGainDetector::threshold(vw::ip::InterestPointList& points,
+                                         DataT const& img_data,
+                                         int const& scale, float threshold_lvl) const {
+
+  InterestPointList::iterator pos = points.begin();
+  while (pos != points.end()) {
+    if (pos->interest < threshold_lvl ||
+          !m_interest.threshold(*pos,
+                                img_data, scale)) {
+      pos = points.erase(pos);
+    } else {
+      pos++;
+    }
+  }
+}
+
 /// Detect interest points in the source image.
 InterestPointList 
 IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
@@ -269,8 +286,6 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
 
   std::cout << "---now in IntegralAutoGainDetector::process_image4\n";
 
-  typedef vw::ImageView<float> ImageT;
-  typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
   vw::Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
   // The input image is a lazy view. We'll rasterize so we're not hitting
