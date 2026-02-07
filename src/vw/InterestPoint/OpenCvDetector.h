@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2025, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -42,7 +42,7 @@ enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
                             OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
 
 /// Struct to convert a basic type to a single channel OpenCV type
-template <typename T> 
+template <typename T>
 struct GetOpenCvPixelType { static const int type=CV_8UC1; };
 template <>
 struct GetOpenCvPixelType<short> { static const int type=CV_16SC1; };
@@ -63,7 +63,7 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
                         bool normalize = true);
 
 /// Interest point detector build using OpenCV functions
-class OpenCvInterestPointDetector: 
+class OpenCvInterestPointDetector:
   public InterestDetectorBase<OpenCvInterestPointDetector> {
 public:
 
@@ -72,7 +72,7 @@ public:
                               bool add_description, int max_points);
 
   /// Detect interest points in the source image. 
-  InterestPointList process_image(vw::ImageViewRef<float> const& image, 
+  InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                   int desired_num_ip=0) const;
 
 private:
@@ -83,11 +83,10 @@ private:
   cv::Ptr<cv::FeatureDetector> m_detector;
 
   /// Initialize an OpenCV detector object
-  cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type, 
+  cv::Ptr<cv::FeatureDetector> init_detector(OpenCvIpDetectorType detector_type,
                                              int max_points) const;
 
 }; // End class OpenCvInterestPointDetector
-
 
 }} // namespace vw::ip
 

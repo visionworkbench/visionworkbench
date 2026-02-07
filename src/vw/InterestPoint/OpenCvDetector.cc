@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2025, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -83,7 +83,7 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
   }
 
   // Just make sure the masked input image pixels are zero to create the opencv mask
-  ImageView<vw::uint8> mask_buffer 
+  ImageView<vw::uint8> mask_buffer
     = channel_cast_rescale<uint8>(select_channel(input_buffer, 1));
 
   // Wrap our mask object with OpenCV
@@ -93,7 +93,7 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
 
   // Use OpenCV call to erode some pixels off the mask
   const int ERODE_RADIUS = 5;
-  cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(ERODE_RADIUS, 
+  cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(ERODE_RADIUS,
                                                                          ERODE_RADIUS));
   cv::erode(full_cv_mask, cv_mask, kernel);
 
@@ -101,7 +101,7 @@ void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
 }
 
 void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
-                                   cv::Mat const& cvDescriptors, 
+                                   cv::Mat const& cvDescriptors,
                                    OpenCvIpDetectorType detector_type) {
 
   size_t num_ip_descriptors = cvDescriptors.rows;
@@ -124,17 +124,17 @@ void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
       case OPENCV_IP_DETECTOR_TYPE_BRISK:
       case OPENCV_IP_DETECTOR_TYPE_ORB:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] 
+          iter->descriptor[d]
             = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
         break;
       case OPENCV_IP_DETECTOR_TYPE_SIFT:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] 
+          iter->descriptor[d]
             = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
         break;
       case OPENCV_IP_DETECTOR_TYPE_SURF:
         for (size_t d=0; d<descriptor_length; ++d)
-          iter->descriptor[d] 
+          iter->descriptor[d]
             = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
         break;
       default: vw_throw(ArgumentErr() << "Unrecognized OpenCV detector type!\n");
@@ -143,14 +143,13 @@ void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
   }
 }
 
-
 cv::Ptr<cv::FeatureDetector>
 OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
                                            int max_points) const {
 
   // Ensure the --threads option and / or the .vwrc thread setting are respected.
   cv::setNumThreads(vw_settings().default_num_threads());
- 
+
   // Instantiate the feature detector
   // - There are a lot of detector variables that we just leave as the default here.
   switch (detector_type) {
@@ -173,9 +172,9 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
 }
 
 OpenCvInterestPointDetector::OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type,
-                                                         bool normalize, 
-                                                         bool add_descriptions, 
-                                                         int max_points): 
+                                                         bool normalize,
+                                                         bool add_descriptions,
+                                                         int max_points):
 m_detector_type(detector_type), m_add_descriptions(add_descriptions),
 m_normalize(normalize), m_max_points(max_points) {
 
@@ -228,7 +227,6 @@ OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
 
   return ip_list;
 }
-
 
 }} // namespace vw::ip
 

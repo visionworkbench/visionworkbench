@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2025, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -84,7 +84,6 @@ namespace ip {
                          ImageViewBase<MagT> const& y_grad,
                          float i0, float j0, float sigma_ratio = 1.0);
 
-
   /// This class performs interest point detection on a source image
   /// without using scale space methods.
   /// - The input class here is an "interest" operator that returns an image with pixels
@@ -135,7 +134,6 @@ namespace ip {
     void write_images(DataT const& img_data) const;
   };
 
-
   /// This class performs interest point detection on a source image
   /// making use of scale space methods to achieve scale invariance.
   /// This assumes that the detector works properly over different choices of scale.
@@ -150,21 +148,21 @@ namespace ip {
 
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwise, the max_points most "interesting" points are returned.
-    ScaledInterestPointDetector(int max_points = 1000): 
+    ScaledInterestPointDetector(int max_points = 1000):
     m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES),
     m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
-    ScaledInterestPointDetector(InterestT const& interest, int max_points = 1000): 
+    ScaledInterestPointDetector(InterestT const& interest, int max_points = 1000):
     m_interest(interest), m_scales(IP_DEFAULT_SCALES),
     m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
-    ScaledInterestPointDetector(InterestT const& interest, int scales, int octaves, 
-                                int max_points = 1000): 
+    ScaledInterestPointDetector(InterestT const& interest, int scales, int octaves,
+                                int max_points = 1000):
     m_interest(interest), m_scales(scales), m_octaves(octaves), m_max_points(max_points) {}
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image, 
+    InterestPointList process_image(ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0) const;
 
   protected:
@@ -250,7 +248,7 @@ namespace ip {
     InterestPointDetectionTask(ImageViewBase<ViewT> const& view,
                                DetectorT& detector, BBox2i const& bbox,
                                int desired_num_ip, int id, int num_jobs,
-                               InterestPointList& global_list, 
+                               InterestPointList& global_list,
                                OrderedWorkQueue& write_queue,
                                vw::TerminalProgressCallback & tpc):
       m_view(view.impl()), m_detector(detector), m_bbox(bbox),
@@ -292,7 +290,7 @@ namespace ip {
 
     InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                           int tile_size, int desired_num_ip, 
+                           int tile_size, int desired_num_ip,
                            vw::TerminalProgressCallback & tpc);
 
     size_t size() { return m_bboxes.size(); }
@@ -313,7 +311,6 @@ namespace ip {
                                            DetectorT& detector,
                                            int desired_num_ip=0);
 
-
 // Function definitions
 
 //-------------------------------------------------------------------
@@ -322,7 +319,7 @@ namespace ip {
 // Find the interest points in an image using the provided detector.
 template <class ImplT>
 template <class ViewT>
-InterestPointList 
+InterestPointList
 InterestDetectorBase<ImplT>::operator()(vw::ImageViewBase<ViewT> const& image,
                                         int desired_num_ip) {
 
@@ -341,8 +338,8 @@ InterestDetectorBase<ImplT>::operator()(vw::ImageViewBase<ViewT> const& image,
 template <class ViewT, class DetectorT>
 void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
 
-  vw_out(InfoMessage, "interest_point") 
-    << "Locating interest points in block " << m_job_id + 1 << "/" << m_num_jobs << "   [ " 
+  vw_out(InfoMessage, "interest_point")
+    << "Locating interest points in block " << m_job_id + 1 << "/" << m_num_jobs << "   [ "
     << m_bbox << " ] with " << m_desired_num_ip << " ip.\n";
 
   // Use the m_detector object to find a set of image points in the cropped
@@ -362,12 +359,12 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
   // Append these interest points to the master list owned by the
   // detect_interest_points() function. It appears that m_write_queue
   // is accessed by only one thread at a time, so this is thread-safe.
-  boost::shared_ptr<Task> 
+  boost::shared_ptr<Task>
     write_task(new InterestPointWriteTask(new_ip_list, m_global_points,
                                           m_tpc, m_inc_amt));
   m_write_queue.add_task(write_task, m_job_id);
 
-  vw_out(InfoMessage, "interest_point") 
+  vw_out(InfoMessage, "interest_point")
     << "Finished block " << m_job_id + 1 << "/" << m_num_jobs << std::endl;
 }
 
@@ -442,7 +439,7 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
   OrderedWorkQueue write_queue(1);
   InterestPointList ip_list;
 
-  InterestDetectionQueue<ViewT, DetectorT> 
+  InterestDetectionQueue<ViewT, DetectorT>
     detect_queue(view, detector, write_queue, ip_list, tile_size, desired_num_ip, tpc);
   detect_queue.join_all();
   write_queue.join_all();
@@ -622,7 +619,6 @@ void InterestPointDetector<InterestT>::write_images(DataT const& img_data) const
   vw::write_image("interest.jpg", interest_image);
 }
 
-
 //-------------------------------------------------------------------
 // ScaledInterestPointDetector
 
@@ -631,7 +627,7 @@ template <class InterestT>
 template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
 process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
-  
+
   // Create scale space
   typedef ImageInterestData<ImageView<PixelGray<float> >,InterestT> DataT;
 
@@ -676,7 +672,6 @@ process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
     {
       threshold(new_points, img_data, octave);
     }
-
 
     // Handle max_points override
     int curr_max_points = m_max_points;
