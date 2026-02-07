@@ -172,7 +172,8 @@ InterestPointDetector<InterestT>::process_image(ImageViewBase<ViewT> const& imag
                                                 int desired_num_ip) const {
 
   // Calculate gradients, orientations and magnitudes
-
+   std::cout << "---now in InterestPointDetector::process_image---" << std::endl;
+   
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
   // - First rasterize the input image to a buffer and convert to required float type
@@ -296,6 +297,8 @@ template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
 process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
 
+  std::cout << "---now we are in ScaledInterestPointDetector::process_image---" << std::endl;
+  
   // Create scale space
   typedef ImageInterestData<ImageView<PixelGray<float> >,InterestT> DataT;
 
