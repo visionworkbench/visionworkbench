@@ -32,106 +32,106 @@
 namespace vw {
 namespace ip {
 
-  /// Getting Orientation. This method of finding orientation is the
-  /// same as described in SURF papers.
-  template <class IntegralT>
-  struct AssignOrientation {
-    IntegralT integral;
-    AssignOrientation(ImageViewBase<IntegralT> const& image) : integral(image.impl()) {}
+/// This method of finding orientation is the same as described in SURF
+/// papers.
+template <class IntegralT>
+struct AssignOrientation {
+  IntegralT integral;
+  AssignOrientation(ImageViewBase<IntegralT> const& image) : integral(image.impl()) {}
 
-    void operator()(InterestPoint& ip) {
-      typedef std::vector<typename IntegralT::pixel_type> Measures;
-      Measures h_response(169);
-      Measures v_response(169);
-      Measures angle(169);
-      int m = 0;
+  void operator()(InterestPoint& ip) {
+    typedef std::vector<typename IntegralT::pixel_type> Measures;
+    Measures h_response(169);
+    Measures v_response(169);
+    Measures angle(169);
+    int m = 0;
 
-      typedef InterpolationView<EdgeExtensionView< IntegralT, ConstantEdgeExtension>, BilinearInterpolation> WrappedType;
-      WrappedType wrapped_integral = interpolate(integral.impl());
+    typedef InterpolationView<EdgeExtensionView< IntegralT, ConstantEdgeExtension>, BilinearInterpolation> WrappedType;
+    WrappedType wrapped_integral = interpolate(integral.impl());
 
-      for (int i = -6; i <= 6; i++) {
-        for (int j = -6; j <= 6; j++) {
-          float distance_2 = i*i+j*j;
+    for (int i = -6; i <= 6; i++) {
+      for (int j = -6; j <= 6; j++) {
+        float distance_2 = i*i+j*j;
 
-          // Check if the location is within the radius of 6
-          if (distance_2 > 36)
-            continue;
-          float weight = exp(-distance_2/8)/5.0133;
+        // Check if the location is within the radius of 6
+        if (distance_2 > 36)
+          continue;
+        float weight = exp(-distance_2/8)/5.0133;
 
-          Vector2 location = Vector2(ip.ix,ip.iy) +
-            ip.scale*Vector2(i,j);
-          h_response[m] = weight*HHaarWavelet(wrapped_integral,
-                                               location[0],
-                                             location[1],
-                                               ip.scale*4);
-          v_response[m] = weight*VHaarWavelet(wrapped_integral,
-                                               location[0],
-                                               location[1],
-                                               ip.scale*4);
-          angle[m] = atan2(v_response[m],
-                            h_response[m]);
-          m++;
-        }
+        Vector2 location = Vector2(ip.ix,ip.iy) +
+          ip.scale*Vector2(i,j);
+        h_response[m] = weight*HHaarWavelet(wrapped_integral,
+                                              location[0],
+                                            location[1],
+                                              ip.scale*4);
+        v_response[m] = weight*VHaarWavelet(wrapped_integral,
+                                              location[0],
+                                              location[1],
+                                              ip.scale*4);
+        angle[m] = atan2(v_response[m],
+                          h_response[m]);
+        m++;
       }
-
-      // Fitting a slice to find response
-      static const float pi_6 = M_PI/6.0;
-      static const float two_pi = 2*M_PI;
-      float sumx, sumy;
-      float mod, greatest_mod=0;
-      float greatest_ori=0;
-      for (float a = 0; a < two_pi; a += 0.5) {
-        sumx = sumy = 0;
-        for (int idx = 0; idx < m; idx++) {
-          // Is it in my slice
-          if ((angle[idx] > a - pi_6 && angle[idx] < a + pi_6) ||
-               (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6) ||
-               (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6)) {
-            sumx += h_response[idx];
-            sumy += v_response[idx];
-          }
-        }
-
-        mod = sumx*sumx+sumy*sumy;
-        if (mod > greatest_mod) {
-          greatest_mod = mod;
-          greatest_ori = atan2(sumy,sumx);
-        }
-      }
-
-      ip.orientation = greatest_ori;
-    }
-  }; // End class AssignOrientation
-
-  template <class AccessT>
-  bool is_extrema(AccessT const& low, AccessT const& mid, AccessT const& hi) {
-
-    AccessT low_o = low;
-    AccessT mid_o = mid;
-    AccessT hi_o  = hi;
-
-    if (*mid_o <= *low_o) return false;
-    if (*mid_o <= *hi_o) return false;
-
-    for (uint8 step = 0; step < 8; step++) {
-      if (step == 0) {
-        low_o.advance(-1,-1); mid_o.advance(-1,-1);hi_o.advance(-1,-1);
-      } else if (step == 1 || step == 2) {
-        low_o.next_col(); mid_o.next_col(); hi_o.next_col();
-      } else if (step == 3 || step == 4) {
-        low_o.next_row(); mid_o.next_row(); hi_o.next_row();
-      } else if (step == 5 || step == 6) {
-        low_o.prev_col(); mid_o.prev_col(); hi_o.prev_col();
-      } else {
-        low_o.prev_row(); mid_o.prev_row(); hi_o.prev_row();
-      }
-      if (*mid <= *low_o ||
-            *mid <= *mid_o ||
-            *mid <= *hi_o) return false;
     }
 
-    return true;
+    // Fitting a slice to find response
+    static const float pi_6 = M_PI/6.0;
+    static const float two_pi = 2*M_PI;
+    float sumx, sumy;
+    float mod, greatest_mod=0;
+    float greatest_ori=0;
+    for (float a = 0; a < two_pi; a += 0.5) {
+      sumx = sumy = 0;
+      for (int idx = 0; idx < m; idx++) {
+        // Is it in my slice
+        if ((angle[idx] > a - pi_6 && angle[idx] < a + pi_6) ||
+              (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6) ||
+              (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6)) {
+          sumx += h_response[idx];
+          sumy += v_response[idx];
+        }
+      }
+
+      mod = sumx*sumx+sumy*sumy;
+      if (mod > greatest_mod) {
+        greatest_mod = mod;
+        greatest_ori = atan2(sumy,sumx);
+      }
+    }
+
+    ip.orientation = greatest_ori;
   }
+}; // End class AssignOrientation
+
+template <class AccessT>
+bool is_extrema(AccessT const& low, AccessT const& mid, AccessT const& hi) {
+
+  AccessT low_o = low;
+  AccessT mid_o = mid;
+  AccessT hi_o  = hi;
+
+  if (*mid_o <= *low_o) return false;
+  if (*mid_o <= *hi_o) return false;
+
+  for (uint8 step = 0; step < 8; step++) {
+    if (step == 0) {
+      low_o.advance(-1,-1); mid_o.advance(-1,-1);hi_o.advance(-1,-1);
+    } else if (step == 1 || step == 2) {
+      low_o.next_col(); mid_o.next_col(); hi_o.next_col();
+    } else if (step == 3 || step == 4) {
+      low_o.next_row(); mid_o.next_row(); hi_o.next_row();
+    } else if (step == 5 || step == 6) {
+      low_o.prev_col(); mid_o.prev_col(); hi_o.prev_col();
+    } else {
+      low_o.prev_row(); mid_o.prev_row(); hi_o.prev_row();
+    }
+    if (*mid <= *low_o ||
+          *mid <= *mid_o ||
+          *mid <= *hi_o) return false;
+  }
+
+  return true;
+}
 
   /// InterestDetector implementation for all detectors with operate off of an integral image.
   class IntegralInterestPointDetector:
