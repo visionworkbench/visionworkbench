@@ -170,14 +170,13 @@ InterestPointDetector<InterestT>::process_image(vw::ImageViewRef<float> const& i
                                                 int desired_num_ip) const {
 
   // Calculate gradients, orientations and magnitudes
-   std::cout << "---now in InterestPointDetector::process_image---" << std::endl;
    
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
   // - First rasterize the input image to a buffer and convert to required float type
   ImageView<PixelGray<float>> float_image = pixel_cast_rescale<PixelGray<float>>(image);
   typedef SeparableConvolutionView<ImageView<PixelGray<float>>,
-    typename DefaultKernelT<PixelGray<float> >::type, ConstantEdgeExtension>
+    typename DefaultKernelT<PixelGray<float>>::type, ConstantEdgeExtension>
       blurred_image_type;
   ImageInterestData<blurred_image_type, InterestT> img_data(gaussian_filter(float_image,0.5));
 
@@ -294,15 +293,14 @@ template <class InterestT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
 process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
 
-  std::cout << "---now we are in ScaledInterestPointDetector::process_image---" << std::endl;
   
   // Create scale space
-  typedef ImageInterestData<ImageView<PixelGray<float> >,InterestT> DataT;
+  typedef ImageInterestData<ImageView<PixelGray<float>>,InterestT> DataT;
 
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
   ImageOctave<typename DataT::source_type> octave(gaussian_filter(
-                    pixel_cast_rescale<PixelGray<float> >(image),0.5), m_scales);
+                    pixel_cast_rescale<PixelGray<float>>(image),0.5), m_scales);
 
   InterestPointList points;
   std::vector<DataT> img_data;
