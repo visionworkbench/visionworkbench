@@ -297,10 +297,13 @@ int main(int argc, char** argv) {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/opt.ip_gain);
       IntegralInterestPointDetector detector(interest_operator, opt.ip_per_tile);
+      // Cast to float pixels as that is what the detector expects. Likely the
+      // compiler does this implicitly anyway. 
       ip = detect_interest_points(vw::pixel_cast<float>(image), detector, opt.ip_per_tile);
     } else if (opt.interest_operator == "iagd") {
       // This is the default ASP implementation
       IntegralAutoGainDetector detector(opt.ip_per_tile);
+      // Cast to float pixels as that is what the detector expects.  
       ip = detect_interest_points(vw::pixel_cast<float>(image), detector, opt.ip_per_tile);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (detector_is_opencv) {

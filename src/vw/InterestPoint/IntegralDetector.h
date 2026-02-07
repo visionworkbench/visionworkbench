@@ -152,19 +152,18 @@ bool is_extrema(AccessT const& low, AccessT const& mid, AccessT const& hi) {
       : m_interest(interest), m_scales(scales), m_max_points(max_points) {}
 
     /// Detect Interest Points in the source image.
-    template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+    InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                     int desired_num_ip=0) const {
       std::cout << "---now in IntegralInterestPointDetector::process_image4\n";
-      typedef ImageView<typename PixelChannelType<PixelGray<float> >::type> ImageT;
+      typedef vw::ImageView<float> ImageT;
       typedef ImageInterestData<ImageT,OBALoGInterestOperator> DataT;
 
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
       // Rendering own standard copy of the image as the passed in view is just a cropview
       std::cout << "--get crop\n";
-      vw::ImageView<vw::PixelGray<float> > original_image
-        = vw::pixel_cast_rescale<vw::PixelGray<float> >(image);
+      vw::ImageView<vw::PixelGray<float>> original_image
+        = vw::pixel_cast_rescale<vw::PixelGray<float>>(image);
 
       // Producing Integral Image
       ImageT integral_image;
