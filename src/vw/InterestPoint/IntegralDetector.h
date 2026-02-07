@@ -134,29 +134,30 @@ namespace ip {
   }
 
   /// InterestDetector implementation for all detectors with operate off of an integral image.
-  template <class InterestT>
-  class IntegralInterestPointDetector: public InterestDetectorBase<IntegralInterestPointDetector<InterestT>>, private boost::noncopyable {
+  class IntegralInterestPointDetector: 
+    public InterestDetectorBase<IntegralInterestPointDetector>, 
+    private boost::noncopyable {
 
   public:
     static const int IP_DEFAULT_SCALES = 8;
 
     /// Setting max_points = 0 will disable interest point culling.
     IntegralInterestPointDetector( int max_points = 1000, int num_scales = IP_DEFAULT_SCALES )
-      : m_interest(InterestT()), m_scales(num_scales), m_max_points(max_points) {}
+      : m_interest(OBALoGInterestOperator()), m_scales(num_scales), m_max_points(max_points) {}
 
-    IntegralInterestPointDetector( InterestT const& interest, int max_points = 1000 )
+    IntegralInterestPointDetector( OBALoGInterestOperator const& interest, int max_points = 1000 )
       : m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_max_points(max_points) {}
 
-    IntegralInterestPointDetector( InterestT const& interest, int scales, int max_points )
+    IntegralInterestPointDetector( OBALoGInterestOperator const& interest, int scales, int max_points )
       : m_interest(interest), m_scales(scales), m_max_points(max_points) {}
 
     /// Detect Interest Points in the source image.
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
-      std::cout << "---now in IntegralInterestPointDetector::process_image3\n";
+      std::cout << "---now in IntegralInterestPointDetector::process_image4\n";
       typedef ImageView<typename PixelChannelType<PixelGray<float> >::type> ImageT;
-      typedef ImageInterestData<ImageT,InterestT> DataT;
+      typedef ImageInterestData<ImageT,OBALoGInterestOperator> DataT;
 
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
@@ -269,7 +270,7 @@ namespace ip {
 
   protected:
 
-    InterestT m_interest;
+    OBALoGInterestOperator m_interest;
     int m_scales, m_max_points;
 
     template <class DataT>
@@ -287,7 +288,8 @@ namespace ip {
   };
 
   /// Implementation of IntegralInterestPointDetector based on OBALoGInterestOperator 
-  class IntegralAutoGainDetector: public InterestDetectorBase<IntegralAutoGainDetector>, private boost::noncopyable {
+  class IntegralAutoGainDetector: public InterestDetectorBase<IntegralAutoGainDetector>, 
+                                  private boost::noncopyable {
   public:
 
     static const int IP_DEFAULT_SCALES = 8;
@@ -307,11 +309,11 @@ namespace ip {
     //  using InterestDetectorBase<IntegralAutoGainDetector>::operator();
 
 
-    /// Detect Interest Points in the source image.
+    /// Detect interest points in the source image.
     InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                     int desired_num_ip=0 ) const {
       
-      std::cout << "---now in IntegralAutoGainDetector::process_image3\n";
+      std::cout << "---now in IntegralAutoGainDetector::process_image4\n";
                                       
       typedef vw::ImageView<float> ImageT;
       typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;

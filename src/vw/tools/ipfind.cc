@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     } else if (opt.interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/opt.ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector(interest_operator, opt.ip_per_tile);
+      IntegralInterestPointDetector detector(interest_operator, opt.ip_per_tile);
       ip = detect_interest_points(image, detector, opt.ip_per_tile);
     } else if (opt.interest_operator == "iagd") {
       // This is the default ASP implementation
