@@ -291,7 +291,7 @@ namespace ip {
   // TODO: This inherits from the same base class two different ways!
 
   /// Implementation of IntegralInterestPointDetector based on OBALoGInterestOperator 
-  class IntegralAutoGainDetector : public InterestDetectorBase<IntegralAutoGainDetector >,
+  class IntegralAutoGainDetector: public InterestDetectorBase<IntegralAutoGainDetector>,
                                          IntegralInterestPointDetector<OBALoGInterestOperator> {
   public:
     // Clear ambiguity of which impl to use. Scope doesn't work.
