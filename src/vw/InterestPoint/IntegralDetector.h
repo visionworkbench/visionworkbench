@@ -294,11 +294,8 @@ namespace ip {
 
     static const int IP_DEFAULT_SCALES = 8;
 
-    IntegralAutoGainDetector(size_t max_points = 200, size_t scales = IP_DEFAULT_SCALES)
-      : IntegralAutoGainDetector(OBALoGInterestOperator(0), scales, max_points) {}
-
-    //IntegralAutoGainDetector(OBALoGInterestOperator const& interest, int max_points = 1000):
-    //  m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_max_points(max_points) {}
+    IntegralAutoGainDetector(size_t max_points = 200, size_t scales = IP_DEFAULT_SCALES):
+      IntegralAutoGainDetector(OBALoGInterestOperator(0), scales, max_points) {}
 
     IntegralAutoGainDetector(OBALoGInterestOperator const& interest, int scales,
                              int max_points):
