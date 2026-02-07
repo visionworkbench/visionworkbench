@@ -18,9 +18,10 @@
 /// \file InterestPointDetector.h
 ///
 /// Built-in classes and functions for performing interest point detection.
-///
+/// The detectors in this file are not used by default in ASP but are available
+/// in ipfind with the log and harris detector options.
+
 /// The key function here is detect_interest_points()
-///
 
 #ifndef __VW_INTEREST_POINT_INTEREST_POINT_DETECTOR_H__
 #define __VW_INTEREST_POINT_INTEREST_POINT_DETECTOR_H__
@@ -63,8 +64,7 @@ namespace ip {
     InterestPointDetector(InterestT const& interest, int max_points = 1000): m_interest(interest), m_max_points(max_points) {}
 
     /// Detect interest points in the source image.
-    template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image, int desired_num_ip=0) const;
+    InterestPointList process_image(vw::ImageViewRef<float> const& image, int desired_num_ip=0) const;
 
   protected:
     InterestT m_interest;
@@ -121,8 +121,7 @@ namespace ip {
     m_interest(interest), m_scales(scales), m_octaves(octaves), m_max_points(max_points) {}
 
     /// Detect interest points in the source image.
-    template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+    InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                     int desired_num_ip=0) const;
 
   protected:
@@ -166,9 +165,8 @@ namespace ip {
 
 // Detect interest points in the source image.
 template <class InterestT>
-template <class ViewT>
 InterestPointList
-InterestPointDetector<InterestT>::process_image(ImageViewBase<ViewT> const& image,
+InterestPointDetector<InterestT>::process_image(vw::ImageViewRef<float> const& image,
                                                 int desired_num_ip) const {
 
   // Calculate gradients, orientations and magnitudes
@@ -293,9 +291,8 @@ void InterestPointDetector<InterestT>::write_images(DataT const& img_data) const
 
 // Detect interest points in the source image.
 template <class InterestT>
-template <class ViewT>
 InterestPointList ScaledInterestPointDetector<InterestT>::
-process_image(ImageViewBase<ViewT> const& image, int desired_num_ip) const {
+process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
 
   std::cout << "---now we are in ScaledInterestPointDetector::process_image---" << std::endl;
   
