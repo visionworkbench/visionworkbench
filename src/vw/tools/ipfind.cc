@@ -277,10 +277,10 @@ int main(int argc, char** argv) {
       HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/opt.ip_gain);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, opt.ip_per_tile);
-        ip = detect_interest_points(image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
       } else {
         InterestPointDetector<HarrisInterestOperator> detector(interest_operator, opt.ip_per_tile);
-        ip = detect_interest_points(image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
       }
     } else if (opt.interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -289,10 +289,10 @@ int main(int argc, char** argv) {
       LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/opt.ip_gain);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, opt.ip_per_tile);
-        ip = detect_interest_points(image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
       } else {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, opt.ip_per_tile);
-        ip = detect_interest_points(image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
       }
     } else if (opt.interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
@@ -321,9 +321,9 @@ int main(int argc, char** argv) {
       }
       OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, opt.ip_per_tile);
       if (has_nodata)
-        ip = detect_interest_points(masked_image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(masked_image), detector, opt.ip_per_tile);
       else
-        ip = detect_interest_points(image, detector, opt.ip_per_tile);
+        ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
     }
 #else // End OpenCV section
     } else {

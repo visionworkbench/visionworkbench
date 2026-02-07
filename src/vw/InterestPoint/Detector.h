@@ -66,8 +66,7 @@ namespace ip {
 
     /// Find the interest points in an image using the provided detector.
     /// - desired_num_ip is ignored if set to zero.
-    template <class ViewT>
-    InterestPointList operator() (vw::ImageViewBase<ViewT> const& image,
+    InterestPointList operator() (vw::ImageViewRef<float> const& image,
                                   int desired_num_ip=0);
   };
 
@@ -113,10 +112,10 @@ namespace ip {
 
   /// IP task wrapper for use with the InterestDetectionQueue thread pool class.
   /// - After IPs are found, they are passed to an InterestPointWriteTask object.
-  template <class ViewT, class DetectorT>
+  template <class DetectorT>
   class InterestPointDetectionTask: public Task, private boost::noncopyable {
 
-    ViewT              m_view;           ///< Source image
+    vw::ImageViewRef<float> m_view;      ///< Source image
     DetectorT        & m_detector;       ///< Interest point detection class instance (TODO: const?)
     BBox2i             m_bbox;           ///< Region of the source image to check for points
     int                m_desired_num_ip;
@@ -127,13 +126,13 @@ namespace ip {
     double m_inc_amt;
 
   public:
-    InterestPointDetectionTask(ImageViewBase<ViewT> const& view,
+    InterestPointDetectionTask(vw::ImageViewRef<float> const& view,
                                DetectorT& detector, BBox2i const& bbox,
                                int desired_num_ip, int id, int num_jobs,
                                InterestPointList& global_list,
                                OrderedWorkQueue& write_queue,
                                vw::TerminalProgressCallback & tpc):
-      m_view(view.impl()), m_detector(detector), m_bbox(bbox),
+      m_view(view), m_detector(detector), m_bbox(bbox),
       m_desired_num_ip(desired_num_ip), m_job_id(id), m_num_jobs(num_jobs),
       m_global_points(global_list), m_write_queue(write_queue),
       m_tpc(tpc) {
@@ -153,9 +152,9 @@ namespace ip {
   ///   couldn't figure it out in a reasonable time frame. Thus now we
   ///   generate tasks on demand which should lower the instantaneous
   ///   memory requirement.
-  template <class ViewT, class DetectorT>
+  template <class DetectorT>
   class InterestDetectionQueue: public WorkQueue {
-    ViewT               m_view;
+    vw::ImageViewRef<float> m_view;
     DetectorT         & m_detector;
     OrderedWorkQueue  & m_write_queue;
     InterestPointList & m_ip_list;
@@ -166,11 +165,11 @@ namespace ip {
     size_t              m_index;
     vw::TerminalProgressCallback & m_tpc;
 
-    typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
+    typedef InterestPointDetectionTask<DetectorT> task_type;
 
   public:
 
-    InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
+    InterestDetectionQueue(vw::ImageViewRef<float> const& view, DetectorT& detector,
                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
                            int tile_size, int desired_num_ip,
                            vw::TerminalProgressCallback & tpc);
@@ -188,8 +187,8 @@ namespace ip {
   /// - Threads are spun off to process the image in 1024x1024 pixel blocks.
   /// - Pass in desired_num_ip to enforce this limit proportional to the tile size,
   ///   otherwise each tile will use the same number regardless of size.
-  template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
+  template <class DetectorT>
+  InterestPointList detect_interest_points(vw::ImageViewRef<float> const& view,
                                            DetectorT& detector,
                                            int desired_num_ip=0);
 
@@ -200,9 +199,8 @@ namespace ip {
 
 // Find the interest points in an image using the provided detector.
 template <class ImplT>
-template <class ViewT>
 InterestPointList
-InterestDetectorBase<ImplT>::operator()(vw::ImageViewBase<ViewT> const& image,
+InterestDetectorBase<ImplT>::operator()(vw::ImageViewRef<float> const& image,
                                         int desired_num_ip) {
 
   InterestPointList interest_points;
@@ -217,8 +215,8 @@ InterestDetectorBase<ImplT>::operator()(vw::ImageViewBase<ViewT> const& image,
 //-------------------------------------------------------------------
 // InterestPointDetectionTask
 
-template <class ViewT, class DetectorT>
-void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
+template <class DetectorT>
+void InterestPointDetectionTask<DetectorT>::operator()() {
 
   vw_out(InfoMessage, "interest_point")
     << "Locating interest points in block " << m_job_id + 1 << "/" << m_num_jobs << "   [ "
@@ -253,13 +251,13 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
 //-------------------------------------------------------------------
 // InterestDetectionQueue
 
-template <class ViewT, class DetectorT>
-InterestDetectionQueue<ViewT, DetectorT>::
-InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
+template <class DetectorT>
+InterestDetectionQueue<DetectorT>::
+InterestDetectionQueue(vw::ImageViewRef<float> const& view, DetectorT& detector,
                        OrderedWorkQueue& write_queue, InterestPointList& ip_list,
                        int tile_size, int desired_num_ip,
                        vw::TerminalProgressCallback & tpc):
-     m_view(view.impl()), m_detector(detector),
+     m_view(view), m_detector(detector),
      m_write_queue(write_queue), m_ip_list(ip_list), m_tile_size(tile_size),
      m_desired_num_ip(desired_num_ip), m_index(0), m_tpc(tpc) {
 
@@ -267,9 +265,9 @@ InterestDetectionQueue(ImageViewBase<ViewT> const& view, DetectorT& detector,
   this->notify();
 }
 
-template <class ViewT, class DetectorT>
+template <class DetectorT>
 boost::shared_ptr<Task>
-InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
+InterestDetectionQueue<DetectorT>::get_next_task() {
   Mutex::Lock lock(m_mutex);
   if (m_index == m_bboxes.size())
     return boost::shared_ptr<Task>();
@@ -302,8 +300,8 @@ InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
 
 // This free function implements a multithreaded interest point
 // detector. Threads are spun off to process the image in 1024x1024 pixel blocks.
-template <class ViewT, class DetectorT>
-InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
+template <class DetectorT>
+InterestPointList detect_interest_points(vw::ImageViewRef<float> const& view,
                                          DetectorT& detector,
                                          int desired_num_ip) {
 
@@ -321,7 +319,7 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
   OrderedWorkQueue write_queue(1);
   InterestPointList ip_list;
 
-  InterestDetectionQueue<ViewT, DetectorT>
+  InterestDetectionQueue<DetectorT>
     detect_queue(view, detector, write_queue, ip_list, tile_size, desired_num_ip, tpc);
   detect_queue.join_all();
   write_queue.join_all();
@@ -329,17 +327,6 @@ InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view,
 
   return ip_list;
 }
-
-//-------------------------------------------------------------------
-
-// Get the orientation of the point at (i0,j0,k0).  This is done by
-// computing a gaussian weighted average orientations in a region
-// around the detected point.  This is not the most sophisticated
-// method for determining orientations -- for example, if there is
-// more than one dominant edge orientation in an image, this will
-// produce a blended average of those two directions, and if those
-// two directions are opposites, then they will cancel each other
-// out.  However, this seems to work well enough for the time being.
 
 }} // namespace vw::ip
 
