@@ -40,6 +40,9 @@ class IntegralInterestPointDetector:
 public:
   static const int IP_DEFAULT_SCALES = 8;
 
+  typedef vw::ImageView<float> ImageT;
+  typedef ImageInterestData<ImageT,OBALoGInterestOperator> DataT;
+
   /// Setting max_points = 0 will disable interest point culling.
   IntegralInterestPointDetector(int max_points = 1000, int num_scales = IP_DEFAULT_SCALES):
     m_interest(OBALoGInterestOperator()), m_scales(num_scales), m_max_points(max_points) {}
@@ -57,21 +60,14 @@ public:
 
 protected:
 
+  // Helper function
+  void threshold(InterestPointList      & points,
+                 DataT             const& img_data,
+                 int               const& scale) const;
+
   OBALoGInterestOperator m_interest;
   int m_scales, m_max_points;
 
-  template <class DataT>
-  inline void threshold(InterestPointList      & points,
-                        DataT             const& img_data,
-                        int               const& scale) const {
-    InterestPointList::iterator pos = points.begin();
-    while (pos != points.end()) {
-      if (!m_interest.threshold(*pos, img_data, scale))
-        pos = points.erase(pos);
-      else
-        pos++;
-    }
-  }
 };
 
 /// Implementation of IntegralInterestPointDetector based on OBALoGInterestOperator 

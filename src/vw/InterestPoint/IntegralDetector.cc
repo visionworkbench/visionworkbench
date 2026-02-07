@@ -132,14 +132,26 @@ bool is_extrema(AccessT const& low, AccessT const& mid, AccessT const& hi) {
   return true;
 }
 
-/// Detect Interest Points in the source image.
+// Helper function
+void IntegralInterestPointDetector::threshold(InterestPointList      & points,
+                                              DataT             const& img_data,
+                                              int               const& scale) const {
+
+    InterestPointList::iterator pos = points.begin();
+    while (pos != points.end()) {
+      if (!m_interest.threshold(*pos, img_data, scale))
+        pos = points.erase(pos);
+      else
+        pos++;
+    }
+  }
+
+/// Detect interest points
 InterestPointList 
 IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
                                               int desired_num_ip) const {
 
   std::cout << "---now in IntegralInterestPointDetector::process_image4\n";
-  typedef vw::ImageView<float> ImageT;
-  typedef ImageInterestData<ImageT,OBALoGInterestOperator> DataT;
 
   Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
