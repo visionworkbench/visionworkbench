@@ -103,6 +103,35 @@ namespace ip {
     }
   }; // End class AssignOrientation
 
+  template <class AccessT>
+  bool is_extrema(AccessT const& low, AccessT const& mid, AccessT const& hi) {
+    
+    AccessT low_o = low;
+    AccessT mid_o = mid;
+    AccessT hi_o  = hi;
+
+    if ( *mid_o <= *low_o ) return false;
+    if ( *mid_o <= *hi_o  ) return false;
+
+    for ( uint8 step = 0; step < 8; step++ ) {
+      if ( step == 0 ) {
+        low_o.advance(-1,-1); mid_o.advance(-1,-1);hi_o.advance(-1,-1);
+      } else if ( step == 1 || step == 2 ) {
+        low_o.next_col(); mid_o.next_col(); hi_o.next_col();
+      } else if ( step == 3 || step == 4 ) {
+        low_o.next_row(); mid_o.next_row(); hi_o.next_row();
+      } else if ( step == 5 || step == 6 ) {
+        low_o.prev_col(); mid_o.prev_col(); hi_o.prev_col();
+      } else {
+        low_o.prev_row(); mid_o.prev_row(); hi_o.prev_row();
+      }
+      if ( *mid <= *low_o ||
+            *mid <= *mid_o ||
+            *mid <= *hi_o ) return false;
+    }
+
+    return true;
+  }
 
   /// InterestDetector implementation for all detectors with operate off of an integral image.
   template <class InterestT>
@@ -125,7 +154,7 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image,
                                     int desired_num_ip=0 ) const {
-      std::cout << "---now in IntegralInterestPointDetector::process_image\n";
+      std::cout << "---now in IntegralInterestPointDetector::process_image3\n";
       typedef ImageView<typename PixelChannelType<PixelGray<float> >::type> ImageT;
       typedef ImageInterestData<ImageT,InterestT> DataT;
 
@@ -243,37 +272,6 @@ namespace ip {
     InterestT m_interest;
     int m_scales, m_max_points;
 
-    template <class AccessT>
-    bool inline is_extrema( AccessT const& low,
-                            AccessT const& mid,
-                            AccessT const& hi ) const {
-      AccessT low_o = low;
-      AccessT mid_o = mid;
-      AccessT hi_o  = hi;
-
-      if ( *mid_o <= *low_o ) return false;
-      if ( *mid_o <= *hi_o  ) return false;
-
-      for ( uint8 step = 0; step < 8; step++ ) {
-        if ( step == 0 ) {
-          low_o.advance(-1,-1); mid_o.advance(-1,-1);hi_o.advance(-1,-1);
-        } else if ( step == 1 || step == 2 ) {
-          low_o.next_col(); mid_o.next_col(); hi_o.next_col();
-        } else if ( step == 3 || step == 4 ) {
-          low_o.next_row(); mid_o.next_row(); hi_o.next_row();
-        } else if ( step == 5 || step == 6 ) {
-          low_o.prev_col(); mid_o.prev_col(); hi_o.prev_col();
-        } else {
-          low_o.prev_row(); mid_o.prev_row(); hi_o.prev_row();
-        }
-        if ( *mid <= *low_o ||
-             *mid <= *mid_o ||
-             *mid <= *hi_o ) return false;
-      }
-
-      return true;
-    }
-
     template <class DataT>
     inline void threshold( InterestPointList      & points,
                            DataT             const& img_data,
@@ -288,24 +286,32 @@ namespace ip {
     }
   };
 
-  // TODO: This inherits from the same base class two different ways!
-
   /// Implementation of IntegralInterestPointDetector based on OBALoGInterestOperator 
-  class IntegralAutoGainDetector: public InterestDetectorBase<IntegralAutoGainDetector>,
-                                         IntegralInterestPointDetector<OBALoGInterestOperator> {
+  class IntegralAutoGainDetector: public InterestDetectorBase<IntegralAutoGainDetector>, private boost::noncopyable {
   public:
-    // Clear ambiguity of which impl to use. Scope doesn't work.
-    using InterestDetectorBase<IntegralAutoGainDetector>::impl;
-    using InterestDetectorBase<IntegralAutoGainDetector>::operator();
+
+    static const int IP_DEFAULT_SCALES = 8;
 
     IntegralAutoGainDetector( size_t max_points = 200, size_t scales = IP_DEFAULT_SCALES )
-      : IntegralInterestPointDetector<OBALoGInterestOperator>( OBALoGInterestOperator(0), scales, max_points ) {}
+      : IntegralAutoGainDetector(OBALoGInterestOperator(0), scales, max_points ) {}
+
+    //IntegralAutoGainDetector(OBALoGInterestOperator const& interest, int max_points = 1000):
+    //  m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_max_points(max_points) {}
+
+    IntegralAutoGainDetector(OBALoGInterestOperator const& interest, int scales, 
+                             int max_points): 
+    m_interest(interest), m_scales(scales), m_max_points(max_points) {}
+
+    //  // Clear ambiguity of which impl to use. Scope doesn't work.
+    //  using InterestDetectorBase<IntegralAutoGainDetector>::impl;
+    //  using InterestDetectorBase<IntegralAutoGainDetector>::operator();
+
 
     /// Detect Interest Points in the source image.
     InterestPointList process_image(vw::ImageViewRef<float> const& image,
                                     int desired_num_ip=0 ) const {
       
-      std::cout << "---now in IntegralAutoGainDetector::process_image2\n";
+      std::cout << "---now in IntegralAutoGainDetector::process_image3\n";
                                       
       typedef vw::ImageView<float> ImageT;
       typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
@@ -440,6 +446,9 @@ namespace ip {
     }
 
   protected:
+
+    OBALoGInterestOperator m_interest;
+    int m_scales, m_max_points;
 
     template <class DataT>
     inline void threshold(vw::ip::InterestPointList& points,
