@@ -35,174 +35,174 @@
 namespace vw {
 namespace ip {
 
-  /// Base class for interest point description generator classes.
-  /// - Use these classes to generate descriptions of detected interest points.
-  template <class ImplT>
-  class DescriptorGeneratorBase {
+/// Base class for interest point description generator classes.
+/// - Use these classes to generate descriptions of detected interest points.
+template <class ImplT>
+class DescriptorGeneratorBase {
 
-  public:
+public:
 
-    // Methods to access the derived type
-    inline ImplT      & impl() { return static_cast<ImplT      &>(*this); }
-    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+  // Methods to access the derived type
+  inline ImplT      & impl() { return static_cast<ImplT      &>(*this); }
+  inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-    /// Given an image and a list of interest points, set the
-    /// descriptor field of the interest points using the
-    /// compute_descriptor() method provided by the subclass.
-    template <class ViewT>
-    void operator() (ImageViewBase<ViewT> const& image,
-              InterestPointList         & points) {
-      (*this)(image, points.begin(), points.end());
-    }
+  /// Given an image and a list of interest points, set the
+  /// descriptor field of the interest points using the
+  /// compute_descriptor() method provided by the subclass.
+  template <class ViewT>
+  void operator()(ImageViewBase<ViewT> const& image,
+            InterestPointList         & points) {
+    (*this)(image, points.begin(), points.end());
+  }
 
-    /// Overload that takes the list of IP's as two iterators.
-    template <class ViewT, class IterT>
-    void operator() (ImageViewBase<ViewT> const& image,
-              IterT start, IterT end);
+  /// Overload that takes the list of IP's as two iterators.
+  template <class ViewT, class IterT>
+  void operator() (ImageViewBase<ViewT> const& image,
+            IterT start, IterT end);
 
-    int support_size   () { return 41;  } ///< Default suport size ( i.e. descriptor window)
-    int descriptor_size() { return 128; } ///< Default descriptor(vector) length
+  int support_size   () { return 41;  } ///< Default support size ( i.e. descriptor window)
+  int descriptor_size() { return 128; } ///< Default descriptor(vector) length
 
-    /// Get the size x size support region around an interest point,
-    /// rescaled by the scale factor and rotated by the specified
-    /// angle. Also, delay raster until assigment.
-    template <class ViewT>
-    inline TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
-    get_support(InterestPoint        const& pt,
-         ImageViewBase<ViewT> const& source);
+  /// Get the size x size support region around an interest point,
+  /// rescaled by the scale factor and rotated by the specified
+  /// angle. Also, delay raster until assignment.
+  template <class ViewT>
+  inline TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
+  get_support(InterestPoint        const& pt,
+        ImageViewBase<ViewT> const& source);
 
-    // All derived classes must implement this function:
-    //   Given the support image for one feature point, compute all descriptor elements
-    //    for that feature point.
-    //   - The iterators are to the descriptor element list.
-    // template <class ViewT, class IterT>
-    // void compute_descriptor( ImageViewBase<ViewT> const& support,
-    //                          IterT first, IterT last ) const;
+  // All derived classes must implement this function:
+  //   Given the support image for one feature point, compute all descriptor elements
+  //    for that feature point.
+  //   - The iterators are to the descriptor element list.
+  // template <class ViewT, class IterT>
+  // void compute_descriptor( ImageViewBase<ViewT> const& support,
+  //                          IterT first, IterT last ) const;
 
-  }; // End class DescriptorGeneratorBase
+}; // End class DescriptorGeneratorBase
 
-  /// A basic example descriptor class. The descriptor for an interest
-  /// point is simply the pixel values in the support region around
-  /// the point. It is normalized to provide some tolerance to changes in illumination.
-  struct PatchDescriptorGenerator : public DescriptorGeneratorBase<PatchDescriptorGenerator> {
+/// A basic example descriptor class. The descriptor for an interest
+/// point is simply the pixel values in the support region around
+/// the point. It is normalized to provide some tolerance to changes in illumination.
+struct PatchDescriptorGenerator: public DescriptorGeneratorBase<PatchDescriptorGenerator> {
 
-    template <class ViewT, class IterT>
-    void compute_descriptor(ImageViewBase<ViewT> const& support,
-                 IterT first, IterT last) const;
-
-    int descriptor_size() { return 41*41; }
-  };
-
-  // An implementation of PCA-SIFT
-  struct PCASIFTDescriptorGenerator : public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
-
-    std::string basis_filename, avg_filename;
-    Matrix<float> pca_basis;
-    Vector<float> pca_avg;
-
-    PCASIFTDescriptorGenerator(const std::string& pcabasis_filename,
-                   const std::string& pcaavg_filename)
-      : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
-
-      // Read the PCA basis matrix and average vector
-      read_matrix(pca_basis, basis_filename);
-      read_vector(pca_avg, avg_filename);
-    }
-
-    template <class ViewT, class IterT>
-    void compute_descriptor(ImageViewBase<ViewT> const& support,
-                 IterT first, IterT last) const;
-
-    int descriptor_size() { return pca_basis.cols(); }
-  };
-
-  // A Simple Scaled Gradient descriptor that reduces the number of elements
-  // used in the descriptor and is hopefully more robust against illumination changes.
-  struct SGradDescriptorGenerator : public DescriptorGeneratorBase<SGradDescriptorGenerator> {
-
-    static const uint32 box_strt[5];
-    static const uint32 box_size[5];
-    static const uint32 box_half[5];
-
-    template <class ViewT, class IterT>
-    void compute_descriptor(ImageViewBase<ViewT> const& support,
+  template <class ViewT, class IterT>
+  void compute_descriptor(ImageViewBase<ViewT> const& support,
                 IterT first, IterT last) const;
 
-    int support_size   () { return  42; }
-    int descriptor_size() { return 180; }
-  };
+  int descriptor_size() { return 41*41; }
+};
 
-  // The remaining declarations are for a thread pool based description processor.
+// An implementation of PCA-SIFT
+struct PCASIFTDescriptorGenerator: public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
 
-  template <class ViewT, class DescriptorT>
-  class InterestPointDescriptionTask : public Task, private boost::noncopyable {
-    ViewT        m_view;         ///< Source image
-    DescriptorT& m_descriptor;   ///< Description class instance
-    int          m_id, m_max_id;
-    typename InterestPointList::iterator m_start, m_stop; // Start and stop of interators to process
+  std::string basis_filename, avg_filename;
+  Matrix<float> pca_basis;
+  Vector<float> pca_avg;
 
-  public:
-    InterestPointDescriptionTask(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                  int id, int max_id,
-                  typename InterestPointList::iterator start,
-                  typename InterestPointList::iterator stop) :
-      m_view(view.impl()), m_descriptor(descriptor), m_id(id),
-      m_max_id(max_id), m_start(start), m_stop(stop) {}
+  PCASIFTDescriptorGenerator(const std::string& pcabasis_filename,
+                  const std::string& pcaavg_filename): 
+    basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
 
-    virtual ~InterestPointDescriptionTask() {}
+    // Read the PCA basis matrix and average vector
+    read_matrix(pca_basis, basis_filename);
+    read_vector(pca_avg, avg_filename);
+  }
 
-    void operator()();
-  }; // End class InterestPointDescriptionTask
+  template <class ViewT, class IterT>
+  void compute_descriptor(ImageViewBase<ViewT> const& support,
+                IterT first, IterT last) const;
 
-  /// Helper functor for determining if an IP is in a bbox
-  struct IsInBBox {
-    BBox2i m_bbox;
+  int descriptor_size() { return pca_basis.cols(); }
+};
 
-    IsInBBox(BBox2i const& bbox) : m_bbox(bbox) {}
-    bool operator()(InterestPoint const& ip) {
-      return m_bbox.contains(Vector2i(ip.x, ip.y));
-    }
-  };
+// A Simple Scaled Gradient descriptor that reduces the number of elements
+// used in the descriptor and is hopefully more robust against illumination changes.
+struct SGradDescriptorGenerator: public DescriptorGeneratorBase<SGradDescriptorGenerator> {
 
-  /// Thread pool class for parallel processing of interest point descriptions.
-  // There is a lot of memory allocation created on task generation. I
-  // couldn't figure it out in a reasonable time frame. Thus now we
-  // generate tasks on demand which should lower the instantaneous memory requirement.
-  template <class ViewT, class DescriptorT>
-  class InterestDescriptionQueue : public WorkQueue {
-    ViewT                 m_view;
-    DescriptorT         & m_descriptor;
-    std::vector<BBox2i>   m_bboxes;
-    std::vector<typename InterestPointList::iterator> m_section_start, m_section_stop;
-    Mutex  m_mutex;
-    size_t m_index;
+  static const uint32 box_strt[5];
+  static const uint32 box_size[5];
+  static const uint32 box_half[5];
 
-    typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+  template <class ViewT, class IterT>
+  void compute_descriptor(ImageViewBase<ViewT> const& support,
+              IterT first, IterT last) const;
 
-  public:
+  int support_size   () { return  42; }
+  int descriptor_size() { return 180; }
+};
 
-    InterestDescriptionQueue(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                  std::vector<BBox2i> const& bboxes,
-                  std::vector<typename InterestPointList::iterator> const& section_start,
-                  std::vector<typename InterestPointList::iterator> const& section_stop) :
-      m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
-      m_section_start(section_start), m_section_stop(section_stop), m_index(0) {
-      this->notify();
-    }
+// The remaining declarations are for a thread pool based description processor.
 
-    size_t size() {
-      return m_bboxes.size();
-    }
+template <class ViewT, class DescriptorT>
+class InterestPointDescriptionTask: public Task, private boost::noncopyable {
+  ViewT        m_view;         ///< Source image
+  DescriptorT& m_descriptor;   ///< Description class instance
+  int          m_id, m_max_id;
+  typename InterestPointList::iterator m_start, m_stop; // Start and stop of iterators to process
 
-    virtual boost::shared_ptr<Task> get_next_task();
-  }; // End class InterestDescriptionQueue
+public:
+  InterestPointDescriptionTask(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                int id, int max_id,
+                typename InterestPointList::iterator start,
+                typename InterestPointList::iterator stop):
+    m_view(view.impl()), m_descriptor(descriptor), m_id(id),
+    m_max_id(max_id), m_start(start), m_stop(stop) {}
 
-  /// This function implements multithreaded interest point
-  /// description. Threads are spun off to process the image in 1024 x
-  /// 1024 pixel block plus some padding.
-  template <class ViewT, class DescriptorT>
-  void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                 InterestPointList& list);
+  virtual ~InterestPointDescriptionTask() {}
+
+  void operator()();
+}; // End class InterestPointDescriptionTask
+
+/// Helper functor for determining if an IP is in a bbox
+struct IsInBBox {
+  BBox2i m_bbox;
+
+  IsInBBox(BBox2i const& bbox): m_bbox(bbox) {}
+  bool operator()(InterestPoint const& ip) {
+    return m_bbox.contains(Vector2i(ip.x, ip.y));
+  }
+};
+
+/// Thread pool class for parallel processing of interest point descriptions.
+// There is a lot of memory allocation created on task generation. I
+// couldn't figure it out in a reasonable time frame. Thus now we
+// generate tasks on demand which should lower the instantaneous memory requirement.
+template <class ViewT, class DescriptorT>
+class InterestDescriptionQueue: public WorkQueue {
+  ViewT                 m_view;
+  DescriptorT         & m_descriptor;
+  std::vector<BBox2i>   m_bboxes;
+  std::vector<typename InterestPointList::iterator> m_section_start, m_section_stop;
+  Mutex  m_mutex;
+  size_t m_index;
+
+  typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+
+public:
+
+  InterestDescriptionQueue(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                std::vector<BBox2i> const& bboxes,
+                std::vector<typename InterestPointList::iterator> const& section_start,
+                std::vector<typename InterestPointList::iterator> const& section_stop):
+    m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
+    m_section_start(section_start), m_section_stop(section_stop), m_index(0) {
+    this->notify();
+  }
+
+  size_t size() {
+    return m_bboxes.size();
+  }
+
+  virtual boost::shared_ptr<Task> get_next_task();
+}; // End class InterestDescriptionQueue
+
+/// This function implements multithreaded interest point
+/// description. Threads are spun off to process the image in 1024 x
+/// 1024 pixel block plus some padding.
+template <class ViewT, class DescriptorT>
+void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                InterestPointList& list);
 
 // TODO: Separate the definitions!
 
@@ -325,7 +325,7 @@ get_next_task() {
 // 1024 pixel block plus some padding.
 template <class ViewT, class DescriptorT>
 void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                   InterestPointList& list) {
+                              InterestPointList& list) {
 
   VW_OUT(DebugMessage, "interest_point")
     << "Running MT interest point descriptor.  Input image: [ "
@@ -359,7 +359,7 @@ void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& des
 
 template <class ViewT, class IterT>
 void PatchDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& support,
-             IterT first, IterT last) const {
+                                                  IterT first, IterT last) const {
   double sqr_length = 0;
   IterT fill = first;
   for (int j = 0; j < support.impl().rows(); j++) {
@@ -381,7 +381,7 @@ void PatchDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
 
 template <class ViewT, class IterT>
 void PCASIFTDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& support,
-             IterT first, IterT last) const {
+                                                    IterT first, IterT last) const {
 
   // Init all
   for (IterT fill = first; fill != last; fill++)
@@ -417,7 +417,7 @@ void PCASIFTDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& 
 
 template <class ViewT, class IterT>
 void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& support,
-            IterT first, IterT last) const {
+                                                  IterT first, IterT last) const {
 
   typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
   ImageView<channel_type> iimage = IntegralImage(support);
@@ -471,7 +471,8 @@ void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
       } // end j
     } // end i
   } // end s
-  VW_DEBUG_ASSERT(fill == last, LogicErr() << "Allocated Vector size does not appear to match code's expectations.");
+  VW_DEBUG_ASSERT(fill == last, LogicErr() 
+                  << "Allocated Vector size does not appear to match code's expectations.");
 
   // Normalizing
   float sqr_length_inv = 1.0f / sqrt(float(sqr_length));
