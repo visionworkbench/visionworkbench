@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -51,7 +51,7 @@ std::string strip_path(std::string out_prefix, std::string filename) {
   size_t dot = filename.rfind(".");
   if (dot == std::string::npos)
     dot = filename.size();
-    
+
   // Find the substring until the dot
   filename = filename.substr(0, dot);
 
@@ -71,12 +71,12 @@ std::string match_filename(std::string const& out_prefix,
   // So give a warning.
   int max_len = 60;
   if (name1.size() >= max_len) {
-    vw_out(WarningMessage) << "Warning: Shortening the long file part: " << input_file1 
+    vw_out(WarningMessage) << "Warning: Shortening the long file part: " << input_file1
       << ". In case of problems, use shorter input file names.\n";
     name1 = name1.substr(0, max_len);
   }
   if (name2.size() >= max_len) {
-    vw_out(WarningMessage) << "Warning: Shortening the long file part: " 
+    vw_out(WarningMessage) << "Warning: Shortening the long file part: "
       << input_file2 << ". In case of problems, use shorter input file names.\n";
     name2 = name2.substr(0, max_len);
   }
@@ -86,10 +86,10 @@ std::string match_filename(std::string const& out_prefix,
     suffix = name1 + "__" + name2 + ".txt";
   else
     suffix = name1 + "__" + name2 + ".match";
-  
+
   if (out_prefix == "")
     return suffix;
-  
+
   return out_prefix + "-" + suffix;
 }
 
@@ -123,7 +123,7 @@ void ip_filenames(std::string const& out_prefix,
                   std::string const& input_file1,
                   std::string const& input_file2,
                   std::string & output_ip1,
-                  std::string & output_ip2){
+                  std::string & output_ip2) {
   output_ip1 = out_prefix + "-" + strip_path(out_prefix, input_file1) + ".vwip";
   output_ip2 = out_prefix + "-" + strip_path(out_prefix, input_file2) + ".vwip";
 }
@@ -399,7 +399,7 @@ void read_text_match_file(std::string match_file,
     if (iss >> extra)
       vw_out(WarningMessage) << "Warning: More than 6 values at line " << line_num
                              << " in match file: " << match_file << "\n";
-    
+
     // Such a check will throw for non-positive and for nan values
     if (!(unc1 > 0))
       vw_throw(IOErr() << "Uncertainty unc1 must be positive at line " << line_num

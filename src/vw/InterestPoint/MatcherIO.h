@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file Matcher.h
 ///
 /// Classes and functions for matching image interest points.
@@ -27,7 +26,6 @@
 
 #include <string>
 #include <vector>
-
 
 namespace vw {
 namespace ip {
@@ -51,7 +49,7 @@ namespace ip {
                                    std::string const& input_file1,
                                    std::string const& input_file2,
                                    bool plain_text = false);
-  
+
   /// The name of an IP file.
   std::string ip_filename(std::string const& out_prefix,
                           std::string const& input_file);
