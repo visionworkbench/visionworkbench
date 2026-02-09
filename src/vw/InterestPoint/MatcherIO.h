@@ -63,6 +63,8 @@ namespace ip {
   // Routines for reading & writing interest point match files
   void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
                                std::vector<InterestPoint> const& ip2);
+  void write_text_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
+                             std::vector<InterestPoint> const& ip2);
   void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                               std::vector<InterestPoint> &ip2);
 
