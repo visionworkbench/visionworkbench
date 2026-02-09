@@ -53,7 +53,6 @@ namespace ip {
   std::string ip_filename(std::string const& out_prefix,
                           std::string const& input_file);
 
-
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
   void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
@@ -67,6 +66,8 @@ namespace ip {
                              std::vector<InterestPoint> const& ip2);
   void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                               std::vector<InterestPoint> &ip2);
+  void read_text_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
+                            std::vector<InterestPoint> &ip2);
 
 }} // namespace vw::ip
 

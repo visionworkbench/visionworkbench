@@ -26,13 +26,14 @@
 #include <vw/FileIO/FileUtils.h>
 
 #include <boost/filesystem/operations.hpp>
+#include <sstream>
 
 namespace fs = boost::filesystem;
 
 namespace vw { namespace ip {
 
-/// Return the basename with no extension, and shorten it if need be.
-/// If filename starts with out_prefix followed by dash, strip those.
+/// Return the basename with no extension. If filename starts with out_prefix
+/// followed by dash, strip those.
 std::string strip_path(std::string out_prefix, std::string filename) {
 
   std::string ss = out_prefix + "-";
@@ -329,6 +330,73 @@ void read_binary_match_file(std::string match_file,
     ip1.push_back(read_ip_record(f));
   for (size_t i = 0; i < size2; i++)
     ip2.push_back(read_ip_record(f));
+  f.close();
+}
+
+// Read a text file with the interest point matches.
+void read_text_match_file(std::string match_file,
+                          std::vector<InterestPoint> &ip1,
+                          std::vector<InterestPoint> &ip2) {
+  ip1.clear();
+  ip2.clear();
+
+  std::ifstream f(match_file.c_str());
+  if (!f.is_open())
+    vw_throw(IOErr() << "Failed to open " << match_file << " for reading.");
+
+  std::string line;
+  int line_num = 0;
+  while (std::getline(f, line)) {
+    line_num++;
+
+    // Skip lines with only whitespace
+    bool only_spaces = true;
+    for (size_t i = 0; i < line.size(); i++) {
+      if (!std::isspace(line[i])) {
+        only_spaces = false;
+        break;
+      }
+    }
+    if (only_spaces)
+      continue;
+
+    float x1, y1, unc1, x2, y2, unc2;
+    char extra;
+    std::istringstream iss(line);
+
+    if (!(iss >> x1 >> y1 >> unc1 >> x2 >> y2 >> unc2))
+      vw_throw(IOErr() << "Failed to parse 6 values at line " << line_num
+               << " in match file: " << match_file);
+
+    // Check for extra values
+    if (iss >> extra)
+      vw_out(WarningMessage) << "Warning: More than 6 values at line " << line_num
+                             << " in match file: " << match_file << "\n";
+    
+    // Such a check will throw for non-positive and for nan values
+    if (!(unc1 >= 0))
+      vw_throw(IOErr() << "Uncertainty unc1 must be positive at line " << line_num
+               << " in match file: " << match_file);
+    if (!(unc2 >= 0))
+      vw_throw(IOErr() << "Uncertainty unc2 must be positive at line " << line_num
+               << " in match file: " << match_file);
+
+    InterestPoint p1, p2;
+    p1.x = x1;
+    p1.y = y1;
+    p1.ix = round(x1);
+    p1.iy = round(y1);
+    p1.scale = unc1;
+    p2.x = x2;
+    p2.y = y2;
+    p2.ix = round(x2);
+    p2.iy = round(y2);
+    p2.scale = unc2;
+
+    ip1.push_back(p1);
+    ip2.push_back(p2);
+  }
+
   f.close();
 }
 
