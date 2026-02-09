@@ -60,7 +60,8 @@ std::string strip_path(std::string out_prefix, std::string filename) {
 
 std::string match_filename(std::string const& out_prefix,
                            std::string const& input_file1,
-                           std::string const& input_file2) {
+                           std::string const& input_file2,
+                           bool plain_text) {
 
   std::string name1 = strip_path(out_prefix, input_file1);
   std::string name2 = strip_path(out_prefix, input_file2);
@@ -80,7 +81,11 @@ std::string match_filename(std::string const& out_prefix,
     name2 = name2.substr(0, max_len);
   }
 
-  std::string suffix = name1 + "__" + name2 + ".match";
+  std::string suffix;
+  if (plain_text)
+    suffix = name1 + "__" + name2 + ".txt";
+  else
+    suffix = name1 + "__" + name2 + ".match";
   
   if (out_prefix == "")
     return suffix;
@@ -89,18 +94,24 @@ std::string match_filename(std::string const& out_prefix,
 }
 
 /// Convert match file name to clean match file name.
-std::string clean_match_filename(std::string const& match_file) {
+std::string clean_match_filename(std::string const& match_file,
+                                   bool plain_text) {
   std::string clean_match_file = fs::path(match_file).replace_extension("").string();
-  clean_match_file += "-clean.match";
+  if (plain_text)
+    clean_match_file += "-clean.txt";
+  else
+    clean_match_file += "-clean.match";
   return clean_match_file;
 }
 
 /// The name of the clean match file.
 std::string clean_match_filename(std::string const& out_prefix,
                                  std::string const& input_file1,
-                                 std::string const& input_file2) {
+                                 std::string const& input_file2,
+                                 bool plain_text) {
 
-  return clean_match_filename(match_filename(out_prefix, input_file1, input_file2));
+  return clean_match_filename(match_filename(out_prefix, input_file1, input_file2, plain_text),
+                              plain_text);
 }
 
 std::string ip_filename(std::string const& out_prefix,
@@ -263,10 +274,23 @@ void write_binary_match_file(std::string match_file,
   f.close();
 }
 
+// Check if file ends with .txt (case insensitive)
+bool hasTxtExtension(std::string const& filename) {
+  if (filename.size() < 4)
+    return false;
+  std::string ext = filename.substr(filename.size() - 4);
+  for (size_t i = 0; i < ext.size(); i++)
+    ext[i] = std::tolower(ext[i]);
+  return (ext == ".txt");
+}
+
 // Write a text file with the interest point matches. Use float precision.
 void write_text_match_file(std::string match_file,
                             std::vector<InterestPoint> const& ip1,
                             std::vector<InterestPoint> const& ip2) {
+
+  if (!hasTxtExtension(match_file))
+    vw_throw(IOErr() << "Text match file must have .txt extension: " << match_file);
 
   vw::create_out_dir(match_file);
 
@@ -340,6 +364,9 @@ void read_text_match_file(std::string match_file,
   ip1.clear();
   ip2.clear();
 
+  if (!hasTxtExtension(match_file))
+    vw_throw(IOErr() << "Text match file must have .txt extension: " << match_file);
+
   std::ifstream f(match_file.c_str());
   if (!f.is_open())
     vw_throw(IOErr() << "Failed to open " << match_file << " for reading.");
@@ -374,10 +401,10 @@ void read_text_match_file(std::string match_file,
                              << " in match file: " << match_file << "\n";
     
     // Such a check will throw for non-positive and for nan values
-    if (!(unc1 >= 0))
+    if (!(unc1 > 0))
       vw_throw(IOErr() << "Uncertainty unc1 must be positive at line " << line_num
                << " in match file: " << match_file);
-    if (!(unc2 >= 0))
+    if (!(unc2 > 0))
       vw_throw(IOErr() << "Uncertainty unc2 must be positive at line " << line_num
                << " in match file: " << match_file);
 
