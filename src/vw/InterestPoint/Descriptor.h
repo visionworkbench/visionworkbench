@@ -28,10 +28,10 @@
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/FileIO/MatrixIO.h>
 #include <vw/InterestPoint/IntegralImage.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/DetectorBase.h>
 
 namespace vw {
 namespace ip {

@@ -23,7 +23,7 @@
 #ifndef _INTERESTPOINT_MATCHER_IO_H_
 #define _INTERESTPOINT_MATCHER_IO_H_
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 #include <string>
 #include <vector>

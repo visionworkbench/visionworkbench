@@ -29,8 +29,8 @@
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageView.h>
 
-#include <vw/InterestPoint/InterestData.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/InterestPoint.h>
+#include <vw/InterestPoint/DetectorBase.h>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/FileIO/MatrixIO.h>
 

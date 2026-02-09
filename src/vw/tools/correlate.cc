@@ -30,7 +30,7 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/Transform.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/Stereo/CorrelationView.h>

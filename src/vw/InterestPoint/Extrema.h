@@ -23,7 +23,7 @@
 #ifndef __INTERESTPOINT_EXTREMA_H__
 #define __INTERESTPOINT_EXTREMA_H__
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/ImageOctave.h>
 
 namespace vw {

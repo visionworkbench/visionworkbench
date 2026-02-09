@@ -25,7 +25,7 @@
 #ifndef __IMAGE_OCTAVE_HISTORY_H__
 #define __IMAGE_OCTAVE_HISTORY_H__
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/ImageOctave.h>
 
 namespace vw {

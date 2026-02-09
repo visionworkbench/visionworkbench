@@ -29,7 +29,7 @@
 // Vision Workbench Headers
 #include <vw/Image/ImageViewRef.h>
 #include <vw/InterestPoint/InterestTraits.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/ImageInterestData.h>
 
 namespace vw {

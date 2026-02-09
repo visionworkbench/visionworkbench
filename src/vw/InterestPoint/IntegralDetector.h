@@ -23,7 +23,7 @@
 #ifndef __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 #define __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/DetectorBase.h>
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 #include <vw/InterestPoint/ImageInterestData.h>

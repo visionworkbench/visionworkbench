@@ -36,7 +36,7 @@
 
 #include <vw/Math/Matrix.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <boost/foreach.hpp>
 #include <map>
 

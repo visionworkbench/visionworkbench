@@ -18,7 +18,7 @@
 
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 using namespace vw;
 using namespace vw::ip;

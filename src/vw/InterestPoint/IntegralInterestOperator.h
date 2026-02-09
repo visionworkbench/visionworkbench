@@ -32,7 +32,7 @@
 // Interest Point Headers
 #include <vw/InterestPoint/BoxFilter.h>
 #include <vw/InterestPoint/InterestTraits.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 namespace vw {
 namespace ip {

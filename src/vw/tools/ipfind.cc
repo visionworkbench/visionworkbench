@@ -34,13 +34,13 @@
 #include <vw/Image/PerPixelViews.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/InterestPoint/Descriptor.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/DetectorBase.h>
 #include <vw/InterestPoint/InterestPointDetector.h>
 #include <vw/InterestPoint/OpenCvDetector.h>
 #include <vw/InterestPoint/IntegralDescriptor.h>
 #include <vw/InterestPoint/IntegralDetector.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/InterestPointUtils.h>
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/FileIO/FileUtils.h>

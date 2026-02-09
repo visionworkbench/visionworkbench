@@ -22,8 +22,8 @@
 /// The key function here is detect_interest_points()
 ///
 
-#ifndef __VW_INTEREST_POINT_DETECTOR_H__
-#define __VW_INTEREST_POINT_DETECTOR_H__
+#ifndef __VW_INTEREST_POINT_DETECTOR_BASE_H__
+#define __VW_INTEREST_POINT_DETECTOR_BASE_H__
 
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Settings.h>
@@ -33,7 +33,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Filter.h>
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/Extrema.h>
 #include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/InterestOperator.h>
@@ -330,4 +330,4 @@ InterestPointList detect_interest_points(vw::ImageViewRef<float> const& view,
 
 }} // namespace vw::ip
 
-#endif // __VW_INTEREST_POINT_DETECTOR_H__
+#endif // __VW_INTEREST_POINT_DETECTOR_BASE_H__

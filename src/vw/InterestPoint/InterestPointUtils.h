@@ -28,7 +28,7 @@
 #ifndef __INTEREST_POINT_UTILS_H__
 #define __INTEREST_POINT_UTILS_H__
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/ImageMath.h>

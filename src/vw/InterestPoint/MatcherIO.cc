@@ -21,7 +21,7 @@
 ///
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/InterestPoint/Matcher.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 #include <vw/FileIO/FileUtils.h>
 

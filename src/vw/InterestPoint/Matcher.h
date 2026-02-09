@@ -27,7 +27,7 @@
 
 #include <vw/Core/Log.h>
 #include <vw/InterestPoint/Descriptor.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vector>
 #include <boost/foreach.hpp>
 

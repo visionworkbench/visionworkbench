@@ -23,7 +23,7 @@
 #ifndef __INTERESTPOINT_LOCALIZE_H__
 #define __INTERESTPOINT_LOCALIZE_H__
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/ImageOctave.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>

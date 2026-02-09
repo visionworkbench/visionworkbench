@@ -20,7 +20,7 @@
 /// Interest point detection functions
 ///
 
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/DetectorBase.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/Statistics.h>
 

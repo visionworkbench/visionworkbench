@@ -20,7 +20,7 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/InterestPoint/Matcher.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <test/Helpers.h>
 
 #include <algorithm>

@@ -17,7 +17,7 @@
 
 
 #include <vw/Camera/CameraGeometry.h>
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 
 using namespace vw;
 using namespace camera;

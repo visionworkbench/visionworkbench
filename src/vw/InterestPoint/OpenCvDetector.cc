@@ -30,10 +30,10 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Filter.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/DetectorBase.h>
 #include <vw/InterestPoint/OpenCvDetector.h>
 
-#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/InterestPoint.h>
 #include <vw/InterestPoint/Extrema.h>
 #include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/InterestOperator.h>
