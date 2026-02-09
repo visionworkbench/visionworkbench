@@ -193,25 +193,26 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
-                            "Write output files using this prefix.")
+     "Write output files using this prefix.")
     ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.8), 
-                            "Threshold for the separation between closest and next closest interest points.")
+     "Threshold for the separation between closest and next closest interest points.")
     ("flann-method",  po::value(&flann_method)->default_value("kmeans"),
      "Choose the FLANN method for matching interest points. The default 'kmeans' is "
      "slower but deterministic, while 'kdtree' is faster but not deterministic.")
     ("non-flann",
      "Use an implementation of the interest matcher that is not reliant on FLANN.")
     ("distance-metric,m",   po::value(&distance_metric_in)->default_value("L2"), 
-                            "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
+     "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), 
-                            "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
+     "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
     ("inlier-threshold,i",  po::value(&inlier_threshold)->default_value(10), 
-                            "RANSAC inlier threshold.")
+     "RANSAC inlier threshold.")
     ("ransac-iterations",   po::value(&ransac_iterations)->default_value(100), 
-                            "Number of RANSAC iterations.")
+     "Number of RANSAC iterations.")
     ("debug-image,d",       "Write out debug images.")
     ("merge-match-files", po::value(&merge_match_files)->default_value(false)->implicit_value(true),
-     "Given several match files for the same image pair, merge them. The input match files and output match file must be specified in this order. This is an undocumented debug option.");
+     "Given several match files for the same image pair, merge them. The input match files and output match file must be specified in this order. This is an undocumented debug option.")
+    ;
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
   

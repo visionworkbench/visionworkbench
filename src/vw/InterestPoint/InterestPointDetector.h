@@ -17,9 +17,8 @@
 
 /// \file InterestPointDetector.h
 ///
-/// Built-in classes and functions for performing interest point detection.
-/// The detectors in this file are not used by default in ASP but are available
-/// in ipfind with the log and harris detector options.
+/// The interest point detectors in this file are not used by default in ASP but
+/// are available in ipfind with the log and harris detector options.
 
 /// The key function here is detect_interest_points()
 

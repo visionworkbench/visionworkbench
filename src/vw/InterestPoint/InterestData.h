@@ -1,3 +1,4 @@
+
 // __BEGIN_LICENSE__
 //  Copyright (c) 2006-2013, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
@@ -19,8 +20,8 @@
 ///
 /// Basic classes and structures for storing image interest points.
 ///
-#ifndef __INTEREST_DATA_H__
-#define __INTEREST_DATA_H__
+#ifndef __INTEREST_POINT_H__
+#define __INTEREST_POINT_H__
 
 #include <vector>
 #include <list>
@@ -162,4 +163,4 @@ namespace vw { namespace ip {
 
 }} // namespace vw::ip
 
-#endif //__INTEREST_DATA_H__
+#endif //__INTEREST_POINT_H__
