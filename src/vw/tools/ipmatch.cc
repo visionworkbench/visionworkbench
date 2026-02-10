@@ -270,6 +270,8 @@ int main(int argc, char** argv) {
       vw_out() << "Error: Must specify exactly one input and one output match file.\n";
       return 1;
     }
+    // This logic handles both cases. The read and write functions will check
+    // the extensions of the input and output files for correctness.
     std::vector<vw::ip::InterestPoint> ip1, ip2;
     vw_out() << "Reading: " << input_file_names[0] << "\n";
     vw::ip::read_match_file(input_file_names[0], ip1, ip2, txt_to_binary);
@@ -278,7 +280,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // This is a hidden utility for merging match files for the same image pair
+  // A utility for merging match files for the same image pair
   if (merge_match_files) {
     mergeMatchFiles(input_file_names, matches_as_txt);
     return 0;
