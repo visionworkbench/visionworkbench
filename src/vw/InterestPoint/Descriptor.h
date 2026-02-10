@@ -68,8 +68,7 @@ public:
   /// angle. Also, delay raster until assignment.
   template <class ViewT>
   inline TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
-  get_support(InterestPoint        const& pt,
-        ImageViewBase<ViewT> const& source);
+  get_support(InterestPoint const& pt, ImageViewBase<ViewT> const& source);
 
   // All derived classes must implement this function:
   //   Given the support image for one feature point, compute all descriptor elements
@@ -88,7 +87,7 @@ struct PatchDescriptorGenerator: public DescriptorGeneratorBase<PatchDescriptorG
 
   template <class ViewT, class IterT>
   void compute_descriptor(ImageViewBase<ViewT> const& support,
-                IterT first, IterT last) const;
+                          IterT first, IterT last) const;
 
   int descriptor_size() { return 41*41; }
 };
@@ -111,7 +110,7 @@ struct PCASIFTDescriptorGenerator: public DescriptorGeneratorBase<PCASIFTDescrip
 
   template <class ViewT, class IterT>
   void compute_descriptor(ImageViewBase<ViewT> const& support,
-                IterT first, IterT last) const;
+                          IterT first, IterT last) const;
 
   int descriptor_size() { return pca_basis.cols(); }
 };
@@ -143,9 +142,9 @@ class InterestPointDescriptionTask: public Task, private boost::noncopyable {
 
 public:
   InterestPointDescriptionTask(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                int id, int max_id,
-                typename InterestPointList::iterator start,
-                typename InterestPointList::iterator stop):
+                               int id, int max_id,
+                               typename InterestPointList::iterator start,
+                               typename InterestPointList::iterator stop):
     m_view(view.impl()), m_descriptor(descriptor), m_id(id),
     m_max_id(max_id), m_start(start), m_stop(stop) {}
 
@@ -201,8 +200,9 @@ public:
 /// description. Threads are spun off to process the image in 1024 x
 /// 1024 pixel block plus some padding.
 template <class ViewT, class DescriptorT>
-void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                InterestPointList& list);
+void describe_interest_points(ImageViewBase<ViewT> const& view, 
+                              DescriptorT& descriptor,
+                              InterestPointList& list);
 
 // TODO: Separate the definitions!
 
@@ -214,7 +214,7 @@ void describe_interest_points(ImageViewBase<ViewT> const& view, DescriptorT& des
 template <class ImplT>
 template <class ViewT, class IterT>
 void DescriptorGeneratorBase<ImplT>::operator() (ImageViewBase<ViewT> const& image,
-          IterT start, IterT end) {
+                                                 IterT start, IterT end) {
   // Timing
   Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
@@ -224,7 +224,7 @@ void DescriptorGeneratorBase<ImplT>::operator() (ImageViewBase<ViewT> const& ima
     // First we compute the support region based on the interest point and rasterize
     //  it into an image buffer that the descriptor function can access.
     ImageView<PixelGray<float> > support =
-      get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
+      get_support(*i, pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image.impl())));
 
     // Next, we pass the support region and the interest point to
     // the descriptor generator ( compute_descriptor() ) supplied by the subclass.
@@ -240,7 +240,7 @@ template <class ImplT>
 template <class ViewT>
 TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
 DescriptorGeneratorBase<ImplT>::get_support(InterestPoint const& pt,
-                         ImageViewBase<ViewT> const& source) {
+                                            ImageViewBase<ViewT> const& source) {
 
   // Compute a fine image region based on the scaling parameters attached to the InterestPoint
   float  half_size = ((float)(impl().support_size() - 1)) / 2.0f;
@@ -248,10 +248,9 @@ DescriptorGeneratorBase<ImplT>::get_support(InterestPoint const& pt,
   double c         = cos(-pt.orientation), s=sin(-pt.orientation);
 
   return transform(source.impl(),
-           AffineTransform(Matrix2x2(scaling*c, -scaling*s,
-                          scaling*s, scaling*c),
-                    Vector2(scaling*(s*pt.y-c*pt.x)+half_size,
-                        -scaling*(s*pt.x+c*pt.y)+half_size)),
+           AffineTransform(Matrix2x2(scaling*c, -scaling*s, scaling*s, scaling*c),
+                           Vector2(scaling*(s*pt.y-c*pt.x)+half_size,
+                                   -scaling*(s*pt.x+c*pt.y)+half_size)),
            impl().support_size(), impl().support_size());
 }
 
@@ -269,10 +268,9 @@ void InterestPointDescriptionTask<ViewT, DescriptorT>::operator()() {
     float  scaling = 1.0f / it->scale;
     double c       = cos(-it->orientation), s=sin(-it->orientation);
 
-    AffineTransform tx(Matrix2x2(scaling*c, -scaling*s,
-                  scaling*s, scaling*c),
-            Vector2(scaling*(s * it->y - c * it->x) + half_size,
-                -scaling*(s * it->x + c * it->y) + half_size));
+    AffineTransform tx(Matrix2x2(scaling*c, -scaling*s, scaling*s, scaling*c),
+                       Vector2(scaling*(s * it->y - c * it->x) + half_size,
+                               -scaling*(s * it->x + c * it->y) + half_size));
     // Accumulate the bounding box of the image needed to compute all IP descriptions
     image_crop_bounds.grow(tx.reverse_bbox(support_size));
   }
@@ -316,8 +314,8 @@ get_next_task() {
   typename InterestPointList::iterator sstop  = m_section_stop[m_index-1];
 
   // Generate a task to build descriptors for these interest points that exist only in this bbox
-  return boost::shared_ptr<Task> (new task_type(m_view, m_descriptor, m_index-1, m_bboxes.size(),
-                          sstart, sstop));
+  return boost::shared_ptr<Task> 
+    (new task_type(m_view, m_descriptor, m_index-1, m_bboxes.size(), sstart, sstop));
 }
 
 // This function implements multithreaded interest point
@@ -405,10 +403,10 @@ void PCASIFTDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& 
 
       IterT fill = first;
       for (unsigned k = 0; k < pca_basis.cols(); k++) {
-    *fill += norm_pixel * pca_basis(index,k);
-    fill++;
+        *fill += norm_pixel * pca_basis(index,k);
+        fill++;
       }
-      ++index;
+      index++;
     }
   }
 }
@@ -438,26 +436,16 @@ void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
     float minor_quad[4];
 
     // 1.) Top Left in local
-    minor_quad[0] = IntegralBlock(iimage,
-                       top_left,
-                       top_left+Vector2i(box_half[s],
-                             box_half[s]));
+    minor_quad[0] = IntegralBlock(iimage, top_left, top_left+Vector2i(box_half[s], box_half[s]));
     // 2.) Top Right in local
-    minor_quad[1] = IntegralBlock(iimage,
-                       top_left+Vector2i(box_half[s],0),
-                       top_left+Vector2i(2*box_half[s],
-                             box_half[s]));
+    minor_quad[1] = IntegralBlock(iimage, top_left+Vector2i(box_half[s],0), 
+                                  top_left+Vector2i(2*box_half[s], box_half[s]));
     // 3.) Bot Left in local
-    minor_quad[2] = IntegralBlock(iimage,
-                       top_left+Vector2i(0,box_half[s]),
-                       top_left+Vector2i(box_half[s],
-                             2*box_half[s]));
+    minor_quad[2] = IntegralBlock(iimage, top_left+Vector2i(0,box_half[s]),
+                                  top_left+Vector2i(box_half[s], 2*box_half[s]));
     // 4.) Bot Right in local
-    minor_quad[3] = IntegralBlock(iimage,
-                       top_left+Vector2i(box_half[s],
-                             box_half[s]),
-                       top_left+Vector2i(2*box_half[s],
-                             2*box_half[s]));
+    minor_quad[3] = IntegralBlock(iimage, top_left+Vector2i(box_half[s], box_half[s]),
+                                  top_left+Vector2i(2*box_half[s], 2*box_half[s]));
 
     // 5.) Pulling out gradients
     *fill = (minor_quad[0] - minor_quad[2])*inv_bh2;
