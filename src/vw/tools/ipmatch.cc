@@ -142,7 +142,8 @@ static void write_match_image(std::string const& out_file_name,
 }
 
 // See --merge-match-files.
-void merge_match_files_fun(std::vector<std::string> const& files) {
+void mergeMatchFiles(std::vector<std::string> const& files,
+                           bool matches_as_txt) {
   if (files.size() < 2) {
     vw_out() << "At least one input and one output match file must exist.\n";
     return;
@@ -171,10 +172,10 @@ void merge_match_files_fun(std::vector<std::string> const& files) {
     right_ip[count] = (it->second).second;
     count++;
   }
-  
+
   vw_out() << "Writing match file: " << files.back() << std::endl;
   vw::create_out_dir(files.back());
-  write_binary_match_file(files.back(), left_ip, right_ip);
+  write_match_file(files.back(), left_ip, right_ip, matches_as_txt);
 }
 
 // TODO(oalexan1): Make all options below use the Options structure
@@ -188,7 +189,7 @@ int main(int argc, char** argv) {
   std::string ransac_constraint, distance_metric_in, output_prefix, flann_method;
   float       inlier_threshold;
   int         ransac_iterations;
-  bool        merge_match_files;
+  bool        merge_match_files, matches_as_txt, binary_to_txt, txt_to_binary;
 
   po::options_description general_options("Options");
   general_options.add_options()
@@ -212,6 +213,16 @@ int main(int argc, char** argv) {
     ("debug-image,d",       "Write out debug images.")
     ("merge-match-files", po::value(&merge_match_files)->default_value(false)->implicit_value(true),
      "Given several match files for the same image pair, merge them. The input match files and output match file must be specified in this order. This is an undocumented debug option.")
+    ("matches-as-txt", po::bool_switch(&matches_as_txt)->default_value(false)->implicit_value(true),
+     "Read and write match files as plain text instead of binary.")
+    ("binary-to-txt", 
+     po::bool_switch(&binary_to_txt)->default_value(false)->implicit_value(true),
+     "Read a binary match file and write it as plain text. The input and output match "
+     "files must be specified with appropriate extensions.")
+    ("txt-to-binary", 
+     po::bool_switch(&txt_to_binary)->default_value(false)->implicit_value(true),
+     "Read a plain text match file and write it as binary. The input and output match "
+     "files must be specified with appropriate extensions.")
     ;
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
@@ -246,9 +257,25 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // Convert between binary and text match file formats
+  if (binary_to_txt || txt_to_binary) {
+    if (binary_to_txt && txt_to_binary)
+      vw_throw(vw::ArgumentErr() << "Cannot use both --binary-to-txt and --txt-to-binary.\n");
+    if (input_file_names.size() != 2) {
+      vw_out() << "Error: Must specify exactly one input and one output match file.\n";
+      return 1;
+    }
+    std::vector<vw::ip::InterestPoint> ip1, ip2;
+    vw_out() << "Reading: " << input_file_names[0] << "\n";
+    vw::ip::read_match_file(input_file_names[0], ip1, ip2, txt_to_binary);
+    vw_out() << "Writing: " << input_file_names[1] << "\n";
+    vw::ip::write_match_file(input_file_names[1], ip1, ip2, binary_to_txt);
+    return 0;
+  }
+
   // This is a hidden utility for merging match files for the same image pair
   if (merge_match_files) {
-    merge_match_files_fun(input_file_names);
+    mergeMatchFiles(input_file_names, matches_as_txt);
     return 0;
   }
   
@@ -409,12 +436,12 @@ int main(int argc, char** argv) {
       }
 
       std::string match_file = vw::ip::match_filename(output_prefix, image_paths[i],
-                                                      image_paths[j]);
-        
+                                                      image_paths[j], matches_as_txt);
+
       vw::create_out_dir(match_file);
 
       vw_out() << "Writing match file: " << match_file << std::endl;
-      write_binary_match_file(match_file, final_ip1, final_ip2);
+      write_match_file(match_file, final_ip1, final_ip2, matches_as_txt);
 
       if (vm.count("debug-image")) {
         std::string debug_image = fs::path(match_file).replace_extension(".tif").string();

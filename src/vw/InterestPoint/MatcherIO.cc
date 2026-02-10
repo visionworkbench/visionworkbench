@@ -251,7 +251,8 @@ InterestPointList read_binary_ip_file_list(std::string ip_file) {
 
 // Routines for reading & writing interest point match files
 void write_binary_match_file(std::string match_file,
-                              std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) {
+                             std::vector<InterestPoint> const& ip1, 
+                             std::vector<InterestPoint> const& ip2) {
 
   vw::create_out_dir(match_file);
 
@@ -286,8 +287,8 @@ bool hasTxtExtension(std::string const& filename) {
 
 // Write a text file with the interest point matches. Use float precision.
 void write_text_match_file(std::string match_file,
-                            std::vector<InterestPoint> const& ip1,
-                            std::vector<InterestPoint> const& ip2) {
+                           std::vector<InterestPoint> const& ip1,
+                           std::vector<InterestPoint> const& ip2) {
 
   if (!hasTxtExtension(match_file))
     vw_throw(IOErr() << "Text match file must have .txt extension: " << match_file);
@@ -425,6 +426,24 @@ void read_text_match_file(std::string match_file,
   }
 
   f.close();
+}
+
+// Wrapper that dispatches to text or binary write based on plain_text flag
+void write_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
+                      std::vector<InterestPoint> const& ip2, bool plain_text) {
+  if (plain_text)
+    write_text_match_file(match_file, ip1, ip2);
+  else
+    write_binary_match_file(match_file, ip1, ip2);
+}
+
+// Wrapper that dispatches to text or binary read based on plain_text flag
+void read_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
+                     std::vector<InterestPoint> &ip2, bool plain_text) {
+  if (plain_text)
+    read_text_match_file(match_file, ip1, ip2);
+  else
+    read_binary_match_file(match_file, ip1, ip2);
 }
 
 }} // namespace vw::ip

@@ -70,6 +70,12 @@ namespace ip {
   void read_text_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                             std::vector<InterestPoint> &ip2);
 
+  // Wrapper functions that dispatch to text or binary based on plain_text flag
+  void write_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
+                        std::vector<InterestPoint> const& ip2, bool plain_text);
+  void read_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
+                       std::vector<InterestPoint> &ip2, bool plain_text);
+
 }} // namespace vw::ip
 
 #endif // _INTEREST_POINT_MATCHER_IO_H_
