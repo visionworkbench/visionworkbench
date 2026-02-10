@@ -143,7 +143,7 @@ static void write_match_image(std::string const& out_file_name,
 
 // See --merge-match-files.
 void mergeMatchFiles(std::vector<std::string> const& files,
-                           bool matches_as_txt) {
+                     bool matches_as_txt) {
   if (files.size() < 2) {
     vw_out() << "At least one input and one output match file must exist.\n";
     return;
@@ -193,33 +193,38 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("output-prefix,o",     po::value(&output_prefix)->default_value(""), 
+    ("output-prefix,o", po::value(&output_prefix)->default_value(""),
      "Write output files using this prefix.")
-    ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.8), 
+    ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.8),
      "Threshold for the separation between closest and next closest interest points.")
-    ("flann-method",  po::value(&flann_method)->default_value("kmeans"),
+    ("flann-method", po::value(&flann_method)->default_value("kmeans"),
      "Choose the FLANN method for matching interest points. The default 'kmeans' is "
      "slower but deterministic, while 'kdtree' is faster but not deterministic.")
     ("non-flann",
      "Use an implementation of the interest matcher that is not reliant on FLANN.")
-    ("distance-metric,m",   po::value(&distance_metric_in)->default_value("L2"), 
-     "Distance metric to use.  Choose one of: [L2 (default), Hamming (only for binary types like ORB)].")
-    ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), 
-     "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
-    ("inlier-threshold,i",  po::value(&inlier_threshold)->default_value(10), 
+    ("distance-metric,m", po::value(&distance_metric_in)->default_value("L2"),
+     "Distance metric to use. Choose one of: [L2 (default), Hamming (only for binary "
+     "types like ORB)].")
+    ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"),
+     "RANSAC constraint type. Choose one of: [similarity, homography, fundamental, "
+     "or none].")
+    ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(10),
      "RANSAC inlier threshold.")
-    ("ransac-iterations",   po::value(&ransac_iterations)->default_value(100), 
+    ("ransac-iterations", po::value(&ransac_iterations)->default_value(100),
      "Number of RANSAC iterations.")
-    ("debug-image,d",       "Write out debug images.")
-    ("merge-match-files", po::value(&merge_match_files)->default_value(false)->implicit_value(true),
-     "Given several match files for the same image pair, merge them. The input match files and output match file must be specified in this order. This is an undocumented debug option.")
-    ("matches-as-txt", po::bool_switch(&matches_as_txt)->default_value(false)->implicit_value(true),
+    ("debug-image,d", "Write out debug images.")
+    ("merge-match-files",
+     po::bool_switch(&merge_match_files)->default_value(false)->implicit_value(true),
+     "Given several match files for the same image pair, merge them. The input match "
+     "files and output match file must be specified in this order.")
+    ("matches-as-txt",
+     po::bool_switch(&matches_as_txt)->default_value(false)->implicit_value(true),
      "Read and write match files as plain text instead of binary.")
-    ("binary-to-txt", 
+    ("binary-to-txt",
      po::bool_switch(&binary_to_txt)->default_value(false)->implicit_value(true),
      "Read a binary match file and write it as plain text. The input and output match "
      "files must be specified with appropriate extensions.")
-    ("txt-to-binary", 
+    ("txt-to-binary",
      po::bool_switch(&txt_to_binary)->default_value(false)->implicit_value(true),
      "Read a plain text match file and write it as binary. The input and output match "
      "files must be specified with appropriate extensions.")
