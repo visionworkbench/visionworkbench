@@ -38,17 +38,17 @@ namespace ip {
   std::string match_filename(std::string const& out_prefix,
                              std::string const& input_file1,
                              std::string const& input_file2,
-                             bool plain_text = false);
+                             bool plain_text);
 
   /// Convert match file name to clean match file name.
   std::string clean_match_filename(std::string const& match_filename,
-                                   bool plain_text = false);
+                                   bool plain_text);
 
   /// The name of the clean match file.
   std::string clean_match_filename(std::string const& out_prefix,
                                    std::string const& input_file1,
                                    std::string const& input_file2,
-                                   bool plain_text = false);
+                                   bool plain_text);
 
   /// The name of an IP file.
   std::string ip_filename(std::string const& out_prefix,

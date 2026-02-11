@@ -145,11 +145,13 @@ int main( int argc, char *argv[] ) {
     vw::vw_settings().set_default_tile_size(tile_size);
 
   // If the user provided a match file, use it to align the images.
-  std::string match_file = vw::ip::match_filename("", left_file_name, right_file_name);
+  bool matches_as_txt = false;
+  std::string match_file = vw::ip::match_filename("", left_file_name, right_file_name,
+                                                  matches_as_txt);
   if (fs::exists(match_file)) {
     vw_out() << "Found a match file. Using it to pre-align images.\n";
     std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
-    ip::read_binary_match_file(match_file, matched_ip1, matched_ip2);
+    ip::read_match_file(match_file, matched_ip1, matched_ip2, matches_as_txt);
     std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
     vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 

@@ -453,6 +453,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double min_angle_radians,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches,
+                                   bool matches_as_txt,
                                    std::map<std::pair<int, int>, double> const&
                                    match_sigmas,
                                    vw::BathyData const& bathy_data) {
@@ -469,20 +470,23 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   size_t num_load_rejected = 0, num_loaded = 0;
   for (auto it = match_files.begin(); it != match_files.end(); it++) {
 
+    std::cout << "--now in build_control_network\n";
+    
     std::pair<int, int> pair_ind = it->first;
     std::string const& match_file = it->second; // alias
     int index1 = pair_ind.first;
     int index2 = pair_ind.second;
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
-    // vw_out() << "Loading: " << match_file << std::endl;
-    ip::read_binary_match_file(match_file, ip1, ip2);
+    // vw_out() << "Loading: " << match_file << "\n";
+    ip::read_match_file(match_file, ip1, ip2, matches_as_txt);
     if (ip1.size() < min_matches) {
       vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
                                 << ip1.size() << " matches.\n";
       num_load_rejected += ip1.size();
       continue;
     }
+    
     vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
 
     // Remove descriptors from interest points and correct scale

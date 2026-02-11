@@ -34,7 +34,6 @@
 #ifdef VW_HAVE_PKG_FLANN
 #include <vw/Math/FLANNTree.h>
 #else
-//#include <vw/Math/KDTree.h>
 #error the FLANN library is now required!
 #endif
 
@@ -51,7 +50,7 @@ namespace ip {
   /// --> This one is for interoperability with our FLANNTRee class which does all our heavy-duty matching.
   /// static const math::FLANN_DistType flann_type=FLANN_DistType;
 
-  /// L2 Norm: returns Euclidian distance squared between pair of
+  /// L2 Norm: returns Euclidean distance squared between pair of
   /// interest point descriptors.  Optional argument "maxdist" to
   /// provide early termination of computation if result will exceed maxdist.
   struct L2NormMetric {

@@ -49,8 +49,9 @@ namespace ba {
                              size_t min_matches,
                              double min_angle_radians,
                              double forced_triangulation_distance,
-                             int max_pairwise_matches = -1,
-                             std::map<std::pair<int, int>, double> const& match_sigmas 
+                             int max_pairwise_matches,
+                             bool matches_as_txt,
+                             std::map<std::pair<int, int>, double> const& match_sigmas
                              = std::map<std::pair<int, int>, double>(),
                              vw::BathyData const& bathy_data = vw::BathyData());
   
