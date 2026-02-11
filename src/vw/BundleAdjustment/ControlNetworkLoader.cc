@@ -469,9 +469,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
   size_t num_load_rejected = 0, num_loaded = 0;
   for (auto it = match_files.begin(); it != match_files.end(); it++) {
-
-    std::cout << "--now in build_control_network\n";
-    
     std::pair<int, int> pair_ind = it->first;
     std::string const& match_file = it->second; // alias
     int index1 = pair_ind.first;

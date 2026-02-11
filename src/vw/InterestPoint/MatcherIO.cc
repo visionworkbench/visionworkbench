@@ -251,10 +251,8 @@ InterestPointList read_binary_ip_file_list(std::string ip_file) {
 
 // Routines for reading & writing interest point match files
 void write_binary_match_file(std::string match_file,
-                             std::vector<InterestPoint> const& ip1, 
+                             std::vector<InterestPoint> const& ip1,
                              std::vector<InterestPoint> const& ip2) {
-  std::cout << "--now will write binary match file: " << match_file << std::endl;
-
   vw::create_out_dir(match_file);
 
   std::ofstream f;
@@ -263,7 +261,6 @@ void write_binary_match_file(std::string match_file,
   std::vector<InterestPoint>::const_iterator iter2 = ip2.begin();
   uint64 size1 = ip1.size();
   uint64 size2 = ip2.size();
-  std::cout << "--here1-- size1: " << size1 << " size2: " << size2 << std::endl;
   if (size1 != size2)
     vw_throw(IOErr()
               << "The vectors of matching interest points must have the same size.\n");
@@ -291,8 +288,6 @@ bool hasTxtExtension(std::string const& filename) {
 void write_text_match_file(std::string match_file,
                            std::vector<InterestPoint> const& ip1,
                            std::vector<InterestPoint> const& ip2) {
-  std::cout << "--here2-- size1: " << ip1.size() << " size2: " << ip2.size() << std::endl;
-
   if (!hasTxtExtension(match_file))
     vw_throw(IOErr() << "Text match file must have .txt extension: " << match_file);
 
@@ -300,7 +295,6 @@ void write_text_match_file(std::string match_file,
 
   size_t size1 = ip1.size();
   size_t size2 = ip2.size();
-  std::cout << "--here2-- size1: " << size1 << " size2: " << size2 << std::endl;
   if (size1 != size2)
     vw_throw(IOErr()
               << "The vectors of matching interest points must have the same size.\n");
@@ -323,8 +317,7 @@ void read_binary_match_file(std::string match_file,
                             std::vector<InterestPoint> &ip2) {
   ip1.clear();
   ip2.clear();
-  
-  std::cout << "---will load match file: " << match_file << std::endl;
+
   std::ifstream f;
   f.open(match_file.c_str(), std::ios::binary | std::ios::in);
 
@@ -342,8 +335,7 @@ void read_binary_match_file(std::string match_file,
     f.read((char*)&size2, sizeof(uint64));
   else
     vw::vw_throw(vw::IOErr() << "Failed to read match file: " << match_file);
-  std::cout << "--here4-- size1: " << size1 << " size2: " << size2 << std::endl;
-  
+
   if (size1 != size2)
     vw_throw(IOErr()
               << "The vectors of matching interest points must have the same size.\n");
@@ -364,7 +356,6 @@ void read_binary_match_file(std::string match_file,
 void read_text_match_file(std::string match_file,
                           std::vector<InterestPoint> &ip1,
                           std::vector<InterestPoint> &ip2) {
-  std::cout << "---now will read text match file: " << match_file << std::endl;
   ip1.clear();
   ip2.clear();
 
