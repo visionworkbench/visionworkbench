@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2025, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -82,18 +82,6 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
 /// the undistortion functions below won't take too long.
 int auto_compute_sample_spacing(Vector2i const image_size);
 
-/// Adjust a pair of epipolar-aligned cameras so that the input images are fully
-/// contained in the transformed images.
-// TODO(oalexan1): Move to EpipolarTransform.h.
-void resize_epipolar_cameras_to_fit(PinholeModel const& cam1,
-                                    PinholeModel const& cam2,
-                                    PinholeModel      & epi_cam1,
-                                    PinholeModel      & epi_cam2,
-                                    BBox2i       const& roi1,
-                                    BBox2i       const& roi2,
-                                    Vector2i          & epi_size1,
-                                    Vector2i          & epi_size2);
-
 // Fit a pinhole model with one that has a fast distortion function needed for
 // quick computation of the point_to_pixel function. Does not replace the camera
 // if the approximation error is too high, unless forced. Does not force the
@@ -106,35 +94,6 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
                              int rpc_degree = 0,
                              double camera_to_ground_dist = 0);
 
-// Apply the epipolar alignment to images
-void epipolar_transformed_images(
-         std::string const& left_camera_file,
-         std::string const& right_camera_file,
-         boost::shared_ptr<CameraModel> const left_epi_cam,
-         boost::shared_ptr<CameraModel> const right_epi_cam,
-         vw::ImageViewRef<vw::PixelMask<float>> const& left_image_in,
-         vw::ImageViewRef<vw::PixelMask<float>> const& right_image_in,
-         vw::BBox2i const& left_image_in_roi,
-         vw::BBox2i const& right_image_in_roi,
-         vw::Vector2i       & left_image_out_size,
-         vw::Vector2i       & right_image_out_size,
-         vw::ImageViewRef<vw::PixelMask<float>> & left_image_out,
-         vw::ImageViewRef<vw::PixelMask<float>> & right_image_out,
-         vw::ValueEdgeExtension<vw::PixelMask<float>> const& edge_ext);
+}} // namespace vw::camera
 
-// Given two epipolar rectified CAHV camera models and input images,
-// get the aligned version of the images suitable for writing to disk and processing.
-void epipolar_transformed_cahv_images(
-        std::string const& left_camera_file,
-        std::string const& right_camera_file,
-        boost::shared_ptr<CameraModel> const left_cahv_camera,
-        boost::shared_ptr<CameraModel> const right_cahv_camera,
-        vw::ImageViewRef<vw::PixelMask<float>> const& left_image_in,
-        vw::ImageViewRef<vw::PixelMask<float>> const& right_image_in,
-        vw::ImageViewRef<vw::PixelMask<float>> & left_image_out,
-        vw::ImageViewRef<vw::PixelMask<float>> & right_image_out,
-        vw::ValueEdgeExtension<vw::PixelMask<float>> const& edge_ext);
-
-}}      // namespace vw::camera
-
-#endif  //__CAMERAMODEL_CAMERAUTILITIES_H__
+#endif // __VW_CAMERAMODEL_CAMERAUTILITIES_H__
