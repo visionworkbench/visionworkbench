@@ -62,9 +62,9 @@ namespace vw { namespace mosaic {
     return output_file;
   }
 
-  // TODO: Clean up!
-  /// Single-channel images are read into Image<double>, while
-  /// multi-channel in Image<Vector>, and we skip reading extra channels.
+  // Compile-intensive: read_channels results in 12 template instantiations.
+  // Single-channel images are read into Image<double>, while
+  // multi-channel in Image<Vector>, and we skip reading extra channels.
   template<class PixelT>
   typename boost::enable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){

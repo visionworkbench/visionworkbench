@@ -104,6 +104,8 @@ namespace vw {
 
   /// Read m channels from an image starting with channel k. Must
   /// have m as a templated argument. Channel starts at 0.
+  /// Compile-intensive: results in 12 template instantiations.
+  /// Prefer the wrappers in ImageChannelRead.h or PointCloudRead.h.
   template<int m, class T>
   vw::ImageViewRef<vw::Vector<T, m>> read_channels(std::string const& filename, int k) {
     
@@ -164,6 +166,7 @@ namespace vw {
   }
 
   // Read only one channel from an image. Channel starts at 0.
+  // Compile-intensive via read_channels. Prefer ImageChannelRead.h.
   template<class T>
   vw::ImageViewRef<T> read_channel(std::string const& filename, int ch) {
     
