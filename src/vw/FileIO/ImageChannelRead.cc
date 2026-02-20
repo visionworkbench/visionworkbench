@@ -16,6 +16,13 @@
 // __END_LICENSE__
 
 /// \file ImageChannelRead.cc
+///
+/// Pre-compiled wrapper for read_channel<float> to avoid instantiating
+/// the 12-type template ladder in every translation unit. The template
+/// read_channel<float> in DiskImageUtils.h generates DiskImageView for
+/// Vector<float, N> with N=1..12, costing ~30s of compile time per
+/// caller. Keeping the instantiation here confines that cost to one
+/// compilation unit in the VW library.
 
 #include <vw/FileIO/ImageChannelRead.h>
 #include <vw/FileIO/DiskImageUtils.h>
