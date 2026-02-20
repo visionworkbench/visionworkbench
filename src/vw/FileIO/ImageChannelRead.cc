@@ -17,11 +17,11 @@
 
 /// \file ImageChannelRead.cc
 ///
-/// Pre-compiled wrapper for read_channel<float> to avoid instantiating
-/// the 12-type template ladder in every translation unit. The template
-/// read_channel<float> in DiskImageUtils.h generates DiskImageView for
-/// Vector<float, N> with N=1..12, costing ~30s of compile time per
-/// caller. Keeping the instantiation here confines that cost to one
+/// Pre-compiled wrappers for read_channel/read_channels to avoid
+/// instantiating the 12-type template ladder in every translation unit.
+/// Each call to read_channels in DiskImageUtils.h generates DiskImageView
+/// for Vector<T, N> with N=1..12, costing ~30s of compile time per
+/// caller. Keeping the instantiations here confines that cost to one
 /// compilation unit in the VW library.
 
 #include <vw/FileIO/ImageChannelRead.h>
@@ -31,6 +31,21 @@ namespace vw {
 
 ImageViewRef<float> read_float_channel(std::string const& filename, int ch) {
   return read_channel<float>(filename, ch);
+}
+
+ImageViewRef<Vector<double, 3>>
+read_double_channels_3(std::string const& filename, int ch) {
+  return read_channels<3, double>(filename, ch);
+}
+
+ImageViewRef<Vector<double, 4>>
+read_double_channels_4(std::string const& filename, int ch) {
+  return read_channels<4, double>(filename, ch);
+}
+
+ImageViewRef<Vector<double, 6>>
+read_double_channels_6(std::string const& filename, int ch) {
+  return read_channels<6, double>(filename, ch);
 }
 
 } // namespace vw

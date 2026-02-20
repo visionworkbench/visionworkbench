@@ -21,14 +21,26 @@
 #define __VW_FILEIO_IMAGECHANNELREAD_H__
 
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Math/Vector.h>
 #include <string>
 
 namespace vw {
 
-// Pre-compiled wrapper for read_channel<float> to avoid
-// instantiating the 12-type template ladder in every translation unit.
-// Channel starts at 0.
+// Pre-compiled wrappers to avoid instantiating the 12-type template
+// ladder (read_channels in DiskImageUtils.h) in every translation unit.
+// Each read_channels call generates DiskImageView<Vector<T, N>> for
+// N=1..12, costing ~30s of compile time per caller.
+
+// Read a single channel as float. Channel starts at 0.
 ImageViewRef<float> read_float_channel(std::string const& filename, int ch);
+
+// Read 3/4/6 channels as double. Channel starts at 0.
+ImageViewRef<Vector<double, 3>>
+read_double_channels_3(std::string const& filename, int ch);
+ImageViewRef<Vector<double, 4>>
+read_double_channels_4(std::string const& filename, int ch);
+ImageViewRef<Vector<double, 6>>
+read_double_channels_6(std::string const& filename, int ch);
 
 } // namespace vw
 
