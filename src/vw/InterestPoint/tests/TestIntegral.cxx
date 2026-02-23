@@ -32,7 +32,7 @@ using namespace vw::ip;
 TEST( Integral, IntegralSumming ) {
   ImageView<float> graffiti;
   read_image( graffiti, TEST_SRCDIR"/sub.png" );
-  ImageView<double> integral;
+  ImageView<float> integral;
   integral = IntegralImage( graffiti );
 
   for (unsigned size = 10; size <= 70; size+= 10) {
@@ -57,7 +57,7 @@ TEST( Integral, HaarFilters ) {
   read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png" );
 
   // Building Integrals
-  ImageView<double> integral = IntegralImage( graffiti );
+  ImageView<float> integral = IntegralImage( graffiti );
 
   float hand_response = 0;
   for ( unsigned i = 0; i < 2; i++ ) {
@@ -102,7 +102,7 @@ TEST( Integral, HaarFilters2 ) {
   gradient_r = rotate_180(gradient);
 
   // Building Integrals
-  ImageView<double> int_graf, int_graf_r, int_grad, int_grad_r;
+  ImageView<float> int_graf, int_graf_r, int_grad, int_grad_r;
   int_graf = IntegralImage( graffiti );
   int_graf_r = IntegralImage( graffiti_r);
   int_grad = IntegralImage( gradient );
@@ -188,11 +188,11 @@ TEST( Integral, HaarFilters2 ) {
 TEST( Integral, DerivativeFilters ) {
   ImageView<float> graffiti;
   read_image( graffiti, TEST_SRCDIR"/sub.png" );
-  ImageView<double> integral;
+  ImageView<float> integral;
   integral = IntegralImage( graffiti );
   ImageView<float> rotated;
   rotated = rotate_180(graffiti);
-  ImageView<double> r_integral;
+  ImageView<float> r_integral;
   r_integral = IntegralImage( rotated );
 
   EXPECT_NEAR( XSecondDerivative( integral,
@@ -221,7 +221,7 @@ TEST( Integral, InterpolationProof ) {
   read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png" );
 
   // Building Integrals
-  ImageView<double> integral;
+  ImageView<float> integral;
   integral = IntegralImage( gradient );
 
   // Interpolation by hand from 2 filters
@@ -230,7 +230,7 @@ TEST( Integral, InterpolationProof ) {
   right = HHaarWavelet( integral, int(11), int(10), 10 );
 
   // Wrapping Integral
-  InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation> wrapped_integral = interpolate( integral, BilinearInterpolation() );
+  InterpolationView<EdgeExtensionView<ImageView<float>, ConstantEdgeExtension>, BilinearInterpolation> wrapped_integral = interpolate( integral, BilinearInterpolation() );
 
   // Calculating interpolated responses
   float int_response;
