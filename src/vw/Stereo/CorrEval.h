@@ -59,17 +59,20 @@ class CorrEval: public ImageViewBase<CorrEval> {
   std::string m_metric;
   int m_sample_rate;
   bool m_round_to_int;
-  
+  int m_extra_padding;
+
 public:
   CorrEval(ImageViewRef<PixelMask<float>>    left,
            ImageViewRef<PixelMask<float>>    right,
            ImageViewRef<PixelMask<Vector2f>> disp,
            Vector2i                   const& kernel_size,
            std::string                const& metric,
-           int sample_rate, bool round_to_int):
+           int sample_rate, bool round_to_int,
+           int extra_padding = 0):
     m_left(left), m_right(right), m_disp(disp),
     m_kernel_size(kernel_size), m_metric(metric),
-    m_sample_rate(sample_rate), m_round_to_int(round_to_int) {
+    m_sample_rate(sample_rate), m_round_to_int(round_to_int),
+    m_extra_padding(extra_padding) {
     
     VW_ASSERT((m_left.cols() == m_disp.cols() && m_left.rows() == m_disp.rows()),
               vw::ArgumentErr()
@@ -113,8 +116,10 @@ CorrEval corr_eval(ImageViewRef<PixelMask<float>>    left,
                    ImageViewRef<PixelMask<Vector2f>> disp,
                    Vector2i                   const& kernel_size,
                    std::string                const& metric,
-                   int sample_rate, bool round_to_int) {
-  return CorrEval(left, right, disp, kernel_size, metric, sample_rate, round_to_int);
+                   int sample_rate, bool round_to_int,
+                   int extra_padding = 0) {
+  return CorrEval(left, right, disp, kernel_size, metric,
+                  sample_rate, round_to_int, extra_padding);
 }
   
 }} // end namespace vw::stereo

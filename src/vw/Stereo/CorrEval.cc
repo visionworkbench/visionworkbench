@@ -172,11 +172,13 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
   }
 
   Vector2i half_kernel = m_kernel_size/2;
-  
-  // Need to be able to look beyond the current tile in left image
-  // to be able to compute the NCC.
+
+  // Need to be able to look beyond the current tile in the left image
+  // to compute the NCC. Add extra padding beyond the NCC kernel to
+  // ensure operations like prefiltering have enough context at tile
+  // boundaries, avoiding boundary artifacts.
   BBox2i left_box = bbox;
-  left_box.expand(half_kernel);
+  left_box.expand(half_kernel + Vector2i(m_extra_padding, m_extra_padding));
 
   // For the right image it is more complicated. Need to also
   // consider the disparity and interpolation.
@@ -203,6 +205,7 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
   right_box.expand(half_kernel); // Take into account the kernel
   right_box.expand(BilinearInterpolation::pixel_buffer); // Due to interpolation
   right_box.expand(2); // because right_box is exclusive in the upper-right, and +1 just in case
+  right_box.expand(m_extra_padding); // Extra padding for prefilter context
 
   // An invalid pixel value used for edge extension
   PixelMask<float> nodata_pix(0); nodata_pix.invalidate();
