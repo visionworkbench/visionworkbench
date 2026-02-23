@@ -29,6 +29,11 @@
 #include <vw/Image/ImageView.h>
 
 // TODO: Change the function names to meet the standard convention!
+// TODO(oalexan1): Remove PixelT template from IntegralBlock, XFirstDerivative,
+// XSecondDerivative, YFirstDerivative, YSecondDerivative, XYDerivative, and
+// IntegralImage. All callers use float, except SGrad2DescriptorGenerator
+// (ipfind --descriptor sgrad2) which casts to double. Switch to
+// ImageView<float> everywhere. Low-hanging fruit but will need test updates.
 
 namespace vw {
 namespace ip {
