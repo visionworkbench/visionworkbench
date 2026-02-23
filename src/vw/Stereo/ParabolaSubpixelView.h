@@ -20,7 +20,7 @@
 #define __VW_STEREO_PARABOLASUBPIXEL_VIEW__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Stereo/PreFilter.h>
+#include <vw/Stereo/PrefilterEnum.h>
 
 // TODO(oalexan1): The integer disparity is in fact float. Convert all to float.
 namespace vw { namespace stereo {
@@ -32,7 +32,7 @@ namespace vw { namespace stereo {
     Vector2i   m_kernel_size;
 
     // These two variables pick a prefilter which is applied to each pyramid level
-    PrefilterModeType m_prefilter_mode; ///< See Prefilter.h for the types
+    PrefilterModeType m_prefilter_mode; ///< See PrefilterEnum.h for the types
     float m_prefilter_width;     ///< Preprocessing filter width
 
     Matrix<float,6,9> m_p_A_matrix;

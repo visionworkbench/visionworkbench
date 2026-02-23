@@ -17,6 +17,7 @@
 
 #include <vw/Core/Stopwatch.h>
 #include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Core/Thread.h>

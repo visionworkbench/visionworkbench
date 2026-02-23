@@ -35,7 +35,7 @@
 #include <vw/InterestPoint/MatcherIO.h>
 #include <vw/Stereo/CorrelationView.h>
 #include <vw/Stereo/CostFunctions.h>
-#include <vw/Stereo/PreFilter.h>
+#include <vw/Stereo/PrefilterEnum.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>

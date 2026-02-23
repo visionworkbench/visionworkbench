@@ -20,17 +20,15 @@
 #define __VW_STEREO_PREFILTER_H__
 
 #include <vw/Image/Filter.h>
+#include <vw/Stereo/PrefilterEnum.h>
 
 namespace vw {
 namespace stereo {
 
-  enum PrefilterModeType {
-    PREFILTER_NONE    = 0,
-    PREFILTER_MEANSUB = 1,
-    PREFILTER_LOG     = 2
-  };
-
-  // TODO: Should we un-CRTP these classes?
+  // TODO(oalexan1): Make these not use templates. It is enough for it to
+  // work on an ImageView clip. Adjust the callers. At the end of day, each
+  // caller works on tiles anyway, maybe with padding. So this appears very
+  // feasible.
 
   // This is a base class that is used in other code to make sure the
   // user is passing an actual pre-processing filter as opposed to say an 'int'.
@@ -48,6 +46,9 @@ namespace stereo {
     }
   };
 
+  // TODO(oalexan1): This filter does not handle invalid (masked) pixels.
+  // For PixelMask inputs, invalid pixels corrupt the convolution result
+  // instead of being skipped. Needs mask-aware weighted filtering.
   struct LaplacianOfGaussian : public PreFilterBase<LaplacianOfGaussian> {
     float kernel_width;
     LaplacianOfGaussian( float size ) : kernel_width(size) {}
@@ -59,6 +60,9 @@ namespace stereo {
     }
   };
 
+  // TODO(oalexan1): This filter does not handle invalid (masked) pixels.
+  // For PixelMask inputs, invalid pixels corrupt the convolution result
+  // instead of being skipped. Needs mask-aware weighted filtering.
   struct SubtractedMean : public PreFilterBase<SubtractedMean> {
     float kernel_width;
     SubtractedMean( float size ) : kernel_width(size) {}

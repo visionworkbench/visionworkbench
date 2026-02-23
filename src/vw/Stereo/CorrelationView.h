@@ -21,7 +21,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/ImageIO.h>
-#include <vw/Stereo/PreFilter.h>
+#include <vw/Stereo/PrefilterEnum.h>
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/CorrelationAlgorithms.h>
 #include <vw/Image/Manipulation.h>
@@ -140,7 +140,7 @@ namespace vw { namespace stereo {
     Int8ImageRef      m_right_mask;
     
     // These two variables pick a prefilter which is applied to each pyramid level
-    PrefilterModeType m_prefilter_mode; ///< See Prefilter.h for the types
+    PrefilterModeType m_prefilter_mode; ///< See PrefilterEnum.h for the types
     float m_prefilter_width;            ///< Preprocessing filter width
     
     BBox2i           m_search_region;
