@@ -5,6 +5,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Core/Exception.h>
+#include <cmath>
 
 // Given two masked aligned images and a float disparity from left to
 // right image, find at each pixel the normalized cross-correlation
@@ -68,11 +69,12 @@ public:
            Vector2i                   const& kernel_size,
            std::string                const& metric,
            int sample_rate, bool round_to_int,
-           int extra_padding = 0):
+           int prefilter_mode = 0,
+           float prefilter_kernel_width = 0.0):
     m_left(left), m_right(right), m_disp(disp),
     m_kernel_size(kernel_size), m_metric(metric),
     m_sample_rate(sample_rate), m_round_to_int(round_to_int),
-    m_extra_padding(extra_padding) {
+    m_extra_padding((int)ceil(prefilter_kernel_width) + 5) {
     
     VW_ASSERT((m_left.cols() == m_disp.cols() && m_left.rows() == m_disp.rows()),
               vw::ArgumentErr()
@@ -117,9 +119,11 @@ CorrEval corr_eval(ImageViewRef<PixelMask<float>>    left,
                    Vector2i                   const& kernel_size,
                    std::string                const& metric,
                    int sample_rate, bool round_to_int,
-                   int extra_padding = 0) {
+                   int prefilter_mode = 0,
+                   float prefilter_kernel_width = 0.0) {
   return CorrEval(left, right, disp, kernel_size, metric,
-                  sample_rate, round_to_int, extra_padding);
+                  sample_rate, round_to_int,
+                  prefilter_mode, prefilter_kernel_width);
 }
   
 }} // end namespace vw::stereo
