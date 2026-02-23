@@ -26,7 +26,6 @@
 #ifndef __VW_INTERESTPOINT_INTEGRAL_DESCRIPTOR_H__
 #define __VW_INTERESTPOINT_INTEGRAL_DESCRIPTOR_H__
 
-#include <iostream>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/IntegralImage.h>
 
@@ -58,7 +57,6 @@ namespace ip {
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
-      std::cout << "DEBUG: IntegralDescriptorGeneratorBase using float integral\n";
       m_integral = IntegralImage(pixel_cast<float>(channel_cast<float>(image.impl())));
 
       for (IterT i = start; i != end; i++ ) {
