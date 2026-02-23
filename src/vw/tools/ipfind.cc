@@ -53,6 +53,7 @@ using namespace vw::ip;
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
+#include <fstream>
 namespace po = boost::program_options;
 
 struct Options: public vw::GdalWriteOptions {
@@ -61,7 +62,7 @@ struct Options: public vw::GdalWriteOptions {
   float ip_gain;
   int ip_per_image, ip_per_tile;
   int nodata_radius, print_num_ip, debug_image;
-  bool no_orientation;
+  bool no_orientation, binary_to_txt;
 };
   
 int main(int argc, char** argv) {
@@ -97,7 +98,11 @@ int main(int argc, char** argv) {
      "Write out a low-resolution or full-resolution debug image with interest points on it if the value of this flag is respectively 1 or 2. Default: 0 (do nothing).")
     ("print-ip",             po::value(&opt.print_num_ip)->default_value(0), 
      "Print information for this many detected IP. Default: 0.")
-    ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.");
+    ("lowe",          "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
+    ("binary-to-txt",
+     po::bool_switch(&opt.binary_to_txt)->default_value(false)->implicit_value(true),
+     "Convert a .vwip file to a text file. Usage: ipfind --binary-to-txt "
+     "input.vwip output.txt.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
 
@@ -131,6 +136,37 @@ int main(int argc, char** argv) {
   if (vm.count("help")) {
     vw_out() << usage.str();
     return 1;
+  }
+
+  // Convert a .vwip binary file to a text file
+  if (opt.binary_to_txt) {
+    if (opt.input_file_names.size() != 2) {
+      vw_out() << "Error: --binary-to-txt requires exactly two arguments: "
+               << "input.vwip output.txt.\n";
+      return 1;
+    }
+    std::string in_file  = opt.input_file_names[0];
+    std::string out_file = opt.input_file_names[1];
+    vw_out() << "Reading: " << in_file << "\n";
+    std::vector<InterestPoint> ip = read_binary_ip_file(in_file);
+    vw_out() << "Found " << ip.size() << " interest points.\n";
+
+    vw_out() << "Writing: " << out_file << "\n";
+    std::ofstream ofs(out_file.c_str());
+    if (!ofs)
+      vw_throw(vw::IOErr() << "Failed to open " << out_file << " for writing.");
+    ofs.precision(17);
+    for (size_t i = 0; i < ip.size(); i++) {
+      ofs << ip[i].x << " " << ip[i].y << " "
+          << ip[i].scale << " " << ip[i].orientation << " "
+          << ip[i].interest << " " << ip[i].polarity << " "
+          << ip[i].octave << " " << ip[i].scale_lvl;
+      for (size_t j = 0; j < ip[i].descriptor.size(); j++)
+        ofs << " " << ip[i].descriptor[j];
+      ofs << "\n";
+    }
+    ofs.close();
+    return 0;
   }
 
   if (opt.input_file_names.size() < 1) {

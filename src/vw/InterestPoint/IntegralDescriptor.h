@@ -26,6 +26,7 @@
 #ifndef __VW_INTERESTPOINT_INTEGRAL_DESCRIPTOR_H__
 #define __VW_INTERESTPOINT_INTEGRAL_DESCRIPTOR_H__
 
+#include <iostream>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/IntegralImage.h>
 
@@ -35,7 +36,7 @@ namespace ip {
   template <class ImplT>
   class IntegralDescriptorGeneratorBase {
 
-    ImageView<double> m_integral;
+    ImageView<float> m_integral;
 
   public:
 
@@ -57,7 +58,8 @@ namespace ip {
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
-      m_integral = IntegralImage(pixel_cast<double>(channel_cast<double>(image.impl())));
+      std::cout << "DEBUG: IntegralDescriptorGeneratorBase using float integral\n";
+      m_integral = IntegralImage(pixel_cast<float>(channel_cast<float>(image.impl())));
 
       for (IterT i = start; i != end; i++ ) {
         // Wrapping integral image for interpolation
