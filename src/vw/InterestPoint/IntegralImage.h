@@ -29,62 +29,59 @@
 #include <vw/Image/ImageView.h>
 
 // TODO: Change the function names to meet the standard convention!
-// TODO(oalexan1): Remove PixelT template from IntegralBlock, XFirstDerivative,
-// XSecondDerivative, YFirstDerivative, YSecondDerivative, XYDerivative, and
-// IntegralImage. All callers use float, except SGrad2DescriptorGenerator
-// (ipfind --descriptor sgrad2) which casts to double. Switch to
-// ImageView<float> everywhere. Low-hanging fruit but will need test updates.
 
 namespace vw {
 namespace ip {
 
   /// Function to create an integral image of an input image.
   /// - Despite the caps, this is a function and IntegralImage is not a type!
-  /// - An integral image can be used to quickly find regional sums using the function below.
+  /// - An integral image can be used to quickly find regional sums using
+  ///   the function below.
+  /// - Returns ImageView<float>. All callers use float.
   template <class ViewT>
-  inline ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type>
-  IntegralImage( ImageViewBase<ViewT> const& source ) {
-
-    typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
+  inline ImageView<float>
+  IntegralImage(ImageViewBase<ViewT> const& source) {
 
     // Allocating space
-    ImageView<channel_type> integral( source.impl().cols()+1, source.impl().rows()+1 );
+    ImageView<float> integral(source.impl().cols() + 1,
+                              source.impl().rows() + 1);
 
-    typedef typename ImageView<channel_type>::pixel_accessor dst_accessor;
+    typedef typename ImageView<float>::pixel_accessor dst_accessor;
     typedef typename ViewT::pixel_accessor src_accessor;
 
     // Zero-ing the first row and col
     dst_accessor dest_row = integral.origin();
     *dest_row = 0;
-    for ( int i = 1; i < integral.cols(); i++ ) {
+    for (int i = 1; i < integral.cols(); i++) {
       dest_row.next_col();
       *dest_row = 0;
     }
     dest_row = integral.origin();
-    for ( int i = 1; i < integral.rows(); i++ ) {
+    for (int i = 1; i < integral.rows(); i++) {
       dest_row.next_row();
       *dest_row = 0;
     }
 
     // Pointer and pointer offset
     int offset = integral.cols();
-    channel_type* p;
+    float* p = nullptr;
 
     // Now filling in integral image
     dest_row = integral.origin();
-    dest_row.advance(1,1);
+    dest_row.advance(1, 1);
     src_accessor src_row = source.impl().origin();
-    for ( int iy = 0; iy < source.impl().rows(); iy++ ) {
+    for (int iy = 0; iy < source.impl().rows(); iy++) {
       dst_accessor dest_col = dest_row;
       src_accessor src_col = src_row;
-      for ( int ix = 0; ix < source.impl().cols(); ix++ ) {
+      for (int ix = 0; ix < source.impl().cols(); ix++) {
         p = &(*dest_col);
 
         // Summing
-        *dest_col = pixel_cast<PixelGray<channel_type> >(*src_col).v() + *(p-1) + *(p-offset) - *(p-offset-1);
+        *dest_col = pixel_cast<PixelGray<float>>(*src_col).v()
+                    + *(p - 1) + *(p - offset) - *(p - offset - 1);
 
         dest_col.next_col();
-      src_col.next_col();
+        src_col.next_col();
       }
       dest_row.next_row();
       src_row.next_row();
@@ -93,30 +90,34 @@ namespace ip {
     return integral;
   } // End IntegralImage function
 
-  /// Using an integral image, compute the summed value of a region in the original image.
-  template <class PixelT>
-  inline PixelT
-  IntegralBlock( ImageView<PixelT> const& integral,
-                 Vector2i          const& top_left,
-                 Vector2i          const& bottom_right ) {
+  /// Using an integral image, compute the summed value of a region
+  /// in the original image.
+  inline float
+  IntegralBlock(ImageView<float> const& integral,
+                Vector2i         const& top_left,
+                Vector2i         const& bottom_right) {
     VW_DEBUG_ASSERT(top_left.x() < integral.cols(),
-                    vw::ArgumentErr() << "x0 out of bounds. "<< integral.cols() <<" : "
+                    vw::ArgumentErr() << "x0 out of bounds. "
+                    << integral.cols() << " : "
                     << top_left << bottom_right << "\n");
     VW_DEBUG_ASSERT(bottom_right.x() < integral.cols(),
-                    vw::ArgumentErr() << "x1 out of bounds. "<< integral.cols() <<" : "
+                    vw::ArgumentErr() << "x1 out of bounds. "
+                    << integral.cols() << " : "
                     << top_left << bottom_right << "\n");
     VW_DEBUG_ASSERT(top_left.y() < integral.rows(),
-                    vw::ArgumentErr() << "y0 out of bounds. "<< integral.rows() <<" : "
+                    vw::ArgumentErr() << "y0 out of bounds. "
+                    << integral.rows() << " : "
                     << top_left << bottom_right << "\n");
     VW_DEBUG_ASSERT(bottom_right.y() < integral.rows(),
-                    vw::ArgumentErr() << "y1 out of bounds. "<< integral.rows() <<" : "
+                    vw::ArgumentErr() << "y1 out of bounds. "
+                    << integral.rows() << " : "
                     << top_left << bottom_right << "\n");
 
-    PixelT result;
-    result = integral( top_left.x(), top_left.y() );
-    result += integral( bottom_right.x(), bottom_right.y() );
-    result -= integral( top_left.x(), bottom_right.y() );
-    result -= integral( bottom_right.x(), top_left.y() );
+    float result = 0;
+    result = integral(top_left.x(), top_left.y());
+    result += integral(bottom_right.x(), bottom_right.y());
+    result -= integral(top_left.x(), bottom_right.y());
+    result -= integral(bottom_right.x(), top_left.y());
 
     return result;
   }
@@ -124,44 +125,48 @@ namespace ip {
   /// X First Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  template <class PixelT>
-  inline PixelT
-  XFirstDerivative( ImageView<PixelT> const& /*integral*/,
-                    int const& /*x*/, int const& /*y*/,
-                    unsigned const& /*filter_size*/ ) {
-    vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
-    PixelT derivative = 0;
+  inline float
+  XFirstDerivative(ImageView<float> const& /*integral*/,
+                   int const& /*x*/, int const& /*y*/,
+                   unsigned const& /*filter_size*/) {
+    vw_throw(vw::NoImplErr()
+             << "First derivative filter has not been implemented yet\n");
+    float derivative = 0;
     return derivative;
   }
 
   /// X Second Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  template <class PixelT>
-  inline PixelT
-  XSecondDerivative( ImageView<PixelT> const& integral,
-                     int const& x, int const& y,
-                     unsigned const& filter_size ) {
+  inline float
+  XSecondDerivative(ImageView<float> const& integral,
+                    int const& x, int const& y,
+                    unsigned const& filter_size) {
     unsigned lobe      = filter_size / 3;
-    unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
-    PixelT derivative;
+    unsigned half_lobe = (unsigned)floor(float(lobe) / 2.0);
+    float derivative = 0;
 
-    // Adding positive left;
-    derivative = IntegralBlock( integral,
-                                Vector2i( x - lobe - half_lobe, y - lobe + 1 ),
-                                Vector2i( x - half_lobe, y + lobe ) );
+    // Adding positive left
+    derivative = IntegralBlock(integral,
+                               Vector2i(x - lobe - half_lobe,
+                                        y - lobe + 1),
+                               Vector2i(x - half_lobe, y + lobe));
 
-    // Adding negative middle;
-    derivative -= 2.0*IntegralBlock( integral,
-                                     Vector2i( x - half_lobe, y - lobe + 1 ),
-                                     Vector2i( x + half_lobe + 1, y + lobe ) );
+    // Adding negative middle
+    derivative -= 2.0f * IntegralBlock(integral,
+                                       Vector2i(x - half_lobe,
+                                                y - lobe + 1),
+                                       Vector2i(x + half_lobe + 1,
+                                                y + lobe));
 
-    // Adding positive right;
-    derivative += IntegralBlock( integral,
-                                 Vector2i( x + half_lobe + 1, y - lobe + 1 ),
-                                 Vector2i( x + half_lobe + lobe + 1, y + lobe ) );
+    // Adding positive right
+    derivative += IntegralBlock(integral,
+                                Vector2i(x + half_lobe + 1,
+                                         y - lobe + 1),
+                                Vector2i(x + half_lobe + lobe + 1,
+                                         y + lobe));
 
-    derivative /= filter_size*filter_size;
+    derivative /= filter_size * filter_size;
 
     return derivative;
   }
@@ -169,44 +174,48 @@ namespace ip {
   /// Y First Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  template <class PixelT>
-  inline PixelT
-  YFirstDerivative( ImageView<PixelT> const& /*integral*/,
-                    int const& /*x*/, int const& /*y*/,
-                    unsigned const& /*filter_size*/ ) {
-    vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
-    PixelT derivative = 0;
+  inline float
+  YFirstDerivative(ImageView<float> const& /*integral*/,
+                   int const& /*x*/, int const& /*y*/,
+                   unsigned const& /*filter_size*/) {
+    vw_throw(vw::NoImplErr()
+             << "First derivative filter has not been implemented yet\n");
+    float derivative = 0;
     return derivative;
   }
 
   /// Y Second Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  template <class PixelT>
-  inline PixelT
-  YSecondDerivative( ImageView<PixelT> const& integral,
-                     int const& x, int const& y,
-                     unsigned const& filter_size ) {
+  inline float
+  YSecondDerivative(ImageView<float> const& integral,
+                    int const& x, int const& y,
+                    unsigned const& filter_size) {
     unsigned lobe = filter_size / 3;
-    unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
-    PixelT derivative;
+    unsigned half_lobe = (unsigned)floor(float(lobe) / 2.0);
+    float derivative = 0;
 
-    // Adding positive top;
-    derivative = IntegralBlock( integral,
-                                Vector2i( x - lobe + 1, y - lobe - half_lobe ),
-                                Vector2i( x + lobe, y - half_lobe ) );
+    // Adding positive top
+    derivative = IntegralBlock(integral,
+                               Vector2i(x - lobe + 1,
+                                        y - lobe - half_lobe),
+                               Vector2i(x + lobe, y - half_lobe));
 
-    // Adding negative middle;
-    derivative -= 2.0*IntegralBlock( integral,
-                                     Vector2i( x - lobe + 1, y - half_lobe ),
-                                     Vector2i( x + lobe, y + half_lobe + 1 ) );
+    // Adding negative middle
+    derivative -= 2.0f * IntegralBlock(integral,
+                                       Vector2i(x - lobe + 1,
+                                                y - half_lobe),
+                                       Vector2i(x + lobe,
+                                                y + half_lobe + 1));
 
-    // Adding positive bottom;
-    derivative += IntegralBlock( integral,
-                                 Vector2i( x - lobe + 1, y + half_lobe + 1 ),
-                                 Vector2i( x + lobe, y + half_lobe + lobe + 1 ) );
+    // Adding positive bottom
+    derivative += IntegralBlock(integral,
+                                Vector2i(x - lobe + 1,
+                                         y + half_lobe + 1),
+                                Vector2i(x + lobe,
+                                         y + half_lobe + lobe + 1));
 
-    derivative /= filter_size*filter_size;
+    derivative /= filter_size * filter_size;
 
     return derivative;
   }
@@ -214,36 +223,36 @@ namespace ip {
   /// XY Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  template <class PixelT>
-  inline PixelT
-  XYDerivative( ImageView<PixelT> const& integral,
-                int const& x, int const& y,
-                unsigned const& filter_size ) {
+  inline float
+  XYDerivative(ImageView<float> const& integral,
+               int const& x, int const& y,
+               unsigned const& filter_size) {
 
     unsigned lobe = filter_size / 3;
-    PixelT derivative;
+    float derivative = 0;
 
     // Adding positive top left
-    derivative = IntegralBlock( integral,
-                                Vector2i( x - lobe, y - lobe ),
-                                Vector2i( x, y ) );
+    derivative = IntegralBlock(integral,
+                               Vector2i(x - lobe, y - lobe),
+                               Vector2i(x, y));
 
     // Adding negative top right
-    derivative -= IntegralBlock( integral,
-                                 Vector2i( x + 1, y - lobe ),
-                                 Vector2i( x + lobe + 1, y ) );
+    derivative -= IntegralBlock(integral,
+                                Vector2i(x + 1, y - lobe),
+                                Vector2i(x + lobe + 1, y));
 
     // Adding negative bottom left
-    derivative -= IntegralBlock( integral,
-                                 Vector2i( x - lobe, y + 1 ),
-                                 Vector2i( x, y + lobe + 1 ) );
+    derivative -= IntegralBlock(integral,
+                                Vector2i(x - lobe, y + 1),
+                                Vector2i(x, y + lobe + 1));
 
     // Adding positive bottom right
-    derivative += IntegralBlock( integral,
-                                 Vector2i( x + 1, y + 1 ),
-                                 Vector2i( x + 1 + lobe, y + 1 + lobe ) );
+    derivative += IntegralBlock(integral,
+                                Vector2i(x + 1, y + 1),
+                                Vector2i(x + 1 + lobe,
+                                         y + 1 + lobe));
 
-    derivative /= filter_size*filter_size;
+    derivative /= filter_size * filter_size;
 
     return derivative;
   }
