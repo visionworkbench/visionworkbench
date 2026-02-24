@@ -868,7 +868,7 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
 /// Convert lon/lat/alt to projected x/y/alt 
 Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 
-  if (boost::math::isnan(llh[2]))
+  if (std::isnan(llh[2]))
     return llh;
   
   Vector2 xy = lonlat_to_point(vw::math::subvector(llh, 0, 2));
@@ -878,7 +878,7 @@ Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 /// Convert projected x/y/alt lon/lat/alt
 Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
 
-  if (boost::math::isnan(point[2]))
+  if (std::isnan(point[2]))
     return point;
   
   Vector2 ll = point_to_lonlat(vw::math::subvector(point, 0, 2));

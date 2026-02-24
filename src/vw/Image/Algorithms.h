@@ -29,7 +29,6 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/Image/ImageViewRef.h>
 
 namespace vw {
 
@@ -151,38 +150,6 @@ namespace vw {
   template <class ImageT>
   UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type> >
   inline threshold( ImageViewBase<ImageT> const& image );
-
-  // *******************************************************************
-  // clear_nonopaque_pixels()
-  //
-  // This filter is useful for eliminating fringe effects along the
-  // edges of images with some transparent or nodata values that have
-  // be transformed with bilinear or bicubic interpolation.
-  // *******************************************************************
-  template <class PixelT>
-  class ClearNonOpaqueFunctor;
-
-  /// Zero out any pixels that aren't completely opaque.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,ClearNonOpaqueFunctor<typename ImageT::pixel_type> >
-  inline clear_nonopaque_pixels( ImageViewBase<ImageT> const& image );
-
-  // *******************************************************************
-  // remap_pixel_value()
-  //
-  // This filter can be used to map one pixel value to another.  This
-  // can be useful in many situations, for example when you need to
-  // remap the nodata value used in a DEM.
-  // *******************************************************************
-  template <class PixelT>
-  class RemapPixelFunctor;
-
-  /// Zero out any pixels that aren't completely opaque.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,RemapPixelFunctor<typename ImageT::pixel_type> >
-  inline remap_pixel_value( ImageViewBase<ImageT> const& image,
-                            typename PixelChannelType<typename ImageT::pixel_type>::type src_val,
-                            typename PixelChannelType<typename ImageT::pixel_type>::type dst_val);
 
   // ******************************************************************
   // MeanFillTransparent

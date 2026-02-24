@@ -43,6 +43,7 @@
 #ifndef __VW_IMAGE_STATISTICS_H__
 #define __VW_IMAGE_STATISTICS_H__
 
+#include <cfloat>
 #include <boost/type_traits.hpp>
 #include <vw/Math/Statistics.h>
 #include <vw/Image/ImageViewBase.h>

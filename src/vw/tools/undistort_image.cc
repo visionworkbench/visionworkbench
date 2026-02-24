@@ -30,6 +30,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/MaskViews.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Math/Functors.h>

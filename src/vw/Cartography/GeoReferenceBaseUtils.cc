@@ -18,6 +18,7 @@
 // Very small standalone utilities for working with georeferences and images
 
 #include <vw/Cartography/GeoReferenceBaseUtils.h>
+#include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageUtils.h>
 #include <vw/FileIO/DiskImageResource.h>
 

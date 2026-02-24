@@ -26,10 +26,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/MaskViews.h>
 
-/// Used in blobindex
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/connected_components.hpp>
-
 namespace vw {
 
   // *******************************************************************
@@ -185,20 +181,6 @@ namespace vw {
                  bool include_partials = true) {
     return subdivide_bbox( bounding_box(view.impl()), block_width, block_height, include_partials );
   }
-  
-  
-/* Replaced by the BlobIndexThreaded class
-  // ********************************************************************
-  // blob_index()
-  // ********************************************************************
-
-  /// A utility that numbers off blobs of valid pixels. So it's
-  /// important that you use pixel mask, or the entire image will be
-  /// numbered one. This is for the most part a clone of the Matlab function bwlabel.
-  template <class SourceT>
-  void blob_index( ImageViewBase<SourceT> const& src,
-                   ImageView<uint32>           & dst );
-*/
 }
 
 #include "AlgorithmFunctions.tcc"

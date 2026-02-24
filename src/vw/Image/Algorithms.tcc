@@ -264,73 +264,9 @@ threshold( ImageViewBase<ImageT> const& image ) {
   return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
 }
 
-// *******************************************************************
-// clear_nonopaque_pixels()
-//
-// This filter is useful for eliminating fringe effects along the
-// edges of images with some transparent or nodata values that have
-// be transformed with bilinear or bicubic interpolation.
-// *******************************************************************
-template <class PixelT>
-class ClearNonOpaqueFunctor: public UnaryReturnSameType {
-public:
-  ClearNonOpaqueFunctor() {}
-
-  PixelT operator()( PixelT const& value ) const {
-    if (is_opaque(value)) return value;
-    else return PixelT();
-  }
-};
-
-/// Zero out any pixels that aren't completely opaque.
-template <class ImageT>
-UnaryPerPixelView<ImageT,ClearNonOpaqueFunctor<typename ImageT::pixel_type> >
-clear_nonopaque_pixels( ImageViewBase<ImageT> const& image ) {
-  typedef ClearNonOpaqueFunctor<typename ImageT::pixel_type> func_type;
-  return UnaryPerPixelView<ImageT,func_type>( image.impl(), func_type() );
-}
-
-// *******************************************************************
-// remap_pixel_value()
-//
-// This filter can be used to map one pixel value to another.  This
-// can be useful in many situations, for example when you need to
-// remap the nodata value used in a DEM.
-// *******************************************************************
-template <class PixelT>
-class RemapPixelFunctor: public UnaryReturnSameType {
-  typename PixelChannelType<PixelT>::type m_src_val, m_dst_val;
-public:
-  RemapPixelFunctor(typename PixelChannelType<PixelT>::type src_val,
-                    typename PixelChannelType<PixelT>::type dst_val) :
-    m_src_val(src_val), m_dst_val(dst_val) {}
-
-  PixelT operator()( PixelT const& value ) const {
-    if (value == m_src_val) return m_dst_val;
-    else return value;
-  }
-};
-
-/// Zero out any pixels that aren't completely opaque.
-template <class ImageT>
-UnaryPerPixelView<ImageT,RemapPixelFunctor<typename ImageT::pixel_type> >
-remap_pixel_value( ImageViewBase<ImageT> const& image,
-                          typename PixelChannelType<typename ImageT::pixel_type>::type src_val,
-                          typename PixelChannelType<typename ImageT::pixel_type>::type dst_val) {
-  typedef RemapPixelFunctor<typename ImageT::pixel_type> func_type;
-  return UnaryPerPixelView<ImageT,func_type>( image.impl(), func_type(src_val, dst_val) );
-}
-
 // ******************************************************************
 // MeanFillTransparent
 // ******************************************************************
-
-// This is a preprocess step that set the value of transparent
-// pixels to the mean of the nearby opaque pixels. This will not
-// produce a visible difference to the image as it only modifies
-// completely transparent pixels. The reason for this is to remove a
-// "bath tub ring" that happens when interpolating/resampling an
-// image with transparent sections.
 
 template <class ImageT>
 class MeanFillTransparent : public ImageViewBase<MeanFillTransparent<ImageT> > {
@@ -783,7 +719,5 @@ public:
     vw::rasterize(prerasterize(bbox), dest, bbox);
   }
 }; // End class FloodFill
-
-
 
 } // namespace vw
