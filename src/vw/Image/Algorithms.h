@@ -172,40 +172,6 @@ namespace vw {
   }
 
   // ******************************************************************
-  // FillHoles
-  // ******************************************************************
-  
-  // A class to fill holes in images. Given the number
-  // hole_fill_len, which gives the size of holes, look left, right,
-  // up, and down, as far as hole_fill_len/2. Must have valid pixels
-  // both left and right, otherwise both up and down, else do
-  // nothing. The motivation here is to fill in only pixels
-  // "surrounded" by valid pixels.
-  
-  // Use one of the two approaches:
-  //
-  // 1. Interpolate using the left and right values. Interpolate using
-  // the up and down values. Average the results. Fast.
-  //
-  // 2. Find the weighted average of the points in the window
-  // of size hole_fill_len centered at the current point. Slow.
-
-  // After holes are filled, do several passes to average the results.
-  
-  // The image being passed in should be a PixelMask.
-  template <class ImageT>
-  class FillHoles;
-
-  // Fill holes. This algorithm is very naive and works not so well.
-  // The grassfire-based in-painting algorithm from ASP works much better.
-  template <class ImageT> FillHoles<ImageT>
-  fill_holes( ImageViewBase<ImageT> const& img, int hole_fill_mode, int hole_fill_num_smooth_iter, int hole_fill_len) {
-    return FillHoles<ImageT>( img.impl(), hole_fill_mode, hole_fill_num_smooth_iter, hole_fill_len );
-  }
-
-  // ----------------------------------------------------------------------------
-
-  // ******************************************************************
   // ComputeNormals
   // ******************************************************************
 
