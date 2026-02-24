@@ -30,9 +30,6 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 
-// Backward compatibility
-#include <vw/Image/ImageSurface.h>
-
 namespace vw {
 
 // clamp()

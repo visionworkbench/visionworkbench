@@ -19,6 +19,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageSurface.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>

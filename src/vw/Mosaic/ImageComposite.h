@@ -40,6 +40,7 @@
 #include <vw/Image/SparseImageCheck.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageChannels.h>
 
 namespace vw {
 namespace mosaic {

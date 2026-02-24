@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReferenceUtils.h>

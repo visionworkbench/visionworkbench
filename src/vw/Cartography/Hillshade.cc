@@ -22,6 +22,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageSurface.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/PixelMask.h>

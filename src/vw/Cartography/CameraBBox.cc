@@ -18,6 +18,7 @@
 #include <vw/Cartography/CameraBBox.h>
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageSurface.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Cartography/PointImageManipulation.h>

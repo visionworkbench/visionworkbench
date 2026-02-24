@@ -19,7 +19,6 @@
 ///
 /// Round a double to int and clamp to the int type's range.
 /// Includes a functor for per-pixel application to images.
-/// Renamed from Algorithms2.h for clarity.
 
 #ifndef __VW_IMAGE_ROUNDANDCLAMP_H__
 #define __VW_IMAGE_ROUNDANDCLAMP_H__
