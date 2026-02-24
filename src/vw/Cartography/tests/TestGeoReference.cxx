@@ -21,6 +21,8 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 using namespace vw;
 using namespace vw::cartography;
@@ -282,8 +284,8 @@ TEST( GeoReference, IOLoop ) {
     // Write it to a temporary file
     UnlinkName test_filename("georeference_test.tif");
     ASSERT_NO_THROW(
-      write_georeferenced_image( test_filename, test_image,
-                             test_georeference ));
+      write_gdal_image(test_filename, test_image,
+                             test_georeference, GdalWriteOptions()));
 
     // Reading back in and compare
     GeoReference retn_georeference;
@@ -321,8 +323,8 @@ TEST( GeoReference, IOLoop ) {
 
     UnlinkName test_filename( "georeference_test.tif" );
     ASSERT_NO_THROW(
-      write_georeferenced_image( test_filename, test_image,
-                                 test_georef ));
+      write_gdal_image(test_filename, test_image,
+                                 test_georef, GdalWriteOptions()));
     // Read back in and compare
     GeoReference retn_georef;
     ImageView<PixelRGB<float> > retn_image;
@@ -341,8 +343,8 @@ TEST( GeoReference, IOLoop ) {
     UnlinkName fail_filename("bird.png");
     Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
     GeoReference test_georeference( test_datum, test_transform );
-    EXPECT_THROW( write_georeferenced_image( fail_filename, test_image,
-                                             test_georeference ),
+    EXPECT_THROW( write_gdal_image(fail_filename, test_image,
+                                    test_georeference, GdalWriteOptions()),
                   NoImplErr );
   }
 }

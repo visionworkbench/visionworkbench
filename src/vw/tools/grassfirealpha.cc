@@ -31,6 +31,8 @@
 #include <vw/Image/NoDataAlg.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 
 #include <vector>
 
@@ -179,8 +181,8 @@ void grassfire_nodata( Options& opt,
   }
 
   vw_out() << "Writing: " << output << std::endl;
-  cartography::write_georeferenced_image(output, result, georef,
-                                         TerminalProgressCallback("tools.grassfirealpha","Writing:"));
+  cartography::write_gdal_image(output, result, georef, GdalWriteOptions(),
+                                TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
 // Same as above but modified for alpha input
@@ -219,8 +221,8 @@ void grassfire_alpha( Options& opt,
     vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
   }
 
-  cartography::write_georeferenced_image(output, result, georef,
-                                         TerminalProgressCallback("tools.grassfirealpha","Writing:"));
+  cartography::write_gdal_image(output, result, georef, GdalWriteOptions(),
+                                TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
 // Handling input

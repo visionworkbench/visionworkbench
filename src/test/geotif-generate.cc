@@ -19,6 +19,8 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 using namespace vw;
 
 void grow_bbox( math::BresenhamLine l,
@@ -114,8 +116,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_stereographic(90,0,1);
     georef.set_transform( Matrix3x3(1000,0,-412000,0,-1000,512000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n_stereo.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n_stereo.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: South Stereographic\n";
@@ -124,8 +126,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_stereographic(-90,0,1);
     georef.set_transform( Matrix3x3(1000,0,-512000,0,-1000,612000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "s_stereo.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "s_stereo.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Trans Equirectangular\n";
@@ -133,8 +135,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(0.0292968,0,-105,0,-0.0292968,15,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 1 Trans Equirectangular\n";
@@ -142,8 +144,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(0.0292968,0,-14,0,-0.0292968,15,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p1_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p1_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 90 Trans Equirectangular\n";
@@ -151,8 +153,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(0.0292968,0,75,0,-0.0292968,7.5,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p90_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p90_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 180 Trans Equirectangular\n";
@@ -160,8 +162,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(0.0292968,0,165,0,-0.0292968,7.5,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p180_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p180_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 271 Trans Equirectangular\n";
@@ -169,8 +171,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(0.0292968,0,256,0,-0.0292968,15,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Proj Equirectangular\n";
@@ -179,8 +181,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_equirectangular(0,-90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_proj_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_proj_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 90 Proj Equirectangular\n";
@@ -189,8 +191,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_equirectangular(0,90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p90_proj_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p90_proj_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 270 Proj Equirectangular\n";
@@ -199,8 +201,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_equirectangular(0,270);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_proj_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_proj_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Global [-180,180] Equirectangular\n";
@@ -208,8 +210,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 2048, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(.17578125,0,-180,0,-.17578125,90,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "global_180_180_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "global_180_180_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Global [0,360] Equirectangular\n";
@@ -217,8 +219,8 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 2048, 1024 );
     cartography::GeoReference georef;
     georef.set_transform( Matrix3x3(.17578125,0,0,0,-.17578125,90,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "global_0_360_equi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "global_0_360_equi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Orthoprojection\n";
@@ -227,8 +229,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_orthographic(-75,-90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_ortho.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_ortho.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 271 Orthoprojection\n";
@@ -237,8 +239,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_orthographic(15,271);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p271_ortho.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p271_ortho.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Lambert Azimuthal\n";
@@ -247,8 +249,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_lambert_azimuthal(15,-90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_lambert_azi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_lambert_azi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 270 Lambert Azimuthal\n";
@@ -257,8 +259,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_lambert_azimuthal(-35,270);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_lambert_azi.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_lambert_azi.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Lambert Conformal\n";
@@ -267,8 +269,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_lambert_conformal(0,30,15,-90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_lambert_con.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_lambert_con.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 270 Lambert Conformal\n";
@@ -277,8 +279,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_lambert_conformal(-70,-40,-55,270);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_lambert_con.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_lambert_con.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Transverse Mercator\n";
@@ -287,8 +289,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_transverse_mercator(-50,-90,1);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_trans_merc.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_trans_merc.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 270 Transverse Mercator\n";
@@ -297,8 +299,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_transverse_mercator(10,270,1);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_trans_merc.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_trans_merc.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: UTM 10\n";
@@ -307,8 +309,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_UTM( 10, 42 );
     georef.set_transform( Matrix3x3(5000,0,-1000000,0,-5000,2560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "utm10.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "utm10.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: UTM 60S\n";
@@ -317,8 +319,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_UTM( 60, 40 );
     georef.set_transform( Matrix3x3(1000,0,-300000,0,-1000,5e6,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "utm60s.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "utm60s.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center -90 Sinusoidal\n";
@@ -327,8 +329,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_sinusoidal(15,-90);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "n90_sin.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "n90_sin.tif", input, georef, GdalWriteOptions());
   }
 
   { vw_out() << "Writing: Center 270 Sinusoidal\n";
@@ -337,8 +339,8 @@ int main( int argc, char *argv[] ) {
     cartography::GeoReference georef;
     georef.set_sinusoidal(-60,270);
     georef.set_transform( Matrix3x3(5000,0,-2560000,0,-5000,560000,0,0,1) );
-    render_degree( input, georef );
-    write_georeferenced_image( "p270_sin.tif", input, georef );
+    render_degree( input, georef, GdalWriteOptions());
+    write_gdal_image( "p270_sin.tif", input, georef, GdalWriteOptions());
   }
 
   return 0;

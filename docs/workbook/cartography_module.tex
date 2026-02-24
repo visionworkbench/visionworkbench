@@ -161,7 +161,7 @@ Function & Description \\ \hline \hline
 \verb#read_georeference(geo,rsrc)# & Given a disk image resource, \verb#rsrc#, this function will create and provide a reference to \verb#geo#. \\ \hline
 \verb#read_georeferenced_image(im,geo,filename)# & Reads simultaneously both view \verb#im# and \verb#geo# from path \verb#filename#.\\ \hline
 \verb#write_georeference(rsrc,geo)# & Writes \verb#geo# to a disk image resource, \verb#rsrc#. \\ \hline
-\verb#write_georeferenced_image(filename,im,geo)# & Writes view \verb#im# and \verb#geo# to output file, \verb#filename#. \\ \hline
+\verb#write_gdal_image(filename,im,geo,opt)# & Writes view \verb#im# and \verb#geo# to output file, \verb#filename#, using write options \verb#opt#. \\ \hline
 \end{tabular}
 \caption{Reading and writing of {\tt GeoReference} Objects}
 \end{centering}

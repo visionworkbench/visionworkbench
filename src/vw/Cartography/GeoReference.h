@@ -367,19 +367,6 @@ namespace cartography {
   /// generally call this prior to writing image data to the resource.
   void write_georeference( ImageResource& resource, GeoReference const& georef );
 
-  /// A convenience function to write image data and its georeferencing information to a file.
-  template <class ImageT>
-  void write_georeferenced_image( std::string const& filename,
-                                  ImageViewBase<ImageT> const& image,
-                                  GeoReference const& georef,
-                                  ProgressCallback const& progress_callback = ProgressCallback::dummy_instance() ) {
-    vw_out(InfoMessage, "fileio") << "\tSaving image: " << filename << "\t";
-    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create( filename, image.format() ));
-    vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-    write_georeference( *r, georef );
-    write_image( *r, image, progress_callback );
-  }
-
   /// A function to read the value of a variable with given name from a geotiff
   /// file header. Return an empty string on failure.
   std::string read_header_string(std::string filename, std::string const& str_name);

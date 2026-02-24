@@ -22,6 +22,8 @@
 #include <vw/tools/Common.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Image/PerPixelViews.h>
@@ -250,7 +252,7 @@ namespace vw {
           tile_filename << output_file_type;
 
           // Finally, write.
-          write_georeferenced_image( tile_filename.str(), tile_view, tile_georef, blending_pc );
+          write_gdal_image(tile_filename.str(), tile_view, tile_georef, GdalWriteOptions(), blending_pc);
         }
       }
     } else {

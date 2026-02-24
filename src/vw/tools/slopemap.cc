@@ -20,6 +20,8 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageSurface.h>
+#include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/FileIO/GdalWriteOptions.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
@@ -299,8 +301,8 @@ void do_slopemap (const ::Options &opt) { //not sure what the arguments are
     pretty2=PixelRGB<uint8>(255,255,255)-pretty2;
   }
   //save everything to file
-  if(opt.output_gradient) write_georeferenced_image( opt.output_prefix + "_gradient.tif" , gradient_angle, GR);
-  if(opt.output_aspect)   write_georeferenced_image( opt.output_prefix + "_aspect.tif"   , aspect, GR);
+  if(opt.output_gradient) write_gdal_image(opt.output_prefix + "_gradient.tif", gradient_angle, GR, GdalWriteOptions());
+  if(opt.output_aspect)   write_gdal_image(opt.output_prefix + "_aspect.tif", aspect, GR, GdalWriteOptions());
   if(opt.output_pretty)   write_image( opt.output_prefix + "_pretty.tif"   , pretty2);
 }
 
