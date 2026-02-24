@@ -29,14 +29,17 @@
 
 namespace vw { namespace stereo {
 
-  /// ???
+  /// Set weight to zero where disparity is invalid, copy from
+  /// weight_template elsewhere, then normalize. Return the count
+  /// of valid pixels. Used by subpixel refinement kernels.
   int
   adjust_weight_image(ImageView<float> &weight,
                       ImageView<PixelMask<Vector2f>> const& disparity_map_patch,
                       ImageView<float> const& weight_template);
 
-
   namespace detail {
+    /// Build a normalized Gaussian weight kernel of the given size.
+    /// two_sigma_sqr controls the falloff from the center pixel.
     ImageView<float>
     compute_spatial_weight_image(int32 kern_width, int32 kern_height,
                                  float two_sigma_sqr);
