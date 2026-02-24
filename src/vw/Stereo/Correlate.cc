@@ -1433,3 +1433,80 @@ int vw::stereo::adjust_weight_image(ImageView<float> &weight,
     weight /= sum;
   return num_good_pix;
 }
+
+template <class ImageT1, class ImageT2>
+void vw::stereo::cross_corr_consistency_check(
+    ImageViewBase<ImageT1> const& l2r,
+    ImageViewBase<ImageT2> const& r2l,
+    float cross_corr_threshold,
+    ImageView<PixelMask<float>> * lr_disp_diff,
+    Vector2i ul_corner_offset,
+    bool verbose) {
+  int32 l2r_rows = l2r.impl().rows(), l2r_cols = l2r.impl().cols(),
+    r2l_rows = r2l.impl().rows(), r2l_cols = r2l.impl().cols();
+  size_t count = 0, match_count = 0;
+
+  if (verbose)
+    vw_out(VerboseDebugMessage, "stereo") << "\tCrosscorr threshold: "
+                                          << cross_corr_threshold << "\n";
+  VW_DEBUG_ASSERT(cross_corr_threshold >= 0.0,
+                  ArgumentErr()
+                    << "cross_corr_consistency_check: "
+                    << "the threshold is less than 0.");
+
+  typename ImageT1::pixel_accessor l2r_row = l2r.impl().origin();
+  for (int32 r = 0; r < l2r_rows; r++) {
+    typename ImageT1::pixel_accessor l2r_col = l2r_row;
+    for (int32 c = 0; c < l2r_cols; c++) {
+
+      int32 r2l_x = c + (*l2r_col)[0];
+      int32 r2l_y = r + (*l2r_col)[1];
+
+      if (r2l_x < 0 || r2l_x >= r2l_cols ||
+          r2l_y < 0 || r2l_y >= r2l_rows) {
+        invalidate(*l2r_col);
+      } else if (!is_valid(*l2r_col) ||
+                 !is_valid(r2l.impl()(r2l_x, r2l_y))) {
+        invalidate(*l2r_col);
+      } else {
+        float disp_diff =
+          std::max(fabs((*l2r_col)[0] + r2l.impl()(r2l_x, r2l_y)[0]),
+                   fabs((*l2r_col)[1] + r2l.impl()(r2l_x, r2l_y)[1]));
+        if (cross_corr_threshold >= disp_diff) {
+          count++;
+          match_count++;
+          if (lr_disp_diff != NULL)
+            (*lr_disp_diff)(c + ul_corner_offset[0],
+                            r + ul_corner_offset[1])
+              = PixelMask<float>(disp_diff);
+        } else {
+          match_count++;
+          invalidate(*l2r_col);
+        }
+      }
+
+      l2r_col.next_col();
+    }
+    l2r_row.next_row();
+  }
+
+  if (verbose)
+    vw_out(VerboseDebugMessage, "stereo")
+      << "\tCross-correlation retained " << count
+      << " / " << match_count << " matches ("
+      << ((float)count / match_count * 100) << " percent).\n";
+}
+
+// Explicit instantiations for the types used in production and tests
+typedef PixelMask<Vector2i> PMV2i;
+typedef PixelMask<Vector2f> PMV2f;
+
+template void vw::stereo::cross_corr_consistency_check(
+    ImageViewBase<CropView<ImageView<PMV2i>>> const&,
+    ImageViewBase<ImageView<PMV2i>> const&,
+    float, ImageView<PixelMask<float>>*, Vector2i, bool);
+
+template void vw::stereo::cross_corr_consistency_check(
+    ImageViewBase<ImageView<PMV2f>> const&,
+    ImageViewBase<ImageView<PMV2f>> const&,
+    float, ImageView<PixelMask<float>>*, Vector2i, bool);

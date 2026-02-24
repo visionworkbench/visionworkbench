@@ -129,44 +129,6 @@ namespace stereo {
   }
 
 
-/// Apply a box blur to a disparity image
-template <typename T>
-inline void disparity_blur(ImageView<PixelMask<Vector<T, 2> > > const& disparity_in,
-                           ImageView<PixelMask<Vector<T, 2> > >      & disparity_out,
-                           int kernel_size) {
-
-  int half_kernel = (kernel_size - 1) / 2;
-  disparity_out = disparity_in;
-
-  // Output pixel loop
-  for (int row=half_kernel; row<disparity_in.rows()-half_kernel; ++row) {
-    for (int col=half_kernel; col<disparity_in.cols()-half_kernel; ++col) {
-
-      if (!is_valid(disparity_in(col,row)))
-        continue;
-
-     // Loop through the kernel
-     double dx_total=0, dy_total=0;
-     double count=0;
-     for (int r=row-half_kernel; r<=row+half_kernel; ++r) {
-       for (int c=col-half_kernel; c<=col+half_kernel; ++c) {
-         if (is_valid(disparity_in(c,r))) {
-           dx_total += disparity_in(c,r)[0];
-           dy_total += disparity_in(c,r)[1];
-           count += 1.0;
-         }
-       }
-     }
-     if (count < 1.0)
-       continue;
-     
-     disparity_out(col, row) = PixelMask<Vector<T, 2> >(dx_total/count, dy_total/count);
-        
-    } 
-  } // End loop through pixels
-
-} // End disparity_median_filter
-
 /// Apply a median filter to a disparity image
 template <typename T>
 inline void disparity_median_filter(ImageView<PixelMask<Vector<T, 2> > > const& disparity_in,
