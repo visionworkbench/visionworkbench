@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -15,11 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 /// \file AlgorithmFunctions.h
 ///
-/// Basic algorithms operating on images. This is for functions that are non lazy.
-///
+/// Core non-lazy algorithms: fill, bounding_box, subdivide_bbox.
+/// Opacity queries (is_opaque, is_transparent, nonzero_data_bounding_box)
+/// are in ImageOpacity.h.
+
 #ifndef __VW_IMAGE_ALGORITHM_FUNCTIONS_H__
 #define __VW_IMAGE_ALGORITHM_FUNCTIONS_H__
 
@@ -28,114 +29,64 @@
 
 namespace vw {
 
-  // *******************************************************************
-  // fill()
-  // *******************************************************************
+// fill()
 
-  /// Fill an image with a constant pixel value
-  template <class ImageT, class ValueT>
-  void fill( ImageViewBase<ImageT> const& image, ValueT value_ );
-
-  // *******************************************************************
-  // bounding_box()
-  // *******************************************************************
-
-  template <class ViewT>
-  BBox2i bounding_box( ImageViewBase<ViewT> const& image_ ) {
-    return BBox2i( 0, 0, image_.impl().cols(), image_.impl().rows() );
-  }
-
-
-  // *******************************************************************
-  // nonzero_data_bounding_box()
-  // *******************************************************************
-
-  template <class ViewT>
-  BBox2i nonzero_data_bounding_box( ImageViewBase<ViewT> const& image_ );
-
-
-  // *******************************************************************
-  // is_opaque()
-  // *******************************************************************
-
-  template <class ImageT>
-  bool is_opaque_helper( ImageT const& image, true_type ) {
-    for( int32 y=0; y<image.rows(); ++y )
-      for( int32 x=0; x<image.cols(); ++x )
-        if( ! (is_opaque( image(x,y) ) ) )
-          return false;
-    return true;
-  }
-
-  template <class ImageT>
-  bool is_opaque_helper( ImageT const& /*image*/, false_type ) {
-    return true;
-  }
-
-  /// Returns true if the given image is entirely opaque, or false if
-  /// it is at least partially transparent.
-  template <class ImageT>
-  bool is_opaque( ImageViewBase<ImageT> const& image ) {
-    return is_opaque_helper( image.impl(), typename PixelHasAlpha<typename ImageT::pixel_type>::type() );
-  }
-
-
-  // *******************************************************************
-  // is_transparent()
-  // *******************************************************************
-
-  template <class ImageT>
-  bool is_transparent_helper( ImageT const& image, true_type ) {
-    for( int32 y=0; y<image.rows(); ++y )
-      for( int32 x=0; x<image.cols(); ++x )
-        if( ! is_transparent(image(x,y)) ) return false;
-    return true;
-  }
-
-  template <class ImageT>
-  bool is_transparent_helper( ImageT const& /*image*/, false_type ) {
-    return false;
-  }
-
-  /// Returns true if the given image is entirely transparent, or false if
-  /// it is opaque or only partially transparent.
-  template <class ImageT>
-  bool is_transparent( ImageViewBase<ImageT> const& image ) {
-    return is_transparent_helper( image.impl(), typename PixelHasAlpha<typename ImageT::pixel_type>::type() );
-  }
-
-  // *******************************************************************
-  // subdivide_bbox()
-  // *******************************************************************
-
-  // TODO: Move this to BBox.h!
-
-  /// A utility routine that, given an image, returns a vector of
-  /// bounding boxes for sub-regions of the image of the specified
-  /// size.  Note that bounding boxes along the right and bottom edges
-  /// of the image will not have the specified dimension unless the
-  /// image width and height are perfectly divisible by the bounding
-  /// box width and height, respectively. This routine is useful if you
-  /// want to apply an operation to a large image one region at a time.
-  /// It will operate on any object that has cols() and rows() methods.
-  /// - If include_partials is set to false, only full size boxes will be 
-  ///   included in the output.
-  /// - If full_size is true, the boxes at the right and bottom edges will
-  ///   be grown inward to have full size. This will result in them overlapping
-  ///   with earlier boxes. This assumes include_partials = true.
-  /// - Output tiles are in raster order, top left to bottom right.
-  std::vector<BBox2i>
-  subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
-                 bool include_partials = true, bool full_size = false);
-
-  template <class T>
-  inline std::vector<BBox2i>
-  subdivide_bbox(ImageViewBase<T> const& view, int32 block_width, int32 block_height,
-                 bool include_partials = true) {
-    return subdivide_bbox( bounding_box(view.impl()), block_width, block_height, include_partials );
+/// Fill an image with a constant pixel value
+template <class ImageT, class ValueT>
+void fill(ImageViewBase<ImageT> const& image, ValueT value_) {
+  int32 planes = image.impl().planes();
+  int32 rows = image.impl().rows();
+  int32 cols = image.impl().cols();
+  typename ImageT::pixel_type value(value_);
+  typename ImageT::pixel_accessor plane = image.impl().origin();
+  for (int32 p = planes; p; --p) {
+    typename ImageT::pixel_accessor row = plane;
+    for (int32 r = rows; r; --r) {
+      typename ImageT::pixel_accessor col = row;
+      for (int32 c = cols; c; --c) {
+        *col = value;
+        col.next_col();
+      }
+      row.next_row();
+    }
+    plane.next_plane();
   }
 }
 
-#include "AlgorithmFunctions.tcc"
+// bounding_box()
 
-#endif//__VW_IMAGE_ALGORITHMS_FUNCTIONS_H__
+template <class ViewT>
+BBox2i bounding_box(ImageViewBase<ViewT> const& image_) {
+  return BBox2i(0, 0, image_.impl().cols(), image_.impl().rows());
+}
+
+// subdivide_bbox()
+
+/// A utility routine that, given an image, returns a vector of
+/// bounding boxes for sub-regions of the image of the specified
+/// size. Note that bounding boxes along the right and bottom edges
+/// of the image will not have the specified dimension unless the
+/// image width and height are perfectly divisible by the bounding
+/// box width and height, respectively.
+/// - If include_partials is set to false, only full size boxes will be
+///   included in the output.
+/// - If full_size is true, the boxes at the right and bottom edges will
+///   be grown inward to have full size (they will overlap with earlier
+///   boxes). This assumes include_partials = true.
+/// - Output tiles are in raster order, top left to bottom right.
+std::vector<BBox2i>
+subdivide_bbox(BBox2i const& object, int32 block_width, int32 block_height,
+               bool include_partials = true, bool full_size = false);
+
+template <class T>
+inline std::vector<BBox2i>
+subdivide_bbox(ImageViewBase<T> const& view,
+               int32 block_width, int32 block_height,
+               bool include_partials = true) {
+  return subdivide_bbox(bounding_box(view.impl()),
+                        block_width, block_height, include_partials);
+}
+
+} // namespace vw
+
+#endif // __VW_IMAGE_ALGORITHM_FUNCTIONS_H__

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -17,31 +17,9 @@
 
 /// \file Manipulation.h
 ///
-/// Simple image manipulation functions, such as flipping and cropping.  All of
-/// the functions in this file except copy() return shallow views of the
-/// ImageView.  That is, they do not copy the data underneath but instead they
-/// refer to the same data, indexing and accessing it in a different way.
-///
-/// The first collection of functions in this file perform basic
-/// transformations to the domain of the image, such as transposition,
-/// rotation by 90 degree increments, flipping, and cropping.
-///
-/// This file also provides views and functions that take simple
-/// "slices" of images, returning a new view composed from individual
-/// channels or planes of the source image. These include:
-///
-/// - select_col          () : takes a single-column slice of an image
-/// - select_row          () : takes a single-row slice of an image
-/// - select_plane        () : takes a single-plane slice of an image
-/// - select_channel      () : takes a single-channel slice of an image
-/// - channels_to_planes  () : reinterprets a multi-channel image as a multi-plane image
-/// - planes_to_channels  () : reinterprets a multi-plane image as a multi-channel image
-/// - pixel_cast          () : casts the pixels of an image to a new pixel type
-/// - pixel_cast_rescale  () : same as above, but rescales pixel values appropriately
-/// - channel_cast        () : casts the channels of an image while retaining the pixel format
-/// - channel_cast_rescale() : same as above, but rescales pixel values appropriately
-/// - channel_cast_round_and_clamp(): round, clamp, then cast. 
-/// See PixelMath.h for round(), Algorithms.h for clamp(), etc.
+/// Core image manipulation: copy, crop, and subsample views.
+/// Spatial transforms (transpose, rotate, flip) are in ImageTransform.h.
+/// Channel/plane selection and casting are in ImageChannels.h.
 
 #ifndef __VW_IMAGE_MANIPULATION_H__
 #define __VW_IMAGE_MANIPULATION_H__
@@ -49,531 +27,296 @@
 #include <boost/mpl/logical.hpp>
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/AlgorithmFunctions.h>
+
+// Backward compatibility: include the split-out headers so existing
+// code that includes Manipulation.h keeps working.
+#include <vw/Image/ImageTransform.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Image/AlgorithmFunctions.h>
 
 namespace vw {
 
-  // *******************************************************************
-  // copy()
-  // *******************************************************************
+// copy()
 
-  // Class definition
-  template <class ImageT>
-  class CopyView;
+template <class ImageT>
+class CopyView: public ImageViewBase<CopyView<ImageT>> {
+  ImageView<typename ImageT::pixel_type> m_child;
+public:
+  typedef typename ImageView<typename ImageT::pixel_type>::pixel_type
+    pixel_type;
+  typedef pixel_type const& result_type;
+  typedef typename ImageView<typename ImageT::pixel_type>::pixel_accessor
+    pixel_accessor;
 
-  template <class ImageT>
-  struct IsMultiplyAccessible<CopyView<ImageT> > : public true_type {};
-
-  /// Make a (deep) copy of an image.
-  template <class ImageT>
-  CopyView<ImageT> copy( ImageViewBase<ImageT> const& v ) {
-    return CopyView<ImageT>( v.impl() );
+  CopyView(ImageT const& image):
+    m_child(image.cols(), image.rows(), image.planes()) {
+    image.rasterize(m_child, BBox2i(0, 0, image.cols(), image.rows()));
   }
 
+  inline int32 cols() const { return m_child.cols(); }
+  inline int32 rows() const { return m_child.rows(); }
+  inline int32 planes() const { return m_child.planes(); }
 
-  // *******************************************************************
-  // Transpose
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ChildT>
-  class TransposePixelAccessor;
-
-  // Class definition
-  template <class ImageT>
-  class TransposeView;
-
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<TransposeView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Transpose an image.
-  template <class ImageT>
-  TransposeView<ImageT> transpose( ImageViewBase<ImageT> const& v ) {
-    return TransposeView<ImageT>( v.impl() );
+  inline pixel_accessor origin() const { return m_child.origin(); }
+  inline result_type operator()(int32 i, int32 j, int32 p = 0) const {
+    return m_child(i, j, p);
   }
 
+  typedef CopyView prerasterize_type;
+  inline prerasterize_type prerasterize(BBox2i const& /*bbox*/) const {
+    return *this;
+  }
+  template <class DestT>
+  inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+    m_child.rasterize(dest, bbox);
+  }
+};
 
-  // *******************************************************************
-  // Rotate180
-  // *******************************************************************
+template <class ImageT>
+struct IsMultiplyAccessible<CopyView<ImageT>>: public true_type {};
 
-  // Specialized pixel accessor
-  template <class ChildT>
-  class Rotate180PixelAccessor;
+/// Make a (deep) copy of an image.
+template <class ImageT>
+CopyView<ImageT> copy(ImageViewBase<ImageT> const& v) {
+  return CopyView<ImageT>(v.impl());
+}
 
-  // Image View Class
-  template <class ImageT>
-  class Rotate180View;
+// crop()
 
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate180View<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
+template <class ImageT>
+class CropView: public ImageViewBase<CropView<ImageT>> {
+  typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>,
+    double, int32>::type offset_type;
 
-  /// Rotate an image 180 degrees.
-  template <class ImageT>
-  Rotate180View<ImageT> rotate_180( ImageViewBase<ImageT> const& v ) {
-    return Rotate180View<ImageT>( v.impl() );
+  ImageT m_child;
+  offset_type m_ci, m_cj;
+  int32 m_di, m_dj;
+
+public:
+  typedef typename ImageT::pixel_type pixel_type;
+  typedef typename ImageT::result_type result_type;
+  typedef typename ImageT::pixel_accessor pixel_accessor;
+
+  CropView(ImageT const& image, offset_type const upper_left_i,
+           offset_type const upper_left_j,
+           int32 const width, int32 const height):
+    m_child(image), m_ci(upper_left_i), m_cj(upper_left_j),
+    m_di(width), m_dj(height) {}
+
+  template<class RealT>
+  CropView(ImageT const& image, BBox<RealT, 2> const& bbox):
+    m_child(image),
+    m_ci((offset_type)(bbox.min()[0])),
+    m_cj((offset_type)(bbox.min()[1])),
+    m_di(int32(.5 + (bbox.width()))),
+    m_dj(int32(.5 + (bbox.height()))) {}
+
+  inline int32 cols() const { return m_di; }
+  inline int32 rows() const { return m_dj; }
+  inline int32 planes() const { return m_child.planes(); }
+
+  inline pixel_accessor origin() const {
+    return m_child.origin().advance(m_ci, m_cj);
   }
 
-
-  // *******************************************************************
-  // Rotate90CW
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ChildT>
-  class Rotate90CWPixelAccessor;
-
-  // Class definition
-  template <class ImageT>
-  class Rotate90CWView;
-
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate90CWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Rotate an image 90 degrees clockwise.
-  template <class ImageT>
-  Rotate90CWView<ImageT> rotate_90_cw( ImageViewBase<ImageT> const& v ) {
-    return Rotate90CWView<ImageT>( v.impl() );
+  inline result_type operator()(offset_type i, offset_type j,
+                                int32 p = 0) const {
+    return m_child(m_ci + i, m_cj + j, p);
   }
 
-
-  // *******************************************************************
-  // Rotate90CCW
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ChildT>
-  class Rotate90CCWPixelAccessor;
-
-  // Class definition
-  template <class ImageT>
-  class Rotate90CCWView;
-
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate90CCWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Rotate an image 90 degrees counter-clockwise.
-  template <class ImageT>
-  Rotate90CCWView<ImageT> rotate_90_ccw( ImageViewBase<ImageT> const& v ) {
-    return Rotate90CCWView<ImageT>( v.impl() );
+  CropView const& operator=(CropView const& view) const {
+    view.rasterize(*this,
+      BBox2i(0, 0, view.impl().cols(), view.impl().rows()));
+    return *this;
   }
 
-
-  // *******************************************************************
-  // FlipVertical
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ChildT>
-  class FlipVerticalPixelAccessor;
-
-  // Class definition
-  template <class ImageT>
-  class FlipVerticalView;
-
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<FlipVerticalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Flip an image vertically.
-  template <class ImageT>
-  FlipVerticalView<ImageT> flip_vertical( ImageViewBase<ImageT> const& v ) {
-    return FlipVerticalView<ImageT>( v.impl() );
+  template <class ViewT>
+  CropView const& operator=(ImageViewBase<ViewT> const& view) const {
+    view.impl().rasterize(*this,
+      BBox2i(0, 0, view.impl().cols(), view.impl().rows()));
+    return *this;
   }
 
+  ImageT const& child() const { return m_child; }
 
-  // *******************************************************************
-  // FlipHorizontal
-  // *******************************************************************
+  typedef CropView<typename ImageT::prerasterize_type> prerasterize_type;
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+    return prerasterize_type(
+      m_child.prerasterize(bbox + Vector2i(m_ci, m_cj)),
+      m_ci, m_cj, m_di, m_dj);
+  }
+  template <class DestT>
+  inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
+  }
+};
 
-  // Specialized pixel accessor
-  template <class ChildT>
-  class FlipHorizontalPixelAccessor;
+template <class ImageT>
+struct IsFloatingPointIndexable<CropView<ImageT>>:
+  public IsFloatingPointIndexable<ImageT> {};
 
-  // Class definition
-  template <class ImageT>
-  class FlipHorizontalView;
+template <class ImageT>
+struct IsMultiplyAccessible<CropView<ImageT>>:
+  public IsMultiplyAccessible<ImageT> {};
 
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<FlipHorizontalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
+/// Crop an image.
+template <class ImageT>
+inline CropView<ImageT> crop(ImageViewBase<ImageT> const& v,
+                              int32 upper_left_x, int32 upper_left_y,
+                              int32 width, int32 height) {
+  return CropView<ImageT>(v.impl(), upper_left_x, upper_left_y,
+                           width, height);
+}
 
-  /// Flip an image horizontally.
-  template <class ImageT>
-  FlipHorizontalView<ImageT> flip_horizontal( ImageViewBase<ImageT> const& v ) {
-    return FlipHorizontalView<ImageT>( v.impl() );
+/// Crop an image.
+template <class ImageT, class BBoxRealT>
+inline CropView<ImageT> crop(ImageViewBase<ImageT> const& v,
+                              BBox<BBoxRealT, 2> const& bbox) {
+  return CropView<ImageT>(v.impl(), bbox);
+}
+
+// subsample()
+
+template <class ChildT>
+class SubsamplePixelAccessor {
+  ChildT m_child;
+  int32 m_xdelta, m_ydelta;
+public:
+  typedef typename ChildT::pixel_type pixel_type;
+  typedef typename ChildT::result_type result_type;
+  typedef typename ChildT::offset_type offset_type;
+  SubsamplePixelAccessor(ChildT const& acc, int32 xdelta, int32 ydelta):
+    m_child(acc), m_xdelta(xdelta), m_ydelta(ydelta) {}
+
+  inline SubsamplePixelAccessor& next_col() {
+    m_child.advance(m_xdelta, 0); return *this;
+  }
+  inline SubsamplePixelAccessor& prev_col() {
+    m_child.advance(-m_xdelta, 0); return *this;
+  }
+  inline SubsamplePixelAccessor& next_row() {
+    m_child.advance(0, m_ydelta); return *this;
+  }
+  inline SubsamplePixelAccessor& prev_row() {
+    m_child.advance(0, -m_ydelta); return *this;
+  }
+  inline SubsamplePixelAccessor& next_plane() {
+    m_child.next_plane(); return *this;
+  }
+  inline SubsamplePixelAccessor& prev_plane() {
+    m_child.prev_plane(); return *this;
+  }
+  inline SubsamplePixelAccessor& advance(offset_type di, offset_type dj,
+                                          ssize_t dp = 0) {
+    m_child.advance((offset_type)m_xdelta * di,
+                    (offset_type)m_ydelta * dj, dp);
+    return *this;
   }
 
+  inline result_type operator*() const { return *m_child; }
+};
 
-  // *******************************************************************
-  // crop()
-  // *******************************************************************
+template <class ImageT>
+class SubsampleView: public ImageViewBase<SubsampleView<ImageT>> {
+  ImageT m_child;
+  int32 m_xdelta, m_ydelta;
+public:
+  typedef typename ImageT::pixel_type pixel_type;
+  typedef typename ImageT::result_type result_type;
+  typedef SubsamplePixelAccessor<typename ImageT::pixel_accessor>
+    pixel_accessor;
 
-  // Class definition
-  template <class ImageT>
-  class CropView;
-
-  /// \cond INTERNAL
-  // Type traits
-  template <class ImageT>
-  struct IsFloatingPointIndexable<CropView<ImageT> >  : public IsFloatingPointIndexable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<CropView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Crop an image.
-  template <class ImageT>
-  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, int32 upper_left_x, int32 upper_left_y, int32 width, int32 height ) {
-    return CropView<ImageT>( v.impl(), upper_left_x, upper_left_y, width, height );
+  SubsampleView(ImageT const& image, int32 subsampling_factor):
+    m_child(image), m_xdelta(subsampling_factor),
+    m_ydelta(subsampling_factor) {
+    VW_ASSERT(m_xdelta > 0 && m_ydelta > 0,
+              ArgumentErr()
+              << "SubsampleView: Arguments must be greater than zero.");
+  }
+  SubsampleView(ImageT const& image, int32 xfactor, int32 yfactor):
+    m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {
+    VW_ASSERT(m_xdelta > 0 && m_ydelta > 0,
+              ArgumentErr()
+              << "SubsampleView: Arguments must be greater than zero.");
   }
 
-  /// Crop an image.
-  template <class ImageT, class BBoxRealT>
-  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, BBox<BBoxRealT,2> const& bbox ) {
-    return CropView<ImageT>( v.impl(), bbox );
+  inline int32 cols() const {
+    return 1 + (m_child.cols() - 1) / m_xdelta;
+  }
+  inline int32 rows() const {
+    return 1 + (m_child.rows() - 1) / m_ydelta;
+  }
+  inline int32 planes() const { return m_child.planes(); }
+
+  inline pixel_accessor origin() const {
+    return pixel_accessor(m_child.origin(), m_xdelta, m_ydelta);
+  }
+  inline result_type operator()(int32 i, int32 j, int32 p = 0) const {
+    return m_child(m_xdelta * i, m_ydelta * j, p);
   }
 
+  ImageT const& child() const { return m_child; }
 
-  // *******************************************************************
-  // subsample()
-  // *******************************************************************
+  typedef CropView<ImageView<pixel_type>> prerasterize_type;
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+    ImageView<pixel_type> buffer(bbox.width(), bbox.height());
 
-  // Specialized image accessor
-  template <class ChildT>
-  class SubsamplePixelAccessor;
+    Vector2i sub_region_size(bbox.width() / m_xdelta,
+                             bbox.height() / m_ydelta);
+    if (sub_region_size.x() < 2)
+      sub_region_size.x() = 2;
+    if (sub_region_size.y() < 2)
+      sub_region_size.y() = 2;
 
-  // Class definition
-  template <class ImageT>
-  class SubsampleView;
+    typedef std::vector<BBox2i> ContainerT;
+    ContainerT bboxes = subdivide_bbox(bbox, sub_region_size.x(),
+                                       sub_region_size.y());
 
-  /// \cond INTERNAL
-  template <class ImageT>
-  struct IsMultiplyAccessible<SubsampleView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
+    typedef SubsampleView<typename ImageT::prerasterize_type>
+      input_pre_type;
 
-  /// Subsample an image by an integer factor.  Note that this
-  /// function does not pre-smooth the image prior to subsampling: it
-  /// simply selects every Nth pixel.  You will typically want to
-  /// apply some sort of anti-aliasing filter prior to calling this
-  /// function.
-  template <class ImageT>
-  inline SubsampleView<ImageT> subsample( ImageT const& v, int32 subsampling_factor ) {
-    return SubsampleView<ImageT>( v, subsampling_factor );
-  }
-
-  /// Subsample an image by integer factors in x and y.  Note that
-  /// this function does not pre-smooth the image prior to
-  /// subsampling: it simply selects every Nth pixel.  You will
-  /// typically want to apply some sort of anti-aliasing filter prior
-  /// to calling this function.
-  template <class ImageT>
-  inline SubsampleView<ImageT> subsample( ImageT const& v, int32 xfactor, int32 yfactor ) {
-    return SubsampleView<ImageT>( v, xfactor, yfactor );
-  }
-
-
-  // *******************************************************************
-  // select_col()
-  // *******************************************************************
-
-  /// Return a single column from an image
-  /// \see vw::select_col
-  template <class ImageT>
-  class SelectColView;
-
-  /// \cond INTERNAL
-  // View type Traits
-  template <class ImageT>
-  struct IsMultiplyAccessible<SelectColView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Extracts a single column of an image.  This function returns a
-  /// writeable view of a single column of a multi-column image.
-  /// \see vw::SelectColView
-  template <class ImageT>
-  SelectColView<ImageT> select_col( ImageViewBase<ImageT> const& v, int32 col ) {
-    return SelectColView<ImageT>( v.impl(), col );
-  }
-
-
-  // *******************************************************************
-  // select_row()
-  // *******************************************************************
-
-  /// Return a single row from an image
-  /// \see vw::select_row
-  template <class ImageT>
-  class SelectRowView;
-
-  // View type Traits
-  template <class ImageT>
-  struct IsMultiplyAccessible<SelectRowView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-
-  /// Extracts a single row of an image.  This function returns a
-  /// writeable view of a single row of a multi-row image.
-  /// \see vw::SelectRowView
-  template <class ImageT>
-  SelectRowView<ImageT> select_row( ImageViewBase<ImageT> const& v, int32 row ) {
-    return SelectRowView<ImageT>( v.impl(), row );
-  }
-
-
-  // *******************************************************************
-  // select_plane()
-  // *******************************************************************
-
-  /// Return a single plane from a multi-plane image
-  /// \see vw::select_plane
-  template <class ImageT>
-  class SelectPlaneView;
-
-  /// \cond INTERNAL
-  // View type Traits
-  template <class ImageT>
-  struct IsMultiplyAccessible<SelectPlaneView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Extracts a single plane of a multi-plane image.  This function
-  /// returns a writeable view of a single plane of a multi-plane
-  /// image.  \see vw::SelectPlaneView
-  template <class ImageT>
-  SelectPlaneView<ImageT> select_plane( ImageViewBase<ImageT> const& v, int32 plane ) {
-    return SelectPlaneView<ImageT>( v.impl(), plane );
-  }
-
-
-  // *******************************************************************
-  // select_channel()
-  // *******************************************************************
-
-  /// A channel selecting functor, used by \ref select_channel().
-  template <class ImageT>
-  struct SelectChannelFunctor;
-
-  /// Extracts a single channel of a multi-channel image.  This function
-  /// returns a writeable view of a single channel of a multi-channel image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
-  inline select_channel( ImageViewBase<ImageT>& image, int32 channel ) {
-    return UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >( image.impl(), SelectChannelFunctor<ImageT>(channel) );
-  }
-
-  /// Extracts a single channel of a multi-channel image (const overload).
-  /// This function returns a writeable view of a single channel of a
-  /// multi-channel image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
-  inline select_channel( ImageViewBase<ImageT> const& image, int32 channel ) {
-    return UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >( image.impl(), SelectChannelFunctor<const ImageT>(channel) );
-  }
-
-  /// A convenience function to select the alpha channel of an image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
-  inline select_alpha_channel( ImageViewBase<ImageT>& image );
-
-  /// A convenience function to select the alpha channel of an image
-  /// (const overload).
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
-  inline select_alpha_channel( ImageViewBase<ImageT> const& image );
-
-
-  // *******************************************************************
-  // channels_to_planes()
-  // *******************************************************************
-
-  /// A channels-to-planes pixel accessor adaptor.
-  ///
-  /// This is a special wrapper pixel accessor type, used by
-  /// \ref vw::ChannelsToPlanesView, that treats the channels in a
-  /// multi-channel image as planes.
-  template <class ChildT>
-  class ChannelsToPlanesAccessor;
-
-  /// A view that turns a one plane, multi-channel view into a mulit-plane, one channel view.
-  /// \see vw::channels_to_planes
-  template <class ImageT>
-  class ChannelsToPlanesView;
-
-  /// \cond INTERNAL
-  // View type Traits
-  template <class ImageT>
-  struct IsMultiplyAccessible<ChannelsToPlanesView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-
-  /// Adapts a multi-channel image view so the channels are treated as
-  /// planes.  This function returns a writeable view of of a
-  /// single-plane, multi-channel image that treats the channels as
-  /// planes.  This is primarily intended to simplify interfacing with
-  /// legacy non-Vision-Workbench code that can only support
-  /// fundamental pixel types.  If you are thinking about using this
-  /// function and you are not trying to interface to legacy code then
-  /// you are almost certainly doing something wrong.
-  /// \see vw::ChannelsToPlanesView
-  template <class ImageT>
-  ChannelsToPlanesView<ImageT> channels_to_planes( ImageViewBase<ImageT> const& v ) {
-    return ChannelsToPlanesView<ImageT>( v.impl() );
-  }
-
-
-  // *******************************************************************
-  // planes_to_channels()
-  // *******************************************************************
-
-  /// A view that turns a multi-plane, single-channel view into a
-  /// one-plane, multi-channel view.
-  /// \see vw::planes_to_channels
-  template <class PixelT, class ImageT>
-  class PlanesToChannelsView;
-
-  /// Adapts a multi-plane image view so the planes are treated as
-  /// channels of the given pixel type.  This is primarily intended to
-  /// simplify interfacing with legacy non-Vision-Workbench code that
-  /// can only support fundamental pixel types.  If you are thinking
-  /// about using this function and you are not trying to interface to
-  /// legacy code then you are almost certainly doing something wrong.
-  /// \see vw::PlanesToChannelsView
-  /// \see vw::channels_to_planes
-  template <class PixelT, class ImageT>
-  PlanesToChannelsView<PixelT,ImageT> planes_to_channels( ImageViewBase<ImageT> const& v ) {
-    return PlanesToChannelsView<PixelT,ImageT>( v.impl() );
-  }
-
-
-  // *******************************************************************
-  // pixel_cast()
-  // *******************************************************************
-
-  /// A pixel casting functor, used by \ref pixel_cast().
-  template <class PixelT>
-  struct PixelCastFunctor;
-
-  /// Create a new image view by statically casting the pixels to a
-  /// new type.
-  template <class PixelT, class ImageT>
-  inline UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> > pixel_cast( ImageViewBase<ImageT> const& image ) {
-    return UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> >( image.impl() );
-  }
-
-
-  // *******************************************************************
-  // pixel_cast_rescale()
-  // *******************************************************************
-
-  /// A pixel casting functor, used by \ref pixel_cast_rescale().
-  template <class PixelT>
-  struct PixelCastRescaleFunctor;
-
-  /// Create a new image view by casting and rescaling the pixels to a
-  /// new type.
-  template <class PixelT, class ImageT>
-  inline UnaryPerPixelView<ImageT,PixelCastRescaleFunctor<PixelT> > pixel_cast_rescale( ImageViewBase<ImageT> const& image ) {
-    return UnaryPerPixelView<ImageT,PixelCastRescaleFunctor<PixelT> >( image.impl() );
-  }
-
-
-  // *******************************************************************
-  // channel_cast()
-  // *******************************************************************
-
-  /// A pixel channel casting functor, used by \ref channel_cast().
-  template <class ChannelT>
-  struct PixelChannelCastFunctor;
-
-  /// Create a new image view by statically casting the channels of the pixels to a new type.
-  template <class ChannelT, class ImageT>
-  inline UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> > channel_cast( ImageViewBase<ImageT> const& image ) {
-    return UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> >( image.impl() );
-  }
-
-
-  // *******************************************************************
-  // channel_cast_round_and_clamp()
-  // *******************************************************************
-
-  /// A pixel channel casting, rounding and clamping functor, used by
-  /// \ref channel_cast_round_and_clamp().
-  template <class ChannelT>
-  struct PixelChannelCastRoundClampFunctor;
-
-  /// Create a new image view by casting, rounding, and clamping the channels of
-  /// the pixels to a new type.
-  template <class ChannelT, class ImageT>
-  inline UnaryPerPixelView<ImageT,PixelChannelCastRoundClampFunctor<ChannelT> > channel_cast_round_and_clamp( ImageViewBase<ImageT> const& image ) {
-    return UnaryPerPixelView<ImageT,PixelChannelCastRoundClampFunctor<ChannelT> >( image.impl() );
-  }
-
-
-  // *******************************************************************
-  // channel_cast_rescale()
-  // *******************************************************************
-
-  /// A pixel channel casting and rescaling functor, used by
-  /// \ref channel_cast_rescale().
-  template <class ChannelT>
-  struct PixelChannelCastRescaleFunctor;
-
-  /// Create a new image view by casting and rescaling the channels of
-  /// the pixels to a new type.
-  template <class ChannelT, class ImageT>
-  inline UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> > channel_cast_rescale( ImageViewBase<ImageT> const& image ) {
-    return UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> >( image.impl() );
-  }
-
-
-  // *******************************************************************
-  // weighted_rgb_to_gray()
-  // *******************************************************************
-
-  /// A weighted rgb-to-gray pixel conversion functor.
-  //class WeightedRGBToGrayFunctor; // TODO: Why does forward declaration not work?
-
-  /// A weighted rgb-to-gray pixel conversion functor.
-  class WeightedRGBToGrayFunctor {
-    double m_rw, m_gw, m_bw;
-  public:
-    template <class ArgsT> struct result {};
-    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGB<ChannelT>)> { typedef PixelGray<ChannelT> type; };
-    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGBA<ChannelT>)> { typedef PixelGrayA<ChannelT> type; };
-    WeightedRGBToGrayFunctor( double rw, double gw, double bw ) : m_rw(rw), m_gw(gw), m_bw(bw) {}
-    template <class ChannelT> inline PixelGrayA<ChannelT> operator()( PixelRGBA<ChannelT> const& rgb ) const {
-      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
+    for (ContainerT::const_iterator b = bboxes.begin();
+         b != bboxes.end(); ++b) {
+      vw::rasterize(
+        input_pre_type(
+          m_child.prerasterize(
+            BBox2i(m_xdelta * (*b).min().x(),
+                   m_ydelta * (*b).min().y(),
+                   m_xdelta * ((*b).width() - 1) + 1,
+                   m_xdelta * ((*b).height() - 1) + 1)),
+          m_xdelta, m_ydelta),
+        crop(buffer, *b - bbox.min()), *b);
     }
-    template <class ChannelT> inline PixelGray<ChannelT> operator()( PixelRGB<ChannelT> const& rgb ) const {
-      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
-    }
-  };
 
-
-  /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.
-  template <class ImageT>
-  inline UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor> weighted_rgb_to_gray( ImageViewBase<ImageT> const& image, double rw, double gw, double bw ) {
-    return UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor>( image.impl(), WeightedRGBToGrayFunctor(rw,gw,bw) );
+    return crop(buffer, -bbox.min().x(), -bbox.min().y(),
+                cols(), rows());
   }
-
-  /// Weighted conversion from PixelRGBA to PixelGrayA using the default weights.
-  template <class ImageT>
-  inline UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor> weighted_rgb_to_gray( ImageViewBase<ImageT> const& image ) {
-    WeightedRGBToGrayFunctor func( VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT );
-    return UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor>( image.impl(), func );
+  template <class DestT>
+  inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
   }
+};
+
+template <class ImageT>
+struct IsMultiplyAccessible<SubsampleView<ImageT>>:
+  public IsMultiplyAccessible<ImageT> {};
+
+/// Subsample an image by an integer factor.
+template <class ImageT>
+inline SubsampleView<ImageT> subsample(ImageT const& v,
+                                        int32 subsampling_factor) {
+  return SubsampleView<ImageT>(v, subsampling_factor);
+}
+
+/// Subsample an image by integer factors in x and y.
+template <class ImageT>
+inline SubsampleView<ImageT> subsample(ImageT const& v,
+                                        int32 xfactor, int32 yfactor) {
+  return SubsampleView<ImageT>(v, xfactor, yfactor);
+}
 
 } // namespace vw
-
-#include "Manipulation.tcc"
 
 #endif // __VW_IMAGE_MANIPULATION_H__
