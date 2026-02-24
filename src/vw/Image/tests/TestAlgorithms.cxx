@@ -20,6 +20,7 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Grassfire.h>
 #include <vw/Image/WindowAlgorithms.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>

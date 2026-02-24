@@ -37,53 +37,6 @@ namespace vw {
   void fill( ImageViewBase<ImageT> const& image, ValueT value_ );
 
   // *******************************************************************
-  // grassfire()
-  // *******************************************************************
-
-  /// Computes the 4-connected grassfire image of an image.
-  /// (Specifically, computes the Manhattan distance from each pixel to
-  /// the nearest pixel with zero value, assuming the borders of the
-  /// image are zero.)
-  /// - If ignore_borders is set, borders are not treated as zero value.
-  template <class SourceT, class OutputT>
-  void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst,
-                  bool ignore_borders=false);
-
-  // Without destination given, return in a newly-created ImageView<int32>
-  template <class SourceT>
-  ImageView<int32> grassfire( ImageViewBase<SourceT> const& src, bool ignore_borders=false) {
-    int32 cols = src.impl().cols(), rows = src.impl().rows();
-    ImageView<int32> result( cols, rows );
-    grassfire( src, result, ignore_borders );
-    return result;
-  }
-
-  /// A weight at a given pixel, based on an image row. Return
-  /// zero where image values are not valid, and positive where valid.
-  /// - hCenterLine contains the center column at each row/col
-  /// - hMaxDistArray contains the width of the column at each row/col
-  double compute_line_weights(Vector2 const& pix, bool horizontal,
-                              std::vector<double> const& centers,
-                              std::vector<double> const& widths);
-
-  // *******************************************************************
-  // centerline_weights()
-  // *******************************************************************
-
-  /// Computes a weighting measure based on the distance from the vertical
-  ///  and horizontal centerlines of and image.
-  /// - For images which are regular with no large holes this can work
-  ///   better than using grassfire weights.
-  /// - fill_holes will assign a normal weight to holes in the image interior.
-  /// - use_min_weight creates more of a rectangular instead of a
-  ///   circular weight pattern.
-  template <class ImageT>
-  void centerline_weights( ImageT const& src, ImageView<double>& weights,
-                           BBox2i roi=BBox2i(), bool fill_holes = false,
-                           bool use_min_weight=false );
-
-
-  // *******************************************************************
   // bounding_box()
   // *******************************************************************
 

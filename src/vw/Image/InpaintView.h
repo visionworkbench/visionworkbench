@@ -30,6 +30,7 @@
 #include <vw/Core/ThreadPool.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Grassfire.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/BlobIndex.h>

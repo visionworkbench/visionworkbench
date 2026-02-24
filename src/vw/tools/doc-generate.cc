@@ -21,6 +21,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Grassfire.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Manipulation.h>

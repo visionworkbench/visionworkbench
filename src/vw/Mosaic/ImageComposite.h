@@ -34,6 +34,7 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Grassfire.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/SparseImageCheck.h>

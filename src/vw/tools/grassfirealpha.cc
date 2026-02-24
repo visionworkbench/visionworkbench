@@ -18,6 +18,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Grassfire.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
