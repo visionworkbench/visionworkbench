@@ -1434,6 +1434,10 @@ int vw::stereo::adjust_weight_image(ImageView<float> &weight,
   return num_good_pix;
 }
 
+// Cross-correlation consistency check. Both BM and SGM/MGM call this
+// with PixelMask<Vector2i> disparity. Even for SGM/MGM the consistency
+// check runs on integer disparity; the float subpixel disparity is
+// produced later by create_disparity_view_subpixel() at level 0.
 template <class ImageT1, class ImageT2>
 void vw::stereo::cross_corr_consistency_check(
     ImageViewBase<ImageT1> const& l2r,
@@ -1499,14 +1503,15 @@ void vw::stereo::cross_corr_consistency_check(
 
 // Explicit instantiations for the types used in production and tests
 typedef PixelMask<Vector2i> PMV2i;
-typedef PixelMask<Vector2f> PMV2f;
 
+// Production: l2r is crop of ImageView, r2l is ImageView
 template void vw::stereo::cross_corr_consistency_check(
     ImageViewBase<CropView<ImageView<PMV2i>>> const&,
     ImageViewBase<ImageView<PMV2i>> const&,
     float, ImageView<PixelMask<float>>*, Vector2i, bool);
 
+// Tests: both are plain ImageView
 template void vw::stereo::cross_corr_consistency_check(
-    ImageViewBase<ImageView<PMV2f>> const&,
-    ImageViewBase<ImageView<PMV2f>> const&,
+    ImageViewBase<ImageView<PMV2i>> const&,
+    ImageViewBase<ImageView<PMV2i>> const&,
     float, ImageView<PixelMask<float>>*, Vector2i, bool);
