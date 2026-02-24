@@ -20,6 +20,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ImageResourceImpl.h>

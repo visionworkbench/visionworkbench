@@ -40,6 +40,7 @@
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageChannels.h>
 
 namespace vw {
 

@@ -30,6 +30,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageTransform.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PixelMask.h>
 

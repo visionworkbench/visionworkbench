@@ -22,6 +22,7 @@
 
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/ImageChannels.h>
 
 namespace vw {
 

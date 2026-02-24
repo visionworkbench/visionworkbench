@@ -51,6 +51,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/BlockImageOperator.h>
 #include <vw/Image/EdgeExtension.h>
+#include <vw/Image/ImageChannels.h>
 
 namespace vw {
 
