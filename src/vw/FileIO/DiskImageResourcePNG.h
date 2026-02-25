@@ -97,6 +97,9 @@ namespace vw {
       bool using_palette; // Output as a palette.
       bool using_palette_indices; // For setting your own palette.
       bool using_palette_alpha; // If your palette has an alpha channel.
+      // TODO(oalexan1): Replace with std::vector<PixelRGBA<uint8>>.
+      // A palette is a 1D lookup table, not a 2D image. This would
+      // remove the ImageView.h dependency from this header.
       ImageView<PixelRGBA<uint8> > palette; // The palette, set manually.
 
       Options();
