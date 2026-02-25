@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -25,7 +25,7 @@
 
 #include <vw/vw_config.h>
 #include <vw/FileIO/DiskImageResource.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
 #include <string>
 #include <vector>
 #include <boost/smart_ptr/shared_ptr.hpp>
@@ -97,10 +97,7 @@ namespace vw {
       bool using_palette; // Output as a palette.
       bool using_palette_indices; // For setting your own palette.
       bool using_palette_alpha; // If your palette has an alpha channel.
-      // TODO(oalexan1): Replace with std::vector<PixelRGBA<uint8>>.
-      // A palette is a 1D lookup table, not a 2D image. This would
-      // remove the ImageView.h dependency from this header.
-      ImageView<PixelRGBA<uint8> > palette; // The palette, set manually.
+      std::vector<PixelRGBA<uint8>> palette; // The palette, set manually.
 
       Options();
     };
@@ -109,18 +106,17 @@ namespace vw {
 
     // Convenience functions:
 
-    static void write_palette_file( std::string const& filename,
-                                    ImageView<uint8> const& image,
-                                    ImageView<PixelRGBA<uint8> > const& palette )
-    {
+    template <typename ImageT>
+    static void write_palette_file(std::string const& filename,
+                                   ImageT const& image,
+                                   std::vector<PixelRGBA<uint8>> const& palette) {
       Options options;
       options.using_palette = true;
       options.using_palette_indices = true;
       options.using_palette_alpha = true;
       options.palette = palette;
-
-      DiskImageResourcePNG png( filename, image.format(), options );
-      png.write( image.buffer(), BBox2i(0,0,image.cols(),image.rows()) );
+      DiskImageResourcePNG png(filename, image.format(), options);
+      png.write(image.buffer(), BBox2i(0, 0, image.cols(), image.rows()));
     }
 
     virtual bool has_block_write()  const {return false;}

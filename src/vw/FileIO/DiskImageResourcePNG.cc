@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -440,19 +440,21 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     if(options.using_palette && options.using_palette_indices)
     {
-      png_colorp palette = reinterpret_cast<png_colorp>(png_malloc( ctx.ptr, options.palette.cols() * sizeof(png_color) ));
-      png_bytep alpha    = reinterpret_cast<png_bytep>(png_malloc( ctx.ptr, options.palette.cols() * sizeof(png_byte) ));
+      int numEntries = options.palette.size();
+      png_colorp palette = reinterpret_cast<png_colorp>(
+        png_malloc(ctx.ptr, numEntries * sizeof(png_color)));
+      png_bytep alpha = reinterpret_cast<png_bytep>(
+        png_malloc(ctx.ptr, numEntries * sizeof(png_byte)));
 
-      for ( int i=0; i < int(options.palette.cols()); ++i )
-      {
-        palette[i].red   = options.palette(i,0).r();
-        palette[i].green = options.palette(i,0).g();
-        palette[i].blue  = options.palette(i,0).b();
-        alpha[i]         = options.palette(i,0).a();
+      for (int i = 0; i < numEntries; i++) {
+        palette[i].red   = options.palette[i].r();
+        palette[i].green = options.palette[i].g();
+        palette[i].blue  = options.palette[i].b();
+        alpha[i]         = options.palette[i].a();
       }
-      png_set_PLTE( ctx.ptr, ctx.info, palette, options.palette.cols() );
+      png_set_PLTE(ctx.ptr, ctx.info, palette, numEntries);
       if(options.using_palette_alpha) {
-        png_set_tRNS( ctx.ptr, ctx.info, alpha, options.palette.cols(), 0 );
+        png_set_tRNS(ctx.ptr, ctx.info, alpha, numEntries, 0);
         channels++;
       }
     }
