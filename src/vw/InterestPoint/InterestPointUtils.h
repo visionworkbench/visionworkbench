@@ -30,6 +30,7 @@
 
 #include <vw/InterestPoint/InterestPoint.h>
 
+#include <vw/Image/Algorithms.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/FileIO/DiskImageView.h>

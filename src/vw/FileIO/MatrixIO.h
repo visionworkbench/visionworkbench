@@ -26,7 +26,7 @@
 
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
 
 //Matrix<double> alignMatrix;
 //write_matrix(out_prefix + "-align.exr", align_matrix);

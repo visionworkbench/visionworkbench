@@ -30,6 +30,7 @@
 
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 
 #include <boost/smart_ptr/scoped_array.hpp>
 

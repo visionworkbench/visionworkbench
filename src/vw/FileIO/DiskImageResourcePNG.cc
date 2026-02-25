@@ -32,6 +32,10 @@
 #include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
+#include <vw/Core/Settings.h>
+
+#include <boost/numeric/conversion/cast.hpp>
 
 #include <png.h>
 #include <vector>

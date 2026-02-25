@@ -24,6 +24,7 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ErodeView.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Stereo/Correlation.h>
 
 #include <boost/foreach.hpp>

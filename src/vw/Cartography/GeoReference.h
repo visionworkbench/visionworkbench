@@ -19,10 +19,8 @@
 #ifndef __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 #define __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/Algorithms.h>
 #include <vw/Cartography/Datum.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/ImageResource.h>
 #include <vw/Core/Exception.h>
 
 #include <ogr_spatialref.h>
@@ -324,21 +322,6 @@ namespace cartography {
     /// pixels on the image
     BBox2 point_to_pixel_bbox(BBox2 const& point_bbox) const;
     
-    /// Return the box that bounds the area represented by the
-    /// geotransform for the dimensions of the given image.
-    template <class ViewT>
-    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const;
-
-    /// Return the box that bounds the area represented by the
-    /// geotransform for the dimensions of the given image.
-    /// Note that this doesn't tell you whether the image takes the
-    /// long path or the short path from the left longitude to the
-    /// right longitude.
-    ///
-    /// The assumption here is that the projection is continuous.
-    template <class ViewT>
-    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const;
-    
     // The image extent lon-lat box
     void set_image_ll_box(vw::BBox2 const& bbox);
     vw::BBox2 image_ll_box() const;
@@ -382,21 +365,6 @@ namespace cartography {
   /// A function to write a a string with given name and value to geotiff header
   void write_header_string( ImageResource& resource, std::string const& str_name,
                             std::string const& str_val );
-
-  // -----------------------------------------------------------
-  // Template function definitions for the GeoReference class
-
-  /// Get point coordinate bounding box of an image
-  template <class ViewT>
-  BBox2 GeoReference::bounding_box(ImageViewBase<ViewT> const& view) const {
-    return pixel_to_point_bbox(vw::bounding_box(view.impl()));
-  }
-
-  /// Get lonlat coordinate bounding box of an image
-  template <class ViewT>
-  BBox2 GeoReference::lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
-    return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
-  }
 
   // Given an integer box, generate points on its boundary and the
   // diagonal. We assume the max is not exclusive, to ensure even boxes

@@ -33,6 +33,7 @@
 #ifdef VW_HAVE_PKG_GDAL
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/Thread.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>

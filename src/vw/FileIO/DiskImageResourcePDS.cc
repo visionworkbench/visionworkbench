@@ -25,6 +25,7 @@
 #endif
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 #include <vector>

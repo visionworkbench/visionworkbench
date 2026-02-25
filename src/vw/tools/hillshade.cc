@@ -26,6 +26,7 @@
 #undef NDEBUG
 #endif
 
+#include <vw/Core/Log.h>
 #include <vw/Cartography/Hillshade.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/GdalWriteOptions.h>

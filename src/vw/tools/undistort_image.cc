@@ -34,7 +34,8 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Math/Functors.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/FileIO/FileUtils.h>

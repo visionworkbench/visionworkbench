@@ -139,7 +139,7 @@ namespace vw {
       read_georeference( input_georef, image_files[i] );
       DiskImageView<PixelT> source_disk_image( image_files[i] );
       vw_out(vw::VerboseDebugMessage) << "\tTransform: " << input_georef.transform()
-                                      << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << std::endl;
+                                      << "\t\tBBox: " << input_georef.pixel_to_point_bbox(vw::bounding_box(source_disk_image)) << std::endl;
 
       // Check to make sure the image has valid georeferencing
       // information.
@@ -258,7 +258,7 @@ namespace vw {
     } else {
       vw_out(vw::VerboseDebugMessage) << "Output image:" << std::endl
                                       << "\tTransform: " << output_affine << std::endl
-                                      << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]" << std::endl << std::endl;
+                                      << "\t\tBBox: " << output_georef.pixel_to_point_bbox(vw::bounding_box(composite)) << " [ W: " << output_georef.pixel_to_point_bbox(vw::bounding_box(composite)).width() << " H: " << output_georef.pixel_to_point_bbox(vw::bounding_box(composite)).height() << " ]" << std::endl << std::endl;
 
       std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
       DiskImageResourceGDAL *out_resource;

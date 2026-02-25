@@ -32,6 +32,7 @@
 // For RunOnce
 #include <vw/Core/RunOnce.h>
 
+#include <vw/Core/Log.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePBM.h>

@@ -36,6 +36,7 @@
 #include <vw/Image/Colormap.h>
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/tools/Common.h>

@@ -23,7 +23,7 @@
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ImageResourceImpl.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <boost/core/null_deleter.hpp>
 
 namespace vw {

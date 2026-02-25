@@ -89,7 +89,7 @@ void imageData::read(std::string const& image, bool ignore_georef,
     has_georef = vw::cartography::read_georeference(georef, name);
     
   if (has_georef)
-    bbox = georef.lonlat_bounding_box(img); // lonlat box
+    bbox = georef.pixel_to_lonlat_bbox(vw::bounding_box(img)); // lonlat box
   else
     bbox = bounding_box(img);               // pixel box
 

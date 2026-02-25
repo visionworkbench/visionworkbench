@@ -38,7 +38,7 @@
 #include <vw/Image/Transform.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/SparseImageCheck.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageChannels.h>
 

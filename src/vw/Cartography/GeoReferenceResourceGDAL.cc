@@ -18,6 +18,8 @@
 
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
+#include <vw/Core/Thread.h>
 #include <vw/Cartography/GeoReferenceResourceGDAL.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>

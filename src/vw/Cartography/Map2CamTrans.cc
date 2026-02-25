@@ -20,6 +20,7 @@
 #include <vw/Cartography/Map2CamTrans.h>
 #include <vw/Cartography/CameraBBox.h>
 #include <vw/Image/MaskViews.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Camera/CameraModel.h>
 
 namespace vw { namespace cartography {

@@ -27,6 +27,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
 

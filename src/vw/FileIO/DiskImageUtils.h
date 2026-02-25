@@ -21,6 +21,7 @@
 #define __VW_FILEIO_DISKIMAGEUTILS_H__
 
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/ImageChannels.h>
 

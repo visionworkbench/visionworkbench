@@ -18,6 +18,7 @@
 
 #include <vw/Mosaic/QuadTreeConfig.h>
 #include <vw/Mosaic/CelestiaQuadTreeConfig.h>
+#include <boost/algorithm/string.hpp>
 #include <vw/Mosaic/GigapanQuadTreeConfig.h>
 #include <vw/Mosaic/GMapQuadTreeConfig.h>
 #include <vw/Mosaic/KMLQuadTreeConfig.h>

@@ -20,12 +20,11 @@
 
 #include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoTransform.h>
-
-// Vision Workbench
 #include <vw/Image/ImageView.h>
 
+#include <boost/algorithm/string.hpp>
+
 // TODO(oalexan1): Wipe proj
-// Proj
 #include <proj.h>
 
 namespace vw {

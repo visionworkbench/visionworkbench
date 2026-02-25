@@ -25,6 +25,7 @@
 
 #include <vw/vw_config.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/ImageView.h>
 #include <string>
 #include <vector>
 #include <boost/smart_ptr/shared_ptr.hpp>

@@ -26,7 +26,7 @@
 // Vision Workbench
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Filter.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
 
 // STL
 #include <vector>
