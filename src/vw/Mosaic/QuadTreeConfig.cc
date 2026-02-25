@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -15,15 +15,10 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
 #include <vw/Mosaic/QuadTreeConfig.h>
-#include <vw/Mosaic/CelestiaQuadTreeConfig.h>
-#include <boost/algorithm/string.hpp>
-#include <vw/Mosaic/GigapanQuadTreeConfig.h>
-#include <vw/Mosaic/GMapQuadTreeConfig.h>
 #include <vw/Mosaic/KMLQuadTreeConfig.h>
-#include <vw/Mosaic/TMSQuadTreeConfig.h>
-#include <vw/Mosaic/UniviewQuadTreeConfig.h>
+
+#include <boost/algorithm/string.hpp>
 
 using namespace vw;
 using namespace vw::mosaic;
@@ -32,18 +27,8 @@ boost::shared_ptr<QuadTreeConfig> QuadTreeConfig::make(const std::string& type) 
   typedef boost::shared_ptr<QuadTreeConfig> ptr_t;
   std::string utype = boost::to_upper_copy(type);
 
-  if (utype == "CELESTIA")
-    return ptr_t(new CelestiaQuadTreeConfig());
-  else if (utype == "GIGAPAN" || utype == "GIGAPAN_NOPROJ")
-    return ptr_t(new GigapanQuadTreeConfig());
-  else if (utype == "GMAP")
-    return ptr_t(new GMapQuadTreeConfig());
-  else if (utype == "KML")
+  if (utype == "KML")
     return ptr_t(new KMLQuadTreeConfig());
-  else if (utype == "TMS")
-    return ptr_t(new TMSQuadTreeConfig());
-  else if (utype == "UNIVIEW")
-    return ptr_t(new UniviewQuadTreeConfig());
   else
     vw_throw(NoImplErr() << "Unknown quad tree type: " << utype);
 }

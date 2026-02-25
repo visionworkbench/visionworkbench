@@ -31,13 +31,10 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Mosaic/CelestiaQuadTreeConfig.h>
-#include <vw/Mosaic/GigapanQuadTreeConfig.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Mosaic/KMLQuadTreeConfig.h>
 #include <vw/Mosaic/QuadTreeConfig.h>
 #include <vw/Mosaic/QuadTreeGenerator.h>
-#include <vw/Mosaic/UniviewQuadTreeConfig.h>
 #include <vw/tools/Common.h>
 #include <vw/FileIO/GdalWriteOptions.h>
 
@@ -157,10 +154,6 @@ struct Options: vw::GdalWriteOptions {
     if (mode == "NONE")
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
-    if (mode == "CELESTIA" || mode == "UNIVIEW")
-      VW_ASSERT(!module_name.empty(),
-                vw::tools::Usage() << "Uniview and Celestia require --module-name");
-
     if (proj.type == "NONE")
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
@@ -360,20 +353,6 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     c2->set_longlat_bbox( ll_bbox );
     c2->set_max_lod_pixels( opt.kml.max_lod_pixels );
     c2->set_draw_order_offset( opt.kml.draw_order_offset );
-  } else if( opt.mode == "CELESTIA" ) {
-    mosaic::CelestiaQuadTreeConfig *c2 = dynamic_cast<mosaic::CelestiaQuadTreeConfig*>(config.get());
-    c2->set_module(opt.module_name);
-  } else if( opt.mode == "UNIVIEW" ) {
-    mosaic::UniviewQuadTreeConfig *c2 = dynamic_cast<mosaic::UniviewQuadTreeConfig*>(config.get());
-    c2->set_terrain(opt.terrain);
-    c2->set_module(opt.module_name);
-  } else if ( opt.mode == "GIGAPAN" ) {
-    mosaic::GigapanQuadTreeConfig *c2 = dynamic_cast<mosaic::GigapanQuadTreeConfig*>(config.get());
-    BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
-                    180.0 - (360.0*total_bbox.max().y())/yresolution,
-                            (360.0*total_bbox.width())  /xresolution,
-                            (360.0*total_bbox.height()) /yresolution );
-    c2->set_longlat_bbox( ll_bbox );
   }
 
   config->configure(quadtree);

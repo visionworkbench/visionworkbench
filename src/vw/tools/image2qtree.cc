@@ -19,9 +19,7 @@
 /// \file image2qtree.cc
 ///
 /// This program takes a georeferenced image as its input, and outputs
-/// a quadtree for that image that is viewable in various terrain display
-/// programs, such as Google Earth. Currently, the program supports output
-/// in KML, TMS, Uniview, and Google Maps formats.
+/// a quadtree for that image that is viewable in Google Earth via KML.
 
 #include <vw/tools/image2qtree.h>
 #include <vw/FileIO/GdalWriteOptions.h>
@@ -67,25 +65,11 @@ namespace local {
       return 1 << scale_exponent;
     }
   } // namespace local::kml
-
-  namespace tms {
-    // Returns the number of pixels per planetary circumference,
-    // rounding up to a power of two.
-    template <class TransformT>
-    inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
-      // It's exactly the same as the one for KML.
-      return local::kml::compute_resolution(tx, pixel);
-    }
-  } // namespace local::tms
 } // namespace local
 
 int32 compute_resolution(const std::string& p, const GeoTransform& t, const Vector2& v) {
-  if (p == "KML")      return local::kml::compute_resolution(t,v);
-  if (p == "TMS")      return local::tms::compute_resolution(t,v);
-  if (p == "UNIVIEW")  return local::tms::compute_resolution(t,v);
-  if (p == "GMAP")     return local::tms::compute_resolution(t,v);
-  if (p == "CELESTIA") return local::tms::compute_resolution(t,v);
-  if (p == "GIGAPAN")  return local::tms::compute_resolution(t,v);
+  if (p == "KML")
+    return local::kml::compute_resolution(t, v);
   vw_throw(LogicErr() << "Asked to compute resolution for unknown quadtree type.");
 }
 
@@ -219,7 +203,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
   general_options.add(vw::GdalWriteOptionsDescription(opt));
 
 const std::string channel_options_str    = "DEFAULT, UINT8, UINT16, INT16, FLOAT";
-const std::string mode_options_str       = "NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN";
+const std::string mode_options_str       = "NONE, KML";
 const std::string datum_options_str      = "NONE, WGS84, LUNAR, MARS, SPHERE";
 const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR, TRANSVERSE_MERCATOR, ORTHOGRAPHIC, STEREOGRAPHIC, LAMBERT_AZIMUTHAL, LAMBERT_CONFORMAL_CONIC, UTM, PLATE_CARREE";
 
@@ -242,8 +226,8 @@ const std::string projection_options_str = "DEFAULT, NONE, SINUSOIDAL, MERCATOR,
     ("mode,m"           , po::value(&opt.mode)->default_value("KML"), mode_desc.c_str())
     ("file-type"        , po::value(&opt.output_file_type)                       , "Output file type.  (Choose \'auto\' to generate jpgs in opaque areas and png images where there is transparency.)")
     ("channel-type"     , po::value(&opt.channel_type)->default_value("DEFAULT"), chan_desc.c_str())
-    ("module-name"      , po::value(&opt.module_name)                            , "The module where the output will be placed. Ex: marsds for Uniview,  or Sol/Mars for Celestia")
-    ("terrain"          , po::bool_switch(&opt.terrain)                          , "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")
+    ("module-name"      , po::value(&opt.module_name)                            , "The module where the output will be placed.")
+    ("terrain"          , po::bool_switch(&opt.terrain)                          , "Outputs image files suitable for a terrain view. Implies output format as PNG, channel type uint16.")
     ("jpeg-quality"     , po::value(&opt.jpeg_quality)                           , "JPEG quality factor (0.0 to 1.0)")
     ("png-compression"  , po::value(&opt.png_compression)                        , "PNG compression level (0 to 9)")
     ("tile-size"        , po::value(&opt.tile_size)                              , "Tile size in pixels")
