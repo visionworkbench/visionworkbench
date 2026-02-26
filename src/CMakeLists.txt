@@ -1,10 +1,5 @@
 include(Utilities) # Contains functions
 
-# Need this to make sure we get the compiler from PATH.
-# - cc and c++ both need to be on the PATH.
-find_program(CMAKE_C_COMPILER   NAMES $ENV{CC}  gcc PATHS ENV PATH NO_DEFAULT_PATH)
-find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
-
 project (VisionWorkbench C CXX)
 
 # Verify that we have a new enough compiler.
