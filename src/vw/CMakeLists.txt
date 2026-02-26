@@ -55,7 +55,9 @@ SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
 
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# Don't set CMAKE_INSTALL_RPATH_USE_LINK_PATH. On macOS the Apple linker
+# auto-adds rpaths for @rpath dylibs, causing duplicates with USE_LINK_PATH.
+# On Linux, $ORIGIN/../lib + asp_deps/lib cover all needed paths.
 
 # Make sure installed files can find installed libraries
 if (APPLE)
@@ -64,6 +66,7 @@ elseif (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/../lib" ${CMAKE_INSTALL_RPATH})
 endif()
 SET(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ASP_DEPS_DIR}/lib)
+list(REMOVE_DUPLICATES CMAKE_INSTALL_RPATH)
 
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
