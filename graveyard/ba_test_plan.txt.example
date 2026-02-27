@@ -1,5 +1,0 @@
-min-tiepoints-per-image	number-of-cameras	lambda	camera-position-sigma	camera-pose-sigma	max-iterations	pixel-inlier-noise-type	pixel-inlier-df	pixel-inlier-sigma	pixel-outlier-noise-type	pixel-outlier-df	pixel-outlier-sigma	pixel-outlier-freq	xyz-inlier-noise-type	xyz-inlier-df	xyz-inlier-sigma	xyz-outlier-noise-type	xyz-outlier-df	xyz-outlier-sigma	xyz-outlier-freq	euler-inlier-noise-type	euler-inlier-df	euler-inlier-sigma	euler-outlier-noise-type	euler-outlier-df	euler-outlier-sigma	euler-outlier-freq
-40	5	5	1.00E+03	1.00E+00	30	Normal	1	1	Normal	1	1	0.05	Normal	1	0	Normal	1	1	0	Normal	1	0	Normal	1	1	0
-40	5	5	1.00E+03	1.00E+00	30	Normal	1	1	Normal	1	4	0.05	Normal	1	0	Normal	1	1	0	Normal	1	0	Normal	1	1	0
-40	5	5	1.00E+03	1.00E+00	30	Normal	1	1	Normal	1	10	0.05	Normal	1	0	Normal	1	1	0	Normal	1	0	Normal	1	1	0
-40	5	5	1.00E+03	1.00E+00	30	Normal	1	1	Normal	1	50	0.05	Normal	1	0	Normal	1	1	0	Normal	1	0	Normal	1	1	0
