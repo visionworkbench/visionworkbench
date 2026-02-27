@@ -1282,7 +1282,7 @@ void populate_lut_map(lut_type const& lut,
 // from which the style is read. The output will be either in lut
 // or lut_map, depending on the desired style. This will be sorted
 // out later.
-void parse_color_style(std::string const& colormap_style,
+void parseColorStyle(std::string const& colormap_style,
                       std::map<float, Vector3u> & lut_map) {
 
   lut_type lut;

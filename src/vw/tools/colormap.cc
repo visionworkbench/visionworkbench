@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
   try {
     handle_arguments(argc, argv, opt);
 
-    parse_color_style(opt.colormap_style, opt.lut_map);
+    parseColorStyle(opt.colormap_style, opt.lut_map);
     
     // Get the right pixel/channel type.
     ImageFormat fmt = vw::image_format(opt.input_file_name);
