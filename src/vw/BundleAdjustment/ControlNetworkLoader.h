@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,17 +20,11 @@
 #define __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_LOADER_H__
 
 #include <vw/BundleAdjustment/ControlNetwork.h>
-#include <vw/BundleAdjustment/CameraRelation.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/Cartography/Datum.h>
 #include <vw/Cartography/BathyStereoModel.h>
-#include <boost/filesystem/operations.hpp>
-#include <boost/foreach.hpp>
-
 /// \file ControlNetworkLoader.h Functions for generating control networks
-
-// TODO: Move in to ControlNetwork functions?
 
 namespace vw {
 namespace ba {
@@ -82,60 +76,8 @@ namespace ba {
   /// Return the number of added control points.
   int add_ground_control_points(ControlNetwork& cnet,
                                  std::vector<std::string> const& gcp_files,
-                                 cartography::Datum const& datum, 
+                                 cartography::Datum const& datum,
                                  bool skip_datum_check = false);
-    
-  template <class IterT>
-  void add_ground_control_cnets( ControlNetwork& cnet,
-                                 IterT gcpcnet_start, IterT gcpcnet_end ) {
-    namespace fs = boost::filesystem;
-
-    std::vector<std::string> const& image_files = cnet.get_image_list();
-
-    // Creating a version of image_files that doesn't contain the path
-    typedef std::map<std::string,size_t> LookupType;
-    LookupType image_lookup;
-    for (size_t i = 0; i < image_files.size(); i++ ) {
-      image_lookup[image_files[i]] = i;
-      image_lookup[fs::path(image_files[i]).filename().string()] = i;
-    }
-
-    while ( gcpcnet_start != gcpcnet_end ) {
-      if ( !fs::exists( *gcpcnet_start ) ) {
-        gcpcnet_start++;
-        continue;
-      }
-
-      vw_out(VerboseDebugMessage,"ba") << "\tLoading \"" << *gcpcnet_start
-                                       << "\".\n";
-
-      ControlNetwork gcpcnet("");
-      gcpcnet.read_binary(*gcpcnet_start);
-
-      BOOST_FOREACH( ControlPoint & cp, gcpcnet ) {
-        bool failed_to_index = false;
-        // Fixing indexing
-        BOOST_FOREACH( ControlMeasure & cm, cp ) {
-          LookupType::iterator it = image_lookup.find(cm.serial());
-          if ( it != image_lookup.end() )
-            cm.set_image_id(it->second);
-          else
-            vw_out(WarningMessage,"ba") << "No input image found matching "
-                                        << cm.serial() << std::endl;
-        }
-
-        if ( failed_to_index )
-          continue;
-        cp.set_type( ControlPoint::GroundControlPoint );
-        if (cp.size() > 0) {
-          cnet.add_control_point(cp);
-          vw_out(DebugMessage,"ba") << "\t\tAdded GCP: " << cp.position() << "\n";
-        }
-      }
-
-      gcpcnet_start++;
-    }
-  }
 
 }} //end namespace vw::ba
 

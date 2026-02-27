@@ -48,18 +48,6 @@ namespace {
 
 const int MAX_TRI_FAILURE_WARNINGS = 100;
 
-struct ContainsEqualIP {
-  ip::InterestPoint& m_compare;
-  ContainsEqualIP(ip::InterestPoint& comp) : m_compare(comp) {}
-
-  bool operator()(boost::shared_ptr<IPFeature> in) {
-    if (m_compare.x == in->m_ip.x &&
-          m_compare.y == in->m_ip.y)
-      return true;
-    return false;
-  }
-};
-
 // Utility for checking that the point is BA safe
 void safe_measurement(ip::InterestPoint& ip) {
   if (ip.scale <= 0) ip.scale = 10;
@@ -213,7 +201,7 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
   TerminalProgressCallback progress("ba", "Triangulating: ");
   progress.report_progress(0);
   double inc_prog = 1.0/double(cnet.size());
-  BOOST_FOREACH(ba::ControlPoint& cpoint, cnet) {
+  for (auto& cpoint : cnet) {
     progress.report_incremental_progress(inc_prog);
 
     if (cpoint.type() == ControlPoint::GroundControlPoint ||
