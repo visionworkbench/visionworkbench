@@ -145,9 +145,6 @@
 /* Define to 1 if the pkg package is available */
 #cmakedefine VW_HAVE_PKG_HDF
 
-/* Define to 1 if the HDR module is available. */
-#cmakedefine VW_HAVE_PKG_HDR 1
-
 /* Define to 1 if the ILMBASE package is available. */
 #cmakedefine VW_HAVE_PKG_ILMBASE 1
 

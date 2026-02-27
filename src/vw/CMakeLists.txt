@@ -24,7 +24,6 @@ endif()
 #===============================================================================
 # Configuration options
 
-set(VW_ENABLE_HDR "0" CACHE BOOL "Build the HDR module.")
 set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
 
 if("${CUSTOM_BUILD_DIR}" STREQUAL "")
@@ -181,17 +180,6 @@ else()
   set(VW_HAVE_PKG_OPENEXR 0)
 endif()
 
-# CMake will try to find these packages if needed. They are not part
-# of the usual dependencies.
-if (VW_ENABLE_PYTHON)
-  find_package(PythonLibs)
-  if(PYTHONLIBS_FOUND)
-    set(VW_HAVE_PKG_PYTHONLIBS 1)
-    message("-- Found PythonLibs " ${PYTHON_LIBRARIES})
-  else()
-    message("Failed to find PythonLibs")
-  endif()
-endif()
 
 ###########################################################################
 # These are some options that the user might like to set manually
@@ -208,8 +196,6 @@ set(VW_ENABLE_CONFIG_FILE 1)
 # enable the C++ exception mechanism 
 set(VW_ENABLE_EXCEPTIONS 1) 
 
-# Until it is needed we don't support this in CMake.
-set(VW_ENABLE_PYTHON 0)
 
 
 # Define to `int' if <sys/types.h> does not define. 
@@ -290,11 +276,6 @@ set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry VwStereo
     ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
-# --- VW_HDR ------------------------------------------------------------
-get_all_source_files( "HDR"       VW_HDR_SRC_FILES)
-get_all_source_files( "HDR/tests" VW_HDR_TEST_FILES)
-set(VW_HDR_LIB_DEPENDENCIES VwFileIO VwCamera )
-
 # --- VW_IMAGE ------------------------------------------------------------
 get_all_source_files( "Image"       VW_IMAGE_SRC_FILES)
 get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
@@ -335,12 +316,6 @@ add_subdirectory(InterestPoint)
 add_subdirectory(Mosaic)
 add_subdirectory(Stereo)
 add_subdirectory(BundleAdjustment)
-if (${VW_ENABLE_HDR})
-  add_subdirectory(HDR)
-endif()
-if (${VW_ENABLE_PYTHON})
-  add_subdirectory(Python)
-endif()
 
 # Add the executable subdirectory
 add_subdirectory(tools)

@@ -13,11 +13,6 @@ set(COMMON_LIBS VwCore VwMath VwFileIO VwImage VwCartography)
 
 #TODO: Add flood detection components
 
-# # Blends multiple images into a composite
-# add_executable(blend blend.cc) 
-# target_link_libraries(blend ${COMMON_LIBS} VwMosaic) 
-# install(TARGETS blend DESTINATION bin)
-
 # Converts a DEM to a simple color map
 add_executable(colormap colormap.cc Common.h Common.cc) 
 target_link_libraries(colormap ${COMMON_LIBS}) 
@@ -33,11 +28,6 @@ add_executable(correlate correlate.cc)
 target_link_libraries(correlate ${COMMON_LIBS} VwStereo VwInterestPoint) 
 install(TARGETS correlate DESTINATION bin)
 
-## Hole filling for an image
-#add_executable(fill_holes fill_holes.cc) 
-#target_link_libraries(fill_holes ${COMMON_LIBS}) 
-#install(TARGETS fill_holes DESTINATION bin)
-
 # Adds or adjusts an image's georeferencing information
 add_executable(georef georef.cc) 
 target_link_libraries(georef ${COMMON_LIBS}) 
@@ -47,18 +37,6 @@ install(TARGETS georef DESTINATION bin)
 add_executable(grassfirealpha grassfirealpha.cc) 
 target_link_libraries(grassfirealpha ${COMMON_LIBS}) 
 install(TARGETS grassfirealpha DESTINATION bin)
-
-if (VW_ENABLE_HDR)
-  # Merge multiple source images into an HDR image
-  add_executable(hdr_merge hdr_merge.cc) 
-  target_link_libraries(hdr_merge ${COMMON_LIBS}) 
-  install(TARGETS hdr_merge DESTINATION bin)
-
-  # Map an HDR image into an 8-bit dynamic range
-  add_executable(hdr_tonemap hdr_tonemap.cc) 
-  target_link_libraries(hdr_tonemap ${COMMON_LIBS}) 
-  install(TARGETS hdr_tonemap DESTINATION bin)
-endif()
 
 # Converts a DEM to a simple shaded-relief map
 add_executable(hillshade hillshade.cc Common.h Common.cc)
@@ -116,32 +94,5 @@ target_link_libraries(image2qtree ${COMMON_LIBS} VwMosaic
                       libimage2qtree_rgbai16  libimage2qtree_rgbaf32 )
 install(TARGETS image2qtree DESTINATION bin)
 
-
-#======================================================
-# Legacy tools - these have not been used for years.
-
-## Generates images for the documentation
-#add_executable(doc-generate doc-generate.cc) 
-#target_link_libraries(doc-generate ${COMMON_LIBS}) 
-## This executable does not go in the installation directory!
-
-#add_executable(learnpca learnpca.cc) 
-#target_link_libraries(learnpca ${COMMON_LIBS}) 
-#install(TARGETS learnpca DESTINATION bin)
-
-## Creates a TOAST quadtree from multiple georeferenced images
-#add_executable(image2toast image2toast.cc) 
-#target_link_libraries(image2toast ${COMMON_LIBS}) 
-#install(TARGETS image2toast DESTINATION bin)
-
-## Applies an inverse Bayer filter to a raw camera image
-#add_executable(bayer bayer.cc) 
-#target_link_libraries(bayer ${COMMON_LIBS}) 
-#install(TARGETS bayer DESTINATION bin)
-
-## Contour generation program
-#add_executable(contourgen contour.cpp FitCurves.cpp contourgen.cc contour.h) 
-#target_link_libraries(contourgen ${COMMON_LIBS}) 
-#install(TARGETS contourgen DESTINATION bin)
 
 
