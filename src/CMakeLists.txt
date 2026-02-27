@@ -21,8 +21,8 @@ set(PACKAGE_NAME       "NASA Vision Workbench")
 
 # The line below is used by the docs/ so don't change it
 # without testing the result.  Versioning is based on https://semver.org
-set(PACKAGE_VERSION "3.6.0")
-#set(PACKAGE_VERSION "3.7.0-alpha")
+#set(PACKAGE_VERSION "3.6.0")
+set(PACKAGE_VERSION "3.7.0-alpha")
 
 # Full name and version number
 set(PACKAGE_STRING     "${PACKAGE_NAME} ${PACKAGE_VERSION}")
