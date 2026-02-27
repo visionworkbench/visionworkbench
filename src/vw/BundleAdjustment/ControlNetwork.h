@@ -207,12 +207,12 @@ namespace ba {
   // The control network contains a list of control points (either
   // ground control points or tie points).
   class ControlNetwork {
-    std::vector<ControlPoint> m_control_points;
+    std::vector<ControlPoint> m_control_points; // 3D points with observations
 
-    std::string m_targetName;
-    std::string m_networkId;
-    std::string m_description;
-    std::string m_userName;
+    std::string m_targetName;  // Name of the target
+    std::string m_networkId;   // Network Id
+    std::string m_description; // Text description of network
+    std::string m_userName;    // The user who created the network
 
     // Stores a list of image names in the order matching the image
     // IDs stored in the control measures.

@@ -50,10 +50,12 @@ namespace ba {
     typedef typename std::map<size_t,w_ptr>::const_iterator map_cit;
 
     for (size_t j = 0; j < m_nodes.size(); j++) {
+      // Building maps for all features
       for (list_it fiter = m_nodes[j].relations.begin();
            fiter != m_nodes[j].relations.end(); fiter++)
         (**fiter).build_map();
 
+      // Building multimap
       m_nodes[j].map.clear();
       for (list_cit fiter = m_nodes[j].relations.begin();
            fiter != m_nodes[j].relations.end(); fiter++)
@@ -70,6 +72,7 @@ namespace ba {
     typedef boost::weak_ptr<FeatureT>   w_ptr;
     m_nodes.clear();
 
+    // Add a node for each image in the list
     for (size_t i = 0; i < cnet.get_image_list().size(); i++)
       this->add_node(CameraNode<FeatureT>(i, ""));
 
@@ -77,6 +80,8 @@ namespace ba {
       std::vector<f_ptr> features_added;
       BOOST_FOREACH(ControlMeasure const& cm, cnet[point_id]) {
 
+        // Ensure nodes exist for all encountered indices. The cnet
+        // is sometimes created without populating the image list.
         if (cm.image_id() >= this->size())
           for (size_t i = this->size(); i <= cm.image_id(); i++)
             this->add_node(CameraNode<FeatureT>(i, ""));
@@ -85,6 +90,7 @@ namespace ba {
         m_nodes[cm.image_id()].relations.push_back(features_added.back());
       }
 
+      // Doubly-linking features together
       typedef typename std::vector<f_ptr>::iterator fvi_ptr;
       for (fvi_ptr first = features_added.begin();
            first < features_added.end() - 1; first++)

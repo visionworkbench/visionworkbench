@@ -53,6 +53,9 @@ namespace ba {
     // Nodes below.
     typedef boost::weak_ptr<ImplT> w_ptr;
     std::list<w_ptr> m_connections;
+    // Alternative access compared to connections. Should only be used
+    // after spiral error detection. Can be used to quickly find the
+    // feature for a specific camera.
     std::map<size_t,w_ptr> m_map;
 
     size_t m_camera_id;
@@ -69,7 +72,8 @@ namespace ba {
       m_connections.push_back(con);
     }
 
-    // List all features connected to this one.
+    // List all features connected to this one. This will traverse all
+    // connections and append them to the provided list.
     void list_connections(std::list<w_ptr>& listing) {
       BOOST_FOREACH(w_ptr connection, m_connections) {
         bool contains = false;
@@ -98,7 +102,7 @@ namespace ba {
 
   // Jacobian Feature - intended for internal use in BA
   struct JFeature : public FeatureBase<JFeature> {
-    Matrix<double> m_w, m_y;
+    Matrix<double> m_w, m_y; // W = product of Jacobians, Y = product of W
 
     size_t   m_point_id;
     Vector2f m_location;
@@ -128,6 +132,9 @@ namespace ba {
     size_t      id;
     std::string name;
     std::list<f_ptr> relations;
+    // Alternative access to links in relations. Keyed by all cameras.
+    // Use equal_range(x) to find all features in this camera that
+    // connect to camera x.
     std::multimap<size_t, f_ptr> map;
 
     CameraNode(size_t tid, std::string tname):
@@ -145,7 +152,7 @@ namespace ba {
   template <class FeatureT>
   class CameraRelationNetwork {
     typedef CameraNode<FeatureT> cnode;
-    std::vector<cnode> m_nodes;
+    std::vector<cnode> m_nodes; // One for each image/camera instance.
 
   public:
 
