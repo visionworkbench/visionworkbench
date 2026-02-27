@@ -55,7 +55,6 @@
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 using namespace vw;
-using namespace vw::cm;
 
 struct Options: vw::GdalWriteOptions {
   

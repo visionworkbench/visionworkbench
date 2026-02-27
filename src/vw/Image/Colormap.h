@@ -30,7 +30,7 @@
 #include <string>
 #include <map>
 
-namespace vw { namespace cm {
+namespace vw {
 // These are specialized definitions for colormap functionality
   typedef Vector<uint8,3>                 Vector3u;
   typedef std::pair<std::string,Vector3u> lut_element;
@@ -48,7 +48,7 @@ void parse_color_style(std::string const& colormap_style,
 void populate_lut_map(lut_type const& lut,
                       std::map<float, Vector3u> & lut_map);
 
-// Functor which colorizes every pixel  
+// Functor which colorizes every pixel
 class Colormap: public ReturnFixedType<PixelMask<PixelRGB<uint8>>> {
   typedef std::map<float, Vector3u> map_type;
   map_type m_colormap;
@@ -58,8 +58,7 @@ public:
 
   PixelMask<PixelRGB<uint8>> operator()(PixelMask<PixelGray<float>> const& pix) const;
 };
-  
-  
-}} // namespace vw::cm
+
+} // namespace vw
 
 #endif // __VW_IMAGE_COLORMAP_H__

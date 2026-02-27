@@ -26,7 +26,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/erase.hpp>
 
-namespace vw { namespace cm {
+namespace vw {
 
 // Black-body colormap.
 //http://www.kennethmoreland.com/color-advice/
@@ -1378,4 +1378,4 @@ PixelMask<PixelRGB<uint8>> Colormap::operator()(PixelMask<PixelGray<float>> cons
   return PixelRGB<uint8>(output[0], output[1], output[2]);
 }
   
-}} //end namespace vw::cm
+} // namespace vw
