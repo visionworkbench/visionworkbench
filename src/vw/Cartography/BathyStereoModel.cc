@@ -38,14 +38,38 @@
 
 namespace vw {
 
+// Functor to invalidate pixels with non-positive values (water pixels)
+struct InvalidateNonPositive:
+  public vw::ReturnFixedType<vw::PixelMask<float>> {
+  vw::PixelMask<float> operator()(vw::PixelMask<float> p) const {
+    if (is_valid(p) && p.child() <= 0.0f)
+      p.invalidate();
+    return p;
+  }
+};
+
+// Read a bathy mask. Water pixels are those with non-positive values or matching
+// the file's nodata value. Both are invalidated in the returned masked image.
+// The returned nodata_val is suitable for writing the mask back.
 vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
                                                        float & nodata_val) {
   float local_nodata = -std::numeric_limits<float>::max();
-  if (!vw::read_nodata_val(filename, local_nodata))
-    vw::vw_throw(vw::ArgumentErr() << "Unable to read the nodata value from "
-             << filename);
-  nodata_val = local_nodata;
-  return vw::create_mask(vw::DiskImageView<float>(filename), local_nodata);
+  bool has_nodata = vw::read_nodata_val(filename, local_nodata);
+
+  // Set a sensible output nodata value for callers that write the mask back
+  if (has_nodata)
+    nodata_val = std::max(0.0f, local_nodata);
+  else
+    nodata_val = 0.0f;
+
+  // Create mask using the file's nodata value (if absent, local_nodata is
+  // -max_float so nothing matches and nothing is invalidated at this step)
+  auto masked = vw::create_mask(vw::DiskImageView<float>(filename), local_nodata);
+
+  // Additionally invalidate pixels with non-positive values (water pixels).
+  // This ensures that masks with 0 = water, 1 = land work correctly,
+  // regardless of whether the file has a nodata tag.
+  return vw::per_pixel_view(masked, InvalidateNonPositive());
 }
 
 void read_bathy_masks(std::vector<std::string> const& mask_filenames,

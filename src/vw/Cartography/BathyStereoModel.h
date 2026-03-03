@@ -54,7 +54,9 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
                ImageViewRef<PixelMask<float>> const& right_mask,
                Vector2 const& lpix, Vector2 const& rpix);
 
-// Read a bathy mask. Return the nodata value.
+// Read a bathy mask. Water pixels are those with non-positive values or
+// matching the file's nodata value. Both are invalidated in the returned
+// masked image. The returned nodata_val is suitable for writing the mask back.
 vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
                                                        float & nodata_val);
 
