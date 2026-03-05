@@ -85,7 +85,7 @@ namespace vw { namespace cartography {
       if (is_valid(v)) return v.child();
       else             return m_invalid_pix;
     }
-    
+
     // Check if we are within the interpolation bounds of the DEM
     int b = BicubicInterpolation::pixel_buffer;
     if (m_nearest_neighbor)
@@ -94,7 +94,7 @@ namespace vw { namespace cartography {
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     if (dem_pix[0] < b - 1 || dem_pix[0] >= m_dem.cols() - b ||
         dem_pix[1] < b - 1 || dem_pix[1] >= m_dem.rows() - b) {
-    
+
       // This is a bug fix for unnecessary erosion at DEM boundary when the
       // image pixel is same as DEM pixel up to numerical precision.
       vw::Vector2 grid_pix = round(dem_pix);
@@ -103,7 +103,7 @@ namespace vw { namespace cartography {
             m_dem_georef.transform()(0,0) == m_image_georef.transform()(0,0));
       if (snap_to_grid)
         dem_pix = grid_pix;
-      
+
       if (!snap_to_grid)
         return m_invalid_pix; // Out of DEM bounds
     }
@@ -122,14 +122,14 @@ namespace vw { namespace cartography {
         h = m_cropped_interp_dem(crop_pix[0], crop_pix[1]);
       }
     }
-    
+
     // If there is no cached data, use the full DEM
-    if (no_cache) 
+    if (no_cache)
       h = m_interp_dem(dem_pix[0], dem_pix[1]);
 
     if (!is_valid(h))
       return m_invalid_pix;
-    
+
     vw::Vector3 llh = Vector3(lonlat[0], lonlat[1], h.child());
     Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian(llh);
     Vector2 pt;

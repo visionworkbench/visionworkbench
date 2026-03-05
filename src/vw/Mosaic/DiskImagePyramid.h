@@ -35,6 +35,7 @@
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/DiskImageUtils.h>
 #include <vw/Image/AntiAliasing.h>
+#include <vw/Image/MaskViews.h>
 #include <vw/Math/Statistics.h>
 
 namespace vw { namespace mosaic {
@@ -102,6 +103,32 @@ namespace vw { namespace mosaic {
     return create_mask(img, mask_pixel);
   }
 
+  // For scalar pixel types (double, uint8): use range masking if valid range
+  // is provided, otherwise use nodata masking.
+  template<class PixelT>
+  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
+                            boost::is_same<PixelT, vw::uint8>>,
+                            ImageViewRef<PixelMask<PixelT>>>::type
+  maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
+                 float valid_min, float valid_max) {
+    if (!std::isnan(valid_min) && !std::isnan(valid_max))
+      return create_mask(img, PixelT(valid_min), PixelT(valid_max));
+    return create_mask(img, nodata_val);
+  }
+
+  // For compound pixel types (Vector<u8, N>): always use nodata masking.
+  // Range masking is not supported for multi-channel pixels.
+  template<class PixelT>
+  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
+                             boost::is_same<PixelT, vw::uint8>>,
+                             ImageViewRef<PixelMask<PixelT>>>::type
+  maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
+                 float /*valid_min*/, float /*valid_max*/) {
+    PixelT mask_pixel;
+    mask_pixel.set_all(nodata_val);
+    return create_mask(img, mask_pixel);
+  }
+
   // TODO: Cleanup!
   /// If output_file exists, is not older than input_file,
   /// and has given numbers of rows and columns, don't overwrite it.
@@ -146,10 +173,13 @@ namespace vw { namespace mosaic {
   template <class PixelT>
   typename boost::enable_if<boost::is_same<PixelT, double>, vw::Vector2>::type
   approx_bounds_nocache(std::string const& file, bool has_nodata,
-                        double nodata_val) {
-    
+                        double nodata_val,
+                        float valid_min = std::numeric_limits<float>::quiet_NaN(),
+                        float valid_max = std::numeric_limits<float>::quiet_NaN()) {
+
     double big = std::numeric_limits<double>::max();
-    
+    bool has_valid_range = !std::isnan(valid_min) && !std::isnan(valid_max);
+
     DiskImageView<PixelT> img(file);
     double num_samples = 250.0; // too many samples makes this slow
     int delta_col = (int)std::max(ceil(img.cols() / num_samples), 1.0);
@@ -159,9 +189,11 @@ namespace vw { namespace mosaic {
     vals.clear();
     for (int col = 0; col < img.cols(); col += delta_col) {
       for (int row = 0; row < img.rows(); row += delta_row) {
-        if (std::isnan(img(col, row))) continue;
-        if (has_nodata && img(col, row) == nodata_val) continue;
-        vals.push_back(img(col, row));
+        double v = img(col, row);
+        if (std::isnan(v)) continue;
+        if (has_nodata && v == nodata_val) continue;
+        if (has_valid_range && (v < valid_min || v > valid_max)) continue;
+        vals.push_back(v);
       }
     }
     
@@ -190,7 +222,9 @@ namespace vw { namespace mosaic {
   
   template <class PixelT>
   typename boost::disable_if<boost::is_same<PixelT,double>, vw::Vector2>::type
-  approx_bounds_nocache(std::string const& file, bool has_nodata, double nodata_val) {
+  approx_bounds_nocache(std::string const& file, bool has_nodata, double nodata_val,
+                        float /*valid_min*/ = std::numeric_limits<float>::quiet_NaN(),
+                        float /*valid_max*/ = std::numeric_limits<float>::quiet_NaN()) {
     return vw::Vector2(); // multi-channel image
   }
   
@@ -207,10 +241,14 @@ namespace vw { namespace mosaic {
 
     // Constructor. Note that we use NaN as nodata if not available,
     // that has the effect of not accidentally setting some pixels to nodata.
+    // If valid_min and valid_max are not NaN, pixels outside that range
+    // are treated as nodata (needed for ISIS .cub special pixels).
     DiskImagePyramid(std::string const& base_file = "",
 		     vw::GdalWriteOptions const& opt = vw::GdalWriteOptions(),
 		     int lowest_resolution_subimage_num_pixels = 1000*1000,
-		     int subsample = 2);
+		     int subsample = 2,
+		     float valid_min = std::numeric_limits<float>::quiet_NaN(),
+		     float valid_max = std::numeric_limits<float>::quiet_NaN());
 
     // Given a region (at full resolution) and a scale factor, compute
     // the portion of the image in the region, subsampled by a factor no
@@ -266,6 +304,8 @@ namespace vw { namespace mosaic {
     std::vector<std::string> m_cached_files;
 
     double m_nodata_val;
+    float m_valid_min;
+    float m_valid_max;
     std::vector<int> m_scales;
     
     /// Contains all the temporary image files we create
@@ -281,10 +321,13 @@ namespace vw { namespace mosaic {
   DiskImagePyramid<PixelT>::DiskImagePyramid(std::string const& base_file,
                                              vw::GdalWriteOptions const& opt,
                                              int lowest_resolution_subimage_num_pixels,
-                                             int subsample):
+                                             int subsample,
+                                             float valid_min,
+                                             float valid_max):
     m_opt(opt), m_subsample(subsample),
     m_lowest_resolution_subimage_num_pixels(lowest_resolution_subimage_num_pixels),
-    m_nodata_val(std::numeric_limits<double>::quiet_NaN()) {
+    m_nodata_val(std::numeric_limits<double>::quiet_NaN()),
+    m_valid_min(valid_min), m_valid_max(valid_max) {
 
     if (base_file.empty())
       return;
@@ -320,8 +363,11 @@ namespace vw { namespace mosaic {
       os <<  "_sub" << scale << ".tif";
       std::string suffix = os.str();
 
+      // If a valid pixel range was provided and the pixel type is scalar,
+      // use range masking. Otherwise fall back to exact nodata comparison.
       ImageViewRef<PixelMask<PixelT>> masked
-        = create_custom_mask(m_pyramid[level], m_nodata_val);
+        = maskForPyramid(m_pyramid[level], m_nodata_val,
+                         m_valid_min, m_valid_max);
       double sub_scale   = 1.0/subsample;
       int    tile_size   = 256;
       int    sub_threads = 1;
@@ -395,7 +441,8 @@ namespace vw { namespace mosaic {
 
     // This is expensive, so cache it going forward
     m_approx_bounds = approx_bounds_nocache<PixelT>(m_pyramid_files.back(),
-                                                    has_nodata, m_nodata_val);
+                                                    has_nodata, m_nodata_val,
+                                                    m_valid_min, m_valid_max);
   }
 
   // Find the right pyramid level to use for the given sub scale
