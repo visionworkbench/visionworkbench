@@ -538,9 +538,7 @@ namespace vw {
   template <class ChannelT> class PixelGrayA;
   template <class ChannelT> class PixelRGB;
   template <class ChannelT> class PixelRGBA;
-  template <class ChannelT> class PixelHSV;
   template <class ChannelT> class PixelXYZ;
-  template <class ChannelT> class PixelLuv;
   template <class ChannelT> class PixelLab;
 
   // Forward pixel type declarations for the pixel mask wrapper
@@ -557,9 +555,7 @@ namespace vw {
     VW_PIXEL_GRAYA = 3,
     VW_PIXEL_RGB = 4,
     VW_PIXEL_RGBA = 5,
-    VW_PIXEL_HSV = 6,
     VW_PIXEL_XYZ = 7,
-    VW_PIXEL_LUV = 8,
     VW_PIXEL_LAB = 9,
     VW_PIXEL_UNKNOWN_MASKED = 40,
     VW_PIXEL_SCALAR_MASKED = 41,
@@ -567,9 +563,7 @@ namespace vw {
     VW_PIXEL_GRAYA_MASKED = 43,
     VW_PIXEL_RGB_MASKED = 44,
     VW_PIXEL_RGBA_MASKED = 45,
-    VW_PIXEL_HSV_MASKED = 46,
     VW_PIXEL_XYZ_MASKED = 47,
-    VW_PIXEL_LUV_MASKED = 48,
     VW_PIXEL_LAB_MASKED = 49,
     VW_PIXEL_GENERIC_1_CHANNEL = 90,
     VW_PIXEL_GENERIC_2_CHANNEL = 91,
@@ -627,9 +621,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelGrayA<ChT>> { static const PixelFormatEnum value = VW_PIXEL_GRAYA; };
   template <class ChT> struct PixelFormatID<PixelRGB<ChT>> { static const PixelFormatEnum value = VW_PIXEL_RGB; };
   template <class ChT> struct PixelFormatID<PixelRGBA<ChT>> { static const PixelFormatEnum value = VW_PIXEL_RGBA; };
-  template <class ChT> struct PixelFormatID<PixelHSV<ChT>> { static const PixelFormatEnum value = VW_PIXEL_HSV; };
   template <class ChT> struct PixelFormatID<PixelXYZ<ChT>> { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
-  template <class ChT> struct PixelFormatID<PixelLuv<ChT>> { static const PixelFormatEnum value = VW_PIXEL_LUV; };
   template <class ChT> struct PixelFormatID<PixelLab<ChT>> { static const PixelFormatEnum value = VW_PIXEL_LAB; };
 
   // PixelFormatID<> specialized for masked pixel types
@@ -648,9 +640,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelMask<PixelGrayA<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_GRAYA_MASKED; };
   template <class ChT> struct PixelFormatID<PixelMask<PixelRGB<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_RGB_MASKED; };
   template <class ChT> struct PixelFormatID<PixelMask<PixelRGBA<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_RGBA_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelHSV<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_HSV_MASKED; };
   template <class ChT> struct PixelFormatID<PixelMask<PixelXYZ<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_XYZ_MASKED; };
-  template <class ChT> struct PixelFormatID<PixelMask<PixelLuv<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_LUV_MASKED; };
   template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT>>> { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
 
   // Define everything we are likely to need here so we are unlikely to have to deal with the weird failures

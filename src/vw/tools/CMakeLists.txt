@@ -46,11 +46,6 @@ add_executable(print_exif print_exif.cc)
 target_link_libraries(print_exif ${COMMON_LIBS})
 install(TARGETS print_exif DESTINATION bin)
 
-# Calculates aspect and gradient angle for DEM
-add_executable(slopemap slopemap.cc Common.h Common.cc)
-target_link_libraries(slopemap ${COMMON_LIBS})
-install(TARGETS slopemap DESTINATION bin)
-
 # Undistorts a pinhole image.
 add_executable(undistort_image undistort_image.cc)
 target_link_libraries(undistort_image ${COMMON_LIBS})
