@@ -81,68 +81,61 @@ struct Options: vw::GdalWriteOptions {
   blur_sigma(std::numeric_limits<double>::quiet_NaN()), align_to_georef(false) {}
 };
 
-template <class PixelT>
 ImageViewRef<PixelMask<PixelRGB<uint8>>>
-apply_colormap(ImageViewRef<PixelT> input_image,
-               float min_val, float max_val,
-               bool has_alpha, bool has_nodata,
-               float nodata_value,
-               std::map<float, Vector3u> & lut_map) {
-
-  ImageViewRef<PixelGray<float>> adj_image =
-    pixel_cast<PixelGray<float>>(select_channel(input_image, 0));
-  
-  // Compute min/max of input image values
-  if (min_val == 0 && max_val == 0) {
-    min_max_channel_values(create_mask(adj_image, nodata_value),
-                            min_val, max_val);
-    vw_out() << "\t--> Image color map range: ["
-             << min_val << "  " << max_val << "]\n";
-  } else {
-    vw_out() << "\t--> Using user-specified color map range: ["
-             << min_val << "  " << max_val << "]\n";
-  }
-
-  // Mask input
-  ImageViewRef<PixelMask<PixelGray<float>>> img;
-  if (has_alpha)
-    img = alpha_to_mask(channel_cast<float>(input_image));
-  else if (nodata_value != std::numeric_limits<float>::max()) {
-    img = channel_cast<float>(create_mask(adj_image, nodata_value));
-  }else if (has_nodata) {
-    img = create_mask(adj_image, nodata_value);
-  } else {
-    img = pixel_cast<PixelMask<PixelGray<float>>>(adj_image);
-  }
-  
-  // Apply colormap
-  ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
-    = vw::per_pixel_filter(normalize(img, min_val, max_val, 0, 1.0), Colormap(lut_map));
-
-  return colorized_image;
-}
-
-template <class PixelT>
-ImageViewRef<PixelMask<PixelRGB<uint8>>> do_colormap(Options& opt) {
+do_colormap(Options& opt) {
 
   // Attempt to extract nodata value
   boost::shared_ptr<vw::DiskImageResource>
     disk_img_rsrc(vw::DiskImageResourcePtr(opt.input_file_name));
 
   bool has_nodata = disk_img_rsrc->has_nodata_read();
-  bool has_alpha = PixelHasAlpha<PixelT>::value;
-  
-  if (opt.nodata_value != std::numeric_limits<float>::max()) {
+  ImageFormat fmt = vw::image_format(opt.input_file_name);
+  bool has_alpha = (fmt.pixel_format == VW_PIXEL_GRAYA);
+
+  if (opt.nodata_value != std::numeric_limits<float>::max())
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
-  } else if (has_nodata) {
+  else if (has_nodata) {
     opt.nodata_value = disk_img_rsrc->nodata_read();
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
-  DiskImageView<PixelT> input_image(opt.input_file_name);
+  // Read the first channel as float. This handles all input channel types.
+  ImageViewRef<PixelGray<float>> adj_image;
+  if (has_alpha) {
+    DiskImageView<PixelGrayA<float>> input_image(opt.input_file_name);
+    adj_image = pixel_cast<PixelGray<float>>(select_channel(input_image, 0));
+  } else {
+    DiskImageView<PixelGray<float>> input_image(opt.input_file_name);
+    adj_image = input_image;
+  }
+
+  // Compute min/max of input image values
+  if (opt.min_val == 0 && opt.max_val == 0) {
+    min_max_channel_values(create_mask(adj_image, opt.nodata_value),
+                            opt.min_val, opt.max_val);
+    vw_out() << "\t--> Image color map range: ["
+             << opt.min_val << "  " << opt.max_val << "]\n";
+  } else {
+    vw_out() << "\t--> Using user-specified color map range: ["
+             << opt.min_val << "  " << opt.max_val << "]\n";
+  }
+
+  // Mask input
+  ImageViewRef<PixelMask<PixelGray<float>>> img;
+  if (has_alpha) {
+    DiskImageView<PixelGrayA<float>> input_image(opt.input_file_name);
+    img = alpha_to_mask(channel_cast<float>(input_image));
+  } else if (opt.nodata_value != std::numeric_limits<float>::max())
+    img = channel_cast<float>(create_mask(adj_image, opt.nodata_value));
+  else if (has_nodata)
+    img = create_mask(adj_image, opt.nodata_value);
+  else
+    img = pixel_cast<PixelMask<PixelGray<float>>>(adj_image);
+
+  // Apply colormap
   ImageViewRef<PixelMask<PixelRGB<uint8>>> colorized_image
-    = apply_colormap<PixelT>(input_image, opt.min_val, opt.max_val, has_alpha,
-                             has_nodata, opt.nodata_value, opt.lut_map);
+    = vw::per_pixel_filter(normalize(img, opt.min_val, opt.max_val, 0, 1.0),
+                           Colormap(opt.lut_map));
 
   return colorized_image;
 }
@@ -290,30 +283,7 @@ int main(int argc, char *argv[]) {
 
     parseColorStyle(opt.colormap_style, opt.lut_map);
     
-    // Get the right pixel/channel type.
-    ImageFormat fmt = vw::image_format(opt.input_file_name);
-    ImageViewRef<PixelMask<PixelRGB<uint8>>> out;
-
-    switch(fmt.pixel_format) {
-    case VW_PIXEL_GRAY:
-      switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  out = do_colormap<PixelGray<uint8>>  (opt); break;
-      case VW_CHANNEL_INT16:  out = do_colormap<PixelGray<int16>>  (opt); break;
-      case VW_CHANNEL_UINT16: out = do_colormap<PixelGray<uint16>> (opt); break;
-      default:                out = do_colormap<PixelGray<float32>>(opt); break;
-      }
-      break;
-    case VW_PIXEL_GRAYA:
-      switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  out = do_colormap<PixelGrayA<uint8>>  (opt); break;
-      case VW_CHANNEL_INT16:  out = do_colormap<PixelGrayA<int16>>  (opt); break;
-      case VW_CHANNEL_UINT16: out = do_colormap<PixelGrayA<uint16>> (opt); break;
-      default:                out = do_colormap<PixelGrayA<float32>>(opt); break;
-      }
-      break;
-    default:
-      vw_throw(ArgumentErr() << "Unsupported pixel format. The image must have only one channel.");
-    }
+    ImageViewRef<PixelMask<PixelRGB<uint8>>> out = do_colormap(opt);
     
     if (opt.hillshade) {
       // Do the hillshade first, then will use it when colorizing.

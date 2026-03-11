@@ -28,12 +28,6 @@ add_executable(correlate correlate.cc)
 target_link_libraries(correlate ${COMMON_LIBS} VwStereo VwInterestPoint) 
 install(TARGETS correlate DESTINATION bin)
 
-# Adds or adjusts an image's georeferencing information
-add_executable(georef georef.cc) 
-target_link_libraries(georef ${COMMON_LIBS}) 
-install(TARGETS georef DESTINATION bin)
-
-
 # Converts a DEM to a simple shaded-relief map
 add_executable(hillshade hillshade.cc Common.h Common.cc)
 target_link_libraries(hillshade ${COMMON_LIBS})

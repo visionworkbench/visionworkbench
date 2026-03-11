@@ -63,7 +63,6 @@ using vw::camera::LensDistortion;
 struct Options: vw::GdalWriteOptions {};
 
 std::string input_file_name, output_file_name, camera_file_name;
-bool preserve_pixel_type = false;
 double output_nodata_value = -std::numeric_limits<float>::max();
 bool output_nodata_value_was_set = false;
 std::string interpolation_method;
@@ -325,64 +324,19 @@ void do_work() {
   
 } // End function do_work
 
-// Magic to make do_work() work with many number of channels and channel types
-#define DO_WORK(PIXELTYPEMACRO, CHANNELTYPE) DO_WORK_(PIXELTYPEMACRO, CHANNELTYPE)
-#define DO_WORK_(PIXELTYPEMACRO, CHANNELTYPE) DO_WORK__(PIXELTYPEMACRO, CHANNELTYPE, PIXELTYPEMACRO ## _ ## CHANNELTYPE)
-#define DO_WORK__(PIXELTYPEMACRO, CHANNELTYPE, FUNCSUFFIX) \
-  void do_work_##FUNCSUFFIX(void) {                                    \
-    do_work<PIXELTYPEMACRO<CHANNELTYPE > >();                          \
-  }
-
-// The channel type can be integer or float
-#define DO_WORK_ALL_CHANNELS(PIXELTYPE)  \
-  DO_WORK(PIXELTYPE, uint8);             \
-  DO_WORK(PIXELTYPE, int8);              \
-  DO_WORK(PIXELTYPE, uint16);            \
-  DO_WORK(PIXELTYPE, int16);             \
-  DO_WORK(PIXELTYPE, float32);           \
-  DO_WORK(PIXELTYPE, float64); 
-
-// Support 1 or 3 channel images, perhaps with an alpha channel
-DO_WORK_ALL_CHANNELS(PixelGray)
-DO_WORK_ALL_CHANNELS(PixelGrayA)
-DO_WORK_ALL_CHANNELS(PixelRGB)
-DO_WORK_ALL_CHANNELS(PixelRGBA)
-
-// Prefer to save to process and save as float, to not lose information
-// during interpolation.
-#define SWITCH_ON_CHANNEL_TYPE(PIXELTYPE)                            \
-  if (preserve_pixel_type) {					       \
-    switch (fmt.channel_type) {					       \
-    case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_uint8();   break;   \
-    case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_int8();    break;   \
-    case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_uint16();  break;   \
-    case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_int16();   break;   \
-    case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;   \
-    default:                 do_work_##PIXELTYPE##_float64(); break;   \
-    }								       \
-  }else{							       \
-    switch (fmt.channel_type) {					       \
-    case VW_CHANNEL_UINT8:   do_work_##PIXELTYPE##_float32(); break;   \
-    case VW_CHANNEL_INT8:    do_work_##PIXELTYPE##_float32(); break;   \
-    case VW_CHANNEL_UINT16:  do_work_##PIXELTYPE##_float32(); break;   \
-    case VW_CHANNEL_INT16:   do_work_##PIXELTYPE##_float32(); break;   \
-    case VW_CHANNEL_FLOAT32: do_work_##PIXELTYPE##_float32(); break;   \
-    default:                 do_work_##PIXELTYPE##_float64(); break;   \
-    }								       \
-  }
-
-void do_work_all_channels(std::string const& input_file_name){
+// Dispatch based on pixel format, always using float channels
+void do_work_all_channels(std::string const& input_file_name) {
 
   ImageFormat fmt = vw::image_format(input_file_name);
   try {
     switch (fmt.pixel_format) {
-    case VW_PIXEL_GRAY:  SWITCH_ON_CHANNEL_TYPE(PixelGray);  break; // 1 channel
-    case VW_PIXEL_GRAYA: SWITCH_ON_CHANNEL_TYPE(PixelGrayA); break; // 1 channel  + alpha channel
-    case VW_PIXEL_RGB:   SWITCH_ON_CHANNEL_TYPE(PixelRGB);   break; // 3 channels 
-    default:             SWITCH_ON_CHANNEL_TYPE(PixelRGBA);  break; // 3 channels + alpha channel
+    case VW_PIXEL_GRAY:  do_work<PixelGray<float>>(); break;
+    case VW_PIXEL_GRAYA: do_work<PixelGrayA<float>>(); break;
+    case VW_PIXEL_RGB:   do_work<PixelRGB<float>>(); break;
+    default:             do_work<PixelRGBA<float>>(); break;
     }
-  }catch (const Exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+  } catch (const Exception& e) {
+    std::cerr << "Error: " << e.what() << "\n";
   }
 }
     
@@ -399,8 +353,6 @@ int main(int argc, char *argv[]) {
      "Specify the output file")
     ("output-nodata-value", po::value(&output_nodata_value)->default_value(-std::numeric_limits<float>::max()),
      "Set the output nodata value. Only applicable if the output is a single-channel image with pixels that are float or double.")
-    ("preserve-pixel-type", po::bool_switch(&preserve_pixel_type)->default_value(false),
-     "Save the undistorted image with integer pixels if so is the input. This may result in reduced accuracy.")
     ("interpolation-method",  po::value<std::string>(&interpolation_method)->default_value("bilinear"), "Interpolation method. Options: bilinear, bicubic. Default: bilinear.");
 
   general_options.add(vw::GdalWriteOptionsDescription(opt));
