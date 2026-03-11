@@ -44,8 +44,6 @@ namespace vw {
 namespace cartography {
 
   /// Do the hillshade work.
-  /// This templated logic is very slow to compile.
-  template <class PixelT>
   void do_hillshade(std::string const& input_file_name,
                     std::string const& output_file_name,
                     double azimuth, double elevation, double scale,
@@ -75,7 +73,7 @@ namespace cartography {
     }
 
     vw_out() << "Loading: " << input_file_name << ".\n";
-    DiskImageView<PixelT> disk_dem_file(input_file_name);
+    DiskImageView<PixelGray<float>> disk_dem_file(input_file_name);
 
     if (align_to_georef) {
       std::cout << "Calculating adjustment to longitude East...\n";
@@ -102,7 +100,7 @@ namespace cartography {
 
     // Compute the surface normals
 
-    ImageViewRef<PixelMask<PixelT>> dem;
+    ImageViewRef<PixelMask<PixelGray<float>>> dem;
     boost::shared_ptr<vw::DiskImageResource> disk_dem_rsrc(vw::DiskImageResourcePtr(input_file_name));
     if (!std::isnan(nodata_value)) {
       vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
@@ -113,7 +111,7 @@ namespace cartography {
                << nodata_value << ".\n";
       dem = create_mask(disk_dem_file, nodata_value);
     } else {
-      dem = pixel_cast<PixelMask<PixelT > >(disk_dem_file);
+      dem = pixel_cast<PixelMask<PixelGray<float>>>(disk_dem_file);
     }
 
     if (!std::isnan(blur_sigma)) {
@@ -135,49 +133,16 @@ namespace cartography {
                                             TerminalProgressCallback("hillshade", "Writing:"));
   } // End function do_hillshade()
 
-  /// Redirect to the function with the required data type.
+  /// Entry point. Always reads as float, which handles all input types.
   void do_multitype_hillshade(std::string const& input_file,
                               std::string const& output_file,
                               double azimuth, double elevation, double scale,
                               double nodata_value, double blur_sigma,
                               bool align_to_georef,
                               vw::GdalWriteOptions const& opt) {
-
-    ImageFormat fmt = vw::image_format(input_file);
-
-    switch(fmt.pixel_format) {
-    case VW_PIXEL_SCALAR:
-    case VW_PIXEL_GRAY:
-    case VW_PIXEL_GRAYA:
-      switch (fmt.channel_type) {
-
-      case VW_CHANNEL_UINT8:
-        do_hillshade<PixelGray<uint8>>(input_file, output_file,
-                                       azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef, opt);
-        break;
-      case VW_CHANNEL_INT16:
-        do_hillshade<PixelGray<int16>>(input_file, output_file,
-                                       azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef, opt);
-        break;
-      case VW_CHANNEL_UINT16:
-        do_hillshade<PixelGray<uint16>>(input_file, output_file,
-                                        azimuth, elevation, scale,
-                                        nodata_value, blur_sigma, align_to_georef, opt);
-        break;
-      default:
-        do_hillshade<PixelGray<float>>(input_file, output_file,
-                                       azimuth, elevation, scale,
-                                       nodata_value, blur_sigma, align_to_georef, opt);
-        break;
-      }
-      break;
-    default:
-      vw_throw(ArgumentErr()
-               << "Unsupported pixel format. The DEM image must have only one channel.");
-    }
-  } // End function do_multitype_hillshade()
+    do_hillshade(input_file, output_file, azimuth, elevation, scale,
+                 nodata_value, blur_sigma, align_to_georef, opt);
+  }
 
 }} // namespace vw::cartography
 
