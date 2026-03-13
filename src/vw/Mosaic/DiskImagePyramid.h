@@ -24,8 +24,9 @@
 #define __VW_MOSAIC_DISKIMAGEPYRAMID_H__
 
 #include <iostream>
-#include <vector>
 #include <list>
+#include <set>
+#include <vector>
 
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Image/ImageView.h>

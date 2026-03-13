@@ -33,6 +33,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
+#include <set>
+
 // TODO(oalexan1): Wipe all mention of proj4_str.
 // Everything must be done by setting the OGRSpatialReference object.
 // TODO(oalexan1): Look at all leftover todo statements.

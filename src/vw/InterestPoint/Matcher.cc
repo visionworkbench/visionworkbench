@@ -20,7 +20,10 @@
 /// Classes and functions for matching image interest points.
 ///
 #include <vw/InterestPoint/Matcher.h>
+
 #include <boost/filesystem/operations.hpp>
+
+#include <set>
 namespace fs = boost::filesystem;
 
 namespace vw { namespace ip {
