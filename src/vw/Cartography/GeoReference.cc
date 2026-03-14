@@ -320,7 +320,8 @@ void fixProjCs(OGRSpatialReference & gdal_spatial_ref) {
 
   // Set PROJCS name to "<Projection> <Body>" if it is "unknown" or contains "unknown"
   if (!proj_str.empty() && !body_name.empty() &&
-      (projcs_str.empty() || projcs_str.find("unknown") != std::string::npos))
+      (projcs_str.empty() ||
+       boost::to_lower_copy(projcs_str).find("unknown") != std::string::npos))
     gdal_spatial_ref.SetProjCS((proj_str + " " + body_name).c_str());
 
   // Set GEOGCS name to "GCS_<Body>" if it is generic.
@@ -329,7 +330,7 @@ void fixProjCs(OGRSpatialReference & gdal_spatial_ref) {
   const char *primem_ptr   = gdal_spatial_ref.GetAttrValue("PRIMEM");
   if (!body_name.empty() && spheroid_ptr != NULL && primem_ptr != NULL &&
       (geogcs_str.empty() || geogcs_str == "Geographic Coordinate System" ||
-       geogcs_str == "unknown"))
+       boost::to_lower_copy(geogcs_str).find("unknown") != std::string::npos))
     gdal_spatial_ref.SetGeogCS(("GCS_" + body_name).c_str(),
                                 datum_str.c_str(),
                                 spheroid_ptr,
