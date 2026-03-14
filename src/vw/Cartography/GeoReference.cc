@@ -297,7 +297,46 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
     copyFromDatum(gdal_spatial_ref, datum);
   } 
 
-  return;  
+  return;
+}
+
+// Fix PROJCS and GEOGCS names if they are generic or missing.
+// GDAL does not set meaningful names when creating from PROJ4 strings.
+void fixProjCs(OGRSpatialReference & gdal_spatial_ref) {
+
+  const char *projcs_ptr = gdal_spatial_ref.GetAttrValue("PROJCS");
+  const char *geogcs_ptr = gdal_spatial_ref.GetAttrValue("GEOGCS");
+  const char *proj_ptr   = gdal_spatial_ref.GetAttrValue("PROJECTION");
+  const char *datum_ptr  = gdal_spatial_ref.GetAttrValue("DATUM");
+  std::string projcs_str = (projcs_ptr != NULL) ? projcs_ptr : "";
+  std::string geogcs_str = (geogcs_ptr != NULL) ? geogcs_ptr : "";
+  std::string proj_str   = (proj_ptr   != NULL) ? proj_ptr   : "";
+  std::string datum_str  = (datum_ptr  != NULL) ? datum_ptr  : "";
+
+  // Extract body name from datum (strip "D_" prefix if present)
+  std::string body_name = datum_str;
+  if (body_name.size() >= 2 && body_name.substr(0, 2) == "D_")
+    body_name = body_name.substr(2);
+
+  // Set PROJCS name to "<Projection> <Body>" if it is "unknown" or contains "unknown"
+  if (!proj_str.empty() && !body_name.empty() &&
+      (projcs_str.empty() || projcs_str.find("unknown") != std::string::npos))
+    gdal_spatial_ref.SetProjCS((proj_str + " " + body_name).c_str());
+
+  // Set GEOGCS name to "GCS_<Body>" if it is generic.
+  // Guard against NULL from GetAttrValue to avoid segfaults.
+  const char *spheroid_ptr = gdal_spatial_ref.GetAttrValue("SPHEROID");
+  const char *primem_ptr   = gdal_spatial_ref.GetAttrValue("PRIMEM");
+  if (!body_name.empty() && spheroid_ptr != NULL && primem_ptr != NULL &&
+      (geogcs_str.empty() || geogcs_str == "Geographic Coordinate System" ||
+       geogcs_str == "unknown"))
+    gdal_spatial_ref.SetGeogCS(("GCS_" + body_name).c_str(),
+                                datum_str.c_str(),
+                                spheroid_ptr,
+                                gdal_spatial_ref.GetSemiMajor(),
+                                gdal_spatial_ref.GetInvFlattening(),
+                                primem_ptr,
+                                gdal_spatial_ref.GetPrimeMeridian());
 }
 
 // Low-level function
@@ -395,11 +434,14 @@ void GeoReference::set_transform(Matrix3x3 transform) {
 void GeoReference::set_datum(Datum const& datum) {
   
   m_datum = datum;
-  std::string projcs_name = m_projcs_name; 
-  if (projcs_name.empty())
-    projcs_name = "Geographic Coordinate System";
 
-  m_gdal_spatial_ref.SetGeogCS(projcs_name.c_str(), 
+  // Extract body name from datum for the GeogCS name
+  std::string body_name = datum.name();
+  if (body_name.substr(0, 2) == "D_")
+    body_name = body_name.substr(2);
+  std::string geogcs_name = "GCS_" + body_name;
+
+  m_gdal_spatial_ref.SetGeogCS(geogcs_name.c_str(),
                                 datum.name().c_str(),
                                 datum.spheroid_name().c_str(),
                                 datum.semi_major_axis(),
@@ -667,11 +709,14 @@ void GeoReference::set_wkt(std::string const& wkt) {
   // parameters.
   fixDatum(m_gdal_spatial_ref);
 
-  // If there is a PROJCS name, record it.
+  // Fix PROJCS and GEOGCS names if they are generic or missing.
+  fixProjCs(m_gdal_spatial_ref);
+
+  // Record the PROJCS name. Careful here, to avoid a segfault.
   m_projcs_name = "Geographic Coordinate System";
-  const char * projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
+  const char *projcs = m_gdal_spatial_ref.GetAttrValue("PROJCS");
   if (projcs != NULL)
-    m_projcs_name = std::string(projcs); // Careful here, to avoid a segfault
+    m_projcs_name = std::string(projcs);
 
   // The returned coordinates will be in longitude, latitude order
   // https://gdal.org/tutorials/osr_api_tut.html#coordinate-transformation
@@ -692,8 +737,11 @@ void GeoReference::set_wkt(std::string const& wkt) {
   // This is a fix for GDAL forgetting datum names for small bodies when setting
   // a new projection.
   bool copied = copyFromDatum(m_gdal_spatial_ref, prior_datum);
-  if (copied)
+  if (copied) {
     m_datum.set_datum_from_spatial_ref(m_gdal_spatial_ref);
+    // Re-fix PROJCS/GEOGCS names now that the datum is restored.
+    fixProjCs(m_gdal_spatial_ref);
+  }
   
   // Create the lonlat vs proj coordinate transformations
   m_proj_context.init_transforms();  
