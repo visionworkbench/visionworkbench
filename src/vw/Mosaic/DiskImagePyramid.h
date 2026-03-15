@@ -179,11 +179,13 @@ namespace vw { namespace mosaic {
     return overwrite;
   }
 
-  /// Logic to find some approximate values for the valid pixels, ignoring the worst
-  /// outliers. Use the lowest pyramid level.
-  template <class PixelT>
-  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                            boost::is_same<PixelT, float>>, vw::Vector2>::type
+  // Find approximate min/max for valid pixels, ignoring outliers.
+  // Uses the lowest pyramid level. Only used for single-channel images
+  // that need [min, max] to [0, 255] rescaling for display. Multi-channel
+  // uint8 images map directly to RGB without rescaling.
+  // The file is read as double regardless of on-disk type, with no rescaling,
+  // so nodata comparisons (which use double) are exact.
+  inline vw::Vector2
   approx_bounds_nocache(std::string const& file, bool has_nodata,
                         double nodata_val,
                         float valid_min = std::numeric_limits<float>::quiet_NaN(),
@@ -192,13 +194,15 @@ namespace vw { namespace mosaic {
     double big = std::numeric_limits<double>::max();
     bool has_valid_range = !std::isnan(valid_min) && !std::isnan(valid_max);
 
-    DiskImageView<PixelT> img(file);
+    boost::shared_ptr<vw::DiskImageResource> rsrc(vw::DiskImageResourcePtr(file));
+    rsrc->set_rescale(false);
+    DiskImageView<double> img(rsrc);
+
     double num_samples = 250.0; // too many samples makes this slow
     int delta_col = (int)std::max(ceil(img.cols() / num_samples), 1.0);
     int delta_row = (int)std::max(ceil(img.rows() / num_samples), 1.0);
     std::vector<double> vals;
     vals.reserve(num_samples * num_samples);
-    vals.clear();
     for (int col = 0; col < img.cols(); col += delta_col) {
       for (int row = 0; row < img.rows(); row += delta_row) {
         double v = img(col, row);
@@ -208,21 +212,21 @@ namespace vw { namespace mosaic {
         vals.push_back(v);
       }
     }
-    
+
     vw::Vector2 bounds(-big, big);
     if (vals.empty()) return bounds;
-    
+
     // Find the bounds using percentiles
     double pct = 0.01; // 1% outliers at either end
     double outlier_factor = 4;
-    double b, e;
+    double b = 0.0, e = 0.0;
     vw::math::find_outlier_brackets(vals, pct, outlier_factor, b, e);
-    
+
     // Tighten the bounds
     std::sort(vals.begin(), vals.end());
     b = std::max(b, vals[0]);
     e = std::min(e, vals[vals.size()-1]);
-    
+
     // If the bounds are the same, expand them
     if (b == e) {
       b -= 1;
@@ -230,15 +234,6 @@ namespace vw { namespace mosaic {
     }
 
     return vw::Vector2(b, e);
-  }
-  
-  template <class PixelT>
-  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                             boost::is_same<PixelT, float>>, vw::Vector2>::type
-  approx_bounds_nocache(std::string const& file, bool has_nodata, double nodata_val,
-                        float /*valid_min*/ = std::numeric_limits<float>::quiet_NaN(),
-                        float /*valid_max*/ = std::numeric_limits<float>::quiet_NaN()) {
-    return vw::Vector2(); // multi-channel image
   }
   
   /// A class to manage very large images and their subsampled
@@ -453,9 +448,9 @@ namespace vw { namespace mosaic {
     } // End level creation loop
 
     // This is expensive, so cache it going forward
-    m_approx_bounds = approx_bounds_nocache<PixelT>(m_pyramid_files.back(),
-                                                    has_nodata, m_nodata_val,
-                                                    m_valid_min, m_valid_max);
+    m_approx_bounds = approx_bounds_nocache(m_pyramid_files.back(),
+                                            has_nodata, m_nodata_val,
+                                            m_valid_min, m_valid_max);
   }
 
   // Find the right pyramid level to use for the given sub scale
