@@ -99,13 +99,19 @@ do_colormap(Options& opt) {
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
-  // Read the first channel as float. This handles all input channel types.
+  // Read the first channel as float. Turn off rescaling so integer types
+  // (uint8, int16, uint16) keep their original values instead of being
+  // mapped to [0, 1].
+  boost::shared_ptr<vw::DiskImageResource>
+    rsrc(vw::DiskImageResourcePtr(opt.input_file_name));
+  rsrc->set_rescale(false);
+
   ImageViewRef<PixelGray<float>> adj_image;
   if (has_alpha) {
-    DiskImageView<PixelGrayA<float>> input_image(opt.input_file_name);
+    DiskImageView<PixelGrayA<float>> input_image(rsrc);
     adj_image = pixel_cast<PixelGray<float>>(select_channel(input_image, 0));
   } else {
-    DiskImageView<PixelGray<float>> input_image(opt.input_file_name);
+    DiskImageView<PixelGray<float>> input_image(rsrc);
     adj_image = input_image;
   }
 
@@ -123,7 +129,10 @@ do_colormap(Options& opt) {
   // Mask input
   ImageViewRef<PixelMask<PixelGray<float>>> img;
   if (has_alpha) {
-    DiskImageView<PixelGrayA<float>> input_image(opt.input_file_name);
+    boost::shared_ptr<vw::DiskImageResource>
+      rsrc2(vw::DiskImageResourcePtr(opt.input_file_name));
+    rsrc2->set_rescale(false);
+    DiskImageView<PixelGrayA<float>> input_image(rsrc2);
     img = alpha_to_mask(channel_cast<float>(input_image));
   } else if (opt.nodata_value != std::numeric_limits<float>::max())
     img = channel_cast<float>(create_mask(adj_image, opt.nodata_value));
