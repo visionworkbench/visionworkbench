@@ -68,7 +68,9 @@ namespace vw { namespace mosaic {
   // Single-channel images are read into Image<double>, while
   // multi-channel in Image<Vector>, and we skip reading extra channels.
   template<class PixelT>
-  typename boost::enable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
+  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
+                            boost::is_same<PixelT,float>>,
+                            ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
     // Bugfix: Sometimes the image may actually have multiple channels
     // but we choose to read one channel only in the caller of this
@@ -81,34 +83,41 @@ namespace vw { namespace mosaic {
       return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
   }
   template<class PixelT>
-  typename boost::disable_if<boost::is_same<PixelT,double>, ImageViewRef<PixelT>>::type
+  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
+                             boost::is_same<PixelT,float>>,
+                             ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
     return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
   }
 
   // TODO: Clean up!
-  // Gets called for PixelT == double
+  // Gets called for scalar pixel types (double, float, uint8)
   template<class PixelT>
-  typename boost::enable_if< boost::mpl::or_< boost::is_same<PixelT,double>, 
-                             boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
+  typename boost::enable_if< boost::mpl::or_< boost::is_same<PixelT,double>,
+                             boost::mpl::or_< boost::is_same<PixelT,float>,
+                             boost::is_same<PixelT,vw::uint8> > >,
+                             ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
     return create_mask(img, nodata_val);
   }
-  // Gets called for PixelT == Vector<u8, 1> and Vector<u8, 3>
+  // Gets called for compound pixel types (Vector<u8, N>)
   template<class PixelT>
-  typename boost::disable_if< boost::mpl::or_< boost::is_same<PixelT,double>, 
-                              boost::is_same<PixelT,vw::uint8> >, ImageViewRef< PixelMask<PixelT> > >::type
+  typename boost::disable_if< boost::mpl::or_< boost::is_same<PixelT,double>,
+                              boost::mpl::or_< boost::is_same<PixelT,float>,
+                              boost::is_same<PixelT,vw::uint8> > >,
+                              ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
     PixelT mask_pixel;
     mask_pixel.set_all(nodata_val);
     return create_mask(img, mask_pixel);
   }
 
-  // For scalar pixel types (double, uint8): use range masking if valid range
-  // is provided, otherwise use nodata masking.
+  // For scalar pixel types (double, float, uint8): use range masking if valid
+  // range is provided, otherwise use nodata masking.
   template<class PixelT>
   typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                            boost::is_same<PixelT, vw::uint8>>,
+                            boost::mpl::or_<boost::is_same<PixelT, float>,
+                            boost::is_same<PixelT, vw::uint8>>>,
                             ImageViewRef<PixelMask<PixelT>>>::type
   maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
                  float valid_min, float valid_max) {
@@ -121,7 +130,8 @@ namespace vw { namespace mosaic {
   // Range masking is not supported for multi-channel pixels.
   template<class PixelT>
   typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                             boost::is_same<PixelT, vw::uint8>>,
+                             boost::mpl::or_<boost::is_same<PixelT, float>,
+                             boost::is_same<PixelT, vw::uint8>>>,
                              ImageViewRef<PixelMask<PixelT>>>::type
   maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
                  float /*valid_min*/, float /*valid_max*/) {
@@ -172,7 +182,8 @@ namespace vw { namespace mosaic {
   /// Logic to find some approximate values for the valid pixels, ignoring the worst
   /// outliers. Use the lowest pyramid level.
   template <class PixelT>
-  typename boost::enable_if<boost::is_same<PixelT, double>, vw::Vector2>::type
+  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
+                            boost::is_same<PixelT, float>>, vw::Vector2>::type
   approx_bounds_nocache(std::string const& file, bool has_nodata,
                         double nodata_val,
                         float valid_min = std::numeric_limits<float>::quiet_NaN(),
@@ -222,7 +233,8 @@ namespace vw { namespace mosaic {
   }
   
   template <class PixelT>
-  typename boost::disable_if<boost::is_same<PixelT,double>, vw::Vector2>::type
+  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
+                             boost::is_same<PixelT, float>>, vw::Vector2>::type
   approx_bounds_nocache(std::string const& file, bool has_nodata, double nodata_val,
                         float /*valid_min*/ = std::numeric_limits<float>::quiet_NaN(),
                         float /*valid_max*/ = std::numeric_limits<float>::quiet_NaN()) {
