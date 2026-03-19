@@ -23,6 +23,8 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Vector.h>
 
+#include <boost/iterator/iterator_facade.hpp>
+
 namespace vw {
 namespace math {
 

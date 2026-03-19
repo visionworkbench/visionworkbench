@@ -55,16 +55,11 @@
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 
+#include <array>
 #include <cstring> // for memset
+#include <iterator>
+#include <type_traits>
 #include <vector>
-
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/mpl/if.hpp>
-#include <boost/static_assert.hpp>
-#include <boost/array.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-#include <boost/utility/result_of.hpp>
 
 namespace vw {
 namespace math {
@@ -146,15 +141,14 @@ namespace math {
   /// Set all elements in a Vector to a value, but also safe for some other types.
   /// - For VectorBase derived types, this calls the set_all function.
   /// - For all other types, this just tries a regular assignment operation.
-  /// - If more types need to be supported more boost wizardry will be required.
   template <class VectorT>
-  typename boost::enable_if<typename boost::is_base_of<VectorBase<VectorT>,VectorT>::type, void>::type
+  typename std::enable_if<std::is_base_of<VectorBase<VectorT>,VectorT>::value, void>::type
   set_all( VectorT &vec, typename VectorT::value_type val ) {
     vec.set_all(val);
   }
   // Handle other types
   template <class ElemT1, class ElemT2>
-  typename boost::disable_if<typename boost::is_base_of<VectorBase<ElemT1>,ElemT1>::type, void>::type
+  typename std::enable_if<!std::is_base_of<VectorBase<ElemT1>,ElemT1>::value, void>::type
   set_all( ElemT1 &val1, ElemT2 val2 ) {
     val1 = val2;
   }
@@ -165,47 +159,93 @@ namespace math {
   // *******************************************************************
 
   template <class VectorT>
-  class IndexingVectorIterator : public boost::iterator_facade<IndexingVectorIterator<VectorT>,
-    typename boost::mpl::if_<boost::is_const<VectorT>,
-    const typename VectorT::value_type,
-    typename VectorT::value_type>::type,
-    boost::random_access_traversal_tag,
-    typename boost::mpl::if_<boost::is_const<VectorT>,
-    typename VectorT::const_reference_type,
-    typename VectorT::reference_type>::type> {
-
+  class IndexingVectorIterator {
   public:
-    typedef typename IndexingVectorIterator::difference_type difference_type;
+    typedef typename std::conditional<std::is_const<VectorT>::value,
+      const typename VectorT::value_type,
+      typename VectorT::value_type>::type value_type;
+    typedef typename std::conditional<std::is_const<VectorT>::value,
+      typename VectorT::const_reference_type,
+      typename VectorT::reference_type>::type reference;
+    typedef value_type* pointer;
+    typedef std::ptrdiff_t difference_type;
+    typedef std::random_access_iterator_tag iterator_category;
 
     IndexingVectorIterator( VectorT& vector, difference_type index ) :
       m_vector(&vector), m_index(index) {}
-  private:
-    friend class boost::iterator_core_access;
 
+    reference operator*() const { return (*m_vector)[m_index]; }
+    reference operator[]( difference_type n ) const {
+      return (*m_vector)[m_index + n];
+    }
+
+    IndexingVectorIterator& operator++() { ++m_index; return *this; }
+    IndexingVectorIterator operator++(int) {
+      auto tmp = *this; ++m_index; return tmp;
+    }
+    IndexingVectorIterator& operator--() { --m_index; return *this; }
+    IndexingVectorIterator operator--(int) {
+      auto tmp = *this; --m_index; return tmp;
+    }
+
+    IndexingVectorIterator& operator+=( difference_type n ) {
+      if (m_vector->size() == 0) return *this;
+      m_index += n;
+      return *this;
+    }
+    IndexingVectorIterator& operator-=( difference_type n ) {
+      if (m_vector->size() == 0) return *this;
+      m_index -= n;
+      return *this;
+    }
+
+    friend IndexingVectorIterator operator+(IndexingVectorIterator i,
+                                            difference_type n) {
+      i += n; return i;
+    }
+    friend IndexingVectorIterator operator+(difference_type n,
+                                            IndexingVectorIterator i) {
+      i += n; return i;
+    }
+    friend IndexingVectorIterator operator-(IndexingVectorIterator i,
+                                            difference_type n) {
+      i -= n; return i;
+    }
+    friend difference_type operator-(IndexingVectorIterator const& a,
+                                     IndexingVectorIterator const& b) {
+      return a.m_index - b.m_index;
+    }
+
+    friend bool operator==(IndexingVectorIterator const& a,
+                           IndexingVectorIterator const& b) {
+      return a.m_index == b.m_index;
+    }
+    friend bool operator!=(IndexingVectorIterator const& a,
+                           IndexingVectorIterator const& b) {
+      return a.m_index != b.m_index;
+    }
+    friend bool operator<(IndexingVectorIterator const& a,
+                          IndexingVectorIterator const& b) {
+      return a.m_index < b.m_index;
+    }
+    friend bool operator>(IndexingVectorIterator const& a,
+                          IndexingVectorIterator const& b) {
+      return a.m_index > b.m_index;
+    }
+    friend bool operator<=(IndexingVectorIterator const& a,
+                           IndexingVectorIterator const& b) {
+      return a.m_index <= b.m_index;
+    }
+    friend bool operator>=(IndexingVectorIterator const& a,
+                           IndexingVectorIterator const& b) {
+      return a.m_index >= b.m_index;
+    }
+
+  private:
     // This has to be a pointer and not a reference because we need to support
     // operator=, and references cannot be reseated.
     VectorT* m_vector;
     difference_type m_index;
-
-    bool equal( IndexingVectorIterator const& iter ) const {
-      return m_index==iter.m_index;
-    }
-
-    difference_type distance_to( IndexingVectorIterator const& iter ) const {
-      return difference_type(iter.m_index)-difference_type(m_index);
-    }
-
-    void increment() { ++m_index; }
-    void decrement() { --m_index; }
-
-    void advance( difference_type n ) {
-      if ( m_vector->size() == 0 ) return;
-      m_index += n;
-    }
-
-    typename IndexingVectorIterator::reference dereference() const {
-      return (*m_vector)[m_index];
-    }
   };
 
   // *******************************************************************
@@ -217,7 +257,7 @@ namespace math {
   template <class ElemT, size_t SizeN = 0>
   class Vector : public VectorBase<Vector<ElemT,SizeN> >
   {
-    typedef boost::array<ElemT,SizeN> core_type;
+    typedef std::array<ElemT,SizeN> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -235,31 +275,31 @@ namespace math {
 
     /// Constructor for size 1 vectors
     Vector( ElemT e1 ) {
-      BOOST_STATIC_ASSERT( SizeN == 1 );
+      static_assert(SizeN == 1, "");
       (*this)[0] = e1;
     }
 
     /// Constructor for size 2 vectors
     Vector( ElemT e1, ElemT e2 ) {
-      BOOST_STATIC_ASSERT( SizeN == 2 );
+      static_assert(SizeN == 2, "");
       (*this)[0] = e1; (*this)[1] = e2;
     }
 
     /// Constructor for size 3 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3 ) {
-      BOOST_STATIC_ASSERT( SizeN == 3 );
+      static_assert(SizeN == 3, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3;
     }
 
     /// Constructor for size 4 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
-      BOOST_STATIC_ASSERT( SizeN == 4 );
+      static_assert(SizeN == 4, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4;
     }
 
     /// Constructor for size 5 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5 ) {
-      BOOST_STATIC_ASSERT( SizeN == 5 );
+      static_assert(SizeN == 5, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4; (*this)[4] = e5;
     }
 
@@ -329,12 +369,12 @@ namespace math {
     const_reference_type operator[]( size_t i ) const { return core_[i]; }
 
 
-          reference_type x()       { BOOST_STATIC_ASSERT( SizeN >= 1 ); return core_[0]; }
-    const_reference_type x() const { BOOST_STATIC_ASSERT( SizeN >= 1 ); return core_[0]; }
-          reference_type y()       { BOOST_STATIC_ASSERT( SizeN >= 2 ); return core_[1]; }
-    const_reference_type y() const { BOOST_STATIC_ASSERT( SizeN >= 2 ); return core_[1]; }
-          reference_type z()       { BOOST_STATIC_ASSERT( SizeN >= 3 ); return core_[2]; }
-    const_reference_type z() const { BOOST_STATIC_ASSERT( SizeN >= 3 ); return core_[2]; }
+          reference_type x()       { static_assert(SizeN >= 1, ""); return core_[0]; }
+    const_reference_type x() const { static_assert(SizeN >= 1, ""); return core_[0]; }
+          reference_type y()       { static_assert(SizeN >= 2, ""); return core_[1]; }
+    const_reference_type y() const { static_assert(SizeN >= 2, ""); return core_[1]; }
+          reference_type z()       { static_assert(SizeN >= 3, ""); return core_[2]; }
+    const_reference_type z() const { static_assert(SizeN >= 3, ""); return core_[2]; }
 
           iterator begin()       { return core_.begin(); }
     const_iterator begin() const { return core_.begin(); }
@@ -569,12 +609,12 @@ namespace math {
           reference_type operator[]( size_t i )       { return m_ptr[i]; }
     const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
 
-          reference_type x()       { BOOST_STATIC_ASSERT( SizeN >= 1 ); return m_ptr[0]; }
-    const_reference_type x() const { BOOST_STATIC_ASSERT( SizeN >= 1 ); return m_ptr[0]; }
-          reference_type y()       { BOOST_STATIC_ASSERT( SizeN >= 2 ); return m_ptr[1]; }
-    const_reference_type y() const { BOOST_STATIC_ASSERT( SizeN >= 2 ); return m_ptr[1]; }
-          reference_type z()       { BOOST_STATIC_ASSERT( SizeN >= 3 ); return m_ptr[2]; }
-    const_reference_type z() const { BOOST_STATIC_ASSERT( SizeN >= 3 ); return m_ptr[2]; }
+          reference_type x()       { static_assert(SizeN >= 1, ""); return m_ptr[0]; }
+    const_reference_type x() const { static_assert(SizeN >= 1, ""); return m_ptr[0]; }
+          reference_type y()       { static_assert(SizeN >= 2, ""); return m_ptr[1]; }
+    const_reference_type y() const { static_assert(SizeN >= 2, ""); return m_ptr[1]; }
+          reference_type z()       { static_assert(SizeN >= 3, ""); return m_ptr[2]; }
+    const_reference_type z() const { static_assert(SizeN >= 3, ""); return m_ptr[2]; }
 
           iterator begin()       { return m_ptr; }
     const_iterator begin() const { return m_ptr; }
@@ -700,12 +740,12 @@ namespace math {
   public:
     typedef typename VectorT::value_type value_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+    typedef typename std::conditional<std::is_const<VectorT>::value,
                                      typename VectorT::const_reference_type,
                                      typename VectorT::reference_type>::type reference_type;
     typedef typename VectorT::const_reference_type const_reference_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+    typedef typename std::conditional<std::is_const<VectorT>::value,
                                      typename VectorT::const_iterator,
                                      typename VectorT::iterator>::type iterator;
     typedef typename VectorT::const_iterator const_iterator;
@@ -776,12 +816,12 @@ namespace math {
   public:
     typedef typename VectorT::value_type value_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+    typedef typename std::conditional<std::is_const<VectorT>::value,
                                      typename VectorT::const_reference_type,
                                      typename VectorT::reference_type>::type reference_type;
     typedef typename VectorT::const_reference_type const_reference_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+    typedef typename std::conditional<std::is_const<VectorT>::value,
                                      typename VectorT::const_iterator,
                                      typename VectorT::iterator>::type iterator;
     typedef typename VectorT::const_iterator const_iterator;
@@ -858,30 +898,47 @@ namespace math {
     VectorT const& v;
     FuncT func;
   public:
-    typedef typename boost::result_of<FuncT(typename VectorT::value_type)>::type value_type;
+    typedef typename std::result_of<FuncT(typename VectorT::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    class iterator : public boost::iterator_facade<iterator,
-                                                   value_type,
-                                                   boost::random_access_traversal_tag,
-                                                   reference_type>
-    {
-      friend class boost::iterator_core_access;
-
-      typename VectorT::const_iterator i;
-      FuncT func;
-
-      bool equal( iterator const& iter ) const { return i==iter.i; }
-      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
-      void increment() { ++i; }
-      void decrement() { --i; }
-      void advance( typename iterator::difference_type n ) { i+=n; }
-      typename iterator::reference dereference() const { return func(*i); }
+    class iterator {
     public:
+      typedef typename std::result_of<FuncT(typename VectorT::value_type)>::type value_type;
+      typedef value_type reference;
+      typedef value_type* pointer;
+      typedef std::ptrdiff_t difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
+
       iterator(typename VectorT::const_iterator const& i,
                FuncT const& func) : i(i), func(func) {}
+
+      reference operator*() const { return func(*i); }
+      reference operator[](difference_type n) const { return func(*(i + n)); }
+
+      iterator& operator++() { ++i; return *this; }
+      iterator operator++(int) { auto tmp = *this; ++i; return tmp; }
+      iterator& operator--() { --i; return *this; }
+      iterator operator--(int) { auto tmp = *this; --i; return tmp; }
+      iterator& operator+=(difference_type n) { i += n; return *this; }
+      iterator& operator-=(difference_type n) { i -= n; return *this; }
+
+      friend iterator operator+(iterator it, difference_type n) { it += n; return it; }
+      friend iterator operator+(difference_type n, iterator it) { it += n; return it; }
+      friend iterator operator-(iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(iterator const& a, iterator const& b) { return a.i - b.i; }
+
+      friend bool operator==(iterator const& a, iterator const& b) { return a.i == b.i; }
+      friend bool operator!=(iterator const& a, iterator const& b) { return a.i != b.i; }
+      friend bool operator<(iterator const& a, iterator const& b) { return a.i < b.i; }
+      friend bool operator>(iterator const& a, iterator const& b) { return a.i > b.i; }
+      friend bool operator<=(iterator const& a, iterator const& b) { return a.i <= b.i; }
+      friend bool operator>=(iterator const& a, iterator const& b) { return a.i >= b.i; }
+
+    private:
+      typename VectorT::const_iterator i;
+      FuncT func;
     };
 
     typedef iterator const_iterator;
@@ -919,32 +976,52 @@ namespace math {
     Vector2T const& v2;
     FuncT func;
   public:
-    typedef typename boost::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
+    typedef typename std::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
 
     typedef value_type       reference_type;
     typedef value_type const_reference_type;
 
-    class iterator : public boost::iterator_facade<iterator,
-                                                   value_type,
-                                                   boost::random_access_traversal_tag,
-                                                   reference_type>
-    {
-      friend class boost::iterator_core_access;
-
-      typename Vector1T::const_iterator i1;
-      typename Vector2T::const_iterator i2;
-      FuncT func;
-
-      bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
-      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i1 - i1; }
-      void increment() { ++i1; ++i2; }
-      void decrement() { --i1; --i2; }
-      void advance( typename iterator::difference_type n ) { i1+=n; i2+=n; }
-      typename iterator::reference dereference() const { return func(*i1,*i2); }
+    class iterator {
     public:
+      typedef typename std::result_of<FuncT(typename Vector1T::value_type,
+        typename Vector2T::value_type)>::type value_type;
+      typedef value_type reference;
+      typedef value_type* pointer;
+      typedef std::ptrdiff_t difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
+
       iterator(typename Vector1T::const_iterator const& i1,
                typename Vector2T::const_iterator const& i2,
                FuncT const& func) : i1(i1), i2(i2), func(func) {}
+
+      reference operator*() const { return func(*i1, *i2); }
+      reference operator[](difference_type n) const { return func(*(i1 + n), *(i2 + n)); }
+
+      iterator& operator++() { ++i1; ++i2; return *this; }
+      iterator operator++(int) { auto tmp = *this; ++i1; ++i2; return tmp; }
+      iterator& operator--() { --i1; --i2; return *this; }
+      iterator operator--(int) { auto tmp = *this; --i1; --i2; return tmp; }
+      iterator& operator+=(difference_type n) { i1 += n; i2 += n; return *this; }
+      iterator& operator-=(difference_type n) { i1 -= n; i2 -= n; return *this; }
+
+      friend iterator operator+(iterator it, difference_type n) { it += n; return it; }
+      friend iterator operator+(difference_type n, iterator it) { it += n; return it; }
+      friend iterator operator-(iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(iterator const& a, iterator const& b) { return a.i1 - b.i1; }
+
+      friend bool operator==(iterator const& a, iterator const& b) {
+        return (a.i1 == b.i1) && (a.i2 == b.i2);
+      }
+      friend bool operator!=(iterator const& a, iterator const& b) { return !(a == b); }
+      friend bool operator<(iterator const& a, iterator const& b) { return a.i1 < b.i1; }
+      friend bool operator>(iterator const& a, iterator const& b) { return a.i1 > b.i1; }
+      friend bool operator<=(iterator const& a, iterator const& b) { return a.i1 <= b.i1; }
+      friend bool operator>=(iterator const& a, iterator const& b) { return a.i1 >= b.i1; }
+
+    private:
+      typename Vector1T::const_iterator i1;
+      typename Vector2T::const_iterator i2;
+      FuncT func;
     };
 
     VectorBinaryFunc( Vector1T const& v1, Vector2T const& v2 ) : v1(v1), v2(v2), func() {
@@ -1163,7 +1240,7 @@ namespace math {
 
   /// Elementwise sum of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> > >::type
   inline elem_sum( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >( v.impl(), s );
@@ -1171,7 +1248,7 @@ namespace math {
 
   /// Elementwise sum of a vector and a scalar.
   template <class VectorT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> > >::type
   inline elem_sum( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >( v.impl(), s );
@@ -1201,7 +1278,7 @@ namespace math {
 
   /// Elementwise difference of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgDifferenceFunctor<ScalarT> > >::type
   inline elem_diff( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgDifferenceFunctor<ScalarT> >( v.impl(), s );
@@ -1209,7 +1286,7 @@ namespace math {
 
   /// Elementwise difference of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValDifferenceFunctor<ScalarT> > >::type
   inline elem_diff( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValDifferenceFunctor<ScalarT> >( v.impl(), s );
@@ -1225,7 +1302,7 @@ namespace math {
 
   /// Elementwise product of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > >::type
   inline elem_prod( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> >( v.impl(), s );
@@ -1233,7 +1310,7 @@ namespace math {
 
   /// Product of a scalar and a vector (same as elem_prod).
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > >::type
   inline operator*( ScalarT s, VectorBase<VectorT> const& v ) {
     return elem_prod( s, v );
@@ -1241,7 +1318,7 @@ namespace math {
 
   /// Product of a scalar and a transposed vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > > >::type
   inline operator*( ScalarT s, VectorTranspose<VectorT> const& v ) {
     return transpose(s*v.child());
@@ -1249,7 +1326,7 @@ namespace math {
 
   /// Elementwise product of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > >::type
   inline elem_prod( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> >( v.impl(), s );
@@ -1257,7 +1334,7 @@ namespace math {
 
   /// Product of a vector and a scalar (same as elem_prod).
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > >::type
   inline operator*( VectorBase<VectorT> const& v, ScalarT s ) {
     return elem_prod( v, s );
@@ -1265,7 +1342,7 @@ namespace math {
 
   /// Product of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > > >::type
   inline operator*( VectorTranspose<VectorT> const& v, ScalarT s ) {
     return transpose(v.child()*s);
@@ -1281,7 +1358,7 @@ namespace math {
 
   /// Elementwise quotient of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgQuotientFunctor<ScalarT> > >::type
   inline elem_quot( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgQuotientFunctor<ScalarT> >( v.impl(), s );
@@ -1289,7 +1366,7 @@ namespace math {
 
   /// Elementwise quotient of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > >::type
   inline elem_quot( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> >( v.impl(), s );
@@ -1297,7 +1374,7 @@ namespace math {
 
   /// Quotient of a vector and a scalar (same as elem_quot).
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > >::type
   inline operator/( VectorBase<VectorT> const& v, ScalarT s ) {
     return elem_quot( v, s );
@@ -1305,7 +1382,7 @@ namespace math {
 
   /// Quotient of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > > >::type
   inline operator/( VectorTranspose<VectorT> const& v, ScalarT s ) {
     return transpose(v.child()/s);
@@ -1361,7 +1438,7 @@ namespace math {
 
   /// Elementwise equality of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> > >::type
   inline elem_eq( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> >( v.impl(), s );
@@ -1369,7 +1446,7 @@ namespace math {
 
   /// Elementwise equality of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> > >::type
   inline elem_eq( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> >( v.impl(), s );
@@ -1385,7 +1462,7 @@ namespace math {
 
   /// Elementwise inequality of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> > >::type
   inline elem_neq( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> >( v.impl(), s );
@@ -1393,7 +1470,7 @@ namespace math {
 
   /// Elementwise inequality of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> > >::type
   inline elem_neq( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> >( v.impl(), s );
@@ -1409,7 +1486,7 @@ namespace math {
 
   /// Elementwise less-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> > >::type
   inline elem_lt( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> >( v.impl(), s );
@@ -1417,7 +1494,7 @@ namespace math {
 
   /// Elementwise less-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> > >::type
   inline elem_lt( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> >( v.impl(), s );
@@ -1433,7 +1510,7 @@ namespace math {
 
   /// Elementwise less-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> > >::type
   inline elem_lte( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> >( v.impl(), s );
@@ -1441,7 +1518,7 @@ namespace math {
 
   /// Elementwise less-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> > >::type
   inline elem_lte( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> >( v.impl(), s );
@@ -1457,7 +1534,7 @@ namespace math {
 
   /// Elementwise greater-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> > >::type
   inline elem_gt( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> >( v.impl(), s );
@@ -1465,7 +1542,7 @@ namespace math {
 
   /// Elementwise greater-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> > >::type
   inline elem_gt( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> >( v.impl(), s );
@@ -1481,7 +1558,7 @@ namespace math {
 
   /// Elementwise greater-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> > >::type
   inline elem_gte( ScalarT s, VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
@@ -1489,7 +1566,7 @@ namespace math {
 
   /// Elementwise greater-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> > >::type
   inline elem_gte( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
