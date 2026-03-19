@@ -20,10 +20,9 @@
 #define __VW_MATH_BRESENHAMLINE_H__
 
 #include <cmath>
+#include <iterator>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Vector.h>
-
-#include <boost/iterator/iterator_facade.hpp>
 
 namespace vw {
 namespace math {
@@ -33,11 +32,13 @@ namespace math {
   /// - See http://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
   /// - This class is an iterator down the pixels of the line.
   /// - Unit tests for this class are in the underused TestFunctions.cxx file.
-  class BresenhamLine : public boost::iterator_facade<BresenhamLine,
-                                                      Vector2i,
-                                                      boost::forward_traversal_tag,
-                                                      Vector2i,
-                                                      int64> {
+  class BresenhamLine {
+  public:
+    typedef Vector2i value_type;
+    typedef Vector2i reference;
+    typedef Vector2i* pointer;
+    typedef int64 difference_type;
+    typedef std::forward_iterator_tag iterator_category;
   private: // Variables
   
     vw::int32 x0, y0, x1, y1; ///< Starting and stopping points of the line
@@ -104,21 +105,19 @@ namespace math {
     bool is_good() const { return x < x1; }
     
     
-    // The following functions implement the iterator interface
+    /// Post-increment
+    BresenhamLine operator++(int) {
+      BresenhamLine tmp = *this;
+      this->operator++();
+      return tmp;
+    }
 
-    // Testing equality and distance
-    bool equal        (BresenhamLine const& iter) const { return (x == iter.x); }
-    int64 distance_to (BresenhamLine const &iter) const { return iter.x - x;    }
-
-    // Forward and random access movement
-    void increment()      {  this->operator++();    }
-    void advance(int64 n) {  for (int64 i=0; i<n; ++i) this->operator++(); }
-
-    // Dereferencing
-    vw::Vector2i dereference() const {
-      return this->operator*();
-    }    
-    
+    friend bool operator==(BresenhamLine const& a, BresenhamLine const& b) {
+      return a.x == b.x;
+    }
+    friend bool operator!=(BresenhamLine const& a, BresenhamLine const& b) {
+      return a.x != b.x;
+    }
   };
 
 } // end namespace math

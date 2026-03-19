@@ -49,15 +49,10 @@
 #include <vw/Math/Vector.h>
 #include <vw/vw_config.h>
 
+#include <array>
+#include <iterator>
 #include <stack>
-
-#include <boost/array.hpp>
-#include <boost/iterator/iterator_facade.hpp>
-#include <boost/mpl/if.hpp>
-#include <boost/static_assert.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/utility/enable_if.hpp>
-#include <boost/utility/result_of.hpp>
+#include <type_traits>
 
 namespace vw {
 namespace math {
@@ -177,93 +172,126 @@ namespace math {
   /// keeps track of the element indices, dereferencing via the
   /// function call operator.
 
-  // Turn off an unhelpful and highly verbose boost warning
-#if defined(__GNUC__) || defined(__GNUG__)
-#define LOCAL_GCC_VERSION (__GNUC__ * 10000                    \
-                           + __GNUC_MINOR__ * 100              \
-                           + __GNUC_PATCHLEVEL__)
-#if LOCAL_GCC_VERSION >= 40600
-#pragma GCC diagnostic push
-#endif
-#if LOCAL_GCC_VERSION >= 40202  
-#pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#endif
-#endif
-  
   template <class MatrixT>
-  class IndexingMatrixIterator : public boost::iterator_facade<IndexingMatrixIterator<MatrixT>,
-    typename boost::mpl::if_<boost::is_const<MatrixT>,
-      const typename MatrixT::value_type,
-      typename MatrixT::value_type>::type,
-    boost::random_access_traversal_tag,
-    typename boost::mpl::if_<boost::is_const<MatrixT>,
-    typename MatrixT::const_reference_type,
-    typename MatrixT::reference_type>::type>
-  {
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#if LOCAL_GCC_VERSION >= 40600  
-#pragma GCC diagnostic pop
-#endif
-#undef LOCAL_GCC_VERSION
-#endif
-    
+  class IndexingMatrixIterator {
   public:
-    typedef typename IndexingMatrixIterator::difference_type difference_type;
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
+      const typename MatrixT::value_type,
+      typename MatrixT::value_type>::type value_type;
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
+      typename MatrixT::const_reference_type,
+      typename MatrixT::reference_type>::type reference;
+    typedef value_type* pointer;
+    typedef std::ptrdiff_t difference_type;
+    typedef std::random_access_iterator_tag iterator_category;
 
-    IndexingMatrixIterator( MatrixT& matrix, difference_type row, difference_type col ) :
+    IndexingMatrixIterator( MatrixT& matrix, difference_type row,
+                            difference_type col ) :
       m_matrix(&matrix), m_row(row), m_col(col) {}
 
-  private:
-    friend class boost::iterator_core_access;
+    reference operator*() const { return (*m_matrix)(m_row, m_col); }
+    reference operator[]( difference_type n ) const {
+      IndexingMatrixIterator tmp = *this;
+      tmp.advance(n);
+      return *tmp;
+    }
 
+    IndexingMatrixIterator& operator++() {
+      if (++m_col == m_matrix->cols()) {
+        m_col = 0; ++m_row;
+      }
+      return *this;
+    }
+    IndexingMatrixIterator operator++(int) {
+      auto tmp = *this; ++(*this); return tmp;
+    }
+    IndexingMatrixIterator& operator--() {
+      if (m_col == 0) {
+        m_col = m_matrix->cols() - 1;
+        --m_row;
+      } else
+        --m_col;
+      return *this;
+    }
+    IndexingMatrixIterator operator--(int) {
+      auto tmp = *this; --(*this); return tmp;
+    }
+
+    IndexingMatrixIterator& operator+=( difference_type n ) {
+      advance(n);
+      return *this;
+    }
+    IndexingMatrixIterator& operator-=( difference_type n ) {
+      advance(-n);
+      return *this;
+    }
+
+    friend IndexingMatrixIterator operator+(IndexingMatrixIterator i,
+                                            difference_type n) {
+      i += n; return i;
+    }
+    friend IndexingMatrixIterator operator+(difference_type n,
+                                            IndexingMatrixIterator i) {
+      i += n; return i;
+    }
+    friend IndexingMatrixIterator operator-(IndexingMatrixIterator i,
+                                            difference_type n) {
+      i -= n; return i;
+    }
+    friend difference_type operator-(IndexingMatrixIterator const& a,
+                                     IndexingMatrixIterator const& b) {
+      difference_type coldiff = (a.m_col > b.m_col)
+        ? difference_type(a.m_col - b.m_col)
+        : -difference_type(b.m_col - a.m_col);
+      difference_type rowdiff = (a.m_row > b.m_row)
+        ? difference_type(a.m_row - b.m_row)
+        : -difference_type(b.m_row - a.m_row);
+      return coldiff + rowdiff * a.m_matrix->cols();
+    }
+
+    friend bool operator==(IndexingMatrixIterator const& a,
+                           IndexingMatrixIterator const& b) {
+      return a.m_row == b.m_row && a.m_col == b.m_col;
+    }
+    friend bool operator!=(IndexingMatrixIterator const& a,
+                           IndexingMatrixIterator const& b) {
+      return !(a == b);
+    }
+    friend bool operator<(IndexingMatrixIterator const& a,
+                          IndexingMatrixIterator const& b) {
+      return (a - b) < 0;
+    }
+    friend bool operator>(IndexingMatrixIterator const& a,
+                          IndexingMatrixIterator const& b) {
+      return b < a;
+    }
+    friend bool operator<=(IndexingMatrixIterator const& a,
+                           IndexingMatrixIterator const& b) {
+      return !(b < a);
+    }
+    friend bool operator>=(IndexingMatrixIterator const& a,
+                           IndexingMatrixIterator const& b) {
+      return !(a < b);
+    }
+
+  private:
     // This has to be a pointer and not a reference because we need to support
     // operator=, and references cannot be reseated.
     MatrixT* m_matrix;
     size_t m_row, m_col;
 
-    bool equal( IndexingMatrixIterator const& iter ) const {
-      return m_row==iter.m_row && m_col==iter.m_col;
-    }
-
-    difference_type distance_to( IndexingMatrixIterator const &iter ) const {
-      difference_type coldiff = (iter.m_col>m_col) ? difference_type(iter.m_col-m_col) : -difference_type(m_col-iter.m_col);
-      difference_type rowdiff = (iter.m_row>m_row) ? difference_type(iter.m_row-m_row) : -difference_type(m_row-iter.m_row);
-      return coldiff + rowdiff * m_matrix->cols();
-    }
-
-    void increment() {
-      if( ++m_col == m_matrix->cols() ) {
-        m_col=0; ++m_row;
-      }
-    }
-
-    void decrement() {
-      if( m_col==0 ) {
-        m_col=m_matrix->cols()-1;
-        --m_row;
-      }
-      else {
-        --m_col;
-      }
-    }
-
     void advance( difference_type n ) {
-      // This safeguards against suprious division by zero troubles encountered
+      // This safeguards against spurious division by zero troubles encountered
       // on some platforms when performing operations on degenerate matrices.
-      if( m_matrix->cols() == 0 ) return;
-      if( n < 0 ) {
-        difference_type rowdiff = 1 + (-n)/m_matrix->cols();
+      if (m_matrix->cols() == 0) return;
+      if (n < 0) {
+        difference_type rowdiff = 1 + (-n) / m_matrix->cols();
         m_row -= rowdiff;
         n += rowdiff * m_matrix->cols();
       }
       m_col += n;
       m_row += m_col / m_matrix->cols();
       m_col %= m_matrix->cols();
-    }
-
-    typename IndexingMatrixIterator::reference dereference() const {
-      return (*m_matrix)(m_row,m_col);
     }
   };
 
@@ -277,7 +305,7 @@ namespace math {
   template <class ElemT, size_t RowsN=0, size_t ColsN=0>
   class Matrix : public MatrixBase<Matrix<ElemT,RowsN,ColsN> >
   {
-    typedef boost::array<ElemT,RowsN*ColsN> core_type;
+    typedef std::array<ElemT,RowsN*ColsN> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -290,12 +318,12 @@ namespace math {
 
     /// Constructs a matrix of zeroes.
     Matrix() {
-      std::memset( core_.c_array(), 0, RowsN*ColsN*sizeof(ElemT) );
+      std::memset( core_.data(), 0, RowsN*ColsN*sizeof(ElemT) );
     }
 
     /// Constructs a matrix whose first element is as given.
     Matrix( ElemT e1 ) {
-      BOOST_STATIC_ASSERT( RowsN*ColsN >= 1 );
+      static_assert(RowsN*ColsN >= 1, "");
       iterator i=begin();
       *(i++)=e1;
       for( ; i!=end(); ++i ) *i = ElemT();
@@ -303,7 +331,7 @@ namespace math {
 
     /// Constructs a matrix whose first two elements are as given.
     Matrix( ElemT e1, ElemT e2 ) {
-      BOOST_STATIC_ASSERT( RowsN*ColsN >= 2 );
+      static_assert(RowsN*ColsN >= 2, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2;
       for( ; i!=end(); ++i ) *i = ElemT();
@@ -311,7 +339,7 @@ namespace math {
 
     /// Constructs a matrix whose first three elements are as given.
     Matrix( ElemT e1, ElemT e2, ElemT e3 ) {
-      BOOST_STATIC_ASSERT( RowsN*ColsN >= 3 );
+      static_assert(RowsN*ColsN >= 3, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3;
       for( ; i!=end(); ++i ) *i = ElemT();
@@ -319,7 +347,7 @@ namespace math {
 
     /// Constructs a matrix whose first four elements are as given.
     Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
-      BOOST_STATIC_ASSERT( RowsN*ColsN >= 4 );
+      static_assert(RowsN*ColsN >= 4, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
       for( ; i!=end(); ++i ) *i = ElemT();
@@ -328,7 +356,7 @@ namespace math {
     /// Constructs a matrix whose first 9 elements are as given.
     Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5,
             ElemT e6, ElemT e7, ElemT e8, ElemT e9 ) {
-      BOOST_STATIC_ASSERT( RowsN*ColsN >= 4 );
+      static_assert(RowsN*ColsN >= 4, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
       *(i++)=e5; *(i++)=e6; *(i++)=e7; *(i++)=e8; *(i++)=e9;
@@ -874,12 +902,12 @@ namespace math {
   public:
     typedef typename MatrixT::value_type value_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
                                      typename MatrixT::const_reference_type,
                                      typename MatrixT::reference_type>::type reference_type;
     typedef typename MatrixT::const_reference_type const_reference_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
                                      typename MatrixT::const_iterator,
                                      typename MatrixT::iterator>::type iterator;
     typedef typename MatrixT::const_iterator const_iterator;
@@ -967,39 +995,55 @@ namespace math {
     size_t col;
 
     template <class IterT>
-    class Iterator : public boost::iterator_facade<Iterator<IterT>,
-                                                   typename std::iterator_traits<IterT>::value_type,
-                                                   boost::random_access_traversal_tag,
-                                                   typename std::iterator_traits<IterT>::reference,
-                                                   typename std::iterator_traits<IterT>::difference_type>
-    {
-      public:
-        typedef typename Iterator::difference_type difference_type;
+    class Iterator {
+    public:
+      typedef typename std::iterator_traits<IterT>::value_type value_type;
+      typedef typename std::iterator_traits<IterT>::reference reference;
+      typedef typename std::iterator_traits<IterT>::pointer pointer;
+      typedef typename std::iterator_traits<IterT>::difference_type difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
 
-        Iterator( IterT const& i, difference_type stride ) : i(i), stride(stride) {}
-      private:
-        friend class boost::iterator_core_access;
+      Iterator( IterT const& i, difference_type stride ) :
+        i(i), stride(stride) {}
 
-        IterT i;
-        difference_type stride;
+      reference operator*() const { return *i; }
+      reference operator[]( difference_type n ) const { return *(i + n * stride); }
 
-        bool equal( Iterator const& iter ) const { return i==iter.i; }
-        difference_type distance_to( Iterator const &iter ) const { return (iter.i - i) / stride; }
-        void increment() { i += stride; }
-        void decrement() { i -= stride; }
-        void advance( difference_type n ) { i += n*stride; }
-        typename Iterator::reference dereference() const { return *i; }
+      Iterator& operator++() { i += stride; return *this; }
+      Iterator operator++(int) { auto tmp = *this; i += stride; return tmp; }
+      Iterator& operator--() { i -= stride; return *this; }
+      Iterator operator--(int) { auto tmp = *this; i -= stride; return tmp; }
+      Iterator& operator+=( difference_type n ) { i += n * stride; return *this; }
+      Iterator& operator-=( difference_type n ) { i -= n * stride; return *this; }
+
+      friend Iterator operator+(Iterator it, difference_type n) { it += n; return it; }
+      friend Iterator operator+(difference_type n, Iterator it) { it += n; return it; }
+      friend Iterator operator-(Iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(Iterator const& a, Iterator const& b) {
+        return (a.i - b.i) / a.stride;
+      }
+
+      friend bool operator==(Iterator const& a, Iterator const& b) { return a.i == b.i; }
+      friend bool operator!=(Iterator const& a, Iterator const& b) { return a.i != b.i; }
+      friend bool operator<(Iterator const& a, Iterator const& b) { return a.i < b.i; }
+      friend bool operator>(Iterator const& a, Iterator const& b) { return a.i > b.i; }
+      friend bool operator<=(Iterator const& a, Iterator const& b) { return a.i <= b.i; }
+      friend bool operator>=(Iterator const& a, Iterator const& b) { return a.i >= b.i; }
+
+    private:
+      IterT i;
+      difference_type stride;
     };
 
   public:
     typedef typename MatrixT::value_type value_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
                                      typename MatrixT::const_reference_type,
                                      typename MatrixT::reference_type>::type reference_type;
     typedef typename MatrixT::const_reference_type const_reference_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
                                      Iterator<typename MatrixT::const_iterator>,
                                      Iterator<typename MatrixT::iterator> >::type iterator;
     typedef Iterator<typename MatrixT::const_iterator> const_iterator;
@@ -1083,12 +1127,12 @@ namespace math {
   public:
     typedef typename MatrixT::value_type value_type;
 
-    typedef typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typedef typename std::conditional<std::is_const<MatrixT>::value,
                                      typename MatrixT::const_reference_type,
                                      typename MatrixT::reference_type>::type reference_type;
     typedef typename MatrixT::const_reference_type const_reference_type;
 
-    typedef IndexingMatrixIterator<typename boost::mpl::if_<boost::is_const<MatrixT>, const SubMatrix, SubMatrix>::type> iterator;
+    typedef IndexingMatrixIterator<typename std::conditional<std::is_const<MatrixT>::value, const SubMatrix, SubMatrix>::type> iterator;
     typedef IndexingMatrixIterator<const SubMatrix> const_iterator;
 
     SubMatrix( MatrixT& m, size_t row, size_t col, size_t rows, size_t cols ) :
@@ -1159,7 +1203,7 @@ namespace math {
     MatrixT const& m;
     FuncT func;
   public:
-    typedef typename boost::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
+    typedef typename std::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
@@ -1178,21 +1222,42 @@ namespace math {
       return func(child()(i,j));
     }
 
-    class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
-      friend class boost::iterator_core_access;
-
-      typename MatrixT::const_iterator i;
-      FuncT func;
-
-      bool equal( iterator const& iter ) const { return i==iter.i; }
-      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
-      void increment() { ++i; }
-      void decrement() { --i; }
-      void advance( typename iterator::difference_type n ) { i+=n; }
-      typename iterator::reference dereference() const { return func(*i); }
+    class iterator {
     public:
+      typedef typename std::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
+      typedef value_type reference;
+      typedef value_type* pointer;
+      typedef std::ptrdiff_t difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
+
       iterator(typename MatrixT::const_iterator const& i,
                FuncT const& func) : i(i), func(func) {}
+
+      reference operator*() const { return func(*i); }
+      reference operator[](difference_type n) const { return func(*(i + n)); }
+
+      iterator& operator++() { ++i; return *this; }
+      iterator operator++(int) { auto tmp = *this; ++i; return tmp; }
+      iterator& operator--() { --i; return *this; }
+      iterator operator--(int) { auto tmp = *this; --i; return tmp; }
+      iterator& operator+=(difference_type n) { i += n; return *this; }
+      iterator& operator-=(difference_type n) { i -= n; return *this; }
+
+      friend iterator operator+(iterator it, difference_type n) { it += n; return it; }
+      friend iterator operator+(difference_type n, iterator it) { it += n; return it; }
+      friend iterator operator-(iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(iterator const& a, iterator const& b) { return a.i - b.i; }
+
+      friend bool operator==(iterator const& a, iterator const& b) { return a.i == b.i; }
+      friend bool operator!=(iterator const& a, iterator const& b) { return a.i != b.i; }
+      friend bool operator<(iterator const& a, iterator const& b) { return a.i < b.i; }
+      friend bool operator>(iterator const& a, iterator const& b) { return a.i > b.i; }
+      friend bool operator<=(iterator const& a, iterator const& b) { return a.i <= b.i; }
+      friend bool operator>=(iterator const& a, iterator const& b) { return a.i >= b.i; }
+
+    private:
+      typename MatrixT::const_iterator i;
+      FuncT func;
     };
 
     typedef iterator const_iterator;
@@ -1222,7 +1287,7 @@ namespace math {
     Matrix2T const& m2;
     FuncT func;
   public:
-    typedef typename boost::result_of<FuncT(typename Matrix1T::value_type, typename Matrix2T::value_type)>::type value_type;
+    typedef typename std::result_of<FuncT(typename Matrix1T::value_type, typename Matrix2T::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
@@ -1246,23 +1311,47 @@ namespace math {
       return func(child1()(i,j),child2()(i,j));
     }
 
-    class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
-      friend class boost::iterator_core_access;
-
-      typename Matrix1T::const_iterator i1;
-      typename Matrix2T::const_iterator i2;
-      FuncT func;
-
-      bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
-      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i1 - i1; }
-      void increment() { ++i1; ++i2; }
-      void decrement() { --i1; --i2; }
-      void advance( typename iterator::difference_type n ) { i1+=n; i2+=n; }
-      typename iterator::reference dereference() const { return func(*i1,*i2); }
+    class iterator {
     public:
+      typedef typename std::result_of<FuncT(typename Matrix1T::value_type,
+        typename Matrix2T::value_type)>::type value_type;
+      typedef value_type reference;
+      typedef value_type* pointer;
+      typedef std::ptrdiff_t difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
+
       iterator(typename Matrix1T::const_iterator const& i1,
                typename Matrix2T::const_iterator const& i2,
                FuncT const& func) : i1(i1), i2(i2), func(func) {}
+
+      reference operator*() const { return func(*i1, *i2); }
+      reference operator[](difference_type n) const { return func(*(i1 + n), *(i2 + n)); }
+
+      iterator& operator++() { ++i1; ++i2; return *this; }
+      iterator operator++(int) { auto tmp = *this; ++i1; ++i2; return tmp; }
+      iterator& operator--() { --i1; --i2; return *this; }
+      iterator operator--(int) { auto tmp = *this; --i1; --i2; return tmp; }
+      iterator& operator+=(difference_type n) { i1 += n; i2 += n; return *this; }
+      iterator& operator-=(difference_type n) { i1 -= n; i2 -= n; return *this; }
+
+      friend iterator operator+(iterator it, difference_type n) { it += n; return it; }
+      friend iterator operator+(difference_type n, iterator it) { it += n; return it; }
+      friend iterator operator-(iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(iterator const& a, iterator const& b) { return a.i1 - b.i1; }
+
+      friend bool operator==(iterator const& a, iterator const& b) {
+        return (a.i1 == b.i1) && (a.i2 == b.i2);
+      }
+      friend bool operator!=(iterator const& a, iterator const& b) { return !(a == b); }
+      friend bool operator<(iterator const& a, iterator const& b) { return a.i1 < b.i1; }
+      friend bool operator>(iterator const& a, iterator const& b) { return a.i1 > b.i1; }
+      friend bool operator<=(iterator const& a, iterator const& b) { return a.i1 <= b.i1; }
+      friend bool operator>=(iterator const& a, iterator const& b) { return a.i1 >= b.i1; }
+
+    private:
+      typename Matrix1T::const_iterator i1;
+      typename Matrix2T::const_iterator i2;
+      FuncT func;
     };
 
     typedef iterator const_iterator;
@@ -1411,7 +1500,7 @@ namespace math {
 
   /// Elementwise sum of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgSumFunctor<ScalarT> > >::type
   inline elem_sum( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgSumFunctor<ScalarT> >( m.impl(), s );
@@ -1419,7 +1508,7 @@ namespace math {
 
   /// Elementwise sum of a matrix and a scalar.
   template <class MatrixT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> > >::type
   inline elem_sum( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> >( m.impl(), s );
@@ -1442,7 +1531,7 @@ namespace math {
 
   /// Elementwise difference of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgDifferenceFunctor<ScalarT> > >::type
   inline elem_diff( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgDifferenceFunctor<ScalarT> >( m.impl(), s );
@@ -1450,7 +1539,7 @@ namespace math {
 
   /// Elementwise difference of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValDifferenceFunctor<ScalarT> > >::type
   inline elem_diff( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValDifferenceFunctor<ScalarT> >( m.impl(), s );
@@ -1466,7 +1555,7 @@ namespace math {
 
   /// Elementwise product of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> > >::type
   inline elem_prod( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> >( m.impl(), s );
@@ -1474,7 +1563,7 @@ namespace math {
 
   /// Product of a scalar and a matrix (same as elem_prod)
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> > >::type
   inline operator*( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return elem_prod( s, m );
@@ -1482,7 +1571,7 @@ namespace math {
 
   /// Elementwise product of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> > >::type
   inline elem_prod( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> >( m.impl(), s );
@@ -1490,7 +1579,7 @@ namespace math {
 
   /// Product of a matrix and a scalar (same as elem_prod).
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> > >::type
   inline operator*( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return elem_prod( m, s );
@@ -1506,7 +1595,7 @@ namespace math {
 
   /// Elementwise quotient of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgQuotientFunctor<ScalarT> > >::type
   inline elem_quot( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgQuotientFunctor<ScalarT> >( m.impl(), s );
@@ -1514,7 +1603,7 @@ namespace math {
 
   /// Elementwise quotient of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> > >::type
   inline elem_quot( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> >( m.impl(), s );
@@ -1522,7 +1611,7 @@ namespace math {
 
   /// Quotient of a matrix and a scalar (same as elem_quot).
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> > >::type
   inline operator/( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return elem_quot( m, s );
@@ -1542,7 +1631,7 @@ namespace math {
 
   /// Elementwise equality of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgEqualityFunctor<ScalarT> > >::type
   inline elem_eq( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgEqualityFunctor<ScalarT> >( m.impl(), s );
@@ -1550,7 +1639,7 @@ namespace math {
 
   /// Elementwise equality of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValEqualityFunctor<ScalarT> > >::type
   inline elem_eq( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValEqualityFunctor<ScalarT> >( m.impl(), s );
@@ -1566,7 +1655,7 @@ namespace math {
 
   /// Elementwise inequality of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgInequalityFunctor<ScalarT> > >::type
   inline elem_neq( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgInequalityFunctor<ScalarT> >( m.impl(), s );
@@ -1574,7 +1663,7 @@ namespace math {
 
   /// Elementwise inequality of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValInequalityFunctor<ScalarT> > >::type
   inline elem_neq( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValInequalityFunctor<ScalarT> >( m.impl(), s );
@@ -1590,7 +1679,7 @@ namespace math {
 
   /// Elementwise less-than of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgLessThanFunctor<ScalarT> > >::type
   inline elem_lt( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgLessThanFunctor<ScalarT> >( m.impl(), s );
@@ -1598,7 +1687,7 @@ namespace math {
 
   /// Elementwise less-than of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValLessThanFunctor<ScalarT> > >::type
   inline elem_lt( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValLessThanFunctor<ScalarT> >( m.impl(), s );
@@ -1614,7 +1703,7 @@ namespace math {
 
   /// Elementwise less-than-or-equal-to of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgLessThanOrEqualFunctor<ScalarT> > >::type
   inline elem_lte( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgLessThanOrEqualFunctor<ScalarT> >( m.impl(), s );
@@ -1622,7 +1711,7 @@ namespace math {
 
   /// Elementwise less-than-or-equal-to of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValLessThanOrEqualFunctor<ScalarT> > >::type
   inline elem_lte( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValLessThanOrEqualFunctor<ScalarT> >( m.impl(), s );
@@ -1638,7 +1727,7 @@ namespace math {
 
   /// Elementwise greater-than of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgGreaterThanFunctor<ScalarT> > >::type
   inline elem_gt( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgGreaterThanFunctor<ScalarT> >( m.impl(), s );
@@ -1646,7 +1735,7 @@ namespace math {
 
   /// Elementwise greater-than of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValGreaterThanFunctor<ScalarT> > >::type
   inline elem_gt( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValGreaterThanFunctor<ScalarT> >( m.impl(), s );
@@ -1662,7 +1751,7 @@ namespace math {
 
   /// Elementwise greater-than-or-equal-to of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgGreaterThanOrEqualFunctor<ScalarT> > >::type
   inline elem_gte( ScalarT s, MatrixBase<MatrixT> const& m ) {
     return MatrixUnaryFunc<MatrixT, ValArgGreaterThanOrEqualFunctor<ScalarT> >( m.impl(), s );
@@ -1670,7 +1759,7 @@ namespace math {
 
   /// Elementwise greater-than-or-equal-to of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
-  typename boost::enable_if< IsScalar<ScalarT>,
+  typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValGreaterThanOrEqualFunctor<ScalarT> > >::type
   inline elem_gte( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValGreaterThanOrEqualFunctor<ScalarT> >( m.impl(), s );
@@ -1888,20 +1977,43 @@ namespace math {
       else return dot_prod( select_row(m_matrix,i), m_vector );
     }
 
-    class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
-      friend class boost::iterator_core_access;
+    class iterator {
+    public:
+      typedef typename MatrixVectorProduct::value_type value_type;
+      typedef value_type reference;
+      typedef value_type* pointer;
+      typedef std::ptrdiff_t difference_type;
+      typedef std::random_access_iterator_tag iterator_category;
 
+      iterator(MatrixVectorProduct const& mvp, size_t i) : mvp(mvp), i(i) {}
+
+      reference operator*() const { return mvp(i); }
+      reference operator[](difference_type n) const { return mvp(i + n); }
+
+      iterator& operator++() { ++i; return *this; }
+      iterator operator++(int) { auto tmp = *this; ++i; return tmp; }
+      iterator& operator--() { --i; return *this; }
+      iterator operator--(int) { auto tmp = *this; --i; return tmp; }
+      iterator& operator+=(difference_type n) { i += n; return *this; }
+      iterator& operator-=(difference_type n) { i -= n; return *this; }
+
+      friend iterator operator+(iterator it, difference_type n) { it += n; return it; }
+      friend iterator operator+(difference_type n, iterator it) { it += n; return it; }
+      friend iterator operator-(iterator it, difference_type n) { it -= n; return it; }
+      friend difference_type operator-(iterator const& a, iterator const& b) {
+        return static_cast<difference_type>(a.i) - static_cast<difference_type>(b.i);
+      }
+
+      friend bool operator==(iterator const& a, iterator const& b) { return a.i == b.i; }
+      friend bool operator!=(iterator const& a, iterator const& b) { return a.i != b.i; }
+      friend bool operator<(iterator const& a, iterator const& b) { return a.i < b.i; }
+      friend bool operator>(iterator const& a, iterator const& b) { return a.i > b.i; }
+      friend bool operator<=(iterator const& a, iterator const& b) { return a.i <= b.i; }
+      friend bool operator>=(iterator const& a, iterator const& b) { return a.i >= b.i; }
+
+    private:
       MatrixVectorProduct const& mvp;
       size_t i;
-
-      bool equal( iterator const& iter ) const { return i==iter.i; }
-      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
-      void increment() { ++i; }
-      void decrement() { --i; }
-      void advance( typename iterator::difference_type n ) { i+=n; }
-      typename iterator::reference dereference() const { return mvp(i); }
-    public:
-      iterator(MatrixVectorProduct const& mvp, size_t i) : mvp(mvp), i(i) {}
     };
     typedef iterator const_iterator;
 
