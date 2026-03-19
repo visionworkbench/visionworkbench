@@ -36,19 +36,11 @@ namespace math {
 
 template <class RealT, size_t DimN>
 BBox<RealT, DimN>::BBox() {
-  // Make sure we have a type for which we know limits
-  BOOST_STATIC_ASSERT(std::numeric_limits<RealT>::is_specialized);
-  if (std::numeric_limits<RealT>::is_integer) {
-    for (size_t i = 0; i < m_min.size(); ++i) {
-      m_min[i] = std::numeric_limits<RealT>::max();
-      m_max[i] = std::numeric_limits<RealT>::min();
-    }
-  }
-  else { // Not an integer
-    for (size_t i = 0; i < m_min.size(); ++i) {
-      m_min[i] = std::numeric_limits<RealT>::max();
-      m_max[i] = static_cast<RealT>(-std::numeric_limits<RealT>::max());
-    }
+  // Use int32 bounds to avoid overflow when converting BBox<double> to BBox<int>.
+  const RealT big = static_cast<RealT>(std::numeric_limits<int32_t>::max() - 1);
+  for (size_t i = 0; i < m_min.size(); ++i) {
+    m_min[i] = big;
+    m_max[i] = -big;
   }
 }
 
