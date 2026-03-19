@@ -29,12 +29,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/AlgorithmFunctions.h>
 
-// Backward compatibility: PixelTypes.h and PerPixelViews.h were
-// transitively included by the old Manipulation.h via its .tcc.
-// Too many callers depend on getting them here, so keep for now.
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/PerPixelViews.h>
-
 namespace vw {
 
 // copy()

@@ -31,6 +31,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Convolution.h>
+#include <vw/Image/PerPixelViews.h>
 
 #include <vector>
 

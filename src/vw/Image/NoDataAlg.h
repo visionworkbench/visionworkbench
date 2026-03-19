@@ -22,6 +22,7 @@
 
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PerPixelAccessorViews.h>
+#include <vw/Image/PerPixelViews.h>
 
 namespace vw {
   
