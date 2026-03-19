@@ -18,6 +18,7 @@
 /// \file Algorithms.h
 ///
 /// Lazy per-pixel algorithms: clamp, normalize, threshold.
+/// Auto-detecting normalize overloads are in AutoNormalize.h.
 /// Surface analysis views (MeanFillTransparent, ComputeNormals,
 /// DotProd, TwoThresholdFill) are in ImageSurface.h.
 
@@ -26,9 +27,6 @@
 
 #include <vw/Image/AlgorithmFunctions.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Image/Statistics.h>
-#include <vw/Image/EdgeExtension.h>
-#include <vw/Image/PerPixelAccessorViews.h>
 
 namespace vw {
 
@@ -186,62 +184,6 @@ normalize(ImageViewBase<ImageT> const& image,
     typename ImageT::pixel_type> func_type;
   func_type func(ChannelNormalizeFunctor<typename ImageT::pixel_type>(
     old_low, old_high, new_low, new_high));
-  return UnaryPerPixelView<ImageT, func_type>(image.impl(), func);
-}
-
-/// Renormalize the values in an image to fall within the range [low,high).
-template <class ImageT>
-UnaryPerPixelView<ImageT,
-  UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type>>
-normalize(ImageViewBase<ImageT> const& image,
-          typename ImageChannelType<ImageT>::type low,
-          typename ImageChannelType<ImageT>::type high) {
-  typedef UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type> func_type;
-  typename ImageChannelType<ImageT>::type old_min, old_max;
-  min_max_channel_values(image, old_min, old_max);
-  func_type func(ChannelNormalizeFunctor<typename ImageT::pixel_type>(
-    old_min, old_max, low, high));
-  return UnaryPerPixelView<ImageT, func_type>(image.impl(), func);
-}
-
-/// Renormalize the values in an image to fall within the range [0,high).
-template <class ImageT>
-UnaryPerPixelView<ImageT,
-  UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type>>
-normalize(ImageViewBase<ImageT> const& image,
-          typename ImageChannelType<ImageT>::type high) {
-  typedef UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type> func_type;
-  typedef ChannelRange<typename ImageChannelType<ImageT>::type> range_type;
-  typename ImageChannelType<ImageT>::type old_min, old_max;
-  min_max_channel_values(image, old_min, old_max);
-  func_type func(ChannelNormalizeFunctor<typename ImageT::pixel_type>(
-    old_min, old_max, range_type::min(), high));
-  return UnaryPerPixelView<ImageT, func_type>(image.impl(), func);
-}
-
-/// Renormalize the values in an image to fall within the range [min,max).
-template <class ImageT>
-UnaryPerPixelView<ImageT,
-  UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type>>
-normalize(ImageViewBase<ImageT> const& image) {
-  typedef UnaryCompoundFunctor<
-    ChannelNormalizeFunctor<typename ImageT::pixel_type>,
-    typename ImageT::pixel_type> func_type;
-  typedef ChannelRange<typename ImageChannelType<ImageT>::type> range_type;
-  typename ImageChannelType<ImageT>::type old_min, old_max;
-  min_max_channel_values(image, old_min, old_max);
-  func_type func(ChannelNormalizeFunctor<typename ImageT::pixel_type>(
-    old_min, old_max, range_type::min(), range_type::max()));
   return UnaryPerPixelView<ImageT, func_type>(image.impl(), func);
 }
 

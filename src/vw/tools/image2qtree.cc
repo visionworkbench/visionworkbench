@@ -26,6 +26,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/MaskViews.h>
+#include <vw/Image/Statistics.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>

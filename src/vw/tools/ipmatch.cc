@@ -27,7 +27,7 @@
 #include <vw/Math/Geometry.h>
 #include <vw/Math/RANSAC.h>
 #include <vw/Image/AlgorithmFunctions.h>
-#include <vw/Image/Algorithms.h>
+#include <vw/Image/AutoNormalize.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>

@@ -21,6 +21,7 @@
 ///
 
 #include <vw/Image/Interpolation.h>
+#include <vw/Image/Statistics.h>
 #include <vw/InterestPoint/DetectorBase.h>
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/IntegralInterestOperator.h>

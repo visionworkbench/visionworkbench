@@ -24,7 +24,7 @@
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 #include <vw/Math/Statistics.h>
-#include <vw/Image/Algorithms.h>
+#include <vw/Image/AutoNormalize.h>
 #include <vw/Image/ImageSurface.h>
 #include <vw/Image/ImageChannels.h>
 #include <vw/Image/Filter.h>
