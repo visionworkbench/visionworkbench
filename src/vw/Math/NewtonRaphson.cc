@@ -75,7 +75,9 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
     try {
       F = m_func(X) - outY;
       
-      if (norm_2(F) < best_err || F != F) {
+      if (std::isnan(norm_2(F)))
+        return bestX; // F is NaN, cannot continue
+      if (norm_2(F) < best_err) {
         best_err = norm_2(F);
         bestX = X;
       }
