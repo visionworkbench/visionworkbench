@@ -99,19 +99,43 @@ namespace vw { namespace camera {
   /// Performs Lagrangian interpolation between data points with flexible times.
   /// - If it becomes useful this can be combined with the fixed interval Lagrangian
   ///   class using a boolean check.
+  /// - See QuatLagrangianInterpolationVarTime for the quaternion version.
   class LagrangianInterpolationVarTime {
   public:
     std::vector<Vector3> m_samples;
-    std::vector<double > m_times;
+    std::vector<double> m_times;
     int m_radius; // interpolation order = 2 * m_radius
-    
+
     /// Construct with a set of data samples and times.
-    /// - The radius is the number of points before and after time t used for interpolation.
-    LagrangianInterpolationVarTime(std::vector<Vector3> const& samples, 
-                                   std::vector<double > const& times, int radius=4);
-  
+    /// - The radius is the number of points before and after time t
+    ///   used for interpolation.
+    LagrangianInterpolationVarTime(std::vector<Vector3> const& samples,
+                                   std::vector<double> const& times,
+                                   int radius = 4);
+
     /// Compute the interpolated value at a given time t.
     Vector3 operator()(double t) const;
+  };
+
+  /// Performs Lagrangian interpolation between quaternion data points with
+  /// flexible times. Same algorithm as LagrangianInterpolationVarTime but
+  /// operates on Quat (4 components) and normalizes the result.
+  class QuatLagrangianInterpolationVarTime {
+  public:
+    std::vector<Quat>   m_samples;
+    std::vector<double> m_times;
+    int m_radius; // interpolation order = 2 * m_radius
+
+    /// Construct with a set of quaternion samples and times.
+    /// - The radius is the number of points before and after time t
+    ///   used for interpolation.
+    QuatLagrangianInterpolationVarTime(std::vector<Quat> const& samples,
+                                       std::vector<double> const& times,
+                                       int radius = 4);
+
+    /// Compute the interpolated quaternion at a given time t.
+    /// The result is normalized.
+    Quat operator()(double t) const;
   };
 
   /// Performs Lagrangian interpolation between data points with

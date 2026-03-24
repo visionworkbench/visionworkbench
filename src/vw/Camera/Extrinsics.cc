@@ -188,12 +188,14 @@ std::vector<int> SmoothPiecewisePositionInterpolation::get_indices_of_largest_we
 //======================================================================
 // LagrangianInterpolationVarTime class
 LagrangianInterpolationVarTime::LagrangianInterpolationVarTime
-(std::vector<Vector3> const& samples, std::vector<double> const& times, int radius):
+(std::vector<Vector3> const& samples, std::vector<double> const& times,
+ int radius):
   m_samples(samples), m_times(times), m_radius(radius) {
 
-  VW_ASSERT(m_samples.size() > 1, ArgumentErr() << "Expecting at least two samples.\n");
+  VW_ASSERT(m_samples.size() > 1,
+            ArgumentErr() << "Expecting at least two samples.\n");
   VW_ASSERT(m_samples.size() == m_times.size(),
-	    ArgumentErr() << "The number of samples and times must be equal.\n");
+            ArgumentErr() << "The number of samples and times must be equal.\n");
   VW_ASSERT(m_radius > 1, ArgumentErr() << "Radius must be > 0.\n");
 }
 
@@ -202,46 +204,130 @@ Vector3 LagrangianInterpolationVarTime::operator()(double t) const {
   // Find where t lies in our list of samples
   const int num_samples = static_cast<int>(m_times.size());
   int next = -1;
-  for (int i=0; i<num_samples; ++i) {
+  for (int i = 0; i < num_samples; ++i) {
     if (m_times[i] > t) {
       next = i;
       break;
     }
   }
-  
-  // Check that we have enough bordering points to interpolate
+  // If t is at or past the last sample, set next to the last index
+  if (next < 0)
+    next = num_samples - 1;
+
+  // Clamp the interpolation window to stay within bounds
   int start = next - m_radius;
-  int end   = next + m_radius; // Note: The last index we use is end-1!
+  int end   = next + m_radius; // the last index used is end - 1
+  if (start < 0) {
+    end   -= start;
+    start  = 0;
+  }
+  if (end > num_samples) {
+    start -= (end - num_samples);
+    end    = num_samples;
+  }
   VW_ASSERT((start >= 0) && (end <= num_samples),
-	    ArgumentErr() << "Not enough samples to interpolate time " << t << "\n");
-    
+            ArgumentErr() << "Not enough samples to interpolate time "
+                          << t << "\n");
+
   // Perform the interpolation
   Vector3 ans;
-  
-  for (int j=start; j<end; ++j) {
-    double  num_part=1.0, denominator=1.0;
-    // Numerator
-    for (int i=start; i<end; ++i){
+  for (int j = start; j < end; ++j) {
+    double num_part = 1.0, denominator = 1.0;
+    for (int i = start; i < end; ++i) {
       if (i == j)
         continue;
       num_part *= (t - m_times[i]);
     }
-
     // TODO(oalexan1): the denominator could be cached
-    // Denominator
-    for (int i=start; i<end; ++i){
+    for (int i = start; i < end; ++i) {
       if (i == j)
         continue;
       denominator *= (m_times[j] - m_times[i]);
     }
-    
-    ans += m_samples[j] * (num_part/denominator);
+    ans += m_samples[j] * (num_part / denominator);
   }
 
   return ans;
 }
 
-//======================================================================
+// QuatLagrangianInterpolationVarTime class.
+// Same algorithm as LagrangianInterpolationVarTime but for quaternions.
+// The result is normalized after interpolation.
+QuatLagrangianInterpolationVarTime::QuatLagrangianInterpolationVarTime
+(std::vector<Quat> const& samples, std::vector<double> const& times,
+ int radius):
+  m_samples(samples), m_times(times), m_radius(radius) {
+
+  VW_ASSERT(m_samples.size() > 1,
+            ArgumentErr() << "Expecting at least two samples.\n");
+  VW_ASSERT(m_samples.size() == m_times.size(),
+            ArgumentErr() << "The number of samples and times must be equal.\n");
+  VW_ASSERT(m_radius > 1, ArgumentErr() << "Radius must be > 0.\n");
+}
+
+Quat QuatLagrangianInterpolationVarTime::operator()(double t) const {
+
+  // Find where t lies in our list of samples
+  const int num_samples = static_cast<int>(m_times.size());
+  int next = -1;
+  for (int i = 0; i < num_samples; ++i) {
+    if (m_times[i] > t) {
+      next = i;
+      break;
+    }
+  }
+  // If t is at or past the last sample, set next to the last index
+  if (next < 0)
+    next = num_samples - 1;
+
+  // Clamp the interpolation window to stay within bounds
+  int start = next - m_radius;
+  int end   = next + m_radius; // the last index used is end - 1
+  if (start < 0) {
+    end   -= start;
+    start  = 0;
+  }
+  if (end > num_samples) {
+    start -= (end - num_samples);
+    end    = num_samples;
+  }
+  VW_ASSERT((start >= 0) && (end <= num_samples),
+            ArgumentErr() << "Not enough samples to interpolate time "
+                          << t << "\n");
+
+  // Perform the interpolation on each quaternion component
+  double q0 = 0, q1 = 0, q2 = 0, q3 = 0;
+  for (int j = start; j < end; ++j) {
+    double num_part = 1.0, denominator = 1.0;
+    for (int i = start; i < end; ++i) {
+      if (i == j)
+        continue;
+      num_part *= (t - m_times[i]);
+    }
+    // TODO(oalexan1): the denominator could be cached
+    for (int i = start; i < end; ++i) {
+      if (i == j)
+        continue;
+      denominator *= (m_times[j] - m_times[i]);
+    }
+    double w = num_part / denominator;
+    q0 += w * m_samples[j].w();
+    q1 += w * m_samples[j].x();
+    q2 += w * m_samples[j].y();
+    q3 += w * m_samples[j].z();
+  }
+
+  // Normalize the result
+  Quat ans(q0, q1, q2, q3);
+  double norm = sqrt(ans.w() * ans.w() + ans.x() * ans.x() +
+                     ans.y() * ans.y() + ans.z() * ans.z());
+  if (norm > 0)
+    ans = Quat(ans.w() / norm, ans.x() / norm,
+               ans.y() / norm, ans.z() / norm);
+
+  return ans;
+}
+
 // LagrangianInterpolation class
 // interpolation order = 2 * m_radius
 LagrangianInterpolation::LagrangianInterpolation

@@ -53,10 +53,10 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
 
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-# Don't set CMAKE_INSTALL_RPATH_USE_LINK_PATH. On macOS the Apple linker
-# auto-adds rpaths for @rpath dylibs, causing duplicates with USE_LINK_PATH.
-# On Linux, $ORIGIN/../lib + asp_deps/lib cover all needed paths.
+# Use install rpaths at build time. This prevents the Apple linker from
+# auto-adding duplicate rpaths on macOS. Requires 'make install' before
+# running binaries.
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 # Make sure installed files can find installed libraries
 if (APPLE)
