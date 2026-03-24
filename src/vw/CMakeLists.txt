@@ -53,10 +53,10 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 SET_PROPERTY(GLOBAL PROPERTY storedPchFirstLibrary "NA")
 
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
-# Use install rpaths at build time. This prevents the Apple linker from
-# auto-adding duplicate rpaths on macOS. Requires 'make install' before
-# running binaries.
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+# Don't set CMAKE_INSTALL_RPATH_USE_LINK_PATH. On macOS the Apple linker
+# auto-adds rpaths for @rpath dylibs, causing duplicates with USE_LINK_PATH.
+# On Linux, $ORIGIN/../lib + asp_deps/lib cover all needed paths.
 
 # Make sure installed files can find installed libraries
 if (APPLE)
@@ -319,4 +319,31 @@ add_subdirectory(BundleAdjustment)
 
 # Add the executable subdirectory
 add_subdirectory(tools)
+
+# On macOS the Apple linker auto-adds rpaths that duplicate the ones CMake
+# sets via CMAKE_INSTALL_RPATH. Remove duplicates and re-sign after install.
+if (APPLE)
+  install(CODE "
+    file(GLOB _libs \"\${CMAKE_INSTALL_PREFIX}/lib/libVw*.dylib\")
+    file(GLOB _bins \"\${CMAKE_INSTALL_PREFIX}/bin/*\")
+    foreach(_f IN LISTS _libs _bins)
+      execute_process(
+        COMMAND otool -l \${_f}
+        OUTPUT_VARIABLE _otool_out ERROR_QUIET)
+      string(REGEX MATCHALL \"path [^\n]*anaconda3/envs/[^\n]*/lib \"
+             _matches \"\${_otool_out}\")
+      list(LENGTH _matches _count)
+      if (_count GREATER 1)
+        string(REGEX MATCH \"anaconda3/envs/[^/]*/lib\" _envlib \"\${_matches}\")
+        string(REGEX MATCH \"/[^ ]*\${_envlib}\" _rpath \"\${_matches}\")
+        execute_process(
+          COMMAND install_name_tool -delete_rpath \${_rpath} \${_f}
+          ERROR_QUIET)
+        execute_process(
+          COMMAND codesign --force --sign - \${_f}
+          ERROR_QUIET)
+      endif()
+    endforeach()
+  ")
+endif()
 
