@@ -103,7 +103,7 @@ namespace camera {
     // - Most of these deal with the fact that the camera is moving while
     //   acquiring the image.
     // - Derived classes need to implement these so that the functions inherited from
-    //   CameraModel will work.  Consider using the functors in Extrinsics.h.
+    //   CameraModel will work.  Consider using the functors in PositionInterp.h, QuatInterp.h, TimeInterp.h.
 
     /// Gives the camera center at a time.
     virtual Vector3 get_camera_center_at_time  (double time) const = 0;

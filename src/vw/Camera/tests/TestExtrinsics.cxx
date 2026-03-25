@@ -17,10 +17,10 @@
 
 
 #include <test/Helpers.h>
-#include <vw/Camera/Extrinsics.h>
+#include <vw/Math/PositionInterp.h>
+#include <vw/Camera/TimeInterp.h>
 
 using namespace vw;
-using namespace camera;
 
 TEST( Extrinsics, HermitePositionInterpolation ) {
   std::vector<Vector3> m_p, m_v;
@@ -153,7 +153,7 @@ TEST( Extrinsics, LagrangianInterpolation ) {
     times[i]  = d * 0.1;
     points[i] = test_poly(d);
   }
-  
+
   // Set up the constant time and variable time functors
   LagrangianInterpolationVarTime functorA(points, times);
   LagrangianInterpolation        functorB(points, 0, dt, dt*(NUM_POINTS-1));
@@ -162,7 +162,7 @@ TEST( Extrinsics, LagrangianInterpolation ) {
   EXPECT_VECTOR_NEAR(test_poly(9.0 ), functorA(0.90), EPS);
   EXPECT_VECTOR_NEAR(test_poly(11.5), functorA(1.15), EPS);
   EXPECT_VECTOR_NEAR(test_poly(12.2), functorA(1.22), EPS);
-  
+
   EXPECT_VECTOR_NEAR(test_poly(9.0 ), functorB(0.90), EPS);
   EXPECT_VECTOR_NEAR(test_poly(11.5), functorB(1.15), EPS);
   EXPECT_VECTOR_NEAR(test_poly(12.2), functorB(1.22), EPS);

@@ -25,7 +25,6 @@
 #include <vw/Camera/CAHVModel.h>
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/CAHVOREModel.h>
-#include <vw/Camera/Extrinsics.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/Interpolation.h>
 

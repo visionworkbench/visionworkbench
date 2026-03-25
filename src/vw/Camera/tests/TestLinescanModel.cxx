@@ -20,11 +20,13 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Camera/LinescanModel.h>
-#include <vw/Camera/Extrinsics.h>
+#include <vw/Math/PositionInterp.h>
+#include <vw/Math/QuatInterp.h>
+#include <vw/Camera/TimeInterp.h>
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace camera;
+using namespace vw::camera;
 
 // TODO: Is there a good test we can do here?
 //       - Not as important since we are not using templates anymore.
