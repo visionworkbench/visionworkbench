@@ -19,9 +19,7 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/QuatInterp.h>
 #include <vw/Math/PositionInterp.h>
-#include <vw/Math/Catmull_Rom_spline.h>
 
-#include <array>
 #include <cmath>
 #include <vector>
 
@@ -211,24 +209,9 @@ ConstantPoseInterpolation::ConstantPoseInterpolation(Quat const& pose) : m_pose(
 //======================================================================
 // SLERPPoseInterpolation class
 SLERPPoseInterpolation::SLERPPoseInterpolation(std::vector<Quat> const& pose_samples,
-                                               double t0, double dt, bool use_splines):
+                                               double t0, double dt):
   m_pose_samples(pose_samples), m_t0(t0), m_dt(dt),
-  m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)), m_use_splines(use_splines) {
-
-  if (m_use_splines) {
-    // Put the poses in a 4D vector and initalize the spline interpolation object
-    int num_pts = pose_samples.size();
-    std::vector<std::array<double, 4>> vec_samples(num_pts);
-    for (size_t it = 0; it < num_pts; it++) {
-      auto & q = pose_samples[it];
-      vec_samples[it] = {q.w(), q.x(), q.y(), q.z()};
-    }
-
-    // This has to be created as a pointer since there seems to be no good way
-    // to make catmull_rom a member variable, lacking a constructor with no arguments.
-    m_spline_ptr = boost::shared_ptr<vw::math::catmull_rom<std::array<double, 4>>>
-      (new vw::math::catmull_rom<std::array<double, 4>>(std::move(vec_samples)));
-  }
+  m_tend(m_t0 + m_dt * (m_pose_samples.size() - 1)) {
 }
 
 Quat SLERPPoseInterpolation::operator()(double t) const {
@@ -267,38 +250,7 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
   VW_ASSERT(low_i >= 0 && high_i < (int)m_pose_samples.size(),
             ArgumentErr() << "Out of bounds in SLERPPoseInterpolation.\n");
 
-  if (!m_use_splines)
-    return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
-
-  // Using logic from https://github.com/boostorg/math/issues/211
-
-  // TODO(oalexan1): Here the parameter alpha passed to the spline
-  // constructor is the default, 1/2, which can create a little nicer
-  // splines but their parametrization becomes tricky and it is not
-  // clear if such a spline has smooth transitions given how we access
-  // it below. It may be prudent to set alpha = 0, when the spline
-  // parameter is the identity.  See the catmull_rom implementation
-  // for more details.
-
-  double low_s  = (*m_spline_ptr.get()).parameter_at_point(low_i);
-  double high_s = (*m_spline_ptr.get()).parameter_at_point(high_i);
-
-  double s = low_s * (1.0 - norm_t) + high_s * norm_t;
-
-  // Maybe s is in fact max_s but appears to be a little bigger
-  // because of numerical errors. Adjust it so that interpolation
-  // succeeds.
-  double max_s = (*m_spline_ptr.get()).max_parameter();
-  if (s > max_s && s < max_s*(1.0 + 1.0e-10)) {
-    s = max_s;
-  }
-
-  // Interpolate, convert to quaternion, and normalize
-  std::array<double, 4> v = (*m_spline_ptr.get())(s);
-  Quat q = vw::Quaternion<double>(v[0], v[1], v[2], v[3]);
-  q = normalize(q);
-
-  return q;
+  return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
 }
 
 /// Simple slerp interpolation between a table of pointing directions arranged on a grid.

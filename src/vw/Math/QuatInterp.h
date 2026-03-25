@@ -25,16 +25,7 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/Vector.h>
 
-#include <boost/shared_ptr.hpp>
-
 #include <vector>
-
-namespace vw {
-  namespace math {
-    template <class Point>
-    class catmull_rom;
-  }
-}
 
 namespace vw {
 
@@ -102,13 +93,11 @@ namespace vw {
   };
 
   /// Performs interpolation between sparse pose data points using the
-  /// spherical linear interpolation algorithm. Using splines is not
-  /// enabled by default and is experimental.
+  /// spherical linear interpolation algorithm.
   class SLERPPoseInterpolation {
 public:
     SLERPPoseInterpolation(){}
-    SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt,
-                           bool use_splines = false);
+    SLERPPoseInterpolation(std::vector<Quat> const& pose_samples, double t0, double dt);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
@@ -118,8 +107,6 @@ public:
     double get_tend() const { return m_tend;}
     std::vector<Quat> m_pose_samples;
     double m_t0, m_dt, m_tend;
-    bool m_use_splines;
-    boost::shared_ptr<vw::math::catmull_rom<std::array<double, 4>>> m_spline_ptr;
   };
 
   /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
