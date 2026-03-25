@@ -320,30 +320,4 @@ add_subdirectory(BundleAdjustment)
 # Add the executable subdirectory
 add_subdirectory(tools)
 
-# On macOS the Apple linker auto-adds rpaths that duplicate the ones CMake
-# sets via CMAKE_INSTALL_RPATH. Remove duplicates and re-sign after install.
-if (APPLE)
-  install(CODE "
-    file(GLOB _libs \"\${CMAKE_INSTALL_PREFIX}/lib/libVw*.dylib\")
-    file(GLOB _bins \"\${CMAKE_INSTALL_PREFIX}/bin/*\")
-    foreach(_f IN LISTS _libs _bins)
-      execute_process(
-        COMMAND otool -l \${_f}
-        OUTPUT_VARIABLE _otool_out ERROR_QUIET)
-      string(REGEX MATCHALL \"path [^\n]*[^ ]*conda[^ ]*/envs/[^\n]*/lib \"
-             _matches \"\${_otool_out}\")
-      list(LENGTH _matches _count)
-      if (_count GREATER 1)
-        string(REGEX MATCH \"[^ ]*conda[^ ]*/envs/[^/]*/lib\" _envlib \"\${_matches}\")
-        string(REGEX MATCH \"/[^ ]*\${_envlib}\" _rpath \"\${_matches}\")
-        execute_process(
-          COMMAND install_name_tool -delete_rpath \${_rpath} \${_f}
-          ERROR_QUIET)
-        execute_process(
-          COMMAND codesign --force --sign - \${_f}
-          ERROR_QUIET)
-      endif()
-    endforeach()
-  ")
-endif()
 
