@@ -22,6 +22,7 @@
 #ifndef __VW_CAMERA_TIME_INTERP_H__
 #define __VW_CAMERA_TIME_INTERP_H__
 
+#include <cstddef>
 #include <map>
 #include <utility>
 #include <vector>
