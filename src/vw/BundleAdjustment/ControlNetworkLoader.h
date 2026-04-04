@@ -32,8 +32,7 @@ namespace ba {
   /// Builds a control network using given camera models and original
   /// image names. This function uses Boost::FS to then find match files
   /// that would have been created by 'ipmatch' by searching the entire
-  /// permutation of the image_files vector. The match sigma multiply the existing
-  /// scale measure. A lower value will mean higher weight in optimization.
+  /// permutation of the image_files vector.
   bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
                              std::vector<boost::shared_ptr<camera::CameraModel>>
@@ -45,8 +44,6 @@ namespace ba {
                              double forced_triangulation_distance,
                              int max_pairwise_matches,
                              bool matches_as_txt,
-                             std::map<std::pair<int, int>, double> const& match_sigmas
-                             = std::map<std::pair<int, int>, double>(),
                              vw::BathyData const& bathy_data = vw::BathyData());
   
   // Triangulate the points in a control network. Do not triangulate

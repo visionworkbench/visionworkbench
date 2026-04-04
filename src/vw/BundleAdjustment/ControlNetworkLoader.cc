@@ -442,8 +442,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
                                    double forced_triangulation_distance,
                                    int max_pairwise_matches,
                                    bool matches_as_txt,
-                                   std::map<std::pair<int, int>, double> const&
-                                   match_sigmas,
                                    vw::BathyData const& bathy_data) {
 
   // TODO(oalexan1): Must be able to handle the case when the matches
@@ -486,18 +484,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     }
 
     num_loaded += ip1.size();
-
-    // The sigma value is optional. It can be used to give more weight (less sigma)
-    // to matches from a certain file. These are typically files with few user-selected 
-    // matches. 
-    auto sigma_it = match_sigmas.find(pair_ind);
-    if (sigma_it != match_sigmas.end()) {
-      double sigma = sigma_it->second;
-      for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
-        ip1[ip_it].scale *= sigma;
-        ip2[ip_it].scale *= sigma;
-      }
-    }
 
     // Initialize the keypoint map to zero. Will populate the entities later.
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
