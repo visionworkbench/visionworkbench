@@ -153,28 +153,35 @@ double otsu_threshold(const ImageViewBase<ViewT> &view,
   if (max_val == min_val) 
     max_val++;
   
-  // Build the histogram
+  // Build the histogram. Skip invalid (e.g. nodata / NaN) pixels so they do
+  // not get clamped into bin 0 and bias the threshold.
   std::vector<double> hBuf(num_bins, 0.0);
-  for (int sample_row = 0; sample_row < num_sample_rows; sample_row++){
+  std::int64_t num_valid = 0;
+  for (int sample_row = 0; sample_row < num_sample_rows; sample_row++) {
     int row = round(sample_row * row_ratio);
-    
-    for (int sample_col = 0; sample_col < num_sample_cols; sample_col++){
+
+    for (int sample_col = 0; sample_col < num_sample_cols; sample_col++) {
       int col = round(sample_col * col_ratio);
+
+      if (!is_valid(view.impl()(col, row)))
+        continue;
 
       double scaled = (view.impl()(col, row) - min_val) / (max_val - min_val);
       int bin = static_cast<int>(round((num_bins - 1) * scaled));
-      if (bin < 0) 
+      if (bin < 0)
         bin = 0;
-      if (bin > num_bins - 1) 
+      if (bin > num_bins - 1)
         bin = num_bins - 1;
-      
+
       hBuf[bin]++;
+      num_valid++;
     }
   }
-  
-  // Note how we cast to double to avoid integer overflow when doing the product
-  double product = double(num_sample_rows) * double(num_sample_cols);
-  double mu = 0, scale = 1.0/product;
+
+  if (num_valid == 0)
+    return 0.0;
+
+  double mu = 0, scale = 1.0/double(num_valid);
   for(int i = 0; i < num_bins; i++ ) {
     mu += i*(double)hBuf[i];
   }
