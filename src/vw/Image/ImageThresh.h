@@ -44,26 +44,9 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/Statistics.h>
 
 namespace vw {
-
-/// Find the min and max values in an image, skipping invalid pixels.
-template <class ViewT>
-void find_image_min_max(const ImageViewBase<ViewT> &view,
-                        double &min_val, double &max_val) {
-
-  max_val = -std::numeric_limits<double>::max();
-  min_val = -max_val;
-  for (int row = 0; row < view.impl().rows(); row++) {
-    for (int col = 0; col < view.impl().cols(); col++) {
-      if (!is_valid(view.impl()(col, row)))
-        continue;
-      double val = view.impl()(col, row);
-      if (val < min_val) min_val = val;
-      if (val > max_val) max_val = val;
-    }
-  }
-}
 
 /// Build a histogram of an image. The caller must supply min_val and
 /// max_val (typically from find_image_min_max).

@@ -107,6 +107,25 @@ namespace vw {
     max = accumulator.maximum();
   }
 
+  /// Find the min and max values of an image as doubles, skipping invalid
+  /// (e.g. masked or NaN) pixels. Unlike min_max_channel_values, this returns
+  /// values as doubles regardless of the underlying channel type.
+  template <class ViewT>
+  void find_image_min_max(const ImageViewBase<ViewT> &view,
+                          double &min_val, double &max_val) {
+    max_val = -std::numeric_limits<double>::max();
+    min_val = -max_val;
+    for (int row = 0; row < view.impl().rows(); row++) {
+      for (int col = 0; col < view.impl().cols(); col++) {
+        if (!is_valid(view.impl()(col, row)))
+          continue;
+        double val = view.impl()(col, row);
+        if (val < min_val) min_val = val;
+        if (val > max_val) max_val = val;
+      }
+    }
+  }
+
   /// Compute the sum of all the channels of all the valid pixels of the image.
   template <class ViewT>
   typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type
