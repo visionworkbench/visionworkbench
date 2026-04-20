@@ -6,7 +6,7 @@
 # Prerequisites:
 #   - conda-forge clang 16+ with -fopenmp support (in MAC_ASP_DEPS env)
 #   - lld (LLVM linker) in MAC_ASP_DEPS env
-#   - Linux deps prefix with sysroot and GCC 12.4.0 libraries
+#   - Linux deps prefix with sysroot and GCC libraries (version auto-detected)
 #
 # Usage (VW, from build_linux/):
 #   cmake .. \
@@ -44,7 +44,10 @@ endif()
 
 # Derived paths.
 set(CROSS_SYSROOT "${LINUX_DEPS_PREFIX}/x86_64-conda-linux-gnu/sysroot")
-set(GCC_LIB "${LINUX_DEPS_PREFIX}/lib/gcc/x86_64-conda-linux-gnu/12.4.0")
+# Auto-detect GCC version in the linux prefix.
+file(GLOB GCC_VERSION_DIRS "${LINUX_DEPS_PREFIX}/lib/gcc/x86_64-conda-linux-gnu/*")
+list(GET GCC_VERSION_DIRS 0 GCC_LIB)
+message(STATUS "Cross-compile: GCC lib dir = ${GCC_LIB}")
 set(GCC_INC "${GCC_LIB}/include/c++")
 
 # Target platform.
@@ -62,8 +65,10 @@ set(CROSS_COMMON_FLAGS
    --sysroot=${CROSS_SYSROOT} \
    --gcc-toolchain=${LINUX_DEPS_PREFIX} \
    -B${GCC_LIB} \
-   -fuse-ld=${MAC_ASP_DEPS}/bin/ld.lld \
+   -fuse-ld=lld \
    -I${CROSS_SYSROOT}/usr/include \
+   -I${LINUX_DEPS_PREFIX}/include \
+   -I${LINUX_DEPS_PREFIX}/include/eigen3 \
    -L${GCC_LIB} \
    -L${LINUX_DEPS_PREFIX}/lib")
 
@@ -74,9 +79,25 @@ set(CMAKE_CXX_FLAGS_INIT
    -isystem ${GCC_INC}/x86_64-conda-linux-gnu \
    -Wno-enum-constexpr-conversion")
 
-# Linker flags.
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-L${GCC_LIB} -L${LINUX_DEPS_PREFIX}/lib")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "-L${GCC_LIB} -L${LINUX_DEPS_PREFIX}/lib")
+# Linker flags. Use lld from the Mac env, link libstdc++ from GCC toolchain,
+# allow undefined symbols in shared libs (resolved at runtime on target).
+set(CROSS_LINKER_FLAGS
+  "-fuse-ld=lld \
+   -L${GCC_LIB} -L${LINUX_DEPS_PREFIX}/lib \
+   -lstdc++ -Wl,--allow-shlib-undefined")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "${CROSS_LINKER_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "${CROSS_LINKER_FLAGS}")
+
+# Force --allow-shlib-undefined globally. Conda's pre-built Linux .so files
+# reference symbols (e.g. __cxa_call_terminate@CXXABI_1.3.15) that are only
+# resolved at runtime via libstdc++. Without this flag lld rejects them.
+add_link_options("-Wl,--allow-shlib-undefined")
+
+# Threads: FindThreads try_compile fails when cross-compiling (can't run
+# the test binary). Force pthreads since Linux always has them.
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Search only the cross-prefix for libraries and headers.
 set(CMAKE_FIND_ROOT_PATH "${LINUX_DEPS_PREFIX}")
