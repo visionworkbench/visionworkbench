@@ -21,9 +21,10 @@
 
 #include <vector>
 
-// Can't do much about warnings in boost except to hide them
-#include <vw/Math/Statistics.h>
+#include <vw/Math/Vector.h>
 #include <vw/Math/CDFAccumulator.h>
+
+// Can't do much about warnings in boost except to hide them
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/accumulators/accumulators.hpp>
