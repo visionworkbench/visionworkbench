@@ -159,13 +159,21 @@ void construct_index_aux(void* data_ptr, size_t num_features, size_t cols,
     return;
     
   case FLANN_DistType_Hamming:
-    // Note that we use neither a kdtree or kmeans method.
-    // Use GONZALES centers init for deterministic results (default is RANDOM).
-    index_ptr = new flann::Index<flann::Hamming<unsigned char>>
-      (flann::Matrix<unsigned char>((unsigned char*)data_ptr, num_features, cols),
-        //flann::LshIndexParams(), // Bad performance on small IP data sets
-        flann::HierarchicalClusteringIndexParams(32, flann::FLANN_CENTERS_GONZALES),
-        flann::Hamming<unsigned char>());
+    // Use the same threshold logic as L2: deterministic (GONZALES) for small
+    // feature sets, non-deterministic (RANDOM) for large ones for speed.
+    if (local_flann_method == "kdtree") {
+      // Fast, but not deterministic
+      index_ptr = new flann::Index<flann::Hamming<unsigned char>>
+        (flann::Matrix<unsigned char>((unsigned char*)data_ptr, num_features, cols),
+          flann::HierarchicalClusteringIndexParams(),
+          flann::Hamming<unsigned char>());
+    } else {
+      // Slow, but deterministic
+      index_ptr = new flann::Index<flann::Hamming<unsigned char>>
+        (flann::Matrix<unsigned char>((unsigned char*)data_ptr, num_features, cols),
+          flann::HierarchicalClusteringIndexParams(32, flann::FLANN_CENTERS_GONZALES),
+          flann::Hamming<unsigned char>());
+    }
     cast_index_ptr_HAMM_u(index_ptr)->buildIndex();
     return;
     
