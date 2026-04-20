@@ -30,6 +30,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/Image/BlobIndex.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Image/ImageThresh.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Transform.h>

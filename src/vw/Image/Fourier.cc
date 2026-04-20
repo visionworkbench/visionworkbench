@@ -17,7 +17,7 @@
 
 #include <vw/Image/Fourier.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/Statistics.h>
+#include <vw/Image/ImageThresh.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageChannels.h>

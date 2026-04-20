@@ -20,6 +20,7 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Image/Statistics.h>
+#include <vw/Image/ImageThresh.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
@@ -535,38 +536,3 @@ TEST( Statistics, OptimalThreshold ) {
   EXPECT_NEAR(t, t0, 1e-15);
 }
 
-TEST(BlockOperations, DISABLED_CDF) {
-
-  const Vector2i block_size(128, 128);
-  int sumsample_amount = 1;
-
-  // Generate a test image.
-  size_t real_count = 0;
-  const int size = 512;
-  ImageView<uint8> image(size,size);
-  for (int i=0; i<size; ++i) {
-    for (int j=0; j<size; ++j) {
-      uint8 value = i % 10;
-      image(i,j) = value;
-    }
-  }
-
-  // Compute the CDF in using a single thread.
-  ChannelAccumulator<vw::math::CDFAccumulator<float> > normal_cdf;
-  for_each_pixel( subsample( edge_extend(image, ConstantEdgeExtension()),
-                             sumsample_amount ),
-                  normal_cdf );
-
-  // Compute the CDF in parallel.
-  vw::math::CDFAccumulator<float> parallel_cdf;
-  block_cdf_computation(image, parallel_cdf, sumsample_amount, block_size);
-
-  // Check results.
-  const float EPS = 0.11; // Larger sample sizes reduce this error
-  EXPECT_NEAR(normal_cdf.quantile(0),          parallel_cdf.quantile(0), EPS);
-  EXPECT_NEAR(normal_cdf.quantile(1),          parallel_cdf.quantile(1), EPS);
-  EXPECT_NEAR(normal_cdf.approximate_mean  (), parallel_cdf.approximate_mean  (), EPS);
-  EXPECT_NEAR(normal_cdf.approximate_stddev(), parallel_cdf.approximate_stddev(), EPS);
-  EXPECT_NEAR(normal_cdf.quantile(0.02),       parallel_cdf.quantile(0.02), EPS);
-  EXPECT_NEAR(normal_cdf.quantile(0.98),       parallel_cdf.quantile(0.98), EPS);
-}
