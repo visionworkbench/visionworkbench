@@ -25,6 +25,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Statistics.h>
+#include <vw/Math/CDFAccumulator.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PerPixelViews.h>
@@ -1079,19 +1080,8 @@ namespace stereo {
       yCdf(static_cast<float>(pix[1]));
       ++count;
     }
-    // The get functions protect against seg faults when () was not called.
-    // - This protection belongs in the CDFAccumulator class!
-    float getQuantileX(float quantile) const {
-      vw_out() << "Quantile count: " << count << std::endl;
-      if (count == 0)
-        return 0;
-      return xCdf.quantile(quantile);
-    }
-    float getQuantileY(float quantile) const {
-      if (count == 0)
-        return 0;
-      return yCdf.quantile(quantile);
-    }
+    float getQuantileX(float quantile) const { return xCdf.quantile(quantile); }
+    float getQuantileY(float quantile) const { return yCdf.quantile(quantile); }
   };
 
   /// Simple functor to compare disparity values to a pair of thresholds.

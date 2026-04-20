@@ -19,6 +19,7 @@
 #include <gtest/gtest_VW.h>
 #include <boost/random.hpp>
 #include <vw/Math/Statistics.h>
+#include <vw/Math/CDFAccumulator.h>
 
 using namespace vw;
 

@@ -23,6 +23,7 @@
 
 // Can't do much about warnings in boost except to hide them
 #include <vw/Math/Statistics.h>
+#include <vw/Math/CDFAccumulator.h>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/accumulators/accumulators.hpp>
