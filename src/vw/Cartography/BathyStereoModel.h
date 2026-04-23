@@ -22,6 +22,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Stereo/StereoModel.h>
+#include <vw/Cartography/BathyData.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelMask.h>
@@ -34,19 +35,6 @@ namespace camera {
 }
 
 typedef boost::shared_ptr<camera::CameraModel> CamPtr;
- 
-struct BathyPlane {
-  std::vector<double> bathy_plane;
-  vw::cartography::GeoReference plane_proj;
-};
-
-// A struct to hold the bathymetry settings and data
-struct BathyData {
-  std::vector<vw::ImageViewRef<vw::PixelMask<float>>> bathy_masks;
-  std::vector<BathyPlane> bathy_planes;
-  float refraction_index;
-  BathyData(): refraction_index(1.0) {}
-};
 
 // Check if the given left and right pixels are in the masked region (invalid in
 // the mask). That will mean bathymetry correction should be applied.

@@ -23,7 +23,7 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/Cartography/Datum.h>
-#include <vw/Cartography/BathyStereoModel.h>
+#include <vw/Cartography/BathyData.h>
 /// \file ControlNetworkLoader.h Functions for generating control networks
 
 namespace vw {
