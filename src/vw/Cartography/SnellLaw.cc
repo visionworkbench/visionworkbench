@@ -130,7 +130,17 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
                             vw::Vector3 & intersect_proj_pt,
                             vw::Vector3 & intersect_proj_dir) {
 
-  // Find the mean water surface
+  // Find the mean water surface.
+  // TODO(oalexan1): -plane[3]/plane[2] equals the water height in meters only
+  // when plane_proj has meter-scale horizontal axes (e.g. a local stereographic
+  // projection). For a plane_proj in geographic coordinates (lon/lat in
+  // degrees, h in meters), the coefficients live in mixed units and -d/c is
+  // not a physical height - it can be off by ~100 m. Callers that pass a
+  // plane fit in geographic coords get a bad initial guess for the datum
+  // intersection below; the iterative refinement in the loop may or may not
+  // converge cleanly. Either require plane_proj to be a projected CRS, or
+  // derive the seed height differently when plane_proj.is_projected() is
+  // false. See ~/projects/sdb/water_surface_notes.sh for context.
   double mean_ht = -plane[3] / plane[2];
   double major_radius = plane_proj.datum().semi_major_axis() + mean_ht;
   double minor_radius = plane_proj.datum().semi_minor_axis() + mean_ht;

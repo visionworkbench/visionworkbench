@@ -158,41 +158,62 @@ static void readBathyPlaneFromText(std::string const& bathy_plane_file,
   vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str() << "\n";
 }
 
-// Best-fit plane through a set of 3D points via SVD. Returns the four
-// coefficients (a, b, c, d) such that a*x + b*y + c*z + d = 0, with the
-// normal (a, b, c) of unit length and oriented so c > 0. No outlier
-// rejection - use on clean samples.
+// Best-fit plane through a set of 3D points. Returns the four coefficients
+// (a, b, c, d) such that a*x + b*y + c*z + d = 0, with (a, b, c) unit length
+// and oriented so c > 0. No outlier rejection - use on clean samples.
+//
+// Formulation: ordinary least squares treating z as the dependent variable,
+// minimizing Sum (z_i - (alpha*x_i + beta*y_i + gamma))^2 via the 3x3 normal
+// equations. This is insensitive to the relative numerical scale of (x, y)
+// vs z, so the fit works across input coordinate systems - including
+// geographic (lon-lat-h), where the lon/lat numerical span can be smaller
+// than the h span and a centered-points SVD would mistakenly pick a nearly-
+// horizontal direction as the plane normal. Least-squares-on-height treats
+// height as a function of the horizontal axes by construction.
 void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
                       std::vector<double> & bathy_plane) {
 
   if (points.size() < 3)
     vw_throw(vw::ArgumentErr() << "fitPlaneToPoints: need at least 3 points.\n");
 
-  // Centroid.
-  vw::Vector3 centroid(0, 0, 0);
-  for (auto const& p : points) centroid += p;
-  centroid /= double(points.size());
-
-  // SVD on the centered point matrix. The plane normal is the right-singular
-  // vector for the smallest singular value, i.e. the last row of V^T.
-  vw::Matrix<double> A(points.size(), 3);
-  for (size_t i = 0; i < points.size(); i++) {
-    A(i, 0) = points[i][0] - centroid[0];
-    A(i, 1) = points[i][1] - centroid[1];
-    A(i, 2) = points[i][2] - centroid[2];
+  // Accumulate sums for the normal equations
+  //   M * [alpha, beta, gamma]^T = rhs
+  // where M is the 3x3 normal-equations matrix (symmetric positive definite
+  // for any non-collinear point set).
+  double Sx = 0, Sy = 0, Sz = 0;
+  double Sxx = 0, Syy = 0, Sxy = 0;
+  double Sxz = 0, Syz = 0;
+  for (auto const& p : points) {
+    Sx += p[0]; Sy += p[1]; Sz += p[2];
+    Sxx += p[0]*p[0];
+    Syy += p[1]*p[1];
+    Sxy += p[0]*p[1];
+    Sxz += p[0]*p[2];
+    Syz += p[1]*p[2];
   }
-  vw::Matrix<double> U, VT;
-  vw::Vector<double> S;
-  vw::math::svd(A, U, S, VT);
 
-  vw::Vector3 normal(VT(2, 0), VT(2, 1), VT(2, 2));
-  if (normal[2] < 0) normal = -normal;
-  double d = -dot_prod(normal, centroid);
+  vw::Matrix<double> M(3, 3);
+  M(0, 0) = Sxx; M(0, 1) = Sxy; M(0, 2) = Sx;
+  M(1, 0) = Sxy; M(1, 1) = Syy; M(1, 2) = Sy;
+  M(2, 0) = Sx;  M(2, 1) = Sy;  M(2, 2) = double(points.size());
+
+  vw::Vector<double> rhs(3);
+  rhs[0] = Sxz; rhs[1] = Syz; rhs[2] = Sz;
+
+  vw::Vector<double> coef = vw::math::solve_symmetric(M, rhs);
+  double alpha = coef[0], beta = coef[1], gamma = coef[2];
+
+  // The fitted equation z = alpha*x + beta*y + gamma rewrites as
+  //   alpha*x + beta*y + (-1)*z + gamma = 0.
+  // Flip signs to make c = +1, then normalize to a unit normal.
+  double a = -alpha, b = -beta, c = 1.0, d = -gamma;
+  double norm = std::sqrt(a*a + b*b + c*c);
+  a /= norm; b /= norm; c /= norm; d /= norm;
 
   bathy_plane.resize(4);
-  bathy_plane[0] = normal[0];
-  bathy_plane[1] = normal[1];
-  bathy_plane[2] = normal[2];
+  bathy_plane[0] = a;
+  bathy_plane[1] = b;
+  bathy_plane[2] = c;
   bathy_plane[3] = d;
 }
 
@@ -200,6 +221,15 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
 // georef becomes plane_proj - no reprojection. Valid pixels are converted
 // to (proj_x, proj_y, height) in that georef's coordinates and passed to
 // fitPlaneToPoints to derive the four plane coefficients.
+//
+// TODO(oalexan1): Accept only projected (meter-scale) georefs, or
+// reproject to a local stereographic when plane_proj is geographic.
+// The least-squares-on-height fit produces a planar approximation in
+// any coordinate system, but downstream Snell's-law math in
+// rayBathyPlaneIntersect (see SnellLaw.cc) assumes -d/c is a height in
+// meters, which holds only for meter-scale horizontal axes. Geographic
+// inputs silently produce a technically-valid plane whose coefficients
+// mislead the refraction solver.
 static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
                                      std::vector<double> & bathy_plane,
                                      vw::cartography::GeoReference & plane_proj) {
