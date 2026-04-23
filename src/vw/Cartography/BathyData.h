@@ -27,6 +27,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelMask.h>
 
@@ -35,9 +36,21 @@
 
 namespace vw {
 
+// Per-image water surface used during bathymetry triangulation.
+//
+// Can hold either a best-fit plane in a local stereographic projection
+// (four coefficients, with the projection stored in plane_proj), or a
+// georeferenced image of water-surface heights. When the image is
+// provided, the best-fit plane approximation in plane_proj's coordinates
+// is also stored. If the image is empty, use the plane.
 struct BathyPlane {
+  // Plane coefficients a, b, c, d such that a*x + b*y + c*z + d = 0 in
+  // plane_proj's local stereographic frame. Normal (a, b, c) points up.
   std::vector<double> bathy_plane;
   vw::cartography::GeoReference plane_proj;
+
+  // Optional image of water-surface heights.
+  vw::ImageView<vw::PixelMask<float>> water_surface;
 };
 
 // A struct to hold the bathymetry settings and data
