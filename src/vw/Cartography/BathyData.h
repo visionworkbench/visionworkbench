@@ -84,6 +84,12 @@ void readBathyPlanes(std::string const& bathy_plane_files,
                      int num_images,
                      std::vector<BathyPlane> & bathy_plane_vec);
 
+// Best-fit plane through a set of 3D points via SVD (no outlier rejection).
+// Returns the four coefficients (a, b, c, d) such that a*x + b*y + c*z + d = 0,
+// with the normal (a, b, c) of unit length and oriented so c > 0.
+void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
+                      std::vector<double> & bathy_plane);
+
 } // namespace vw
 
 #endif // __VW_CARTOGRAPHY_BATHYDATA_H__

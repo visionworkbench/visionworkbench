@@ -31,10 +31,14 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/LinearAlgebra.h>
+#include <vw/Cartography/GeoReference.h>
 #include <vw/Core/Exception.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
 
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <limits>
@@ -103,14 +107,12 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
           !is_valid(right_mask(irpix.x(), irpix.y())));
 }
 
-// Read the bathy plane. It must be in some local stereographic projection which
-// is read as well. The file format is: plane coefficients on first line,
-// comment line, then projection lat/lon.
-void readBathyPlane(std::string const& bathy_plane_file,
-                    std::vector<double> & bathy_plane,
-                    vw::cartography::GeoReference & plane_proj) {
+// Read a plane from the legacy 3-line text format: four plane coefficients
+// on line 1, comment on line 2, projection center lat/lon on line 3.
+static void readBathyPlaneFromText(std::string const& bathy_plane_file,
+                                   std::vector<double> & bathy_plane,
+                                   vw::cartography::GeoReference & plane_proj) {
 
-  vw::vw_out() << "Reading bathy plane: " << bathy_plane_file << "\n";
   std::ifstream handle;
   handle.open(bathy_plane_file.c_str());
   if (handle.fail())
@@ -154,6 +156,117 @@ void readBathyPlane(std::string const& bathy_plane_file,
   plane_proj.set_datum(datum);
   plane_proj.set_stereographic(proj_lat, proj_lon, scale);
   vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str() << "\n";
+}
+
+// Best-fit plane through a set of 3D points via SVD. Returns the four
+// coefficients (a, b, c, d) such that a*x + b*y + c*z + d = 0, with the
+// normal (a, b, c) of unit length and oriented so c > 0. No outlier
+// rejection - use on clean samples.
+void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
+                      std::vector<double> & bathy_plane) {
+
+  if (points.size() < 3)
+    vw_throw(vw::ArgumentErr() << "fitPlaneToPoints: need at least 3 points.\n");
+
+  // Centroid.
+  vw::Vector3 centroid(0, 0, 0);
+  for (auto const& p : points) centroid += p;
+  centroid /= double(points.size());
+
+  // SVD on the centered point matrix. The plane normal is the right-singular
+  // vector for the smallest singular value, i.e. the last row of V^T.
+  vw::Matrix<double> A(points.size(), 3);
+  for (size_t i = 0; i < points.size(); i++) {
+    A(i, 0) = points[i][0] - centroid[0];
+    A(i, 1) = points[i][1] - centroid[1];
+    A(i, 2) = points[i][2] - centroid[2];
+  }
+  vw::Matrix<double> U, VT;
+  vw::Vector<double> S;
+  vw::math::svd(A, U, S, VT);
+
+  vw::Vector3 normal(VT(2, 0), VT(2, 1), VT(2, 2));
+  if (normal[2] < 0) normal = -normal;
+  double d = -dot_prod(normal, centroid);
+
+  bathy_plane.resize(4);
+  bathy_plane[0] = normal[0];
+  bathy_plane[1] = normal[1];
+  bathy_plane[2] = normal[2];
+  bathy_plane[3] = d;
+}
+
+// Read a georeferenced raster of water-surface heights. The raster's own
+// georef becomes plane_proj - no reprojection. Valid pixels are converted
+// to (proj_x, proj_y, height) in that georef's coordinates and passed to
+// fitPlaneToPoints to derive the four plane coefficients.
+static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
+                                     std::vector<double> & bathy_plane,
+                                     vw::cartography::GeoReference & plane_proj) {
+
+  // Read pixel data with nodata-aware mask. Use raw DiskImageView rather than
+  // read_bathy_mask(), which also invalidates non-positive pixels - wrong for
+  // water-surface heights (typically negative relative to WGS84 ellipsoid).
+  float nodata = -std::numeric_limits<float>::max();
+  vw::read_nodata_val(bathy_plane_file, nodata);
+  vw::ImageView<vw::PixelMask<float>> raster
+    = vw::create_mask(vw::DiskImageView<float>(bathy_plane_file), nodata);
+
+  // Walk valid pixels, collect points in the raster's projection coordinates,
+  // then find the best-fit plane we will use as an inital guess in solvers.
+  std::vector<vw::Vector3> proj_pts;
+  proj_pts.reserve(size_t(raster.cols()) * size_t(raster.rows()));
+  for (int row = 0; row < raster.rows(); row++) {
+    for (int col = 0; col < raster.cols(); col++) {
+      vw::PixelMask<float> pix = raster(col, row);
+      if (!vw::is_valid(pix))
+        continue;
+      vw::Vector2 proj_xy = plane_proj.pixel_to_point(vw::Vector2(col, row));
+      proj_pts.push_back(vw::Vector3(proj_xy.x(), proj_xy.y(), pix.child()));
+    }
+  }
+  if (proj_pts.size() < 3)
+    vw_throw(vw::IOErr() << "Bathy plane raster " << bathy_plane_file
+              << " has fewer than 3 valid pixels; cannot fit a plane.\n");
+  fitPlaneToPoints(proj_pts, bathy_plane);
+
+  // Report fit residuals so the user can see whether a plane is a good model.
+  double max_abs_residual = 0.0, sum_sq_residual = 0.0;
+  for (auto const& p : proj_pts) {
+    double r = bathy_plane[0]*p[0] + bathy_plane[1]*p[1]
+             + bathy_plane[2]*p[2] + bathy_plane[3];
+    max_abs_residual = std::max(max_abs_residual, std::abs(r));
+    sum_sq_residual += r * r;
+  }
+  double rms = std::sqrt(sum_sq_residual / double(proj_pts.size()));
+
+  vw_out() << "Fitted bathy plane from raster: "
+           << bathy_plane[0] << " " << bathy_plane[1] << " "
+           << bathy_plane[2] << " " << bathy_plane[3] << "\n";
+  vw_out() << "Plane-fit residuals: max " << max_abs_residual
+           << ", RMS " << rms << "\n";
+  vw_out() << "Projection: " << plane_proj.overall_proj4_str() << "\n";
+}
+
+// Dispatch: try to read as a georeferenced raster first; on failure, fall
+// back to the legacy 3-line text format.
+void readBathyPlane(std::string const& bathy_plane_file,
+                    std::vector<double> & bathy_plane,
+                    vw::cartography::GeoReference & plane_proj) {
+
+  vw::vw_out() << "Reading bathy plane: " << bathy_plane_file << "\n";
+
+  bool is_raster = false;
+  try {
+    is_raster = vw::cartography::read_georeference(plane_proj, bathy_plane_file);
+  } catch (...) {
+    is_raster = false;
+  }
+
+  if (is_raster)
+    readBathyPlaneFromRaster(bathy_plane_file, bathy_plane, plane_proj);
+  else
+    readBathyPlaneFromText(bathy_plane_file, bathy_plane, plane_proj);
 }
 
 // Read the bathy planes and associated data. More often than not they will be
