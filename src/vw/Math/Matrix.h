@@ -49,6 +49,8 @@
 #include <vw/Math/Vector.h>
 #include <vw/vw_config.h>
 
+#include <boost/utility/result_of.hpp>
+
 #include <array>
 #include <iterator>
 #include <stack>
@@ -1203,7 +1205,7 @@ namespace math {
     MatrixT const& m;
     FuncT func;
   public:
-    typedef typename std::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
+    typedef typename boost::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
@@ -1224,7 +1226,7 @@ namespace math {
 
     class iterator {
     public:
-      typedef typename std::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
+      typedef typename boost::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
       typedef value_type reference;
       typedef value_type* pointer;
       typedef std::ptrdiff_t difference_type;
@@ -1287,7 +1289,7 @@ namespace math {
     Matrix2T const& m2;
     FuncT func;
   public:
-    typedef typename std::result_of<FuncT(typename Matrix1T::value_type, typename Matrix2T::value_type)>::type value_type;
+    typedef typename boost::result_of<FuncT(typename Matrix1T::value_type, typename Matrix2T::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
@@ -1313,7 +1315,7 @@ namespace math {
 
     class iterator {
     public:
-      typedef typename std::result_of<FuncT(typename Matrix1T::value_type,
+      typedef typename boost::result_of<FuncT(typename Matrix1T::value_type,
         typename Matrix2T::value_type)>::type value_type;
       typedef value_type reference;
       typedef value_type* pointer;

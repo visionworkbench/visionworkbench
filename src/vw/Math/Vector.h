@@ -55,6 +55,8 @@
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 
+#include <boost/utility/result_of.hpp>
+
 #include <array>
 #include <cstring> // for memset
 #include <iterator>
@@ -898,14 +900,14 @@ namespace math {
     VectorT const& v;
     FuncT func;
   public:
-    typedef typename std::result_of<FuncT(typename VectorT::value_type)>::type value_type;
+    typedef typename boost::result_of<FuncT(typename VectorT::value_type)>::type value_type;
 
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
     class iterator {
     public:
-      typedef typename std::result_of<FuncT(typename VectorT::value_type)>::type value_type;
+      typedef typename boost::result_of<FuncT(typename VectorT::value_type)>::type value_type;
       typedef value_type reference;
       typedef value_type* pointer;
       typedef std::ptrdiff_t difference_type;
@@ -976,14 +978,14 @@ namespace math {
     Vector2T const& v2;
     FuncT func;
   public:
-    typedef typename std::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
+    typedef typename boost::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
 
     typedef value_type       reference_type;
     typedef value_type const_reference_type;
 
     class iterator {
     public:
-      typedef typename std::result_of<FuncT(typename Vector1T::value_type,
+      typedef typename boost::result_of<FuncT(typename Vector1T::value_type,
         typename Vector2T::value_type)>::type value_type;
       typedef value_type reference;
       typedef value_type* pointer;
