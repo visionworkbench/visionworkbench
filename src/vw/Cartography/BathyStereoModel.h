@@ -36,29 +36,6 @@ namespace camera {
 
 typedef boost::shared_ptr<camera::CameraModel> CamPtr;
 
-// Check if the given left and right pixels are in the masked region (invalid in
-// the mask). That will mean bathymetry correction should be applied.
-bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
-               ImageViewRef<PixelMask<float>> const& right_mask,
-               Vector2 const& lpix, Vector2 const& rpix);
-
-// Read a bathy mask. Water pixels are those with non-positive values or
-// matching the file's nodata value. Both are invalidated in the returned
-// masked image. The returned nodata_val is suitable for writing the mask back.
-vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filename,
-                                                       float & nodata_val);
-
-// Read a set of bathy masks.
-void read_bathy_masks(std::vector<std::string> const& mask_filenames,
-                      std::vector<vw::ImageViewRef<vw::PixelMask<float>>> & bathy_masks);
-
-// Read the bathy planes and associated data. More often than not they will be
-// identical. If there is more than one bathy plane file, they are all kept in
-// the same string, separated by space.
-void readBathyPlanes(std::string const& bathy_plane_files,
-                     int num_images,
-                     std::vector<BathyPlane> & bathy_plane_vec);
-
 // Intersect a ray from camera center along camera direction with the datum at
 // given semi-axes, with optional bathymetry correction. If the ray passes
 // through the bathy plane (water surface) before it meets the datum, apply
@@ -104,13 +81,13 @@ public:
   /// Returns an xyz point. The error is set to 0 if triangulation
   /// did not succeed, otherwise it is the vector between the closest points on the rays.
   virtual vw::Vector3 operator()(std::vector<vw::Vector2> const& pixVec,
-                                  vw::Vector3& errorVec, bool do_bathy, bool & did_bathy) const;
+                                 vw::Vector3& errorVec, bool do_bathy, bool & did_bathy) const;
   virtual vw::Vector3 operator()(std::vector<vw::Vector2> const& pixVec,
-                                  double & error) const;
+                                 double & error) const;
   virtual vw::Vector3 operator()(vw::Vector2 const& pix1, vw::Vector2 const& pix2,
-                                  vw::Vector3& errorVec) const;
+                                 vw::Vector3& errorVec) const;
   virtual vw::Vector3 operator()(vw::Vector2 const& pix1, vw::Vector2 const& pix2,
-                                  double & error) const;
+                                 double & error) const;
 
   // Settings used for bathymetry correction. The left and right images
   // get individual bathy plane settings, but they may be identical.
