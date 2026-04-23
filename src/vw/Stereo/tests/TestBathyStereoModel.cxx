@@ -17,7 +17,8 @@
 
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
-#include <vw/Stereo/BathyStereoModel.h>
+#include <vw/Cartography/BathyStereoModel.h>
+#include <vw/Cartography/SnellLaw.h>
 
 using namespace vw;
 

@@ -71,39 +71,6 @@ void readBathyPlanes(std::string const& bathy_plane_files,
                      int num_images,
                      std::vector<BathyPlane> & bathy_plane_vec);
 
-// Given a ray going down towards Earth, starting at point in_xyz and
-// with unit direction in_dir, a plane 'p' to the water surface with four
-// coefficients such that the plane equation is p[0] * x + p[1] * y
-// + p[2] * z + p[3] = 0, the normal (p[0], p[1], p[2]) pointing
-// upwards away from Earth, and water refraction index, find where
-// this ray meets the water plane named out_xyz, and the ray direction out_dir
-// after it bends according to Snell's law. Return true on success.
-// This also works in projected coordinates.
-bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
-              std::vector<double> const& plane, double refraction_index,
-              vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
-
-// Like snellLaw, but for a curved water surface. The water surface is modeled as
-// a plane in local stereographic projection coordinates. The ray is bent in that
-// coordinate system, then transformed back to ECEF.
-bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
-                    std::vector<double> const& plane,
-                    vw::cartography::GeoReference const& plane_proj,
-                    double refraction_index,
-                    vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
-
-// Compute signed distance from a 3D point to a plane defined by coefficients
-// [a, b, c, d] where the plane equation is a*x + b*y + c*z + d = 0.
-double signed_dist_to_plane(std::vector<double> const& plane, vw::Vector3 const& point);
-
-// Project an ECEF point to local stereographic projection coordinates.
-vw::Vector3 proj_point(vw::cartography::GeoReference const& projection,
-                       vw::Vector3 const& xyz);
-
-// Unproject from local stereographic projection coordinates back to ECEF.
-vw::Vector3 unproj_point(vw::cartography::GeoReference const& projection,
-                         vw::Vector3 const& proj_pt);
-
 // Intersect a ray from camera center along camera direction with the datum at
 // given semi-axes, with optional bathymetry correction. If the ray passes
 // through the bathy plane (water surface) before it meets the datum, apply
