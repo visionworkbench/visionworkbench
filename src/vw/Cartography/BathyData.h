@@ -51,6 +51,11 @@ struct BathyPlane {
 
   // Optional image of water-surface heights.
   vw::ImageView<vw::PixelMask<float>> water_surface;
+
+  // Mean water-surface height in meters above the datum. Computed at load
+  // time from whichever input was supplied: the plane coefficients (text)
+  // or the raster pixel values (image).
+  double mean_height = 0.0;
 };
 
 // A struct to hold the bathymetry settings and data

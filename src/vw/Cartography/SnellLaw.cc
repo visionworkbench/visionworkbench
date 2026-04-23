@@ -126,24 +126,24 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
                             vw::Vector3 const& in_dir,
                             std::vector<double> const& plane,
                             vw::cartography::GeoReference const& plane_proj,
+                            double mean_height,
                             vw::Vector3 & intersect_ecef,
                             vw::Vector3 & intersect_proj_pt,
                             vw::Vector3 & intersect_proj_dir) {
 
-  // Find the mean water surface.
-  // TODO(oalexan1): -plane[3]/plane[2] equals the water height in meters only
-  // when plane_proj has meter-scale horizontal axes (e.g. a local stereographic
-  // projection). For a plane_proj in geographic coordinates (lon/lat in
-  // degrees, h in meters), the coefficients live in mixed units and -d/c is
-  // not a physical height - it can be off by ~100 m. Callers that pass a
-  // plane fit in geographic coords get a bad initial guess for the datum
-  // intersection below; the iterative refinement in the loop may or may not
-  // converge cleanly. Either require plane_proj to be a projected CRS, or
-  // derive the seed height differently when plane_proj.is_projected() is
-  // false. See ~/projects/sdb/water_surface_notes.sh for context.
-  double mean_ht = -plane[3] / plane[2];
-  double major_radius = plane_proj.datum().semi_major_axis() + mean_ht;
-  double minor_radius = plane_proj.datum().semi_minor_axis() + mean_ht;
+  // Seed the ray-surface intersection from the physical mean water height,
+  // supplied by the caller. -plane[3]/plane[2] would be equivalent only when
+  // plane_proj is meter-scale (e.g. a local stereographic projection); for
+  // geographic plane_proj it can be off by ~100 m.
+  //
+  // TODO(oalexan1): the per-step refinement below still intersects the ECEF
+  // ray with the fitted plane in plane_proj's coords. That step works in any
+  // coord system arithmetically, but interpreting the resulting point as
+  // "on the water surface" assumes the plane equation describes a meter-
+  // scale surface. For a geographic plane_proj the fitted plane is in
+  // mixed units and convergence can be loose. See water_surface_notes.sh.
+  double major_radius = plane_proj.datum().semi_major_axis() + mean_height;
+  double minor_radius = plane_proj.datum().semi_minor_axis() + mean_height;
 
   // Intersect the ray with the mean water surface, this will give us the
   // initial guess for intersecting with that surface.
@@ -309,14 +309,14 @@ public:
 bool curvedSnellLaw(Vector3 const& in_ecef, Vector3 const& in_dir,
                     std::vector<double> const& plane,
                     vw::cartography::GeoReference const& plane_proj,
-                    double refraction_index,
+                    double refraction_index, double mean_height,
                     Vector3 & out_ecef, Vector3 & out_dir) {
 
   // Intersect the ray with the curved water surface. Return the intersection
   // point in ecef, that point in projected coordinates, and the ray direction
   // at that location in projected coordinates.
   Vector3 intersect_ecef, intersect_proj_pt, intersect_proj_dir;
-  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, plane_proj,
+  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, plane_proj, mean_height,
                               intersect_ecef, intersect_proj_pt, intersect_proj_dir))
     return false;
 

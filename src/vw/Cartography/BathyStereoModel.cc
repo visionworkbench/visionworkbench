@@ -92,6 +92,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
                                 bathy_plane.bathy_plane,
                                 bathy_plane.plane_proj,
                                 refraction_index,
+                                bathy_plane.mean_height,
                                 out_xyz, out_dir);
 
   // If Snell's law failed, return zero vector
@@ -352,6 +353,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
                                   m_bathy_plane_vec[it].bathy_plane,
                                   m_bathy_plane_vec[it].plane_proj,
                                   m_refraction_index,
+                                  m_bathy_plane_vec[it].mean_height,
                                   waterCtrs[it], waterDirs[it]);
         if (!ans) {
           did_bathy = false;
@@ -375,6 +377,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
                                 m_bathy_plane_vec[it].bathy_plane,
                                 m_bathy_plane_vec[it].plane_proj,
                                 m_refraction_index,
+                                m_bathy_plane_vec[it].mean_height,
                                 waterCtrs[it], waterDirs[it]);
       if (!ans)
         return uncorr_tri_pt;

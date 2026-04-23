@@ -57,11 +57,14 @@ bool rayPlaneIntersect(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
 // in the given local stereographic projection, so the intersection is
 // iterated to stay both on the ray in ECEF and on the plane in proj coords.
 // Outputs the intersection in ECEF, the same point in proj coords, and the
-// ray direction in proj coords.
+// ray direction in proj coords. mean_height is the physical water-surface
+// height in meters above the datum, used to seed the initial ray-datum
+// intersection (callers should pass vw::BathyPlane::mean_height).
 bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
                             vw::Vector3 const& in_dir,
                             std::vector<double> const& plane,
                             vw::cartography::GeoReference const& plane_proj,
+                            double mean_height,
                             vw::Vector3 & intersect_ecef,
                             vw::Vector3 & intersect_proj_pt,
                             vw::Vector3 & intersect_proj_dir);
@@ -81,10 +84,12 @@ bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
 // Like snellLaw, but for a curved water surface. The water surface is
 // modeled as a plane in local stereographic projection coordinates. The
 // ray is bent in that coordinate system, then transformed back to ECEF.
+// mean_height is the physical water-surface height in meters above the
+// datum; callers should pass vw::BathyPlane::mean_height.
 bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
                     std::vector<double> const& plane,
                     vw::cartography::GeoReference const& plane_proj,
-                    double refraction_index,
+                    double refraction_index, double mean_height,
                     vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
 
 // Sample 3 points on the proj-space plane, unproject to ECEF, and fit a

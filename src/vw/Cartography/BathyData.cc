@@ -110,8 +110,9 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 // Read a plane from the legacy 3-line text format: four plane coefficients
 // on line 1, comment on line 2, projection center lat/lon on line 3.
 static void readBathyPlaneFromText(std::string const& bathy_plane_file,
-                                   std::vector<double> & bathy_plane,
-                                   vw::cartography::GeoReference & plane_proj) {
+                                   BathyPlane & bp) {
+  std::vector<double> & bathy_plane = bp.bathy_plane;
+  vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
   std::ifstream handle;
   handle.open(bathy_plane_file.c_str());
@@ -155,6 +156,11 @@ static void readBathyPlaneFromText(std::string const& bathy_plane_file,
   vw::cartography::Datum datum("WGS_1984");
   plane_proj.set_datum(datum);
   plane_proj.set_stereographic(proj_lat, proj_lon, scale);
+
+  // The text format's plane_proj is stereographic meters by construction,
+  // so -d/c is the mean water-surface height in meters above the datum.
+  bp.mean_height = -bathy_plane[3] / bathy_plane[2];
+
   vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str() << "\n";
 }
 
@@ -231,8 +237,9 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
 // inputs silently produce a technically-valid plane whose coefficients
 // mislead the refraction solver.
 static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
-                                     std::vector<double> & bathy_plane,
-                                     vw::cartography::GeoReference & plane_proj) {
+                                     BathyPlane & bp) {
+  std::vector<double> & bathy_plane = bp.bathy_plane;
+  vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
   // Read pixel data with nodata-aware mask. Use raw DiskImageView rather than
   // read_bathy_mask(), which also invalidates non-positive pixels - wrong for
@@ -244,8 +251,10 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
 
   // Walk valid pixels, collect points in the raster's projection coordinates,
   // then find the best-fit plane we will use as an inital guess in solvers.
+  // Also accumulate the sum of valid heights to compute the physical mean.
   std::vector<vw::Vector3> proj_pts;
   proj_pts.reserve(size_t(raster.cols()) * size_t(raster.rows()));
+  double height_sum = 0.0;
   for (int row = 0; row < raster.rows(); row++) {
     for (int col = 0; col < raster.cols(); col++) {
       vw::PixelMask<float> pix = raster(col, row);
@@ -253,12 +262,14 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
         continue;
       vw::Vector2 proj_xy = plane_proj.pixel_to_point(vw::Vector2(col, row));
       proj_pts.push_back(vw::Vector3(proj_xy.x(), proj_xy.y(), pix.child()));
+      height_sum += pix.child();
     }
   }
   if (proj_pts.size() < 3)
     vw_throw(vw::IOErr() << "Bathy plane raster " << bathy_plane_file
               << " has fewer than 3 valid pixels; cannot fit a plane.\n");
   fitPlaneToPoints(proj_pts, bathy_plane);
+  bp.mean_height = height_sum / double(proj_pts.size());
 
   // Report fit residuals so the user can see whether a plane is a good model.
   double max_abs_residual = 0.0, sum_sq_residual = 0.0;
@@ -280,23 +291,21 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
 
 // Dispatch: try to read as a georeferenced raster first; on failure, fall
 // back to the legacy 3-line text format.
-void readBathyPlane(std::string const& bathy_plane_file,
-                    std::vector<double> & bathy_plane,
-                    vw::cartography::GeoReference & plane_proj) {
+void readBathyPlane(std::string const& bathy_plane_file, BathyPlane & bp) {
 
   vw::vw_out() << "Reading bathy plane: " << bathy_plane_file << "\n";
 
   bool is_raster = false;
   try {
-    is_raster = vw::cartography::read_georeference(plane_proj, bathy_plane_file);
+    is_raster = vw::cartography::read_georeference(bp.plane_proj, bathy_plane_file);
   } catch (...) {
     is_raster = false;
   }
 
   if (is_raster)
-    readBathyPlaneFromRaster(bathy_plane_file, bathy_plane, plane_proj);
+    readBathyPlaneFromRaster(bathy_plane_file, bp);
   else
-    readBathyPlaneFromText(bathy_plane_file, bathy_plane, plane_proj);
+    readBathyPlaneFromText(bathy_plane_file, bp);
 }
 
 // Read the bathy planes and associated data. More often than not they will be
@@ -312,10 +321,7 @@ void readBathyPlanes(std::string const& bathy_plane_files,
   std::istringstream iss(bathy_plane_files);
   while (iss >> bathy_plane_file) {
     bathy_plane_vec.push_back(BathyPlane());
-    readBathyPlane(bathy_plane_file,
-                   // Outputs
-                   bathy_plane_vec.back().bathy_plane,
-                   bathy_plane_vec.back().plane_proj);
+    readBathyPlane(bathy_plane_file, bathy_plane_vec.back());
   }
 
   if (bathy_plane_vec.size() != 1 && bathy_plane_vec.size() != (size_t)num_images)
