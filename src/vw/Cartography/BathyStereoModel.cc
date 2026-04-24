@@ -58,6 +58,57 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
   }
 }
 
+// Bend a camera ray at the water surface, using the raster to refine the
+// surface plane at the ray-surface hit when one is available.
+//
+//   Text / no-raster case: one full curvedSnellLaw call against the global
+//   best-fit plane. Unchanged behavior.
+//
+//   Raster case: first locate the approximate ray-surface hit using the
+//   global plane (one rayBathyPlaneIntersect). At that hit, sample three
+//   raster neighbors to fit a local plane in stereographic_proj's frame.
+//   Then run the normal curvedSnellLaw with that refined local plane. If
+//   the raster sampling fails (edge / nodata / degenerate triangle), fall
+//   back to the global plane unchanged. For near-planar rasters (Monica
+//   FLKW1 at 0.013 m RMS) the refinement is numerically indistinguishable
+//   from the global plane, so output matches today's behavior; for
+//   structured rasters the refinement actually tracks the surface.
+//
+// TODO(oalexan1): the refined-plane path does two ray-plane intersects
+// (one to locate the raster sampling point, one inside curvedSnellLaw).
+// Could be collapsed to one by teaching rayBathyPlaneIntersect to take
+// an ECEF seed; defer until profiling justifies it.
+static bool curvedSnellLawWithRaster(
+    vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
+    BathyPlane const& bp,
+    double refraction_index,
+    vw::Vector3& out_ecef, vw::Vector3& out_dir) {
+
+  // No raster: classic single-plane path.
+  if (bp.water_surface.cols() == 0)
+    return curvedSnellLaw(in_ecef, in_dir,
+                          bp.bathy_plane, bp.stereographic_proj,
+                          refraction_index, bp.mean_height,
+                          out_ecef, out_dir);
+
+  // Raster path: find the approximate hit, then refine the plane there.
+  vw::Vector3 hit_ecef, hit_proj_pt, hit_proj_dir;
+  if (!rayBathyPlaneIntersect(in_ecef, in_dir,
+                              bp.bathy_plane, bp.stereographic_proj,
+                              bp.mean_height,
+                              hit_ecef, hit_proj_pt, hit_proj_dir))
+    return false;
+
+  std::vector<double> local_plane = refineLocalPlaneFromRaster(bp, hit_proj_pt);
+  std::vector<double> const& active_plane
+    = local_plane.empty() ? bp.bathy_plane : local_plane;
+
+  return curvedSnellLaw(in_ecef, in_dir,
+                        active_plane, bp.stereographic_proj,
+                        refraction_index, bp.mean_height,
+                        out_ecef, out_dir);
+}
+
 // Intersect a ray from camera center along camera direction with the datum at
 // given semi-axes, with optional bathymetry correction. If the ray passes
 // through the bathy plane (water surface) before it meets the datum, apply
@@ -88,14 +139,13 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   if (ht_val >= 0)
     return xyz;
 
-  // Point is below water - need to apply Snell's law refraction
+  // Point is below water - need to apply Snell's law refraction. Uses the
+  // raster to refine the plane at the ray-surface hit when available.
   Vector3 out_xyz, out_dir;
-  bool success = curvedSnellLaw(cam_ctr, cam_dir,
-                                bathy_plane.bathy_plane,
-                                bathy_plane.stereographic_proj,
-                                refraction_index,
-                                bathy_plane.mean_height,
-                                out_xyz, out_dir);
+  bool success = curvedSnellLawWithRaster(cam_ctr, cam_dir,
+                                          bathy_plane,
+                                          refraction_index,
+                                          out_xyz, out_dir);
 
   // If Snell's law failed, return zero vector
   if (!success)
@@ -354,13 +404,11 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       }
 
       for (size_t it = 0; it < 2; it++) {
-        // Bend each ray at the surface according to Snell's law.
-        bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
-                                  m_bathy_plane_vec[it].bathy_plane,
-                                  m_bathy_plane_vec[it].stereographic_proj,
-                                  m_refraction_index,
-                                  m_bathy_plane_vec[it].mean_height,
-                                  waterCtrs[it], waterDirs[it]);
+        // Bend each ray at the surface. Raster-refined plane when available.
+        bool ans = curvedSnellLawWithRaster(camCtrs[it], camDirs[it],
+                                            m_bathy_plane_vec[it],
+                                            m_refraction_index,
+                                            waterCtrs[it], waterDirs[it]);
         if (!ans) {
           did_bathy = false;
           return uncorr_tri_pt;
@@ -378,13 +426,11 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
     // Bend the rays
     for (size_t it = 0; it < 2; it++) {
-      // Bend each ray at the surface according to Snell's law.
-      bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
-                                m_bathy_plane_vec[it].bathy_plane,
-                                m_bathy_plane_vec[it].stereographic_proj,
-                                m_refraction_index,
-                                m_bathy_plane_vec[it].mean_height,
-                                waterCtrs[it], waterDirs[it]);
+      // Bend each ray at the surface. Raster-refined plane when available.
+      bool ans = curvedSnellLawWithRaster(camCtrs[it], camDirs[it],
+                                          m_bathy_plane_vec[it],
+                                          m_refraction_index,
+                                          waterCtrs[it], waterDirs[it]);
       if (!ans)
         return uncorr_tri_pt;
     }

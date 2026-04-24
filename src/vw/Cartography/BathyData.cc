@@ -397,6 +397,77 @@ std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       proj_pt, offset_meters);
 }
 
+// Fit a local plane in stereographic_proj's meter-scale frame from 3
+// raster neighbors near proj_pt. Mirrors fitLocalEcefPlaneToProjSurface's
+// sampling logic but keeps the output plane in stereographic coords for
+// use with rayBathyPlaneIntersect / Snell's law in proj coords. Returns
+// an empty vector on any sampling failure.
+std::vector<double> refineLocalPlaneFromRaster(
+    BathyPlane const& bp,
+    vw::Vector3 const& proj_pt) {
+
+  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
+  int cols = raster.cols(), rows = raster.rows();
+  if (cols <= 0 || rows <= 0)
+    return {};
+
+  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
+  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
+  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
+
+  vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
+                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
+  if (!isInBounds(pix0, cols, rows))
+    return {};
+
+  vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
+  if (!isInBounds(pix1, cols, rows))
+    pix1 = pix0 + vw::Vector2(-1.0, 0.0);
+  if (!isInBounds(pix1, cols, rows))
+    return {};
+
+  vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
+  if (!isInBounds(pix2, cols, rows))
+    pix2 = pix0 + vw::Vector2(0.0, -1.0);
+  if (!isInBounds(pix2, cols, rows))
+    return {};
+
+  auto interp = vw::BilinearInterpolation::interpolator(raster);
+  vw::PixelMask<float> v0 = interp(raster, pix0[0], pix0[1], 0);
+  vw::PixelMask<float> v1 = interp(raster, pix1[0], pix1[1], 0);
+  vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
+  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
+    return {};
+
+  // Convert (pix_i, h_i) to stereographic coords via ECEF round-trip.
+  auto toStereo = [&](vw::Vector2 const& pix, double h) -> vw::Vector3 {
+    vw::Vector2 rp = bp.plane_proj.pixel_to_point(pix);
+    vw::Vector3 ecef = vw::unproj_point(bp.plane_proj,
+                                        vw::Vector3(rp[0], rp[1], h));
+    return vw::proj_point(bp.stereographic_proj, ecef);
+  };
+  vw::Vector3 s0 = toStereo(pix0, v0.child());
+  vw::Vector3 s1 = toStereo(pix1, v1.child());
+  vw::Vector3 s2 = toStereo(pix2, v2.child());
+
+  // Exact plane through the three points in stereographic coords.
+  vw::Vector3 u = s1 - s0;
+  vw::Vector3 w = s2 - s0;
+  vw::Vector3 normal = cross_prod(u, w);
+  double normal_norm = vw::math::norm_2(normal);
+  if (normal_norm < 1e-12)
+    return {};  // degenerate triangle, fall back to global plane
+  normal /= normal_norm;
+  if (normal[2] < 0) normal = -normal;   // orient +z
+
+  std::vector<double> plane(4);
+  plane[0] = normal[0];
+  plane[1] = normal[1];
+  plane[2] = normal[2];
+  plane[3] = -dot_prod(normal, s0);
+  return plane;
+}
+
 // Read a georeferenced raster of water-surface heights. The raster's own
 // georef is stored as plane_proj (used only for pixel lookups). A local
 // stereographic is derived at the valid-pixel centroid and stored as

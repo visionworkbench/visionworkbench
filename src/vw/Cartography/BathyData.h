@@ -139,6 +139,18 @@ std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       vw::Vector3 const& proj_pt,
                                       double offset_meters);
 
+// Fit a plane in stereographic_proj's meter-scale frame from three
+// raster neighbors near proj_pt (which is itself in stereographic_proj's
+// coords). Used by the camera-to-ground refraction path to replace the
+// global best-fit plane with a local raster-derived plane right around
+// the ray-surface hit. Returns an empty vector if the center pixel is
+// out of bounds, if both +1 and -1 neighbors are out of bounds on any
+// axis, or if any sample is invalid - callers fall back to the global
+// plane in that case. Requires bp.water_surface to be non-empty.
+std::vector<double> refineLocalPlaneFromRaster(
+    BathyPlane const& bp,
+    vw::Vector3 const& proj_pt);
+
 } // namespace vw
 
 #endif // __VW_CARTOGRAPHY_BATHYDATA_H__
