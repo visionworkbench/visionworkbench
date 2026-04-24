@@ -50,9 +50,8 @@ struct BathyPlane {
 
   // Coordinate frame of the stored raster. For text input this is a
   // local stereographic projection. For raster input this is whatever
-  // georef the input file carried (e.g. geographic lon/lat for Monica's
-  // wl.tif). Use it for raster pixel lookups (pixel_to_point,
-  // point_to_pixel) only.
+  // georef the input file carried (may be geographic lon/lat). Use it
+  // for raster pixel lookups (pixel_to_point, point_to_pixel) only.
   vw::cartography::GeoReference plane_proj;
 
   // Always a local stereographic projection with meter-scale x, y axes.

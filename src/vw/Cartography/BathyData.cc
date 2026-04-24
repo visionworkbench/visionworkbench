@@ -512,8 +512,7 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   // Downstream plane math needs meter-scale axes. If the raster's native
   // georef is already stereographic, reuse it verbatim so the fitted
   // coefficients stay in that frame. Otherwise derive a local stereographic
-  // centered at the valid-pixel centroid (covers geographic rasters like
-  // Monica's EPSG:4326 wl.tifs).
+  // centered at the valid-pixel centroid (covers geographic rasters).
   if (plane_proj.overall_proj4_str().find("+proj=stere") != std::string::npos) {
     bp.stereographic_proj = plane_proj;
   } else {

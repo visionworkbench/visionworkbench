@@ -71,10 +71,10 @@ namespace {
 //   raster neighbors to fit a local plane in stereographic_proj's frame.
 //   Then run the normal curvedSnellLaw with that refined local plane. If
 //   the raster sampling fails (edge / nodata / degenerate triangle), fall
-//   back to the global plane unchanged. For near-planar rasters (Monica
-//   FLKW1 at 0.013 m RMS) the refinement is numerically indistinguishable
-//   from the global plane, so output matches today's behavior; for
-//   structured rasters the refinement actually tracks the surface.
+//   back to the global plane unchanged. For near-planar rasters the
+//   refinement is numerically indistinguishable from the global plane, so
+//   output matches the no-raster behavior; for structured rasters the
+//   refinement actually tracks the surface.
 //
 // TODO(oalexan1): the refined-plane path does two ray-plane intersects
 // (one to locate the raster sampling point, one inside curvedSnellLaw).
