@@ -58,6 +58,8 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
   }
 }
 
+namespace {
+
 // Bend a camera ray at the water surface, using the raster to refine the
 // surface plane at the ray-surface hit when one is available.
 //
@@ -78,11 +80,12 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
 // (one to locate the raster sampling point, one inside curvedSnellLaw).
 // Could be collapsed to one by teaching rayBathyPlaneIntersect to take
 // an ECEF seed; defer until profiling justifies it.
-static bool curvedSnellLawWithRaster(
-    vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
-    BathyPlane const& bp,
-    double refraction_index,
-    vw::Vector3& out_ecef, vw::Vector3& out_dir) {
+bool curvedSnellLawWithRaster(vw::Vector3 const& in_ecef,
+                              vw::Vector3 const& in_dir,
+                              BathyPlane const& bp,
+                              double refraction_index,
+                              vw::Vector3& out_ecef,
+                              vw::Vector3& out_dir) {
 
   // No raster: classic single-plane path.
   if (bp.water_surface.cols() == 0)
@@ -99,15 +102,17 @@ static bool curvedSnellLawWithRaster(
                               hit_ecef, hit_proj_pt, hit_proj_dir))
     return false;
 
-  std::vector<double> local_plane = refineLocalPlaneFromRaster(bp, hit_proj_pt);
-  std::vector<double> const& active_plane
-    = local_plane.empty() ? bp.bathy_plane : local_plane;
+  std::vector<double> local_plane;
+  bool refined = refineLocalPlaneFromRaster(bp, hit_proj_pt, local_plane);
+  std::vector<double> const& active_plane = refined ? local_plane : bp.bathy_plane;
 
   return curvedSnellLaw(in_ecef, in_dir,
                         active_plane, bp.stereographic_proj,
                         refraction_index, bp.mean_height,
                         out_ecef, out_dir);
 }
+
+} // namespace
 
 // Intersect a ray from camera center along camera direction with the datum at
 // given semi-axes, with optional bathymetry correction. If the ray passes
