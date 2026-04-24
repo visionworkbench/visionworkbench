@@ -39,15 +39,30 @@ namespace vw {
 // Per-image water surface used during bathymetry triangulation.
 //
 // Can hold either a best-fit plane in a local stereographic projection
-// (four coefficients, with the projection stored in plane_proj), or a
-// georeferenced image of water-surface heights. When the image is
-// provided, the best-fit plane approximation in plane_proj's coordinates
-// is also stored. If the image is empty, use the plane.
+// (four coefficients, with the projection stored in stereographic_proj),
+// or a georeferenced image of water-surface heights. When the image is
+// provided, the best-fit plane approximation in stereographic_proj's
+// coordinates is also stored. If the image is empty, use the plane.
 struct BathyPlane {
   // Plane coefficients a, b, c, d such that a*x + b*y + c*z + d = 0 in
-  // plane_proj's local stereographic frame. Normal (a, b, c) points up.
+  // stereographic_proj's meter-scale frame. Normal (a, b, c) points up.
   std::vector<double> bathy_plane;
+
+  // Coordinate frame of the stored raster. For text input this is a
+  // local stereographic projection. For raster input this is whatever
+  // georef the input file carried (e.g. geographic lon/lat for Monica's
+  // wl.tif). Use it for raster pixel lookups (pixel_to_point,
+  // point_to_pixel) only.
   vw::cartography::GeoReference plane_proj;
+
+  // Always a local stereographic projection with meter-scale x, y axes.
+  // Identical to plane_proj when plane_proj is stereographic (text
+  // input, or a stereographic raster). For a geographic raster input,
+  // derived at load time with the origin at the raster centroid, so
+  // all downstream plane math (signed_dist_to_plane, rayPlaneIntersect,
+  // Snell's law in proj coords, local-tangent fallback) can assume
+  // meter-scale axes by construction.
+  vw::cartography::GeoReference stereographic_proj;
 
   // Optional image of water-surface heights.
   vw::ImageView<vw::PixelMask<float>> water_surface;
@@ -99,8 +114,9 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
 // ECEF tangent plane through them. Accurate within ~20 m (flat-Earth limit);
 // lets the Newton-Raphson refraction solver stay in ECEF, avoiding expensive
 // per-iteration proj/unproj round-trips. offset_meters is the metric spacing
-// between the three sample points in the plane (interpreted as proj-axis
-// units, correct for stereographic/meter-scale plane_proj).
+// between the three sample points in the plane. Callers must pass a
+// meter-scale georef (typically BathyPlane::stereographic_proj) so this
+// interpretation is physically meaningful.
 std::vector<double> fitLocalEcefPlaneToProjPlane(
     std::vector<double> const& plane,
     vw::cartography::GeoReference const& plane_proj,

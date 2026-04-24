@@ -50,10 +50,11 @@ void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
 
   distances.resize(2);
   for (size_t it = 0; it < 2; it++) {
-    // Convert xyz to projected coordinates, then compute signed distance
+    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
+    // into that frame (meter-scale) before evaluating the signed distance.
     distances[it]
       = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
-                             proj_point(bathy_plane_vec[it].plane_proj, xyz));
+                             proj_point(bathy_plane_vec[it].stereographic_proj, xyz));
   }
 }
 
@@ -76,8 +77,9 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   if (xyz == Vector3(0, 0, 0))
     return Vector3(0, 0, 0);
 
-  // Project the intersection point to local coordinates
-  Vector3 proj_pt = proj_point(bathy_plane.plane_proj, xyz);
+  // Project the intersection point into the stereographic frame where
+  // bathy_plane coefficients live.
+  Vector3 proj_pt = proj_point(bathy_plane.stereographic_proj, xyz);
 
   // Check signed distance to bathy plane
   double ht_val = signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
@@ -90,7 +92,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   Vector3 out_xyz, out_dir;
   bool success = curvedSnellLaw(cam_ctr, cam_dir,
                                 bathy_plane.bathy_plane,
-                                bathy_plane.plane_proj,
+                                bathy_plane.stereographic_proj,
                                 refraction_index,
                                 bathy_plane.mean_height,
                                 out_xyz, out_dir);
@@ -192,8 +194,8 @@ vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
   // Get camera pixel as if there was no refraction
   vw::Vector2 pix = cam->point_to_pixel(ecef_point);
 
-  // Convert ECEF point to projected coordinates for distance check
-  vw::Vector3 proj_pt = vw::proj_point(bathy_plane.plane_proj, ecef_point);
+  // Project to the stereographic frame where bathy_plane lives.
+  vw::Vector3 proj_pt = vw::proj_point(bathy_plane.stereographic_proj, ecef_point);
 
   // Check signed distance to bathy plane
   double dist = vw::signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
@@ -254,10 +256,11 @@ void BathyStereoModel::set_bathy(double refraction_index,
   }
 
   // The default behavior is for the left and right bathy planes to be the same.
-  // Yet we allow them to be different. Here need to check.
+  // Yet we allow them to be different. Here need to check. Compare the
+  // stereographic frame since that is where the plane coefficients live.
   m_single_bathy_plane = true;
-  if (m_bathy_plane_vec[0].plane_proj.proj4_str()
-      != m_bathy_plane_vec[1].plane_proj.proj4_str())
+  if (m_bathy_plane_vec[0].stereographic_proj.proj4_str()
+      != m_bathy_plane_vec[1].stereographic_proj.proj4_str())
       m_single_bathy_plane = false;
   if (m_bathy_plane_vec[0].bathy_plane != m_bathy_plane_vec[1].bathy_plane)
     m_single_bathy_plane = false;
@@ -339,9 +342,9 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // Rays get bent, then they intersect, and done.
     if (m_single_bathy_plane) {
 
-      // The water surface is curved. It is however flat (a plane) if we
-      // switch to proj coordinates.
-      Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].plane_proj,
+      // The water surface is curved. It is however flat (a plane) when we
+      // switch to the stereographic frame (where bathy_plane coefs live).
+      Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].stereographic_proj,
                                    uncorr_tri_pt);
       double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
       if (ht_val >= 0) {
@@ -354,7 +357,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
         // Bend each ray at the surface according to Snell's law.
         bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
                                   m_bathy_plane_vec[it].bathy_plane,
-                                  m_bathy_plane_vec[it].plane_proj,
+                                  m_bathy_plane_vec[it].stereographic_proj,
                                   m_refraction_index,
                                   m_bathy_plane_vec[it].mean_height,
                                   waterCtrs[it], waterDirs[it]);
@@ -378,7 +381,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       // Bend each ray at the surface according to Snell's law.
       bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
                                 m_bathy_plane_vec[it].bathy_plane,
-                                m_bathy_plane_vec[it].plane_proj,
+                                m_bathy_plane_vec[it].stereographic_proj,
                                 m_refraction_index,
                                 m_bathy_plane_vec[it].mean_height,
                                 waterCtrs[it], waterDirs[it]);

@@ -172,6 +172,10 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
   plane_proj.set_datum(datum);
   plane_proj.set_stereographic(proj_lat, proj_lon, scale);
 
+  // Text input is already stereographic by construction; stereographic_proj
+  // is just a copy of plane_proj.
+  bp.stereographic_proj = plane_proj;
+
   // The text format's plane_proj is stereographic meters by construction,
   // so -d/c is the mean water-surface height in meters above the datum.
   bp.mean_height = -bathy_plane[3] / bathy_plane[2];
@@ -241,7 +245,8 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
 // Sample 3 points on the projected plane and fit a local ECEF plane
 // approximation. Accurate within ~20 m (flat-Earth limit); used by the
 // Newton-Raphson refraction solver to iterate entirely in ECEF and avoid
-// expensive per-iteration proj/unproj round-trips.
+// expensive per-iteration proj/unproj round-trips. This assumes 
+// the projection is in meters, not degrees.
 std::vector<double>
 fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
                              vw::cartography::GeoReference const& plane_proj,
@@ -289,6 +294,11 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
 // fallback. Falls back to the plane-based fit if the center pixel is out of
 // bounds, if both +1 and -1 neighbors are out of bounds in either axis, or
 // if any sample value is invalid.
+//
+// Input proj_pt is in bp.stereographic_proj's frame (meter-scale). The
+// raster is sampled through bp.plane_proj (its native georef, possibly
+// geographic), so we convert stereographic -> ECEF -> raster coords
+// before looking up the pixel.
 std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
                                                    vw::Vector3 const& proj_pt,
                                                    double offset_meters) {
@@ -296,11 +306,15 @@ std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
   vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
   int cols = raster.cols(), rows = raster.rows();
 
+  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
+  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
+  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
+
   // Center sample (pixel coords, possibly fractional).
   vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
-                       vw::Vector2(proj_pt[0], proj_pt[1]));
+                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
   if (!isInBounds(pix0, cols, rows))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj,
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
 
   // x-neighbor: +1 pixel, falling back to -1 pixel at the high edge.
@@ -308,7 +322,7 @@ std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
   if (!isInBounds(pix1, cols, rows))
     pix1 = pix0 + vw::Vector2(-1.0, 0.0);
   if (!isInBounds(pix1, cols, rows))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj,
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
 
   // y-neighbor: +1 pixel, falling back to -1 pixel.
@@ -316,7 +330,7 @@ std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
   if (!isInBounds(pix2, cols, rows))
     pix2 = pix0 + vw::Vector2(0.0, -1.0);
   if (!isInBounds(pix2, cols, rows))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj,
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
 
   auto interp = vw::BilinearInterpolation::interpolator(raster);
@@ -325,7 +339,7 @@ std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
   vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
 
   if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj,
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
 
   // Convert (pixel -> proj_xy, sampled height) -> ECEF for each sample.
@@ -364,23 +378,17 @@ std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       double offset_meters) {
   if (bp.water_surface.cols() > 0)
     return fitLocalEcefPlaneToProjSurface(bp, proj_pt, offset_meters);
-  return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj,
+  return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                       proj_pt, offset_meters);
 }
 
 // Read a georeferenced raster of water-surface heights. The raster's own
-// georef becomes plane_proj - no reprojection. Valid pixels are converted
-// to (proj_x, proj_y, height) in that georef's coordinates and passed to
-// fitPlaneToPoints to derive the four plane coefficients.
-//
-// TODO(oalexan1): Accept only projected (meter-scale) georefs, or
-// reproject to a local stereographic when plane_proj is geographic.
-// The least-squares-on-height fit produces a planar approximation in
-// any coordinate system, but downstream Snell's-law math in
-// rayBathyPlaneIntersect (see SnellLaw.cc) assumes -d/c is a height in
-// meters, which holds only for meter-scale horizontal axes. Geographic
-// inputs silently produce a technically-valid plane whose coefficients
-// mislead the refraction solver.
+// georef is stored as plane_proj (used only for pixel lookups). A local
+// stereographic is derived at the valid-pixel centroid and stored as
+// stereographic_proj. Valid pixels are reprojected to that stereographic
+// frame via ECEF and passed to fitPlaneToPoints, so the four plane
+// coefficients live in meter-scale coords regardless of the raster CRS.
+// Downstream consumers pair bathy_plane with stereographic_proj.
 static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
                                      BathyPlane & bp) {
   std::vector<double> & bathy_plane = bp.bathy_plane;
@@ -394,44 +402,74 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   vw::ImageView<vw::PixelMask<float>> raster
     = vw::create_mask(vw::DiskImageView<float>(bathy_plane_file), nodata);
 
-  // Walk valid pixels, collect points in the raster's projection coordinates,
-  // then find the best-fit plane we will use as an inital guess in solvers.
-  // Also accumulate the sum of valid heights to compute the physical mean.
-  std::vector<vw::Vector3> proj_pts;
-  proj_pts.reserve(size_t(raster.cols()) * size_t(raster.rows()));
+  // Walk valid pixels, collect points in the raster's projection coordinates.
+  // Also accumulate the sum of valid heights to compute the physical mean,
+  // and the mean proj_xy to use as the stereographic origin.
+  std::vector<vw::Vector3> raster_proj_pts;
+  raster_proj_pts.reserve(size_t(raster.cols()) * size_t(raster.rows()));
   double height_sum = 0.0;
+  vw::Vector2 proj_xy_sum(0, 0);
   for (int row = 0; row < raster.rows(); row++) {
     for (int col = 0; col < raster.cols(); col++) {
       vw::PixelMask<float> pix = raster(col, row);
       if (!vw::is_valid(pix))
         continue;
       vw::Vector2 proj_xy = plane_proj.pixel_to_point(vw::Vector2(col, row));
-      proj_pts.push_back(vw::Vector3(proj_xy.x(), proj_xy.y(), pix.child()));
+      raster_proj_pts.push_back(vw::Vector3(proj_xy.x(), proj_xy.y(), pix.child()));
       height_sum += pix.child();
+      proj_xy_sum += proj_xy;
     }
   }
-  if (proj_pts.size() < 3)
+  if (raster_proj_pts.size() < 3)
     vw_throw(vw::IOErr() << "Bathy plane raster " << bathy_plane_file
               << " has fewer than 3 valid pixels; cannot fit a plane.\n");
-  fitPlaneToPoints(proj_pts, bathy_plane);
-  bp.mean_height = height_sum / double(proj_pts.size());
+  bp.mean_height = height_sum / double(raster_proj_pts.size());
+
+  // Downstream plane math needs meter-scale axes. If the raster's native
+  // georef is already stereographic, reuse it verbatim so the fitted
+  // coefficients stay in that frame. Otherwise derive a local stereographic
+  // centered at the valid-pixel centroid (covers geographic rasters like
+  // Monica's EPSG:4326 wl.tifs).
+  if (plane_proj.overall_proj4_str().find("+proj=stere") != std::string::npos) {
+    bp.stereographic_proj = plane_proj;
+  } else {
+    vw::Vector2 center_proj_xy = proj_xy_sum / double(raster_proj_pts.size());
+    vw::Vector2 center_lonlat = plane_proj.point_to_lonlat(center_proj_xy);
+    bp.stereographic_proj.set_datum(plane_proj.datum());
+    bp.stereographic_proj.set_stereographic(center_lonlat[1], center_lonlat[0], 1.0);
+  }
+
+  // Re-express each sample in the stereographic frame via ECEF, so the
+  // fitted bathy_plane coefficients live in meter-scale coords regardless
+  // of the raster's native CRS. signed_dist_to_plane, rayPlaneIntersect,
+  // and Snell's law in proj coords all then work unchanged downstream.
+  std::vector<vw::Vector3> stereo_pts;
+  stereo_pts.reserve(raster_proj_pts.size());
+  for (auto const& p : raster_proj_pts) {
+    vw::Vector3 ecef = vw::unproj_point(plane_proj, p);
+    stereo_pts.push_back(vw::proj_point(bp.stereographic_proj, ecef));
+  }
+  fitPlaneToPoints(stereo_pts, bathy_plane);
 
   // Report fit residuals so the user can see whether a plane is a good model.
   double max_abs_residual = 0.0, sum_sq_residual = 0.0;
-  for (auto const& p : proj_pts) {
+  for (auto const& p : stereo_pts) {
     double r = bathy_plane[0]*p[0] + bathy_plane[1]*p[1]
              + bathy_plane[2]*p[2] + bathy_plane[3];
     max_abs_residual = std::max(max_abs_residual, std::abs(r));
     sum_sq_residual += r * r;
   }
-  double rms = std::sqrt(sum_sq_residual / double(proj_pts.size()));
+  double rms = std::sqrt(sum_sq_residual / double(stereo_pts.size()));
 
   vw_out() << "Fitted bathy plane from raster: "
            << bathy_plane[0] << " " << bathy_plane[1] << " "
            << bathy_plane[2] << " " << bathy_plane[3] << "\n";
-  vw_out() << "Plane-fit residuals: max " << max_abs_residual
-           << ", RMS " << rms << "\n";
+  vw_out() << "Plane-fit residuals (in stereographic frame, meters): max "
+           << max_abs_residual << ", RMS " << rms << "\n";
   vw_out() << "Projection: " << plane_proj.overall_proj4_str() << "\n";
+  if (bp.stereographic_proj.overall_proj4_str() != plane_proj.overall_proj4_str())
+    vw_out() << "Stereographic companion: "
+             << bp.stereographic_proj.overall_proj4_str() << "\n";
 }
 
 // Dispatch: try to read as a georeferenced raster first; on failure, fall
