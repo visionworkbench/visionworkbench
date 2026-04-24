@@ -98,26 +98,30 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
 // Sample 3 points on a proj-space plane, unproject to ECEF, and fit a local
 // ECEF tangent plane through them. Accurate within ~20 m (flat-Earth limit);
 // lets the Newton-Raphson refraction solver stay in ECEF, avoiding expensive
-// per-iteration proj/unproj round-trips.
+// per-iteration proj/unproj round-trips. offset_meters is the metric spacing
+// between the three sample points in the plane (interpreted as proj-axis
+// units, correct for stereographic/meter-scale plane_proj).
 std::vector<double> fitLocalEcefPlaneToProjPlane(
     std::vector<double> const& plane,
     vw::cartography::GeoReference const& plane_proj,
     vw::Vector3 const& proj_pt,
-    double offset);
+    double offset_meters);
 
 // Fit a local ECEF tangent plane at proj_pt by bilinear-sampling three
-// nearby heights from the raster water surface (assumes bp.water_surface is
-// non-empty and the samples fall inside the raster footprint). Output is
-// [A, B, C, D] with unit normal oriented away from the datum center.
+// raster heights one pixel apart (center, x-neighbor, y-neighbor, with
+// +/-1 fallback near edges). Caller must supply a bp with a non-empty
+// water_surface. The raster-pixel spacing is the natural sampling scale,
+// so offset_meters is only forwarded to the plane-based fallback path.
+// Falls back if the center pixel is out of bounds or any sample is invalid.
 std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
                                                    vw::Vector3 const& proj_pt,
-                                                   double offset);
+                                                   double offset_meters);
 
 // Dispatcher: if bp carries a raster water surface, fit the tangent from it;
 // otherwise fit from the global plane coefficients in bp.bathy_plane.
 std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       vw::Vector3 const& proj_pt,
-                                      double offset);
+                                      double offset_meters);
 
 } // namespace vw
 

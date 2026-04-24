@@ -180,8 +180,10 @@ public:
   vw::Vector3 m_normal;                 // Up direction (perpendicular to plane)
 };
 
-// Project an ECEF point to pixel, accounting for bathymetry if the point
-// is below the bathy plane (water surface).
+// Project an ECEF point to camera pixel, accounting for bathymetry if the point
+// lies below the water surface. Fits a local ECEF tangent plane. Good for
+// shallow-water bathymetry so the point is at most meters deep. Degrades for
+// deep points and steep off-nadir rays.
 vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
