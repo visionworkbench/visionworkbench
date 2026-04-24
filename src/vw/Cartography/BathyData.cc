@@ -91,8 +91,8 @@ bool pickLocalRasterSamples(BathyPlane const& bp,
   vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
   vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
 
-  vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
-                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
+  vw::Vector2 pix0
+    = bp.plane_proj.point_to_pixel(vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
   if (!isInBounds(pix0, cols, rows))
     return false;
 
@@ -243,7 +243,7 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
   // stereographic_proj has meter-scale axes.
   if (!bp.stereographic_proj.is_projected())
     vw_throw(vw::LogicErr() << "BathyPlane::stereographic_proj must be a "
-              << "projected (meter-scale) CRS; got geographic instead.\n");
+             << "projected (meter-scale) CRS; got geographic instead.\n");
 
   // The text format's plane_proj is stereographic meters by construction,
   // so -d/c is the mean water-surface height in meters above the datum.
@@ -328,7 +328,7 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
   // interpret 1.0 as 1 degree (~111 km) and produce a bogus tangent.
   if (!plane_proj.is_projected())
     vw_throw(vw::LogicErr() << "fitLocalEcefPlaneToProjPlane requires a "
-              << "projected (meter-scale) georef; got geographic instead.\n");
+             << "projected (meter-scale) georef; got geographic instead.\n");
 
   // Project proj_pt onto the plane to get a point on the plane.
   double dist = signed_dist_to_plane(plane, proj_pt);
@@ -526,8 +526,8 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   // of input path.
   if (!bp.stereographic_proj.is_projected())
     vw_throw(vw::LogicErr() << "BathyPlane::stereographic_proj must be a "
-              << "projected (meter-scale) CRS; derivation from "
-              << bathy_plane_file << " did not produce one.\n");
+             << "projected (meter-scale) CRS; derivation from "
+             << bathy_plane_file << " did not produce one.\n");
 
   // Re-express each sample in the stereographic frame via ECEF, so the
   // fitted bathy_plane coefficients live in meter-scale coords regardless
