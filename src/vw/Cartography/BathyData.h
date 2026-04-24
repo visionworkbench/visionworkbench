@@ -95,6 +95,30 @@ void readBathyPlanes(std::string const& bathy_plane_files,
 void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
                       std::vector<double> & bathy_plane);
 
+// Sample 3 points on a proj-space plane, unproject to ECEF, and fit a local
+// ECEF tangent plane through them. Accurate within ~20 m (flat-Earth limit);
+// lets the Newton-Raphson refraction solver stay in ECEF, avoiding expensive
+// per-iteration proj/unproj round-trips.
+std::vector<double> fitLocalEcefPlaneToProjPlane(
+    std::vector<double> const& plane,
+    vw::cartography::GeoReference const& plane_proj,
+    vw::Vector3 const& proj_pt,
+    double offset);
+
+// Fit a local ECEF tangent plane at proj_pt by bilinear-sampling three
+// nearby heights from the raster water surface (assumes bp.water_surface is
+// non-empty and the samples fall inside the raster footprint). Output is
+// [A, B, C, D] with unit normal oriented away from the datum center.
+std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
+                                                   vw::Vector3 const& proj_pt,
+                                                   double offset);
+
+// Dispatcher: if bp carries a raster water surface, fit the tangent from it;
+// otherwise fit from the global plane coefficients in bp.bathy_plane.
+std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
+                                      vw::Vector3 const& proj_pt,
+                                      double offset);
+
 } // namespace vw
 
 #endif // __VW_CARTOGRAPHY_BATHYDATA_H__

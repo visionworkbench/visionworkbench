@@ -200,11 +200,12 @@ vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
   if (dist >= 0)
     return pix;
 
-  // Fit local ECEF plane approximation to eliminate expensive proj transforms
+  // Fit local ECEF tangent plane. Newton-Raphson below iterates against
+  // this tangent entirely in ECEF - zero per-iteration proj calls. When a
+  // raster water surface is present, the tangent reflects the raster near
+  // this query; otherwise it reflects the global fitted plane.
   double offset = 1.0;
-  std::vector<double> ecef_plane = fitLocalEcefPlane(bathy_plane.bathy_plane,
-                                                     bathy_plane.plane_proj,
-                                                     proj_pt, dist, offset);
+  std::vector<double> ecef_plane = fitLocalEcefPlane(bathy_plane, proj_pt, offset);
 
   // Point is below water surface - need to account for refraction
   // Set up the BathyFunctorEcef for Newton-Raphson iteration (uses local ECEF plane)

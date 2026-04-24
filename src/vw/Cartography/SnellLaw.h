@@ -92,16 +92,6 @@ bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
                     double refraction_index, double mean_height,
                     vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
 
-// Sample 3 points on the proj-space plane, unproject to ECEF, and fit a
-// local ECEF plane through them. This tangent plane is accurate within
-// ~20 m and lets the Newton-Raphson refraction solver stay in ECEF,
-// avoiding expensive per-iteration proj/unproj round-trips.
-std::vector<double> fitLocalEcefPlane(std::vector<double> const& plane,
-                                      vw::cartography::GeoReference const& plane_proj,
-                                      vw::Vector3 const& proj_pt,
-                                      double dist,
-                                      double offset);
-
 } // namespace vw
 
 #endif // __VW_CARTOGRAPHY_SNELLLAW_H__

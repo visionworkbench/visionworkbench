@@ -25,15 +25,18 @@
 #include <vw/Cartography/BathyData.h>
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Interpolation.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/VectorUtils.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/SnellLaw.h>
 #include <vw/Core/Exception.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
@@ -109,8 +112,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 
 // Read a plane from the legacy 3-line text format: four plane coefficients
 // on line 1, comment on line 2, projection center lat/lon on line 3.
-static void readBathyPlaneFromText(std::string const& bathy_plane_file,
-                                   BathyPlane & bp) {
+void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp) {
   std::vector<double> & bathy_plane = bp.bathy_plane;
   vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
@@ -221,6 +223,121 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
   bathy_plane[1] = b;
   bathy_plane[2] = c;
   bathy_plane[3] = d;
+}
+
+// Sample 3 points on the projected plane and fit a local ECEF plane
+// approximation. Accurate within ~20 m (flat-Earth limit); used by the
+// Newton-Raphson refraction solver to iterate entirely in ECEF and avoid
+// expensive per-iteration proj/unproj round-trips.
+std::vector<double>
+fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
+                             vw::cartography::GeoReference const& plane_proj,
+                             vw::Vector3 const& proj_pt,
+                             double offset) {
+
+  // Project proj_pt onto the plane to get a point on the plane.
+  double dist = signed_dist_to_plane(plane, proj_pt);
+  vw::Vector3 normal(plane[0], plane[1], plane[2]);
+  double normal_sq = dot_prod(normal, normal);
+  vw::Vector3 proj_on_plane = proj_pt - (dist / normal_sq) * normal;
+
+  // Sample 3 points on the plane by moving along two orthogonal tangent
+  // vectors that lie in the plane.
+  vw::Vector3 tangent1, tangent2;
+  vw::math::computePlaneTangents(normal, offset, tangent1, tangent2);
+  vw::Vector3 pt0 = proj_on_plane;
+  vw::Vector3 pt1 = proj_on_plane + tangent1;
+  vw::Vector3 pt2 = proj_on_plane + tangent2;
+
+  // Convert the 3 projected points to ECEF.
+  vw::Vector3 ecef0 = vw::unproj_point(plane_proj, pt0);
+  vw::Vector3 ecef1 = vw::unproj_point(plane_proj, pt1);
+  vw::Vector3 ecef2 = vw::unproj_point(plane_proj, pt2);
+
+  // Fit a plane through the 3 ECEF points.
+  vw::Vector3 v1 = ecef1 - ecef0;
+  vw::Vector3 v2 = ecef2 - ecef0;
+  vw::Vector3 normal_ecef = normalize(cross_prod(v1, v2));
+  double D_ecef = dot_prod(normal_ecef, ecef0);
+
+  std::vector<double> ecef_plane(4);
+  ecef_plane[0] = normal_ecef[0];
+  ecef_plane[1] = normal_ecef[1];
+  ecef_plane[2] = normal_ecef[2];
+  ecef_plane[3] = -D_ecef;
+  return ecef_plane;
+}
+
+// Bilinear-sample three raster heights near proj_pt, convert to ECEF, fit a
+// plane. Falls back to the plane-based fit if any of the three samples is
+// out of bounds or invalid. The plane itself is best-fit approximation
+// of the surface in projected coordinates.
+std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
+                                                   vw::Vector3 const& proj_pt,
+                                                   double offset) {
+
+  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
+
+  // Three sample positions in proj coords: center, +x, +y.
+  vw::Vector2 p0(proj_pt[0],          proj_pt[1]);
+  vw::Vector2 p1(proj_pt[0] + offset, proj_pt[1]);
+  vw::Vector2 p2(proj_pt[0],          proj_pt[1] + offset);
+
+  // Convert each to pixel coords in the raster grid (cheap affine, no proj).
+  vw::Vector2 px0 = bp.plane_proj.point_to_pixel(p0);
+  vw::Vector2 px1 = bp.plane_proj.point_to_pixel(p1);
+  vw::Vector2 px2 = bp.plane_proj.point_to_pixel(p2);
+
+  auto in_bounds = [&](vw::Vector2 const& px) {
+    return px[0] >= 0.0 && px[0] <= double(raster.cols() - 1) &&
+           px[1] >= 0.0 && px[1] <= double(raster.rows() - 1);
+  };
+
+  if (!in_bounds(px0) || !in_bounds(px1) || !in_bounds(px2))
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj, proj_pt, offset);
+
+  auto interp = vw::BilinearInterpolation::interpolator(raster);
+  vw::PixelMask<float> v0 = interp(raster, px0[0], px0[1], 0);
+  vw::PixelMask<float> v1 = interp(raster, px1[0], px1[1], 0);
+  vw::PixelMask<float> v2 = interp(raster, px2[0], px2[1], 0);
+
+  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
+    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj, proj_pt, offset);
+
+  // (proj_xy, height) -> ECEF for each sample.
+  vw::Vector3 ecef0
+    = vw::unproj_point(bp.plane_proj, vw::Vector3(p0[0], p0[1], v0.child()));
+  vw::Vector3 ecef1
+    = vw::unproj_point(bp.plane_proj, vw::Vector3(p1[0], p1[1], v1.child()));
+  vw::Vector3 ecef2
+    = vw::unproj_point(bp.plane_proj, vw::Vector3(p2[0], p2[1], v2.child()));
+
+  // Exact plane through three ECEF points.
+  vw::Vector3 v = ecef1 - ecef0;
+  vw::Vector3 w = ecef2 - ecef0;
+  vw::Vector3 normal_ecef = normalize(cross_prod(v, w));
+
+  // Orient normal away from Earth center.
+  if (dot_prod(normal_ecef, ecef0) < 0)
+    normal_ecef = -normal_ecef;
+
+  double D_ecef = dot_prod(normal_ecef, ecef0);
+  std::vector<double> ecef_plane(4);
+  ecef_plane[0] = normal_ecef[0];
+  ecef_plane[1] = normal_ecef[1];
+  ecef_plane[2] = normal_ecef[2];
+  ecef_plane[3] = -D_ecef;
+  return ecef_plane;
+}
+
+// Fit local ECEF plane to surface in projected coordinates or to plane in
+// projected coordinates. 
+std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
+                                      vw::Vector3 const& proj_pt,
+                                      double offset) {
+  if (bp.water_surface.cols() > 0)
+    return fitLocalEcefPlaneToProjSurface(bp, proj_pt, offset);
+  return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.plane_proj, proj_pt, offset);
 }
 
 // Read a georeferenced raster of water-surface heights. The raster's own
