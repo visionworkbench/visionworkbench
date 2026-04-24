@@ -41,6 +41,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
 
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -57,6 +58,67 @@ namespace {
 bool isInBounds(vw::Vector2 const& px, int cols, int rows) {
   return px[0] >= 0.0 && px[0] <= double(cols - 1) &&
          px[1] >= 0.0 && px[1] <= double(rows - 1);
+}
+
+// One bilinear-sampled raster pixel: its (possibly fractional) pixel
+// coordinates and the height value at that location.
+struct LocalRasterSample {
+  vw::Vector2 pix;
+  double height;
+};
+
+// Pick three pixel-aligned raster samples near proj_pt: the center pixel,
+// an x-neighbor (+1 with -1 fallback at the high edge), and a y-neighbor
+// (+1 with -1 fallback). Bilinear-sample each and return them. Sets
+// samples[0] = center, [1] = x-neighbor, [2] = y-neighbor.
+//
+// proj_pt must be in bp.stereographic_proj's frame (meter-scale). Internally
+// converts to bp.plane_proj (the raster's native georef) for the pixel
+// lookup, so geographic and stereographic rasters both work.
+//
+// Returns false if the center pixel is out of bounds, if both +1 and -1
+// neighbors are out of bounds on either axis, or if any of the three
+// bilinear-interp values is invalid.
+bool pickLocalRasterSamples(BathyPlane const& bp,
+                            vw::Vector3 const& proj_pt,
+                            std::array<LocalRasterSample, 3>& samples) {
+  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
+  int cols = raster.cols(), rows = raster.rows();
+  if (cols <= 0 || rows <= 0)
+    return false;
+
+  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
+  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
+  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
+
+  vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
+                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
+  if (!isInBounds(pix0, cols, rows))
+    return false;
+
+  vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
+  if (!isInBounds(pix1, cols, rows))
+    pix1 = pix0 + vw::Vector2(-1.0, 0.0);
+  if (!isInBounds(pix1, cols, rows))
+    return false;
+
+  vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
+  if (!isInBounds(pix2, cols, rows))
+    pix2 = pix0 + vw::Vector2(0.0, -1.0);
+  if (!isInBounds(pix2, cols, rows))
+    return false;
+
+  auto interp = vw::BilinearInterpolation::interpolator(raster);
+  vw::PixelMask<float> v0 = interp(raster, pix0[0], pix0[1], 0);
+  vw::PixelMask<float> v1 = interp(raster, pix1[0], pix1[1], 0);
+  vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
+  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
+    return false;
+
+  samples[0].pix = pix0; samples[0].height = v0.child();
+  samples[1].pix = pix1; samples[1].height = v1.child();
+  samples[2].pix = pix2; samples[2].height = v2.child();
+  return true;
 }
 
 } // namespace
@@ -301,83 +363,42 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
   return ecef_plane;
 }
 
-// Bilinear-sample three raster heights one pixel apart, convert to ECEF, fit
-// a plane. The neighbors are pixel-aligned (not proj-meter offsets) so the
-// three samples always span a known scale regardless of the raster's CRS:
-// in a 1-degree-per-unit geographic proj, a 1-pixel offset is still one
-// pixel, not 1 degree. offset_meters is only forwarded to the plane-based
-// fallback. Falls back to the plane-based fit if the center pixel is out of
-// bounds, if both +1 and -1 neighbors are out of bounds in either axis, or
-// if any sample value is invalid.
-//
-// Input proj_pt is in bp.stereographic_proj's frame (meter-scale). The
-// raster is sampled through bp.plane_proj (its native georef, possibly
-// geographic), so we convert stereographic -> ECEF -> raster coords
-// before looking up the pixel.
+// Pick three raster neighbors near proj_pt, convert each to ECEF, and fit
+// the exact plane through them. The neighbors are pixel-aligned (not
+// proj-meter offsets) so the three samples always span a known scale
+// regardless of the raster's CRS. offset_meters is only forwarded to the
+// plane-based fallback. proj_pt is in bp.stereographic_proj's meter-scale
+// frame; the helper does the stereographic -> raster CRS hop internally.
+// Falls back to the plane-based fit if pickLocalRasterSamples reports any
+// kind of sampling failure.
 std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
                                                    vw::Vector3 const& proj_pt,
                                                    double offset_meters) {
-
-  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
-  int cols = raster.cols(), rows = raster.rows();
-
-  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
-  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
-  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
-
-  // Center sample (pixel coords, possibly fractional).
-  vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
-                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
-  if (!isInBounds(pix0, cols, rows))
+  std::array<LocalRasterSample, 3> samples;
+  if (!pickLocalRasterSamples(bp, proj_pt, samples))
     return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
 
-  // x-neighbor: +1 pixel, falling back to -1 pixel at the high edge.
-  vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    pix1 = pix0 + vw::Vector2(-1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
-                                        proj_pt, offset_meters);
-
-  // y-neighbor: +1 pixel, falling back to -1 pixel.
-  vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
-  if (!isInBounds(pix2, cols, rows))
-    pix2 = pix0 + vw::Vector2(0.0, -1.0);
-  if (!isInBounds(pix2, cols, rows))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
-                                        proj_pt, offset_meters);
-
-  auto interp = vw::BilinearInterpolation::interpolator(raster);
-  vw::PixelMask<float> v0 = interp(raster, pix0[0], pix0[1], 0);
-  vw::PixelMask<float> v1 = interp(raster, pix1[0], pix1[1], 0);
-  vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
-
-  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
-                                        proj_pt, offset_meters);
-
-  // Convert (pixel -> proj_xy, sampled height) -> ECEF for each sample.
-  vw::Vector2 p0 = bp.plane_proj.pixel_to_point(pix0);
-  vw::Vector2 p1 = bp.plane_proj.pixel_to_point(pix1);
-  vw::Vector2 p2 = bp.plane_proj.pixel_to_point(pix2);
-  vw::Vector3 ecef0
-    = vw::unproj_point(bp.plane_proj, vw::Vector3(p0[0], p0[1], v0.child()));
-  vw::Vector3 ecef1
-    = vw::unproj_point(bp.plane_proj, vw::Vector3(p1[0], p1[1], v1.child()));
-  vw::Vector3 ecef2
-    = vw::unproj_point(bp.plane_proj, vw::Vector3(p2[0], p2[1], v2.child()));
+  // Convert each (pixel, height) to an ECEF point through the raster's
+  // native georef. No reprojection of the height; it stays in meters.
+  vw::Vector3 ecefs[3];
+  for (int i = 0; i < 3; i++) {
+    vw::Vector2 raster_xy = bp.plane_proj.pixel_to_point(samples[i].pix);
+    ecefs[i] = vw::unproj_point(bp.plane_proj,
+                                vw::Vector3(raster_xy[0], raster_xy[1],
+                                            samples[i].height));
+  }
 
   // Exact plane through three ECEF points.
-  vw::Vector3 v = ecef1 - ecef0;
-  vw::Vector3 w = ecef2 - ecef0;
+  vw::Vector3 v = ecefs[1] - ecefs[0];
+  vw::Vector3 w = ecefs[2] - ecefs[0];
   vw::Vector3 normal_ecef = normalize(cross_prod(v, w));
 
   // Orient normal away from Earth center.
-  if (dot_prod(normal_ecef, ecef0) < 0)
+  if (dot_prod(normal_ecef, ecefs[0]) < 0)
     normal_ecef = -normal_ecef;
 
-  double D_ecef = dot_prod(normal_ecef, ecef0);
+  double D_ecef = dot_prod(normal_ecef, ecefs[0]);
   std::vector<double> ecef_plane(4);
   ecef_plane[0] = normal_ecef[0];
   ecef_plane[1] = normal_ecef[1];
@@ -409,52 +430,23 @@ vw::Vector3 rasterPixelToStereographicPoint(BathyPlane const& bp,
 }
 
 // Fit a local plane in stereographic_proj's meter-scale frame from 3
-// raster neighbors near proj_pt. Mirrors fitLocalEcefPlaneToProjSurface's
-// sampling logic but keeps the output plane in stereographic coords for
-// use with rayBathyPlaneIntersect / Snell's law in proj coords. Returns
-// false on any sampling failure (caller falls back to the global plane).
+// raster neighbors near proj_pt. Used by the camera-to-ground path to
+// replace the global best-fit plane with a local raster-derived plane
+// right around the ray-surface hit. Returns false on any sampling
+// failure or if the three samples are degenerate; caller falls back to
+// the global plane in that case.
 bool refineLocalPlaneFromRaster(BathyPlane const& bp,
                                 vw::Vector3 const& proj_pt,
                                 std::vector<double>& plane) {
   plane.clear();
 
-  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
-  int cols = raster.cols(), rows = raster.rows();
-  if (cols <= 0 || rows <= 0)
+  std::array<LocalRasterSample, 3> samples;
+  if (!pickLocalRasterSamples(bp, proj_pt, samples))
     return false;
 
-  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
-  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
-  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
-
-  vw::Vector2 pix0 = bp.plane_proj.point_to_pixel(
-                       vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
-  if (!isInBounds(pix0, cols, rows))
-    return false;
-
-  vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    pix1 = pix0 + vw::Vector2(-1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    return false;
-
-  vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
-  if (!isInBounds(pix2, cols, rows))
-    pix2 = pix0 + vw::Vector2(0.0, -1.0);
-  if (!isInBounds(pix2, cols, rows))
-    return false;
-
-  auto interp = vw::BilinearInterpolation::interpolator(raster);
-  vw::PixelMask<float> v0 = interp(raster, pix0[0], pix0[1], 0);
-  vw::PixelMask<float> v1 = interp(raster, pix1[0], pix1[1], 0);
-  vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
-  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
-    return false;
-
-  // Convert (pix_i, h_i) to stereographic coords via ECEF round-trip.
-  vw::Vector3 s0 = rasterPixelToStereographicPoint(bp, pix0, v0.child());
-  vw::Vector3 s1 = rasterPixelToStereographicPoint(bp, pix1, v1.child());
-  vw::Vector3 s2 = rasterPixelToStereographicPoint(bp, pix2, v2.child());
+  vw::Vector3 s0 = rasterPixelToStereographicPoint(bp, samples[0].pix, samples[0].height);
+  vw::Vector3 s1 = rasterPixelToStereographicPoint(bp, samples[1].pix, samples[1].height);
+  vw::Vector3 s2 = rasterPixelToStereographicPoint(bp, samples[2].pix, samples[2].height);
 
   // Exact plane through the three points in stereographic coords.
   vw::Vector3 u = s1 - s0;
