@@ -41,7 +41,11 @@ namespace vw {
 // carries a raster water surface, the tangent reflects the raster near
 // proj_pt (3 pixel-aligned samples through ECEF); otherwise it reflects
 // the global fitted plane. proj_pt is in bp.stereographic_proj's
-// meter-scale frame. offset_meters is forwarded to the plane-based path.
+// meter-scale frame and provides the horizontal location to fit the
+// tangent at; it is typically close to the water surface but is not
+// required to lie on it (the plane path projects proj_pt onto the
+// plane before sampling, and the raster path uses only its x,y to
+// pick pixels). offset_meters is forwarded to the plane-based path.
 std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       vw::Vector3 const& proj_pt,
                                       double offset_meters);

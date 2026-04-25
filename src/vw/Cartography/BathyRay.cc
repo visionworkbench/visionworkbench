@@ -331,41 +331,6 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
   return true;
 }
 
-// Test Snell's law in projected and unprojected coordinates
-void testSnellLaw(std::vector<double> const& plane,
-                  vw::cartography::GeoReference const& plane_proj,
-                  double refraction_index,
-                  vw::Vector3 const& out_ecef,
-                  vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,
-                  vw::Vector3 const& out_proj_pt,
-                  vw::Vector3 const& in_proj_dir, vw::Vector3 const& out_proj_dir) {
-
-  // 1. In projected coordinates
-  vw::Vector3 proj_normal(plane[0], plane[1], plane[2]);
-  double sin_in = sin(acos(dot_prod(proj_normal, -in_proj_dir)));
-  double sin_out = sin(acos(dot_prod(-proj_normal, out_proj_dir)));
-
-  // 2. In unprojected coordinates
-  vw::Vector3 proj_pt_above_normal = out_proj_pt + 1.0 * proj_normal; // go 1 m along the normal
-  vw::Vector3 ecef_above_normal = vw::bathyUnprojPoint(plane_proj,
-                                                       proj_pt_above_normal);
-  vw::Vector3 ecef_normal = ecef_above_normal - out_ecef;
-  ecef_normal /= norm_2(ecef_normal); // normalize
-  sin_in = sin(acos(dot_prod(ecef_normal, -in_ecef_dir)));
-  sin_out = sin(acos(dot_prod(-ecef_normal, out_ecef_dir)));
-
-  // Verify that the incoming ray, outgoing ray, and the
-  // normal are in the same plane in projected coordinates
-
-  // 1. In projected coordinates
-  vw::Vector3 in_out_normal = vw::math::cross_prod(in_proj_dir, out_proj_dir);
-  double plane_error = dot_prod(in_out_normal, proj_normal);
-
-  // 2. In unprojected coordinates
-  in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
-  plane_error = dot_prod(in_out_normal, ecef_normal);
-}
-
 // Given a ray in ECEF and a water surface which is a plane only in a local
 // stereographic projection, compute how the ray bends under Snell's law. Use
 // the following approximate logic. Find where the ray intersects the datum with
@@ -414,22 +379,21 @@ bool curvedSnellLawAgainstPlane(vw::Vector3 const& in_ecef, vw::Vector3 const& i
   out_dir = next_ecef - out_ecef;
   out_dir /= norm_2(out_dir);
 
-#if 0
   // Sanity check
-  testSnellLaw(plane,
-               plane_proj,
-               refraction_index,
-               out_ecef, in_dir, out_dir,
-               out_proj_pt, intersect_proj_dir, out_proj_dir);
-#endif
+  // testSnellLaw(plane, plane_proj, refraction_index, out_ecef, in_dir, out_dir,
+  //              out_proj_pt, intersect_proj_dir, out_proj_dir);
 
   return true;
 }
 
 } // namespace
 
-// Fit local ECEF plane to surface in projected coordinates or to plane in
-// projected coordinates.
+// Fit local ECEF plane to raster surface or to global plane (in projected
+// coords either way). proj_pt is the query horizontal location at which
+// to fit the tangent; it is typically close to the water surface but is
+// not required to lie on it. The plane path explicitly projects proj_pt
+// onto the plane before sampling tangent points; the raster path uses
+// only proj_pt's x,y to pick pixels (its z is ignored).
 std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
                                       vw::Vector3 const& proj_pt,
                                       double offset_meters) {
@@ -479,6 +443,41 @@ bool curvedSnellLaw(vw::Vector3 const& in_ecef,
                                     active_plane, bp.stereographic_proj,
                                     refraction_index, bp.mean_height,
                                     out_ecef, out_dir);
+}
+
+// Test Snell's law in projected and unprojected coordinates
+void testSnellLaw(std::vector<double> const& plane,
+                  vw::cartography::GeoReference const& plane_proj,
+                  double refraction_index,
+                  vw::Vector3 const& out_ecef,
+                  vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,
+                  vw::Vector3 const& out_proj_pt,
+                  vw::Vector3 const& in_proj_dir, vw::Vector3 const& out_proj_dir) {
+
+  // 1. In projected coordinates
+  vw::Vector3 proj_normal(plane[0], plane[1], plane[2]);
+  double sin_in = sin(acos(dot_prod(proj_normal, -in_proj_dir)));
+  double sin_out = sin(acos(dot_prod(-proj_normal, out_proj_dir)));
+
+  // 2. In unprojected coordinates
+  vw::Vector3 proj_pt_above_normal = out_proj_pt + 1.0 * proj_normal; // go 1 m along the normal
+  vw::Vector3 ecef_above_normal = vw::bathyUnprojPoint(plane_proj,
+                                                       proj_pt_above_normal);
+  vw::Vector3 ecef_normal = ecef_above_normal - out_ecef;
+  ecef_normal /= norm_2(ecef_normal); // normalize
+  sin_in = sin(acos(dot_prod(ecef_normal, -in_ecef_dir)));
+  sin_out = sin(acos(dot_prod(-ecef_normal, out_ecef_dir)));
+
+  // Verify that the incoming ray, outgoing ray, and the
+  // normal are in the same plane in projected coordinates
+
+  // 1. In projected coordinates
+  vw::Vector3 in_out_normal = vw::math::cross_prod(in_proj_dir, out_proj_dir);
+  double plane_error = dot_prod(in_out_normal, proj_normal);
+
+  // 2. In unprojected coordinates
+  in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
+  plane_error = dot_prod(in_out_normal, ecef_normal);
 }
 
 } // namespace vw
