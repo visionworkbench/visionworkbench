@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.15.5)
 
 project(visionworkbench)
 
+# CMake 4.0+ removed the legacy FindBoost module. Use BoostConfig.cmake
+# (shipped with modern Boost packages) instead.
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
+
 if(APPLE)
     cmake_policy(SET CMP0025 NEW)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)

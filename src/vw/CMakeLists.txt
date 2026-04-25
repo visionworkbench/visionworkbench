@@ -114,7 +114,7 @@ find_package(Threads REQUIRED)
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
-set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
+set(REQUIRED_BOOST_LIBS program_options filesystem regex date_time thread iostreams)
 #set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
 if(ASP_DEPS_DIR) # Look in the directory of ASP dependencies
   set(Boost_ROOT       "${ASP_DEPS_DIR}")
