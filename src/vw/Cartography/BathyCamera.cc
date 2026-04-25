@@ -128,7 +128,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   Vector3 proj_pt = bathyProjPoint(bathy_plane.stereographic_proj, xyz);
 
   // Check signed distance to bathy plane
-  double ht_val = signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
+  double ht_val = signedDistToPlane(bathy_plane.bathy_plane, proj_pt);
 
   // If point is above water surface, no refraction needed
   if (ht_val >= 0)
@@ -173,7 +173,7 @@ vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
   vw::Vector3 proj_pt = vw::bathyProjPoint(bathy_plane.stereographic_proj, ecef_point);
 
   // Check signed distance to bathy plane
-  double dist = vw::signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
+  double dist = vw::signedDistToPlane(bathy_plane.bathy_plane, proj_pt);
 
   // If point is above the water surface (positive distance), no refraction
   if (dist >= 0)

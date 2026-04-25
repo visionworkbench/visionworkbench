@@ -143,7 +143,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       // switch to the stereographic frame (where bathy_plane coefs live).
       Vector3 proj_pt = bathyProjPoint(m_bathy_plane_vec[0].stereographic_proj,
                                        uncorr_tri_pt);
-      double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
+      double ht_val = signedDistToPlane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
       if (ht_val >= 0) {
         // the rays intersect above the water surface
         did_bathy = false;
@@ -193,7 +193,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
     // See if the unbent portions intersect above their planes
     tri_pt = vw::stereo::triangulate_pair(camDirs[0], camCtrs[0], camDirs[1], camCtrs[1], err);
-    signed_distances_to_planes(m_bathy_plane_vec, tri_pt, signed_dists);
+    signedDistToPlanes(m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] >= 0 && signed_dists[1] >= 0) {
       did_bathy = false; // since the rays did not reach the bathy plane
       errorVec = err;
@@ -203,7 +203,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // See if the bent portions intersect below their planes
     tri_pt = vw::stereo::triangulate_pair(waterDirs[0], waterCtrs[0],
                                           waterDirs[1], waterCtrs[1], err);
-    signed_distances_to_planes(m_bathy_plane_vec, tri_pt, signed_dists);
+    signedDistToPlanes(m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] <= 0 && signed_dists[1] <= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;
@@ -214,7 +214,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // above left's water plane and below right's water plane
     tri_pt = vw::stereo::triangulate_pair(camDirs[0], camCtrs[0], waterDirs[1],
                                           waterCtrs[1], err);
-    signed_distances_to_planes(m_bathy_plane_vec, tri_pt, signed_dists);
+    signedDistToPlanes(m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] >= 0 && signed_dists[1] <= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;
@@ -225,7 +225,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // below left's water plane and above right's water plane
     tri_pt = vw::stereo::triangulate_pair(waterDirs[0], waterCtrs[0],
                                           camDirs[1], camCtrs[1], err);
-    signed_distances_to_planes(m_bathy_plane_vec, tri_pt, signed_dists);
+    signedDistToPlanes(m_bathy_plane_vec, tri_pt, signed_dists);
     if (signed_dists[0] <= 0 && signed_dists[1] >= 0) {
       did_bathy = true; // the resulting point is at least under one plane
       errorVec = err;

@@ -29,8 +29,8 @@ namespace vw {
 
 // Signed distance from a 3D point to a plane defined by coefficients
 // [a, b, c, d] with the plane equation a*x + b*y + c*z + d = 0.
-double signed_dist_to_plane(std::vector<double> const& plane,
-                            vw::Vector3 const& point);
+double signedDistToPlane(std::vector<double> const& plane,
+                         vw::Vector3 const& point);
 
 // Ray-plane intersection in a single coordinate system (whatever the plane
 // coefficients and the ray are expressed in). Returns false if the ray does

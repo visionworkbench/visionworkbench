@@ -59,7 +59,7 @@ struct BathyPlane {
   // Identical to plane_proj when plane_proj is stereographic (text
   // input, or a stereographic raster). For a geographic raster input,
   // derived at load time with the origin at the raster centroid, so
-  // all downstream plane math (signed_dist_to_plane, rayPlaneIntersect,
+  // all downstream plane math (signedDistToPlane, rayPlaneIntersect,
   // Snell's law in proj coords, local-tangent fallback) can assume
   // meter-scale axes by construction.
   vw::cartography::GeoReference stereographic_proj;
@@ -113,6 +113,13 @@ vw::Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
 // Inverse of bathyProjPoint: from local projection coordinates back to ECEF.
 vw::Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
                              vw::Vector3 const& proj_pt);
+
+// Given an ECEF point xyz and two bathy planes, find if xyz is above or
+// below each plane. Outputs distances[0] and distances[1] in the same
+// stereographic frame as the corresponding bathy_plane coefs.
+void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
+                        vw::Vector3 const& xyz,
+                        std::vector<double>& distances);
 
 } // namespace vw
 

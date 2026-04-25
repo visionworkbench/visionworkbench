@@ -26,6 +26,7 @@
 
 #include <vw/Cartography/Datum.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/SnellLaw.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/PixelMask.h>
@@ -185,6 +186,25 @@ Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
   return projection.datum().geodetic_to_cartesian(projection.point_to_geodetic(proj_pt));
 }
 
+// Given an ECEF point xyz and two bathy planes, find if xyz is above or below
+// each plane by signed distance in each plane's stereographic frame.
+void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
+                        vw::Vector3 const& xyz,
+                        std::vector<double>& distances) {
+
+  if (bathy_plane_vec.size() != 2)
+    vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
+
+  distances.resize(2);
+  for (size_t it = 0; it < 2; it++) {
+    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
+    // into that frame (meter-scale) before evaluating the signed distance.
+    distances[it]
+      = signedDistToPlane(bathy_plane_vec[it].bathy_plane,
+                          bathyProjPoint(bathy_plane_vec[it].stereographic_proj, xyz));
+  }
+}
+
 // Read a plane from the legacy 3-line text format: four plane coefficients
 // on line 1, comment on line 2, projection center lat/lon on line 3.
 void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp) {
@@ -238,7 +258,7 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
   // is just a copy of plane_proj.
   bp.stereographic_proj = plane_proj;
 
-  // Guard the invariant: downstream plane math (signed_dist_to_plane,
+  // Guard the invariant: downstream plane math (signedDistToPlane,
   // Snell's law in proj coords, tangent-fallback offsets) assumes
   // stereographic_proj has meter-scale axes.
   if (!bp.stereographic_proj.is_projected())
@@ -317,7 +337,7 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
 
   // Re-express each sample in the stereographic frame via ECEF, so the
   // fitted bathy_plane coefficients live in meter-scale coords regardless
-  // of the raster's native CRS. signed_dist_to_plane, rayPlaneIntersect,
+  // of the raster's native CRS. signedDistToPlane, rayPlaneIntersect,
   // and Snell's law in proj coords all then work unchanged downstream.
   std::vector<vw::Vector3> stereo_pts;
   stereo_pts.reserve(raster_proj_pts.size());

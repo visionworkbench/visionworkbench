@@ -145,7 +145,7 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
              << "projected (meter-scale) georef; got geographic instead.\n");
 
   // Project proj_pt onto the plane to get a point on the plane.
-  double dist = signed_dist_to_plane(plane, proj_pt);
+  double dist = signedDistToPlane(plane, proj_pt);
   vw::Vector3 normal(plane[0], plane[1], plane[2]);
   double normal_sq = dot_prod(normal, normal);
   vw::Vector3 proj_on_plane = proj_pt - (dist / normal_sq) * normal;
@@ -309,7 +309,7 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
     // Stop when we are within 0.1 mm of the plane, while along the ray. Going
     // beyond that seems not useful. This is usually reached on second pass.
 
-    if (std::abs(signed_dist_to_plane(plane, intersect_proj_pt)) < 1e-4)
+    if (std::abs(signedDistToPlane(plane, intersect_proj_pt)) < 1e-4)
       break;
 
     // Intersect the proj ray with the proj plane
@@ -401,7 +401,7 @@ public:
     vw::Vector3 proj_pt = vw::bathyProjPoint(m_projection, xyz);
 
     result_type ans;
-    ans[0] = signed_dist_to_plane(m_proj_plane, proj_pt);
+    ans[0] = signedDistToPlane(m_proj_plane, proj_pt);
     return ans;
   }
 }; // End class SolveCurvedPlaneIntersection
@@ -467,25 +467,6 @@ bool curvedSnellLawAgainstPlane(vw::Vector3 const& in_ecef, vw::Vector3 const& i
 }
 
 } // namespace
-
-// Given an ECEF point xyz and two bathy planes, find if xyz is above or below
-// each plane by signed distance in each plane's stereographic frame.
-void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
-                                vw::Vector3 const& xyz,
-                                std::vector<double>& distances) {
-
-  if (bathy_plane_vec.size() != 2)
-    vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
-
-  distances.resize(2);
-  for (size_t it = 0; it < 2; it++) {
-    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
-    // into that frame (meter-scale) before evaluating the signed distance.
-    distances[it]
-      = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
-                             bathyProjPoint(bathy_plane_vec[it].stereographic_proj, xyz));
-  }
-}
 
 // Fit local ECEF plane to surface in projected coordinates or to plane in
 // projected coordinates.

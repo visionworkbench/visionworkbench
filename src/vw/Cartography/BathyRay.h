@@ -37,13 +37,6 @@
 
 namespace vw {
 
-// Given an ECEF point xyz and two bathy planes, find if xyz is above or
-// below each plane. Outputs distances[0] and distances[1] in the same
-// stereographic frame as the corresponding bathy_plane coefs.
-void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
-                                vw::Vector3 const& xyz,
-                                std::vector<double>& distances);
-
 // Fit a local ECEF tangent plane near proj_pt. Raster-aware: when bp
 // carries a raster water surface, the tangent reflects the raster near
 // proj_pt (3 pixel-aligned samples through ECEF); otherwise it reflects

@@ -29,7 +29,7 @@ namespace vw {
 // Given a plane as four values a, b, c, d, with the plane being
 // a * x + b * y + c * z + d = 0, find how far off a point (x, y, z) is from the plane
 // by evaluating the above expression.
-double signed_dist_to_plane(std::vector<double> const& plane, vw::Vector3 const& point) {
+double signedDistToPlane(std::vector<double> const& plane, vw::Vector3 const& point) {
 
   double ans = 0.0;
   for (unsigned coord_it = 0; coord_it < 3; coord_it++) {
