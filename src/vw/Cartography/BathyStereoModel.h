@@ -15,7 +15,11 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// This file is here because it depends on the Cartography module.
+// The BathyStereoModel class. Camera-aware bathy ray helpers
+// (datumBathyIntersection, point_to_pixel) are declared in
+// vw/Cartography/BathyCamera.h, which this header transitively
+// pulls in for backward compatibility with consumers that used
+// to get them from BathyStereoModel.h.
 
 #ifndef __VW_CARTOGRAPHY_BATHYSTEREOMODEL_H__
 #define __VW_CARTOGRAPHY_BATHYSTEREOMODEL_H__
@@ -23,36 +27,15 @@
 #include <vw/Math/Vector.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/BathyData.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Image/PixelMask.h>
+#include <vw/Cartography/BathyCamera.h>
 
 namespace vw {
 
-// Forward declaration
 namespace camera {
   class CameraModel;
 }
 
 typedef boost::shared_ptr<camera::CameraModel> CamPtr;
-
-// Intersect a ray from camera center along camera direction with the datum at
-// given semi-axes, with optional bathymetry correction. If the ray passes
-// through the bathy plane (water surface) before it meets the datum, apply
-// Snell's law refraction and continue with the new bent ray until reaching the
-// datum. Returns the intersection point, or zero vector on failure.
-vw::Vector3 datumBathyIntersection(vw::Vector3 const& cam_ctr, 
-                                   vw::Vector3 const& cam_dir,
-                                   double major_axis, double minor_axis,
-                                   BathyPlane const& bathy_plane,
-                                   double refraction_index);
-
-// Project an ECEF point to pixel, accounting for bathymetry if the point
-// is below the bathy plane (water surface).
-vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
-                           vw::BathyPlane const& bathy_plane,
-                           double refraction_index,
-                           vw::Vector3 const& ecef_point);
 
 class BathyStereoModel: public vw::stereo::StereoModel {
 public:

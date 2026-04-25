@@ -151,6 +151,53 @@ bool refineLocalPlaneFromRaster(BathyPlane const& bp,
                                 vw::Vector3 const& proj_pt,
                                 std::vector<double>& plane);
 
+// Project an ECEF point to local projection coordinates.
+vw::Vector3 proj_point(vw::cartography::GeoReference const& projection,
+                       vw::Vector3 const& xyz);
+
+// Unproject from local projection coordinates back to ECEF.
+vw::Vector3 unproj_point(vw::cartography::GeoReference const& projection,
+                         vw::Vector3 const& proj_pt);
+
+// Given an ECEF point xyz and two bathy planes, find if xyz is above or
+// below each plane. Outputs distances[0] and distances[1] in the same
+// stereographic frame as the corresponding bathy_plane coefs.
+void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
+                                vw::Vector3 const& xyz,
+                                std::vector<double>& distances);
+
+// Intersect a ray (in ECEF) with a curved bathy plane. The plane is flat
+// in the given local stereographic projection, so the intersection is
+// iterated to stay both on the ray in ECEF and on the plane in proj coords.
+// Outputs the intersection in ECEF, the same point in proj coords, and the
+// ray direction in proj coords. mean_height is the physical water-surface
+// height in meters above the datum (callers should pass
+// vw::BathyPlane::mean_height).
+bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
+                            vw::Vector3 const& in_dir,
+                            std::vector<double> const& plane,
+                            vw::cartography::GeoReference const& plane_proj,
+                            double mean_height,
+                            vw::Vector3& intersect_ecef,
+                            vw::Vector3& intersect_proj_pt,
+                            vw::Vector3& intersect_proj_dir);
+
+// Bend an ECEF ray at the bathy water surface and return the bent ECEF
+// ray. The water surface is whatever bp describes: the global best-fit
+// plane (text input or text-equivalent raster) or a per-pixel raster.
+// When bp carries a raster, this routine first locates the approximate
+// hit using the global plane, samples three raster neighbors there to
+// fit a local plane, and bends with that refined local plane (falling
+// back to the global plane on any sampling failure). For near-planar
+// rasters the refined plane is numerically indistinguishable from the
+// global plane, so output matches the no-raster behavior.
+bool curvedSnellLaw(vw::Vector3 const& in_ecef,
+                    vw::Vector3 const& in_dir,
+                    BathyPlane const& bp,
+                    double refraction_index,
+                    vw::Vector3& out_ecef,
+                    vw::Vector3& out_dir);
+
 } // namespace vw
 
 #endif // __VW_CARTOGRAPHY_BATHYDATA_H__

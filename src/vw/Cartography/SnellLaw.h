@@ -15,19 +15,17 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// Snell's law refraction math for an ocean surface modeled as a plane
-// (flat in a local stereographic projection; curved in ECEF). This file
-// holds only the geometric primitives. Nothing here depends on the
-// vw::BathyPlane struct; callers pass the four plane coefficients and a
-// GeoReference directly. See vw/Cartography/BathyStereoModel.h for the
-// higher-level types (BathyPlane, BathyData) and the BathyStereoModel
-// class that consumes these primitives.
+// Straight-line Snell's law primitives. Plane / ray math in a single
+// coordinate system, with no ECEF / projection awareness and no
+// dependency on vw::BathyPlane. Callers that need bathy-aware refraction
+// for an ocean surface modeled as a plane in a local stereographic
+// projection live in vw/Cartography/BathyData.h (curvedSnellLaw,
+// rayBathyPlaneIntersect, etc.).
 
 #ifndef __VW_CARTOGRAPHY_SNELLLAW_H__
 #define __VW_CARTOGRAPHY_SNELLLAW_H__
 
 #include <vw/Math/Vector.h>
-#include <vw/Cartography/GeoReference.h>
 
 #include <vector>
 
@@ -38,36 +36,12 @@ namespace vw {
 double signed_dist_to_plane(std::vector<double> const& plane,
                             vw::Vector3 const& point);
 
-// Project an ECEF point to local projection coordinates.
-vw::Vector3 proj_point(vw::cartography::GeoReference const& projection,
-                       vw::Vector3 const& xyz);
-
-// Unproject from local projection coordinates back to ECEF.
-vw::Vector3 unproj_point(vw::cartography::GeoReference const& projection,
-                         vw::Vector3 const& proj_pt);
-
 // Ray-plane intersection in a single coordinate system (whatever the plane
 // coefficients and the ray are expressed in). Returns false if the ray does
 // not descend towards the plane.
 bool rayPlaneIntersect(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
                        std::vector<double> const& plane,
                        vw::Vector3 & out_xyz);
-
-// Intersect a ray (in ECEF) with a curved bathy plane. The plane is flat
-// in the given local stereographic projection, so the intersection is
-// iterated to stay both on the ray in ECEF and on the plane in proj coords.
-// Outputs the intersection in ECEF, the same point in proj coords, and the
-// ray direction in proj coords. mean_height is the physical water-surface
-// height in meters above the datum, used to seed the initial ray-datum
-// intersection (callers should pass vw::BathyPlane::mean_height).
-bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
-                            vw::Vector3 const& in_dir,
-                            std::vector<double> const& plane,
-                            vw::cartography::GeoReference const& plane_proj,
-                            double mean_height,
-                            vw::Vector3 & intersect_ecef,
-                            vw::Vector3 & intersect_proj_pt,
-                            vw::Vector3 & intersect_proj_dir);
 
 // Given a ray going down towards Earth, starting at point in_xyz and
 // with unit direction in_dir, a plane 'p' to the water surface with four
@@ -80,17 +54,6 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
 bool snellLaw(vw::Vector3 const& in_xyz, vw::Vector3 const& in_dir,
               std::vector<double> const& plane, double refraction_index,
               vw::Vector3 & out_xyz, vw::Vector3 & out_dir);
-
-// Like snellLaw, but for a curved water surface. The water surface is
-// modeled as a plane in local stereographic projection coordinates. The
-// ray is bent in that coordinate system, then transformed back to ECEF.
-// mean_height is the physical water-surface height in meters above the
-// datum; callers should pass vw::BathyPlane::mean_height.
-bool curvedSnellLaw(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
-                    std::vector<double> const& plane,
-                    vw::cartography::GeoReference const& plane_proj,
-                    double refraction_index, double mean_height,
-                    vw::Vector3 & out_ecef, vw::Vector3 & out_dir);
 
 } // namespace vw
 

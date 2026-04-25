@@ -15,281 +15,22 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/Image/ImageView.h>
-#include <vw/Image/PixelMask.h>
-#include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelTypeInfo.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/VectorUtils.h>
-#include <vw/Math/NewtonRaphson.h>
+// BathyStereoModel - the stereo triangulator that knows how to bend rays
+// at a water surface. The bathy data primitives (BathyPlane, plane fits,
+// raster sampling) live in BathyData. The pure ray / plane math lives in
+// SnellLaw. The camera-aware helpers (point_to_pixel, datumBathyIntersection)
+// live in BathyCamera.
+
+#include <vw/Cartography/BathyStereoModel.h>
+
+#include <vw/Cartography/BathyData.h>
+#include <vw/Cartography/SnellLaw.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Cartography/BathyStereoModel.h>
-#include <vw/Cartography/SnellLaw.h>
+#include <vw/Math/Vector.h>
 #include <vw/Core/Exception.h>
-#include <vw/FileIO/DiskImageView.h>
-#include <vw/FileIO/DiskImageUtils.h>
-#include <vw/Image/MaskViews.h>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
 
 namespace vw {
-
-// Given a ECEF point xyz, and two planes, find if xyz is above or below each of
-// the plane by finding the signed distances to them. The water surface is curved
-// (modeled as a plane in local stereographic projection coordinates).
-void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
-                                vw::Vector3 const& xyz,
-                                std::vector<double> & distances) {
-
-  if (bathy_plane_vec.size() != 2)
-    vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
-
-  distances.resize(2);
-  for (size_t it = 0; it < 2; it++) {
-    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
-    // into that frame (meter-scale) before evaluating the signed distance.
-    distances[it]
-      = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
-                             proj_point(bathy_plane_vec[it].stereographic_proj, xyz));
-  }
-}
-
-namespace {
-
-// Bend a camera ray at the water surface, using the raster to refine the
-// surface plane at the ray-surface hit when one is available.
-//
-//   Text / no-raster case: one full curvedSnellLaw call against the global
-//   best-fit plane. Unchanged behavior.
-//
-//   Raster case: first locate the approximate ray-surface hit using the
-//   global plane (one rayBathyPlaneIntersect). At that hit, sample three
-//   raster neighbors to fit a local plane in stereographic_proj's frame.
-//   Then run the normal curvedSnellLaw with that refined local plane. If
-//   the raster sampling fails (edge / nodata / degenerate triangle), fall
-//   back to the global plane unchanged. For near-planar rasters the
-//   refinement is numerically indistinguishable from the global plane, so
-//   output matches the no-raster behavior; for structured rasters the
-//   refinement actually tracks the surface.
-//
-// TODO(oalexan1): the refined-plane path does two ray-plane intersects
-// (one to locate the raster sampling point, one inside curvedSnellLaw).
-// Could be collapsed to one by teaching rayBathyPlaneIntersect to take
-// an ECEF seed; defer until profiling justifies it.
-bool curvedSnellLawWithRaster(vw::Vector3 const& in_ecef,
-                              vw::Vector3 const& in_dir,
-                              BathyPlane const& bp,
-                              double refraction_index,
-                              vw::Vector3& out_ecef,
-                              vw::Vector3& out_dir) {
-
-  // No raster: classic single-plane path.
-  if (bp.water_surface.cols() == 0)
-    return curvedSnellLaw(in_ecef, in_dir,
-                          bp.bathy_plane, bp.stereographic_proj,
-                          refraction_index, bp.mean_height,
-                          out_ecef, out_dir);
-
-  // Raster path: find the approximate hit, then refine the plane there.
-  vw::Vector3 hit_ecef, hit_proj_pt, hit_proj_dir;
-  if (!rayBathyPlaneIntersect(in_ecef, in_dir,
-                              bp.bathy_plane, bp.stereographic_proj,
-                              bp.mean_height,
-                              hit_ecef, hit_proj_pt, hit_proj_dir))
-    return false;
-
-  std::vector<double> local_plane;
-  bool refined = refineLocalPlaneFromRaster(bp, hit_proj_pt, local_plane);
-  std::vector<double> const& active_plane = refined ? local_plane : bp.bathy_plane;
-
-  return curvedSnellLaw(in_ecef, in_dir,
-                        active_plane, bp.stereographic_proj,
-                        refraction_index, bp.mean_height,
-                        out_ecef, out_dir);
-}
-
-} // namespace
-
-// Intersect a ray from camera center along camera direction with the datum at
-// given semi-axes, with optional bathymetry correction. If the ray passes
-// through the bathy plane (water surface) before it meets the datum, apply
-// Snell's law refraction and continue with the new bent ray until reaching the
-// datum. Returns the intersection point, or zero vector on failure.
-Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
-                               Vector3 const& cam_dir,
-                               double major_axis, double minor_axis,
-                               BathyPlane const& bathy_plane,
-                               double refraction_index) {
-
-  // First, intersect ray with datum
-  Vector3 xyz = vw::cartography::datum_intersection(major_axis, minor_axis,
-                                                    cam_ctr, cam_dir);
-
-  // If intersection failed, return zero vector
-  if (xyz == Vector3(0, 0, 0))
-    return Vector3(0, 0, 0);
-
-  // Project the intersection point into the stereographic frame where
-  // bathy_plane coefficients live.
-  Vector3 proj_pt = proj_point(bathy_plane.stereographic_proj, xyz);
-
-  // Check signed distance to bathy plane
-  double ht_val = signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
-
-  // If point is above water surface, no refraction needed
-  if (ht_val >= 0)
-    return xyz;
-
-  // Point is below water - need to apply Snell's law refraction. Uses the
-  // raster to refine the plane at the ray-surface hit when available.
-  Vector3 out_xyz, out_dir;
-  bool success = curvedSnellLawWithRaster(cam_ctr, cam_dir,
-                                          bathy_plane,
-                                          refraction_index,
-                                          out_xyz, out_dir);
-
-  // If Snell's law failed, return zero vector
-  if (!success)
-    return Vector3(0, 0, 0);
-
-  // Continue refracted ray to datum
-  Vector3 refracted_xyz = vw::cartography::datum_intersection(major_axis, minor_axis,
-                                                              out_xyz, out_dir);
-
-  // If refracted intersection failed, return zero vector
-  if (refracted_xyz == Vector3(0, 0, 0))
-    return Vector3(0, 0, 0);
-
-  return refracted_xyz;
-}
-
-// A class that helps with finding the projection of an ECEF point through a
-// bathy plane in the camera. This plane is in ECEF and is tangent to the true
-// bathy plane around the ECEF point. This allows all calculations to be in
-// ECEF, which is about 100x faster than having to deal with projection
-// operations. Even so this is 10 slower than not having a bathy plane.
-class BathyFunctorEcef {
-public:
-  BathyFunctorEcef(vw::Vector3 const& ecef_point,
-                   vw::camera::CameraModel const* cam,
-                   std::vector<double> const& ecef_plane,
-                   double refraction_index):
-  m_cam(cam), m_origin(ecef_point),
-  m_ecef_plane(ecef_plane),
-  m_refraction_index(refraction_index) {
-
-    // Form local coordinate system using the ECEF point
-    vw::math::formBasis(ecef_point, m_x_axis, m_y_axis, m_normal);
-  }
-
-  // Intersect a ray with the tangent plane and return 2D coordinates in the tangent
-  // plane coordinate system.
-  vw::Vector2 rayPlaneIntersect(vw::Vector3 const& ray_pt, vw::Vector3 const& ray_dir) const {
-
-    double denom = vw::math::dot_prod(ray_dir, m_normal);
-    if (std::abs(denom) < 1e-10)
-      vw::vw_throw(vw::ArgumentErr() << "Ray is parallel to tangent plane.\n");
-
-    double t = vw::math::dot_prod(m_origin - ray_pt, m_normal) / denom;
-    vw::Vector3 intersection = ray_pt + t * ray_dir;
-
-    // Project intersection onto tangent plane axes
-    vw::Vector3 offset = intersection - m_origin;
-    double x = vw::math::dot_prod(offset, m_x_axis);
-    double y = vw::math::dot_prod(offset, m_y_axis);
-
-    return vw::Vector2(x, y);
-  }
-
-  // Operator for use with Newton-Raphson solver
-  // Input: pix is a pixel in the camera
-  // Output: 2D coordinates in the tangent plane after ray bending
-  vw::Vector2 operator()(vw::Vector2 const& pix) const {
-    // Get ray from camera (without bathy correction)
-    vw::Vector3 cam_ctr = m_cam->camera_center(pix);
-    vw::Vector3 cam_dir = m_cam->pixel_to_vector(pix);
-
-    // Apply Snell's law to bend the ray at the water surface. Everything stays
-    // in ECEF.
-    vw::Vector3 refracted_pt, refracted_dir;
-    bool success = vw::snellLaw(cam_ctr, cam_dir,
-                                m_ecef_plane,
-                                m_refraction_index,
-                                refracted_pt, refracted_dir);
-
-    if (!success)
-      vw::vw_throw(vw::ArgumentErr() << "Snell's law refraction failed.\n");
-
-    // Intersect refracted ray with tangent plane and return 2D coordinates
-    return rayPlaneIntersect(refracted_pt, refracted_dir);
-  }
-
-  vw::camera::CameraModel const* m_cam; // Camera pointer
-  vw::Vector3 m_origin;                 // Origin of tangent plane (ECEF point P)
-  std::vector<double> m_ecef_plane;     // Local ECEF plane coefficients [A,B,C,-D]
-  double m_refraction_index;            // Index of refraction
-  vw::Vector3 m_x_axis;                 // East direction (tangent plane X axis)
-  vw::Vector3 m_y_axis;                 // North direction (tangent plane Y axis)
-  vw::Vector3 m_normal;                 // Up direction (perpendicular to plane)
-};
-
-// Project an ECEF point to camera pixel, accounting for bathymetry if the point
-// lies below the water surface. Fits a local ECEF tangent plane. Good for
-// shallow-water bathymetry so the point is at most meters deep. Degrades for
-// deep points and steep off-nadir rays.
-vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
-                           vw::BathyPlane const& bathy_plane,
-                           double refraction_index,
-                           vw::Vector3 const& ecef_point) {
-
-  // Get camera pixel as if there was no refraction
-  vw::Vector2 pix = cam->point_to_pixel(ecef_point);
-
-  // Project to the stereographic frame where bathy_plane lives.
-  vw::Vector3 proj_pt = vw::proj_point(bathy_plane.stereographic_proj, ecef_point);
-
-  // Check signed distance to bathy plane
-  double dist = vw::signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
-
-  // If point is above the water surface (positive distance), no refraction
-  if (dist >= 0)
-    return pix;
-
-  // Fit local ECEF tangent plane. Newton-Raphson below iterates against
-  // this tangent entirely in ECEF - zero per-iteration proj calls. When a
-  // raster water surface is present, the tangent reflects the raster near
-  // this query; otherwise it reflects the global fitted plane.
-  double offset = 1.0;
-  std::vector<double> ecef_plane = fitLocalEcefPlane(bathy_plane, proj_pt, offset);
-
-  // Point is below water surface - need to account for refraction
-  // Set up the BathyFunctorEcef for Newton-Raphson iteration (uses local ECEF plane)
-  // Old version: BathyFunctor bathy_func(ecef_point, cam, bathy_plane, refraction_index);
-  BathyFunctorEcef bathy_func(ecef_point, cam, ecef_plane, refraction_index);
-
-  // Set up Newton-Raphson solver with numerical Jacobian
-  vw::math::NewtonRaphson nr(bathy_func);
-
-  // TODO(oalexan1): Study what ecef point is between takes in bundle_adjust,
-  // so how much ceres moves it for numerical differences. This wil inform the 
-  // step size and tolerance to use here.
-
-  // Solve: find pixel such that bathy_func(pix) projects to (0, 0) in tangent plane
-  // since ecef_point is the origin of the tangent plane
-  vw::Vector2 target(0, 0);
-  // Use 0.5 pixel step for numerical differentiation to get Jacobian.
-  // We want to avoid issues with small steps here, especially that the input
-  // are known to within 1e-4 m or so.
-  double step = 0.5;
-  double tol = 1e-5; // 1e-5 meter tolerance, should be enough.
-  pix = nr.solve(pix, target, step, tol);
-
-  return pix;
-}
 
 // Settings used for bathymetry correction
 void BathyStereoModel::set_bathy(double refraction_index,
@@ -410,10 +151,10 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
       for (size_t it = 0; it < 2; it++) {
         // Bend each ray at the surface. Raster-refined plane when available.
-        bool ans = curvedSnellLawWithRaster(camCtrs[it], camDirs[it],
-                                            m_bathy_plane_vec[it],
-                                            m_refraction_index,
-                                            waterCtrs[it], waterDirs[it]);
+        bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
+                                  m_bathy_plane_vec[it],
+                                  m_refraction_index,
+                                  waterCtrs[it], waterDirs[it]);
         if (!ans) {
           did_bathy = false;
           return uncorr_tri_pt;
@@ -432,10 +173,10 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // Bend the rays
     for (size_t it = 0; it < 2; it++) {
       // Bend each ray at the surface. Raster-refined plane when available.
-      bool ans = curvedSnellLawWithRaster(camCtrs[it], camDirs[it],
-                                          m_bathy_plane_vec[it],
-                                          m_refraction_index,
-                                          waterCtrs[it], waterDirs[it]);
+      bool ans = curvedSnellLaw(camCtrs[it], camDirs[it],
+                                m_bathy_plane_vec[it],
+                                m_refraction_index,
+                                waterCtrs[it], waterDirs[it]);
       if (!ans)
         return uncorr_tri_pt;
     }
@@ -444,7 +185,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // bent rays can intersect on their unbent parts, the bent part
     // of one ray with unbent part of another ray, unbent part of
     // one ray with bent part of another ray, and bent parts of both
-    // rays. Handle all these with much care. 
+    // rays. Handle all these with much care.
 
     Vector3 err, tri_pt;
     std::vector<double> signed_dists;
