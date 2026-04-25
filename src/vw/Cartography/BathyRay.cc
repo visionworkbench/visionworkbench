@@ -37,7 +37,6 @@
 #include <vw/Math/VectorUtils.h>
 #include <vw/Core/Exception.h>
 
-#include <array>
 #include <cmath>
 
 namespace vw {
@@ -74,7 +73,9 @@ struct LocalRasterSample {
 // bilinear-interp values is invalid.
 bool pickLocalRasterSamples(BathyPlane const& bp,
                             vw::Vector3 const& proj_pt,
-                            std::array<LocalRasterSample, 3>& samples) {
+                            std::vector<LocalRasterSample>& samples) {
+  samples.clear();
+
   vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
   int cols = raster.cols(), rows = raster.rows();
   if (cols <= 0 || rows <= 0)
@@ -108,6 +109,7 @@ bool pickLocalRasterSamples(BathyPlane const& bp,
   if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
     return false;
 
+  samples.resize(3);
   samples[0].pix = pix0; samples[0].height = v0.child();
   samples[1].pix = pix1; samples[1].height = v1.child();
   samples[2].pix = pix2; samples[2].height = v2.child();
@@ -188,7 +190,7 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
 std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
                                                    vw::Vector3 const& proj_pt,
                                                    double offset_meters) {
-  std::array<LocalRasterSample, 3> samples;
+  std::vector<LocalRasterSample> samples;
   if (!pickLocalRasterSamples(bp, proj_pt, samples))
     return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
                                         proj_pt, offset_meters);
@@ -232,7 +234,7 @@ bool refineLocalPlaneFromRaster(BathyPlane const& bp,
                                 std::vector<double>& plane) {
   plane.clear();
 
-  std::array<LocalRasterSample, 3> samples;
+  std::vector<LocalRasterSample> samples;
   if (!pickLocalRasterSamples(bp, proj_pt, samples))
     return false;
 
