@@ -17,8 +17,7 @@
 
 // Bathy ray-water-surface logic. See BathyRay.h for the public contract.
 // The internal helpers (curved-plane intersection iterator, local
-// tangent variants, raster neighbor sampling, the dead-code
-// LeastSquares solver kept for reference, the private
+// tangent variants, raster neighbor sampling, the private
 // curvedSnellLawAgainstPlane that does the actual ray bend) live in
 // the anonymous namespace below.
 
@@ -31,8 +30,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Math/LevenbergMarquardt.h>
-#include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/VectorUtils.h>
 #include <vw/Core/Exception.h>
@@ -71,6 +68,7 @@ struct LocalRasterSample {
 // Returns false if the center pixel is out of bounds, if both +1 and -1
 // neighbors are out of bounds on either axis, or if any of the three
 // bilinear-interp values is invalid.
+// TODO(oalexan1): Make this scheme use centered samples
 bool pickLocalRasterSamples(BathyPlane const& bp,
                             vw::Vector3 const& proj_pt,
                             std::vector<LocalRasterSample>& samples) {
@@ -85,17 +83,20 @@ bool pickLocalRasterSamples(BathyPlane const& bp,
   vw::Vector3 ecef_at_query = vw::bathyUnprojPoint(bp.stereographic_proj, proj_pt);
   vw::Vector3 raster_proj_pt = vw::bathyProjPoint(bp.plane_proj, ecef_at_query);
 
+  // Pixel at current point
   vw::Vector2 pix0
     = bp.plane_proj.point_to_pixel(vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
   if (!isInBounds(pix0, cols, rows))
     return false;
 
+  // Right or left neighbor
   vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
   if (!isInBounds(pix1, cols, rows))
     pix1 = pix0 + vw::Vector2(-1.0, 0.0);
   if (!isInBounds(pix1, cols, rows))
     return false;
 
+  // Top or bottom neighbor
   vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
   if (!isInBounds(pix2, cols, rows))
     pix2 = pix0 + vw::Vector2(0.0, -1.0);
@@ -364,49 +365,6 @@ void testSnellLaw(std::vector<double> const& plane,
   in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
   plane_error = dot_prod(in_out_normal, ecef_normal);
 }
-
-// Consider a stereographic projection and a plane
-// a * x + b * y + c * z + d = 0 for (x, y, z) in this projection.
-// Intersect it with a ray given in ECEF coordinates.
-// If the values a and b are 0, that is the same as intersecting
-// the ray with the spheroid of values -d/c above the datum.
-// This solver was not used as it was too slow. An approximate
-// solution was instead found.
-class SolveCurvedPlaneIntersection:
-  public vw::math::LeastSquaresModelBase<SolveCurvedPlaneIntersection> {
-  vw::Vector3 const& m_ray_pt;
-  vw::Vector3 const& m_ray_dir;
-  vw::cartography::GeoReference const& m_projection;
-  std::vector<double> const& m_proj_plane;
-public:
-
-  // This is a one-parameter problem, yet have to use a vector (of size 1)
-  // as required by the API.
-  typedef vw::Vector<double, 1> result_type;   // residual
-  typedef vw::Vector<double, 1> domain_type;   // parameter giving the position on the ray
-  typedef vw::Matrix<double>    jacobian_type;
-
-  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
-  SolveCurvedPlaneIntersection(vw::Vector3 const& ray_pt, vw::Vector3 const& ray_dir,
-                                vw::cartography::GeoReference const& projection,
-                                std::vector<double> const& proj_plane):
-    m_ray_pt(ray_pt), m_ray_dir(ray_dir), m_projection(projection),
-    m_proj_plane(proj_plane) {}
-
-  /// Given the camera, project xyz into it
-  inline result_type operator()(domain_type const& t) const {
-
-    // Get the current point along the ray
-    vw::Vector3 xyz = m_ray_pt + t[0] * m_ray_dir;
-
-    // Convert to projected coordinates
-    vw::Vector3 proj_pt = vw::bathyProjPoint(m_projection, xyz);
-
-    result_type ans;
-    ans[0] = signedDistToPlane(m_proj_plane, proj_pt);
-    return ans;
-  }
-}; // End class SolveCurvedPlaneIntersection
 
 // Given a ray in ECEF and a water surface which is a plane only in a local
 // stereographic projection, compute how the ray bends under Snell's law. Use
