@@ -20,6 +20,7 @@
 #include <vw/Cartography/BathyCamera.h>
 
 #include <vw/Cartography/BathyData.h>
+#include <vw/Cartography/BathyRay.h>
 #include <vw/Cartography/SnellLaw.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/Vector.h>
@@ -124,7 +125,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
 
   // Project the intersection point into the stereographic frame where
   // bathy_plane coefficients live.
-  Vector3 proj_pt = proj_point(bathy_plane.stereographic_proj, xyz);
+  Vector3 proj_pt = bathyProjPoint(bathy_plane.stereographic_proj, xyz);
 
   // Check signed distance to bathy plane
   double ht_val = signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);
@@ -133,9 +134,8 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   if (ht_val >= 0)
     return xyz;
 
-  // Point is below water - need to apply Snell's law refraction. The
-  // unified curvedSnellLaw uses the raster to refine the plane at the
-  // ray-surface hit when one is available.
+  // Point is below water - need to apply Snell's law refraction. This
+  // uses a bathy plane given by a formula or as an raster of values.
   Vector3 out_xyz, out_dir;
   bool success = curvedSnellLaw(cam_ctr, cam_dir,
                                 bathy_plane,
@@ -170,7 +170,7 @@ vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
   vw::Vector2 pix = cam->point_to_pixel(ecef_point);
 
   // Project to the stereographic frame where bathy_plane lives.
-  vw::Vector3 proj_pt = vw::proj_point(bathy_plane.stereographic_proj, ecef_point);
+  vw::Vector3 proj_pt = vw::bathyProjPoint(bathy_plane.stereographic_proj, ecef_point);
 
   // Check signed distance to bathy plane
   double dist = vw::signed_dist_to_plane(bathy_plane.bathy_plane, proj_pt);

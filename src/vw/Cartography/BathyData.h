@@ -15,12 +15,13 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// Data types that describe the bathymetry inputs to the stereo pipeline:
-// a per-image water-surface plane (four coefficients in a local stereographic
-// projection) and a bundle of masks + planes + refraction index consumed by
-// BathyStereoModel during triangulation. The types live in their own header
-// so consumers that only hold or pass bathy data (e.g. option structs,
-// function signatures) do not need to pull in the full BathyStereoModel.
+// Bathymetry data types and a few low-level primitives. Holds the
+// vw::BathyPlane struct (water-surface plane coefficients + optional
+// raster + companion stereographic georef + mean height), the
+// vw::BathyData bundle (masks + planes + refraction index), the mask /
+// plane file readers, and the ECEF <-> projected-coordinates helpers
+// (bathyProjPoint, bathyUnprojPoint). The actual ray-bending logic
+// (curvedSnellLaw, etc.) lives in vw/Cartography/BathyRay.h.
 
 #ifndef __VW_CARTOGRAPHY_BATHYDATA_H__
 #define __VW_CARTOGRAPHY_BATHYDATA_H__
@@ -103,100 +104,15 @@ void readBathyPlanes(std::string const& bathy_plane_files,
                      int num_images,
                      std::vector<BathyPlane> & bathy_plane_vec);
 
-// Best-fit plane through a set of 3D points via SVD (no outlier rejection).
-// Returns the four coefficients (a, b, c, d) such that a*x + b*y + c*z + d = 0,
-// with the normal (a, b, c) of unit length and oriented so c > 0.
-void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
-                      std::vector<double> & bathy_plane);
+// Project an ECEF point to local projection coordinates using the
+// projection's datum. Bathy code is the primary user; nothing here is
+// bathy-specific in implementation.
+vw::Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
+                           vw::Vector3 const& xyz);
 
-// Sample 3 points on a proj-space plane, unproject to ECEF, and fit a local
-// ECEF tangent plane through them. Accurate within ~20 m (flat-Earth limit);
-// lets the Newton-Raphson refraction solver stay in ECEF, avoiding expensive
-// per-iteration proj/unproj round-trips. offset_meters is the metric spacing
-// between the three sample points in the plane. Callers must pass a
-// meter-scale georef (typically BathyPlane::stereographic_proj) so this
-// interpretation is physically meaningful.
-std::vector<double> fitLocalEcefPlaneToProjPlane(
-    std::vector<double> const& plane,
-    vw::cartography::GeoReference const& plane_proj,
-    vw::Vector3 const& proj_pt,
-    double offset_meters);
-
-// Fit a local ECEF tangent plane at proj_pt by bilinear-sampling three
-// raster heights one pixel apart (center, x-neighbor, y-neighbor, with
-// +/-1 fallback near edges). Caller must supply a bp with a non-empty
-// water_surface. The raster-pixel spacing is the natural sampling scale,
-// so offset_meters is only forwarded to the plane-based fallback path.
-// Falls back if the center pixel is out of bounds or any sample is invalid.
-std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
-                                                   vw::Vector3 const& proj_pt,
-                                                   double offset_meters);
-
-// Dispatcher: if bp carries a raster water surface, fit the tangent from it;
-// otherwise fit from the global plane coefficients in bp.bathy_plane.
-std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
-                                      vw::Vector3 const& proj_pt,
-                                      double offset_meters);
-
-// Fit a plane in stereographic_proj's meter-scale frame from three
-// raster neighbors near proj_pt (which is itself in stereographic_proj's
-// coords). Used by the camera-to-ground refraction path to replace the
-// global best-fit plane with a local raster-derived plane right around
-// the ray-surface hit. Returns false (and leaves plane empty) if the
-// center pixel is out of bounds, if both +1 and -1 neighbors are out of
-// bounds on any axis, if any sample is invalid, or if the three samples
-// are degenerate. Callers fall back to the global plane in that case.
-// Requires bp.water_surface to be non-empty.
-bool refineLocalPlaneFromRaster(BathyPlane const& bp,
-                                vw::Vector3 const& proj_pt,
-                                std::vector<double>& plane);
-
-// Project an ECEF point to local projection coordinates.
-vw::Vector3 proj_point(vw::cartography::GeoReference const& projection,
-                       vw::Vector3 const& xyz);
-
-// Unproject from local projection coordinates back to ECEF.
-vw::Vector3 unproj_point(vw::cartography::GeoReference const& projection,
-                         vw::Vector3 const& proj_pt);
-
-// Given an ECEF point xyz and two bathy planes, find if xyz is above or
-// below each plane. Outputs distances[0] and distances[1] in the same
-// stereographic frame as the corresponding bathy_plane coefs.
-void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
-                                vw::Vector3 const& xyz,
-                                std::vector<double>& distances);
-
-// Intersect a ray (in ECEF) with a curved bathy plane. The plane is flat
-// in the given local stereographic projection, so the intersection is
-// iterated to stay both on the ray in ECEF and on the plane in proj coords.
-// Outputs the intersection in ECEF, the same point in proj coords, and the
-// ray direction in proj coords. mean_height is the physical water-surface
-// height in meters above the datum (callers should pass
-// vw::BathyPlane::mean_height).
-bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
-                            vw::Vector3 const& in_dir,
-                            std::vector<double> const& plane,
-                            vw::cartography::GeoReference const& plane_proj,
-                            double mean_height,
-                            vw::Vector3& intersect_ecef,
-                            vw::Vector3& intersect_proj_pt,
-                            vw::Vector3& intersect_proj_dir);
-
-// Bend an ECEF ray at the bathy water surface and return the bent ECEF
-// ray. The water surface is whatever bp describes: the global best-fit
-// plane (text input or text-equivalent raster) or a per-pixel raster.
-// When bp carries a raster, this routine first locates the approximate
-// hit using the global plane, samples three raster neighbors there to
-// fit a local plane, and bends with that refined local plane (falling
-// back to the global plane on any sampling failure). For near-planar
-// rasters the refined plane is numerically indistinguishable from the
-// global plane, so output matches the no-raster behavior.
-bool curvedSnellLaw(vw::Vector3 const& in_ecef,
-                    vw::Vector3 const& in_dir,
-                    BathyPlane const& bp,
-                    double refraction_index,
-                    vw::Vector3& out_ecef,
-                    vw::Vector3& out_dir);
+// Inverse of bathyProjPoint: from local projection coordinates back to ECEF.
+vw::Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
+                             vw::Vector3 const& proj_pt);
 
 } // namespace vw
 

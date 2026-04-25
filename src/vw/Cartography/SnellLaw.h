@@ -15,12 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// Straight-line Snell's law primitives. Plane / ray math in a single
-// coordinate system, with no ECEF / projection awareness and no
-// dependency on vw::BathyPlane. Callers that need bathy-aware refraction
-// for an ocean surface modeled as a plane in a local stereographic
-// projection live in vw/Cartography/BathyData.h (curvedSnellLaw,
-// rayBathyPlaneIntersect, etc.).
+// Straight-line Snell's law logic. Curved surface algorithms are in 
+// BathyData.h.
 
 #ifndef __VW_CARTOGRAPHY_SNELLLAW_H__
 #define __VW_CARTOGRAPHY_SNELLLAW_H__

@@ -16,14 +16,16 @@
 // __END_LICENSE__
 
 // Implementations of the bathy data free functions declared in
-// vw/Cartography/BathyData.h: areMasked, read_bathy_mask(s), and
-// readBathyPlanes. These are I/O and predicates on the bathy data
-// types; the camera-aware refraction operations (point_to_pixel,
-// datumBathyIntersection) and the BathyStereoModel triangulator live
-// in BathyStereoModel.cc.
+// vw/Cartography/BathyData.h: areMasked, read_bathy_mask(s),
+// readBathyPlanes, and the ECEF / projected-coords primitives
+// bathyProjPoint and bathyUnprojPoint. The actual ray-bending logic
+// (curvedSnellLaw, rayBathyPlaneIntersect, local tangent fits, raster
+// neighbor sampling) lives in BathyRay.cc.
 
 #include <vw/Cartography/BathyData.h>
 
+#include <vw/Cartography/Datum.h>
+#include <vw/Cartography/GeoReference.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/PixelMask.h>
@@ -35,15 +37,10 @@
 #include <vw/Math/VectorUtils.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
-#include <vw/Math/LevenbergMarquardt.h>
-#include <vw/Cartography/Datum.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/SnellLaw.h>
 #include <vw/Core/Exception.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
 
-#include <array>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -53,74 +50,63 @@ namespace vw {
 
 namespace {
 
-// True when (px[0], px[1]) is a valid bilinear-sample location inside an
-// image of size (cols, rows). The upper bound is inclusive; bilinear
-// interpolation at an exact integer coordinate collapses to a direct pixel
-// read and does not access an out-of-bounds neighbor.
-bool isInBounds(vw::Vector2 const& px, int cols, int rows) {
-  return px[0] >= 0.0 && px[0] <= double(cols - 1) &&
-         px[1] >= 0.0 && px[1] <= double(rows - 1);
-}
-
-// One bilinear-sampled raster pixel: its (possibly fractional) pixel
-// coordinates and the height value at that location.
-struct LocalRasterSample {
-  vw::Vector2 pix;
-  double height;
-};
-
-// Pick three pixel-aligned raster samples near proj_pt: the center pixel,
-// an x-neighbor (+1 with -1 fallback at the high edge), and a y-neighbor
-// (+1 with -1 fallback). Bilinear-sample each and return them. Sets
-// samples[0] = center, [1] = x-neighbor, [2] = y-neighbor.
+// Best-fit plane through a set of 3D points. Returns the four coefficients
+// (a, b, c, d) such that a*x + b*y + c*z + d = 0, with (a, b, c) unit length
+// and oriented so c > 0. No outlier rejection - use on clean samples.
 //
-// proj_pt must be in bp.stereographic_proj's frame (meter-scale). Internally
-// converts to bp.plane_proj (the raster's native georef) for the pixel
-// lookup, so geographic and stereographic rasters both work.
-//
-// Returns false if the center pixel is out of bounds, if both +1 and -1
-// neighbors are out of bounds on either axis, or if any of the three
-// bilinear-interp values is invalid.
-bool pickLocalRasterSamples(BathyPlane const& bp,
-                            vw::Vector3 const& proj_pt,
-                            std::array<LocalRasterSample, 3>& samples) {
-  vw::ImageView<vw::PixelMask<float>> const& raster = bp.water_surface;
-  int cols = raster.cols(), rows = raster.rows();
-  if (cols <= 0 || rows <= 0)
-    return false;
+// Formulation: ordinary least squares treating z as the dependent variable,
+// minimizing Sum (z_i - (alpha*x_i + beta*y_i + gamma))^2 via the 3x3 normal
+// equations. This is insensitive to the relative numerical scale of (x, y)
+// vs z, so the fit works across input coordinate systems - including
+// geographic (lon-lat-h), where the lon/lat numerical span can be smaller
+// than the h span and a centered-points SVD would mistakenly pick a nearly-
+// horizontal direction as the plane normal. Least-squares-on-height treats
+// height as a function of the horizontal axes by construction.
+void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
+                      std::vector<double>& bathy_plane) {
 
-  // Convert stereographic proj_pt to raster-native coords for pixel lookup.
-  vw::Vector3 ecef_at_query = vw::unproj_point(bp.stereographic_proj, proj_pt);
-  vw::Vector3 raster_proj_pt = vw::proj_point(bp.plane_proj, ecef_at_query);
+  if (points.size() < 3)
+    vw_throw(vw::ArgumentErr() << "fitPlaneToPoints: need at least 3 points.\n");
 
-  vw::Vector2 pix0
-    = bp.plane_proj.point_to_pixel(vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
-  if (!isInBounds(pix0, cols, rows))
-    return false;
+  // Accumulate sums for the normal equations
+  //   M * [alpha, beta, gamma]^T = rhs
+  // where M is the 3x3 normal-equations matrix (symmetric positive definite
+  // for any non-collinear point set).
+  double Sx = 0, Sy = 0, Sz = 0;
+  double Sxx = 0, Syy = 0, Sxy = 0;
+  double Sxz = 0, Syz = 0;
+  for (auto const& p : points) {
+    Sx += p[0]; Sy += p[1]; Sz += p[2];
+    Sxx += p[0]*p[0];
+    Syy += p[1]*p[1];
+    Sxy += p[0]*p[1];
+    Sxz += p[0]*p[2];
+    Syz += p[1]*p[2];
+  }
 
-  vw::Vector2 pix1 = pix0 + vw::Vector2(1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    pix1 = pix0 + vw::Vector2(-1.0, 0.0);
-  if (!isInBounds(pix1, cols, rows))
-    return false;
+  vw::Matrix<double> M(3, 3);
+  M(0, 0) = Sxx; M(0, 1) = Sxy; M(0, 2) = Sx;
+  M(1, 0) = Sxy; M(1, 1) = Syy; M(1, 2) = Sy;
+  M(2, 0) = Sx;  M(2, 1) = Sy;  M(2, 2) = double(points.size());
 
-  vw::Vector2 pix2 = pix0 + vw::Vector2(0.0, 1.0);
-  if (!isInBounds(pix2, cols, rows))
-    pix2 = pix0 + vw::Vector2(0.0, -1.0);
-  if (!isInBounds(pix2, cols, rows))
-    return false;
+  vw::Vector<double> rhs(3);
+  rhs[0] = Sxz; rhs[1] = Syz; rhs[2] = Sz;
 
-  auto interp = vw::BilinearInterpolation::interpolator(raster);
-  vw::PixelMask<float> v0 = interp(raster, pix0[0], pix0[1], 0);
-  vw::PixelMask<float> v1 = interp(raster, pix1[0], pix1[1], 0);
-  vw::PixelMask<float> v2 = interp(raster, pix2[0], pix2[1], 0);
-  if (!vw::is_valid(v0) || !vw::is_valid(v1) || !vw::is_valid(v2))
-    return false;
+  vw::Vector<double> coef = vw::math::solve_symmetric(M, rhs);
+  double alpha = coef[0], beta = coef[1], gamma = coef[2];
 
-  samples[0].pix = pix0; samples[0].height = v0.child();
-  samples[1].pix = pix1; samples[1].height = v1.child();
-  samples[2].pix = pix2; samples[2].height = v2.child();
-  return true;
+  // The fitted equation z = alpha*x + beta*y + gamma rewrites as
+  //   alpha*x + beta*y + (-1)*z + gamma = 0.
+  // Flip signs to make c = +1, then normalize to a unit normal.
+  double a = -alpha, b = -beta, c = 1.0, d = -gamma;
+  double norm = std::sqrt(a*a + b*b + c*c);
+  a /= norm; b /= norm; c /= norm; d /= norm;
+
+  bathy_plane.resize(4);
+  bathy_plane[0] = a;
+  bathy_plane[1] = b;
+  bathy_plane[2] = c;
+  bathy_plane[3] = d;
 }
 
 } // namespace
@@ -185,6 +171,18 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 
   return (!is_valid(left_mask(ilpix.x(), ilpix.y())) &&
           !is_valid(right_mask(irpix.x(), irpix.y())));
+}
+
+// Compute the projected coordinates of an ECEF point.
+Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
+                       Vector3 const& xyz) {
+  return projection.geodetic_to_point(projection.datum().cartesian_to_geodetic(xyz));
+}
+
+// Reverse this operation.
+Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
+                         Vector3 const& proj_pt) {
+  return projection.datum().geodetic_to_cartesian(projection.point_to_geodetic(proj_pt));
 }
 
 // Read a plane from the legacy 3-line text format: four plane coefficients
@@ -252,220 +250,6 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
   bp.mean_height = -bathy_plane[3] / bathy_plane[2];
 
   vw_out() << "Read projection: " <<  plane_proj.overall_proj4_str() << "\n";
-}
-
-// Best-fit plane through a set of 3D points. Returns the four coefficients
-// (a, b, c, d) such that a*x + b*y + c*z + d = 0, with (a, b, c) unit length
-// and oriented so c > 0. No outlier rejection - use on clean samples.
-//
-// Formulation: ordinary least squares treating z as the dependent variable,
-// minimizing Sum (z_i - (alpha*x_i + beta*y_i + gamma))^2 via the 3x3 normal
-// equations. This is insensitive to the relative numerical scale of (x, y)
-// vs z, so the fit works across input coordinate systems - including
-// geographic (lon-lat-h), where the lon/lat numerical span can be smaller
-// than the h span and a centered-points SVD would mistakenly pick a nearly-
-// horizontal direction as the plane normal. Least-squares-on-height treats
-// height as a function of the horizontal axes by construction.
-void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
-                      std::vector<double> & bathy_plane) {
-
-  if (points.size() < 3)
-    vw_throw(vw::ArgumentErr() << "fitPlaneToPoints: need at least 3 points.\n");
-
-  // Accumulate sums for the normal equations
-  //   M * [alpha, beta, gamma]^T = rhs
-  // where M is the 3x3 normal-equations matrix (symmetric positive definite
-  // for any non-collinear point set).
-  double Sx = 0, Sy = 0, Sz = 0;
-  double Sxx = 0, Syy = 0, Sxy = 0;
-  double Sxz = 0, Syz = 0;
-  for (auto const& p : points) {
-    Sx += p[0]; Sy += p[1]; Sz += p[2];
-    Sxx += p[0]*p[0];
-    Syy += p[1]*p[1];
-    Sxy += p[0]*p[1];
-    Sxz += p[0]*p[2];
-    Syz += p[1]*p[2];
-  }
-
-  vw::Matrix<double> M(3, 3);
-  M(0, 0) = Sxx; M(0, 1) = Sxy; M(0, 2) = Sx;
-  M(1, 0) = Sxy; M(1, 1) = Syy; M(1, 2) = Sy;
-  M(2, 0) = Sx;  M(2, 1) = Sy;  M(2, 2) = double(points.size());
-
-  vw::Vector<double> rhs(3);
-  rhs[0] = Sxz; rhs[1] = Syz; rhs[2] = Sz;
-
-  vw::Vector<double> coef = vw::math::solve_symmetric(M, rhs);
-  double alpha = coef[0], beta = coef[1], gamma = coef[2];
-
-  // The fitted equation z = alpha*x + beta*y + gamma rewrites as
-  //   alpha*x + beta*y + (-1)*z + gamma = 0.
-  // Flip signs to make c = +1, then normalize to a unit normal.
-  double a = -alpha, b = -beta, c = 1.0, d = -gamma;
-  double norm = std::sqrt(a*a + b*b + c*c);
-  a /= norm; b /= norm; c /= norm; d /= norm;
-
-  bathy_plane.resize(4);
-  bathy_plane[0] = a;
-  bathy_plane[1] = b;
-  bathy_plane[2] = c;
-  bathy_plane[3] = d;
-}
-
-// Sample 3 points on the projected plane and fit a local ECEF plane
-// approximation. Accurate within ~20 m (flat-Earth limit); used by the
-// Newton-Raphson refraction solver to iterate entirely in ECEF and avoid
-// expensive per-iteration proj/unproj round-trips. This assumes 
-// the projection is in meters, not degrees.
-std::vector<double>
-fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
-                             vw::cartography::GeoReference const& plane_proj,
-                             vw::Vector3 const& proj_pt,
-                             double offset_meters) {
-
-  // offset_meters is treated as a Euclidean length in plane_proj's axes, so
-  // those axes must be meter-scale. Callers should pass
-  // BathyPlane::stereographic_proj; passing a geographic georef would
-  // interpret 1.0 as 1 degree (~111 km) and produce a bogus tangent.
-  if (!plane_proj.is_projected())
-    vw_throw(vw::LogicErr() << "fitLocalEcefPlaneToProjPlane requires a "
-             << "projected (meter-scale) georef; got geographic instead.\n");
-
-  // Project proj_pt onto the plane to get a point on the plane.
-  double dist = signed_dist_to_plane(plane, proj_pt);
-  vw::Vector3 normal(plane[0], plane[1], plane[2]);
-  double normal_sq = dot_prod(normal, normal);
-  vw::Vector3 proj_on_plane = proj_pt - (dist / normal_sq) * normal;
-
-  // Sample 3 points on the plane by moving along two orthogonal tangent
-  // vectors that lie in the plane.
-  vw::Vector3 tangent1, tangent2;
-  vw::math::computePlaneTangents(normal, offset_meters, tangent1, tangent2);
-  vw::Vector3 pt0 = proj_on_plane;
-  vw::Vector3 pt1 = proj_on_plane + tangent1;
-  vw::Vector3 pt2 = proj_on_plane + tangent2;
-
-  // Convert the 3 projected points to ECEF.
-  vw::Vector3 ecef0 = vw::unproj_point(plane_proj, pt0);
-  vw::Vector3 ecef1 = vw::unproj_point(plane_proj, pt1);
-  vw::Vector3 ecef2 = vw::unproj_point(plane_proj, pt2);
-
-  // Fit a plane through the 3 ECEF points.
-  vw::Vector3 v1 = ecef1 - ecef0;
-  vw::Vector3 v2 = ecef2 - ecef0;
-  vw::Vector3 normal_ecef = normalize(cross_prod(v1, v2));
-  double D_ecef = dot_prod(normal_ecef, ecef0);
-
-  std::vector<double> ecef_plane(4);
-  ecef_plane[0] = normal_ecef[0];
-  ecef_plane[1] = normal_ecef[1];
-  ecef_plane[2] = normal_ecef[2];
-  ecef_plane[3] = -D_ecef;
-  return ecef_plane;
-}
-
-// Pick three raster neighbors near proj_pt, convert each to ECEF, and fit
-// the exact plane through them. The neighbors are pixel-aligned (not
-// proj-meter offsets) so the three samples always span a known scale
-// regardless of the raster's CRS. offset_meters is only forwarded to the
-// plane-based fallback. proj_pt is in bp.stereographic_proj's meter-scale
-// frame; the helper does the stereographic -> raster CRS hop internally.
-// Falls back to the plane-based fit if pickLocalRasterSamples reports any
-// kind of sampling failure.
-std::vector<double> fitLocalEcefPlaneToProjSurface(BathyPlane const& bp,
-                                                   vw::Vector3 const& proj_pt,
-                                                   double offset_meters) {
-  std::array<LocalRasterSample, 3> samples;
-  if (!pickLocalRasterSamples(bp, proj_pt, samples))
-    return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
-                                        proj_pt, offset_meters);
-
-  // Convert each (pixel, height) to an ECEF point through the raster's
-  // native georef. No reprojection of the height; it stays in meters.
-  vw::Vector3 ecefs[3];
-  for (int i = 0; i < 3; i++) {
-    vw::Vector2 raster_xy = bp.plane_proj.pixel_to_point(samples[i].pix);
-    ecefs[i] = vw::unproj_point(bp.plane_proj,
-                                vw::Vector3(raster_xy[0], raster_xy[1],
-                                            samples[i].height));
-  }
-
-  // Exact plane through three ECEF points.
-  vw::Vector3 v = ecefs[1] - ecefs[0];
-  vw::Vector3 w = ecefs[2] - ecefs[0];
-  vw::Vector3 normal_ecef = normalize(cross_prod(v, w));
-
-  // Orient normal away from Earth center.
-  if (dot_prod(normal_ecef, ecefs[0]) < 0)
-    normal_ecef = -normal_ecef;
-
-  double D_ecef = dot_prod(normal_ecef, ecefs[0]);
-  std::vector<double> ecef_plane(4);
-  ecef_plane[0] = normal_ecef[0];
-  ecef_plane[1] = normal_ecef[1];
-  ecef_plane[2] = normal_ecef[2];
-  ecef_plane[3] = -D_ecef;
-  return ecef_plane;
-}
-
-// Fit local ECEF plane to surface in projected coordinates or to plane in
-// projected coordinates.
-std::vector<double> fitLocalEcefPlane(BathyPlane const& bp,
-                                      vw::Vector3 const& proj_pt,
-                                      double offset_meters) {
-  if (bp.water_surface.cols() > 0)
-    return fitLocalEcefPlaneToProjSurface(bp, proj_pt, offset_meters);
-  return fitLocalEcefPlaneToProjPlane(bp.bathy_plane, bp.stereographic_proj,
-                                      proj_pt, offset_meters);
-}
-
-// Convert a (pixel, height) pair sampled from bp.water_surface into a
-// point in bp.stereographic_proj's meter-scale frame, via ECEF.
-vw::Vector3 rasterPixelToStereographicPoint(BathyPlane const& bp,
-                                            vw::Vector2 const& pix,
-                                            double height) {
-  vw::Vector2 raster_xy = bp.plane_proj.pixel_to_point(pix);
-  vw::Vector3 ecef = vw::unproj_point(bp.plane_proj,
-                                      vw::Vector3(raster_xy[0], raster_xy[1], height));
-  return vw::proj_point(bp.stereographic_proj, ecef);
-}
-
-// Fit a local plane in stereographic_proj's meter-scale frame from 3
-// raster neighbors near proj_pt. Used by the camera-to-ground path to
-// replace the global best-fit plane with a local raster-derived plane
-// right around the ray-surface hit. Returns false on any sampling
-// failure or if the three samples are degenerate; caller falls back to
-// the global plane in that case.
-bool refineLocalPlaneFromRaster(BathyPlane const& bp,
-                                vw::Vector3 const& proj_pt,
-                                std::vector<double>& plane) {
-  plane.clear();
-
-  std::array<LocalRasterSample, 3> samples;
-  if (!pickLocalRasterSamples(bp, proj_pt, samples))
-    return false;
-
-  vw::Vector3 s0 = rasterPixelToStereographicPoint(bp, samples[0].pix, samples[0].height);
-  vw::Vector3 s1 = rasterPixelToStereographicPoint(bp, samples[1].pix, samples[1].height);
-  vw::Vector3 s2 = rasterPixelToStereographicPoint(bp, samples[2].pix, samples[2].height);
-
-  // Exact plane through the three points in stereographic coords.
-  vw::Vector3 u = s1 - s0;
-  vw::Vector3 w = s2 - s0;
-  vw::Vector3 normal = cross_prod(u, w);
-  double normal_norm = vw::math::norm_2(normal);
-  if (normal_norm < 1e-12)
-    return false; // degenerate triangle, fall back to global plane
-  normal /= normal_norm;
-  if (normal[2] < 0) normal = -normal; // orient +z
-
-  plane.resize(4);
-  plane[0] = normal[0];
-  plane[1] = normal[1];
-  plane[2] = normal[2];
-  plane[3] = -dot_prod(normal, s0);
-  return true;
 }
 
 // Read a georeferenced raster of water-surface heights. The raster's own
@@ -538,8 +322,8 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   std::vector<vw::Vector3> stereo_pts;
   stereo_pts.reserve(raster_proj_pts.size());
   for (auto const& p : raster_proj_pts) {
-    vw::Vector3 ecef = vw::unproj_point(plane_proj, p);
-    stereo_pts.push_back(vw::proj_point(bp.stereographic_proj, ecef));
+    vw::Vector3 ecef = bathyUnprojPoint(plane_proj, p);
+    stereo_pts.push_back(bathyProjPoint(bp.stereographic_proj, ecef));
   }
   fitPlaneToPoints(stereo_pts, bathy_plane);
 
@@ -605,291 +389,6 @@ void readBathyPlanes(std::string const& bathy_plane_files,
   // Clone the bathy plane if there's only one
   while (bathy_plane_vec.size() < (size_t)num_images)
     bathy_plane_vec.push_back(bathy_plane_vec[0]);
-}
-
-// Compute the projected coordinates of an ECEF point
-Vector3 proj_point(vw::cartography::GeoReference const& projection,
-                   Vector3 const& xyz) {
-  return projection.geodetic_to_point(projection.datum().cartesian_to_geodetic(xyz));
-}
-
-// Reverse this operation
-Vector3 unproj_point(vw::cartography::GeoReference const& projection,
-                     Vector3 const& proj_pt) {
-  return projection.datum().geodetic_to_cartesian(projection.point_to_geodetic(proj_pt));
-}
-
-// Find where a ray (in ECEF) intersects a curved bathy plane. The plane is
-// modeled as flat in local stereographic projection. Returns the intersection
-// point in ECEF, the intersection point in projected coordinates, and the ray
-// direction at that location in projected coordinates.
-// Returns false if intersection fails.
-bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
-                            vw::Vector3 const& in_dir,
-                            std::vector<double> const& plane,
-                            vw::cartography::GeoReference const& plane_proj,
-                            double mean_height,
-                            vw::Vector3 & intersect_ecef,
-                            vw::Vector3 & intersect_proj_pt,
-                            vw::Vector3 & intersect_proj_dir) {
-
-  // Seed the ray-surface intersection from the physical mean water height,
-  // supplied by the caller. -plane[3]/plane[2] would be equivalent only when
-  // plane_proj is meter-scale (e.g. a local stereographic projection); for
-  // geographic plane_proj it can be off by ~100 m.
-  //
-  // TODO(oalexan1): the per-step refinement below still intersects the ECEF
-  // ray with the fitted plane in plane_proj's coords. That step works in any
-  // coord system arithmetically, but interpreting the resulting point as
-  // "on the water surface" assumes the plane equation describes a meter-
-  // scale surface. For a geographic plane_proj the fitted plane is in
-  // mixed units and convergence can be loose. See water_surface_notes.sh.
-  double major_radius = plane_proj.datum().semi_major_axis() + mean_height;
-  double minor_radius = plane_proj.datum().semi_minor_axis() + mean_height;
-
-  // Intersect the ray with the mean water surface, this will give us the
-  // initial guess for intersecting with that surface.
-  intersect_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
-                                                       in_ecef, in_dir);
-
-  // The fact that we trace a ray below in projected coordinates, even if very
-  // close to the bathy plane and very short, can still introduce some small
-  // error. So refine intersect_ecef so it is both along the ray in ECEF and on the
-  // curved plane.
-  for (int pass = 0; pass < 5; pass++) {
-
-    // Move a little up the ray. Move less on later passes.
-    vw::Vector3 prev_ecef = intersect_ecef - 1.0 * in_dir / (1.0 + 10.0 * pass);
-
-    // Compute projected entries. These will be exported out of this function.
-    intersect_proj_pt = proj_point(plane_proj, intersect_ecef);
-    vw::Vector3 prev_proj_pt = proj_point(plane_proj, prev_ecef);
-    intersect_proj_dir = intersect_proj_pt - prev_proj_pt;
-    intersect_proj_dir /= norm_2(intersect_proj_dir);
-
-    // Stop when we are within 0.1 mm of the plane, while along the ray. Going
-    // beyond that seems not useful. This is usually reached on second pass.
-
-    if (std::abs(signed_dist_to_plane(plane, intersect_proj_pt)) < 1e-4)
-      break;
-
-    // Intersect the proj ray with the proj plane
-    vw::Vector3 refined_intersect_proj_pt;
-    if (!rayPlaneIntersect(intersect_proj_pt, intersect_proj_dir, plane,
-                           refined_intersect_proj_pt))
-      return false;
-
-    // Convert back to ECEF
-    intersect_ecef = unproj_point(plane_proj, refined_intersect_proj_pt);
-
-    // Put the point back on the ray. Then it may become slightly off the plane.
-    intersect_ecef = in_ecef + dot_prod(intersect_ecef - in_ecef, in_dir) * in_dir;
-  }
-
-  return true;
-}
-
-namespace {
-
-// Test Snell's law in projected and unprojected coordinates
-void testSnellLaw(std::vector<double> const& plane,
-                  vw::cartography::GeoReference const& plane_proj,
-                  double refraction_index,
-                  vw::Vector3 const& out_ecef,
-                  vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,
-                  vw::Vector3 const& out_proj_pt,
-                  vw::Vector3 const& in_proj_dir, vw::Vector3 const& out_proj_dir) {
-
-  // 1. In projected coordinates
-  vw::Vector3 proj_normal(plane[0], plane[1], plane[2]);
-  double sin_in = sin(acos(dot_prod(proj_normal, -in_proj_dir)));
-  double sin_out = sin(acos(dot_prod(-proj_normal, out_proj_dir)));
-
-  // 2. In unprojected coordinates
-  vw::Vector3 proj_pt_above_normal = out_proj_pt + 1.0 * proj_normal; // go 1 m along the normal
-  vw::Vector3 ecef_above_normal = unproj_point(plane_proj,
-                                               proj_pt_above_normal);
-  vw::Vector3 ecef_normal = ecef_above_normal - out_ecef;
-  ecef_normal /= norm_2(ecef_normal); // normalize
-  sin_in = sin(acos(dot_prod(ecef_normal, -in_ecef_dir)));
-  sin_out = sin(acos(dot_prod(-ecef_normal, out_ecef_dir)));
-
-  // Verify that the incoming ray, outgoing ray, and the
-  // normal are in the same plane in projected coordinates
-
-  // 1. In projected coordinates
-  vw::Vector3 in_out_normal = vw::math::cross_prod(in_proj_dir, out_proj_dir);
-  double plane_error = dot_prod(in_out_normal, proj_normal);
-
-  // 2. In unprojected coordinates
-  in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
-  plane_error = dot_prod(in_out_normal, ecef_normal);
-}
-
-// Consider a stereographic projection and a plane
-// a * x + b * y + c * z + d = 0 for (x, y, z) in this projection.
-// Intersect it with a ray given in ECEF coordinates.
-// If the values a and b are 0, that is the same as intersecting
-// the ray with the spheroid of values -d/c above the datum.
-// This solver was not used as it was too slow. An approximate
-// solution was instead found.
-class SolveCurvedPlaneIntersection:
-  public vw::math::LeastSquaresModelBase<SolveCurvedPlaneIntersection> {
-  vw::Vector3 const& m_ray_pt;
-  vw::Vector3 const& m_ray_dir;
-  vw::cartography::GeoReference const& m_projection;
-  std::vector<double> const& m_proj_plane;
-public:
-
-  // This is a one-parameter problem, yet have to use a vector (of size 1)
-  // as required by the API.
-  typedef vw::Vector<double, 1> result_type;   // residual
-  typedef vw::Vector<double, 1> domain_type;   // parameter giving the position on the ray
-  typedef vw::Matrix<double>    jacobian_type;
-
-  /// Instantiate the solver with a set of xyz to pixel pairs and a pinhole model
-  SolveCurvedPlaneIntersection(vw::Vector3 const& ray_pt, vw::Vector3 const& ray_dir,
-                                vw::cartography::GeoReference const& projection,
-                                std::vector<double> const& proj_plane):
-    m_ray_pt(ray_pt), m_ray_dir(ray_dir), m_projection(projection),
-    m_proj_plane(proj_plane) {}
-
-  /// Given the camera, project xyz into it
-  inline result_type operator()(domain_type const& t) const {
-
-    // Get the current point along the ray
-    vw::Vector3 xyz = m_ray_pt + t[0] * m_ray_dir;
-
-    // Convert to projected coordinates
-    vw::Vector3 proj_pt = proj_point(m_projection, xyz);
-
-    result_type ans;
-    ans[0] = signed_dist_to_plane(m_proj_plane, proj_pt);
-    return ans;
-  }
-}; // End class SolveCurvedPlaneIntersection
-
-// Given a ray in ECEF and a water surface which is a plane only in a local
-// stereographic projection, compute how the ray bends under Snell's law. Use
-// the following approximate logic. Find where the ray intersects the datum with
-// the mean water height, as then it is close to the water surface, since the
-// water surface is almost horizontal in projected coordinates. Find a point on
-// that ray 1 m before that. Convert both of these points from ECEF to the
-// projected coordinate system. Do Snell's law in that coordinate system for the
-// ray going through those two projected points. Find a point on the outgoing
-// ray in projected coordinates Find another close point further along it. Undo
-// the projection for these two points. That will give the outgoing direction in
-// ECEF.
-bool curvedSnellLawAgainstPlane(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
-                                std::vector<double> const& plane,
-                                vw::cartography::GeoReference const& plane_proj,
-                                double refraction_index, double mean_height,
-                                vw::Vector3 & out_ecef, vw::Vector3 & out_dir) {
-
-  // Intersect the ray with the curved water surface. Return the intersection
-  // point in ecef, that point in projected coordinates, and the ray direction
-  // at that location in projected coordinates.
-  vw::Vector3 intersect_ecef, intersect_proj_pt, intersect_proj_dir;
-  if (!rayBathyPlaneIntersect(in_ecef, in_dir, plane, plane_proj, mean_height,
-                              intersect_ecef, intersect_proj_pt, intersect_proj_dir))
-    return false;
-
-  // Snell's law in projected coordinates
-  vw::Vector3 out_proj_pt, out_proj_dir; // in the water
-  bool ans = snellLaw(intersect_proj_pt, intersect_proj_dir,
-                      plane, refraction_index,
-                      out_proj_pt, out_proj_dir);
-
-  // If Snell's law failed to work, exit early
-  if (!ans)
-    return ans;
-
-  // Move a little on the ray in projected coordinates.
-  vw::Vector3 next_proj_pt = out_proj_pt + 1.0 * out_proj_dir;
-
-  // Convert back to ECEF
-  out_ecef = unproj_point(plane_proj, out_proj_pt);
-  vw::Vector3 next_ecef = unproj_point(plane_proj, next_proj_pt);
-
-  // Finally get the outgoing direction according to Snell's law in ECEF.
-  // The assumption here is that at ground level a short vector in ECEF
-  // is very close to the same short vector in projected coordinates.
-  out_dir = next_ecef - out_ecef;
-  out_dir /= norm_2(out_dir);
-
-#if 0
-  // Sanity check
-  testSnellLaw(plane,
-               plane_proj,
-               refraction_index,
-               out_ecef, in_dir, out_dir,
-               out_proj_pt, intersect_proj_dir, out_proj_dir);
-#endif
-
-  return true;
-}
-
-} // namespace
-
-// Given an ECEF point xyz and two bathy planes, find if xyz is above or below
-// each plane by signed distance in each plane's stereographic frame.
-void signed_distances_to_planes(std::vector<BathyPlane> const& bathy_plane_vec,
-                                vw::Vector3 const& xyz,
-                                std::vector<double>& distances) {
-
-  if (bathy_plane_vec.size() != 2)
-    vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
-
-  distances.resize(2);
-  for (size_t it = 0; it < 2; it++) {
-    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
-    // into that frame (meter-scale) before evaluating the signed distance.
-    distances[it]
-      = signed_dist_to_plane(bathy_plane_vec[it].bathy_plane,
-                             proj_point(bathy_plane_vec[it].stereographic_proj, xyz));
-  }
-}
-
-// Bend a camera ray at the bathy water surface. See BathyData.h for the
-// contract. When bp carries a raster, this routine first locates the
-// approximate hit using the global plane, samples three raster neighbors
-// there to fit a local plane, and bends with that refined local plane
-// (falling back to the global plane on any sampling failure).
-//
-// TODO(oalexan1): the refined-plane path does two ray-plane intersects
-// (one to locate the raster sampling point, one inside curvedSnellLawAgainstPlane).
-// Could be collapsed to one by teaching rayBathyPlaneIntersect to take
-// an ECEF seed; defer until profiling justifies it.
-bool curvedSnellLaw(vw::Vector3 const& in_ecef,
-                    vw::Vector3 const& in_dir,
-                    BathyPlane const& bp,
-                    double refraction_index,
-                    vw::Vector3& out_ecef,
-                    vw::Vector3& out_dir) {
-
-  // No raster: classic single-plane path.
-  if (bp.water_surface.cols() == 0)
-    return curvedSnellLawAgainstPlane(in_ecef, in_dir,
-                                      bp.bathy_plane, bp.stereographic_proj,
-                                      refraction_index, bp.mean_height,
-                                      out_ecef, out_dir);
-
-  // Raster path: locate the approximate hit, then refine the plane there.
-  vw::Vector3 hit_ecef, hit_proj_pt, hit_proj_dir;
-  if (!rayBathyPlaneIntersect(in_ecef, in_dir,
-                              bp.bathy_plane, bp.stereographic_proj,
-                              bp.mean_height,
-                              hit_ecef, hit_proj_pt, hit_proj_dir))
-    return false;
-
-  std::vector<double> local_plane;
-  bool refined = refineLocalPlaneFromRaster(bp, hit_proj_pt, local_plane);
-  std::vector<double> const& active_plane = refined ? local_plane : bp.bathy_plane;
-
-  return curvedSnellLawAgainstPlane(in_ecef, in_dir,
-                                    active_plane, bp.stereographic_proj,
-                                    refraction_index, bp.mean_height,
-                                    out_ecef, out_dir);
 }
 
 } // namespace vw

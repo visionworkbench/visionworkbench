@@ -15,10 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// Straight-line Snell's law primitives. See SnellLaw.h for the public
-// interface. Anything bathy-specific (water surface as a plane in a
-// local stereographic projection, raster water surface, ECEF / proj
-// round-trips) lives in vw/Cartography/BathyData.cc.
+// Straight-line Snell's law logic. See SnellLaw.h for the public
+// interface. Anything involving a curved surface is in BathyData.cc.
 
 #include <vw/Cartography/SnellLaw.h>
 

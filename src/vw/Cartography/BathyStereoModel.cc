@@ -24,6 +24,7 @@
 #include <vw/Cartography/BathyStereoModel.h>
 
 #include <vw/Cartography/BathyData.h>
+#include <vw/Cartography/BathyRay.h>
 #include <vw/Cartography/SnellLaw.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
@@ -140,8 +141,8 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
       // The water surface is curved. It is however flat (a plane) when we
       // switch to the stereographic frame (where bathy_plane coefs live).
-      Vector3 proj_pt = proj_point(m_bathy_plane_vec[0].stereographic_proj,
-                                   uncorr_tri_pt);
+      Vector3 proj_pt = bathyProjPoint(m_bathy_plane_vec[0].stereographic_proj,
+                                       uncorr_tri_pt);
       double ht_val = signed_dist_to_plane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
       if (ht_val >= 0) {
         // the rays intersect above the water surface
