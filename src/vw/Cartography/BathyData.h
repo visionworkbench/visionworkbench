@@ -97,6 +97,10 @@ vw::ImageViewRef<vw::PixelMask<float>> read_bathy_mask(std::string const& filena
 void read_bathy_masks(std::vector<std::string> const& mask_filenames,
                       std::vector<vw::ImageViewRef<vw::PixelMask<float>>> & bathy_masks);
 
+// Read a single bathy plane. Accepts either a text plane file or a GeoTIFF
+// raster of water surface heights.
+void readBathyPlane(std::string const& bathy_plane_file, BathyPlane & bp);
+
 // Read the bathy planes and associated data. More often than not they will be
 // identical. If there is more than one bathy plane file, they are all kept in
 // the same string, separated by space.
