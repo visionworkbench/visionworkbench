@@ -101,6 +101,13 @@ void read_bathy_masks(std::vector<std::string> const& mask_filenames,
 // raster of water surface heights.
 void readBathyPlane(std::string const& bathy_plane_file, BathyPlane & bp);
 
+// Read a georeferenced raster of water-surface heights and fit a best-fit
+// plane to it in a local stereographic frame. Same logic as the raster
+// branch of readBathyPlane(), exposed for tools that want to convert a
+// raster water surface to the four-coefficient text format.
+void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
+                              BathyPlane & bp);
+
 // Read the bathy planes and associated data. More often than not they will be
 // identical. If there is more than one bathy plane file, they are all kept in
 // the same string, separated by space.
@@ -118,9 +125,19 @@ vw::Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
 vw::Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
                              vw::Vector3 const& proj_pt);
 
+// Signed distance from an ECEF point xyz to the water surface described
+// by a BathyPlane. Raster-aware: if a wl.tif raster is loaded, sample it
+// at the projected pixel of xyz (bilinear) and return the vertical diff
+// between xyz's ellipsoid height and the sampled surface height. If no
+// raster, or sampling fails (out of bounds / nodata), fall back to the
+// best-fit plane. Sign convention: positive = xyz is above the water
+// surface.
+double signedDistToPlane(BathyPlane const& bp, vw::Vector3 const& xyz);
+
 // Given an ECEF point xyz and two bathy planes, find if xyz is above or
-// below each plane. Outputs distances[0] and distances[1] in the same
-// stereographic frame as the corresponding bathy_plane coefs.
+// below each plane. Outputs distances[0] and distances[1]. Internally uses
+// signedDistToPlane(BathyPlane, xyz) so each entry honors the raster (when
+// loaded) and the best-fit plane otherwise.
 void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
                         vw::Vector3 const& xyz,
                         std::vector<double>& distances);

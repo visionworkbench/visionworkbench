@@ -139,11 +139,10 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
     // Rays get bent, then they intersect, and done.
     if (m_single_bathy_plane) {
 
-      // The water surface is curved. It is however flat (a plane) when we
-      // switch to the stereographic frame (where bathy_plane coefs live).
-      Vector3 proj_pt = bathyProjPoint(m_bathy_plane_vec[0].stereographic_proj,
-                                       uncorr_tri_pt);
-      double ht_val = signedDistToPlane(m_bathy_plane_vec[0].bathy_plane, proj_pt);
+      // Above-water predicate (raster-aware via signedDistToPlane(BathyPlane,
+      // xyz); falls back to the best-fit plane in the stereographic frame
+      // when no raster is loaded).
+      double ht_val = signedDistToPlane(m_bathy_plane_vec[0], uncorr_tri_pt);
       if (ht_val >= 0) {
         // the rays intersect above the water surface
         did_bathy = false;

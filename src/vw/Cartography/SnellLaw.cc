@@ -28,8 +28,10 @@ namespace vw {
 
 // Given a plane as four values a, b, c, d, with the plane being
 // a * x + b * y + c * z + d = 0, find how far off a point (x, y, z) is from the plane
-// by evaluating the above expression.
-double signedDistToPlane(std::vector<double> const& plane, vw::Vector3 const& point) {
+// by evaluating the above expression. Low-level helper. For bathy work,
+// prefer signedDistToPlane(BathyPlane const&, Vector3 const&) (in
+// BathyData.h) which is raster-aware.
+double signedDistToPlaneAux(std::vector<double> const& plane, vw::Vector3 const& point) {
 
   double ans = 0.0;
   for (unsigned coord_it = 0; coord_it < 3; coord_it++) {

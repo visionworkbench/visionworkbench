@@ -123,12 +123,9 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
   if (xyz == Vector3(0, 0, 0))
     return Vector3(0, 0, 0);
 
-  // Project the intersection point into the stereographic frame where
-  // bathy_plane coefficients live.
-  Vector3 proj_pt = bathyProjPoint(bathy_plane.stereographic_proj, xyz);
-
-  // Check signed distance to bathy plane
-  double ht_val = signedDistToPlane(bathy_plane.bathy_plane, proj_pt);
+  // Check signed distance to the water surface (raster-aware if a wl.tif
+  // is loaded; falls back to the best-fit plane otherwise).
+  double ht_val = signedDistToPlane(bathy_plane, xyz);
 
   // If point is above water surface, no refraction needed
   if (ht_val >= 0)
@@ -169,15 +166,16 @@ vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
   // Get camera pixel as if there was no refraction
   vw::Vector2 pix = cam->point_to_pixel(ecef_point);
 
-  // Project to the stereographic frame where bathy_plane lives.
-  vw::Vector3 proj_pt = vw::bathyProjPoint(bathy_plane.stereographic_proj, ecef_point);
-
-  // Check signed distance to bathy plane
-  double dist = vw::signedDistToPlane(bathy_plane.bathy_plane, proj_pt);
+  // Check signed distance to the water surface (raster-aware if a wl.tif
+  // is loaded; falls back to the best-fit plane otherwise).
+  double dist = vw::signedDistToPlane(bathy_plane, ecef_point);
 
   // If point is above the water surface (positive distance), no refraction
   if (dist >= 0)
     return pix;
+
+  // Project to the stereographic frame for fitLocalEcefPlane below.
+  vw::Vector3 proj_pt = vw::bathyProjPoint(bathy_plane.stereographic_proj, ecef_point);
 
   // Fit local ECEF tangent plane. Newton-Raphson below iterates against
   // this tangent entirely in ECEF - zero per-iteration proj calls. When a

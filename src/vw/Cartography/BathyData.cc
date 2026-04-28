@@ -186,8 +186,45 @@ Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
   return projection.datum().geodetic_to_cartesian(projection.point_to_geodetic(proj_pt));
 }
 
+// Signed distance from an ECEF point xyz to the water surface described
+// by a BathyPlane. Raster-aware: when a wl.tif is loaded, sample it at the
+// projected pixel of xyz and return the vertical diff between xyz's
+// ellipsoid height and the bilinear-interpolated surface height. If no
+// raster, or sampling fails (out of bounds / nodata), fall back to the
+// best-fit plane in the stereographic frame. Sign convention: positive =
+// xyz is above the water surface.
+double signedDistToPlane(BathyPlane const& bp, vw::Vector3 const& xyz) {
+
+  // Raster path: bilinear interp of the actual surface at xyz's location.
+  if (bp.water_surface.cols() > 0) {
+    // Convert xyz to the raster's native projection frame. plane_proj may
+    // be geographic or stereographic; either way the z component carries
+    // the ellipsoid height (GeoReference's xy<->lonlat/xy<->stereographic
+    // doesn't touch z).
+    vw::Vector3 raster_proj_pt = bathyProjPoint(bp.plane_proj, xyz);
+    vw::Vector2 pix = bp.plane_proj.point_to_pixel(
+                        vw::Vector2(raster_proj_pt[0], raster_proj_pt[1]));
+    int cols = bp.water_surface.cols();
+    int rows = bp.water_surface.rows();
+    if (pix[0] >= 0.0 && pix[0] <= cols - 1.0 &&
+        pix[1] >= 0.0 && pix[1] <= rows - 1.0) {
+      auto interp = vw::BilinearInterpolation::interpolator(bp.water_surface);
+      vw::PixelMask<float> v = interp(bp.water_surface, pix[0], pix[1], 0);
+      if (vw::is_valid(v))
+        return raster_proj_pt[2] - v.child();
+    }
+    // Sampling failed: fall through to the plane fallback below.
+  }
+
+  // Plane fallback: signed distance in the stereographic frame, where the
+  // bathy_plane coefficients live.
+  return signedDistToPlaneAux(bp.bathy_plane,
+                              bathyProjPoint(bp.stereographic_proj, xyz));
+}
+
 // Given an ECEF point xyz and two bathy planes, find if xyz is above or below
-// each plane by signed distance in each plane's stereographic frame.
+// each plane. Each entry honors the per-plane raster (when loaded) or the
+// best-fit plane otherwise via signedDistToPlane(BathyPlane, xyz).
 void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
                         vw::Vector3 const& xyz,
                         std::vector<double>& distances) {
@@ -196,13 +233,8 @@ void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
     vw_throw(vw::ArgumentErr() << "Two bathy planes expected.\n");
 
   distances.resize(2);
-  for (size_t it = 0; it < 2; it++) {
-    // bathy_plane coefs live in stereographic_proj's frame, so project xyz
-    // into that frame (meter-scale) before evaluating the signed distance.
-    distances[it]
-      = signedDistToPlane(bathy_plane_vec[it].bathy_plane,
-                          bathyProjPoint(bathy_plane_vec[it].stereographic_proj, xyz));
-  }
+  for (size_t it = 0; it < 2; it++)
+    distances[it] = signedDistToPlane(bathy_plane_vec[it], xyz);
 }
 
 // Read a plane from the legacy 3-line text format: four plane coefficients
@@ -279,8 +311,8 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
 // frame via ECEF and passed to fitPlaneToPoints, so the four plane
 // coefficients live in meter-scale coords regardless of the raster CRS.
 // Downstream consumers pair bathy_plane with stereographic_proj.
-static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
-                                     BathyPlane & bp) {
+void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
+                              BathyPlane & bp) {
   std::vector<double> & bathy_plane = bp.bathy_plane;
   vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
@@ -335,10 +367,9 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
              << "projected (meter-scale) CRS; derivation from "
              << bathy_plane_file << " did not produce one.\n");
 
-  // Re-express each sample in the stereographic frame via ECEF, so the
-  // fitted bathy_plane coefficients live in meter-scale coords regardless
-  // of the raster's native CRS. signedDistToPlane, rayPlaneIntersect,
-  // and Snell's law in proj coords all then work unchanged downstream.
+  // Compute the best-fit bathy plane given by a formula in local stereographic
+  // coordinates. This plane and its local stereographic projection help with
+  // operations involving the actual plane read as a raster.
   std::vector<vw::Vector3> stereo_pts;
   stereo_pts.reserve(raster_proj_pts.size());
   for (auto const& p : raster_proj_pts) {
@@ -347,6 +378,7 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   }
   fitPlaneToPoints(stereo_pts, bathy_plane);
 
+#if 0 // Useful debug info.
   // Report fit residuals so the user can see whether a plane is a good model.
   double max_abs_residual = 0.0, sum_sq_residual = 0.0;
   for (auto const& p : stereo_pts) {
@@ -366,6 +398,7 @@ static void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   if (bp.stereographic_proj.overall_proj4_str() != plane_proj.overall_proj4_str())
     vw_out() << "Stereographic companion: "
              << bp.stereographic_proj.overall_proj4_str() << "\n";
+#endif             
 }
 
 // Dispatch: try to read as a georeferenced raster first; on failure, fall

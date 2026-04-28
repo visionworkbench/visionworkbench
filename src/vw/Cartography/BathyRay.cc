@@ -148,7 +148,7 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
              << "projected (meter-scale) georef; got geographic instead.\n");
 
   // Project proj_pt onto the plane to get a point on the plane.
-  double dist = signedDistToPlane(plane, proj_pt);
+  double dist = signedDistToPlaneAux(plane, proj_pt);
   vw::Vector3 normal(plane[0], plane[1], plane[2]);
   double normal_sq = dot_prod(normal, normal);
   vw::Vector3 proj_on_plane = proj_pt - (dist / normal_sq) * normal;
@@ -312,7 +312,7 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
     // Stop when we are within 0.1 mm of the plane, while along the ray. Going
     // beyond that seems not useful. This is usually reached on second pass.
 
-    if (std::abs(signedDistToPlane(plane, intersect_proj_pt)) < 1e-4)
+    if (std::abs(signedDistToPlaneAux(plane, intersect_proj_pt)) < 1e-4)
       break;
 
     // Intersect the proj ray with the proj plane
