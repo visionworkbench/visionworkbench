@@ -316,24 +316,23 @@ void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   std::vector<double> & bathy_plane = bp.bathy_plane;
   vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
-  // Read pixel data with nodata-aware mask. Use raw DiskImageView rather than
-  // read_bathy_mask(), which also invalidates non-positive pixels - wrong for
-  // water-surface heights (typically negative relative to WGS84 ellipsoid).
+  // Initialize bp.water_surface
   float nodata = -std::numeric_limits<float>::max();
   vw::read_nodata_val(bathy_plane_file, nodata);
-  vw::ImageView<vw::PixelMask<float>> raster
+  bp.water_surface
     = vw::create_mask(vw::DiskImageView<float>(bathy_plane_file), nodata);
 
   // Walk valid pixels, collect points in the raster's projection coordinates.
   // Also accumulate the sum of valid heights to compute the physical mean,
   // and the mean proj_xy to use as the stereographic origin.
   std::vector<vw::Vector3> raster_proj_pts;
-  raster_proj_pts.reserve(size_t(raster.cols()) * size_t(raster.rows()));
+  raster_proj_pts.reserve(size_t(bp.water_surface.cols())
+                          * size_t(bp.water_surface.rows()));
   double height_sum = 0.0;
   vw::Vector2 proj_xy_sum(0, 0);
-  for (int row = 0; row < raster.rows(); row++) {
-    for (int col = 0; col < raster.cols(); col++) {
-      vw::PixelMask<float> pix = raster(col, row);
+  for (int row = 0; row < bp.water_surface.rows(); row++) {
+    for (int col = 0; col < bp.water_surface.cols(); col++) {
+      vw::PixelMask<float> pix = bp.water_surface(col, row);
       if (!vw::is_valid(pix))
         continue;
       vw::Vector2 proj_xy = plane_proj.pixel_to_point(vw::Vector2(col, row));
