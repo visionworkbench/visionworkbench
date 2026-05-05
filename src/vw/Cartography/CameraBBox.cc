@@ -558,9 +558,9 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
                                 bool treat_nodata_as_zero,
                                 bool & has_intersection,
                                 double height_error_tol,  // error in DEM height
-                                double max_abs_tol, // abs cost fun change b/w iters
-                                double max_rel_tol,
-                                int num_max_iter,
+                                double /*max_abs_tol*/,   // unused since LMA was removed
+                                double /*max_rel_tol*/,   // unused since LMA was removed
+                                int /*num_max_iter*/,     // unused since LMA was removed
                                 Vector3 xyz_guess,
                                 double height_guess) {
 
@@ -595,48 +595,23 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
     // Will return not xyz, but the 'len' along the ray for it.
     Vector<double, 1> len;
     findInitPositionAboveDEM(model, camera_ctr, xyz,
-      // outputs
-      has_intersection, len);
-    
-    // Call the secant method function to find the intersection with the
-    // ground. Return has_intersection and len. This is 10x faster and more
-    // robust than the Levenberg-Marquardt method used below (which used to be
-    // the original method).
-    Vector<double, 1> len_secant = len; // will change
+                             // outputs
+                             has_intersection, len);
+
+    // Find the ray-DEM intersection by secant method. The previous code
+    // also had a Levenberg-Marquardt fallback when secant failed; in
+    // practice on real scenes that fallback always returned an unusable
+    // result (height residual far above height_error_tol with status =
+    // iterations exhausted) and was rejected later. So we removed it.
     secantMethod(model, camera_ctr, camera_vec, height_error_tol,
-                  has_intersection, len_secant);
+                 has_intersection, len);
     if (has_intersection) {
-      xyz = camera_ctr +  len_secant[0] * camera_vec;
+      xyz = camera_ctr + len[0] * camera_vec;
       return xyz;
     }
 
-    // If no luck, fallback to using Levenberg-Marquardt, with the original
-    // value of len.
-    int status = 0;
-    Vector<double, 1> observation; observation[0] = 0;
-    len = math::levenberg_marquardt(model, len, observation, status,
-      max_abs_tol, max_rel_tol, num_max_iter);
-    Vector<double, 1> dem_height = model(len);
-
-#if 0
-    // We don't really care of the status of the minimization algorithm, since
-    // we use it as a root solver. The good test is whether the height difference
-    // is small enough. This test can fail even if we are close enough to the root.
-    if (status < 0) {
-      has_intersection = false;
-      return Vector3();
-    }
-#endif
-
-    if (std::abs(dem_height[0]) <= height_error_tol) {
-        has_intersection = true;
-        xyz = camera_ctr + len[0]*camera_vec;
-        return xyz;
-    } else {
-      // Failed
-      has_intersection = false;
-      return Vector3();
-    }
+    has_intersection = false;
+    return Vector3();
   } catch(...) {
     has_intersection = false;
   }
