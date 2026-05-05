@@ -161,9 +161,6 @@ namespace detail {
         bool   treat_nodata_as_zero = false; // Intersect with datum if no dem
         bool   has_intersection = false;
         double height_error_tol = 1e-3;   // error in DEM height
-        double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
-        double max_rel_tol      = 1e-14;
-        int    num_max_iter     = 100;
         Vector3 camera_ctr = camera->camera_center(pixel);  // Get ray from this pixel
         Vector3 camera_vec = camera->pixel_to_vector(pixel);
 
@@ -172,8 +169,8 @@ namespace detail {
                                       dem, dem_georef,
                                       treat_nodata_as_zero,
                                       has_intersection,
-                                      height_error_tol, max_abs_tol, max_rel_tol,
-                                      num_max_iter, xyz_guess, height_guess);
+                                      height_error_tol,
+                                      xyz_guess, height_guess);
         // Quit if we did not find an intersection
         if (!has_intersection || xyz == Vector3())
           return false;
@@ -191,7 +188,7 @@ namespace detail {
 
     /// Intersect this pixel with the DEM and record some information about the intersection
     void operator()(Vector2 const& pixel) {
-      
+
       Vector2 point;
       Vector3 xyz_guess, xyz;
       bool has_intersection
@@ -557,10 +554,7 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
                                 vw::cartography::GeoReference const& georef,
                                 bool treat_nodata_as_zero,
                                 bool & has_intersection,
-                                double height_error_tol,  // error in DEM height
-                                double /*max_abs_tol*/,   // unused since LMA was removed
-                                double /*max_rel_tol*/,   // unused since LMA was removed
-                                int /*num_max_iter*/,     // unused since LMA was removed
+                                double height_error_tol,  // secant convergence
                                 Vector3 xyz_guess,
                                 double height_guess) {
 

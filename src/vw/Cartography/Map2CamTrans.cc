@@ -157,9 +157,6 @@ namespace vw { namespace cartography {
     // the tolerance here may not be good enough, as CERES makes very small
     // steps, and the result from here may be jumpy.
     double height_error_tol = 1e-3; // 1 mm
-    double max_abs_tol      = 1e-14; // abs cost function change
-    double max_rel_tol      = 1e-14; // rel cost function change
-    int    num_max_iter     = 50;
     bool   treat_nodata_as_zero = false;
     bool has_intersection = false;
 
@@ -167,8 +164,7 @@ namespace vw { namespace cartography {
     vw::Vector3 xyz = vw::cartography::camera_pixel_to_dem_xyz
        (m_cam->camera_center(p), m_cam->pixel_to_vector(p), m_masked_dem,
         m_dem_georef, treat_nodata_as_zero, has_intersection,
-        height_error_tol, max_abs_tol, max_rel_tol, num_max_iter,
-        prev_xyz, m_height_guess);
+        height_error_tol, prev_xyz, m_height_guess);
 
     // If the intersection failed, throw an exception
     if (!has_intersection || xyz == vw::Vector3())

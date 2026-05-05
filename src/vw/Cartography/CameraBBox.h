@@ -61,12 +61,9 @@ namespace vw { namespace cartography {
                                   GeoReference const& georef,
                                   bool treat_nodata_as_zero,
                                   bool & has_intersection,
-                                  double height_error_tol = 1e-1,  // error in DEM height
-                                  double max_abs_tol      = 1e-14, // abs cost fun change b/w iters
-                                  double max_rel_tol      = 1e-14,
-                                  int num_max_iter        = 100,
+                                  double height_error_tol = 1e-1,  // secant convergence
                                   Vector3 xyz_guess       = Vector3(),
-                                  double height_guess     = 
+                                  double height_guess     =
                                   std::numeric_limits<double>::quiet_NaN());
 
   /// Compute the bounding box in points (georeference space) that is
