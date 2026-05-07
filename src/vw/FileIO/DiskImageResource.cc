@@ -96,7 +96,9 @@ namespace {
   }
 }
 
-bool vw::DiskImageResource::default_rescale = true;
+// Do not rescale integer pixels to [0,1] (or [-1,1]) when reading as float.
+// Caused silent breakage of hillshade, colormap, etc. on integer DEMs.
+bool vw::DiskImageResource::default_rescale = false;
 
 void vw::DiskImageResource::set_rescale(bool rescale) {
   m_rescale = rescale;
