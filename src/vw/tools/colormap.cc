@@ -161,8 +161,13 @@ void save_colormap(Options const& opt,
   if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
     vw_out() << "\t--> Incorporating hillshading from: "
              << opt.shaded_relief_file_name << ".\n";
+    // The hillshade is uint8 on disk. Rescale to [0,1] so the multiplication
+    // with the colorized image (also uint8) stays in range.
+    boost::shared_ptr<vw::DiskImageResource>
+      shade_rsrc(vw::DiskImageResourcePtr(opt.shaded_relief_file_name));
+    shade_rsrc->set_rescale(true);
     DiskImageView<PixelGray<float>>
-      shaded_relief_image(opt.shaded_relief_file_name);
+      shaded_relief_image(shade_rsrc);
     ImageViewRef<PixelMask<PixelRGB<uint8>>> shaded_image =
       copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
                 colorized_image);

@@ -208,9 +208,9 @@ int main(int argc, char** argv) {
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"),
      "RANSAC constraint type. Choose one of: [similarity, homography, fundamental, "
      "or none].")
-    ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(10),
-     "RANSAC inlier threshold.")
-    ("ransac-iterations", po::value(&ransac_iterations)->default_value(100),
+    ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(30),
+     "RANSAC inlier threshold (in pixels).")
+    ("ransac-iterations", po::value(&ransac_iterations)->default_value(1000),
      "Number of RANSAC iterations.")
     ("debug-image,d", "Write out debug images.")
     ("merge-match-files",

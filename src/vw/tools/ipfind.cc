@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
      "Increasing this number will increase the gain at which interest points are detected. Default: 1.")
     ("single-scale", "Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. Harris and LoG only.")
     ("no-orientation",       po::bool_switch(&opt.no_orientation), "Turn off rotational invariance.")
-    ("normalize",     "Normalize the input. Use for images that have non-standard values such as ISIS cube files.")
+    ("normalize",     "Obsolete. Normalization is always performed. Kept for backward compatibility.")
     ("per-tile-normalize",     "Individually normalize each processing tile (only with OpenCV).")
     ("nodata-radius", po::value(&opt.nodata_radius)->default_value(1), 
      "Don't detect IP within this many pixels of image borders or nodata. Default: 1.")
@@ -181,6 +181,9 @@ int main(int argc, char** argv) {
     vw_out() << usage.str();
     return 1;
   }
+
+  if (vm.count("normalize"))
+    vw_out() << "The --normalize option is obsolete. Normalization is always performed.\n";
 
   bool opencv_normalize = false;
   if (vm.count("per-tile-normalize"))
@@ -282,21 +285,13 @@ int main(int argc, char** argv) {
       vw_out() << "Read in nodata value: " << nodata << std::endl;
     }
 
-    if (vm.count("normalize")) {
-      vw_out() << "Normalizing the input image...\n";
-      if (has_nodata) {
-        masked_image = normalize(create_mask(raw_image, nodata));
-        image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
-      }
-      else
-        image = normalize(raw_image);
-    } else { // Not normalizing
-      if (has_nodata) {
-        masked_image = create_mask(raw_image, nodata);
-        image        = apply_mask(masked_image); // A backup option for detectors which don't handle nodata.
-      }
-      else
-        image = raw_image;
+    // Always normalize to [0,1] so IP detection does not depend on
+    // the input pixel type (uint8, int16, float32, etc.).
+    if (has_nodata) {
+      masked_image = normalize(create_mask(raw_image, nodata));
+      image        = apply_mask(masked_image);
+    } else {
+      image = normalize(raw_image);
     }
 
     // Potentially mask image on a no data value
