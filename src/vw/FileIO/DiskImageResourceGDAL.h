@@ -150,7 +150,9 @@ namespace vw {
     // your use, up to and including the release of your shared
     // pointer to the dataset.
     boost::shared_ptr<GDALDataset> get_dataset_ptr() const;
-    char **get_metadata() const;
+    // GDAL 3.13 tightened GetMetadata() to return CSLConstList. Spell it out
+    // here as 'const char* const*' so consumers don't need cpl_string.h.
+    const char* const* get_metadata() const;
 
     // Provides access to the global GDAL lock, for users who need to go
     // tinkering around in GDAL directly for some reason.

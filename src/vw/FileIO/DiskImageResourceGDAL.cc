@@ -184,7 +184,7 @@ namespace vw {
         continue;
 
       if (need_create) {
-        char** metadata = driver->GetMetadata();
+        CSLConstList metadata = driver->GetMetadata();
         if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
           VW_OUT(WarningMessage, "fileio") << "GDAL driver " << i << " does not support create." << std::endl;
           driver = NULL;
@@ -275,7 +275,7 @@ namespace vw {
 
     VW_OUT(DebugMessage, "fileio") << "\n\tMetadata description: " 
       << dataset->GetDescription() << std::endl;
-    char** metadata = dataset->GetMetadata();
+    CSLConstList metadata = dataset->GetMetadata();
     VW_OUT(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
     for (int i = 0; i < CSLCount(metadata); i++) {
       VW_OUT(DebugMessage, "fileio") << "\t\t" << CSLGetField(metadata,i) << std::endl;
@@ -583,8 +583,10 @@ namespace vw {
     }
   }
 
-  // Provide read access to the file's metadata
-  char **DiskImageResourceGDAL::get_metadata() const {
+  // Provide read access to the file's metadata. GDAL 3.13 tightened
+  // GDALMajorObject::GetMetadata() to return CSLConstList (const char* const*),
+  // so this signature mirrors that.
+  const char* const* DiskImageResourceGDAL::get_metadata() const {
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << "." );
