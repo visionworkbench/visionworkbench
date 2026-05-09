@@ -84,7 +84,7 @@ namespace cartography {
       // comments in GeoReference for more information.  If nothing is
       // encoded in the file, the default is to assume PixelAsArea.
       georef.set_pixel_interpretation(GeoReference::PixelAsArea);
-      char **metadata = dataset->GetMetadata();
+      CSLConstList metadata = dataset->GetMetadata();
       if (CSLCount(metadata) > 0) {
         for (int i = 0; metadata[i] != NULL; i++) {
           std::vector<std::string> split_vec;
@@ -201,7 +201,7 @@ namespace cartography {
       vw_throw(LogicErr() << "read_gdal_string: Could not read string. "
                 << "No file has been opened.");
 
-    char **metadata = dataset->GetMetadata();
+    CSLConstList metadata = dataset->GetMetadata();
     if (CSLCount(metadata) == 0)
       return false;
 
