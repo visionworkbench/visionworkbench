@@ -96,8 +96,8 @@ bool has_image_extension(std::string const& input) {
       ext == ".png"  || ext == ".jpeg" ||
       ext == ".jpg"  || ext == ".jp2"  ||
       ext == ".img"  || ext == ".cub"  ||
-      ext == ".bip"  || ext == ".bil"  || 
-      ext == ".bsq")
+      ext == ".bip"  || ext == ".bil"  ||
+      ext == ".bsq"  || ext == ".vrt")
     return true;
   return false;
 }
