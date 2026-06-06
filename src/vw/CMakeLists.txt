@@ -74,8 +74,9 @@ option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
 set(Boost_USE_STATIC_LIBS   OFF)
 set(Boost_USE_MULTITHREADED ON )
 
-# Enable/disable SSE optimizations
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+# Enable/disable SSE optimizations. SSE is x86-only, so disable it on any Arm
+# CPU (Mac arm64 and Linux aarch64), not just Mac.
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
   set(VW_ENABLE_SSE 0)
 else()
   set(VW_ENABLE_SSE 1)
@@ -85,8 +86,8 @@ if (VW_ENABLE_SSE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
   message(STATUS "Enabling SSE")
 else()
-  if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-    message(STATUS "SSE optimizations are not available on Mac Arm.")
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    message(STATUS "SSE optimizations are not available on Arm.")
   else()
     # Older Intel CPUs do not support SSE4.1
     message(STATUS, "Disabling SSE.")
