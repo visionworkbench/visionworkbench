@@ -321,4 +321,45 @@ add_subdirectory(BundleAdjustment)
 # Add the executable subdirectory
 add_subdirectory(tools)
 
+# After install, repair rpaths on macOS. CMake's install relink re-adds the
+# conda lib dir though it is already a build rpath; install_name_tool then
+# aborts on the duplicate, so the build-tree rpaths (.../build/src/vw/*) are
+# left in place and @loader_path/../lib is never added. Strip the build-tree
+# rpaths, ensure @loader_path/../lib is present, de-duplicate the conda lib
+# dir to the end (so our installed libs win over any stale copy there), and
+# re-sign. Not needed on Linux, where chrpath sets a single $ORIGIN/../lib.
+if (APPLE)
+  install(CODE "
+    file(GLOB vw_libs \"\${CMAKE_INSTALL_PREFIX}/lib/libVw*.dylib\")
+    file(GLOB vw_bins \"\${CMAKE_INSTALL_PREFIX}/bin/*\")
+    foreach(f IN LISTS vw_libs vw_bins)
+      # Delete any rpath that points into the build tree.
+      execute_process(COMMAND otool -l \${f} OUTPUT_VARIABLE otool_out ERROR_QUIET)
+      string(REGEX MATCHALL \"${CMAKE_BINARY_DIR}[^ \n]*\" build_rpaths \"\${otool_out}\")
+      foreach(rp \${build_rpaths})
+        execute_process(COMMAND install_name_tool -delete_rpath \${rp} \${f} ERROR_QUIET)
+      endforeach()
+      # Ensure the relative install rpath is present.
+      execute_process(COMMAND otool -l \${f} OUTPUT_VARIABLE otool_out ERROR_QUIET)
+      string(FIND \"\${otool_out}\" \"@loader_path/../lib\" has_loader)
+      if (has_loader EQUAL -1)
+        execute_process(COMMAND install_name_tool -add_rpath \"@loader_path/../lib\" \${f} ERROR_QUIET)
+      endif()
+      # De-duplicate the conda lib dir rpath and move it to the end.
+      execute_process(COMMAND otool -l \${f} OUTPUT_VARIABLE otool_out ERROR_QUIET)
+      string(REGEX MATCHALL \"path [^\n]*[^ ]*conda[^ ]*/envs/[^\n]*/lib \"
+             matches \"\${otool_out}\")
+      list(LENGTH matches count)
+      if (count GREATER 0)
+        string(REGEX MATCH \"[^ ]*conda[^ ]*/envs/[^/]*/lib\" rpath \"\${matches}\")
+        foreach(i RANGE 1 \${count})
+          execute_process(COMMAND install_name_tool -delete_rpath \${rpath} \${f} ERROR_QUIET)
+        endforeach()
+        execute_process(COMMAND install_name_tool -add_rpath \${rpath} \${f} ERROR_QUIET)
+      endif()
+      execute_process(COMMAND codesign --force --sign - \${f} ERROR_QUIET)
+    endforeach()
+  ")
+endif()
+
 
