@@ -59,9 +59,14 @@ static std::string fnv1a64Hex(std::string const& s) {
 static std::string shortenName(std::string const& name, size_t max_len) {
   if (name.size() <= max_len)
     return name;
-  std::string hash = fnv1a64Hex(name); // 16 chars
+  std::string hash = fnv1a64Hex(name); // 16 chars, keeps names distinct
+  // The callers cap the output prefix so that a full hash always fits (see
+  // match_filename and ip_filename). If there is no room for a leading part and
+  // an underscore, return just the hash, so it is not itself truncated.
+  if (max_len <= hash.size() + 1)
+    return hash.substr(0, (max_len < hash.size() ? max_len : hash.size()));
   // Reserve room for an underscore and the hash.
-  size_t lead = (max_len > hash.size() + 1) ? (max_len - hash.size() - 1) : 0;
+  size_t lead = max_len - hash.size() - 1;
   return name.substr(0, lead) + "_" + hash;
 }
 
@@ -105,6 +110,24 @@ std::string strip_path(std::string out_prefix, std::string filename) {
   return filename;
 }
 
+// If the basename of out_prefix is so long that it would not leave room for a
+// full hash on each shortened name, truncate that basename, keeping the
+// directory. This moves the shortening from the per-pair names to the shared
+// prefix, so the names keep full, distinct hashes. Only triggers for an
+// extremely long output prefix. See the documentation on match file naming.
+static std::string capPrefixBase(std::string const& out_prefix, size_t reserve) {
+  if (out_prefix == "")
+    return out_prefix;
+  fs::path p(out_prefix);
+  std::string base = p.filename().string();
+  size_t max_base = (g_name_budget > reserve) ? (g_name_budget - reserve) : 0;
+  if (base.size() <= max_base)
+    return out_prefix;
+  base = base.substr(0, max_base);
+  fs::path dir = p.parent_path();
+  return dir.empty() ? base : (dir / base).string();
+}
+
 std::string match_filename(std::string const& out_prefix,
                            std::string const& input_file1,
                            std::string const& input_file2,
@@ -114,18 +137,23 @@ std::string match_filename(std::string const& out_prefix,
   std::string name2 = strip_path(out_prefix, input_file2);
 
   std::string ext = plain_text ? ".txt" : ".match";
+  const size_t hash_len = 16;
 
   // The match file name must fit within the file system limit on the length of
-  // a single path component. Budget the two image names against that limit.
-  // Only the part of the prefix after the last directory separator counts
-  // toward the component length. Shorten the names with a hash if they would
-  // not fit, in a way that keeps them distinct. See the documentation on match
+  // a single path component. Only the part of the prefix after the last
+  // directory separator counts toward the component length. If that prefix is
+  // extremely long, cap it so a full hash still fits on each name, reserving
+  // room for two hashes and the separators. See the documentation on match
   // file naming.
-  std::string prefix_base = fs::path(out_prefix).filename().string();
+  std::string prefix = capPrefixBase(out_prefix, 1 + 2 + ext.size() + 2 * hash_len);
+
+  // Budget the two image names against the limit. Shorten them with a hash if
+  // they would not fit, in a way that keeps them distinct.
+  std::string prefix_base = fs::path(prefix).filename().string();
   size_t overhead = prefix_base.size() + 2 + ext.size(); // "__" and extension
-  if (out_prefix != "")
+  if (prefix != "")
     overhead += 1; // the dash after the prefix
-  size_t cap = (overhead + 2 < g_name_budget) ? (g_name_budget - overhead) / 2 : 1;
+  size_t cap = (overhead + 2 < g_name_budget) ? (g_name_budget - overhead) / 2 : hash_len;
 
   if (name1.size() > cap || name2.size() > cap)
     vw_out(WarningMessage) << "Shortening long file names to fit the file "
@@ -136,10 +164,10 @@ std::string match_filename(std::string const& out_prefix,
 
   std::string suffix = name1 + "__" + name2 + ext;
 
-  if (out_prefix == "")
+  if (prefix == "")
     return suffix;
 
-  return out_prefix + "-" + suffix;
+  return prefix + "-" + suffix;
 }
 
 /// Convert match file name to clean match file name.
@@ -170,13 +198,16 @@ std::string ip_filename(std::string const& out_prefix,
   // Shorten the name if, combined with the prefix, it would exceed the file
   // system limit on the length of a single path component. This single name
   // (one image) is budgeted on its own, independently of the match file (two
-  // images). See the documentation on match file naming.
-  std::string prefix_base = fs::path(out_prefix).filename().string();
+  // images). If the prefix is extremely long, cap it so a full hash still fits.
+  // See the documentation on match file naming.
+  const size_t hash_len = 16;
+  std::string prefix = capPrefixBase(out_prefix, 1 + 5 + hash_len); // dash, ".vwip", hash
+  std::string prefix_base = fs::path(prefix).filename().string();
   size_t overhead = prefix_base.size() + 1 + 5; // dash and ".vwip"
-  size_t cap = (overhead < g_name_budget) ? (g_name_budget - overhead) : 1;
+  size_t cap = (overhead < g_name_budget) ? (g_name_budget - overhead) : hash_len;
   name = shortenName(name, cap);
 
-  return out_prefix + "-" + name + ".vwip";
+  return prefix + "-" + name + ".vwip";
 }
 
 void ip_filenames(std::string const& out_prefix,
