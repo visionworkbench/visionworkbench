@@ -422,8 +422,11 @@ int main(int argc, char** argv) {
       vw_out() << "Writing output file " << file_prefix + ".key" << std::endl;
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
     } else {
-      vw_out() << "Writing output file " << file_prefix + ".vwip" << std::endl;
-      write_binary_ip_file(file_prefix + ".vwip", ip);
+      // Shorten the name if needed to fit the file system limit. This shares
+      // the logic with the rest of ASP. See the match file naming docs.
+      std::string vwip_file = vw::ip::shorten_vwip_name(file_prefix);
+      vw_out() << "Writing output file " << vwip_file << std::endl;
+      write_binary_ip_file(vwip_file, ip);
     }
 
     // Write Debug image

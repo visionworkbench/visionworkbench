@@ -310,10 +310,13 @@ int main(int argc, char** argv) {
     return 1;
   }
   
-  // Auto-fill the .vwip files if not provided
+  // Auto-fill the .vwip files if not provided. Shorten the name if needed to
+  // fit the file system limit, the same way ipfind does. See the match file
+  // naming docs.
   if (vwip_paths.empty()) {
     for (size_t it = 0; it < image_paths.size(); it++) {
-      vwip_paths.push_back(fs::path(image_paths[it]).replace_extension(".vwip").string());
+      std::string path_no_ext = fs::path(image_paths[it]).replace_extension("").string();
+      vwip_paths.push_back(vw::ip::shorten_vwip_name(path_no_ext));
     }
   }
   

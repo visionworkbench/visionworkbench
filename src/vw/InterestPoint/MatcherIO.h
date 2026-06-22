@@ -54,6 +54,11 @@ namespace ip {
   std::string ip_filename(std::string const& out_prefix,
                           std::string const& input_file);
 
+  /// The .vwip file name for a standalone image, with no output prefix. The
+  /// input is a path with the extension already removed. Shortens the name if
+  /// needed to fit the file system limit. Used by ipfind and ipmatch.
+  std::string shorten_vwip_name(std::string const& path_no_ext);
+
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
   void write_binary_ip_file    (std::string ip_file, InterestPointList ip);

@@ -26,11 +26,58 @@
 #include <vw/FileIO/FileUtils.h>
 
 #include <boost/filesystem/operations.hpp>
+#include <cstdint>
+#include <iomanip>
 #include <sstream>
 
 namespace fs = boost::filesystem;
 
 namespace vw { namespace ip {
+
+// The file system limit on the length of a single path component is 255 bytes
+// on most file systems. Budget the generated names against this, with a margin.
+const size_t g_name_budget = 240;
+
+// A fixed, portable 64-bit FNV-1a hash, as 16 hex digits. This keeps shortened
+// file names distinct across platforms and runs, unlike std::hash, which
+// differs between standard library implementations.
+static std::string fnv1a64Hex(std::string const& s) {
+  uint64_t h = 14695981039346656037ULL;
+  for (unsigned char c: s) {
+    h ^= static_cast<uint64_t>(c);
+    h *= 1099511628211ULL;
+  }
+  std::ostringstream os;
+  os << std::hex << std::setw(16) << std::setfill('0') << h;
+  return os.str();
+}
+
+// Shorten a name to at most max_len characters. If it already fits, it is
+// returned unchanged. Otherwise it is reduced to a leading portion plus a
+// 64-bit hash of the full name, so distinct names stay distinct. See the
+// documentation on match file naming.
+static std::string shortenName(std::string const& name, size_t max_len) {
+  if (name.size() <= max_len)
+    return name;
+  std::string hash = fnv1a64Hex(name); // 16 chars
+  // Reserve room for an underscore and the hash.
+  size_t lead = (max_len > hash.size() + 1) ? (max_len - hash.size() - 1) : 0;
+  return name.substr(0, lead) + "_" + hash;
+}
+
+// The .vwip file name for a standalone image, with no output prefix. The input
+// is a path with the extension already removed. The directory is kept, and the
+// file name is shortened if needed to fit the file system limit. This is used
+// by ipfind and ipmatch, and shares the shortening logic with the prefixed
+// file names. See the documentation on match file naming.
+std::string shorten_vwip_name(std::string const& path_no_ext) {
+  fs::path p(path_no_ext);
+  size_t cap = (g_name_budget > 5) ? (g_name_budget - 5) : 1; // ".vwip"
+  std::string name = shortenName(p.filename().string(), cap) + ".vwip";
+  if (p.has_parent_path())
+    return (p.parent_path() / name).string();
+  return name;
+}
 
 /// Return the basename with no extension. If filename starts with out_prefix
 /// followed by dash, strip those.
@@ -66,26 +113,28 @@ std::string match_filename(std::string const& out_prefix,
   std::string name1 = strip_path(out_prefix, input_file1);
   std::string name2 = strip_path(out_prefix, input_file2);
 
-  // Filenames longer than this must be chopped, as too long names cause
-  // problems later with boost. But shorter names may lead to inconsistencies.
-  // So give a warning.
-  int max_len = 60;
-  if (name1.size() >= max_len) {
-    vw_out(WarningMessage) << "Warning: Shortening the long file part: " << input_file1
-      << ". In case of problems, use shorter input file names.\n";
-    name1 = name1.substr(0, max_len);
-  }
-  if (name2.size() >= max_len) {
-    vw_out(WarningMessage) << "Warning: Shortening the long file part: "
-      << input_file2 << ". In case of problems, use shorter input file names.\n";
-    name2 = name2.substr(0, max_len);
-  }
+  std::string ext = plain_text ? ".txt" : ".match";
 
-  std::string suffix;
-  if (plain_text)
-    suffix = name1 + "__" + name2 + ".txt";
-  else
-    suffix = name1 + "__" + name2 + ".match";
+  // The match file name must fit within the file system limit on the length of
+  // a single path component. Budget the two image names against that limit.
+  // Only the part of the prefix after the last directory separator counts
+  // toward the component length. Shorten the names with a hash if they would
+  // not fit, in a way that keeps them distinct. See the documentation on match
+  // file naming.
+  std::string prefix_base = fs::path(out_prefix).filename().string();
+  size_t overhead = prefix_base.size() + 2 + ext.size(); // "__" and extension
+  if (out_prefix != "")
+    overhead += 1; // the dash after the prefix
+  size_t cap = (overhead + 2 < g_name_budget) ? (g_name_budget - overhead) / 2 : 1;
+
+  if (name1.size() > cap || name2.size() > cap)
+    vw_out(WarningMessage) << "Shortening long file names to fit the file "
+      << "system limit, for: " << input_file1 << " and " << input_file2 << ".\n";
+
+  name1 = shortenName(name1, cap);
+  name2 = shortenName(name2, cap);
+
+  std::string suffix = name1 + "__" + name2 + ext;
 
   if (out_prefix == "")
     return suffix;
@@ -116,7 +165,18 @@ std::string clean_match_filename(std::string const& out_prefix,
 
 std::string ip_filename(std::string const& out_prefix,
                         std::string const& input_file) {
-  return out_prefix + "-" + strip_path(out_prefix, input_file) + ".vwip";
+  std::string name = strip_path(out_prefix, input_file);
+
+  // Shorten the name if, combined with the prefix, it would exceed the file
+  // system limit on the length of a single path component. This single name
+  // (one image) is budgeted on its own, independently of the match file (two
+  // images). See the documentation on match file naming.
+  std::string prefix_base = fs::path(out_prefix).filename().string();
+  size_t overhead = prefix_base.size() + 1 + 5; // dash and ".vwip"
+  size_t cap = (overhead < g_name_budget) ? (g_name_budget - overhead) : 1;
+  name = shortenName(name, cap);
+
+  return out_prefix + "-" + name + ".vwip";
 }
 
 void ip_filenames(std::string const& out_prefix,
@@ -124,8 +184,8 @@ void ip_filenames(std::string const& out_prefix,
                   std::string const& input_file2,
                   std::string & output_ip1,
                   std::string & output_ip2) {
-  output_ip1 = out_prefix + "-" + strip_path(out_prefix, input_file1) + ".vwip";
-  output_ip2 = out_prefix + "-" + strip_path(out_prefix, input_file2) + ".vwip";
+  output_ip1 = ip_filename(out_prefix, input_file1);
+  output_ip2 = ip_filename(out_prefix, input_file2);
 }
 
 void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip) {
