@@ -21,7 +21,7 @@
 #undef  __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 
 #include <vw/Core/Debugging.h>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
 
 
 namespace {
