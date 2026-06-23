@@ -157,19 +157,15 @@ find_external_library(Z       ${ASP_DEPS_DIR} "" "z"         REQUIRED)
 find_external_library(PROJ4   ${ASP_DEPS_DIR} "" "proj"      REQUIRED)
 find_external_library(GDAL    ${CUSTOM_BUILD_DIR} "" "gdal"  REQUIRED)
 
-# TODO: Make a function?
-set(OPENCV_LIB_NAMES opencv_calib3d     opencv_reg
-                     opencv_core        opencv_shape
-                     opencv_features2d  opencv_stitching
-                     opencv_flann       opencv_superres
-                     opencv_hdf         opencv_surface_matching
-                     opencv_highgui     opencv_videoio
-                     opencv_imgcodecs   opencv_video
-                     opencv_imgproc     opencv_xfeatures2d
-                     opencv_ml          opencv_ximgproc
-                     opencv_objdetect   opencv_xobjdetect
-                     opencv_photo       opencv_xphoto)
-find_external_library(OPENCV ${ASP_DEPS_DIR} "opencv4" "${OPENCV_LIB_NAMES}" REQUIRED)
+# Use OpenCV's own CMake config so the include dir and the module
+# library list come from OpenCV itself. This is version-agnostic: it
+# works for OpenCV 4 and 5 despite the module renames and splits.
+find_package(OpenCV REQUIRED PATHS ${ASP_DEPS_DIR} NO_DEFAULT_PATH)
+set(OPENCV_LIBRARIES   ${OpenCV_LIBS})
+set(OPENCV_INCLUDE_DIR ${OpenCV_INCLUDE_DIRS})
+set(VW_HAVE_PKG_OPENCV 1)
+include_directories(${OPENCV_INCLUDE_DIR})
+message(STATUS "Found OpenCV ${OpenCV_VERSION} at ${OPENCV_INCLUDE_DIR}")
 
 if (USE_OPENEXR)
   set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
