@@ -85,7 +85,8 @@ public:
               vw::ArgumentErr()
               << "CorrEval: The kernel dimensions must be positive and odd.\n");
 
-    VW_ASSERT((m_metric == "ncc" || metric == "stddev"),
+    VW_ASSERT((m_metric == "ncc" || m_metric == "stddev" ||
+               m_metric == "parabola_curvature" || m_metric == "cramer_rao"),
               vw::ArgumentErr() << "CorrEval: Invalid metric: " << m_metric << ".\n");
   }
   

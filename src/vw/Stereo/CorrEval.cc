@@ -207,6 +207,12 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
   right_box.expand(2); // because right_box is exclusive in the upper-right, and +1 just in case
   right_box.expand(m_extra_padding); // Extra padding for prefilter context
 
+  // The curvature metrics also evaluate the NCC at the disparity plus or minus
+  // one pixel in x and y, so the right patch reaches one pixel further. Expand
+  // the box to cover that.
+  if (m_metric == "parabola_curvature" || m_metric == "cramer_rao")
+    right_box.expand(1);
+
   // An invalid pixel value used for edge extension
   PixelMask<float> nodata_pix(0); nodata_pix.invalidate();
   ValueEdgeExtension<PixelMask<float>> nodata_ext(nodata_pix); 
@@ -219,6 +225,11 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
   // Allocate room for the patches
   ImageView<PixelMask<float>> left_patch(m_kernel_size[0], m_kernel_size[1]);
   ImageView<PixelMask<float>> right_patch(m_kernel_size[0], m_kernel_size[1]);
+
+  // Scratch patches for the curvature metrics, which evaluate the NCC at the
+  // neighboring disparities.
+  ImageView<PixelMask<float>> nbr_left_patch(m_kernel_size[0], m_kernel_size[1]);
+  ImageView<PixelMask<float>> nbr_right_patch(m_kernel_size[0], m_kernel_size[1]);
 
   // Create the tile with the result
   ImageView<result_type> tile(bbox.width(), bbox.height());
@@ -256,6 +267,46 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
         if (left_stddev >= 0.0 && right_stddev >= 0.0) {
           tile(col, row).validate();
           tile(col, row).child() = (left_stddev + right_stddev)/2.0;
+        }
+      } else if (m_metric == "parabola_curvature" || m_metric == "cramer_rao") {
+        // Per-pixel localization uncertainty sigma from the curvature of the NCC
+        // peak, the same two estimators as the --metric option of sparse_disp.
+        // Here C is the NCC peak value at the found disparity. The curvature in
+        // each axis is the discrete second derivative
+        // k = 2*C - ncc(+1) - ncc(-1), evaluated one pixel off the disparity, and
+        // is positive for a real peak. The left patch does not depend on the
+        // disparity, so only the right patch moves between evaluations.
+        double C = calc_ncc(left_patch, right_patch);
+        if (C >= 0) {
+          Vector2f shifts[4] = {Vector2f(1, 0), Vector2f(-1, 0),
+                                Vector2f(0, 1), Vector2f(0, -1)};
+          double nbr[4];
+          bool ok = true;
+          for (int s = 0; s < 4 && ok; s++) {
+            PixelMask<Vector2f> ds = d;
+            ds.child() += shifts[s];
+            calc_patches(bbox, m_kernel_size, m_round_to_int, ds,
+                         left_box, right_box, left, right, col, row,
+                         nbr_left_patch, nbr_right_patch);
+            nbr[s] = calc_ncc(nbr_left_patch, nbr_right_patch);
+            if (nbr[s] < 0)
+              ok = false;
+          }
+          if (ok) {
+            double kx = 2.0*C - nbr[0] - nbr[1];
+            double ky = 2.0*C - nbr[2] - nbr[3];
+            if (kx > 0 && ky > 0) {
+              double sigma = sqrt(1.0/kx + 1.0/ky); // parabola_curvature
+              if (m_metric == "cramer_rao") {
+                double resid = 1.0 - C;
+                if (resid < 0)
+                  resid = 0;
+                sigma *= sqrt(resid);
+              }
+              tile(col, row).validate();
+              tile(col, row).child() = sigma;
+            }
+          }
         }
       }
     }
