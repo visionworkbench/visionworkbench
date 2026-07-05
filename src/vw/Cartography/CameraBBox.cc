@@ -544,6 +544,54 @@ void findInitPositionAboveDEM(RayDEMIntersectionLMA & model,
   } // End i loop
 } // End function
 
+// Trace a ray to the DEM starting from a given seed point on the ray. Wiggle
+// the seed until it is above the DEM, then refine to the intersection by secant
+// method. The previous code also had a Levenberg-Marquardt fallback when secant
+// failed; in practice on real scenes that fallback always returned an unusable
+// result (height residual far above height_error_tol with status = iterations
+// exhausted) and was rejected later. So we removed it.
+bool traceRayToDemFromSeed(RayDEMIntersectionLMA & model,
+                           Vector3 const& camera_ctr, Vector3 const& camera_vec,
+                           double height_error_tol, Vector3 const& seed_xyz,
+                           // Output
+                           Vector3 & xyz) {
+
+  bool has_intersection = false;
+
+  // Wiggle the seed along the ray (+/- ~2% of the planet radius) until it lands
+  // somewhere above the DEM. This finds the 'len' along the ray, not the point.
+  Vector<double, 1> len;
+  findInitPositionAboveDEM(model, camera_ctr, seed_xyz,
+                           // Outputs
+                           has_intersection, len);
+
+  // If the wiggle never brought the point above valid DEM, the seed is too far
+  // off for the secant refinement to recover. Bail rather than iterate in vain.
+  if (!has_intersection)
+    return false;
+
+  // Refine to the actual ray-DEM intersection by secant method.
+  secantMethod(model, camera_ctr, camera_vec, height_error_tol,
+               has_intersection, len);
+
+  if (has_intersection)
+    xyz = camera_ctr + len[0] * camera_vec;
+
+  return has_intersection;
+}
+
+// Seed the trace from where the ray meets the datum, offset by a representative
+// DEM height. This is always near the surface, so it is a robust seed. Returns
+// Vector3() if the ray misses the datum.
+Vector3 datumSeedForRay(vw::cartography::GeoReference const& georef,
+                        double height_guess,
+                        Vector3 const& camera_ctr, Vector3 const& camera_vec) {
+  return vw::cartography::datum_intersection
+    (georef.datum().semi_major_axis() + height_guess,
+     georef.datum().semi_minor_axis() + height_guess,
+     camera_ctr, camera_vec);
+}
+
 // Intersect the ray going from the given camera pixel with a DEM.
 // The return value is a Cartesian point. If the ray goes through a
 // hole in the DEM where there is no data, we return no-intersection
@@ -570,37 +618,30 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
                                 camera_vec, treat_nodata_as_zero);
 
     Vector3 xyz;
-    if (xyz_guess == Vector3()) { // If no guess provided
-      // Intersect the ray with the datum, this is a good initial guess.
-      xyz = vw::cartography::datum_intersection
-        (georef.datum().semi_major_axis() + height_guess,
-          georef.datum().semi_minor_axis() + height_guess,
-          camera_ctr, camera_vec);
 
-      if (xyz == Vector3()) { // If we failed to intersect the datum, give up.
-        has_intersection = false;
-        return Vector3();
+    // First attempt: trace from the provided guess, if any. A good guess makes
+    // this converge quickly. A poor guess (far from the surface) can fail.
+    if (xyz_guess != Vector3()) {
+      if (traceRayToDemFromSeed(model, camera_ctr, camera_vec, height_error_tol,
+                                xyz_guess, xyz)) {
+        has_intersection = true;
+        return xyz;
       }
-    } else { // User provided guess
-      xyz = xyz_guess;
     }
 
-    // Now wiggle xyz along the ray until it is somewhere above the DEM.
-    // Will return not xyz, but the 'len' along the ray for it.
-    Vector<double, 1> len;
-    findInitPositionAboveDEM(model, camera_ctr, xyz,
-                             // outputs
-                             has_intersection, len);
+    // No xyz guess, or the guess failed. Fall back to a seed that is always
+    // near the surface: where the ray meets the datum at height_guess.
+    Vector3 datum_xyz = datumSeedForRay(georef, height_guess, camera_ctr, camera_vec);
+    if (datum_xyz == Vector3()) { // Ray misses the datum. Give up.
+      has_intersection = false;
+      return Vector3();
+    }
 
-    // Find the ray-DEM intersection by secant method. The previous code
-    // also had a Levenberg-Marquardt fallback when secant failed; in
-    // practice on real scenes that fallback always returned an unusable
-    // result (height residual far above height_error_tol with status =
-    // iterations exhausted) and was rejected later. So we removed it.
-    secantMethod(model, camera_ctr, camera_vec, height_error_tol,
-                 has_intersection, len);
-    if (has_intersection) {
-      xyz = camera_ctr + len[0] * camera_vec;
+    // Trace from the datum seed. The wiggle and secant converge to the same
+    // intersection regardless of the exact seed, so this is robust.
+    if (traceRayToDemFromSeed(model, camera_ctr, camera_vec, height_error_tol,
+                              datum_xyz, xyz)) {
+      has_intersection = true;
       return xyz;
     }
 
