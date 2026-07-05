@@ -56,12 +56,6 @@ public:
   /// User update function. (Bundles Data)
   void operator()(ValT const& arg);
 
-  /// Function to merge to CDFs
-  void operator()(CDFAccumulator<ValT>& other);
-
-  /// Make this object an exact copy of the other object
-  void duplicate(CDFAccumulator<ValT> const& other);
-
   /// Extract a percentile. Returns ValT(0) if no samples have been fed yet.
   ValT quantile(double const& arg) const;
 
@@ -79,22 +73,6 @@ private: // Variables
   size_t m_num_samples; // nq, nd, nt
   std::vector<double> m_cdf, m_sample_buf, m_quantile;
   double m_q0, m_qm;  // quantile min and max;
-
-private: // Functions
-  // Trapezoidal Rule functor for numeric integration
-  template <class InputIterator1, class InputIterator2>
-  double trapezoidal_rule(InputIterator1 first1, InputIterator1 last1,
-                          InputIterator2 first2);
-
-  // PDF differentiation. Requires an output vector that is qual
-  // in length to the CDF but doesn't touch index 0 or the last element.
-  void pdf_differentiation(std::vector<double> const& quantile,
-                           std::vector<double> const& cdf,
-                           std::vector<double> & output_pdf);
-
-  void correct_pdf_integral_to_1(std::vector<double> const& quantile,
-                                 std::vector<double> & pdf,
-                                 double additional_scalar);
 }; // End class CDFAccumulator
 
 }} // namespace vw::math
