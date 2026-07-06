@@ -117,13 +117,10 @@ namespace detail {
     boost::shared_ptr<camera::CameraModel> m_camera;
     vw::ImageViewRef<vw::PixelMask<float>> m_dem;
     double m_height_guess;
-    Vector2 m_last_intersect;
     std::vector<Vector3> *m_coords;
 
   public:
-    bool   m_last_valid;
     BBox2  box;   ///< Bounding box containing all intersections so far.
-    double scale; ///< Closest distance between two sequential intersections, in projected coords.
     std::vector<Vector2> cam_pixels; // Collect sampled pixels here
 
     /// Constructor initializes class with DEM, camera model, etc.
@@ -137,9 +134,7 @@ namespace detail {
         m_target_georef(target_georef),
         m_camera(camera), m_dem(dem.impl()), 
         m_height_guess(height_guess),
-        m_coords(coords),
-        m_last_valid(false), 
-        scale(std::numeric_limits<double>::max()) {
+        m_coords(coords) {
       if (m_coords)
         m_coords->clear();
     }
@@ -197,27 +192,14 @@ namespace detail {
                         point, xyz); // outputs
 
       // Quit if we did not find an intersection
-      if (!has_intersection) {
-        m_last_valid = false;
+      if (!has_intersection)
         return;
-      }
-
-      if (m_last_valid) {
-        // If the call before this successfully intersected, compute
-        // distance from last intersection.
-        double current_scale = norm_2(point - m_last_intersect);
-        if (current_scale < scale) // Record this distance if less than last distance
-          scale = current_scale;
-      }
-
-      m_last_intersect = point; // Record this intersection
 
       if (m_coords)
         m_coords->push_back(xyz);
-        
+
       box.grow(point); // Expand a bounding box of all points intersected so far
-      
-      m_last_valid = true; // Record intersection success
+
       cam_pixels.push_back(pixel);
 
     }
@@ -704,29 +686,21 @@ void sampleImageBoundary(int cols, int rows, int num_samples, bool quick,
   // BresenhamLine is the last point before the endpoint.
 
   // Left to right across the top side
-  functor.m_last_valid = false;
   bresenham_apply(math::BresenhamLine(0,0,cols,0), image_step, functor);
 
   // Top to bottom down the right side
-  functor.m_last_valid = false;
   bresenham_apply(math::BresenhamLine(cols-1,0,cols-1,rows), image_step, functor);
 
   // Right to left across the bottom side
-  functor.m_last_valid = false;
   bresenham_apply(math::BresenhamLine(cols-1,rows-1,0,rows-1), image_step, functor);
 
   // Bottom to top up the left side
-  functor.m_last_valid = false;
   bresenham_apply(math::BresenhamLine(0,rows-1,0,0), image_step, functor);
 
   if (!quick) {
     // Do the x pattern
-    functor.m_last_valid = false;
     bresenham_apply(math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor);
-    
-    functor.m_last_valid = false;
     bresenham_apply(math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor);
-    functor.m_last_valid = false;
   }
 
   return;
