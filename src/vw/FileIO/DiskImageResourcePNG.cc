@@ -65,12 +65,6 @@ void DiskImageResourcePNG::set_default_compression_level( int level ) {
   default_compression_level = level;
 }
 
-// Extra bytes appended to each row buffer that libpng writes into. libpng's
-// row copy can touch a few bytes past the exact row length, so a tightly
-// sized buffer overruns the heap. This pad absorbs that. See the scanline
-// allocation in vw_png_read_context.
-static const size_t png_row_pad_bytes = 16;
-
 
 /************************************************************************
  ********************** PNG CONTEXT STRUCTURES **************************
@@ -256,6 +250,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case PNG_COLOR_TYPE_GRAY:
         channels = 1;
         outer->m_format.pixel_format = VW_PIXEL_GRAY;
+        // A tRNS chunk is expanded to an alpha channel by png_set_expand above,
+        // so the row is gray+alpha (2 channels), not 1. Missing this under-sizes
+        // the scanline and libpng overruns it (e.g. grayscale PNGs written with a
+        // nodata value).
+        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
+          channels = 2;
+          outer->m_format.pixel_format = VW_PIXEL_GRAYA;
+        }
         break;
       case PNG_COLOR_TYPE_GRAY_ALPHA:
         channels = 2;
@@ -272,6 +274,11 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case PNG_COLOR_TYPE_RGB:
         channels = 3;
         outer->m_format.pixel_format = VW_PIXEL_RGB;
+        // As above, a tRNS chunk is expanded to an alpha channel, giving RGBA.
+        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
+          channels = 4;
+          outer->m_format.pixel_format = VW_PIXEL_RGBA;
+        }
         break;
       case PNG_COLOR_TYPE_RGB_ALPHA:
         channels = 4;
@@ -293,14 +300,9 @@ struct DiskImageResourcePNG::vw_png_read_context:
     outer->m_format.planes = 1;
     outer->m_format.premultiplied = false;
 
-    // Allocate the scanline. Pad the buffer. libpng's internal row copy
-    // (png_combine_row) can write in wider aligned chunks and overrun a
-    // row buffer sized to exactly the row length when that length is not a
-    // multiple of the copy unit. Without the pad this corrupts the heap and
-    // crashes later when an unrelated block is freed. Seen when reading a
-    // narrow single-channel grayscale PNG.
+    // Allocate the scanline.
     cstride = bytes_per_channel * channels;
-    scanline = boost::shared_array<uint8>(new uint8[cstride * cols + png_row_pad_bytes]);
+    scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
   }
 
   void readline()
@@ -620,10 +622,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!" );
 
-  // Pad for the same libpng row-copy overrun guarded against in the scanline
-  // allocation. For interlaced images png_read_image writes directly into this
-  // buffer and can overrun the final row otherwise.
-  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height() + png_row_pad_bytes] );
+  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
   if( ctx->interlaced )
