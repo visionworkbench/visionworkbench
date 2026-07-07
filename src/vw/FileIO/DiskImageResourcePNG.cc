@@ -65,6 +65,12 @@ void DiskImageResourcePNG::set_default_compression_level( int level ) {
   default_compression_level = level;
 }
 
+// Extra bytes appended to each row buffer that libpng writes into. libpng's
+// row copy can touch a few bytes past the exact row length, so a tightly
+// sized buffer overruns the heap. This pad absorbs that. See the scanline
+// allocation in vw_png_read_context.
+static const size_t png_row_pad_bytes = 16;
+
 
 /************************************************************************
  ********************** PNG CONTEXT STRUCTURES **************************
@@ -287,9 +293,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
     outer->m_format.planes = 1;
     outer->m_format.premultiplied = false;
 
-    // Allocate the scanline.
+    // Allocate the scanline. Pad the buffer. libpng's internal row copy
+    // (png_combine_row) can write in wider aligned chunks and overrun a
+    // row buffer sized to exactly the row length when that length is not a
+    // multiple of the copy unit. Without the pad this corrupts the heap and
+    // crashes later when an unrelated block is freed. Seen when reading a
+    // narrow single-channel grayscale PNG.
     cstride = bytes_per_channel * channels;
-    scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
+    scanline = boost::shared_array<uint8>(new uint8[cstride * cols + png_row_pad_bytes]);
   }
 
   void readline()
@@ -609,7 +620,10 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!" );
 
-  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
+  // Pad for the same libpng row-copy overrun guarded against in the scanline
+  // allocation. For interlaced images png_read_image writes directly into this
+  // buffer and can overrun the final row otherwise.
+  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height() + png_row_pad_bytes] );
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
   if( ctx->interlaced )
