@@ -23,6 +23,9 @@ bool has_pinhole_extension(std::string const& input);
 /// Returns true if the file has an extension which is tif or ntf
 bool has_tif_or_ntf_extension(std::string const& input);
 
+/// Returns true if the file has a .vrt extension
+bool has_vrt_extension(std::string const& input);
+
 /// Returns true for a shapefile
 bool has_shp_extension(std::string const& input);
 

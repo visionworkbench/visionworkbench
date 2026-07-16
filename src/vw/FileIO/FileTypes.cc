@@ -70,6 +70,11 @@ bool has_tif_or_ntf_extension(std::string const& input) {
   return false;
 }
 
+bool has_vrt_extension(std::string const& input) {
+  // get_extension lowercases, so this also matches .VRT
+  return (vw::get_extension(input) == ".vrt");
+}
+
 bool has_shp_extension(std::string const& input) {
   std::string ext = vw::get_extension(input);
   if (ext == ".shp")
