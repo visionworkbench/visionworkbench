@@ -39,6 +39,12 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Math/Statistics.h>
 
+#include <boost/type_traits/is_arithmetic.hpp>
+#include <boost/type_traits/is_integral.hpp>
+
+#include <cmath>
+#include <limits>
+
 namespace vw { namespace mosaic {
 
   namespace fs = boost::filesystem;
@@ -65,11 +71,13 @@ namespace vw { namespace mosaic {
   }
 
   // Compile-intensive: read_channels results in 12 template instantiations.
-  // Single-channel images are read into Image<double>, while
-  // multi-channel in Image<Vector>, and we skip reading extra channels.
+  // Scalar (arithmetic) pixel types are read into a single-channel image,
+  // while compound (Vector) pixel types are read into Image<Vector>, and we
+  // skip reading extra channels. Using boost::is_arithmetic (rather than an
+  // explicit double/float list) lets integer scalar types such as uint8 and
+  // uint16 also build native pyramids.
   template<class PixelT>
-  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
-                            boost::is_same<PixelT,float>>,
+  typename boost::enable_if<boost::is_arithmetic<PixelT>,
                             ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
     // Bugfix: Sometimes the image may actually have multiple channels
@@ -83,28 +91,85 @@ namespace vw { namespace mosaic {
       return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
   }
   template<class PixelT>
-  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
-                             boost::is_same<PixelT,float>>,
+  typename boost::disable_if<boost::is_arithmetic<PixelT>,
                              ImageViewRef<PixelT>>::type
   custom_read(std::string const& file){
     return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
   }
 
-  // TODO: Clean up!
-  // Gets called for scalar pixel types (double, float, uint8)
+  // True when nodata_val cannot be represented exactly in an integral
+  // PixelT: NaN (the "no nodata" sentinel), a value outside the type's
+  // range (e.g. a uint16 file whose metadata declares nodata -32768), or a
+  // fractional value (e.g. nodata 0.5): converting the first two to PixelT
+  // is undefined behavior, and truncating a fraction would change which
+  // pixels match, masking legitimate pixels either way. Callers treat such
+  // a nodata as "no nodata". Floating-point PixelT represents NaN and any
+  // nodata directly.
   template<class PixelT>
-  typename boost::enable_if< boost::mpl::or_< boost::is_same<PixelT,double>,
-                             boost::mpl::or_< boost::is_same<PixelT,float>,
-                             boost::is_same<PixelT,vw::uint8> > >,
+  typename boost::enable_if<boost::is_integral<PixelT>, bool>::type
+  unrepresentableNodata(double nodata_val) {
+    // Compare against the exclusive upper bound 2^digits, which is always
+    // exactly representable in double; double(max()) rounds UP for 64-bit
+    // types, which would let max()+1 through. lowest() (0 or -2^digits) is
+    // always exact.
+    double upper = std::ldexp(1.0, std::numeric_limits<PixelT>::digits);
+    return std::isnan(nodata_val) ||
+           nodata_val < double(std::numeric_limits<PixelT>::lowest()) ||
+           nodata_val >= upper ||
+           nodata_val != std::floor(nodata_val);
+  }
+  template<class PixelT>
+  typename boost::disable_if<boost::is_integral<PixelT>, bool>::type
+  unrepresentableNodata(double) { return false; }
+
+  // Build a valid-range mask, converting the floating-point bounds to
+  // PixelT safely. For an integral PixelT the bounds are snapped to the
+  // integers the comparison actually distinguishes (ceil for the lower,
+  // floor for the upper) and clamped into the type's domain, since casting
+  // an out-of-range or infinite bound is undefined behavior and truncating
+  // a fractional one changes which pixels count as valid. A range wholly
+  // outside the domain marks every pixel invalid.
+  template<class PixelT>
+  typename boost::enable_if<boost::is_integral<PixelT>,
+                            ImageViewRef<PixelMask<PixelT>>>::type
+  rangeMaskForPyramid(ImageViewRef<PixelT> & img,
+                      float valid_min, float valid_max) {
+    double lo = std::ceil (double(valid_min));
+    double hi = std::floor(double(valid_max));
+    double lowest = double(std::numeric_limits<PixelT>::lowest());
+    // Exclusive upper bound 2^digits: always exact in double, unlike
+    // double(max()) which rounds up for 64-bit types.
+    double upper = std::ldexp(1.0, std::numeric_limits<PixelT>::digits);
+    if (lo < lowest) lo = lowest;
+    if (hi >= upper) hi = std::nextafter(upper, 0.0);
+    if (lo > hi) // range does not intersect the type's domain
+      return create_mask(img, PixelT(1), PixelT(0));
+    return create_mask(img, PixelT(lo), PixelT(hi));
+  }
+  template<class PixelT>
+  typename boost::disable_if<boost::is_integral<PixelT>,
+                             ImageViewRef<PixelMask<PixelT>>>::type
+  rangeMaskForPyramid(ImageViewRef<PixelT> & img,
+                      float valid_min, float valid_max) {
+    return create_mask(img, PixelT(valid_min), PixelT(valid_max));
+  }
+
+  // TODO: Clean up!
+  // Gets called for scalar (arithmetic) pixel types (double, float, uint8,
+  // uint16, ...)
+  template<class PixelT>
+  typename boost::enable_if< boost::is_arithmetic<PixelT>,
                              ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
+    // See unrepresentableNodata(): mark all pixels valid rather than convert
+    // a NaN or out-of-range nodata to an integer PixelT.
+    if (unrepresentableNodata<PixelT>(nodata_val))
+      return pixel_cast<PixelMask<PixelT>>(img);
     return create_mask(img, nodata_val);
   }
   // Gets called for compound pixel types (Vector<u8, N>)
   template<class PixelT>
-  typename boost::disable_if< boost::mpl::or_< boost::is_same<PixelT,double>,
-                              boost::mpl::or_< boost::is_same<PixelT,float>,
-                              boost::is_same<PixelT,vw::uint8> > >,
+  typename boost::disable_if< boost::is_arithmetic<PixelT>,
                               ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
     PixelT mask_pixel;
@@ -112,26 +177,27 @@ namespace vw { namespace mosaic {
     return create_mask(img, mask_pixel);
   }
 
-  // For scalar pixel types (double, float, uint8): use range masking if valid
-  // range is provided, otherwise use nodata masking.
+  // For scalar (arithmetic) pixel types (double, float, uint8, uint16, ...):
+  // use range masking if valid range is provided, otherwise use nodata masking.
   template<class PixelT>
-  typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                            boost::mpl::or_<boost::is_same<PixelT, float>,
-                            boost::is_same<PixelT, vw::uint8>>>,
+  typename boost::enable_if<boost::is_arithmetic<PixelT>,
                             ImageViewRef<PixelMask<PixelT>>>::type
   maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
                  float valid_min, float valid_max) {
     if (!std::isnan(valid_min) && !std::isnan(valid_max))
-      return create_mask(img, PixelT(valid_min), PixelT(valid_max));
+      return rangeMaskForPyramid(img, valid_min, valid_max);
+    // See unrepresentableNodata(): mark all pixels valid rather than convert
+    // a NaN or out-of-range nodata to an integer PixelT, which is undefined
+    // behavior and masked legitimate pixels (e.g. zeros) out of the average.
+    if (unrepresentableNodata<PixelT>(nodata_val))
+      return pixel_cast<PixelMask<PixelT>>(img);
     return create_mask(img, nodata_val);
   }
 
   // For compound pixel types (Vector<u8, N>): always use nodata masking.
   // Range masking is not supported for multi-channel pixels.
   template<class PixelT>
-  typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT, double>,
-                             boost::mpl::or_<boost::is_same<PixelT, float>,
-                             boost::is_same<PixelT, vw::uint8>>>,
+  typename boost::disable_if<boost::is_arithmetic<PixelT>,
                              ImageViewRef<PixelMask<PixelT>>>::type
   maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
                  float /*valid_min*/, float /*valid_max*/) {
@@ -145,7 +211,10 @@ namespace vw { namespace mosaic {
   /// and has given numbers of rows and columns, don't overwrite it.
   inline bool overwrite_if_no_good(std::string const& input_file,
                                    std::string const& output_file,
-                                   int cols=-1, int rows=-1){
+                                   int cols=-1, int rows=-1,
+                                   ChannelTypeEnum expected_channel_type
+                                     = VW_CHANNEL_UNKNOWN,
+                                   int expected_num_channels = -1){
 
     fs::path input_path(input_file);
     std::time_t input_time = fs::last_write_time(input_path);
@@ -159,6 +228,23 @@ namespace vw { namespace mosaic {
         if (output_time < input_time){
           overwrite = true; // too old
           return overwrite;
+        }
+
+        // A cached file of the wrong pixel type must be regenerated, or a
+        // pyramid whose type changed (e.g. toggling an option that keeps
+        // the input's integer type) would silently reuse it. The channel
+        // type alone does not identify the pixel type, so also compare the
+        // total band count (channels x planes covers either file layout).
+        if (expected_channel_type != VW_CHANNEL_UNKNOWN ||
+            expected_num_channels > 0) {
+          boost::shared_ptr<DiskImageResource>
+            rsrc(DiskImageResource::open(output_file));
+          if (expected_channel_type != VW_CHANNEL_UNKNOWN &&
+              rsrc->channel_type() != expected_channel_type)
+            return true;
+          if (expected_num_channels > 0 &&
+              rsrc->channels() * rsrc->planes() != expected_num_channels)
+            return true;
         }
 
         if (cols >= 0 && rows >= 0) {
@@ -385,8 +471,15 @@ namespace vw { namespace mosaic {
       // what is a good way of resampling.
       // Note that below we cast the channels to double for resampling,
       // then cast back to current pixel type for saving.
-      PixelT nodata_pixel;
-      set_all(nodata_pixel, m_nodata_val);
+      // Fill value for pixels invalidated by the mask. When an integer
+      // scalar PixelT cannot represent m_nodata_val (NaN or out of range),
+      // converting it is undefined behavior; use a value-initialized pixel
+      // instead (it is never consumed, as maskForPyramid marks all pixels
+      // valid then). Floating-point and compound PixelT keep the existing
+      // conversion.
+      PixelT nodata_pixel = PixelT();
+      if (!unrepresentableNodata<PixelT>(m_nodata_val))
+        set_all(nodata_pixel, m_nodata_val);
       ImageViewRef<PixelT> unmasked
         = block_rasterize(cache_tile_aware_render
                           (pixel_cast<PixelT>
@@ -405,8 +498,13 @@ namespace vw { namespace mosaic {
       // If the file exists, and has the right size, and is not too old,
       // don't write it again
       std::string curr_file = filename_from_suffix1(base_file, suffix);
+      ChannelTypeEnum pixel_channel_type
+        = ChannelTypeID<typename CompoundChannelType<PixelT>::type>::value;
+      int pixel_num_channels = CompoundNumChannels<PixelT>::value;
       bool will_write = overwrite_if_no_good(base_file, curr_file,
-                                             unmasked.cols(), unmasked.rows());
+                                             unmasked.cols(), unmasked.rows(),
+                                             pixel_channel_type,
+                                             pixel_num_channels);
 
       if (will_write) {
 
@@ -422,7 +520,8 @@ namespace vw { namespace mosaic {
           vw_out() << "Failed to write: " << curr_file << "\n";
           curr_file = filename_from_suffix2(base_file, suffix);
           will_write = overwrite_if_no_good(base_file, curr_file,
-                    unmasked.cols(), unmasked.rows());
+                    unmasked.cols(), unmasked.rows(), pixel_channel_type,
+                    pixel_num_channels);
           if (will_write) {
             vw_out() << "Writing: " << curr_file << "\n";
             cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
