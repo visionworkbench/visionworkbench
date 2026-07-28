@@ -43,6 +43,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
 #include <vw/Image/Manipulation.h>
 
 namespace vw {
@@ -123,6 +124,7 @@ void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
     switch (detector_type) {
       case OPENCV_IP_DETECTOR_TYPE_BRISK:
       case OPENCV_IP_DETECTOR_TYPE_ORB:
+      case OPENCV_IP_DETECTOR_TYPE_AKAZE: // binary MLDB descriptor, like ORB/BRISK
         for (size_t d=0; d<descriptor_length; ++d)
           iter->descriptor[d]
             = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
@@ -133,6 +135,7 @@ void copy_opencv_descriptor_matrix(InterestPointList & ip_list,
             = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
         break;
       case OPENCV_IP_DETECTOR_TYPE_SURF:
+      case OPENCV_IP_DETECTOR_TYPE_KAZE: // float descriptor, like SURF
         for (size_t d=0; d<descriptor_length; ++d)
           iter->descriptor[d]
             = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
@@ -154,8 +157,20 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
   // - There are a lot of detector variables that we just leave as the default here.
   switch (detector_type) {
   case OPENCV_IP_DETECTOR_TYPE_BRISK:
-    vw_throw(NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
-    //return cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
+    // BRISK (binary descriptor, FAST-based corner detector) is controlled by a
+    // detection threshold, not a maximum point count. A low threshold yields more
+    // keypoints on low-contrast imagery; the downstream logic caps the count.
+    return cv::BRISK::create(10, 3, 1.0f);
+  case OPENCV_IP_DETECTOR_TYPE_AKAZE:
+    // AKAZE uses nonlinear diffusion, which respects image edges rather than
+    // Gaussian-blurring across them. That tends to help low-contrast imagery.
+    // Default descriptor is the binary MLDB. The threshold is lowered from the
+    // default 0.001 so more keypoints survive on faint terrain.
+    return cv::AKAZE::create(cv::AKAZE::DESCRIPTOR_MLDB, 0, 3, 0.0001f);
+  case OPENCV_IP_DETECTOR_TYPE_KAZE:
+    // KAZE is the float-descriptor, nonlinear-diffusion predecessor of AKAZE.
+    // Threshold lowered from the default 0.001 for the same low-contrast reason.
+    return cv::KAZE::create(false, false, 0.0001f);
   case OPENCV_IP_DETECTOR_TYPE_ORB:
     if (max_points > 0)
       return cv::ORB::create(max_points);
@@ -164,8 +179,22 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
   case OPENCV_IP_DETECTOR_TYPE_SIFT:
     return cv::SIFT::create(max_points);
   case OPENCV_IP_DETECTOR_TYPE_SURF:
-    vw_throw(NoImplErr() << "OpenCV SURF option is not supported yet!\n");
-    //m_detector = cv::Ptr<cv::xfeatures2d::SURF >(new cv::SURF());  break;
+    // SURF (in the OpenCV xfeatures2d contrib module) is controlled by a Hessian
+    // threshold rather than a maximum point count. A low threshold gives many
+    // keypoints on low-contrast imagery; the downstream logic caps the count.
+    // SURF is patented (nonfree). If OpenCV was built without
+    // OPENCV_ENABLE_NONFREE, create() throws at run time. Catch that and report
+    // it clearly, rather than letting it surface as a vague "no interest points".
+    try {
+      return cv::xfeatures2d::SURF::create(30);
+    } catch (cv::Exception const& e) {
+      vw_throw(vw::NoImplErr()
+               << "OpenCV SURF (interest point detection method 3) is not "
+               << "available. SURF is patented and is excluded unless OpenCV is "
+               << "built with the OPENCV_ENABLE_NONFREE option. Rebuild OpenCV "
+               << "with that option, or use a different interest point detection "
+               << "method. OpenCV reported: " << e.what());
+    }
   default:
     vw_throw(ArgumentErr() << "Unrecognized OpenCV detector type!\n");
   };

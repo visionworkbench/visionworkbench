@@ -39,7 +39,9 @@ namespace ip {
 enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
                             OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
-                            OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
+                            OPENCV_IP_DETECTOR_TYPE_SURF  = 3,
+                            OPENCV_IP_DETECTOR_TYPE_AKAZE = 4,
+                            OPENCV_IP_DETECTOR_TYPE_KAZE  = 5};
 
 /// Struct to convert a basic type to a single channel OpenCV type
 template <typename T>
