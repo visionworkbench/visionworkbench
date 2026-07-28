@@ -158,9 +158,10 @@ OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
   switch (detector_type) {
   case OPENCV_IP_DETECTOR_TYPE_BRISK:
     // BRISK (binary descriptor, FAST-based corner detector) is controlled by a
-    // detection threshold, not a maximum point count. A low threshold yields more
-    // keypoints on low-contrast imagery; the downstream logic caps the count.
-    return cv::BRISK::create(10, 3, 1.0f);
+    // detection threshold, not a maximum point count. The OpenCV default of 30
+    // is used; a much lower threshold floods low-contrast imagery with keypoints
+    // and makes matching very slow.
+    return cv::BRISK::create(30, 3, 1.0f);
   case OPENCV_IP_DETECTOR_TYPE_AKAZE:
     // AKAZE uses nonlinear diffusion, which respects image edges rather than
     // Gaussian-blurring across them. That tends to help low-contrast imagery.

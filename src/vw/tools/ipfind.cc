@@ -75,10 +75,10 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("interest-operator",    po::value(&opt.interest_operator)->default_value("sift"), 
-     "Choose an interest point detector from: sift (default), orb, OBALoG, LoG, Harris, IAGD.")
-    ("descriptor-generator", po::value(&opt.descriptor_generator)->default_value("sift"), 
-     "Choose a descriptor generator from: sift (default), orb, sgrad, sgrad2, patch. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch).")
+    ("interest-operator",    po::value(&opt.interest_operator)->default_value("sift"),
+     "Choose an interest point detector from: sift (default), orb, akaze, brisk, kaze, OBALoG, LoG, Harris, IAGD.")
+    ("descriptor-generator", po::value(&opt.descriptor_generator)->default_value("sift"),
+     "Choose a descriptor generator from: sift (default), orb, akaze, brisk, kaze, sgrad, sgrad2, patch. Some descriptors work only with certain interest point operators (for example, for OBALoG use sgrad, sgrad2, patch).")
     ("ip-per-image",           po::value(&opt.ip_per_image)->default_value(0), 
      "Set the maximum number of IP to find in the whole image. If not specified, use instead --ip-per-tile.")
     ("ip-per-tile",           po::value(&opt.ip_per_tile)->default_value(250), 
@@ -197,10 +197,14 @@ int main(int argc, char** argv) {
   const bool detector_is_opencv = ((opt.interest_operator == "brisk") ||
                                     (opt.interest_operator == "surf") ||
                                     (opt.interest_operator == "orb" ) ||
+                                    (opt.interest_operator == "akaze") ||
+                                    (opt.interest_operator == "kaze") ||
                                     (opt.interest_operator == "sift")  );
   const bool descriptor_is_opencv = ((opt.descriptor_generator == "brisk") ||
                                       (opt.descriptor_generator == "surf") ||
                                       (opt.descriptor_generator == "orb" ) ||
+                                      (opt.descriptor_generator == "akaze") ||
+                                      (opt.descriptor_generator == "kaze") ||
                                       (opt.descriptor_generator == "sift")  );
 
   if (opencv_normalize && !detector_is_opencv) {
@@ -212,13 +216,15 @@ int main(int argc, char** argv) {
   if (!(opt.interest_operator == "iagd"   ||
           opt.interest_operator == "harris" ||
           opt.interest_operator == "log"    ||
-          opt.interest_operator == "obalog" || 
-          //opt.interest_operator == "brisk"  ||
+          opt.interest_operator == "obalog" ||
+          opt.interest_operator == "brisk"  ||
           opt.interest_operator == "orb"    ||
+          opt.interest_operator == "akaze"  ||
+          opt.interest_operator == "kaze"   ||
           //opt.interest_operator == "surf"   ||
           opt.interest_operator == "sift"    )) {
     vw_out() << "Unknown interest operator: " << opt.interest_operator
-             << ". Options are: sift, orb, OBALoG, LoG, Harris, IAGD.\n";
+             << ". Options are: sift, orb, akaze, brisk, kaze, OBALoG, LoG, Harris, IAGD.\n";
     exit(1);
   }
 
@@ -226,12 +232,14 @@ int main(int argc, char** argv) {
   if (!(opt.descriptor_generator == "patch"  ||
           opt.descriptor_generator == "sgrad"  ||
           opt.descriptor_generator == "sgrad2" ||
-          //opt.descriptor_generator == "brisk"  ||
+          opt.descriptor_generator == "brisk"  ||
           opt.descriptor_generator == "orb"    ||
+          opt.descriptor_generator == "akaze"  ||
+          opt.descriptor_generator == "kaze"   ||
           //opt.descriptor_generator == "surf"   ||
           opt.descriptor_generator == "sift"   )) {
     vw_out() << "Unkown descriptor generator: " << opt.descriptor_generator
-             << ". Options are: sift, orb, sgrad, sgrad2, patch.\n";
+             << ". Options are: sift, orb, akaze, brisk, kaze, sgrad, sgrad2, patch.\n";
     exit(1);
   }
 
@@ -349,6 +357,10 @@ int main(int argc, char** argv) {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
       } else if (opt.interest_operator == "surf") {
         ocv_type = OPENCV_IP_DETECTOR_TYPE_SURF;
+      } else if (opt.interest_operator == "akaze") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_AKAZE;
+      } else if (opt.interest_operator == "kaze") {
+        ocv_type = OPENCV_IP_DETECTOR_TYPE_KAZE;
       }
       OpenCvInterestPointDetector detector(ocv_type, opencv_normalize, describeInDetect, opt.ip_per_tile);
       if (has_nodata)
