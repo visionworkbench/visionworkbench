@@ -396,7 +396,7 @@ double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & or
   if (scales.empty())
     vw_throw(LogicErr() << "Could not find two images with at least 3 GCP each.\n");
 
-  double median_scale = vw::math::destructive_median(scales);
+  double median_scale = vw::math::median_in_place(scales);
 
   return median_scale;
 }

@@ -117,7 +117,7 @@ TEST(Functors, DestructiveMedian){
   V.push_back(5);
 
   // The median better be 6.5
-  EXPECT_TRUE( destructive_median(V) == 6.5 );
+  EXPECT_TRUE( median_in_place(V) == 6.5 );
 }
 
 TEST(Functors, DestructiveNmad){
@@ -128,7 +128,7 @@ TEST(Functors, DestructiveNmad){
   V.push_back(3);
   V.push_back(5);
 
-  EXPECT_TRUE( destructive_nmad(V) == 2.9652 );
+  EXPECT_TRUE( nmad_in_place(V) == 2.9652 );
 }
 
 TEST(Functors, DestructivePercentile){
@@ -141,17 +141,17 @@ TEST(Functors, DestructivePercentile){
 
   // Start with new W each time, as it will be messed up
 
-  W = V; EXPECT_TRUE( destructive_percentile(V,   0) == 3 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  20) == 3 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  25) == 3 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  26) == 5 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  45) == 5 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  50) == 5 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  51) == 8 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  70) == 8 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  75) == 8 );
-  W = V; EXPECT_TRUE( destructive_percentile(V,  76) == 9 );
-  W = V; EXPECT_TRUE( destructive_percentile(V, 100) == 9 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,   0) == 3 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  20) == 3 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  25) == 3 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  26) == 5 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  45) == 5 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  50) == 5 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  51) == 8 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  70) == 8 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  75) == 8 );
+  W = V; EXPECT_TRUE( percentile_in_place(V,  76) == 9 );
+  W = V; EXPECT_TRUE( percentile_in_place(V, 100) == 9 );
   
 }
 

@@ -272,7 +272,7 @@ namespace vw {
       VW_ASSERT(m_values[0].size(), ArgumentErr() << "MedianAccumulator: no valid samples");
       ValT result;
       for ( vw::int32 i = 0; i < CompoundNumChannels<ValT>::value; i++ ) {
-        result[i] = destructive_median(m_values[i]);
+        result[i] = median_in_place(m_values[i]);
       }
       return result;
     }

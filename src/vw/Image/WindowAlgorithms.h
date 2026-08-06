@@ -248,12 +248,12 @@ struct WindowMedianFunctor {
     // Now that we have all the values, compute the median.
     double median;
     if (index == static_cast<int>(m_values.size())) // No invalid pixels
-      median = math::destructive_median(m_values);
+      median = math::median_in_place(m_values);
     else { // Invalid pixels
       // Resize the vector twice so we can call the median function
       size_t full_size = m_values.size();
       m_values.resize(index);
-      median = math::destructive_median(m_values);
+      median = math::median_in_place(m_values);
       m_values.resize(full_size);
     }
     return typename ImageT::pixel_type(median);

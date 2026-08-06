@@ -387,59 +387,62 @@ namespace vw {
       }
     };
 
-    // Note: This function modifies the input!
-    // Note that we always return double, for precision.
+    // Median computed in place with nth_element (O(n), not a full sort). This
+    // reorders (mutates) the input. For an even count it averages the two central
+    // values, matching a full sort. Always returns double, for precision.
     template <class T>
-    double destructive_median(std::vector<T> & vec) {
-      int len = vec.size();
+    double median_in_place(std::vector<T> & vec) {
+      size_t len = vec.size();
       VW_ASSERT(len, ArgumentErr() << "median: no valid samples.");
-      std::sort(vec.begin(), vec.end());
-      return len%2 ? vec[len/2] : (vec[len/2 - 1] + vec[len/2]) / 2.0;
+      size_t mid = len / 2;
+      std::nth_element(vec.begin(), vec.begin() + mid, vec.end());
+      double hi = vec[mid];
+      if (len % 2)
+        return hi; // odd count: the middle value
+      // Even count: the lower-middle is the max of the left partition, which
+      // nth_element has placed entirely at or below vec[mid].
+      double lo = *std::max_element(vec.begin(), vec.begin() + mid);
+      return (lo + hi) / 2.0;
     }
 
-    // Compute the normalized median absolute deviation:
-    // nmad = 1.4826 * median(abs(X - median(X)))  
-    // Note: This function modifies the input!
-    // This always return double, for precision.
+    // Normalized median absolute deviation:
+    // nmad = 1.4826 * median(abs(X - median(X)))
+    // This reorders (mutates) the input. Always returns double, for precision.
     template <class T>
-    double destructive_nmad(std::vector<T> & vec){
-      int len = vec.size();
-      VW_ASSERT(len, ArgumentErr() << "nmad: no valid samples.");
-      
-      // Find the median. This sorts the vector, but that is not a problem.
-      double median = destructive_median(vec);
-      
-      // It is safer to make a copy of the vector specifically for the
-      // mad calculation, so that not to mess up the sorted values in vec.
-      std::vector<double> abs_diffs(len);
+    double nmad_in_place(std::vector<T> & vec){
+      VW_ASSERT(vec.size(), ArgumentErr() << "nmad: no valid samples.");
+
+      // Find the median. This reorders the vector, but that is not a problem.
+      double median = median_in_place(vec);
+
+      // Work on a separate buffer for the absolute deviations.
+      std::vector<double> abs_diffs(vec.size());
       for (size_t it = 0; it < vec.size(); it++)
         abs_diffs[it] = std::abs(vec[it] - median);
-      
-      return 1.4826 * destructive_median(abs_diffs);
+
+      return 1.4826 * median_in_place(abs_diffs);
     }
-  
-    // Compute the percentile using
-    // https://en.wikipedia.org/wiki/Percentile#The_nearest-rank_method
-    // Note: This function modifies the input!
+
+    // Compute the percentile using the nearest-rank method
+    // (https://en.wikipedia.org/wiki/Percentile#The_nearest-rank_method),
+    // in place with nth_element (O(n)). This reorders (mutates) the input.
     template <class T>
-    T destructive_percentile(std::vector<T> & vec, double percentile){
-      
+    T percentile_in_place(std::vector<T> & vec, double percentile){
+
       int len = vec.size();
       VW_ASSERT(len > 0, ArgumentErr() << "percentile: no valid samples.");
       VW_ASSERT(percentile >= 0 && percentile <= 100.0,
                 ArgumentErr() << "Percentile must be between 0 and 100.");
 
-      // Sorting is vital
-      std::sort(vec.begin(), vec.end());
-
       int index = ceil((percentile/100.0) * double(len));
 
-      // Account for the fact that in C++ indices start from 0 
+      // Account for the fact that in C++ indices start from 0
       index--;
 
       if (index < 0) index = 0;
       if (index >= len) index = len-1;
-        
+
+      std::nth_element(vec.begin(), vec.begin() + index, vec.end());
       return vec[index];
     }
 
@@ -460,7 +463,7 @@ namespace vw {
       }
       
       double value() {
-        return destructive_median(m_values);
+        return median_in_place(m_values);
       }
     };
 

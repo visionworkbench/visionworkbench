@@ -58,8 +58,8 @@ void disparity_median_filter(ImageView<PixelMask<Vector2f>> const& disparity_in,
 
       dx.resize(index);
       dy.resize(index);
-      double median_x = math::destructive_median(dx);
-      double median_y = math::destructive_median(dy);
+      double median_x = math::median_in_place(dx);
+      double median_y = math::median_in_place(dy);
 
       disparity_out(col, row) = PixelMask<Vector2f>(median_x, median_y);
     }
