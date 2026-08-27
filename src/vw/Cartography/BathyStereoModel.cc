@@ -28,11 +28,8 @@
 #include <vw/Cartography/SnellLaw.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Cartography/GeoReference.h>
 #include <vw/Math/Vector.h>
 #include <vw/Core/Exception.h>
-
-#include <cmath>
 
 namespace vw {
 
@@ -64,32 +61,6 @@ void BathyStereoModel::set_bathy(double refraction_index,
       m_single_bathy_plane = false;
   if (m_bathy_plane_vec[0].bathy_plane != m_bathy_plane_vec[1].bathy_plane)
     m_single_bathy_plane = false;
-}
-
-// Use a single georeferenced ortho land/water mask instead of per-image masks.
-void BathyStereoModel::set_ortho_mask(vw::ImageView<vw::PixelMask<float>> const& ortho_mask,
-                                      vw::cartography::GeoReference const& ortho_georef) {
-  m_use_ortho_mask = true;
-  m_ortho_mask     = ortho_mask;
-  m_ortho_georef   = ortho_georef;
-}
-
-// Return true if an ECEF point is over water in the ortho mask.
-bool BathyStereoModel::isWaterInOrthoMask(vw::Vector3 const& xyz) const {
-
-  // ECEF to lon-lat to mask pixel.
-  vw::Vector3 llh = m_ortho_georef.datum().cartesian_to_geodetic(xyz);
-  vw::Vector2 pix = m_ortho_georef.lonlat_to_pixel(vw::Vector2(llh[0], llh[1]));
-
-  int c = (int)std::round(pix[0]);
-  int r = (int)std::round(pix[1]);
-
-  // Outside the mask: treat as land.
-  if (c < 0 || r < 0 || c >= m_ortho_mask.cols() || r >= m_ortho_mask.rows())
-    return false;
-
-  // Water is an invalid pixel (non-positive value or nodata).
-  return !vw::is_valid(m_ortho_mask(c, r));
 }
 
 // Compute the rays intersection. Note that even if we are in
@@ -150,10 +121,6 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       if (reflect)
         uncorr_tri_pt = -uncorr_tri_pt + 2*camCtrs[0];
     }
-
-    // With a single ortho mask, decide water vs land from the triangulated point.
-    if (m_use_ortho_mask)
-      do_bathy = isWaterInOrthoMask(uncorr_tri_pt);
 
     if (!do_bathy || camDirs.size() != 2)
       return uncorr_tri_pt;
