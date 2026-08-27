@@ -46,13 +46,14 @@ public:
   BathyStereoModel(std::vector<const vw::camera::CameraModel *> const& cameras,
                     double angle_tol = 0.0):
     vw::stereo::StereoModel(cameras, angle_tol),
-    m_bathy_correct(false) {}
+    m_bathy_correct(false), m_use_ortho_mask(false) {}
 
   BathyStereoModel(vw::camera::CameraModel const* camera_model1,
                     vw::camera::CameraModel const* camera_model2,
                     double angle_tol = 0.0):
     vw::stereo::StereoModel(camera_model1, camera_model2, angle_tol),
-    m_bathy_correct(false), m_single_bathy_plane(true) {}
+    m_bathy_correct(false), m_single_bathy_plane(true),
+    m_use_ortho_mask(false) {}
 
   virtual ~BathyStereoModel() {}
 
@@ -77,11 +78,23 @@ public:
   void set_bathy(double refraction_index,
                  std::vector<BathyPlane> const& bathy_plane_vec);
 
+  // Use a single georeferenced ortho land/water mask instead of per-image masks.
+  void set_ortho_mask(vw::ImageView<vw::PixelMask<float>> const& ortho_mask,
+                      vw::cartography::GeoReference const& ortho_georef);
+
 private:
+  // Return true if an ECEF point is over water in the ortho mask.
+  bool isWaterInOrthoMask(vw::Vector3 const& xyz) const;
+
   bool m_bathy_correct;                        // If to do bathy correction
-  bool m_single_bathy_plane;                   // if the left and right images use same plane 
+  bool m_single_bathy_plane;                   // if the left and right images use same plane
   double m_refraction_index;                   // Water refraction index
   std::vector<BathyPlane> m_bathy_plane_vec;   // Bathy plane settings
+
+  // A single ortho land/water mask, as an alternative to per-image masks.
+  bool m_use_ortho_mask;                        // If to use the ortho mask
+  vw::ImageView<vw::PixelMask<float>> m_ortho_mask; // Invalid = water
+  vw::cartography::GeoReference m_ortho_georef; // Georef of the ortho mask
 };
 
 } // namespace vw
