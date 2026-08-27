@@ -87,6 +87,13 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
                ImageViewRef<PixelMask<float>> const& right_mask,
                Vector2 const& lpix, Vector2 const& rpix);
 
+// Check if an ECEF point is over water in a single georeferenced (ortho) mask,
+// by projecting it into the mask. Same pixel convention as areMasked(): nearest
+// pixel, a point outside the mask is land, an invalid pixel is water.
+bool isWaterInOrthoMask(ImageViewRef<PixelMask<float>> const& ortho_mask,
+                        cartography::GeoReference const& ortho_georef,
+                        Vector3 const& xyz);
+
 // Read a bathy mask. Water pixels are those with non-positive values or
 // matching the file's nodata value. Both are invalidated in the returned
 // masked image. The returned nodata_val is suitable for writing the mask back.

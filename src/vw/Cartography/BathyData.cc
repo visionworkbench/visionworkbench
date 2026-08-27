@@ -174,6 +174,23 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
           !is_valid(right_mask(irpix.x(), irpix.y())));
 }
 
+// Check if an ECEF point is over water in a single georeferenced (ortho) mask.
+bool isWaterInOrthoMask(ImageViewRef<PixelMask<float>> const& ortho_mask,
+                        cartography::GeoReference const& ortho_georef,
+                        Vector3 const& xyz) {
+
+  Vector3 llh = ortho_georef.datum().cartesian_to_geodetic(xyz);
+  Vector2 pix = ortho_georef.lonlat_to_pixel(Vector2(llh[0], llh[1]));
+
+  int c = (int)round(pix[0]);
+  int r = (int)round(pix[1]);
+
+  if (c < 0 || r < 0 || c >= ortho_mask.cols() || r >= ortho_mask.rows())
+    return false; // outside the mask: treat as land
+
+  return !is_valid(ortho_mask(c, r)); // invalid pixel: water
+}
+
 // Compute the projected coordinates of an ECEF point.
 Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
                        Vector3 const& xyz) {
