@@ -107,6 +107,11 @@ namespace vw { namespace mosaic {
                               boost::is_same<PixelT,vw::uint8> > >,
                               ImageViewRef< PixelMask<PixelT> > >::type
   create_custom_mask(ImageViewRef<PixelT> & img, double nodata_val){
+    // No nodata was provided (nodata_val is NaN): mask nothing. Casting NaN to
+    // an integer channel type is undefined (in practice yields 0), which would
+    // wrongly mask pure-black pixels.
+    if (std::isnan(nodata_val))
+      return pixel_cast<PixelMask<PixelT>>(img);
     PixelT mask_pixel;
     mask_pixel.set_all(nodata_val);
     return create_mask(img, mask_pixel);
@@ -135,6 +140,11 @@ namespace vw { namespace mosaic {
                              ImageViewRef<PixelMask<PixelT>>>::type
   maskForPyramid(ImageViewRef<PixelT> & img, double nodata_val,
                  float /*valid_min*/, float /*valid_max*/) {
+    // No nodata was provided (nodata_val is NaN): mask nothing. Casting NaN to
+    // an integer channel type is undefined (in practice yields 0), which would
+    // wrongly mask pure-black pixels out of the anti-aliased pyramid average.
+    if (std::isnan(nodata_val))
+      return pixel_cast<PixelMask<PixelT>>(img);
     PixelT mask_pixel;
     mask_pixel.set_all(nodata_val);
     return create_mask(img, mask_pixel);
@@ -385,8 +395,11 @@ namespace vw { namespace mosaic {
       // what is a good way of resampling.
       // Note that below we cast the channels to double for resampling,
       // then cast back to current pixel type for saving.
+      // Fill value for pixels that were masked out (only when a real nodata
+      // exists). When there is no nodata (m_nodata_val is NaN) nothing is
+      // masked, so use 0 rather than casting NaN to an integer channel (UB).
       PixelT nodata_pixel;
-      set_all(nodata_pixel, m_nodata_val);
+      set_all(nodata_pixel, std::isnan(m_nodata_val) ? 0.0 : m_nodata_val);
       ImageViewRef<PixelT> unmasked
         = block_rasterize(cache_tile_aware_render
                           (pixel_cast<PixelT>
