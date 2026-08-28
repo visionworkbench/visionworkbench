@@ -339,16 +339,24 @@ void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   bp.water_surface
     = vw::create_mask(vw::DiskImageView<float>(bathy_plane_file), nodata);
 
-  // Walk valid pixels, collect points in the raster's projection coordinates.
-  // Also accumulate the sum of valid heights to compute the physical mean,
-  // and the mean proj_xy to use as the stereographic origin.
+  // Collect valid pixels in the raster's projection coordinates, to fit a
+  // fallback plane and to find the mean height and stereographic origin. Only a
+  // subsample is needed: the fallback plane and the summary statistics are well
+  // determined by a modest number of points, and collecting every pixel of a
+  // large, high-resolution water-surface raster (e.g. a big lake at 2 m) can
+  // require many gigabytes and run out of memory. Stride the grid so that at
+  // most ~max_fit_pts pixels are examined.
+  size_t const max_fit_pts = 500000;
+  size_t total_pix = size_t(bp.water_surface.cols()) * size_t(bp.water_surface.rows());
+  int stride = 1;
+  if (total_pix > max_fit_pts)
+    stride = int(std::ceil(std::sqrt(double(total_pix) / double(max_fit_pts))));
+
   std::vector<vw::Vector3> raster_proj_pts;
-  raster_proj_pts.reserve(size_t(bp.water_surface.cols())
-                          * size_t(bp.water_surface.rows()));
   double height_sum = 0.0;
   vw::Vector2 proj_xy_sum(0, 0);
-  for (int row = 0; row < bp.water_surface.rows(); row++) {
-    for (int col = 0; col < bp.water_surface.cols(); col++) {
+  for (int row = 0; row < bp.water_surface.rows(); row += stride) {
+    for (int col = 0; col < bp.water_surface.cols(); col += stride) {
       vw::PixelMask<float> pix = bp.water_surface(col, row);
       if (!vw::is_valid(pix))
         continue;
