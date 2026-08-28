@@ -77,6 +77,10 @@ public:
   void set_bathy(double refraction_index,
                  std::vector<BathyPlane> const& bathy_plane_vec);
 
+  // Accessors, so error propagation can bend the rays the same way
+  double refraction_index() const { return m_refraction_index; }
+  std::vector<BathyPlane> const& bathy_plane_vec() const { return m_bathy_plane_vec; }
+
 private:
   bool m_bathy_correct;                        // If to do bathy correction
   bool m_single_bathy_plane;                   // if the left and right images use same plane
