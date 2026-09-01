@@ -164,29 +164,41 @@ public:
     m_u_scale(u_scale), m_v_scale(v_scale) {}
 
   BBox2i work_area() const {
-    return BBox2i(Vector2i(0, 0), Vector2i(1, 1));
+    return BBox2i(Vector2i(-1, -1), Vector2i(1, 1));
   }
 
+  // Compute the surface normal with Horn's method (the same 3x3 weighted
+  // central difference used by gdaldem hillshade). This is symmetric, so it
+  // avoids the half-pixel shift and the quantization speckle of a one-sided
+  // difference. At the image border the 3x3 window is filled by replicating
+  // the edge pixels (via the caller's ConstantEdgeExtension), as gdaldem does.
+  // If the center is no-data the normal is masked; a no-data neighbor is
+  // replaced by the center value, so valid pixels next to holes still shade.
   template <class PixelAccessorT>
   PixelMask<Vector3f> operator()(PixelAccessorT const& accessor_loc) const {
-    PixelAccessorT acc = accessor_loc;
 
-    if (is_transparent(*acc))
+    if (is_transparent(*accessor_loc))
       return PixelMask<Vector3f>();
-    float alt1 = *acc;
+    float c = *accessor_loc;
 
-    acc.advance(1, 0);
-    if (is_transparent(*acc))
-      return PixelMask<Vector3f>();
-    float alt2 = *acc;
+    // Gather the 3x3 window. z[row+1][col+1], with row/col in [-1, 1]; row grows
+    // downward (south), col grows to the right (east).
+    float z[3][3];
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        PixelAccessorT a = accessor_loc;
+        a.advance(dx, dy);
+        z[dy + 1][dx + 1] = is_transparent(*a) ? c : float(*a);
+      }
+    }
 
-    acc.advance(-1, 1);
-    if (is_transparent(*acc))
-      return PixelMask<Vector3f>();
-    float alt3 = *acc;
+    // Horn's weighted central differences (east - west, south - north). The
+    // factor of 8 from the weights is folded into the run components below.
+    float dzdx = (z[0][2] + 2*z[1][2] + z[2][2]) - (z[0][0] + 2*z[1][0] + z[2][0]);
+    float dzdy = (z[2][0] + 2*z[2][1] + z[2][2]) - (z[0][0] + 2*z[0][1] + z[0][2]);
 
-    Vector3f n1(m_u_scale, 0, alt2 - alt1);
-    Vector3f n2(0, m_v_scale, alt3 - alt1);
+    Vector3f n1(8.0f * m_u_scale, 0, dzdx);
+    Vector3f n2(0, 8.0f * m_v_scale, dzdy);
 
     return normalize(cross_prod(n1, n2));
   }
