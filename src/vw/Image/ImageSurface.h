@@ -167,30 +167,65 @@ public:
     return BBox2i(Vector2i(-1, -1), Vector2i(1, 1));
   }
 
-  // Compute the surface normal with Horn's method (the same 3x3 weighted
-  // central difference used by gdaldem hillshade). This is symmetric, so it
-  // avoids the half-pixel shift and the quantization speckle of a one-sided
-  // difference. At the image border the 3x3 window is filled by replicating
-  // the edge pixels (via the caller's ConstantEdgeExtension), as gdaldem does.
-  // If the center is no-data the normal is masked; a no-data neighbor is
-  // replaced by the center value, so valid pixels next to holes still shade.
+  // Compute the surface normal with Horn's 3x3 weighted central difference (the
+  // same stencil as gdaldem hillshade). It is symmetric, so it avoids the
+  // half-pixel shift and the quantization speckle of a one-sided difference.
+  //
+  // Validity is judged on the RAW data, before any fill: off-image cells (from
+  // the caller's ZeroEdgeExtension) and no-data cells are both invalid. A normal
+  // is produced only when the window is not degenerate: the center ROW (west,
+  // center, east) must have at least 2 of 3 valid, and the center COLUMN (north,
+  // center, south) must have at least 2 of 3 valid. That guarantees a real
+  // east-west and a real north-south difference, so we never fabricate a flat
+  // normal for an under-determined pixel. Note this still shades a pixel whose
+  // center is no-data, as long as both opposite cardinal neighbors exist (Horn's
+  // gradient does not use the center value), and it shades a pixel with only one
+  // of west/east (or north/south) missing. Otherwise the pixel is masked.
+  //
+  // Once the gate passes, missing cells are filled with a stand-in (the center
+  // value, or the mean of the valid cardinal neighbors when the center itself is
+  // missing) so the partial differences are well defined. A full-data window
+  // reduces to plain Horn, so interior and image-border pixels of a hole-free
+  // DEM are unchanged. This is stricter than gdaldem near voids on purpose; the
+  // pc_align alignment path calls gdaldem directly and is unaffected.
   template <class PixelAccessorT>
   PixelMask<Vector3f> operator()(PixelAccessorT const& accessor_loc) const {
 
-    if (is_transparent(*accessor_loc))
-      return PixelMask<Vector3f>();
-    float c = *accessor_loc;
-
-    // Gather the 3x3 window. z[row+1][col+1], with row/col in [-1, 1]; row grows
-    // downward (south), col grows to the right (east).
+    // Gather the 3x3 window values and raw validity. z[row+1][col+1], with row
+    // growing downward (south) and col growing to the right (east).
     float z[3][3];
+    bool  ok[3][3];
     for (int dy = -1; dy <= 1; dy++) {
       for (int dx = -1; dx <= 1; dx++) {
         PixelAccessorT a = accessor_loc;
         a.advance(dx, dy);
-        z[dy + 1][dx + 1] = is_transparent(*a) ? c : float(*a);
+        ok[dy + 1][dx + 1] = !is_transparent(*a);
+        z [dy + 1][dx + 1] = ok[dy + 1][dx + 1] ? float(*a) : 0.0f;
       }
     }
+
+    // Degeneracy gate on the raw center row and center column, before any fill.
+    int row_valid = int(ok[1][0]) + int(ok[1][1]) + int(ok[1][2]); // W, C, E
+    int col_valid = int(ok[0][1]) + int(ok[1][1]) + int(ok[2][1]); // N, C, S
+    if (row_valid < 2 || col_valid < 2)
+      return PixelMask<Vector3f>();
+
+    // Fill value for missing cells: the center if valid, else the mean of the
+    // valid cardinal neighbors (the gate guarantees at least two of them exist).
+    float fill;
+    if (ok[1][1]) {
+      fill = z[1][1];
+    } else {
+      float s = 0.0f; int n = 0;
+      if (ok[1][0]) { s += z[1][0]; n++; } // W
+      if (ok[1][2]) { s += z[1][2]; n++; } // E
+      if (ok[0][1]) { s += z[0][1]; n++; } // N
+      if (ok[2][1]) { s += z[2][1]; n++; } // S
+      fill = s / float(n);
+    }
+    for (int r = 0; r < 3; r++)
+      for (int c = 0; c < 3; c++)
+        if (!ok[r][c]) z[r][c] = fill;
 
     // Horn's weighted central differences (east - west, south - north). The
     // factor of 8 from the weights is folded into the run components below.
@@ -204,14 +239,18 @@ public:
   }
 };
 
+// Use ZeroEdgeExtension so that reads past the image edge come back as an
+// invalid (masked) pixel. ComputeNormalsFunc then treats off-image cells as
+// no-data when it applies its degeneracy gate, i.e. validity is judged on the
+// raw data before any fill, exactly as gdaldem judges the true image extent.
 template <class ViewT>
-UnaryPerPixelAccessorView<EdgeExtensionView<ViewT, ConstantEdgeExtension>,
+UnaryPerPixelAccessorView<EdgeExtensionView<ViewT, ZeroEdgeExtension>,
                           ComputeNormalsFunc>
 compute_normals(ImageViewBase<ViewT> const& image,
                 float u_scale, float v_scale) {
   return UnaryPerPixelAccessorView<
-    EdgeExtensionView<ViewT, ConstantEdgeExtension>, ComputeNormalsFunc>(
-    edge_extend(image.impl(), ConstantEdgeExtension()),
+    EdgeExtensionView<ViewT, ZeroEdgeExtension>, ComputeNormalsFunc>(
+    edge_extend(image.impl(), ZeroEdgeExtension()),
     ComputeNormalsFunc(u_scale, v_scale));
 }
 
