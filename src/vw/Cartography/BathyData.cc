@@ -28,6 +28,9 @@
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/SnellLaw.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/AntiAliasing.h>
+#include <vw/Image/BlockRasterize.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/PixelMath.h>
@@ -42,6 +45,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageUtils.h>
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -333,20 +337,55 @@ void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
   std::vector<double> & bathy_plane = bp.bathy_plane;
   vw::cartography::GeoReference & plane_proj = bp.plane_proj;
 
-  // Initialize bp.water_surface
+  // Read the water-surface raster as a lazy masked view. The file nodata is
+  // masked so the anti-aliased downsampling below averages only valid pixels.
   float nodata = -std::numeric_limits<float>::max();
   vw::read_nodata_val(bathy_plane_file, nodata);
-  bp.water_surface
+  vw::ImageViewRef<vw::PixelMask<float>> full_surface
     = vw::create_mask(vw::DiskImageView<float>(bathy_plane_file), nodata);
 
+  // Keep the water surface in memory for performance, but resample if too big.
+  size_t const max_surface_pts = 25000000;
+  size_t surf_pix = size_t(full_surface.cols()) * size_t(full_surface.rows());
+  int surf_factor = 1;
+  if (surf_pix > max_surface_pts)
+    surf_factor
+      = int(std::ceil(std::sqrt(double(surf_pix) / double(max_surface_pts))));
+
+  // Sanity check
+  int min_dim = std::min(full_surface.cols(), full_surface.rows());
+  if (surf_factor > min_dim)
+    surf_factor = std::max(1, min_dim);
+
+  if (surf_factor <= 1) {
+    // Small enough: materialize at full resolution.
+    bp.water_surface = full_surface;
+  } else {
+    vw_out(vw::WarningMessage)
+      << "Water-surface raster is large (" << full_surface.cols() << " x "
+      << full_surface.rows() << "). Downsampling by a factor of "
+      << surf_factor << " to bound memory.\n";
+    // Rasterize the anti-aliased downsample without bringing fully in memory
+    double surf_scale = 1.0 / double(surf_factor);
+    int tile = 256;
+    bp.water_surface
+      = vw::block_rasterize(
+          vw::cache_tile_aware_render(
+            vw::channel_cast<float>(
+              vw::resample_aa(vw::channel_cast<double>(full_surface), surf_scale)),
+            vw::Vector2i(tile, tile) * surf_scale),
+          vw::Vector2i(tile, tile), 1);
+    // Coarsen plane_proj consistently: keep the upper-left corner, scale the
+    // linear part by the factor.
+    vw::Matrix3x3 T = plane_proj.transform();
+    T(0, 0) *= double(surf_factor); T(0, 1) *= double(surf_factor);
+    T(1, 0) *= double(surf_factor); T(1, 1) *= double(surf_factor);
+    plane_proj.set_transform(T);
+  }
+
   // Collect valid pixels in the raster's projection coordinates, to fit a
-  // fallback plane and to find the mean height and stereographic origin. Only a
-  // subsample is needed: the fallback plane and the summary statistics are well
-  // determined by a modest number of points, and collecting every pixel of a
-  // large, high-resolution water-surface raster (e.g. a big lake at 2 m) can
-  // require many gigabytes and run out of memory. Stride the grid so that at
-  // most ~max_fit_pts pixels are examined.
-  size_t const max_fit_pts = 500000;
+  // fallback plane and to find the mean height and stereographic origin.
+  size_t const max_fit_pts = 1000000;
   size_t total_pix = size_t(bp.water_surface.cols()) * size_t(bp.water_surface.rows());
   int stride = 1;
   if (total_pix > max_fit_pts)
