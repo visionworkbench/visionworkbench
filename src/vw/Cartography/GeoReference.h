@@ -286,7 +286,12 @@ namespace cartography {
     /// the location in the projected coordinate system.
     Vector2 lonlat_to_point(Vector2 lon_lat) const;
 
-    /// Convert lon/lat/alt to projected x/y/alt 
+    /// Batched lonlat_to_point: transform n lon/lat pairs in place, in one
+    /// PROJ call. Result is identical to calling lonlat_to_point per point.
+    /// ok[i] is set false if point i failed to transform (treat as invalid).
+    void lonlat_to_point(std::vector<Vector2>& lonlat, std::vector<char>& ok) const;
+
+    /// Convert lon/lat/alt to projected x/y/alt
     Vector3 geodetic_to_point(Vector3 llh) const;
 
     /// Convert projected x/y/alt lon/lat/alt

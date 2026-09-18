@@ -916,7 +916,46 @@ Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
   return Vector2(x, y);
 }
 
-/// Convert lon/lat/alt to projected x/y/alt 
+// Batched lonlat_to_point. Same math per point as the scalar version, but one
+// PROJ call for the whole vector, which is much faster (the per-call overhead
+// dominates otherwise).
+void GeoReference::lonlat_to_point(std::vector<Vector2>& lonlat,
+                                   std::vector<char>& ok) const {
+
+  size_t n = lonlat.size();
+  ok.assign(n, 1);
+
+  // Same longitude wrap toward the image center as the scalar version.
+  if (!m_image_ll_box.empty()) {
+    double mid = (m_image_ll_box.min().x() + m_image_ll_box.max().x()) / 2.0;
+    for (size_t i = 0; i < n; i++) {
+      double lon = lonlat[i][0];
+      if (std::abs(lon - mid - 360) < std::abs(lon - mid)) lon -= 360;
+      if (std::abs(lon - mid + 360) < std::abs(lon - mid)) lon += 360;
+      lonlat[i][0] = lon;
+    }
+  }
+
+  if (!m_is_projected)
+    return; // identity
+
+  if (!m_proj_context.is_initialized())
+    vw::vw_throw(vw::ArgumentErr() << "Attempted to project without a valid transform.\n");
+
+  std::vector<double> x(n), y(n);
+  std::vector<int> good(n, 1);
+  for (size_t i = 0; i < n; i++) { x[i] = lonlat[i][0]; y[i] = lonlat[i][1]; }
+
+  if (n > 0)
+    m_proj_context.m_lonlat_to_proj->Transform((int)n, &x[0], &y[0], nullptr, &good[0]);
+
+  for (size_t i = 0; i < n; i++) {
+    if (good[i]) lonlat[i] = Vector2(x[i], y[i]);
+    else         ok[i] = 0;
+  }
+}
+
+/// Convert lon/lat/alt to projected x/y/alt
 Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
 
   if (std::isnan(llh[2]))
