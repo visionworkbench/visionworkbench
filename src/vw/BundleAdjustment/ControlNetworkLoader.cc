@@ -24,6 +24,8 @@
 #include <vw/Core/Stopwatch.h>
 
 #include <mutex>
+#include <vector>
+#include <algorithm>
 #include <boost/filesystem/fstream.hpp>
 
 using namespace vw;
@@ -63,6 +65,14 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
   size_t count = 0;
+
+  // Collect each pairwise triangulation so the final point can be combined
+  // robustly (component-wise median) rather than by a plain mean. The mean has
+  // a 0% breakdown point: a single camera with a grossly wrong pose produces
+  // wild pairwise intersections that drag the averaged point far from where the
+  // other rays agree. The median has a ~50% breakdown point per axis, so a
+  // minority of bad rays cannot pull the point away from the consensus.
+  std::vector<Vector3> tri_pts;
 
   double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
 
@@ -139,6 +149,7 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
           count++;
           position_sum += pt;
           error_sum += error;
+          tri_pts.push_back(pt);
         }
 
       } catch (std::exception const& e) {
@@ -180,7 +191,32 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
   }
 
   error_sum /= double(count);
-  Vector3 position = position_sum / double(count);
+
+  // Combine the pairwise triangulations by the component-wise median (robust to
+  // a minority of bad-pose rays), rather than the mean (which any single wild
+  // pairwise intersection would drag). For a single pair this reduces to that
+  // pair's point, identical to the old mean.
+  Vector3 position;
+  if (count == 1) {
+    position = tri_pts[0];
+  } else {
+    std::vector<double> xs(count), ys(count), zs(count);
+    for (size_t i = 0; i < count; i++) {
+      xs[i] = tri_pts[i].x();
+      ys[i] = tri_pts[i].y();
+      zs[i] = tri_pts[i].z();
+    }
+    std::sort(xs.begin(), xs.end());
+    std::sort(ys.begin(), ys.end());
+    std::sort(zs.begin(), zs.end());
+    size_t m = count / 2;
+    if (count % 2 == 1)
+      position = Vector3(xs[m], ys[m], zs[m]);
+    else
+      position = Vector3(0.5 * (xs[m-1] + xs[m]),
+                         0.5 * (ys[m-1] + ys[m]),
+                         0.5 * (zs[m-1] + zs[m]));
+  }
   cp.set_position(position);
 
   return error_sum;
