@@ -540,9 +540,74 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
 
 }
 
+// Number of higher-degree (degree >= 2) RPC penalty terms for given rpc_degree
+int rpcNumPenaltyTerms(int rpc_degree) {
+  if (rpc_degree < 2)
+    return 0;
+  int num_penalty = 0;
+  for (int d = 2; d <= rpc_degree; d++)
+    num_penalty += 4 * (d + 1);
+  return num_penalty;
+}
+
+// Add penalty terms for RPC coefficients of degree >= 2.
+// Follow the approach in Hartley (2001) and RPCModelGen.cc.
+void addRpcPenalty(double penalty_weight,
+                   int num_pixel_terms,
+                   vw::Vector<double> const& params,
+                   vw::Vector<double>& out_vec) {
+
+  int num_params = params.size();
+  int rpc_deg = RPCLensDistortion::rpc_degree(num_params);
+  if (rpc_deg < 2 || penalty_weight <= 0.0)
+    return;
+
+  int num_penalty_terms = rpcNumPenaltyTerms(rpc_deg);
+  int total_terms = num_pixel_terms + num_penalty_terms;
+  double native_penalty_fraction = static_cast<double>(num_penalty_terms) / 
+                                   static_cast<double>(total_terms);
+  double penalty_adjustment = penalty_weight / native_penalty_fraction;
+
+  vw::Vector<double> num_x, den_x, num_y, den_y;
+  RPCLensDistortion::unpack_params(params, num_x, den_x, num_y, den_y);
+
+  int count = num_pixel_terms;
+
+  // num_x: deg 0 has 1 coeff, deg 1 has 2 coeffs. Higher order starts at index 3.
+  int idx = 3;
+  for (int d = 2; d <= rpc_deg; d++) {
+    for (int i = 0; i <= d; i++)
+      out_vec[count++] = penalty_adjustment * num_x[idx++] * (d - 1);
+  }
+
+  // den_x: deg 1 has 2 coeffs. Higher order starts at index 2.
+  idx = 2;
+  for (int d = 2; d <= rpc_deg; d++) {
+    for (int i = 0; i <= d; i++)
+      out_vec[count++] = penalty_adjustment * den_x[idx++] * (d - 1);
+  }
+
+  // num_y: deg 0 has 1 coeff, deg 1 has 2 coeffs. Higher order starts at index 3.
+  idx = 3;
+  for (int d = 2; d <= rpc_deg; d++) {
+    for (int i = 0; i <= d; i++)
+      out_vec[count++] = penalty_adjustment * num_y[idx++] * (d - 1);
+  }
+
+  // den_y: deg 1 has 2 coeffs. Higher order starts at index 2.
+  idx = 2;
+  for (int d = 2; d <= rpc_deg; d++) {
+    for (int i = 0; i <= d; i++)
+      out_vec[count++] = penalty_adjustment * den_y[idx++] * (d - 1);
+  }
+
+  VW_ASSERT(count == static_cast<int>(out_vec.size()),
+            vw::ArgumentErr() << "Book-keeping error in addRpcPenalty.\n");
+}
+
 /// Class to use with the LevenbergMarquardt solver to optimize the parameters
 /// of a desired lens to match the passed in pairs of undistorted (input) and
-/// distorted (output) points.
+/// distorted (output) points, optionally penalizing higher-degree RPC coefficients.
 template <class DistModelT>
 struct DistortionOptimizeFunctor:
     public math::LeastSquaresModelBase< DistortionOptimizeFunctor<DistModelT> > {
@@ -552,29 +617,43 @@ struct DistortionOptimizeFunctor:
 
   const camera::PinholeModel& m_cam;
   const std::vector<Vector2>& m_undist_coords;
+  double m_penalty_weight;
 
   /// Init the object with the pinhole model and the list of undistorted image coordinates.
   /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row)
   ///    must be passed to the solver function.
   DistortionOptimizeFunctor(const camera::PinholeModel& cam,
-                            const std::vector<Vector2>& undist_coords):
-    m_cam(cam), m_undist_coords(undist_coords) {}
+                            const std::vector<Vector2>& undist_coords,
+                            double penalty_weight = 0.0):
+    m_cam(cam), m_undist_coords(undist_coords), m_penalty_weight(penalty_weight) {}
 
-  /// Return a Vector<double> of all the distorted pixel coordinates.
+  /// Return a Vector<double> of all the distorted pixel coordinates and any penalty terms.
   inline result_type operator()(domain_type const& x) const {
     DistModelT lens(x); // Construct lens distortion model with given parameters
     result_type out_vec;
 
-    out_vec.set_size(m_undist_coords.size()*2);
-    for (size_t i=0; i<m_undist_coords.size(); ++i) {
+    int num_pixel_terms = m_undist_coords.size() * 2;
+    int num_penalty = 0;
+    bool do_rpc = (DistModelT::class_name() == RPCLensDistortion::class_name());
+    if (do_rpc && m_penalty_weight > 0.0) {
+      int rpc_deg = RPCLensDistortion::rpc_degree(x.size());
+      if (rpc_deg >= 2)
+        num_penalty = rpcNumPenaltyTerms(rpc_deg);
+    }
+
+    out_vec.set_size(num_pixel_terms + num_penalty);
+    for (size_t i = 0; i < m_undist_coords.size(); ++i) {
       Vector2 loc = lens.distorted_coordinates(m_cam, m_undist_coords[i]);
       out_vec[2*i  ] = loc[0]; // The col and row values are packed in successive indices.
       out_vec[2*i+1] = loc[1];
     }
 
+    if (num_penalty > 0)
+      addRpcPenalty(m_penalty_weight, num_pixel_terms, x, out_vec);
+
     return out_vec;
   }
-}; // End class LensOptimizeFunctor
+}; // End class DistortionOptimizeFunctor
 
 ///  Given a camera model (pinhole or optical bar), create an approximate pinhole model
 /// of the desired type.
@@ -582,7 +661,8 @@ template<class DistModelT>
 double create_approx_pinhole_model(CameraModel const* input_model,
                                    PinholeModel& out_model, Vector2i image_size,
                                    int sample_spacing, bool force_conversion,
-                                   int rpc_degree, double camera_to_ground_dist) {
+                                   int rpc_degree, double camera_to_ground_dist,
+                                   double penalty_weight = 0.0) {
 
   if (sample_spacing <= 0)
     sample_spacing = auto_compute_sample_spacing(image_size);
@@ -744,12 +824,32 @@ double create_approx_pinhole_model(CameraModel const* input_model,
       RPCLensDistortion::increment_degree(seed);
     }
 
-    // Init solver object with the undistorted coordinates
-    DistortionOptimizeFunctor<DistModelT> solver_model(out_model, undistorted_coords);
+    int current_deg = 1;
+    if (do_rpc)
+      current_deg = pass;
+
+    int num_penalty = 0;
+    if (do_rpc && penalty_weight > 0.0 && current_deg >= 2)
+      num_penalty = rpcNumPenaltyTerms(current_deg);
+
+    Vector<double> pass_distorted_coords;
+    if (num_penalty > 0) {
+      pass_distorted_coords.set_size(distorted_coords.size() + num_penalty);
+      for (size_t i = 0; i < distorted_coords.size(); i++)
+        pass_distorted_coords[i] = distorted_coords[i];
+      for (int i = 0; i < num_penalty; i++)
+        pass_distorted_coords[distorted_coords.size() + i] = 0.0;
+    } else {
+      pass_distorted_coords = distorted_coords;
+    }
+
+    // Init solver object with the undistorted coordinates and penalty weight
+    DistortionOptimizeFunctor<DistModelT> solver_model(out_model, undistorted_coords,
+                                                       penalty_weight);
 
     // Find model_params by doing a best fit
     model_params = math::levenberg_marquardt(solver_model, seed,
-                                             distorted_coords, status);
+                                             pass_distorted_coords, status);
     // Check the error
     new_model = DistModelT(model_params);
     mean_error = 0.0;
@@ -800,22 +900,23 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
                              bool force_conversion,
                              int sample_spacing,
                              int rpc_degree,
-                             double camera_to_ground_dist) {
+                             double camera_to_ground_dist,
+                             double penalty_weight) {
 
   PinholeModel out_model;
 
   if (out_distortion_type == "TsaiLensDistortion") {
     create_approx_pinhole_model<TsaiLensDistortion>
       (in_model, out_model, image_size, sample_spacing, force_conversion,
-        rpc_degree, camera_to_ground_dist);
+        rpc_degree, camera_to_ground_dist, penalty_weight);
   } else if (out_distortion_type == "BrownConradyDistortion") {
     create_approx_pinhole_model<BrownConradyDistortion>
       (in_model, out_model, image_size, sample_spacing, force_conversion,
-        rpc_degree, camera_to_ground_dist);
+        rpc_degree, camera_to_ground_dist, penalty_weight);
   } else if (out_distortion_type == RPCLensDistortion::class_name()) {
     create_approx_pinhole_model<RPCLensDistortion>
       (in_model, out_model, image_size, sample_spacing, force_conversion,
-        rpc_degree, camera_to_ground_dist);
+        rpc_degree, camera_to_ground_dist, penalty_weight);
   } else {
     vw::vw_throw(vw::ArgumentErr()
                    << "Unsupported output model type: " << out_distortion_type << "\n");

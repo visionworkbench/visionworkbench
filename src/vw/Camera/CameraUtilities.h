@@ -92,7 +92,8 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
                              bool force_conversion,
                              int sample_spacing = 0,
                              int rpc_degree = 0,
-                             double camera_to_ground_dist = 0);
+                             double camera_to_ground_dist = 0,
+                             double penalty_weight = 0.0);
 
 }} // namespace vw::camera
 

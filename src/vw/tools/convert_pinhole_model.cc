@@ -55,8 +55,8 @@ struct Options: vw::GdalWriteOptions {};
 int main(int argc, char *argv[]) {
 
   std::string image_file_name, output_file_name, output_model_type, camera_file_name;
-  int sample_spacing, rpc_degree;
-  double camera_to_ground_dist;
+  int sample_spacing = 0, rpc_degree = 0;
+  double camera_to_ground_dist = 0.0, penalty_weight = 0.0;
   Vector2 image_size;
   std::string image_size_str;
 
@@ -64,8 +64,6 @@ int main(int argc, char *argv[]) {
   po::options_description general_options
   ("Usage: convert_pinhole_model [options] <input image> <camera model> ""\n\nOptions");
   general_options.add_options()
-    ("help,h",
-     "Display this help message.")
     ("input-file", po::value<std::string>(&image_file_name), 
      "Explicitly specify the input file.")
     ("camera-file", po::value<std::string>(&camera_file_name), 
@@ -77,6 +75,8 @@ int main(int argc, char *argv[]) {
      "The output model type. Options: TsaiLensDistortion, BrownConradyDistortion, RPC.")
     ("rpc-degree", po::value(&rpc_degree)->default_value(3),
      "The degree of the polynomials, if the output distortion model is RPC.")
+    ("penalty-weight", po::value(&penalty_weight)->default_value(0.0),
+     "Penalty weight to use to keep higher-order RPC coefficients small. Higher penalty weight results in smaller such coefficients.")
     ("camera-to-ground-dist", po::value(&camera_to_ground_dist)->default_value(0),    
      "The distance from the camera to the ground, in meters. This is necessary to convert an optical bar model to pinhole.")
     ("output-file,o", 
@@ -159,6 +159,15 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  if (penalty_weight < 0.0) {
+    vw_out() << "Error: The penalty weight must be non-negative." << std::endl;
+    vw_out() << general_options << std::endl;
+    return 1;
+  }
+
+  if (penalty_weight > 0.0 && output_model_type != "RPC")
+    vw_out() << "Warning: Penalty weight is only used when the output model is RPC.\n";
+
   try {
     // Get the size of the input image, unless the dimensions were already specified
     if (image_size[0] <= 0 || image_size[1] <= 0) {
@@ -209,7 +218,8 @@ int main(int argc, char *argv[]) {
     PinholeModel out_model 
       = fitPinholeModel(in_model, image_size, output_model_type,
                         force_conversion,
-                        sample_spacing, rpc_degree, camera_to_ground_dist);
+                        sample_spacing, rpc_degree, camera_to_ground_dist,
+                        penalty_weight);
 
     vw_out() << "Writing output model: " << output_file_name.c_str() << "\n";
     out_model.write(output_file_name);

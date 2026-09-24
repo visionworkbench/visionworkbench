@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2025, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -14,7 +14,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // __END_LICENSE__
-
 
 /// \file LensDistortion.h
 ///
@@ -59,7 +58,7 @@ namespace camera {
     /// - The input location is in the same units as the focal length that was provided to
     ///   the PinholeModel class.
     /// A derived class must reimplement this.
-    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, 
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam,
                                             Vector2 const& p) const = 0;
 
     /// Return true if the distorted_coordinates() implementation does not use a solver.
@@ -99,10 +98,8 @@ namespace camera {
   /// Write any derived lens distortion class to the stream.
   std::ostream& operator<<(std::ostream& os, const LensDistortion& ld);
 
-
   // ------------------------------------------------------------------------------
   // -- Derived classes section
-
 
   /// A NULL lens distortion model.
   struct NullLensDistortion: public LensDistortion {
@@ -403,7 +400,6 @@ namespace camera {
 
     static void init_as_identity(Vector<double> & params);
     static void increment_degree(Vector<double> & params);
-  private:
     static void validate_distortion_params(Vector<double> const& params);
     static void unpack_params(Vector<double> const& params,
                               Vector<double> & num_x, Vector<double> & den_x,
