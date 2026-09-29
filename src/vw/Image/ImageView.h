@@ -173,21 +173,22 @@ namespace vw {
 
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
     void set_size(int32 cols, int32 rows, int32 planes = 1) {
-      // These sizes are pretty large for in-memory images and should only come up
-      //  in the case of bugs in the code.
-      static const int32  MAX_PIXEL_SIZE   = 80000;
-      static const int32  MAX_PLANE_COUNT  = 1024; // Really should never be using these anyways
+      // If none of cols, rows, or planes are larger than this, the
+      // product of the three cannot overflow a 64-bit signed number:
+      // 2^26 * 2^26 * 2^10 = 2^62 < 2^63-1
+      static const int32  MAX_PIXEL_SIZE   = 1<<26;
+      static const int32  MAX_PLANE_COUNT  = 1<<10;
       static const uint64 MAX_TOTAL_PIXELS = 6400000000;
       
       // Check if we already have the correct size
-      if(cols==m_cols && rows==m_rows && planes==m_planes)
-          return;
+      if (cols == m_cols && rows == m_rows && planes == m_planes)
+        return;
 
       VW_ASSERT(cols >= 0 && rows >= 0 && planes >= 0, // No negative sizes!
                 ArgumentErr() << "Cannot allocate image with negative pixel count (you requested " 
                               << cols << " x "  << rows << " x " << planes << ")");
 
-      // Make sure the image is not too big.
+      // Make sure individual dimensions cannot overflow a 64-bit product
       VW_ASSERT(cols < MAX_PIXEL_SIZE && rows < MAX_PIXEL_SIZE,
           ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE-1 
                         << " pixels on a side (you requested " << cols << " x " << rows << ")");

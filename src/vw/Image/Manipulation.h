@@ -278,7 +278,7 @@ public:
             BBox2i(m_xdelta * (*b).min().x(),
                    m_ydelta * (*b).min().y(),
                    m_xdelta * ((*b).width() - 1) + 1,
-                   m_xdelta * ((*b).height() - 1) + 1)),
+                   m_ydelta * ((*b).height() - 1) + 1)),
           m_xdelta, m_ydelta),
         crop(buffer, *b - bbox.min()), *b);
     }
