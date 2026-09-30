@@ -53,7 +53,7 @@ namespace vw {
   class MemoryStridingPixelAccessor {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     PixelT *m_base_ptr;
-    int32 m_num_pixels;
+    ssize_t m_num_pixels;
 #endif
     PixelT *m_ptr; ///< Pointer to whole pixels, not to bytes.
     ssize_t m_rstride, m_pstride;
@@ -66,7 +66,7 @@ namespace vw {
     MemoryStridingPixelAccessor( PixelT *ptr,
                                  ssize_t rstride, ssize_t pstride,
                                  int32 cols, int32 rows, int32 planes)
-      : m_base_ptr(ptr), m_num_pixels(cols * rows * planes),
+      : m_base_ptr(ptr), m_num_pixels(ssize_t(cols) * rows * planes),
         m_ptr(ptr), m_rstride(rstride), m_pstride(pstride) {}
 #else
     MemoryStridingPixelAccessor( PixelT *ptr, ssize_t rstride, ssize_t pstride )
@@ -100,7 +100,7 @@ namespace vw {
     /// Operator returns the pixel value at the current iterator location.
     inline result_type operator*() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      int32 delta = int32(m_ptr - m_base_ptr);
+      ssize_t delta = m_ptr - m_base_ptr;
       if (delta < 0 || delta >= m_num_pixels)
         vw_throw(ArgumentErr() << "MemoryStridingPixelAccessor() - invalid index " << delta << " / " << (m_num_pixels-1) << ".");
 #endif

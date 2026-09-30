@@ -40,6 +40,7 @@
 #include <vw/FileIO/GdalIO.h>
 
 #include <list>
+#include <vector>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/foreach.hpp>
 
@@ -292,9 +293,8 @@ namespace vw {
 
     // We do our best here to determine what pixel format the GDAL image is in.
     // Commented out the color interpretation checks because the reader (below)
-    // can't really cope well with the the default multi-plane interpretation
+    // can't really cope well with the default multi-plane interpretation
     // and this is a quicker work-around than actually fixing the problem. -mdh
-    for( int i=1; i<=dataset->GetRasterCount(); ++i )
     if ( dataset->GetRasterCount() == 1 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex */ ) {
       m_format.pixel_format = VW_PIXEL_GRAY;
@@ -316,7 +316,7 @@ namespace vw {
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand &&
                 dataset->GetRasterBand(4)->GetColorInterpretation() == GCI_AlphaBand */) {
       m_format.pixel_format = VW_PIXEL_RGBA;
-     m_format.planes = 1;
+      m_format.planes = 1;
     } else {
       m_format.pixel_format = VW_PIXEL_SCALAR;
       m_format.planes = dataset->GetRasterCount();
@@ -505,18 +505,18 @@ namespace vw {
       }
       else { // palette conversion
         GDALRasterBand  *band = dataset->GetRasterBand(1);
-        uint8 *index_data = new uint8[bbox.width() * bbox.height()];
+        size_t num_index = size_t(bbox.width()) * bbox.height();
+        std::vector<uint8> index_data(num_index);
         CPLErr result =
             band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                        index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
+                        index_data.data(), bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
         if (result != CE_None) {
           vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
               << CPLGetLastErrorMsg() << "'" << std::endl;
         }
         PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) src.data;
-        for( int i=0; i<bbox.width()*bbox.height(); ++i )
+        for( size_t i=0; i<num_index; ++i )
           rgba_data[i] = m_palette[index_data[i]];
-        delete [] index_data;
       }
     }
 

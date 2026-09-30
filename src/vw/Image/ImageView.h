@@ -225,7 +225,7 @@ namespace vw {
       m_planes  = planes;
       m_origin  = m_data.get();
       m_rstride = cols;
-      m_pstride = rows*cols;
+      m_pstride = ssize_t(rows) * cols;
 
       // Fundamental types might not be initialized.  Really this is
       // true of all POD types, but there's no good way to detect
@@ -236,7 +236,9 @@ namespace vw {
       // in ImageAlgorithms.h, however including ImageAlgorithms.h
       // directly causes an include file cycle.
       if(boost::is_fundamental<pixel_type>::value) {
-        memset(m_data.get(), 0, m_rows*m_cols*m_planes*sizeof(PixelT));
+        // Use the 64-bit pixel count computed above, not m_rows*m_cols*m_planes,
+        // which would overflow int32 for images with more than 2^31 pixels.
+        memset(m_data.get(), 0, size*sizeof(PixelT));
       }
     }
 

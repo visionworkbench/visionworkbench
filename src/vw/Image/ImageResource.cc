@@ -678,5 +678,8 @@ boost::shared_array<const uint8> SrcImageResource::native_ptr() const {
 }
 
 size_t SrcImageResource::native_size() const {
-  return channel_size(channel_type()) * num_channels(pixel_format()) * cols() * rows() * planes();
+  // Cast to size_t first so the whole product is 64-bit. Otherwise it is
+  // computed in 32-bit and overflows for images larger than 4 GB.
+  return size_t(channel_size(channel_type())) * num_channels(pixel_format())
+    * cols() * rows() * planes();
 }
