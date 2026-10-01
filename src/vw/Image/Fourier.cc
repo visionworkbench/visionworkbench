@@ -159,8 +159,8 @@ cv::Mat pad_fourier_transform(cv::Mat const& input, int new_width, int new_heigh
   int cdx = out_center_x - in_center_x;
   int cdy = out_center_y - in_center_y;
 
-  float scale = static_cast<float>(new_width*new_height)/
-                static_cast<float>(input.cols*input.rows);
+  float scale = static_cast<float>(size_t(new_width)*new_height)/
+                static_cast<float>(size_t(input.cols)*input.rows);
 
   cv::Mat out_ref(temp, cv::Rect(cdx, cdy, input.cols, input.rows));
 

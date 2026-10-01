@@ -176,14 +176,14 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     // - Masked out pixels are ignored
     // - Accumulate product of disparity search region + pixel area
     // - TODO: Should get some of this logic into class functions.
-    int32 split_search = 0;
+    int64 split_search = 0;
     { // Q1
       PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
       for_each_pixel( crop(disparity,q1), accumulator );
       if ( accumulator.is_valid() ) {
         q1_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += q1_search.area() * prod(q1.size()+kernel_size);
+        split_search += int64(q1_search.area()) * prod(q1.size()+kernel_size);
       }
     }
     { // Q2
@@ -192,7 +192,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
       if ( accumulator.is_valid() ) {
         q2_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += q2_search.area() * prod(q2.size()+kernel_size);
+        split_search += int64(q2_search.area()) * prod(q2.size()+kernel_size);
       }
     }
     { // Q3
@@ -201,7 +201,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
       if ( accumulator.is_valid() ) {
         q3_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += q3_search.area() * prod(q3.size()+kernel_size);
+        split_search += int64(q3_search.area()) * prod(q3.size()+kernel_size);
       }
     }
     { // Q4
@@ -210,7 +210,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
       if ( accumulator.is_valid() ) {
         q4_search = BBox2i(accumulator.minimum(),
                            accumulator.maximum()+Vector2i(1,1));
-        split_search += q4_search.area() * prod(q4.size()+kernel_size);
+        split_search += int64(q4_search.area()) * prod(q4.size()+kernel_size);
       }
     }
     // Now we have an estimate of the cost of processing these four
@@ -235,7 +235,7 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     else
       current_search_region.grow(q4_search);
     
-    int32 current_search = current_search_region.area() * prod(current_bbox.size()+kernel_size);
+    int64 current_search = int64(current_search_region.area()) * prod(current_bbox.size()+kernel_size);
 
     const double IMPROVEMENT_RATIO = 0.8;
 

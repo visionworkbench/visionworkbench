@@ -251,7 +251,7 @@ public:
   }
 
   void read( ImageBuffer &dstbuf, BBox2i const& bbox ) const {
-    boost::scoped_array<uint8> buffer( new uint8[ bbox.width() * bbox.height() * resource.planes() * channel_size( resource.channel_type() ) ] );
+    boost::scoped_array<uint8> buffer( new uint8[ size_t(bbox.width()) * bbox.height() * resource.planes() * channel_size( resource.channel_type() ) ] );
     dstbuf.data = buffer.get();
     dstbuf.format.cols = bbox.width();
     dstbuf.format.rows = bbox.height();

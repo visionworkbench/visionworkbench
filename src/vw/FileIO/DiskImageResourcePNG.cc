@@ -607,7 +607,7 @@ void DiskImageResourcePNG::open( std::string const& /*filename*/ ) {
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
 
   // Block reading is supported, we only use it in the event of really large images.
-  if ( size_t(cols()*rows()*4*3) > vw_settings().system_cache_size() )
+  if ( size_t(cols())*rows()*4*3 > vw_settings().system_cache_size() )
     m_block_size = Vector2i( cols(), 128 ); // 128 seems like a good number.
   else
     m_block_size = Vector2i( cols(), rows() );
@@ -622,7 +622,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!" );
 
-  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
+  boost::scoped_array<uint8> buf( new uint8[size_t(ctx->cstride) * bbox.width() * bbox.height()] );
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
   if( ctx->interlaced )
@@ -743,7 +743,7 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
 
   // Set up the image buffer and convert the data into this buffer.
   ImageBuffer dst;
-  boost::scoped_array<uint8> buf(new uint8[ctx->cstride * bbox.width() * bbox.height()]);
+  boost::scoped_array<uint8> buf(new uint8[size_t(ctx->cstride) * bbox.width() * bbox.height()]);
 
   dst.data = buf.get();
   dst.format = m_format;

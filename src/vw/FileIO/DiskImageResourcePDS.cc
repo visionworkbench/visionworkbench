@@ -290,8 +290,9 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   }
   image_file.seekg(m_image_data_offset, std::ios::beg);
 
-  // Grab the pixel data from the file.
-  unsigned total_pixels = (unsigned)( m_format.cols * m_format.rows * m_format.planes );
+  // Grab the pixel data from the file. Use a 64-bit pixel count: cast the
+  // first factor to size_t so the product does not overflow a 32-bit int.
+  size_t total_pixels = size_t(m_format.cols) * m_format.rows * m_format.planes;
   unsigned bytes_per_pixel = 1;
   if ( m_format.channel_type == VW_CHANNEL_UINT16 ||
        m_format.channel_type == VW_CHANNEL_INT16 ) {
@@ -314,7 +315,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
       m_format.channel_type == VW_CHANNEL_UINT16) {
     if ((cpu_is_big_endian() && !m_file_is_msb_first) ||
         (!cpu_is_big_endian() && m_file_is_msb_first) ) {
-      for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
+      for ( size_t i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
         uint8 temp = image_data[i+1];
         image_data[i+1] = image_data[i];
         image_data[i] = temp;
@@ -327,9 +328,9 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   if ( m_band_storage == BAND_SEQUENTIAL && m_format.pixel_format != VW_PIXEL_SCALAR) {
     uint8* intermediate_data = new uint8[total_pixels * bytes_per_pixel];
     int n_channels = num_channels(m_format.pixel_format);
-    int n_pixels = m_format.cols * m_format.rows;
+    size_t n_pixels = size_t(m_format.cols) * m_format.rows;
     for (int n = 0; n < n_channels; ++n) {
-      for (int p = 0; p < n_pixels; ++p) {
+      for (size_t p = 0; p < n_pixels; ++p) {
         intermediate_data[n_channels*p+n] = image_data[n_pixels*n+p];
       }
     }

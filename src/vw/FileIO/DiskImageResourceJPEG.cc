@@ -277,9 +277,9 @@ void DiskImageResourceJPEG::read(ImageBuffer const& dest, BBox2i const& bbox) co
   }
 
   // Now read.
-  boost::scoped_array<uint8> buf(new uint8[ctx->cstride * bbox.width() * bbox.height()]);
+  boost::scoped_array<uint8> buf(new uint8[size_t(ctx->cstride) * bbox.width() * bbox.height()]);
 
-  int32 offset = 0;
+  size_t offset = 0;
   while (ctx->decompress_ctx.output_scanline < end_row) {
     ctx->readline();
 
@@ -290,7 +290,7 @@ void DiskImageResourceJPEG::read(ImageBuffer const& dest, BBox2i const& bbox) co
       std::memcpy(buf.get() + offset,
                   ctx->scanline[0] + ctx->cstride * bbox.min().x(),
                   bbox.width() * ctx->cstride);
-      offset += bbox.width() * ctx->cstride;
+      offset += size_t(bbox.width()) * ctx->cstride;
 
     //for (int i = 0; i < ctx->scanline_size; i++)
     //  buf[ctx->scanline_size * (ctx->decompress_ctx.output_scanline - start_row - 1) + i]
@@ -374,7 +374,7 @@ void DiskImageResourceJPEG::write(ImageBuffer const& src, BBox2i const& bbox) {
 
   // Set up the image buffer and convert the data into this buffer
   boost::scoped_array<uint8> buf
-    (new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height]);
+    (new uint8[size_t(cinfo.image_width)*cinfo.input_components*cinfo.image_height]);
   ImageBuffer dst(m_format, buf.get());
 
   convert(dst, src, m_rescale);

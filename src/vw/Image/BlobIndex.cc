@@ -74,8 +74,8 @@ BlobCompressed::BlobCompressed( Vector2i const& top_left,
 
 BlobCompressed::BlobCompressed() : m_min(-1,-1) {}
 
-int32 BlobCompressed::size() const {
-  int32 sum = 0;
+size_t BlobCompressed::size() const {
+  size_t sum = 0;
   for ( uint32 r = 0; r < m_row_end.size(); r++ )
     for ( std::list<int32>::const_iterator iter_start = m_row_start[r].begin(),
             iter_end = m_row_end[r].begin(); iter_start != m_row_start[r].end();

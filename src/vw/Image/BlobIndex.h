@@ -88,7 +88,7 @@ namespace blob {
     std::list<int32> const& end  ( uint32 const& index ) const;
 
     int32 num_rows() const;
-    int32 size    () const; // Please use sparingly
+    size_t size   () const; // Please use sparingly
 
     BBox2i bounding_box() const;
     bool intersects( BBox2i const& input ) const;
@@ -556,7 +556,7 @@ public:
     BlobIndexThreaded::const_blob_iterator blob_iter = blob_index.begin();
     //std::cout << "Found " << blob_index.num_blobs() << " blobs.\n";
     while (blob_iter != blob_index.end()) { // Loop through blobs
-      uint32 blob_size = blob_iter->size();
+      size_t blob_size = blob_iter->size();
       //std::cout << "Blob size =  " << blob_size << "\n";
       if (blob_size > m_size_limit)
         blob_size = m_size_limit;

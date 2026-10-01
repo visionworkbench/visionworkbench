@@ -92,7 +92,7 @@ void write_ip_debug_image(std::string const& out_file_name,
                           bool reduce_scale  =false) {
 
   // Scale the images to keep the size down below 1500x1500 so they draw quickly.
-  float sub_scale  = sqrt(1500.0 * 1500.0 / float(image.impl().cols() * image.impl().rows()));
+  float sub_scale  = sqrt(1500.0 * 1500.0 / float(size_t(image.impl().cols()) * image.impl().rows()));
 	sub_scale /= 2;
   if ((sub_scale > 1) || force_full_res)
     sub_scale = 1;

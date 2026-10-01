@@ -92,13 +92,13 @@ Chipper::Chipper(PointBuffer& buffer, int blockSize,
     }
   }
   
-  int total = buffer.size();
+  size_t total = buffer.size();
   if (total == 0) return; // to avoid a crash later
   
   VW_ASSERT(m_outImg.cols()% blockSize == 0 && m_outImg.rows()% blockSize == 0,
             ArgumentErr() << "Chipper: The image size must be multiple of the block size.\n");
 
-  VW_ASSERT(total <= m_outImg.cols() * m_outImg.rows(),
+  VW_ASSERT(total <= size_t(m_outImg.cols()) * m_outImg.rows(),
             ArgumentErr() << "Chipper: More points were passed in than output image size.\n");
   
   // We will use this variable to populate the blocks
