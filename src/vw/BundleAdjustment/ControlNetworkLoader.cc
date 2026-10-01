@@ -763,3 +763,80 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
 
   return num_gcp;
 }
+
+void vw::ba::subsample_control_network(vw::ba::ControlNetwork const& cnet,
+                                       int max_num_tri_points,
+                                       int max_num_gcp,
+                                       std::set<int> & outliers) {
+
+  // Collect the current inlier indices, separately for triangulated (tie)
+  // points and for ground control points.
+  std::vector<int> tri_indices, gcp_indices;
+  for (int ipt = 0; ipt < (int)cnet.size(); ipt++) {
+    if (outliers.find(ipt) != outliers.end())
+      continue; // skip points already flagged as outliers
+    if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
+      gcp_indices.push_back(ipt);
+    else
+      tri_indices.push_back(ipt);
+  }
+
+  // Keep a random subset of the given indices of size 'budget', and flag the
+  // rest as outliers. A negative budget means no limit.
+  auto thin = [&](std::vector<int> const& indices, int budget,
+                  std::string const& tag) {
+    if (budget < 0 || (int)indices.size() <= budget)
+      return;
+    std::vector<int> keep;
+    vw::math::pick_random_indices_in_range(indices.size(), budget, keep);
+    std::set<int> keep_set;
+    for (size_t it = 0; it < keep.size(); it++)
+      keep_set.insert(indices[keep[it]]);
+    for (size_t it = 0; it < indices.size(); it++) {
+      if (keep_set.find(indices[it]) == keep_set.end())
+        outliers.insert(indices[it]);
+    }
+    vw_out() << "Reducing the number of " << tag << " from "
+             << indices.size() << " to " << budget
+             << ", by selecting a random subset.\n";
+  };
+
+  thin(tri_indices, max_num_tri_points, "triangulated points");
+  thin(gcp_indices, max_num_gcp,        "ground control points");
+}
+
+void vw::ba::subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ratio) {
+
+  if (ratio < 0)
+    return;
+
+  // Count the current (non-ignored) tie points and collect the GCP indices
+  int num_tri = 0;
+  std::vector<int> gcp_indices;
+  for (int ipt = 0; ipt < (int)cnet.size(); ipt++) {
+    if (cnet[ipt].ignore())
+      continue;
+    if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
+      gcp_indices.push_back(ipt);
+    else
+      num_tri++;
+  }
+
+  int gcp_budget = (int)round(ratio * num_tri);
+  if ((int)gcp_indices.size() <= gcp_budget)
+    return;
+
+  std::vector<int> keep;
+  vw::math::pick_random_indices_in_range(gcp_indices.size(), gcp_budget, keep);
+  std::set<int> keep_set;
+  for (size_t it = 0; it < keep.size(); it++)
+    keep_set.insert(gcp_indices[keep[it]]);
+  for (size_t it = 0; it < gcp_indices.size(); it++) {
+    if (keep_set.find(gcp_indices[it]) == keep_set.end())
+      cnet[gcp_indices[it]].set_ignore(true);
+  }
+
+  vw_out() << "Reducing the number of ground control points from "
+           << gcp_indices.size() << " to " << gcp_budget
+           << ", by selecting a random subset.\n";
+}

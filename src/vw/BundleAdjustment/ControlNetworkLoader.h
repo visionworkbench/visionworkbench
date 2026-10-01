@@ -24,6 +24,8 @@
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/Cartography/Datum.h>
 #include <vw/Cartography/BathyData.h>
+
+#include <set>
 /// \file ControlNetworkLoader.h Functions for generating control networks
 
 namespace vw {
@@ -75,6 +77,27 @@ namespace ba {
                                  std::vector<std::string> const& gcp_files,
                                  cartography::Datum const& datum,
                                  bool skip_datum_check = false);
+
+  // Randomly thin the triangulated (tie) points and the ground control points
+  // (GCP) of a control network down to at most the given counts, by flagging
+  // the surplus as outliers. The control network itself is not modified, and
+  // points already flagged as outliers are left untouched and not counted.
+  // A negative budget means no limit for that category. The random selection
+  // is deterministic (reproducible across runs). The two categories are
+  // distinguished by the control point type.
+  void subsample_control_network(vw::ba::ControlNetwork const& cnet,
+                                  int max_num_tri_points,
+                                  int max_num_gcp,
+                                  std::set<int> & outliers);
+
+  // Randomly reduce the ground control points (GCP) of a control network so their
+  // count is at most the given ratio times the triangulated (tie) point count, by
+  // setting the ignore flag on the surplus GCP. Already-ignored points are not
+  // counted or touched. A negative ratio does nothing. The random selection is
+  // deterministic. This uses the ignore flag (not an outlier set), as expected by
+  // bundle_adjust. The tie points are not modified, so interest point matches
+  // written out are unaffected.
+  void subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ratio);
 
 }} //end namespace vw::ba
 
