@@ -778,7 +778,7 @@ void vw::ba::subsample_control_network(vw::ba::ControlNetwork const& cnet,
     if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
       gcp_indices.push_back(ipt);
     else
-      tri_indices.push_back(ipt);
+      tri_indices.push_back(ipt); // DEM-constrained points counted as tri here too
   }
 
   // Keep a random subset of the given indices of size 'budget', and flag the
@@ -819,7 +819,7 @@ void vw::ba::subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ra
     if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
       gcp_indices.push_back(ipt);
     else
-      num_tri++;
+      num_tri++; // DEM-constrained points counted as tri here too
   }
 
   int gcp_budget = (int)round(ratio * num_tri);

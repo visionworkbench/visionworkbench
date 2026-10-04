@@ -274,7 +274,8 @@ namespace ba {
       return count;
     }
 
-    // Return the number of Control Points that are tie points
+    // Return the number of Control Points that are tie points.
+    // Note: DEM-constrained points (PointFromDem) are counted as neither tie nor GCP.
     size_t num_tie_points() const {
       size_t count=0;
       for (size_t i=0; i<this->size(); ++i)
