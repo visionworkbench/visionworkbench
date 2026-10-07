@@ -205,7 +205,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
      "Specify the output file.")
     ("colormap-style", po::value(&opt.colormap_style)->default_value("binary-red-blue"),
      "Specify the colormap style. Options: binary-red-blue (default), jet, "
-     "black-body, viridis, kindlmann, cubehelix, plasma, inferno, rainbow, turbo. "
+     "black-body, viridis, kindlmann, cubehelix, plasma, inferno, rainbow, turbo, "
+     "terrain, ocean, gist_earth, gist_stern. "
      "Or specify the name of a file having the colormap, on each line of which "
      "there must be a normalized or percentage intensity and the three integer "
      "rgb values it maps to.")
