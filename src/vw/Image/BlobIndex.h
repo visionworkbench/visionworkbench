@@ -453,14 +453,8 @@ class BlobIndexThreaded {
     }
   }
 
-  /// Wipe blobs bigger than this size. By default a blob is kept when its
-  /// bounding box fits within max_size in BOTH width and height. When by_area
-  /// is set, a blob is kept when its pixel AREA is at most max_size*max_size
-  /// instead, so a long, narrow, or sparse blob whose total area is small is
-  /// still kept even though one bounding-box dimension exceeds max_size. The
-  /// area rule is a strict superset of the bounding-box rule (any blob that
-  /// fits in a max_size by max_size box has area at most max_size*max_size),
-  /// so enabling it can only keep more blobs, never fewer.
+  /// Wipe blobs bigger than this size. With by_area, the size is the pixel
+  /// area, not the bounding box.
   void wipe_big_blobs(int max_size, bool by_area = false){
 
     // Keep the bounding boxes up-to-date.

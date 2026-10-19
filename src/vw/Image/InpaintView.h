@@ -285,10 +285,8 @@ namespace vw {
       // operations running simultaneously already.
       int num_threads = 1;
       
-      // Find the holes, wipe holes bigger than the spec. With m_use_area, a
-      // hole is kept when its pixel area is at most m_hole_fill_len squared, so
-      // a long, narrow, or sparse small hole is filled too (not just one that
-      // fits in a square bounding box of that side length).
+      // Find the holes, wipe ones bigger than the spec. With m_use_area the
+      // size is the pixel area, not the bounding box.
       BlobIndexThreaded blob_index( invert_mask(tile),
                                     area, tile_size, num_threads);
       blob_index.wipe_big_blobs(m_hole_fill_len, m_use_area);
