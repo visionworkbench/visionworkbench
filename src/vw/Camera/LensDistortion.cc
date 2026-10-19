@@ -672,7 +672,442 @@ void FisheyeLensDistortion::scale(double scale) {
   vw::vw_throw(vw::NoImplErr() << "FisheyeLensDistortion::scale() is not implemented.");
 }
 
-// BrownConradyDistortion 
+// EquisolidLensDistortion
+// Four-parameter wide-angle lens distortion model with an equisolid-angle
+// projection. The forward map (undistorted to distorted) is closed-form, so
+// bundle adjustment, which calls it per residual, stays fast. The inverse
+// uses Newton-Raphson.
+
+// Apply the equisolid fisheye distortion. Input and output are normalized
+// pixels. The angle polynomial matches fishEyeDistortionNorm, only the final
+// projection from angle to radius differs (2*sin(theta/2) here).
+vw::Vector2 equiSolidDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const& dist) {
+
+  double k1 = dist[0];
+  double k2 = dist[1];
+  double k3 = dist[2];
+  double k4 = dist[3];
+
+  double x = P[0];
+  double y = P[1];
+  double r2 = x*x + y*y;
+  double r = sqrt(r2);
+  double theta = atan(r);
+
+  double theta1 = theta*theta;   // theta^2
+  double theta2 = theta1*theta1; // theta^4
+  double theta3 = theta2*theta1; // theta^6
+  double theta4 = theta2*theta2; // theta^8
+  double theta_d = theta*(1 + k1*theta1 + k2*theta2 + k3*theta3 + k4*theta4);
+
+  // Equisolid-angle projection from angle to normalized radius
+  double rd = 2.0*sin(theta_d/2.0);
+
+  // As r goes to 0, rd/r goes to 1 (the small-angle limit), so use that limit
+  // there instead of dividing by a tiny r.
+  double scale = 1.0;
+  if (r > 1e-8)
+    scale = rd / r;
+
+  return vw::Vector2(x*scale, y*scale);
+}
+
+EquisolidLensDistortion::EquisolidLensDistortion() {
+  EquisolidLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
+}
+
+EquisolidLensDistortion::EquisolidLensDistortion(Vector<double> const& params):
+  m_distortion(params) {
+  EquisolidLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "EquisolidLensDistortion: Incorrect number of parameters "
+                     << "was passed in.");
+}
+
+Vector<double> EquisolidLensDistortion::distortion_parameters() const {
+  return m_distortion;
+}
+
+void EquisolidLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1", "k2", "k3", "k4"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++)
+    m_distortion_param_names[p] = names[p];
+}
+
+void EquisolidLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  EquisolidLensDistortion::init_distortion_param_names();
+  m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "EquisolidLensDistortion: Incorrect number of parameters was "
+                     << "passed in.");
+}
+
+boost::shared_ptr<LensDistortion>
+EquisolidLensDistortion::copy() const {
+  return boost::shared_ptr<EquisolidLensDistortion>(new EquisolidLensDistortion(*this));
+}
+
+// Apply the distortion to a normalized pixel as a function object. To be used
+// in Newton-Raphson.
+vw::Vector2 EquisolidLensDistortion::operator()(vw::Vector2 const& P) const {
+  return equiSolidDistortionNorm(P, m_distortion);
+}
+
+Vector2 EquisolidLensDistortion::distorted_coordinates(const PinholeModel& cam,
+                                                       Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Apply the equisolid distortion model to the normalized pixel
+  Vector2 p_norm = equiSolidDistortionNorm(p_0, m_distortion);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+
+  return p_dist;
+}
+
+Vector2 EquisolidLensDistortion::undistorted_coordinates(const PinholeModel& cam,
+                                                         Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Find the normalized undistorted pixel using Newton-Raphson and the
+  // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
+  vw::Vector2 guess = p_0;
+  double step = 1e-6, tol = 1e-9;
+  vw::math::NewtonRaphson nr(*this);
+  Vector2 U = nr.solve(guess, p_0, step, tol);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(U, focal) + offset;
+
+  return p_undist;
+}
+
+void EquisolidLensDistortion::write(std::ostream & os) const {
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++)
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
+}
+
+void EquisolidLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  set_distortion_parameters(m_distortion); // This does some checks
+}
+
+void EquisolidLensDistortion::scale(double scale) {
+  vw::vw_throw(vw::NoImplErr() << "EquisolidLensDistortion::scale() is not implemented.");
+}
+
+// StereographicLensDistortion
+// Four-parameter wide-angle lens distortion model with a stereographic
+// projection. Like the equisolid model but with a 2*tan(theta/2) projection.
+
+// Apply the stereographic fisheye distortion. Input and output are normalized
+// pixels. Only the projection from angle to radius differs from the equisolid
+// and equidistant forms.
+vw::Vector2 stereoGraphicDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const& dist) {
+
+  double k1 = dist[0];
+  double k2 = dist[1];
+  double k3 = dist[2];
+  double k4 = dist[3];
+
+  double x = P[0];
+  double y = P[1];
+  double r2 = x*x + y*y;
+  double r = sqrt(r2);
+  double theta = atan(r);
+
+  double theta1 = theta*theta;   // theta^2
+  double theta2 = theta1*theta1; // theta^4
+  double theta3 = theta2*theta1; // theta^6
+  double theta4 = theta2*theta2; // theta^8
+  double theta_d = theta*(1 + k1*theta1 + k2*theta2 + k3*theta3 + k4*theta4);
+
+  // Stereographic projection from angle to normalized radius
+  double rd = 2.0*tan(theta_d/2.0);
+
+  // As r goes to 0, rd/r goes to 1 (the small-angle limit), so use that limit
+  // there instead of dividing by a tiny r.
+  double scale = 1.0;
+  if (r > 1e-8)
+    scale = rd / r;
+
+  return vw::Vector2(x*scale, y*scale);
+}
+
+StereographicLensDistortion::StereographicLensDistortion() {
+  StereographicLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
+}
+
+StereographicLensDistortion::StereographicLensDistortion(Vector<double> const& params):
+  m_distortion(params) {
+  StereographicLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "StereographicLensDistortion: Incorrect number of parameters "
+                     << "was passed in.");
+}
+
+Vector<double> StereographicLensDistortion::distortion_parameters() const {
+  return m_distortion;
+}
+
+void StereographicLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1", "k2", "k3", "k4"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++)
+    m_distortion_param_names[p] = names[p];
+}
+
+void StereographicLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  StereographicLensDistortion::init_distortion_param_names();
+  m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "StereographicLensDistortion: Incorrect number of parameters was "
+                     << "passed in.");
+}
+
+boost::shared_ptr<LensDistortion>
+StereographicLensDistortion::copy() const {
+  return boost::shared_ptr<StereographicLensDistortion>(new StereographicLensDistortion(*this));
+}
+
+// Apply the distortion to a normalized pixel as a function object. To be used
+// in Newton-Raphson.
+vw::Vector2 StereographicLensDistortion::operator()(vw::Vector2 const& P) const {
+  return stereoGraphicDistortionNorm(P, m_distortion);
+}
+
+Vector2 StereographicLensDistortion::distorted_coordinates(const PinholeModel& cam,
+                                                           Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Apply the stereographic distortion model to the normalized pixel
+  Vector2 p_norm = stereoGraphicDistortionNorm(p_0, m_distortion);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+
+  return p_dist;
+}
+
+Vector2 StereographicLensDistortion::undistorted_coordinates(const PinholeModel& cam,
+                                                             Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Find the normalized undistorted pixel using Newton-Raphson and the
+  // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
+  vw::Vector2 guess = p_0;
+  double step = 1e-6, tol = 1e-9;
+  vw::math::NewtonRaphson nr(*this);
+  Vector2 U = nr.solve(guess, p_0, step, tol);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(U, focal) + offset;
+
+  return p_undist;
+}
+
+void StereographicLensDistortion::write(std::ostream & os) const {
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++)
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
+}
+
+void StereographicLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  set_distortion_parameters(m_distortion); // This does some checks
+}
+
+void StereographicLensDistortion::scale(double scale) {
+  vw::vw_throw(vw::NoImplErr() << "StereographicLensDistortion::scale() is not implemented.");
+}
+
+// OrthographicLensDistortion
+// Four-parameter wide-angle lens distortion model with an orthographic
+// projection. Like the equisolid and stereographic models but with a
+// sin(theta) projection.
+
+// Apply the orthographic fisheye distortion. Input and output are normalized
+// pixels. Only the projection from angle to radius differs from the equisolid,
+// stereographic, and equidistant forms.
+vw::Vector2 orthographicDistortionNorm(vw::Vector2 const& P, vw::Vector<double> const& dist) {
+
+  double k1 = dist[0];
+  double k2 = dist[1];
+  double k3 = dist[2];
+  double k4 = dist[3];
+
+  double x = P[0];
+  double y = P[1];
+  double r2 = x*x + y*y;
+  double r = sqrt(r2);
+  double theta = atan(r);
+
+  double theta1 = theta*theta;   // theta^2
+  double theta2 = theta1*theta1; // theta^4
+  double theta3 = theta2*theta1; // theta^6
+  double theta4 = theta2*theta2; // theta^8
+  double theta_d = theta*(1 + k1*theta1 + k2*theta2 + k3*theta3 + k4*theta4);
+
+  // Orthographic projection from angle to normalized radius
+  double rd = sin(theta_d);
+
+  // As r goes to 0, rd/r goes to 1 (the small-angle limit), so use that limit
+  // there instead of dividing by a tiny r.
+  double scale = 1.0;
+  if (r > 1e-8)
+    scale = rd / r;
+
+  return vw::Vector2(x*scale, y*scale);
+}
+
+OrthographicLensDistortion::OrthographicLensDistortion() {
+  OrthographicLensDistortion::init_distortion_param_names();
+  m_distortion.set_size(m_distortion_param_names.size());
+}
+
+OrthographicLensDistortion::OrthographicLensDistortion(Vector<double> const& params):
+  m_distortion(params) {
+  OrthographicLensDistortion::init_distortion_param_names();
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "OrthographicLensDistortion: Incorrect number of parameters "
+                     << "was passed in.");
+}
+
+Vector<double> OrthographicLensDistortion::distortion_parameters() const {
+  return m_distortion;
+}
+
+void OrthographicLensDistortion::init_distortion_param_names() {
+  std::string names[] = {"k1", "k2", "k3", "k4"};
+  size_t num_names = sizeof(names)/sizeof(std::string);
+  m_distortion_param_names.resize(num_names);
+  for (size_t p = 0; p < num_names; p++)
+    m_distortion_param_names[p] = names[p];
+}
+
+void OrthographicLensDistortion::set_distortion_parameters(Vector<double> const& params) {
+  OrthographicLensDistortion::init_distortion_param_names();
+  m_distortion = params;
+  if (m_distortion.size() != m_distortion_param_names.size())
+    vw_throw(IOErr() << "OrthographicLensDistortion: Incorrect number of parameters was "
+                     << "passed in.");
+}
+
+boost::shared_ptr<LensDistortion>
+OrthographicLensDistortion::copy() const {
+  return boost::shared_ptr<OrthographicLensDistortion>(new OrthographicLensDistortion(*this));
+}
+
+// Apply the distortion to a normalized pixel as a function object. To be used
+// in Newton-Raphson.
+vw::Vector2 OrthographicLensDistortion::operator()(vw::Vector2 const& P) const {
+  return orthographicDistortionNorm(P, m_distortion);
+}
+
+Vector2 OrthographicLensDistortion::distorted_coordinates(const PinholeModel& cam,
+                                                          Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Normalize the pixel
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Apply the orthographic distortion model to the normalized pixel
+  Vector2 p_norm = orthographicDistortionNorm(p_0, m_distortion);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_dist = elem_prod(p_norm, focal) + offset;
+
+  return p_dist;
+}
+
+Vector2 OrthographicLensDistortion::undistorted_coordinates(const PinholeModel& cam,
+                                                            Vector2 const& p) const {
+
+  Vector2 focal  = cam.focal_length(); // = [fu, fv]
+  Vector2 offset = cam.point_offset(); // = [cu, cv]
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  Vector2 dudv = p - offset; // Subtract the offset
+  Vector2 p_0 = elem_quot(dudv, focal); // Divide by focal length
+
+  // Find the normalized undistorted pixel using Newton-Raphson and the
+  // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
+  vw::Vector2 guess = p_0;
+  double step = 1e-6, tol = 1e-9;
+  vw::math::NewtonRaphson nr(*this);
+  Vector2 U = nr.solve(guess, p_0, step, tol);
+
+  // Multiply by focal length and add the offset
+  Vector2 p_undist = elem_prod(U, focal) + offset;
+
+  return p_undist;
+}
+
+void OrthographicLensDistortion::write(std::ostream & os) const {
+  for (size_t p = 0; p < m_distortion_param_names.size(); p++)
+    os << m_distortion_param_names[p] << " = " << m_distortion[p] << "\n";
+}
+
+void OrthographicLensDistortion::read(std::istream & is) {
+  m_distortion.set_size(m_distortion_param_names.size());
+  read_fields_in_vec(m_distortion_param_names, m_distortion, is);
+  set_distortion_parameters(m_distortion); // This does some checks
+}
+
+void OrthographicLensDistortion::scale(double scale) {
+  vw::vw_throw(vw::NoImplErr() << "OrthographicLensDistortion::scale() is not implemented.");
+}
+
+// BrownConradyDistortion
 
 BrownConradyDistortion::BrownConradyDistortion() {
   BrownConradyDistortion::init_distortion_param_names();

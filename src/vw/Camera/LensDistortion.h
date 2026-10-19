@@ -222,6 +222,108 @@ namespace camera {
     Vector<double> m_distortion;
   };
 
+  // Equisolid-angle fisheye lens distortion. Same four-coefficient radial
+  // angle polynomial as FisheyeLensDistortion, but the projection maps the
+  // angle theta to a radius of 2*sin(theta/2) instead of theta. This fits
+  // many real fisheye lenses better than the equidistant form. The
+  // equisolid-angle, stereographic, and orthographic projections below are
+  // classic fisheye models (Miyamoto 1964, Hughes et al. 2010).
+  class EquisolidLensDistortion: public LensDistortion {
+  public:
+    EquisolidLensDistortion();
+    EquisolidLensDistortion(Vector<double> const& params);
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+
+    // Apply the distortion to a normalized pixel as a function object. To be
+    // used in Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "FISHEYE_EQUISOLID"; }
+    virtual std::string name      () const { return class_name(); }
+    virtual void        scale(double scale);
+    void init_distortion_param_names();
+
+  private:
+    Vector<double> m_distortion;
+  };
+
+  // Stereographic fisheye lens distortion. Same four-coefficient radial angle
+  // polynomial as FisheyeLensDistortion, but the projection maps the angle
+  // theta to a radius of 2*tan(theta/2) instead of theta.
+  class StereographicLensDistortion: public LensDistortion {
+  public:
+    StereographicLensDistortion();
+    StereographicLensDistortion(Vector<double> const& params);
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+
+    // Apply the distortion to a normalized pixel as a function object. To be
+    // used in Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "FISHEYE_STEREOGRAPHIC"; }
+    virtual std::string name      () const { return class_name(); }
+    virtual void        scale(double scale);
+    void init_distortion_param_names();
+
+  private:
+    Vector<double> m_distortion;
+  };
+
+  // Orthographic fisheye lens distortion. Same four-coefficient radial angle
+  // polynomial as FisheyeLensDistortion, but the projection maps the angle
+  // theta to a radius of sin(theta) instead of theta.
+  class OrthographicLensDistortion: public LensDistortion {
+  public:
+    OrthographicLensDistortion();
+    OrthographicLensDistortion(Vector<double> const& params);
+    virtual Vector<double> distortion_parameters() const;
+    virtual void set_distortion_parameters(Vector<double> const& params);
+    virtual int num_dist_params() const { return m_distortion.size(); }
+    virtual boost::shared_ptr<LensDistortion> copy() const;
+
+    virtual Vector2 distorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel& cam, Vector2 const& p) const;
+
+    // Apply the distortion to a normalized pixel as a function object. To be
+    // used in Newton-Raphson.
+    vw::Vector2 operator()(vw::Vector2 const& p) const;
+
+    virtual bool has_fast_distort  () const {return true;}
+
+    virtual void write(std::ostream& os) const;
+    virtual void read (std::istream& is);
+
+    static  std::string class_name() { return "FISHEYE_ORTHOGRAPHIC"; }
+    virtual std::string name      () const { return class_name(); }
+    virtual void        scale(double scale);
+    void init_distortion_param_names();
+
+  private:
+    Vector<double> m_distortion;
+  };
+
   /// Brown Conrady Distortion
   ///
   /// Also known as the plumb-bob distortion model as that was how it could be

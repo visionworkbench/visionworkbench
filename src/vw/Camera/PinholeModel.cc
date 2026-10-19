@@ -290,6 +290,21 @@ bool PinholeModel::construct_lens_distortion(std::string const& config_line,
     m_distortion.reset(new FovLensDistortion());
     return true;
   }
+  // The equisolid and stereographic names both contain the "FISHEYE"
+  // substring, so they must be checked before the plain FISHEYE model below,
+  // since the lookup is a case-insensitive substring match.
+  if (lc_substr(config_line, EquisolidLensDistortion::class_name())) {
+    m_distortion.reset(new EquisolidLensDistortion());
+    return true;
+  }
+  if (lc_substr(config_line, StereographicLensDistortion::class_name())) {
+    m_distortion.reset(new StereographicLensDistortion());
+    return true;
+  }
+  if (lc_substr(config_line, OrthographicLensDistortion::class_name())) {
+    m_distortion.reset(new OrthographicLensDistortion());
+    return true;
+  }
   if (lc_substr(config_line, FisheyeLensDistortion::class_name())) {
     m_distortion.reset(new FisheyeLensDistortion());
     return true;
