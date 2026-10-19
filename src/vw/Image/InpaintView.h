@@ -242,10 +242,11 @@ namespace vw {
   class FillHolesGrass: public ImageViewBase< FillHolesGrass<ImageT> >{
     ImageT m_img;
     int    m_hole_fill_len;
-  
+    bool   m_use_area; // measure hole size by pixel area, not bounding box
+
   public:
-    FillHolesGrass(ImageT const& img, int hole_fill_len):
-      m_img(img), m_hole_fill_len(hole_fill_len){}
+    FillHolesGrass(ImageT const& img, int hole_fill_len, bool use_area = false):
+      m_img(img), m_hole_fill_len(hole_fill_len), m_use_area(use_area){}
     
     typedef typename ImageT::pixel_type pixel_type;
     typedef pixel_type                  result_type;
@@ -284,10 +285,13 @@ namespace vw {
       // operations running simultaneously already.
       int num_threads = 1;
       
-      // Find the holes, wipe holes bigger than the spec
+      // Find the holes, wipe holes bigger than the spec. With m_use_area, a
+      // hole is kept when its pixel area is at most m_hole_fill_len squared, so
+      // a long, narrow, or sparse small hole is filled too (not just one that
+      // fits in a square bounding box of that side length).
       BlobIndexThreaded blob_index( invert_mask(tile),
                                     area, tile_size, num_threads);
-      blob_index.wipe_big_blobs(m_hole_fill_len);
+      blob_index.wipe_big_blobs(m_hole_fill_len, m_use_area);
 
       // Fill the holes
       bool use_grassfire = true;
@@ -306,8 +310,8 @@ namespace vw {
 
   template <class ImageT>
   inline FillHolesGrass<ImageT>
-  fill_holes_grass(ImageT const& img, int hole_fill_len) {
-    return FillHolesGrass<ImageT>(img, hole_fill_len);
+  fill_holes_grass(ImageT const& img, int hole_fill_len, bool use_area = false) {
+    return FillHolesGrass<ImageT>(img, hole_fill_len, use_area);
   }
 
 // If a pixel has invalid data, fill its value with the average of

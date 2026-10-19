@@ -453,27 +453,42 @@ class BlobIndexThreaded {
     }
   }
 
-  /// Wipe blobs bigger than this size.
-  void wipe_big_blobs(int max_size){
+  /// Wipe blobs bigger than this size. By default a blob is kept when its
+  /// bounding box fits within max_size in BOTH width and height. When by_area
+  /// is set, a blob is kept when its pixel AREA is at most max_size*max_size
+  /// instead, so a long, narrow, or sparse blob whose total area is small is
+  /// still kept even though one bounding-box dimension exceeds max_size. The
+  /// area rule is a strict superset of the bounding-box rule (any blob that
+  /// fits in a max_size by max_size box has area at most max_size*max_size),
+  /// so enabling it can only keep more blobs, never fewer.
+  void wipe_big_blobs(int max_size, bool by_area = false){
 
     // Keep the bounding boxes up-to-date.
     m_blob_bbox.clear();
-    
+
+    size_t max_area = (size_t)max_size * (size_t)max_size;
+
     for ( std::deque<blob::BlobCompressed>::iterator iter = m_c_blob.begin();
           iter != m_c_blob.end(); iter++ ) {
 
       BBox2i blob_bbox = iter->bounding_box();
-      
-      if ( blob_bbox.width() > max_size ||
-           blob_bbox.height() > max_size) {
+
+      bool too_big = false;
+      if (by_area)
+        too_big = (iter->size() > max_area);
+      else
+        too_big = (blob_bbox.width()  > max_size ||
+                   blob_bbox.height() > max_size);
+
+      if ( too_big ) {
         iter = m_c_blob.erase( iter );
         iter--;
       }else{
         m_blob_bbox.push_back(blob_bbox);
       }
-      
+
     }
-    
+
   }
   
   // Access for the users
