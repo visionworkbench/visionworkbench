@@ -489,7 +489,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   // them in a vector with the id corresponding to the interest point
   int num_images = image_files.size();
   std::vector<std::map<ipTriplet, int>> keypoint_map(num_images);
-  size_t num_load_rejected = 0, num_loaded = 0;
+  size_t num_load_rejected = 0, num_loaded = 0, num_match_files = 0;
+  // Print only first few match files and their count, to avoid verbosity
+  size_t const max_verbose_match_msgs = 100;
+  Stopwatch read_watch;
+  read_watch.start();
   for (auto it = match_files.begin(); it != match_files.end(); it++) {
     std::pair<int, int> pair_ind = it->first;
     std::string const& match_file = it->second; // alias
@@ -497,7 +501,6 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     int index2 = pair_ind.second;
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
-    // vw_out() << "Loading: " << match_file << "\n";
     ip::read_match_file(match_file, ip1, ip2, matches_as_txt);
     if (ip1.size() < min_matches) {
       vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
@@ -506,7 +509,9 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       continue;
     }
     
-    vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
+    bool verbose = (num_match_files < max_verbose_match_msgs);
+    if (verbose)
+      vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
 
     // Remove descriptors from interest points and correct scale
     std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
@@ -515,11 +520,16 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     std::for_each(ip2.begin(), ip2.end(), safe_measurement);
 
     if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
-      vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
+      if (verbose)
+        vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
       pick_pair_subset(ip1, ip2, max_pairwise_matches);
     }
 
     num_loaded += ip1.size();
+    num_match_files++;
+    if (num_match_files == max_verbose_match_msgs)
+      vw_out() << "Loaded " << max_verbose_match_msgs
+               << " match files. Suppressing per-file messages for the rest.\n";
 
     // Initialize the keypoint map to zero. Will populate the entities later.
     for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
@@ -538,7 +548,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       << "Did not load a total of " << num_load_rejected << " matches due to "
       << "pairwise application of the --min-matches parameter. Decrease this "
       << "to load smaller sets of matches.\n";
-  vw_out() << "Loaded " << num_loaded << " matches from all files.\n";
+  vw_out() << "Loaded " << num_loaded << " matches from "
+           << num_match_files << " match files.\n";
+  read_watch.stop();
+  vw_out() << "Reading match files took " << read_watch.elapsed_seconds()
+    << " seconds.\n";
 
   Stopwatch watch;
   watch.start();
