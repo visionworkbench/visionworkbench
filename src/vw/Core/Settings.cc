@@ -222,7 +222,14 @@ uint32 Settings::default_num_threads() {
   if (!m_default_num_threads_override)
     reload_config();
   RecursiveMutex::Lock lock(m_settings_mutex);
+  // A value of 0 means use all hardware cores.
   if (m_default_num_threads == 0)
+    return numHardwareThreads();
+  // Guard against an absurd value, such as a negative entry in ~/.vwrc that wraps
+  // around when read as unsigned, or a typo. Such a value would try to spawn a huge
+  // number of threads and crash. Fall back to the hardware core count.
+  uint32 max_sane_threads = 4096;
+  if (m_default_num_threads > max_sane_threads)
     return numHardwareThreads();
   return m_default_num_threads;
 }

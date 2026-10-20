@@ -55,7 +55,11 @@ void GdalWriteOptions::setVwSettingsFromOpt() {
   // are consistent among themselves. Same for cache size.
   vw::vw_settings().set_default_num_threads(this->num_threads);
   vw::vw_settings().set_system_cache_size(this->cache_size_mb * MB);
-  
+
+  // Read back the number of threads in case it was clamped to a sane value, so the
+  // local copy and the message below are consistent.
+  this->num_threads = vw_settings().default_num_threads();
+
   // Print the message below just once per process.
   static bool verbose = true;
   if (verbose) {
