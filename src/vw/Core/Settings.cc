@@ -26,6 +26,8 @@
 #include <boost/version.hpp>
 #include <boost/thread/xtime.hpp>
 
+#include <thread>
+
 #ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -168,16 +170,29 @@ namespace {
     // Out of options, need to disable config.
     return std::string();
   }
+
+  // The number of hardware cores. Used to resolve a thread count of 0, which
+  // means use all cores. Fall back to a single thread if the count cannot be
+  // determined, which happens only on unusual platforms.
+  uint32 numHardwareThreads() {
+    unsigned int num = std::thread::hardware_concurrency();
+    if (num == 0)
+      num = 1;
+    return num;
+  }
 }
 
 // Use macros to define set_default_num_threads(), set_system_cache_size(), etc.  
 #define _VW_SET1(Name, Default)\
   m_ ## Name(Default), m_ ## Name ## _override(false)
 
-// TODO(oalexan1): Default num threads must be number of cores
-// This can affect tools that use multiple processes though.
+// The default thread count is 0, which means use all hardware cores. It is
+// resolved to the core count in default_num_threads() below. It can be
+// overridden in ~/.vwrc or via a tool's --threads option. Multi-process tools
+// (parallel_stereo, parallel_bundle_adjust) must pass an explicit per-process
+// --threads to their children to avoid oversubscribing the machine.
 Settings::Settings():
-    _VW_SET1(default_num_threads, VW_NUM_THREADS),
+    _VW_SET1(default_num_threads, 0),
     _VW_SET1(system_cache_size, size_t(VW_CACHE_SIZE) * 1024 * 1024),
     _VW_SET1(write_pool_size, 21), // 21 threads is about 252MB of back data for RGB f32 1024x1024 blocks
     _VW_SET1(default_tile_size, 256),
@@ -201,10 +216,22 @@ Settings::Settings():
     Callback                                     \
   }
 
-// TODO(oalexan1): Figure out here if number of threads is set or not in .vwrc.
-// If not, set it number of cores.
+// A thread count of 0 means use all hardware cores, so resolve it here. This
+// way every caller gets a real count, never 0.
+uint32 Settings::default_num_threads() {
+  if (!m_default_num_threads_override)
+    reload_config();
+  RecursiveMutex::Lock lock(m_settings_mutex);
+  if (m_default_num_threads == 0)
+    return numHardwareThreads();
+  return m_default_num_threads;
+}
+void Settings::set_default_num_threads(const uint32& x) {
+  RecursiveMutex::Lock lock(m_settings_mutex);
+  m_default_num_threads_override = true;
+  m_default_num_threads = x;
+}
 
-GETSET(default_num_threads, uint32, ;);
 GETSET(system_cache_size, size_t, vw_system_cache().resize(x););
 GETSET(write_pool_size, uint32, ;);
 GETSET(default_tile_size, uint32, ;);

@@ -239,10 +239,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #cmakedefine VW_HAVE_UNISTD_H 1
 
-/* set the default number of processing threads for multi-threaded operations
-   */
-#define VW_NUM_THREADS @VW_NUM_THREADS@
-
 /* Name of package */
 #define VW_PACKAGE "@PACKAGE@"
 

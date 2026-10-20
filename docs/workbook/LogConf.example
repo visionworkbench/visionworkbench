@@ -33,7 +33,7 @@
 # message from the cache sub-system.
 
 [general]
-default_num_threads = 8
+default_num_threads = 0 # 0 means use all cores
 system_cache_size = 2000000000 # ~ 2 GB
 
 [logfile console]

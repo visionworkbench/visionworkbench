@@ -78,7 +78,7 @@ GdalWriteOptionsDescription::GdalWriteOptionsDescription(GdalWriteOptions& opt,
   namespace po = boost::program_options;
   (*this).add_options()
     ("threads",      po::value(&opt.num_threads)->default_value(0),
-     "Select the number of threads to use for each process. If 0, use the value in ~/.vwrc.");
+     "Select the number of threads to use for each process. If 0, use the number of threads set in ~/.vwrc, or the number of cores if not set there.");
   
   if (!adjust_tile_size_opt) {
     (*this).add_options()

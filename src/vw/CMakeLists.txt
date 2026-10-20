@@ -24,8 +24,6 @@ endif()
 #===============================================================================
 # Configuration options
 
-set(VW_NUM_THREADS "4" CACHE STRING "The default number of threads to use.")
-
 if("${CUSTOM_BUILD_DIR}" STREQUAL "")
     set(CUSTOM_BUILD_DIR "${ASP_DEPS_DIR}")
 endif()
@@ -181,7 +179,7 @@ endif()
 ###########################################################################
 # These are some options that the user might like to set manually
 
-set(VW_DEFAULT_CACHE_SIZE_MB 768)
+set(VW_DEFAULT_CACHE_SIZE_MB 1024)
 
 # enable image bounds checking (SLOW!) 
 set(VW_ENABLE_BOUNDS_CHECK 0)
