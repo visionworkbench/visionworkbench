@@ -39,6 +39,29 @@ endif()
 # Where to search for dependencies
 set(CMAKE_PREFIX_PATH "${ASP_DEPS_DIR}")
 
+# OpenMP is required. VW uses it for parallel loops, such as in RANSAC. This
+# mirrors the logic in StereoPipeline. find_package(OpenMP) works with gcc on
+# x86_64 Linux, but fails with clang (Mac) and on Linux aarch64 (the linker flags
+# carried into the try_compile probe break OpenMP_CXX detection), so there set the
+# flags and the libgomp library by hand. Fail hard if OpenMP cannot be found,
+# rather than silently building a serial library.
+if (APPLE OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  set(OpenMP_C_LIB_NAMES "gomp")
+  set(OpenMP_C_FLAGS "-fopenmp")
+  set(OpenMP_gomp_LIBRARY "${ASP_DEPS_DIR}/lib/libgomp${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(OpenMP_CXX_FLAGS "-fopenmp")
+  set(OpenMP_CXX_LIB_NAMES "gomp")
+  if (NOT EXISTS "${OpenMP_gomp_LIBRARY}")
+    message(FATAL_ERROR "OpenMP library not found: ${OpenMP_gomp_LIBRARY}")
+  endif()
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_gomp_LIBRARY}")
+else()
+  find_package(OpenMP REQUIRED)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
 # Generated protocol buffers go here
 include_directories(${CMAKE_BINARY_DIR}/src) 
 
