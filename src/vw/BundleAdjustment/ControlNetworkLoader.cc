@@ -26,6 +26,8 @@
 #include <mutex>
 #include <vector>
 #include <algorithm>
+#include <thread>
+#include <atomic>
 #include <boost/filesystem/fstream.hpp>
 
 using namespace vw;
@@ -494,54 +496,116 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   size_t const max_verbose_match_msgs = 100;
   Stopwatch read_watch;
   read_watch.start();
-  for (auto it = match_files.begin(); it != match_files.end(); it++) {
-    std::pair<int, int> pair_ind = it->first;
-    std::string const& match_file = it->second; // alias
-    int index1 = pair_ind.first;
-    int index2 = pair_ind.second;
-    // Actually read in the file as it seems we've found something correct
+  // Read the match files in parallel. Reading is dominated by per-file open
+  // latency on a network file system, not by CPU or bandwidth, so issuing many
+  // opens at once overlaps those stalls. Only the file read runs in parallel (it
+  // has no shared state and does not touch the image block cache). The work is
+  // done in chunks: a chunk of files is read in parallel, then assembled
+  // serially before the next chunk is read. This bounds the transient memory to
+  // one chunk of un-subsetted matches, rather than holding all files at once.
+  // All processing that touches shared structures, or uses the shared-RNG
+  // subset, stays in the serial pass, so the result is identical to a serial read.
+  std::vector<std::pair<std::pair<int, int>, std::string>>
+    mf_vec(match_files.begin(), match_files.end());
+  int num_files = (int)mf_vec.size();
+  int const read_chunk = 4096; // files read in parallel before a serial assembly
+
+  // Slots for the current chunk, filled in parallel (each thread writes its own).
+  struct PairLoad {
     std::vector<ip::InterestPoint> ip1, ip2;
-    ip::read_match_file(match_file, ip1, ip2, matches_as_txt);
-    if (ip1.size() < min_matches) {
-      vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
-                                << ip1.size() << " matches.\n";
-      num_load_rejected += ip1.size();
-      continue;
+    std::string err; // non-empty if the read threw, re-thrown serially below
+  };
+  std::vector<PairLoad> loaded;
+
+  for (int base = 0; base < num_files; base += read_chunk) {
+    int chunk = std::min(read_chunk, num_files - base);
+    loaded.assign(chunk, PairLoad());
+
+    // Read this chunk's files concurrently with a small thread pool. Each worker
+    // pulls the next file index from an atomic counter and reads into its own
+    // slot, so there are no shared writes. read_match_file holds no global state
+    // and touches no image cache, so this is safe. The slow part is per-file open
+    // latency on a network file system, which overlaps across the workers. Using
+    // std::thread avoids depending on OpenMP being enabled for this library.
+    {
+      unsigned num_read_threads = std::thread::hardware_concurrency();
+      if (num_read_threads == 0)
+        num_read_threads = 4;
+      num_read_threads = std::min(num_read_threads, (unsigned)chunk);
+      std::atomic<int> next_file(0);
+      auto reader = [&]() {
+        int j;
+        while ((j = next_file.fetch_add(1)) < chunk) {
+          try {
+            ip::read_match_file(mf_vec[base + j].second, loaded[j].ip1, loaded[j].ip2,
+                                matches_as_txt);
+          } catch (std::exception const& e) {
+            // An exception must not escape the worker. Record, re-throw serially.
+            loaded[j].err = e.what();
+          }
+        }
+      };
+      std::vector<std::thread> pool;
+      for (unsigned t = 0; t < num_read_threads; t++)
+        pool.emplace_back(reader);
+      for (auto& th : pool)
+        th.join();
     }
-    
-    bool verbose = (num_match_files < max_verbose_match_msgs);
-    if (verbose)
-      vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
 
-    // Remove descriptors from interest points and correct scale
-    std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
-    std::for_each(ip2.begin(), ip2.end(), ip::remove_descriptor);
-    std::for_each(ip1.begin(), ip1.end(), safe_measurement);
-    std::for_each(ip2.begin(), ip2.end(), safe_measurement);
+    // Serial assembly of this chunk, in file order and with the same logic as
+    // before, so the output control network is identical to a serial read.
+    for (int j = 0; j < chunk; j++) {
+      if (!loaded[j].err.empty())
+        vw::vw_throw(vw::IOErr() << loaded[j].err);
 
-    if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
+      std::pair<int, int> pair_ind = mf_vec[base + j].first;
+      std::string const& match_file = mf_vec[base + j].second; // alias
+      int index1 = pair_ind.first;
+      int index2 = pair_ind.second;
+      std::vector<ip::InterestPoint>& ip1 = loaded[j].ip1; // alias
+      std::vector<ip::InterestPoint>& ip2 = loaded[j].ip2; // alias
+
+      if (ip1.size() < min_matches) {
+        vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
+                                  << ip1.size() << " matches.\n";
+        num_load_rejected += ip1.size();
+        continue;
+      }
+
+      bool verbose = (num_match_files < max_verbose_match_msgs);
       if (verbose)
-        vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
-      pick_pair_subset(ip1, ip2, max_pairwise_matches);
-    }
+        vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
 
-    num_loaded += ip1.size();
-    num_match_files++;
-    if (num_match_files == max_verbose_match_msgs)
-      vw_out() << "Loaded " << max_verbose_match_msgs
-               << " match files. Suppressing per-file messages for the rest.\n";
+      // Remove descriptors from interest points and correct scale
+      std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
+      std::for_each(ip2.begin(), ip2.end(), ip::remove_descriptor);
+      std::for_each(ip1.begin(), ip1.end(), safe_measurement);
+      std::for_each(ip2.begin(), ip2.end(), safe_measurement);
 
-    // Initialize the keypoint map to zero. Will populate the entities later.
-    for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
-      auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
-      auto dist_right_ip = ipTriplet(ip2[ip_it].x, ip2[ip_it].y, ip2[ip_it].scale);
-      keypoint_map[index1][dist_left_ip] = 0;
-      keypoint_map[index2][dist_right_ip] = 0;
-    }
+      if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
+        if (verbose)
+          vw_out() << "Reducing the number of matches to: " << max_pairwise_matches << ".\n";
+        pick_pair_subset(ip1, ip2, max_pairwise_matches);
+      }
 
-    // Save the matches after getting a subset
-    match_map[pair_ind] = std::make_pair(ip1, ip2);
-  } // End loop through match files
+      num_loaded += ip1.size();
+      num_match_files++;
+      if (num_match_files == max_verbose_match_msgs)
+        vw_out() << "Loaded " << max_verbose_match_msgs
+                 << " match files. Suppressing per-file messages for the rest.\n";
+
+      // Initialize the keypoint map to zero. Will populate the entities later.
+      for (size_t ip_it = 0; ip_it < ip1.size(); ip_it++) {
+        auto dist_left_ip  = ipTriplet(ip1[ip_it].x, ip1[ip_it].y, ip1[ip_it].scale);
+        auto dist_right_ip = ipTriplet(ip2[ip_it].x, ip2[ip_it].y, ip2[ip_it].scale);
+        keypoint_map[index1][dist_left_ip] = 0;
+        keypoint_map[index2][dist_right_ip] = 0;
+      }
+
+      // Save the matches after getting a subset. Move to free the slot memory.
+      match_map[pair_ind] = std::make_pair(std::move(ip1), std::move(ip2));
+    } // End serial assembly of this chunk
+  } // End loop over chunks
 
   if (num_load_rejected != 0)
     vw_out(WarningMessage,"ba")
