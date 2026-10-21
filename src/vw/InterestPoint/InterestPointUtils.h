@@ -55,26 +55,31 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
   BBox2i bound = bounding_box( image.impl() );
   bound.contract(radius);
 
-  // Loop through all the points
-  for ( ip::InterestPointList::iterator ip = ip_list.begin(); ip != ip_list.end(); ++ip ) {
+  // Loop through all the points. Advance the iterator only when a point is
+  // kept. On erase, std::list::erase returns the iterator to the next element,
+  // so do not decrement it (the old "erase then ip--" idiom was undefined
+  // behavior when the first point was erased, as --begin() is invalid).
+  for (auto ip = ip_list.begin(); ip != ip_list.end(); ) {
 
     // Remove the point if it was too close to the image borders
     if ( !bound.contains( Vector2i(ip->ix,ip->iy) ) ) {
       ip = ip_list.erase(ip);
-      ip--;
       continue;
     }
 
     // Remove the point if any invalid pixels are too close to it
     subsection = crop( image.impl(), ip->ix-radius, ip->iy-radius, width, width );
-    for ( typename CropImageT::iterator pixel = subsection.begin();
-          pixel != subsection.end(); pixel++ ) {
+    bool has_nodata_nearby = false;
+    for (auto pixel = subsection.begin(); pixel != subsection.end(); pixel++) {
       if (*pixel == nodata) {
-        ip = ip_list.erase(ip);
-        ip--;
+        has_nodata_nearby = true;
         break;
       }
     }
+    if (has_nodata_nearby)
+      ip = ip_list.erase(ip);
+    else
+      ip++;
   }
   VW_OUT( DebugMessage, "asp" ) << "Removed " << prior_ip - ip_list.size()
                                 << " interest points due to their proximity to nodata values."
