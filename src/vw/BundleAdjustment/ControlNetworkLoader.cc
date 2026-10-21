@@ -496,15 +496,11 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
   size_t const max_verbose_match_msgs = 100;
   Stopwatch read_watch;
   read_watch.start();
-  // Read the match files in parallel. Reading is dominated by per-file open
-  // latency on a network file system, not by CPU or bandwidth, so issuing many
-  // opens at once overlaps those stalls. Only the file read runs in parallel (it
-  // has no shared state and does not touch the image block cache). The work is
-  // done in chunks: a chunk of files is read in parallel, then assembled
-  // serially before the next chunk is read. This bounds the transient memory to
-  // one chunk of un-subsetted matches, rather than holding all files at once.
-  // All processing that touches shared structures, or uses the shared-RNG
-  // subset, stays in the serial pass, so the result is identical to a serial read.
+  // Read the match files in parallel, in chunks. Reading is dominated by per-file
+  // open latency on a network file system, so concurrent opens overlap the stalls.
+  // Only the read is parallel (no shared state, no image cache). Each chunk is then
+  // assembled serially, so the result matches a serial read and transient memory
+  // stays bounded to one chunk.
   std::vector<std::pair<std::pair<int, int>, std::string>>
     mf_vec(match_files.begin(), match_files.end());
   int num_files = (int)mf_vec.size();
@@ -521,12 +517,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
     int chunk = std::min(read_chunk, num_files - base);
     loaded.assign(chunk, PairLoad());
 
-    // Read this chunk's files concurrently with a small thread pool. Each worker
-    // pulls the next file index from an atomic counter and reads into its own
-    // slot, so there are no shared writes. read_match_file holds no global state
-    // and touches no image cache, so this is safe. The slow part is per-file open
-    // latency on a network file system, which overlaps across the workers. Using
-    // std::thread avoids depending on OpenMP being enabled for this library.
+    // Read this chunk concurrently: each worker pulls the next index from an atomic
+    // counter into its own slot (no shared writes). std::thread avoids needing OpenMP.
     {
       unsigned num_read_threads = std::thread::hardware_concurrency();
       if (num_read_threads == 0)
@@ -552,8 +544,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
         th.join();
     }
 
-    // Serial assembly of this chunk, in file order and with the same logic as
-    // before, so the output control network is identical to a serial read.
+    // Serial assembly, in file order, so the control network matches a serial read.
     for (int j = 0; j < chunk; j++) {
       if (!loaded[j].err.empty())
         vw::vw_throw(vw::IOErr() << loaded[j].err);
