@@ -83,23 +83,19 @@ namespace ip {
     m_flann_method(flann_method), m_distance_metric(metric),
     m_threshold(threshold) {}
 
-    /// Given two lists of interest points, this write to index_list
-    /// the corresponding matching index in ip2. index_list is the
-    /// same length as ip1. index_list will be filled with max value
-    /// of size_t in the event that a match was not found.
-    template <class ListT, class IndexListT >
-    void operator()(ListT const& ip1, ListT const& ip2,
-                    IndexListT& index_list,
-                    const ProgressCallback &progress_callback 
-                      = ProgressCallback::dummy_instance(), 
+    /// Write to index_list the matching index in ip2 for each point in ip1.
+    /// index_list is the same length as ip1, with the max value of size_t
+    /// where no match was found.
+    void operator()(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
+                    std::vector<size_t>& index_list,
+                    const ProgressCallback &progress_callback
+                      = ProgressCallback::dummy_instance(),
                     bool quiet = false) const;
 
-    /// Given two lists of interest points, this routine returns the two lists
-    /// of matching interest points based on the Metric and Constraints provided by the user.
-    template <class ListT, class MatchListT>
-    void operator()( ListT const& ip1, ListT const& ip2,
-                     MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(), 
+    /// Return the two lists of matching interest points based on the metric.
+    void operator()( std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
+                     std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
                      bool quiet = false) const;
   };
 
@@ -116,12 +112,10 @@ namespace ip {
   InterestPointMatcherSimple(double threshold = 0.5, MetricT metric = MetricT())
     : m_distance_metric(metric), m_threshold(threshold) { }
 
-    /// Given two lists of interest points, this routine returns the two lists
-    /// of matching interest points based on the Metric and Constraints provided by the user.
-    template <class ListT, class MatchListT>
-    void operator()( ListT const& ip1, ListT const& ip2,
-                     MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(), 
+    /// Return the two lists of matching interest points based on the metric.
+    void operator()( std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
+                     std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
                      bool quiet = false ) const;
   };
 
@@ -135,240 +129,6 @@ namespace ip {
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
 
-//==========================================================================
-// Function definitions
-
-//---------------------------------------------------------------------------
-// InterestPointMatcher
-
-// Given two lists of interest points, this write to index_list
-// the corresponding matching index in ip2. index_list is the
-// same length as ip1. index_list will be filled with max value
-// of size_t in the event that a match was not found.
-template <class MetricT>
-template <class ListT, class IndexListT >
-void InterestPointMatcher<MetricT>::operator()
-    (ListT const& ip1, ListT const& ip2,
-    IndexListT& index_list,
-    const ProgressCallback &progress_callback,
-    bool quiet) const {
-
-  Timer total_time("Total elapsed time", DebugMessage, "interest_point");
-  size_t ip1_size = ip1.size(), ip2_size = ip2.size();
-
-  index_list.clear();
-  if (!ip1_size || !ip2_size) {
-    if (!quiet) {
-      vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
-      progress_callback.report_finished();
-    }
-    return;
-  }
-
-  float inc_amt = 1.0f/float(ip1_size);
-
-  // Set up FLANNTree objects of all the different types we may need.
-  math::FLANNTree<float>         kd_float(m_flann_method);
-  math::FLANNTree<unsigned char> kd_uchar(m_flann_method);
-
-  Matrix<float>         ip2_matrix_float;
-  Matrix<unsigned char> ip2_matrix_uchar;
-
-  // Pack the IP descriptors into a matrix and feed it to the chosen FLANNTree object
-  const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
-  if (use_uchar_FLANN) {
-    ip_list_to_matrix(ip2, ip2_matrix_uchar);
-    kd_uchar.load_match_data(ip2_matrix_uchar, MetricT::flann_type);
-  }else {
-    ip_list_to_matrix(ip2, ip2_matrix_float);
-    kd_float.load_match_data(ip2_matrix_float,  MetricT::flann_type);
-  }
-
-  if (!quiet)
-    vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
-
-  const size_t KNN = 2; // Find this many matches
-  Vector<int>    indices(KNN);
-  Vector<double> distances(KNN);
-
-  if (!quiet)
-    progress_callback.report_progress(0);
-
-  BOOST_FOREACH( InterestPoint ip, ip1 ) {
-    if (progress_callback.abort_requested())
-      vw_throw( Aborted() << "Aborted by ProgressCallback");
-
-    if (!quiet)
-      progress_callback.report_incremental_progress(inc_amt);
-
-    size_t num_matches_found = 0;
-    if (use_uchar_FLANN) {
-      // Convert the descriptor to unsigned chars, then call FLANN
-      vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
-      for (size_t i=0; i<ip.descriptor.size(); i++)
-        uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
-      num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
-    }
-    else {
-      // Use float
-      num_matches_found = kd_float.knn_search( ip.descriptor, indices, distances, KNN );
-    }
-
-    //vw_out() << "KNN matches "<< num_matches_found <<": indices = " << indices << ",    distances = " << distances << std::endl;
-
-    if (num_matches_found < KNN) {
-      // If we did not get two nearest neighbors, return no match for this point.
-      //vw_out() << "Bad descriptor = " << ip.descriptor << std::endl;
-      index_list.push_back( (size_t)(-1) ); // Last value of size_t
-    } else {
-
-      // Copy the two nearest matches
-      std::vector<InterestPoint> nearest_records(KNN);
-      typename ListT::const_iterator iterator = ip2.begin();
-      std::advance( iterator, indices[0] );
-      nearest_records[0] = *iterator;
-      iterator = ip2.begin();
-      std::advance( iterator, indices[1] );
-      nearest_records[1] = *iterator;
-
-      double dist0 = m_distance_metric(nearest_records[0], ip);
-      double dist1 = m_distance_metric(nearest_records[1], ip);
-
-      // As a final check, make sure the nearest record is significantly closer than the next one.
-      if (dist0 < m_threshold * dist1) {
-        index_list.push_back( indices[0] );
-      } else {
-        index_list.push_back( (size_t)(-1) ); // Last value of size_t
-      }
-    } // End both valid case
-  }
-
-  if (!quiet)
-    progress_callback.report_finished();
-
-} // End InterestPointMatcher::operator()
-
-// Given two lists of interest points, this routine returns the two lists
-// of matching interest points based on the Metric and Constraints
-// provided by the user.
-template <class MetricT>
-template <class ListT, class MatchListT>
-void InterestPointMatcher<MetricT>::operator()
-    (ListT const& ip1, ListT const& ip2,
-     MatchListT& matched_ip1, MatchListT& matched_ip2,
-     const ProgressCallback &progress_callback, 
-     bool quiet) const {
-
-  // Clear output lists
-  matched_ip1.clear();
-  matched_ip2.clear();
-
-  // Redirect to the other version of this function, getting the results in an index list.
-  std::list<size_t> index_list;
-  this->operator()(ip1, ip2, index_list, progress_callback, quiet);
-
-  // Now convert from the index output to the pairs output
-
-  // Loop through ip1 and index_list
-  std::list<size_t>::const_iterator index_list_iter = index_list.begin();
-  BOOST_FOREACH( InterestPoint ip, ip1 ) {
-
-    // Get and check the match index
-    typename ListT::const_iterator ip2_iter = ip2.begin();
-    size_t list_position = *index_list_iter;
-    if (list_position < ip2.size()) {
-      // Skip points without a match
-
-      // Get the ip2 that corresponds to the current ip1 and store the point pair
-      std::advance( ip2_iter, list_position);
-      matched_ip1.push_back(ip);
-      matched_ip2.push_back(*ip2_iter);
-    }
-    ++index_list_iter;
-  } // End loop through ip1
-
-}
-
-//-----------------------------------------------------------
-// InterestPointMatcherSimple
-
-// Given two lists of interest points, this routine returns the two lists
-// of matching interest points based on the Metric and Constraints
-// provided by the user.
-template <class MetricT>
-template <class ListT, class MatchListT>
-void InterestPointMatcherSimple<MetricT>::operator()
-  (ListT const& ip1, ListT const& ip2,
-   MatchListT& matched_ip1, MatchListT& matched_ip2,
-   const ProgressCallback &progress_callback, 
-   bool quiet) const {
-
-  Timer total_time("Total elapsed time", DebugMessage, "interest_point");
-
-  matched_ip1.clear(); matched_ip2.clear();
-  if (!ip1.size() || !ip2.size()) {
-    if (!quiet) {
-      vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
-      progress_callback.report_finished();
-    }
-    return;
-  }
-
-  std::vector<int> match_index( ip1.size() );
-
-  float inc_amt = 1.0f / float(ip1.size());
-  if (!quiet)
-    progress_callback.report_progress(0);
-
-  // Loop through one vector of IPs
-  for (size_t i = 0; i < ip1.size(); i++ ) {
-    if (progress_callback.abort_requested())
-      vw_throw( Aborted() << "Aborted by ProgressCallback" );
-
-    if (!quiet)
-      progress_callback.report_incremental_progress(inc_amt);
-
-    double first_pick = 1e100, second_pick = 1e100;
-    match_index[i] = -1;
-    // Comparing ip1_sorted's feature against all of ip2_sorted's
-    for (size_t j = 0; j < ip2.size(); j++ ) {
-
-      if ( ip1[i].polarity != ip2[j].polarity )
-        continue;
-
-      // Use the selected distance metric to measure the distance between the points
-      double distance = m_distance_metric( ip1[i], ip2[j] );
-
-      if ( distance < first_pick ) {
-        match_index[i] = j;
-        second_pick = first_pick;
-        first_pick = distance;
-      } else if ( distance < second_pick ) {
-        second_pick = distance;
-      }
-
-    }
-
-    //vw_out() << "Best 2 distances: " << first_pick <<", " << second_pick <<"\n";
-
-    // Checking to see if the match is strong enough
-    if ( first_pick > m_threshold * second_pick )
-      match_index[i] = -1;
-  } // End double loop through IPs
-
-  if (!quiet)
-    progress_callback.report_finished();
-
-  // Building matched_ip1 & matched_ip2
-  for (size_t i = 0; i < ip1.size(); i++ ) {
-    if ( match_index[i] != -1 ) {
-      matched_ip1.push_back( ip1[i] );
-      matched_ip2.push_back( ip2[match_index[i]] );
-    }
-  }
-
-  return;
-} // end function operator()
 
 }} // namespace vw::ip
 
