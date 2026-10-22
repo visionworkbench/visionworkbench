@@ -570,7 +570,13 @@ namespace vw {
   ///
   /// Given an image of PixelMasks, this will make all pixels valid
   template <class PixelT>
-  class ValidatePixelMask;
+  class ValidatePixelMask: public ReturnFixedType<PixelT> {
+  public:
+    inline PixelT operator()(PixelT value) const {
+      validate(value);
+      return value;
+    }
+  };
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,ValidatePixelMask<typename ViewT::pixel_type>>
