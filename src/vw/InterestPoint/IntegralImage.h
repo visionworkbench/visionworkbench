@@ -96,31 +96,6 @@ namespace ip {
                       Vector2i         const& top_left,
                       Vector2i         const& bottom_right);
 
-  /// X First Derivative (not implemented)
-  float XFirstDerivative(ImageView<float> const& integral,
-                         int const& x, int const& y,
-                         unsigned const& filter_size);
-
-  /// X Second Derivative
-  float XSecondDerivative(ImageView<float> const& integral,
-                          int const& x, int const& y,
-                          unsigned const& filter_size);
-
-  /// Y First Derivative (not implemented)
-  float YFirstDerivative(ImageView<float> const& integral,
-                         int const& x, int const& y,
-                         unsigned const& filter_size);
-
-  /// Y Second Derivative
-  float YSecondDerivative(ImageView<float> const& integral,
-                          int const& x, int const& y,
-                          unsigned const& filter_size);
-
-  /// XY Derivative
-  float XYDerivative(ImageView<float> const& integral,
-                     int const& x, int const& y,
-                     unsigned const& filter_size);
-
   // Horizontal Wavelet
   // - integral  = Integral used for calculations
   // - x         = x location to evaluate at

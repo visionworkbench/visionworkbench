@@ -185,36 +185,6 @@ TEST( Integral, HaarFilters2 ) {
   }
 }
 
-TEST( Integral, DerivativeFilters ) {
-  ImageView<float> graffiti;
-  read_image( graffiti, TEST_SRCDIR"/sub.png" );
-  ImageView<float> integral;
-  integral = IntegralImage( graffiti );
-  ImageView<float> rotated;
-  rotated = rotate_180(graffiti);
-  ImageView<float> r_integral;
-  r_integral = IntegralImage( rotated );
-
-  EXPECT_NEAR( XSecondDerivative( integral,
-                                  49, 49, 51 ),
-               XSecondDerivative( r_integral,
-                                  50, 50, 51 ),
-               1e-4 );
-
-  EXPECT_NEAR( YSecondDerivative( integral,
-                                  49, 49, 51 ),
-               YSecondDerivative( r_integral,
-                                      50, 50, 51 ),
-               1e-4 );
-
-  EXPECT_NEAR( XYDerivative( integral,
-                             49, 49, 51 ),
-               XYDerivative( r_integral,
-                             50, 50, 51 ),
-               1e-4 );
-
-}
-
 TEST( Integral, InterpolationProof ) {
   // Load Image
   ImageView<float> gradient;
