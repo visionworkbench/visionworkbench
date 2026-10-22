@@ -32,20 +32,22 @@
 namespace vw {
 namespace ip {
 
-  template <class ImplT>
-  class IntegralDescriptorGeneratorBase {
+  // Simple Scaled Gradient Descriptor (v2), using integral images. Descriptors
+  // rotate and scale their own response rather than cropping the image.
+  struct SGrad2DescriptorGenerator {
 
     ImageView<float> m_integral;
 
-  public:
+    std::list<Vector3> m_box_properties;
+    std::list<Vector2> m_histogram_samp;
+    std::list<Vector2> m_33_samp;
 
-    // Methods to access the derived type
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
-    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+    // Default support size (descriptor window) and descriptor length.
+    int support_size()    { return 41;  }
+    int descriptor_size() { return 128; }
 
-    // Given an image and a list of interest points, set the
-    // descriptor field of the interest points using compute_descriptor()
-    // method.
+    // Given an image and a list of interest points, set each point's descriptor
+    // field via compute_descriptor().
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
       (*this)( image, points.begin(), points.end() );
@@ -61,23 +63,10 @@ namespace ip {
 
       for (IterT i = start; i != end; i++ ) {
         // Wrapping integral image for interpolation
-        i->descriptor.set_size( impl().descriptor_size() );
-        impl().compute_descriptor( interpolate(m_integral), *i );
+        i->descriptor.set_size( descriptor_size() );
+        compute_descriptor( interpolate(m_integral), *i );
       }
     }
-
-    // Default suport size ( i.e. descriptor window)
-    int support_size() { return 41; }
-    // Default descriptor(vector) length
-    int descriptor_size() { return 128; }
-  };
-
-  // Simple Scaled Gradient Descriptor (v2)
-  struct SGrad2DescriptorGenerator : public IntegralDescriptorGeneratorBase<SGrad2DescriptorGenerator> {
-
-    std::list<Vector3> m_box_properties;
-    std::list<Vector2> m_histogram_samp;
-    std::list<Vector2> m_33_samp;
 
     SGrad2DescriptorGenerator() {
       // Push back constant box properties
