@@ -37,7 +37,6 @@
 #include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/InterestOperator.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
-#include <vw/InterestPoint/ImageOctaveHistory.h>
 
 namespace vw {
 namespace ip {

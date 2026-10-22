@@ -23,8 +23,6 @@
 #ifndef _INTERESTPOINT_MATCHER_H_
 #define _INTERESTPOINT_MATCHER_H_
 
-#include <algorithm>
-
 #include <vw/Core/Log.h>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/InterestPoint.h>
@@ -77,11 +75,6 @@ namespace ip {
 
 
   //======================================================================
-
-  template <class ListT>
-  inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
-                                   std::vector<ip::InterestPoint> & ip1_sorted,
-                                   std::vector<ip::InterestPoint> & ip2_sorted);
 
   /// Interest Point Match contraints functors to return a list of
   /// allowed match candidates to an interest point.
@@ -161,17 +154,9 @@ namespace ip {
     double      m_threshold;
     bool        m_bidirectional;
 
-    // Helper function to help reduce conditionals in the event of
-    // NullConstraint. (Which is common).
-    template <class InConstraintT>
-    typename boost::disable_if<boost::is_same<InConstraintT,NullConstraint>, bool>::type
-    check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const;
-
-    template <class InConstraintT>
-    typename boost::enable_if<boost::is_same<InConstraintT,NullConstraint>, bool>::type
-    check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
-      return true;
-    }
+    // Apply the user constraint (bidirectionally if requested). For
+    // NullConstraint this is always true.
+    bool check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const;
 
   public:
 
@@ -235,44 +220,19 @@ namespace ip {
                          std::vector<InterestPoint>& ip2);
 
 //==========================================================================
-// Fuction definitions
-
-template <class ListT>
-inline void sort_interest_points(ListT const& ip1, ListT const& ip2,
-                                 std::vector<ip::InterestPoint> & ip1_sorted,
-                                 std::vector<ip::InterestPoint> & ip2_sorted){
-  // The interest points may be in random order due to the fact that
-  // they are obtained using multiple threads. Must sort them to
-  // restore a unique order for the matcher to give a unique result.
-  ip1_sorted.reserve( ip1.size() ); ip1_sorted.clear();
-  ip2_sorted.reserve( ip2.size() ); ip2_sorted.clear();
-  BOOST_FOREACH( ip::InterestPoint const& ip, ip1 )
-    ip1_sorted.push_back(ip);
-  BOOST_FOREACH( ip::InterestPoint const& ip, ip2 )
-    ip2_sorted.push_back(ip);
-  std::sort(ip1_sorted.begin(), ip1_sorted.end(), InterestPointLessThan);
-  std::sort(ip2_sorted.begin(), ip2_sorted.end(), InterestPointLessThan);
-}
+// Function definitions
 
 //---------------------------------------------------------------------------
 // InterestPointMatcher
 
-// Helper function to help reduce conditionals in the event of
-// NullConstraint. (Which is common).
+// Apply the user constraint (bidirectionally if requested). For
+// NullConstraint this is always true.
 template <class MetricT, class ConstraintT>
-template <class InConstraintT>
-typename boost::disable_if<boost::is_same<InConstraintT,NullConstraint>, bool>::type
-InterestPointMatcher<MetricT, ConstraintT>::
+bool InterestPointMatcher<MetricT, ConstraintT>::
 check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
-  if (m_bidirectional) {
-    if (m_constraint(ip2, ip1) &&
-        m_constraint(ip1, ip2))
-      return true;
-  } else {
-    if (m_constraint(ip1, ip2))
-      return true;
-  }
-  return false;
+  if (m_bidirectional)
+    return m_constraint(ip2, ip1) && m_constraint(ip1, ip2);
+  return m_constraint(ip1, ip2);
 }
 
 // Given two lists of interest points, this write to index_list
@@ -366,7 +326,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
       nearest_records[1] = *iterator;
 
       // Check the user constraint on the record
-      if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
+      if ( check_constraint( nearest_records[0], ip ) ) {
         double dist0 = m_distance_metric(nearest_records[0], ip);
         double dist1 = m_distance_metric(nearest_records[1], ip);
 

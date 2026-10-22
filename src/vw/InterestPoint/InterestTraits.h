@@ -28,24 +28,6 @@
 namespace vw {
 namespace ip {
 
-  /// This template function decides whether to use the memory-optimized
-  /// default types or the potentially speed-optimized types associated with
-  /// the interest view class. If the source type supports efficient access,
-  /// we infer that speed is desired; otherwise we use the default types.
-  ///
-  /// InterestOperatorTraits can be partially specialized on the
-  /// interest view to specify which processed views to fully
-  /// rasterize. By default, it only rasterizes the interest image.
-  template <class SrcT, class InterestT>
-  struct InterestOperatorTraits {
-    typedef ImageView<typename SrcT::pixel_type>  rasterize_type;
-    typedef ImageView<typename SrcT::pixel_type>  gradient_type;
-    typedef ImageView<typename SrcT::pixel_type>  mag_type;
-    typedef ImageView<typename SrcT::pixel_type>  ori_type;
-    typedef ImageView<typename SrcT::pixel_type>  interest_type;
-    typedef ImageView<typename SrcT::pixel_type>  integral_type;
-  };
-
   /// Type(s) of peak in the interest image that indicate a feature.
   enum { IP_MAX, IP_MIN, IP_MINMAX };
 

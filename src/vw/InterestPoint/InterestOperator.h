@@ -47,10 +47,6 @@ namespace ip {
     double m_k, m_threshold;
 
   public:
-    template <class ViewT> struct ViewType {
-      typedef ImageViewRef<typename ViewT::pixel_type> type;
-    };
-
     HarrisInterestOperator(double threshold = 1e-5, double k = -1.0) : m_k(k), m_threshold(threshold) {}
 
     /// Returns "cornerness" image, where the local maxima correspond to corners.
@@ -83,14 +79,6 @@ namespace ip {
       }
     }
 
-    template <class ViewT>
-    inline ImageViewRef<typename ViewT::pixel_type>
-    operator() (ImageViewBase<ViewT> const& source, float scale = 1.0) const {
-      ImageInterestData<ViewT, HarrisInterestOperator> data(source.impl());
-      this->operator()(data, scale);
-      return data.interest;
-    }
-
     template <class DataT>
     inline bool threshold (InterestPoint const& pt, DataT const& /*data*/) const {
       return (pt.interest > m_threshold);
@@ -99,17 +87,6 @@ namespace ip {
 
   /// Type traits for Harris interest
   template <> struct InterestPeakType <HarrisInterestOperator> { static const int peak_type = IP_MAX; };
-
-
-//   /// Harris interest measure uses the image gradients.
-//   template <class SrcT>
-//   struct InterestOperatorTraits<SrcT, HarrisInterestOperator> {
-//     typedef typename DefaultRasterizeT<SrcT>::type          rasterize_type;
-//     typedef ImageView<typename SrcT::pixel_type>            gradient_type;
-//     typedef typename DefaultMagT<SrcT>::type                mag_type;
-//     typedef typename DefaultOriT<SrcT>::type                ori_type;
-//     typedef rasterize_type                                  interest_type;
-//   };
 
   // --------------------------- ------------------------ ----------------------------
   // --------------------- Laplacian of Gaussian Interest Operator -------------------
@@ -120,17 +97,7 @@ namespace ip {
     double m_threshold;
 
   public:
-    template <class ViewT> struct ViewType {
-      typedef ImageViewRef<typename ViewT::pixel_type> type;
-    };
-
     LogInterestOperator(float threshold = 0.03) : m_threshold(threshold) {}
-
-    template <class ViewT>
-    inline ImageViewRef<typename ViewT::pixel_type>
-    operator() (ImageViewBase<ViewT> const& source, float scale = 1.0) const {
-      return scale * laplacian_filter(source.impl());
-    }
 
     // TODO: this should return something
     template <class DataT>

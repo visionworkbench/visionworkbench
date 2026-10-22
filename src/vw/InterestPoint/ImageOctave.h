@@ -42,8 +42,7 @@
 namespace vw { namespace ip {
 
 /// This class provides functionality to construct an octave of images
-/// from one image, or to recursively (and destructively - use also
-/// ImageOctaveHistory to keep the entire pyramid) construct the
+/// from one image, or to recursively (and destructively) construct the
 /// next octave from an existing octave.  This octave makes up one part
 /// of a scale space pyramid.  Specifically, it makes up the part of
 /// scale space that covers one doubling in scale, where the number of

@@ -86,15 +86,6 @@ namespace ip {
     return (is_local_max(interest, i, j) || is_local_min(interest, i, j));
   }
 
-  /// Find spatial local extremum of the specified type.
-  template <class ViewT>
-  inline bool is_extremum(ImageViewBase<ViewT> const& interest,
-                          int i, int j, int type) {
-    if (type == IP_MAX) return is_local_max(interest, i, j);
-    if (type == IP_MIN) return is_local_min(interest, i, j);
-    return is_local_minmax(interest, i, j);
-  }
-
   /// Compile-time equivalent of spatial is_extremum
   template <int PeakT> struct IsSpatialExtremum {};
 
@@ -196,15 +187,6 @@ namespace ip {
   inline bool is_local_minmax(std::vector<DataT> const& data,
                               int i, int j, int k) {
     return (is_local_max(data, i, j, k) || is_local_min(data, i, j, k));
-  }
-
-  /// Find local extremum of the specified type in space and scale.
-  template <class DataT>
-  inline bool is_extremum(std::vector<DataT> const& data,
-                          int i, int j, int k, int type) {
-    if (type == IP_MAX) return is_local_max(data, i, j, k);
-    if (type == IP_MIN) return is_local_min(data, i, j, k);
-    return is_local_minmax(data, i, j, k);
   }
 
   /// Compile-time equivalent of scale-space is_extremum

@@ -59,20 +59,17 @@ namespace vw { namespace ip {
   template <class SrcT, class InterestT>
   class ImageInterestData {
   public:
-    /// The image types defined by InterestTraits control whether each processed
-    /// view is fully rasterized or not. Only those used in calculating each
-    /// pixel's interest measure should be fully rasterized. Later operations
-    /// (thresholding, orientation assignment, etc.) require at most support
-    /// regions around the interest points.
+    /// All processed views are held as a rasterized ImageView of the source
+    /// pixel type.
     typedef          SrcT             source_type;
     typedef typename SrcT::pixel_type pixel_type;
 
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::rasterize_type rasterize_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::gradient_type  gradient_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type       mag_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type       ori_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type  interest_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::integral_type  integral_type;
+    typedef ImageView<pixel_type> rasterize_type;
+    typedef ImageView<pixel_type> gradient_type;
+    typedef ImageView<pixel_type> mag_type;
+    typedef ImageView<pixel_type> ori_type;
+    typedef ImageView<pixel_type> interest_type;
+    typedef ImageView<pixel_type> integral_type;
 
     static const int peak_type = InterestPeakType<InterestT>::peak_type;
 
