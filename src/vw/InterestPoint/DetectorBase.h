@@ -38,6 +38,8 @@
 #include <vw/InterestPoint/InterestOperator.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
 
+#include <iterator>
+
 namespace vw {
 namespace ip {
 
@@ -103,7 +105,9 @@ namespace ip {
     virtual ~InterestPointWriteTask() {}
 
     virtual void operator() () {
-      m_global_points.insert(m_global_points.end(), m_points.begin(), m_points.end());
+      m_global_points.insert(m_global_points.end(),
+                             std::make_move_iterator(m_points.begin()),
+                             std::make_move_iterator(m_points.end()));
       m_points.clear();
       m_tpc.report_incremental_progress(m_inc_amt);
     }

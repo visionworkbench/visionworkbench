@@ -41,6 +41,7 @@
 #include <vw/InterestPoint/WeightedHistogram.h>
 
 #include <algorithm>
+#include <iterator>
 
 namespace vw {
 namespace ip {
@@ -342,7 +343,9 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
     }
 
     // Add newly found interest points
-    points.insert(points.end(), new_points.begin(), new_points.end());
+    points.insert(points.end(),
+                  std::make_move_iterator(new_points.begin()),
+                  std::make_move_iterator(new_points.end()));
     new_points.clear();
 
     // Build next octave of scale space
