@@ -123,11 +123,15 @@ protected:
     EXPECT_EQ( image.planes(), 1 );
     typedef typename CompoundChannelType<PixelT>::type ChannelT;
     ChannelT tol;
+    // Float channels are now read as-is on the file's native value scale (0-255 for
+    // an 8-bit file), so the jpeg tolerance is on that scale, like the uint8 case.
     if ( boost::is_floating_point<ChannelT>::value )
-      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 1e-2 : 1e-5);
+      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 1.0 : 1e-5);
     else
       tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 1 : 0);
-    ChannelCastRescaleFunctor<ChannelT> conv;
+    // Reading an 8-bit file into a float image reads the channel values as-is
+    // (no rescaling to [0,1]), the same as GDAL, so compare with a plain cast.
+    ChannelCastFunctor<ChannelT> conv;
     EXPECT_NEAR( image(0,0).r(), conv(uint8(128)), tol );
     EXPECT_NEAR( image(0,0).g(), conv(uint8(128)), tol );
     EXPECT_NEAR( image(0,0).b(), conv(uint8(128)), tol );
@@ -150,10 +154,10 @@ protected:
 
   virtual void SetUp() {
     ImageView<PixelT> image(2,2);
-    image(0,0) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(120,240,180));
-    image(1,0) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(36,89,79));
-    image(0,1) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(190,25,34));
-    image(1,1) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(23,13,189));
+    image(0,0) = pixel_cast<PixelT>(PixelRGB<uint8>(120,240,180));
+    image(1,0) = pixel_cast<PixelT>(PixelRGB<uint8>(36,89,79));
+    image(0,1) = pixel_cast<PixelT>(PixelRGB<uint8>(190,25,34));
+    image(1,1) = pixel_cast<PixelT>(PixelRGB<uint8>(23,13,189));
     std::string base;
     switch ( extension_i ) {
     case 0: // PNG
@@ -197,21 +201,17 @@ protected:
 };
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-// The float (F32) image read/write cases are DISABLED: reading an 8-bit file into
-// a float image no longer rescales to [0,1], so these expectations (which predate
-// that behavior change) no longer hold. The Stereo Pipeline regression suite is the
-// behavior gate for float raster I/O.
 typedef ReadImage<PixelRGB<uint8>, 0> ReadImageRGBU8PNG;
 TEST_F( ReadImageRGBU8PNG, RGB_U8_PNG ) {}
 
 typedef ReadImage<PixelRGB<float>, 0> ReadImageRGBF32PNG;
-TEST_F( ReadImageRGBF32PNG, DISABLED_RGB_F32_PNG ) {}
+TEST_F( ReadImageRGBF32PNG, RGB_F32_PNG ) {}
 
 typedef WriteReadImage<PixelRGB<uint8>, 0> WriteReadImageRGBU8PNG;
 TEST_F( WriteReadImageRGBU8PNG, RGB_U8_PNG ) {}
 
 typedef WriteReadImage<PixelRGB<float>, 0> WriteReadImageRGBF32PNG;
-TEST_F( WriteReadImageRGBF32PNG, DISABLED_RGB_F32_PNG ) {}
+TEST_F( WriteReadImageRGBF32PNG, RGB_F32_PNG ) {}
 #endif
 
 #if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
@@ -219,7 +219,7 @@ typedef ReadImage<PixelRGB<uint8>, 1> ReadImageRGBU8TIF;
 TEST_F( ReadImageRGBU8TIF, RGB_U8_TIF ) {}
 
 typedef ReadImage<PixelRGB<float>, 1> ReadImageRGBF32TIF;
-TEST_F( ReadImageRGBF32TIF, DISABLED_RGB_F32_TIF ) {}
+TEST_F( ReadImageRGBF32TIF, RGB_F32_TIF ) {}
 
 typedef WriteReadImage<PixelRGB<uint8>, 1> WriteReadImageRGBU8TIF;
 TEST_F( WriteReadImageRGBU8TIF, RGB_U8_TIF ) {}
@@ -233,7 +233,7 @@ typedef ReadImage<PixelRGB<uint8>, 2> ReadImageRGBU8JPG;
 TEST_F( ReadImageRGBU8JPG, RGB_U8_JPG ) {}
 
 typedef ReadImage<PixelRGB<float>, 2> ReadImageRGBF32JPG;
-TEST_F( ReadImageRGBF32JPG, DISABLED_RGB_F32_JPG ) {}
+TEST_F( ReadImageRGBF32JPG, RGB_F32_JPG ) {}
 
 // These test just don't work with JPG since these images are smaller
 // than the tolerance of libjpeg.
