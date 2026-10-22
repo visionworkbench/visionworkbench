@@ -103,7 +103,8 @@ namespace ip {
     virtual ~InterestPointWriteTask() {}
 
     virtual void operator() () {
-      m_global_points.splice(m_global_points.end(), m_points);
+      m_global_points.insert(m_global_points.end(), m_points.begin(), m_points.end());
+      m_points.clear();
       m_tpc.report_incremental_progress(m_inc_amt);
     }
   };

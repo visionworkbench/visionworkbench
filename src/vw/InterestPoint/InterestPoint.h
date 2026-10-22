@@ -123,7 +123,7 @@ namespace vw { namespace ip {
   bool InterestPointLessThan (InterestPoint P1, InterestPoint P2);
   
   // Need to use list instead of vector for efficient thresholding.
-  typedef std::list<InterestPoint> InterestPointList;
+  typedef std::vector<InterestPoint> InterestPointList;
 
   // Utility function converts from a list of interest points to a
   // vector of interest point locations.  (Useful when preparing data for RANSAC.)

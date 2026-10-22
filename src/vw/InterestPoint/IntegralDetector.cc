@@ -28,6 +28,7 @@
 #include <vw/InterestPoint/IntegralDetector.h>
 
 #include <deque>
+#include <algorithm>
 
 namespace vw {
 namespace ip {
@@ -231,7 +232,7 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
 
   if (curr_max_points > 0) { // Cull
     int original_num_points = new_points.size();
-    new_points.sort();
+    std::stable_sort(new_points.begin(), new_points.end());
     if (curr_max_points < original_num_points)
       new_points.resize(curr_max_points);
   }
@@ -362,7 +363,7 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
     int original_num_points = new_points.size();
 
     // Sort the interest of the points and pull out the top amount that the user wants
-    new_points.sort();
+    std::stable_sort(new_points.begin(), new_points.end());
     new_points.resize(curr_max_points);
   }
 

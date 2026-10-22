@@ -23,11 +23,13 @@
 #include <vw/InterestPoint/InterestPoint.h>
 #include <test/Helpers.h>
 
+#include <algorithm>
+
 using namespace vw;
 using namespace vw::ip;
 
 TEST( Matcher, IPComparison ) {
-  std::list<InterestPoint> ip_list;
+  std::vector<InterestPoint> ip_list;
   ip_list.push_back( InterestPoint(0,0,0,3) );
   ip_list.push_back( InterestPoint(0,0,0,5) );
   ip_list.push_back( InterestPoint(0,0,0,1) );
@@ -35,7 +37,7 @@ TEST( Matcher, IPComparison ) {
   ip_list.push_back( InterestPoint(0,0,0,9) );
   ip_list.push_back( InterestPoint(0,0,0,5.3) );
 
-  ip_list.sort();
+  std::stable_sort(ip_list.begin(), ip_list.end());
 
   EXPECT_EQ( ip_list.front().interest, 9 );
   EXPECT_EQ( ip_list.back().interest,  1 );

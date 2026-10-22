@@ -40,6 +40,8 @@
 #include <vw/InterestPoint/InterestOperator.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
 
+#include <algorithm>
+
 namespace vw {
 namespace ip {
 
@@ -198,7 +200,7 @@ InterestPointDetector<InterestT>::process_image(vw::ImageViewRef<float> const& i
 
   // Cull (limit the number of interest points to the N "most interesting" points)
   int original_num_points = points.size();
-  points.sort();
+  std::stable_sort(points.begin(), points.end());
   if ((curr_max_points > 0) && (curr_max_points < original_num_points))
      points.resize(curr_max_points);
 
@@ -323,7 +325,7 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
 
     // Cull (limit the number of interest points to the N "most interesting" points)
     int original_num_points = new_points.size();
-    new_points.sort();
+    std::stable_sort(new_points.begin(), new_points.end());
     if ((curr_max_points > 0) && (curr_max_points/m_octaves < (int)new_points.size()))
       new_points.resize(curr_max_points/m_octaves);
 
@@ -340,7 +342,8 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
     }
 
     // Add newly found interest points
-    points.splice(points.end(), new_points);
+    points.insert(points.end(), new_points.begin(), new_points.end());
+    new_points.clear();
 
     // Build next octave of scale space
     if (o != m_octaves - 1) {

@@ -56,9 +56,9 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
   bound.contract(radius);
 
   // Loop through all the points. Advance the iterator only when a point is
-  // kept. On erase, std::list::erase returns the iterator to the next element,
-  // so do not decrement it (the old "erase then ip--" idiom was undefined
-  // behavior when the first point was erased, as --begin() is invalid).
+  // kept. erase() returns the iterator to the next element, so do not decrement
+  // it (the old "erase then ip--" idiom was undefined behavior when the first
+  // point was erased, as --begin() is invalid).
   for (auto ip = ip_list.begin(); ip != ip_list.end(); ) {
 
     // Remove the point if it was too close to the image borders
