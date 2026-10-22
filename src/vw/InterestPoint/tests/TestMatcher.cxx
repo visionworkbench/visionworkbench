@@ -121,7 +121,7 @@ TEST( Matcher, Matcher ) {
   ip2_list.push_back(ip2e);
 
   std::string flann_method = "kmeans";
-  InterestPointMatcher<L2NormMetric,NullConstraint> matcher(flann_method);
+  InterestPointMatcher<L2NormMetric> matcher(flann_method);
   matcher(ip1_list, ip2_list, matched_ip1, matched_ip2);
   matcher(ip1_list, ip2_list, matched_indexes );
 

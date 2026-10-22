@@ -146,25 +146,19 @@ namespace ip {
   // ---------------------------------------------------------------------------
 
   /// Interest point matcher class
-  template < class MetricT, class ConstraintT >
+  template < class MetricT >
   class InterestPointMatcher {
-    std::string m_flann_method; 
-    ConstraintT m_constraint;
+    std::string m_flann_method;
     MetricT     m_distance_metric;
     double      m_threshold;
-    bool        m_bidirectional;
-
-    // Apply the user constraint (bidirectionally if requested). For
-    // NullConstraint this is always true.
-    bool check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const;
 
   public:
 
-    InterestPointMatcher(std::string const& flann_method, 
-                         double threshold = 0.5, 
-                         MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), bool bidirectional = false): 
-    m_flann_method(flann_method), m_constraint(constraint), m_distance_metric(metric),
-    m_threshold(threshold), m_bidirectional(bidirectional) {}
+    InterestPointMatcher(std::string const& flann_method,
+                         double threshold = 0.5,
+                         MetricT metric = MetricT()):
+    m_flann_method(flann_method), m_distance_metric(metric),
+    m_threshold(threshold) {}
 
     /// Given two lists of interest points, this write to index_list
     /// the corresponding matching index in ip2. index_list is the
@@ -189,16 +183,15 @@ namespace ip {
 
   /// A even more basic interest point matcher that doesn't rely on
   /// KDTree as it sometimes produces incorrect results
-  template < class MetricT, class ConstraintT >
+  template < class MetricT >
   class InterestPointMatcherSimple {
-    ConstraintT m_constraint;
     MetricT     m_distance_metric;
     double      m_threshold;
 
   public:
 
-  InterestPointMatcherSimple(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT())
-    : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold) { }
+  InterestPointMatcherSimple(double threshold = 0.5, MetricT metric = MetricT())
+    : m_distance_metric(metric), m_threshold(threshold) { }
 
     /// Given two lists of interest points, this routine returns the two lists
     /// of matching interest points based on the Metric and Constraints provided by the user.
@@ -212,7 +205,7 @@ namespace ip {
 
   //////////////////////////////////////////////////////////////////////////////
   // Convenience typedef
-  typedef InterestPointMatcher<L2NormMetric, NullConstraint> DefaultMatcher;
+  typedef InterestPointMatcher<L2NormMetric> DefaultMatcher;
 
   /// Matching doesn't constraint a point to being matched to only one
   /// other point. Here's a way to remove duplicates and have only pairwise points.
@@ -225,23 +218,13 @@ namespace ip {
 //---------------------------------------------------------------------------
 // InterestPointMatcher
 
-// Apply the user constraint (bidirectionally if requested). For
-// NullConstraint this is always true.
-template <class MetricT, class ConstraintT>
-bool InterestPointMatcher<MetricT, ConstraintT>::
-check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
-  if (m_bidirectional)
-    return m_constraint(ip2, ip1) && m_constraint(ip1, ip2);
-  return m_constraint(ip1, ip2);
-}
-
 // Given two lists of interest points, this write to index_list
 // the corresponding matching index in ip2. index_list is the
 // same length as ip1. index_list will be filled with max value
 // of size_t in the event that a match was not found.
-template <class MetricT, class ConstraintT>
+template <class MetricT>
 template <class ListT, class IndexListT >
-void InterestPointMatcher<MetricT, ConstraintT>::operator()
+void InterestPointMatcher<MetricT>::operator()
     (ListT const& ip1, ListT const& ip2,
     IndexListT& index_list,
     const ProgressCallback &progress_callback,
@@ -325,18 +308,15 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
       std::advance( iterator, indices[1] );
       nearest_records[1] = *iterator;
 
-      // Check the user constraint on the record
-      if ( check_constraint( nearest_records[0], ip ) ) {
-        double dist0 = m_distance_metric(nearest_records[0], ip);
-        double dist1 = m_distance_metric(nearest_records[1], ip);
+      double dist0 = m_distance_metric(nearest_records[0], ip);
+      double dist1 = m_distance_metric(nearest_records[1], ip);
 
-        // As a final check, make sure the nearest record is significantly closer than the next one.
-        if (dist0 < m_threshold * dist1) {
-          index_list.push_back( indices[0] );
-        } else {
-          index_list.push_back( (size_t)(-1) ); // Last value of size_t
-        }
-      } // End check constraint
+      // As a final check, make sure the nearest record is significantly closer than the next one.
+      if (dist0 < m_threshold * dist1) {
+        index_list.push_back( indices[0] );
+      } else {
+        index_list.push_back( (size_t)(-1) ); // Last value of size_t
+      }
     } // End both valid case
   }
 
@@ -348,9 +328,9 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
 // Given two lists of interest points, this routine returns the two lists
 // of matching interest points based on the Metric and Constraints
 // provided by the user.
-template <class MetricT, class ConstraintT>
+template <class MetricT>
 template <class ListT, class MatchListT>
-void InterestPointMatcher<MetricT, ConstraintT>::operator()
+void InterestPointMatcher<MetricT>::operator()
     (ListT const& ip1, ListT const& ip2,
      MatchListT& matched_ip1, MatchListT& matched_ip2,
      const ProgressCallback &progress_callback, 
@@ -392,9 +372,9 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()
 // Given two lists of interest points, this routine returns the two lists
 // of matching interest points based on the Metric and Constraints
 // provided by the user.
-template <class MetricT, class ConstraintT>
+template <class MetricT>
 template <class ListT, class MatchListT>
-void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()
+void InterestPointMatcherSimple<MetricT>::operator()
   (ListT const& ip1, ListT const& ip2,
    MatchListT& matched_ip1, MatchListT& matched_ip2,
    const ProgressCallback &progress_callback, 

@@ -353,12 +353,12 @@ int main(int argc, char** argv) {
         vw_out() << "Using FLANN method: " << flann_method << std::endl;
         // Run interest point matcher that uses KDTree algorithm.
         if (distance_metric == "l2") {
-          InterestPointMatcher<L2NormMetric, NullConstraint> 
+          InterestPointMatcher<L2NormMetric> 
             matcher(flann_method, matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         } 
         if (distance_metric == "hamming") {
-          InterestPointMatcher<HammingMetric, NullConstraint> 
+          InterestPointMatcher<HammingMetric> 
             matcher(flann_method, matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
@@ -366,11 +366,11 @@ int main(int argc, char** argv) {
         vw_out() << "Not using FLANN.\n";
         // Run interest point matcher that does not use FLANN.
         if (distance_metric == "l2") {
-          InterestPointMatcherSimple<L2NormMetric, NullConstraint> matcher(matcher_threshold);
+          InterestPointMatcherSimple<L2NormMetric> matcher(matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
         if (distance_metric == "hamming") {
-          InterestPointMatcherSimple<HammingMetric, NullConstraint> matcher(matcher_threshold);
+          InterestPointMatcherSimple<HammingMetric> matcher(matcher_threshold);
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } // End non-flann case
