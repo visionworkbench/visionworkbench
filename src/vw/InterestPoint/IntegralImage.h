@@ -24,7 +24,6 @@
 #ifndef __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 #define __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 
-#include <boost/utility/enable_if.hpp>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
 
@@ -101,106 +100,11 @@ namespace ip {
   // - x         = x location to evaluate at
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
-  // Note: Filter will be evaluated at a size nearest to a multiple of two
+  // For an interpolated integral view x and y may be fractional.
   template <class ViewT, class NumberT>
-  typename boost::enable_if<boost::is_integral<NumberT>, float>::type
-  inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
-                       NumberT const& x, NumberT const& y,
-                       float const& size ) {
-
-    float response;
-    int half_size = int(round( size / 2.0));
-    int i_size = half_size << 1;
-    int top = int(round( int(y) - size/2));
-    int left = int(round( int(x) - size/2));
-
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    VW_ASSERT(left+i_size < integral.impl().cols(),
-              vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
-              << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < integral.impl().rows(),
-              vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
-              << top+i_size << "\n");
-    VW_ASSERT(left >= 0,
-              vw::ArgumentErr() << "left is too low. " << 0 << " : " << left << "\n");
-    VW_ASSERT(top >= 0,
-              vw::ArgumentErr() << "top is too low. " << 0 << " : " << top << "\n");
-#endif
-
-    response = -integral.impl()(left, top);
-    response += 2*integral.impl()(left+half_size, top);
-    response -= integral.impl()(left+i_size, top);
-    response += integral.impl()(left, top+i_size);
-    response -= 2*integral.impl()(left+half_size, top+i_size);
-    response += integral.impl()(left+i_size, top+i_size);
-
-    return response;
-  }
-
-  // Vertical Wavelet
-  // - integral  = Integral used for calculations
-  // - x         = x location to evaluate at
-  // - y         = y location to evaluate at
-  // - size      = side of the square used for evaluate
-  // Note: Filter will be evaluated at a size nearest to a multiple of two
-  template <class ViewT, class NumberT>
-  typename boost::enable_if<boost::is_integral<NumberT>, float>::type
-  inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
-                       NumberT const& x, NumberT const& y,
-                       float const& size ) {
-
-    float response;
-    int half_size = int(round( size / 2.0));
-    int i_size = half_size << 1;
-    int top = int(round( int(y) - size/2));
-    int left = int(round( int(x) - size/2));
-
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    VW_ASSERT(left+i_size < integral.impl().cols(),
-              vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
-              << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < integral.impl().rows(),
-              vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
-              << top+i_size << "\n");
-    VW_ASSERT(left >= 0,
-              vw::ArgumentErr() << "left is too low. " << 0 << " : " << left << "\n");
-    VW_ASSERT(top >= 0,
-              vw::ArgumentErr() << "top is too low. " << 0 << " : " << top << "\n");
-#endif
-
-    response = -integral.impl()(left, top);
-    response += integral.impl()(left+i_size, top);
-    response += 2*integral.impl()(left, top+half_size);
-    response -= 2*integral.impl()(left+i_size, top+half_size);
-    response -= integral.impl()(left, top+i_size);
-    response += integral.impl()(left+i_size, top+i_size);
-
-    return response;
-  }
-
-  // Horizontal Wavelet ( floating point arithmetic )
-  // - integral  = Integral used for calculations
-  // - x         = x location to evaluate at
-  // - y         = y location to evaluate at
-  // - size      = side of the square used for evaluate
-
-  // Note: This Filter requires/recommends the use of an interpolated
-  //       view of the integral
-  template <class ViewT, class NumberT>
-  typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
-  inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
-                       NumberT const& x, NumberT const& y,
-                       float const& size ) {
-
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
-               (integral.impl()(10,10) == integral.impl()(11,10) ),
-               vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
-    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
-               (integral.impl()(10,10) == integral.impl()(10,11) ),
-               vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
-#endif
+  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral,
+                             NumberT const& x, NumberT const& y,
+                             float const& size ) {
 
     float response;
     float half_size = size / 2.0;
@@ -217,28 +121,16 @@ namespace ip {
     return response;
   }
 
-  // Vertical Wavelet ( floating point arithmetic )
+  // Vertical Wavelet
   // - integral  = Integral used for calculations
   // - x         = x location to evaluate at
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
-  // Note: This Filter requires/recommends the use of an interpolated
-  //       view of the integral
+  // For an interpolated integral view x and y may be fractional.
   template <class ViewT, class NumberT>
-  typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
-  inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
-                       NumberT const& x, NumberT const& y,
-                       float const& size ) {
-
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
-               (integral.impl()(10,10) == integral.impl()(11,10) ),
-               vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
-    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
-               (integral.impl()(10,10) == integral.impl()(10,11) ),
-               vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
-#endif
+  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral,
+                             NumberT const& x, NumberT const& y,
+                             float const& size ) {
 
     float response;
     float half_size = size / 2.0;
