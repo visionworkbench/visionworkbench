@@ -23,8 +23,6 @@
 #include <vw/InterestPoint/InterestPoint.h>
 #include <test/Helpers.h>
 
-#include <algorithm>
-
 using namespace vw;
 using namespace vw::ip;
 
@@ -52,9 +50,6 @@ TEST( Matcher, DistanceMetric ) {
   L2NormMetric metric1;
   EXPECT_EQ(metric1(ip1, ip2), 16);
 
-  RelativeEntropyMetric metric2;
-  EXPECT_NEAR(metric2(ip1, ip2), -2.321, 1e-3);
-
   HammingMetric metric3;
   ip1.descriptor = Vector3(1,2,3); // Bit distance is 1, 1, 2 --> Total = 4
   ip2.descriptor = Vector3(0,0,0);
@@ -73,26 +68,6 @@ TEST( Matcher, DistanceMetric ) {
   ip1.descriptor = data; // Bit distance 4*5 = 20
   ip2.descriptor = zeros;
   EXPECT_NEAR(metric3(ip1, ip2), 20, 1e-3);
-}
-
-TEST( Matcher, Constraints ) {
-  InterestPoint ip1(0,0,1.0,1.0,0.0);
-  InterestPoint ip2(20,0,2.0,2.0,M_PI);
-  ip1.descriptor = Vector3(0,1,0);
-  ip2.descriptor = Vector3(0,5,0);
-
-  NullConstraint null;
-  ScaleOrientationConstraint scale_ori1;
-  ScaleOrientationConstraint scale_ori2(0.4, 2.1, -1.2*M_PI, 1.2*M_PI);
-
-  PositionConstraint pos1;
-  PositionConstraint pos2(-20,20,-20,20);
-
-  EXPECT_TRUE(  null(ip1,ip2) );
-  EXPECT_FALSE( scale_ori1(ip1,ip2) );
-  EXPECT_TRUE(  scale_ori2(ip1,ip2) );
-  EXPECT_FALSE( pos1(ip1,ip2) );
-  EXPECT_TRUE(  pos2(ip1,ip2) );
 }
 
 TEST( Matcher, Matcher ) {

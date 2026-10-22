@@ -21,10 +21,7 @@
 ///
 #include <vw/InterestPoint/Matcher.h>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <set>
-namespace fs = boost::filesystem;
 
 namespace vw { namespace ip {
 
@@ -99,51 +96,6 @@ float HammingMetric::operator()( InterestPoint const& ip1,
     dist += static_cast<float>(dist_int);
   }
   return dist;
-}
-
-float
-RelativeEntropyMetric::operator()( InterestPoint const& ip1,
-                                    InterestPoint const& ip2,
-                                    float maxdist ) const {
-  float dist = 0.0;
-  for (size_t i = 0; i < ip1.descriptor.size(); i++) {
-    dist += ip1.descriptor[i] * logf(ip1.descriptor[i]/(ip2.descriptor[i]+1e-16)+1e-16)/logf(2.) ;
-    if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
-  }
-  return dist;
-}
-
-//==================================================================================
-// Constraints
-
-bool ScaleOrientationConstraint::operator()( InterestPoint const& baseline_ip,
-                                              InterestPoint const& test_ip ) const {
-  double sr = test_ip.scale / baseline_ip.scale;
-  double od = test_ip.orientation - baseline_ip.orientation;
-  // Bring orientation delta (od) into range -M_PI to M_PI
-  if (od < -M_PI) od += M_PI*2;
-  else if (od > M_PI) od -= M_PI*2;
-
-  if (sr >= scale_ratio_min && sr <= scale_ratio_max &&
-      od >= ori_diff_min && od <= ori_diff_max) {
-    return true;
-  }
-
-  // Otherwise...
-  return false;
-}
-
-bool PositionConstraint::operator()( InterestPoint const& baseline_ip,
-                                      InterestPoint const& test_ip ) const {
-
-  double dx = test_ip.x - baseline_ip.x;
-  double dy = test_ip.y - baseline_ip.y;
-  if (dx >= min_x && dx <= max_x && dy >= min_y && dy <= max_y) {
-    return true;
-  }
-
-  // Otherwise...
-  return false;
 }
 
 // Remove duplicates in interest point matches. Use a set for speed. When
