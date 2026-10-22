@@ -17,6 +17,7 @@
 
 
 #include <vw/FileIO/MemoryImageResourcePNG.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/PngIO.h>
 #include <vw/Core/Debugging.h>
 
@@ -83,7 +84,7 @@ void SrcMemoryImageResourcePNG::read( ImageBuffer const& dst, BBox2i const& bbox
   src_fmt.cols = width;
 
   ImageBuffer src(src_fmt, buf.get());
-  convert(dst, src, true);
+  convert(dst, src, DiskImageResource::get_default_rescale());
 }
 
 ImageFormat SrcMemoryImageResourcePNG::format() const {
@@ -145,7 +146,7 @@ void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbo
     dst_fmt.cols = width;
 
     ImageBuffer dst(dst_fmt, buf.get());
-    convert(dst, src, true);
+    convert(dst, src, DiskImageResource::get_default_rescale());
   }
 
   m_data->write(buf.get(), bufsize, width, height, planes);

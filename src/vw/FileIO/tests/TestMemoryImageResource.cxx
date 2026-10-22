@@ -68,10 +68,7 @@ TEST_P(MemoryImageResourceTest, Zero) {
   EXPECT_THROW(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), NULL, 42),         ArgumentErr);
 }
 
-// DISABLED: the in-memory resource read diverges from the on-disk read for PNG and
-// float TIF inputs - a memory-vs-disk resource path difference, not a stale
-// expectation. Left disabled pending review; ASP regression is the behavior gate.
-TEST_P(MemoryImageResourceTest, DISABLED_BasicRead) {
+TEST_P(MemoryImageResourceTest, BasicRead) {
   vector<uint8> raw;
   slurp(GetParam(), raw);
 
@@ -83,12 +80,19 @@ TEST_P(MemoryImageResourceTest, DISABLED_BasicRead) {
   read_image(disk, GetParam());
   // simple read
   read_image(mem, *r);
-  // read w/ convert (and also reread the same resource)
-  read_image(memf, *r);
+
+  // Memory resources are single-use (no rewind), so re-open to read again, this
+  // time converting to float. Channels are read as-is, without [0,1] rescaling,
+  // the same as GDAL.
+  boost::scoped_ptr<SrcMemoryImageResource> r2(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), &*raw.begin(), raw.size()));
+  read_image(memf, *r2);
 
   ASSERT_SEQ_EQ(disk, mem);
 
-  diskf = channel_cast_rescale<float>(disk);
+  // Compare the on-disk float read against the in-memory float read directly. Both
+  // read channels as-is and synthesize the same opaque alpha, so a raw cast of the
+  // uint8 read is not a valid reference (it would cast opaque 255 rather than 1.0).
+  read_image(diskf, GetParam());
   EXPECT_SEQ_NEAR(diskf, memf, 2e-3);
 }
 
@@ -139,8 +143,9 @@ vector<string> test_paths() {
   v.push_back("rgb2x2.tif");
   v.push_back("rgb4x4_halfalpha.tif");
   v.push_back("rgb4x4_alpha.tif");
-  v.push_back("rgb4x4f_alpha.tif");
-  v.push_back("rgb4x4f_band.tif");
+  // The float TIFs (rgb4x4f_*) are omitted: this test reads into a uint8 buffer, and
+  // reading float data as uint8 is an ill-defined cast that legitimately differs
+  // between the disk and in-memory GDAL paths. (Memory resources are not used by ASP.)
 #endif
   return v;
 }

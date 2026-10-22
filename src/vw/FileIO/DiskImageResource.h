@@ -80,13 +80,17 @@ namespace vw {
 
     // Specify whether values should be rescaled when converting
     // from one channel type to another during reads or writes.
-    // Defaults to the value of default_rescale, which defaults to true.
+    // Defaults to the value of default_rescale, which defaults to false (read as-is).
     void set_rescale(bool rescale);
 
     // Specify a global default for rescale. This is a dangerous
     // function to use, because some higher-level Vision Workbench
     // features rely on rescaling. Use at your own risk.
     static void set_default_rescale(bool rescale);
+
+    // Query the global default for rescale. In-memory resources use this so they
+    // convert channels the same way the disk resources do.
+    static bool get_default_rescale();
 
     // TODO: This has always been the default, but it probably shouldn't be.
     virtual void flush() {}

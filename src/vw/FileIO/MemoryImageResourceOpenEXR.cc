@@ -19,6 +19,7 @@
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
 
 #include <vw/FileIO/MemoryImageResourceOpenEXR.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Debugging.h>
 
 #include <iostream>
@@ -169,7 +170,7 @@ void SrcMemoryImageResourceOpenEXR::read( ImageBuffer const& dst, BBox2i const& 
   file.setFrameBuffer( frameBuffer );
   file.readPixels( dw.min.y, dw.max.y );
 
-  convert( dst, src, true );
+  convert( dst, src, DiskImageResource::get_default_rescale() );
 }
 
 ImageFormat SrcMemoryImageResourceOpenEXR::format() const {
@@ -268,7 +269,7 @@ void DstMemoryImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const&
   // Converting USER's data to be plane format
   boost::scoped_array<char> src_converted_data(new char[m_data->format.byte_size()]);
   ImageBuffer src_converted_buffer(m_data->format, src_converted_data.get());
-  convert( src_converted_buffer, src, true );
+  convert( src_converted_buffer, src, DiskImageResource::get_default_rescale() );
 
   // Attaching data to Imf's framebuffer
   Imf::FrameBuffer frameBuffer;

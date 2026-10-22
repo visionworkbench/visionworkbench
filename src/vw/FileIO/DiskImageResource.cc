@@ -108,6 +108,10 @@ void vw::DiskImageResource::set_default_rescale(bool rescale) {
   default_rescale = rescale;
 }
 
+bool vw::DiskImageResource::get_default_rescale() {
+  return default_rescale;
+}
+
 namespace vw {
   namespace internal {
 
