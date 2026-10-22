@@ -18,7 +18,8 @@
 
 // TestBlockFileIO.h
 #include <gtest/gtest_VW.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageView.h>

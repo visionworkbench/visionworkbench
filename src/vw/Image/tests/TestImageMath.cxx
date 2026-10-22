@@ -19,7 +19,7 @@
 // TestImageMath.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageView.h>

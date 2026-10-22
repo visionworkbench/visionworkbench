@@ -21,7 +21,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <test/Helpers.h>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 
 using namespace vw;
 using namespace vw::test;

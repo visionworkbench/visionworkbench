@@ -18,7 +18,7 @@
 
 #include <gtest/gtest_VW.h>
 #include <boost/random.hpp>
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Math/Functors.h>
 
 using namespace vw;

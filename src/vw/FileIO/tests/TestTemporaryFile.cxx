@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/System.h>

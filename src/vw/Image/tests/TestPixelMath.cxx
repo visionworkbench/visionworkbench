@@ -19,7 +19,7 @@
 // TestPixelMath.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
 

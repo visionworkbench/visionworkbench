@@ -24,7 +24,8 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageIO.h>
 
-#include <vw/config.h>
+#include <vw/vw_config.h>
+#include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageMath.h>
