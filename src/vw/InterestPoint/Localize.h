@@ -103,7 +103,7 @@ namespace ip {
   template <class DataT>
   bool fit_peak( std::vector<DataT> const& data,
                  InterestPoint& pt,
-                 ImageOctave<typename DataT::source_type> const& octave,
+                 ImageOctave const& octave,
                  float* x2coef=NULL, float* y2coef=NULL,
                  float* s2coef=NULL ) {
     // Fit peak by fitting only along each of the three principal

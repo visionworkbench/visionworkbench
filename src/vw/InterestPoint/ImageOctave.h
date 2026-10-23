@@ -25,15 +25,13 @@
 
 // Vision Workbench
 #include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageIO.h>
 
 // STL
 #include <vector>
 #include <iostream>
-
-// Boost
-#include <boost/static_assert.hpp>
 
 // Magic numbers. Learn these parameters?
 #define INITIAL_SIGMA (1.6)
@@ -51,20 +49,22 @@ namespace vw { namespace ip {
 /// (x,y,s) directions, it constructs one plane above and one plane
 /// below the octave. If the scale ratio is 2^(1/P), the octave
 /// contains P+2 planes.
-template <class ViewT = ImageView<float> >
+// The interest-point detectors only ever build an octave over
+// ImageView<PixelGray<float>>, so this class is not templated on the view type.
+// The constructor and build_using stay templated on the source view, which is
+// an expression template rather than a materialized image.
 class ImageOctave {
-  BOOST_STATIC_ASSERT(IsImageView<ViewT>::value);
 
 public:
-  typedef ViewT scale_type;
+  typedef ImageView<PixelGray<float>> scale_type;
 
   int base_scale;            // initially = 1, then doubles every build_next()
   int scales_per_octave;     // P, where scale ratio = 2^(1/P)
   int num_planes;            // Number of planes (P+2) for ratio of 2^(1/P)
   float init_sigma;          // Initial sigma to apply to base level image
   float sigma_ratio;         // Ratio of sigmas between levels:
-  std::vector<float> sigma;  // Sigmas corresponding to scales
-  std::vector<ViewT> scales; // Scaled images in the octave
+  std::vector<float> sigma;       // Sigmas corresponding to scales
+  std::vector<scale_type> scales; // Scaled images in the octave
 
   /// This constructor is intended for building the first octave from a
   /// source image.
@@ -141,9 +141,9 @@ public:
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << 0 << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[0] << std::endl;
-      scales.push_back(ViewT(vw::gaussian_filter(src_im, use_sigma)));
+      scales.push_back(scale_type(vw::gaussian_filter(src_im, use_sigma)));
     } else {
-      scales.push_back(ViewT(src_im.impl()));
+      scales.push_back(scale_type(src_im.impl()));
     }
 
     // Each next plane is blurred version of the previous
@@ -152,7 +152,7 @@ public:
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << i << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[i] << std::endl;
-      scales.push_back(ViewT(vw::gaussian_filter(scales[i-1], use_sigma)));
+      scales.push_back(scale_type(vw::gaussian_filter(scales[i-1], use_sigma)));
     }
 
     return 0;
@@ -179,11 +179,11 @@ public:
     // the new octave, and the rest are built by successive blurring
     // operations.
     int source_for_new_0 = num_planes-2;
-    scales[0] = ViewT(vw::subsample(scales[source_for_new_0], 2));
+    scales[0] = scale_type(vw::subsample(scales[source_for_new_0], 2));
 
     // Plane 1 is also the subsampled plane #(N-1)
     int source_for_new_1 = num_planes-1;
-    scales[1] = ViewT(vw::subsample(scales[source_for_new_1], 2));
+    scales[1] = scale_type(vw::subsample(scales[source_for_new_1], 2));
 
     // Now the rest (#2 and up) are blurred versions as before
     float use_sigma;
@@ -192,7 +192,7 @@ public:
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << k << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[k] << std::endl;
-      scales[k] = ViewT(vw::gaussian_filter(scales[k-1], use_sigma));
+      scales[k] = scale_type(vw::gaussian_filter(scales[k-1], use_sigma));
     }
 
     return 0;

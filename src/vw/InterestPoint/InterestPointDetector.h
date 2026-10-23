@@ -130,28 +130,28 @@ namespace ip {
     int m_scales, m_octaves, m_max_points;
 
     // By default, uses find_peaks in Extrema.h
-    template <class DataT, class ViewT>
+    template <class DataT>
     inline int find_extrema(InterestPointList& points,
                             std::vector<DataT> const& img_data,
-                            ImageOctave<ViewT> const& octave) const {
+                            ImageOctave const& octave) const {
       return find_peaks(points, img_data, octave);
     }
 
     // By default, uses fit_peak in Localize.h
-    template <class DataT, class ViewT>
+    template <class DataT>
     inline int localize(InterestPointList& points,
                         std::vector<DataT> const& img_data,
-                        ImageOctave<ViewT> const& octave) const;
+                        ImageOctave const& octave) const;
 
-    template <class DataT, class ViewT>
+    template <class DataT>
     inline void threshold(InterestPointList& points,
                           std::vector<DataT> const& img_data,
-                          ImageOctave<ViewT> const& octave) const;
+                          ImageOctave const& octave) const;
 
-    template <class DataT, class ViewT>
+    template <class DataT>
     void assign_orientations(InterestPointList& points,
                              std::vector<DataT> const& img_data,
-                             ImageOctave<ViewT> const& octave) const;
+                             ImageOctave const& octave) const;
 
     /// This method dumps the various images internal to the detector out
     /// to files for visualization and debugging.  The images written out
@@ -287,7 +287,7 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
 
   // We blur the image by a small amount to eliminate any noise
   // that might confuse the interest point detector.
-  ImageOctave<typename DataT::source_type> octave(gaussian_filter(
+  ImageOctave octave(gaussian_filter(
                     pixel_cast_rescale<PixelGray<float>>(image),0.5), m_scales);
 
   InterestPointList points;
@@ -359,10 +359,10 @@ process_image(vw::ImageViewRef<float> const& image, int desired_num_ip) const {
 
 // By default, uses fit_peak in Localize.h
 template <class InterestT>
-template <class DataT, class ViewT>
+template <class DataT>
 int ScaledInterestPointDetector<InterestT>::localize(InterestPointList& points,
             std::vector<DataT> const& img_data,
-            ImageOctave<ViewT> const& octave) const {
+            ImageOctave const& octave) const {
   for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
     fit_peak(img_data, *i, octave);
   }
@@ -371,10 +371,10 @@ int ScaledInterestPointDetector<InterestT>::localize(InterestPointList& points,
 }
 
 template <class InterestT>
-template <class DataT, class ViewT>
+template <class DataT>
 void ScaledInterestPointDetector<InterestT>::threshold(InterestPointList& points,
                                                        std::vector<DataT> const& img_data,
-                                                       ImageOctave<ViewT> const& octave) const {
+                                                       ImageOctave const& octave) const {
   // TODO: list::remove_if
   InterestPointList::iterator pos = points.begin();
   while (pos != points.end()) {
@@ -387,10 +387,10 @@ void ScaledInterestPointDetector<InterestT>::threshold(InterestPointList& points
 }
 
 template <class InterestT>
-template <class DataT, class ViewT>
+template <class DataT>
 void ScaledInterestPointDetector<InterestT>::assign_orientations(InterestPointList& points,
                                                                  std::vector<DataT> const& img_data,
-                                                                 ImageOctave<ViewT> const& octave) const {
+                                                                 ImageOctave const& octave) const {
 
   for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
     int k = octave.scale_to_plane_index(i->scale);

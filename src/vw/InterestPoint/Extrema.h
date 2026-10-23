@@ -235,10 +235,10 @@ namespace ip {
   }
 
   /// Find spatial/scale peaks of some type in the image octave.
-  template <class DataT, class ViewT>
+  template <class DataT>
   int find_peaks( InterestPointList& interest_points,
                   std::vector<DataT> const& data,
-                  ImageOctave<ViewT> const& octave) {
+                  ImageOctave const& octave) {
     // Check that we have a few planes of corner response function
     // (interest) and that all planes are the same size.
     VW_ASSERT( !data.empty(), ArgumentErr() << "Data vector is empty.\n" );
