@@ -36,6 +36,8 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Math/RandomSet.h>
 
+#include <algorithm>
+
 namespace vw {
 namespace ip {
 
@@ -55,32 +57,23 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
   BBox2i bound = bounding_box( image.impl() );
   bound.contract(radius);
 
-  // Loop through all the points. Advance the iterator only when a point is
-  // kept. erase() returns the iterator to the next element, so do not decrement
-  // it (the old "erase then ip--" idiom was undefined behavior when the first
-  // point was erased, as --begin() is invalid).
-  for (auto ip = ip_list.begin(); ip != ip_list.end(); ) {
+  // Decide per point whether to drop it, then compact in one O(n) pass.
+  // A per-point erase on the vector ip_list would be O(n^2).
+  auto drop_point = [&](InterestPoint const& ip) -> bool {
+    // Drop the point if it was too close to the image borders
+    if ( !bound.contains( Vector2i(ip.ix,ip.iy) ) )
+      return true;
 
-    // Remove the point if it was too close to the image borders
-    if ( !bound.contains( Vector2i(ip->ix,ip->iy) ) ) {
-      ip = ip_list.erase(ip);
-      continue;
-    }
-
-    // Remove the point if any invalid pixels are too close to it
-    subsection = crop( image.impl(), ip->ix-radius, ip->iy-radius, width, width );
-    bool has_nodata_nearby = false;
+    // Drop the point if any invalid pixels are too close to it
+    subsection = crop( image.impl(), ip.ix-radius, ip.iy-radius, width, width );
     for (auto pixel = subsection.begin(); pixel != subsection.end(); pixel++) {
-      if (*pixel == nodata) {
-        has_nodata_nearby = true;
-        break;
-      }
+      if (*pixel == nodata)
+        return true;
     }
-    if (has_nodata_nearby)
-      ip = ip_list.erase(ip);
-    else
-      ip++;
-  }
+    return false;
+  };
+  auto keep_end = std::remove_if(ip_list.begin(), ip_list.end(), drop_point);
+  ip_list.erase(keep_end, ip_list.end());
   VW_OUT( DebugMessage, "asp" ) << "Removed " << prior_ip - ip_list.size()
                                 << " interest points due to their proximity to nodata values."
                                 << std::endl << "Nodata value used " << nodata << std::endl;

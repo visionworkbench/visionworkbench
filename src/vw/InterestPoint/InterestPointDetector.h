@@ -226,14 +226,10 @@ template <class InterestT>
 template <class DataT>
 void InterestPointDetector<InterestT>::threshold(InterestPointList& points,
                                                  DataT const& img_data) const {
-  // TODO: list::remove_if
-  InterestPointList::iterator pos = points.begin();
-  while (pos != points.end()) {
-    if (!m_interest.threshold(*pos, img_data))
-      pos = points.erase(pos);
-    else
-      pos++;
-  }
+  // Erase-remove: one O(n) compaction, not an O(n^2) erase per dropped point.
+  auto keep_end = std::remove_if(points.begin(), points.end(),
+    [&](InterestPoint const& p) { return !m_interest.threshold(p, img_data); });
+  points.erase(keep_end, points.end());
 }
 
 template <class InterestT>
@@ -375,15 +371,13 @@ template <class DataT>
 void ScaledInterestPointDetector<InterestT>::threshold(InterestPointList& points,
                                                        std::vector<DataT> const& img_data,
                                                        ImageOctave const& octave) const {
-  // TODO: list::remove_if
-  InterestPointList::iterator pos = points.begin();
-  while (pos != points.end()) {
-    int k = octave.scale_to_plane_index(pos->scale);
-    if (!m_interest.threshold(*pos, img_data[k]))
-      pos = points.erase(pos);
-    else
-      pos++;
-  }
+  // Erase-remove: one O(n) compaction, not an O(n^2) erase per dropped point.
+  auto keep_end = std::remove_if(points.begin(), points.end(),
+    [&](InterestPoint const& p) {
+      int k = octave.scale_to_plane_index(p.scale);
+      return !m_interest.threshold(p, img_data[k]);
+    });
+  points.erase(keep_end, points.end());
 }
 
 template <class InterestT>

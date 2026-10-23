@@ -139,13 +139,10 @@ void IntegralInterestPointDetector::threshold(InterestPointList      & points,
                                               DataT             const& img_data,
                                               int               const& scale) const {
 
-    InterestPointList::iterator pos = points.begin();
-    while (pos != points.end()) {
-      if (!m_interest.threshold(*pos, img_data, scale))
-        pos = points.erase(pos);
-      else
-        pos++;
-    }
+    // Erase-remove: one O(n) compaction, not an O(n^2) erase per dropped point.
+    auto keep_end = std::remove_if(points.begin(), points.end(),
+      [&](InterestPoint const& p) { return !m_interest.threshold(p, img_data, scale); });
+    points.erase(keep_end, points.end());
   }
 
 /// Detect interest points
@@ -250,16 +247,12 @@ void IntegralAutoGainDetector::threshold(vw::ip::InterestPointList& points,
                                          DataT const& img_data,
                                          int const& scale, float threshold_lvl) const {
 
-  InterestPointList::iterator pos = points.begin();
-  while (pos != points.end()) {
-    if (pos->interest < threshold_lvl ||
-          !m_interest.threshold(*pos,
-                                img_data, scale)) {
-      pos = points.erase(pos);
-    } else {
-      pos++;
-    }
-  }
+  // Erase-remove: one O(n) compaction, not an O(n^2) erase per dropped point.
+  auto keep_end = std::remove_if(points.begin(), points.end(),
+    [&](InterestPoint const& p) {
+      return p.interest < threshold_lvl || !m_interest.threshold(p, img_data, scale);
+    });
+  points.erase(keep_end, points.end());
 }
 
 /// Detect interest points in the source image.
