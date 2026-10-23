@@ -149,8 +149,14 @@ cv::Ptr<cv::FeatureDetector>
 OpenCvInterestPointDetector::init_detector(OpenCvIpDetectorType detector_type,
                                            int max_points) const {
 
-  // Ensure the --threads option and / or the .vwrc thread setting are respected.
-  cv::setNumThreads(vw_settings().default_num_threads());
+  // Run OpenCV detection single-threaded. Interest point detection is already
+  // parallelized across image tiles by InterestDetectionQueue, which launches
+  // default_num_threads() (the --threads value) worker threads. Each worker calls
+  // this detector, so letting OpenCV spawn its own thread pool of the same size
+  // nests one pool inside the other and oversubscribes the machine by a factor of
+  // --threads (for example 28 workers each with 28 OpenCV threads is 784 threads on
+  // a 28-core node). One thread here keeps all the parallelism at the tile level.
+  cv::setNumThreads(1);
 
   // Instantiate the feature detector
   // - There are a lot of detector variables that we just leave as the default here.
