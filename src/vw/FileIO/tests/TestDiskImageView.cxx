@@ -30,7 +30,10 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageMath.h>
 
+#include <test/Helpers.h>
+
 using namespace vw;
+using namespace vw::test;
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 TEST( DiskImageView, Construction ) {
@@ -119,15 +122,16 @@ TEST( DiskImageResource , Raw ) {
   
   // Check that we can write the image using the block writer.
   // To ensure the image is completely written, force gdal_resource
-  // to go out of scope.
+  // to go out of scope. UnlinkName removes the file when the test ends.
+  UnlinkName bil_test("bil_test.tif");
   {
-    DiskImageResourceGDAL gdal_resource("bil_test.tif", view.impl().format());
+    DiskImageResourceGDAL gdal_resource(bil_test, view.impl().format());
     ASSERT_NO_THROW(block_write_image(gdal_resource, view));
   }
 
   // Now read it back
   boost::shared_ptr<DiskImageResource> gdal_resource2;
-  ASSERT_NO_THROW(gdal_resource2.reset(DiskImageResource::open("bil_test.tif")));
+  ASSERT_NO_THROW(gdal_resource2.reset(DiskImageResource::open(bil_test)));
 
   // Test that the default loader behaves as expected. It should fail
   // because sample.DIM is missing. 
