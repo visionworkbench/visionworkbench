@@ -27,12 +27,14 @@
 #include <list>
 #include <set>
 #include <vector>
+#include <cstdlib>
 
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Cartography/GeoReferenceUtils.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/FileUtils.h>
 #include <vw/FileIO/DiskImageUtils.h>
 #include <vw/Image/AntiAliasing.h>
@@ -67,27 +69,52 @@ namespace vw { namespace mosaic {
   // Compile-intensive: read_channels results in 12 template instantiations.
   // Single-channel images are read into Image<double>, while
   // multi-channel in Image<Vector>, and we skip reading extra channels.
+  // Read a file, or one of its GDAL overview levels (overview_level >= 0), as a
+  // single-channel image. A negative overview_level reads the full resolution.
   template<class PixelT>
   typename boost::enable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
                             boost::is_same<PixelT,float>>,
                             ImageViewRef<PixelT>>::type
-  custom_read(std::string const& file){
-    // Bugfix: Sometimes the image may actually have multiple channels
-    // but we choose to read one channel only in the caller of this
-    // function. In that case use read_channels() rather than
-    // DiskImageView(). The latter would cause a crash.
+  custom_read(std::string const& file, int overview_level = -1){
     int num_channels = get_num_channels(file);
+    if (overview_level < 0) {
+      // Bugfix: Sometimes the image may actually have multiple channels
+      // but we choose to read one channel only in the caller of this
+      // function. In that case use read_channels() rather than
+      // DiskImageView(). The latter would cause a crash.
+      if (num_channels == 1)
+        return DiskImageView<PixelT>(file);
+      else
+        return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
+    }
+    // Read the given overview, opening it as if it were the full image.
+    boost::shared_ptr<vw::DiskImageResourceGDAL>
+      rsrc(new vw::DiskImageResourceGDAL(file, overview_level));
     if (num_channels == 1)
-      return DiskImageView<PixelT>(file);
-    else
-      return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
+      return DiskImageView<PixelT>(rsrc);
+    if (num_channels == 2)
+      return vw::select_channel(DiskImageView<vw::Vector<PixelT,2>>(rsrc), 0);
+    if (num_channels == 3)
+      return vw::select_channel(DiskImageView<vw::Vector<PixelT,3>>(rsrc), 0);
+    if (num_channels == 4)
+      return vw::select_channel(DiskImageView<vw::Vector<PixelT,4>>(rsrc), 0);
+    vw_throw(vw::NoImplErr()
+             << "Reading an overview of an image with more than 4 "
+             << "non-uint8 bands is not supported.\n");
+    return DiskImageView<PixelT>(rsrc); // not reached
   }
+  // The multi-channel (vector pixel) version.
   template<class PixelT>
   typename boost::disable_if<boost::mpl::or_<boost::is_same<PixelT,double>,
                              boost::is_same<PixelT,float>>,
                              ImageViewRef<PixelT>>::type
-  custom_read(std::string const& file){
-    return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
+  custom_read(std::string const& file, int overview_level = -1){
+    if (overview_level < 0)
+      return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
+    // Read the given overview. It preserves the band count of the full image.
+    boost::shared_ptr<vw::DiskImageResourceGDAL>
+      rsrc(new vw::DiskImageResourceGDAL(file, overview_level));
+    return DiskImageView<PixelT>(rsrc);
   }
 
   // TODO: Clean up!
@@ -199,12 +226,18 @@ namespace vw { namespace mosaic {
   approx_bounds_nocache(std::string const& file, bool has_nodata,
                         double nodata_val,
                         float valid_min = std::numeric_limits<float>::quiet_NaN(),
-                        float valid_max = std::numeric_limits<float>::quiet_NaN()) {
+                        float valid_max = std::numeric_limits<float>::quiet_NaN(),
+                        int overview_level = -1) {
 
     double big = std::numeric_limits<double>::max();
     bool has_valid_range = !std::isnan(valid_min) && !std::isnan(valid_max);
 
-    boost::shared_ptr<vw::DiskImageResource> rsrc(vw::DiskImageResourcePtr(file));
+    // Sample the coarsest overview when one is given, so this stays fast.
+    boost::shared_ptr<vw::DiskImageResource> rsrc;
+    if (overview_level < 0)
+      rsrc = vw::DiskImageResourcePtr(file);
+    else
+      rsrc.reset(new vw::DiskImageResourceGDAL(file, overview_level));
     rsrc->set_rescale(false);
     DiskImageView<double> img(rsrc);
 
@@ -366,104 +399,49 @@ namespace vw { namespace mosaic {
     // Get the nodata value, if present
     bool has_nodata = read_nodata_val(base_file, m_nodata_val);
 
-    cartography::GeoReference georef;
-    bool has_georef = cartography::read_georeference(georef, base_file);
-
-    // Keep making more pyramid levels until they are small enough
-    int level = 0;
+    // Decimation factors (2, 4, 8, ...), until the coarsest level is small enough.
+    std::vector<int> factors;
     int scale = 1;
-    while (double(m_pyramid[level].cols()) * double(m_pyramid[level].rows())
+    while (double(m_pyramid[0].cols()/scale) * double(m_pyramid[0].rows()/scale)
            > m_lowest_resolution_subimage_num_pixels) {
-
-      // The name of the file at the current scale
-      std::ostringstream os;
       scale *= subsample;
-      os <<  "_sub" << scale << ".tif";
-      std::string suffix = os.str();
+      factors.push_back(scale);
+    }
 
-      // If a valid pixel range was provided and the pixel type is scalar,
-      // use range masking. Otherwise fall back to exact nodata comparison.
-      ImageViewRef<PixelMask<PixelT>> masked
-        = maskForPyramid(m_pyramid[level], m_nodata_val,
-                         m_valid_min, m_valid_max);
-      double sub_scale   = 1.0/subsample;
-      int    tile_size   = 256;
-      int    sub_threads = 1;
+    if (!factors.empty()) {
+      vw_out() << "Construct an image pyramid for: " << base_file << "\n";
 
-      // Resample the image at the current pyramid level.
-      // TODO: resample_aa is a hacky thingy. Need to understand
-      // what is a good way of resampling.
-      // Note that below we cast the channels to double for resampling,
-      // then cast back to current pixel type for saving.
-      // Fill value for pixels that were masked out (only when a real nodata
-      // exists). When there is no nodata (m_nodata_val is NaN) nothing is
-      // masked, so use 0 rather than casting NaN to an integer channel (UB).
-      PixelT nodata_pixel;
-      set_all(nodata_pixel, std::isnan(m_nodata_val) ? 0.0 : m_nodata_val);
-      ImageViewRef<PixelT> unmasked
-        = block_rasterize(cache_tile_aware_render
-                          (pixel_cast<PixelT>
-                           (apply_mask
-                            (resample_aa
-                             (channel_cast<double>(masked), sub_scale),
-                             nodata_pixel
-                             )),
-                           Vector2i(tile_size,tile_size) * sub_scale
-                           ), Vector2i(tile_size,tile_size), sub_threads);
-      
-      // Write the current image.
-      if (has_georef)
-        georef = resample(georef, sub_scale);
+      // Build overviews with GDAL (gdaladdo), an external .ovr sidecar. GDAL
+      // preserves the type, nodata, and mask (so ISIS specials are handled).
+      std::string proxy_dir
+        = (fs::temp_directory_path() / "asp_pyramids").string();
+      try {
+        fs::create_directories(proxy_dir);
+      } catch (...) {}
 
-      // If the file exists, and has the right size, and is not too old,
-      // don't write it again
-      std::string curr_file = filename_from_suffix1(base_file, suffix);
-      bool will_write = overwrite_if_no_good(base_file, curr_file,
-                                             unmasked.cols(), unmasked.rows());
-
-      if (will_write) {
-
-        if (level == 0)
-          vw_out() << "Construct an image pyramid for: " << base_file << "\n";
-
-        TerminalProgressCallback tpc("vw", ": ");
-        vw_out() << "Writing: " << curr_file << "\n";
-        try{
-          cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
-                      has_nodata, m_nodata_val, opt, tpc);
-        } catch(...) {
-          vw_out() << "Failed to write: " << curr_file << "\n";
-          curr_file = filename_from_suffix2(base_file, suffix);
-          will_write = overwrite_if_no_good(base_file, curr_file,
-                    unmasked.cols(), unmasked.rows());
-          if (will_write) {
-            vw_out() << "Writing: " << curr_file << "\n";
-            cartography::block_write_gdal_image(curr_file, unmasked, has_georef, georef,
-                  has_nodata, m_nodata_val, opt, tpc);
-          }
+      bool ok = cartography::build_overviews(base_file, factors, "AVERAGE",
+                                             proxy_dir);
+      if (ok) {
+        // Each coarser level reads the matching overview of the same file.
+        for (size_t k = 0; k < factors.size(); k++) {
+          m_pyramid.push_back(custom_read<PixelT>(base_file, (int)k));
+          m_pyramid_files.push_back(base_file);
+          m_scales.push_back(factors[k]);
         }
+        // The overview sidecar is a temporary file, removable on exit.
+        m_temporary_files.insert(base_file + ".ovr");
+      } else {
+        // No overviews: display reads the full image at all zoom levels (slower).
+        factors.clear();
       }
+    }
 
-      if (!will_write)
-        vw_out() << "Using existing subsampled image: " << curr_file << "\n";
-
-      // Note that m_pyramid contains a handle to DiskImageView.
-      // DiskImageView's implementation will make it possible to
-      // cache in memory the most recently used tiles of all
-      // the images in the pyramid.
-      m_pyramid_files.push_back(curr_file);
-    
-      m_temporary_files.insert(curr_file);
-      m_pyramid.push_back(DiskImageView<PixelT>(curr_file));
-      m_scales.push_back(scale);
-
-      level++;
-    } // End level creation loop
-
-    // This is expensive, so cache it going forward
-    m_approx_bounds = approx_bounds_nocache(m_pyramid_files.back(),
+    // This is expensive, so cache it going forward. Sample the coarsest level.
+    int coarsest_ov = (int)factors.size() - 1; // -1 when there are no overviews
+    m_approx_bounds = approx_bounds_nocache(base_file,
                                             has_nodata, m_nodata_val,
-                                            m_valid_min, m_valid_max);
+                                            m_valid_min, m_valid_max,
+                                            coarsest_ov);
   }
 
   // Find the right pyramid level to use for the given sub scale
@@ -489,6 +467,14 @@ namespace vw { namespace mosaic {
 
     // Find the right pyramid level to use
     int level = pyramidLevel(scale_in);
+
+    // Debug aid (gated): print which pyramid level serves each display scale.
+    static bool debug_pyramid = (getenv("ASP_PYRAMID_DEBUG") != NULL);
+    if (debug_pyramid)
+      std::cout << "ASP_PYRAMID_DEBUG scale_in=" << scale_in
+                << " level=" << level
+                << " scale=" << m_scales[level]
+                << " file=" << m_pyramid_files[level] << "\n";
 
     region_in.crop(bounding_box(m_pyramid[0]));
     scale_out  = m_scales[level];

@@ -71,6 +71,13 @@ namespace vw {
       open( filename );
     }
 
+    // Open at a GDAL overview level (0 = first/coarser, -1 = full resolution),
+    // read as if it were the full image. For the display pyramid.
+    DiskImageResourceGDAL( std::string const& filename, int overview_level )
+      : DiskImageResource( filename ) {
+      open( filename, overview_level );
+    }
+
     DiskImageResourceGDAL( std::string const& filename,
                            ImageFormat const& format,
                            Vector2i           block_size = Vector2i(-1,-1) )
@@ -115,7 +122,7 @@ namespace vw {
     // Ask GDAL if it's compiled with support for this file
     static bool gdal_has_support(std::string const& filename);
 
-    void open  ( std::string const& filename );
+    void open  ( std::string const& filename, int overview_level = -1 );
     void create( std::string const& filename,
                  ImageFormat const& format,
                  Vector2i           block_size,

@@ -186,4 +186,51 @@ void convert_to_cog(const std::string& filename, GdalWriteOptions const& opt) {
   }
 }
 
+bool build_overviews(std::string const& filename,
+                     std::vector<int> const& factors,
+                     std::string const& resample_alg,
+                     std::string const& proxy_dir) {
+
+  if (factors.empty())
+    return true;
+
+  // Send external overviews for a read-only input to a writable cache.
+  if (!proxy_dir.empty())
+    CPLSetConfigOption("GDAL_PAM_PROXY_DIR", proxy_dir.c_str());
+
+  // If a local overview sidecar is older than the source, remove it to rebuild.
+  std::string ovr_file = filename + ".ovr";
+  try {
+    if (boost::filesystem::exists(ovr_file) &&
+        boost::filesystem::exists(filename) &&
+        boost::filesystem::last_write_time(ovr_file) <
+        boost::filesystem::last_write_time(filename))
+      boost::filesystem::remove(ovr_file);
+  } catch (...) {}
+
+  // Silence GDAL's error line. A read-only-dir failure is handled by the proxy.
+  CPLPushErrorHandler(CPLQuietErrorHandler);
+
+  bool ok = false;
+  GDALDataset* ds = (GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly);
+  if (ds != NULL) {
+    if (ds->GetRasterBand(1)->GetOverviewCount() >= (int)factors.size()) {
+      ok = true; // a usable overview set already exists
+    } else {
+      std::vector<int> ov = factors;
+      ok = (GDALBuildOverviews((GDALDatasetH)ds, resample_alg.c_str(),
+                               (int)ov.size(), ov.data(),
+                               0, nullptr, nullptr, nullptr) == CE_None);
+    }
+    GDALClose(ds);
+  }
+
+  CPLPopErrorHandler();
+
+  if (!ok)
+    vw_out(WarningMessage) << "Could not build overviews for: " << filename << "\n";
+
+  return ok;
+}
+
 }} // vw::cartography

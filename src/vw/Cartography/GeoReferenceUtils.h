@@ -157,6 +157,15 @@ void write_gdal_image(
 // Helper function to add overviews to a GeoTIFF for COG compatibility
 void convert_to_cog(const std::string& filename, GdalWriteOptions const& opt);
 
+// Build external GDAL overviews (a .ovr sidecar) on an image, for the given
+// decimation factors and resampling (e.g. "AVERAGE"). If proxy_dir is set, it
+// becomes GDAL_PAM_PROXY_DIR so a read-only input's overviews land in a cache.
+// Returns false on failure.
+bool build_overviews(std::string const& filename,
+                     std::vector<int> const& factors,
+                     std::string const& resample_alg,
+                     std::string const& proxy_dir);
+
 // Multi-threaded block write image with, if available, nodata, georef, and
 // keywords to geoheader.
 template <class ImageT>

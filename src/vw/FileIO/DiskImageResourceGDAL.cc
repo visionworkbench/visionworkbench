@@ -260,10 +260,19 @@ namespace vw {
 
   /// Bind the resource to a file for reading.  Confirm that we can
   /// open the file and that it has a sane pixel format.
-  void DiskImageResourceGDAL::open(std::string const& filename) {
+  void DiskImageResourceGDAL::open(std::string const& filename, int overview_level) {
     Mutex::Lock lock(d::gdal());
-    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), 
-                             GDALCloseNullOk);
+    if (overview_level < 0) {
+      m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly),
+                               GDALCloseNullOk);
+    } else {
+      // Open the given overview level as if it were the full image.
+      std::string ov_opt = "OVERVIEW_LEVEL=" + std::to_string(overview_level);
+      const char* open_opts[] = { ov_opt.c_str(), nullptr };
+      m_read_dataset_ptr.reset((GDALDataset*)GDALOpenEx(filename.c_str(),
+                               GDAL_OF_RASTER | GDAL_OF_READONLY, nullptr,
+                               open_opts, nullptr), GDALCloseNullOk);
+    }
 
     if (!m_read_dataset_ptr)
       vw_throw(ArgumentErr() << "GDAL: Failed to open " << filename << ".");
