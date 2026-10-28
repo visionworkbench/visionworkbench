@@ -168,16 +168,29 @@ namespace vw {
   }
 
   // Read only one channel from an image. Channel starts at 0.
-  // Compile-intensive via read_channels. Prefer ImageChannelRead.h.
+  // Prefer the wrappers in ImageChannelRead.h.
   template<class T>
   vw::ImageViewRef<T> read_channel(std::string const& filename, int ch) {
-    
-    // Cannot read a Vector<T, 1> image, so have to handle this case separately.
+
     int n = vw::get_num_channels(filename);
-    if (n > 1)
+
+    VW_ASSERT(0 <= ch && ch < n,
+              vw::ArgumentErr() << "Attempting to read band " << ch
+              << " from an image with " << n << " band(s).");
+
+    // An image with 2 to 4 bands is exposed by the reader as a single
+    // multi-channel plane (GRAYA, RGB, or RGBA), so a channel must be selected
+    // from it. Any other band count (1, or more than 4) is exposed as that many
+    // scalar planes, so the band is read directly as a plane. The plane path
+    // has no channel-count limit, unlike the Vector<T, n> ladder in
+    // read_channels. This band-count-to-pixel-format mapping is set when the
+    // resource is opened in DiskImageResourceGDAL.
+    if (n >= 2 && n <= 4)
       return vw::select_channel(read_channels<1, T>(filename, ch), 0);
-      
-    return vw::DiskImageView<T>(filename);
+
+    boost::shared_ptr<vw::DiskImageResource> rsrc(vw::DiskImageResourcePtr(filename));
+    rsrc->set_rescale(false); // keep integer values as-is when read as float
+    return vw::select_plane(vw::DiskImageView<T>(rsrc), ch);
   }
   
   // Load the first channel of an input image. Must load in its native

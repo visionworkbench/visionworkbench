@@ -80,12 +80,13 @@ namespace vw { namespace mosaic {
     if (overview_level < 0) {
       // Bugfix: Sometimes the image may actually have multiple channels
       // but we choose to read one channel only in the caller of this
-      // function. In that case use read_channels() rather than
-      // DiskImageView(). The latter would cause a crash.
+      // function. In that case use read_channel() rather than
+      // DiskImageView(). The latter would cause a crash. read_channel()
+      // handles any band count, including more than 12 bands.
       if (num_channels == 1)
         return DiskImageView<PixelT>(file);
       else
-        return vw::select_channel(vw::read_channels<1, PixelT>(file, 0), 0);
+        return vw::read_channel<PixelT>(file, 0);
     }
     // Read the given overview, opening it as if it were the full image.
     boost::shared_ptr<vw::DiskImageResourceGDAL>
