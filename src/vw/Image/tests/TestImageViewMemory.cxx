@@ -18,17 +18,18 @@
 
 #include <test/Helpers.h>
 #include <vw/Image/ImageView.h>
+#include <new>
 
 using namespace vw;
 using namespace vw::test;
 
 // spike operator new... every nothrow new fails [this lets us ask for
 // unlimited memory without the system actually trying to give it]
-void* operator new[](size_t, const nothrow_t&) throw() {
-  return 0;
+void* operator new[](size_t, const std::nothrow_t&) noexcept {
+  return nullptr;
 }
 
-void operator delete[](void*, const nothrow_t&) throw() {
+void operator delete[](void*, const std::nothrow_t&) noexcept {
   /* noop */
 }
 

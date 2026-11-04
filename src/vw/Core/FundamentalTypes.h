@@ -38,14 +38,8 @@
 #pragma GCC diagnostic pop
 
 #include <type_traits>
-
-#ifdef _MSC_VER
-// FIXME: We're blindly assuming that any MSC box is little-endian!
-#define VW_BIG_ENDIAN 4321
-#define VW_LITTLE_ENDIAN 1234
-#define VW_BYTE_ORDER VW_LITTLE_ENDIAN
-#else
 #include <sys/types.h>
+
 #ifdef BYTE_ORDER
 #define VW_BIG_ENDIAN BIG_ENDIAN
 #define VW_LITTLE_ENDIAN LITTLE_ENDIAN
@@ -54,7 +48,6 @@
 #define VW_BIG_ENDIAN __BIG_ENDIAN
 #define VW_LITTLE_ENDIAN __LITTLE_ENDIAN
 #define VW_BYTE_ORDER __BYTE_ORDER
-#endif
 #endif
 
 // ssize_t is not in the c++ spec (just POSIX) but it's important. If you've

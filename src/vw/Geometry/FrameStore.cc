@@ -25,9 +25,9 @@
 
 namespace vw {
     
-    FrameHandle const FrameStore::NULL_HANDLE = FrameHandle(NULL);
+    FrameHandle const FrameStore::NULL_HANDLE = FrameHandle(nullptr);
 
-    FrameStore::~FrameStore() throw()
+    FrameStore::~FrameStore() noexcept
     {
       // delete all frames
       FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
@@ -443,7 +443,7 @@ namespace vw {
     }
 
     bool
-    FrameStore::is_member(FrameHandle frame) const throw()
+    FrameStore::is_member(FrameHandle frame) const noexcept
     {
       RecursiveMutex::Lock lock(m_mutex);
       return is_member(frame.node);
@@ -507,9 +507,9 @@ namespace vw {
     }
 
     bool
-    FrameStore::is_member(FrameTreeNode * node) const throw()
+    FrameStore::is_member(FrameTreeNode * node) const noexcept
     {
-      if (node != NULL) {
+      if (node != nullptr) {
         FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
         for (first = m_root_nodes.begin(); first != last; ++first) {
           if ((*first) == node ||

@@ -30,7 +30,7 @@ namespace vw
 
     /** Helper function for inverting an affine transform. */
     template<class ElemT, int SizeN>
-    ATrans<ElemT, SizeN> inverse(ATrans<ElemT, SizeN> const& atrans) throw();
+    ATrans<ElemT, SizeN> inverse(ATrans<ElemT, SizeN> const& atrans) noexcept;
 
     /** Output stream operator for affine transformation class. */
     template<class ElemT, int SizeN>
@@ -75,20 +75,20 @@ namespace vw
 
 
       /** Const accessor of the translation vector. */
-      VectorT const& translation() const throw() {
+      VectorT const& translation() const noexcept {
         return m_p;
       }
       /** Accessor of the translation vector. */
-      VectorT& translation() throw() {
+      VectorT& translation() noexcept {
         return m_p;
       }
 
       /** Const accessor of the (rotation) matrix. */
-      MatrixT const& rotation() const throw() {
+      MatrixT const& rotation() const noexcept {
         return m_r;
       }
       /** Accessor of the (rotation) matrix. */
-      MatrixT& rotation() throw() {
+      MatrixT& rotation() noexcept {
         return m_r;
       }
 
@@ -111,7 +111,7 @@ namespace vw
 
     template<class ElemT, int SizeN>
     inline
-    ATrans<ElemT, SizeN> inverse(ATrans<ElemT, SizeN> const& atrans) throw()
+    ATrans<ElemT, SizeN> inverse(ATrans<ElemT, SizeN> const& atrans) noexcept
     {
       typename ATrans<ElemT, SizeN>::MatrixT mI = vw::inverse(atrans.rotation());
       return ATrans<ElemT, SizeN>(-(mI * atrans.translation()), mI);

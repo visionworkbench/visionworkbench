@@ -93,7 +93,7 @@ namespace vw
     //! Destructor
     /** Deletes all frames owned by this FrameStore instance.
      */
-    ~FrameStore() throw();
+    ~FrameStore() noexcept;
 
     //! Get a copy of the frame tree.
     /**
@@ -288,7 +288,7 @@ namespace vw
     bool is_ancestor_of(FrameHandle frame, FrameHandle pop) const;
 
     //! Test if the frame belongs to this FrameStore instance.
-    bool is_member(FrameHandle frame) const throw();
+    bool is_member(FrameHandle frame) const noexcept;
 
     //! @}
 
@@ -343,7 +343,7 @@ namespace vw
     protected:
       void assert_unique(std::string const& name, FrameTreeNode * parent) const;
       /** Test if the frame belongs to this FrameStore instance. */
-      bool is_member(FrameTreeNode * node) const throw();
+      bool is_member(FrameTreeNode * node) const noexcept;
 
       /** Vector of FrameTreeNode pointers. */
       typedef std::vector<FrameTreeNode *> FrameTreeNodeVector;

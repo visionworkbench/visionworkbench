@@ -118,12 +118,12 @@ namespace vw
        * marked as root nodes. For recursive deletion of the tree, see
        * recursive_delete().
        */
-      ~TreeNode() throw() {
-        if (m_parent != NULL) {
+      ~TreeNode() noexcept {
+        if (m_parent != nullptr) {
           m_parent->deregister_child(this);
         }
-        while (m_first_child != NULL) {
-          m_first_child->set_parent(NULL); // this alters m_first_child !
+        while (m_first_child != nullptr) {
+          m_first_child->set_parent(nullptr); // this alters m_first_child !
         }
       }
 
@@ -143,7 +143,7 @@ namespace vw
        * Recursive destructor of tree.
        * NOTE requires heap-allocated tree!
        */
-      void recursive_delete() throw() {
+      void recursive_delete() noexcept {
         while (m_first_child) {
           m_first_child->recursive_delete();
         }
@@ -209,10 +209,10 @@ namespace vw
        * Tree size is not cached anywhere so this method has linear run-time
        * in the number of tree nodes.
        */
-      unsigned int num_offsprings() const throw() {
+      unsigned int num_offsprings() const noexcept {
         unsigned int offsprings = 0;
         TreeNode * child = this->m_first_child;
-        while (child != NULL) {
+        while (child != nullptr) {
           offsprings += 1 + child->num_offsprings();
           child = child->m_next_sibling;
         }
@@ -222,13 +222,13 @@ namespace vw
       /**
        * Const accessor method to the data.
        */
-      DATA const& data() const throw() {
+      DATA const& data() const noexcept {
         return m_data;
       }
       /**
        * Accessor method to the data.
        */
-      DATA & data() throw() {
+      DATA & data() noexcept {
         return m_data;
       }
 
@@ -239,11 +239,11 @@ namespace vw
        *
        * Setting the parent to NULL makes the node a root-node.
        */
-      void set_parent(TreeNode * parent) throw() {
-        if (m_parent != NULL)
+      void set_parent(TreeNode * parent) noexcept {
+        if (m_parent != nullptr)
           m_parent->deregister_child(this);
         m_parent = parent;
-        if (m_parent != NULL)
+        if (m_parent != nullptr)
           m_parent->register_child(this);
       }
 
@@ -251,29 +251,29 @@ namespace vw
        * @brief Get the parent of the node.
        * If the node is a root-node, NULL is returned.
        */
-      TreeNode * parent() const throw() {
+      TreeNode * parent() const noexcept {
         return m_parent;
       }
 
       /**
        * Predicate: returns true if node is root-node
        */
-      bool is_root() const throw() {
-        return m_parent == NULL;
+      bool is_root() const noexcept {
+        return m_parent == nullptr;
       };
 
       /**
        * Predicate: returns true if node is a leaf-node
        */
-      bool is_leaf() const throw() {
-        return m_first_child == NULL;
+      bool is_leaf() const noexcept {
+        return m_first_child == nullptr;
       };
 
       /**
        * Return the root node of the tree.
        * This method is linear in the depth of the tree.
        */
-      TreeNode * root() const throw() {
+      TreeNode * root() const noexcept {
         TreeNode * node = const_cast<TreeNode *>(this);
         while (node->m_parent)
           node = node->m_parent;
@@ -283,7 +283,7 @@ namespace vw
       /**
        * Predicate: returns true if this node is ancestor of the param node.
        */
-      bool is_ancestor_of(TreeNode * node) const throw() {
+      bool is_ancestor_of(TreeNode * node) const noexcept {
         while (node) {
           node = node->m_parent;
           if (node == this)
@@ -466,12 +466,12 @@ namespace vw
 
     protected:
       /** Internal helper method: registers child node at parent. */
-      void register_child(TreeNode * child) throw() {
+      void register_child(TreeNode * child) noexcept {
         child->m_next_sibling = this->m_first_child;
         this->m_first_child = child;
       }
       /** Internal helper method: deregisters child node at parent. */
-      void deregister_child(TreeNode * child) throw() {
+      void deregister_child(TreeNode * child) noexcept {
         TreeNode * node = this->m_first_child;
         TreeNode ** prev = &this->m_first_child;
         while (node) {

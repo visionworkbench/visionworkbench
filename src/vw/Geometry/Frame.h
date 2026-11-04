@@ -41,29 +41,29 @@ namespace vw
       class Extras
       {
       public:
-        virtual ~Extras() throw() {}
+        virtual ~Extras() noexcept {}
         virtual Extras * clone() = 0;
       };
 
       /**
        * Default constructor.
        */
-      Frame() : m_extras(NULL) {}
+      Frame() : m_extras(nullptr) {}
       /**
        * Initializing constructor.
        */
       Frame(std::string const& name, Transform const& trans = identity_matrix<4>()) :
           m_name(name),
           m_trans(trans),
-          m_extras(NULL)
+          m_extras(nullptr)
       {}
       Frame(Frame const& rhs) :
         m_name(rhs.m_name),
         m_trans(rhs.m_trans),
-        m_extras((rhs.m_extras == NULL)? NULL : rhs.m_extras->clone())
+        m_extras((rhs.m_extras == nullptr)? nullptr : rhs.m_extras->clone())
       {}
 
-      ~Frame() throw()
+      ~Frame() noexcept
       {
         delete m_extras;
       }
@@ -73,7 +73,7 @@ namespace vw
           m_name = rhs.m_name;
           m_trans = rhs.m_trans;
           delete m_extras;
-          m_extras = (rhs.m_extras == NULL)? NULL : rhs.m_extras->clone();
+          m_extras = (rhs.m_extras == nullptr)? nullptr : rhs.m_extras->clone();
         }
         return *this;
       }
@@ -81,7 +81,7 @@ namespace vw
       /// @{ Accessor methods
 
       /** Access name field. */
-      std::string const& name() const throw() {
+      std::string const& name() const noexcept {
         return m_name;
       }
       /** Set name field. */
@@ -89,11 +89,11 @@ namespace vw
         m_name = name;
       }
       /** Access transform field. */
-      Transform const& transform() const throw() {
+      Transform const& transform() const noexcept {
         return m_trans;
       }
       /** Mutable access to transform field. */
-      Transform& transform() throw() {
+      Transform& transform() noexcept {
         return m_trans;
       }
       /** Set transform field. */
@@ -101,7 +101,7 @@ namespace vw
         m_trans = trans;
       }
 
-      Extras * extras() const throw() {
+      Extras * extras() const noexcept {
         return m_extras;
       }
 

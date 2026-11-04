@@ -43,7 +43,7 @@
 #define VW_WARN_UNUSED
 #endif
 
-#define VW_NOTHROW VW_IF_EXCEPTIONS(throw())
+#define VW_NOTHROW noexcept
 
 /// The master compile-time debugging level flag.  The default value
 /// for VW_DEBUG_LEVEL is guessed based on whether or not NDEBUG

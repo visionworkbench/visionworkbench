@@ -35,13 +35,13 @@ namespace vw
     {
       FrameTreeNode * node;
     public:
-      FrameHandle() : node(0) {}
+      FrameHandle() : node(nullptr) {}
       FrameHandle(FrameTreeNode * n) :
         node(n) {}
-      bool operator==(FrameHandle const& rhs) const throw() {
+      bool operator==(FrameHandle const& rhs) const noexcept {
         return this->node == rhs.node;
       }
-      bool operator!=(FrameHandle const& rhs) const throw() {
+      bool operator!=(FrameHandle const& rhs) const noexcept {
         return this->node != rhs.node;
       }
 
