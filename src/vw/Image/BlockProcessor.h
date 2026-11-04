@@ -60,7 +60,7 @@ namespace image_block {
     ///   by the specified number of threads.
     /// - The func object must have an operator(BBox2i) function that does whatever
     ///   it is you want done.
-    BlockProcessor( FuncT const& func, Vector2i const& block_size, uint32 threads = 0 )
+    BlockProcessor(FuncT const& func, Vector2i const& block_size, uint32 threads = 0)
       : m_func(func), m_block_size(block_size),
         m_num_threads(threads?threads:(vw_settings().default_num_threads())) {}
 
@@ -71,7 +71,7 @@ namespace image_block {
       // which stores information about what block should be processed next.
       class Info {
       public:
-        Info( FuncT const& func, BBox2i const& total_bbox, Vector2i const& block_size )
+        Info(FuncT const& func, BBox2i const& total_bbox, Vector2i const& block_size)
           : m_func(func), m_total_bbox(total_bbox),
             m_block_bbox(round_down(total_bbox.min().x(),block_size.x()),round_down(total_bbox.min().y(),block_size.y()),block_size.x(),block_size.y()),
             m_block_size(block_size) {}
@@ -79,7 +79,7 @@ namespace image_block {
         // Return the next block bbox to process.
         BBox2i bbox() const {
           BBox2i block_bbox = m_block_bbox;
-          block_bbox.crop( m_total_bbox );
+          block_bbox.crop(m_total_bbox);
           return block_bbox;
         }
 
@@ -90,7 +90,7 @@ namespace image_block {
 
         // Are we finished?
         bool complete() const {
-          return ( m_block_bbox.min().y() >= m_total_bbox.max().y() );
+          return (m_block_bbox.min().y() >= m_total_bbox.max().y());
         }
 
         // Returns the info mutex, for locking.
@@ -101,7 +101,7 @@ namespace image_block {
         // Advance the block_bbox to point to the next block to process.
         void advance() {
           m_block_bbox.min().x() += m_block_size.x();
-          if( m_block_bbox.min().x() >= m_total_bbox.max().x() ) {
+          if(m_block_bbox.min().x() >= m_total_bbox.max().x()) {
             m_block_bbox.min().x() = round_down(m_total_bbox.min().x(),m_block_size.x());
             m_block_bbox.min().y() += m_block_size.y();
             m_block_bbox.max().y() = m_block_bbox.min().y() + m_block_size.y();
@@ -124,21 +124,21 @@ namespace image_block {
         Mutex    m_mutex;
       }; // End class Info
 
-      BlockThread( Info &info ) : info(info) {}
+      BlockThread(Info &info) : info(info) {}
 
       void operator()() {
-        while( true ) {
+        while(true) {
           BBox2i bbox;
           {
             // Grab the next bbox to process, and update it with the
             // subsequent bbox for the next thread to grab.
             Mutex::Lock lock(info.mutex());
-            if( info.complete() )
+            if(info.complete())
               return;
             bbox = info.bbox();
             info.advance();
           }
-          info.func()( bbox );
+          info.func()(bbox);
         }
       }
 
@@ -148,27 +148,27 @@ namespace image_block {
 
     /// Break bbox into sections of block_size, then call
     ///  func(sub_bbox) for each of them.
-    inline void operator()( BBox2i bbox ) const {
-      typename BlockThread::Info info( m_func, bbox, m_block_size );
+    inline void operator()(BBox2i bbox) const {
+      typename BlockThread::Info info(m_func, bbox, m_block_size);
 
       // Avoid threads altogether in the single-threaded case.
       // Annoyingly, this still creates an unnecessary Mutex.
-      if( m_num_threads == 1 ) {
-        BlockThread bt( info );
+      if(m_num_threads == 1) {
+        BlockThread bt(info);
         return bt();
       }
 
       std::vector<boost::shared_ptr<BlockThread>> generators;
       std::vector<boost::shared_ptr<Thread>> threads;
 
-      for( uint32 i=0; i<m_num_threads; ++i ) {
-        boost::shared_ptr<BlockThread> generator( new BlockThread( info ) );
-        generators.push_back( generator );
-        boost::shared_ptr<Thread> thread( new Thread( generator ) );
-        threads.push_back( thread );
+      for(uint32 i=0; i<m_num_threads; ++i) {
+        boost::shared_ptr<BlockThread> generator(new BlockThread(info));
+        generators.push_back(generator);
+        boost::shared_ptr<Thread> thread(new Thread(generator));
+        threads.push_back(thread);
       }
 
-      for( uint32 i=0; i<m_num_threads; ++i ) {
+      for(uint32 i=0; i<m_num_threads; ++i) {
         threads[i]->join();
       }
     }
@@ -189,9 +189,9 @@ namespace image_block {
     // the time, so advanced users will have to know what they're
     // doing in any case.
     size_t block_rows = default_blocksize / (size_t(planes)*size_t(cols)*size_t(sizeof(PixelT)));
-    if( block_rows < 1 ) block_rows = 1;
-    else if( block_rows > rows ) block_rows = rows;
-    return Vector2i( cols, block_rows );
+    if(block_rows < 1) block_rows = 1;
+    else if(block_rows > rows) block_rows = rows;
+    return Vector2i(cols, block_rows);
   }
 
 
@@ -208,8 +208,8 @@ namespace image_block {
     typedef ImageView<typename ImageT::pixel_type> value_type; ///< A plain image view
 
     /// Set this object up to represent a region of an image view.
-    BlockGenerator( boost::shared_ptr<ImageT> const& child, BBox2i const& bbox )
-      : m_child( child ), m_bbox( bbox ) {}
+    BlockGenerator(boost::shared_ptr<ImageT> const& child, BBox2i const& bbox)
+      : m_child(child), m_bbox(bbox) {}
 
     /// Return the size in bytes that the rasterized object occupies.
     size_t size() const {
@@ -218,8 +218,8 @@ namespace image_block {
 
     /// Rasterize this object into memory from whatever its source is.
     boost::shared_ptr<value_type > generate() const {
-      boost::shared_ptr<value_type > ptr( new value_type( m_bbox.width(), m_bbox.height(), m_child->planes() ) );
-      m_child->rasterize( *ptr, m_bbox );
+      boost::shared_ptr<value_type > ptr(new value_type(m_bbox.width(), m_bbox.height(), m_child->planes()));
+      m_child->rasterize(*ptr, m_bbox);
       return ptr;
     }
   }; // End class BlockGenerator
@@ -246,43 +246,43 @@ namespace image_block {
 
       // Error checking
       if (m_block_size.x() <= 0 || m_block_size.y() <= 0) {
-        vw_throw( ArgumentErr() << "BlockGeneratorManager: Illegal block size: " << m_block_size);
+        vw_throw(ArgumentErr() << "BlockGeneratorManager: Illegal block size: " << m_block_size);
       }
       if (!m_cache_ptr) {
-        vw_throw( ArgumentErr() << "BlockGeneratorManager: No cache provided!");
+        vw_throw(ArgumentErr() << "BlockGeneratorManager: No cache provided!");
       }
 
       // Compute the table layout
       m_table_width  = (image->cols()-1) / m_block_size.x() + 1;
       m_table_height = (image->rows()-1) / m_block_size.y() + 1;
       m_block_table_size = size_t(m_table_height) * size_t(m_table_width);
-      m_block_table.reset( new Cache::Handle<BlockGenerator<ImageT> >[ m_block_table_size ] );
+      m_block_table.reset(new Cache::Handle<BlockGenerator<ImageT> >[ m_block_table_size ]);
       BBox2i view_bbox(0,0,image->cols(),image->rows());
 
       // Iterate through the block positions and insert a generator object for each block
       // into m_block_table.
-      for( size_t iy=0; iy<m_table_height; ++iy ) {
-        for( size_t ix=0; ix<m_table_width; ++ix ) {
+      for(size_t iy=0; iy<m_table_height; ++iy) {
+        for(size_t ix=0; ix<m_table_width; ++ix) {
           BBox2i bbox(ix*m_block_size.x(), iy*m_block_size.y(), 
                       m_block_size.x(), m_block_size.y());
-          bbox.crop( view_bbox );
-          block(ix,iy) = m_cache_ptr->insert( BlockGenerator<ImageT>( image, bbox ) );
+          bbox.crop(view_bbox);
+          block(ix,iy) = m_cache_ptr->insert(BlockGenerator<ImageT>(image, bbox));
         }
       } // End loop through the blocks
 
     } // End initialize()
 
     /// Return the block index for a given input pixel.
-    Vector2i get_block_index( Vector2i pixel ) const {
+    Vector2i get_block_index(Vector2i pixel) const {
       return Vector2i(pixel.x()/m_block_size.x(), pixel.y()/m_block_size.y());
     }
 
     /// Return the block index for a given input bounding box (which must fall entirely within one block!)
-    Vector2i get_block_index( BBox2i bbox ) const {
+    Vector2i get_block_index(BBox2i bbox) const {
       Vector2i block_index = get_block_index(bbox.min());
 #if VW_DEBUG_LEVEL > 1
       Vector2i block_index_max = get_block_index(bbox.max()-Vector2i(1,1));
-      if( block_index != block_index_max ) {
+      if(block_index != block_index_max) {
         vw_throw(LogicErr() << "BlockGeneratorManager: bbox " << bbox << " spans more than one cache block!");
       }
 #endif
@@ -290,22 +290,22 @@ namespace image_block {
     }
 
     /// Return the top left pixel coordinate of a given block.
-    Vector2i get_block_start_pixel( Vector2i block_index ) const {
+    Vector2i get_block_start_pixel(Vector2i block_index) const {
       return Vector2i(block_index.x()*m_block_size.x(),
                       block_index.y()*m_block_size.y());
     }
 
     /// Throw if the block index is out of bounds.
-    void check_block_index( Vector2i block_index ) const {
+    void check_block_index(Vector2i block_index) const {
       int ix = block_index.x();
       int iy = block_index.y();
-      if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
-        vw_throw( ArgumentErr() << "BlockGeneratorManager: Block indices out of bounds, (" << ix
-                  << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")" );
+      if(ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height)
+        vw_throw(ArgumentErr() << "BlockGeneratorManager: Block indices out of bounds, (" << ix
+                 << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")");
     }
 
     /// Fetch the block generator for the requested block (const ref)
-    const Cache::Handle<BlockGenerator<ImageT> >& block( Vector2i block_index ) const {
+    const Cache::Handle<BlockGenerator<ImageT> >& block(Vector2i block_index) const {
       int ix = block_index.x();
       int iy = block_index.y();
       check_block_index(block_index);
@@ -313,7 +313,7 @@ namespace image_block {
     }
 
     /// Fetch the block generator for the requested block
-    Cache::Handle<BlockGenerator<ImageT> >& block( Vector2i block_index )  {
+    Cache::Handle<BlockGenerator<ImageT> >& block(Vector2i block_index)  {
       int ix = block_index.x();
       int iy = block_index.y();
       check_block_index(block_index);

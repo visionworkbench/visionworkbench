@@ -46,10 +46,10 @@
 namespace vw {
 namespace math {
   template <class FuncT, class DomainT>
-  DomainT particle_swarm_optimization( FuncT const& func, DomainT const& min, DomainT const& max,
-                                       bool verbose = false, int restarts = 1,
-                                       unsigned int n_particles = 100,  unsigned int n_iter = 1000,
-                                       double w = 0.9, double c1 = 2, double c2 = 2, double v_max = 4.0)
+  DomainT particle_swarm_optimization(FuncT const& func, DomainT const& min, DomainT const& max,
+                                      bool verbose = false, int restarts = 1,
+                                      unsigned int n_particles = 100,  unsigned int n_iter = 1000,
+                                      double w = 0.9, double c1 = 2, double c2 = 2, double v_max = 4.0)
   {
     std::vector<DomainT> x;        x.resize(n_particles);         // particles
     std::vector<DomainT> x_hat;    x_hat.resize(n_particles);     // local maxima

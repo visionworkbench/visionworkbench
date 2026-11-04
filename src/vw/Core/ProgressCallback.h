@@ -50,8 +50,8 @@ namespace vw {
     mutable Mutex m_mutex;
 
   public:
-    ProgressCallback() : m_abort_requested( false ), m_progress(0) {}
-    ProgressCallback( const ProgressCallback& copy ) {
+    ProgressCallback() : m_abort_requested(false), m_progress(0) {}
+    ProgressCallback(const ProgressCallback& copy) {
       m_progress = copy.progress();
       m_abort_requested = copy.abort_requested();
     }
@@ -155,31 +155,31 @@ namespace vw {
     uint32 m_bar_length;
 
     void calculate_bar_length() {
-      VW_ASSERT( m_pre_progress_text.size()+8+m_precision < 80,
-                 ArgumentErr() << "Pre-progress Text or Precision too big to allow progress bar to fit inside 80 char" );
+      VW_ASSERT(m_pre_progress_text.size()+8+m_precision < 80,
+                ArgumentErr() << "Pre-progress Text or Precision too big to allow progress bar to fit inside 80 char");
       m_bar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) - 4 - 3;
-      if ( m_precision > 0 )
+      if (m_precision > 0)
         m_bar_length -= m_precision + 1; // 1 for decimal point
     }
 
   public:
-    TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) VW_DEPRECATED;
+    TerminalProgressCallback(MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0) VW_DEPRECATED;
 
-    TerminalProgressCallback( std::string log_namespace, std::string progress_text, MessageLevel log_level = InfoMessage, uint32_t precision = 0) :
+    TerminalProgressCallback(std::string log_namespace, std::string progress_text, MessageLevel log_level = InfoMessage, uint32_t precision = 0) :
       m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
 
       m_namespace += ".progress";
       boost::replace_all(m_pre_progress_text,"\t","        ");
 
-      if ( m_level <  InfoMessage )
-        vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
+      if (m_level <  InfoMessage)
+        vw_throw(ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher.");
 
       calculate_bar_length();
     }
 
     virtual ~TerminalProgressCallback() {}
 
-    TerminalProgressCallback( const TerminalProgressCallback& copy ) : ProgressCallback(copy) {
+    TerminalProgressCallback(const TerminalProgressCallback& copy) : ProgressCallback(copy) {
       m_level = copy.message_level();
       m_namespace = copy.message_namespace();
       m_pre_progress_text = copy.pre_progress_text();
@@ -187,7 +187,7 @@ namespace vw {
       m_abort_requested = copy.abort_requested();
     }
 
-    void set_progress_text( std::string const& text ) {
+    void set_progress_text(std::string const& text) {
       Mutex::Lock lock(m_mutex);
       m_pre_progress_text = text;
 

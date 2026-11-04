@@ -103,7 +103,7 @@ namespace { // Anonymous namespace
       case vw::VW_CHANNEL_UINT32:  return GDT_UInt32;
       case vw::VW_CHANNEL_FLOAT32: return GDT_Float32;
       case vw::VW_CHANNEL_FLOAT64: return GDT_Float64;
-      default: vw::vw_throw( vw::IOErr() << "Unsupported vw channel type (" << vw_type << ")." );
+      default: vw::vw_throw(vw::IOErr() << "Unsupported vw channel type (" << vw_type << ").");
     }
   }
 } // End anonymous namespace
@@ -133,7 +133,7 @@ void kill_gdal() {
 
 /// Instantiate GDAL and return our GDAL mutex.
 vw::Mutex& gdal() {
-  _gdal_init_once.run( init_gdal ); // Only run the init function once!
+  _gdal_init_once.run(init_gdal); // Only run the init function once!
   return *_gdal_mutex;              // Always return our mutex.
 }
 
@@ -182,7 +182,7 @@ void GdalIODecompress::open() {
   size_t chans = m_dataset->GetRasterCount();
   VW_ASSERT(chans > 0, IOErr() << "Cannot read GDAL Image: unknown number of channels");
 
-  if ( bcolor_is(m_dataset, 1, GCI_GrayIndex) ) {
+  if (bcolor_is(m_dataset, 1, GCI_GrayIndex)) {
     if (chans == 1) {
       m_fmt.pixel_format = VW_PIXEL_GRAY;
       m_fmt.planes = 1;
@@ -241,24 +241,24 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   VW_ASSERT(planes == 1 || fmt().pixel_format==VW_PIXEL_SCALAR,
       NoImplErr() << "Multi-channel multi-plane images are not supported");
 
-  int num_bands = std::max( m_fmt.planes, num_channels( m_fmt.pixel_format ) );
+  int num_bands = std::max(m_fmt.planes, num_channels(m_fmt.pixel_format));
 
   char** options = NULL;
 
   try {
-    options = CSLSetNameValue( options, "COMPRESS", "LZW" );
+    options = CSLSetNameValue(options, "COMPRESS", "LZW");
     if(fmt().pixel_format == VW_PIXEL_GRAYA || fmt().pixel_format == VW_PIXEL_RGBA)
-      options = CSLSetNameValue( options, "ALPHA", "YES" );
+      options = CSLSetNameValue(options, "ALPHA", "YES");
 
-    if(fmt().pixel_format == VW_PIXEL_SCALAR )
-      options = CSLSetNameValue( options, "INTERLEAVE", "BAND" );
+    if(fmt().pixel_format == VW_PIXEL_SCALAR)
+      options = CSLSetNameValue(options, "INTERLEAVE", "BAND");
     else
-      options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+      options = CSLSetNameValue(options, "INTERLEAVE", "PIXEL");
 
-    if( m_fmt.pixel_format == VW_PIXEL_RGB || m_fmt.pixel_format == VW_PIXEL_RGBA ||
-        m_fmt.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL ||
-        m_fmt.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL)
-        options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
+    if(m_fmt.pixel_format == VW_PIXEL_RGB || m_fmt.pixel_format == VW_PIXEL_RGBA ||
+       m_fmt.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL ||
+       m_fmt.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL)
+        options = CSLSetNameValue(options, "PHOTOMETRIC", "RGB");
 
     m_dataset.reset(reinterpret_cast<GDALDataset*>
                     (GDALCreate(m_driver, m_fn.c_str(), cols, rows, num_bands,

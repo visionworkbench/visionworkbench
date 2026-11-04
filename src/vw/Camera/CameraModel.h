@@ -168,7 +168,7 @@ namespace vw {
 
     template <class VectorT>
     void set_axis_angle_rotation(VectorBase<VectorT> const& v) {
-      this->set_rotation( axis_angle_to_quaternion(v.impl()) );
+      this->set_rotation(axis_angle_to_quaternion(v.impl()));
     }
     template <class VectorT>
     void set_pixel_offset(VectorBase<VectorT> const& v) {
@@ -220,7 +220,7 @@ namespace vw {
   // Helper functions
 
   // If this is an adjusted model, get the unadjusted one.
-        CameraModel* unadjusted_model(      CameraModel * cam);
+        CameraModel* unadjusted_model(CameraModel * cam);
   const CameraModel* unadjusted_model(const CameraModel * cam);
   boost::shared_ptr<CameraModel> unadjusted_model(boost::shared_ptr<CameraModel> cam);
 

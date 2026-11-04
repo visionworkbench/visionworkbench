@@ -32,7 +32,7 @@ namespace vw {
     public:
       SrcMemoryImageResourceGDAL(boost::shared_array<const uint8> buffer, size_t len);
 
-      virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
+      virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const;
 
       virtual ImageFormat format() const;
 
@@ -48,7 +48,7 @@ namespace vw {
     public:
       DstMemoryImageResourceGDAL(const ImageFormat& fmt);
 
-      virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
+      virtual void write(ImageBuffer const& buf, BBox2i const& bbox);
       virtual void flush() {}
 
       virtual bool has_block_write()  const {return false;}

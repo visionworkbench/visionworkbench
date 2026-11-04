@@ -45,11 +45,11 @@ static const double DELTA = 1e-4;
 
 template <class GenT>
 Vector<size_t> create_test_skyline(size_t size, size_t max_offset,
-                                   GenT& generator ) {
+                                   GenT& generator) {
   Vector<size_t> result(size);
-  for ( size_t i = 0; i < size; ++i ) {
-    ssize_t offset(i - size_t(generator()*(max_offset-1)) );
-    if ( offset < 0 ) offset = 0;
+  for (size_t i = 0; i < size; ++i) {
+    ssize_t offset(i - size_t(generator()*(max_offset-1)));
+    if (offset < 0) offset = 0;
     result[i] = static_cast<size_t>(offset);
   }
   return result;
@@ -57,13 +57,13 @@ Vector<size_t> create_test_skyline(size_t size, size_t max_offset,
 
 template <class VectorT, class GenT>
 void fill_vector(VectorT& b, GenT& generator) {
-  for ( size_t i = 0; i < b.size(); ++i )
+  for (size_t i = 0; i < b.size(); ++i)
     b[i] = lround(generator()*100)+1;
 }
 
 template <class MatrixT, class GenT>
 void fill_symmetric_matrix(MatrixT& A, Vector<size_t> const& skyline,
-                           GenT& generator ) {
+                           GenT& generator) {
   for (size_t i = 0; i < A.rows(); ++i)
     for (size_t j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
       A(i,j) = lround(generator()*100)+1;
@@ -91,7 +91,7 @@ void ldl_decomposition(MatrixT& A) {
       double row_sum = 0;
       for (size_t jj = 0; jj < j; ++jj)
         row_sum += A(i,jj)*v[jj];
-      A(i,j) = ( A(i,j)-row_sum ) / v[j];
+      A(i,j) = (A(i,j)-row_sum) / v[j];
     }
   }
 }
@@ -120,37 +120,37 @@ void fill_with_buckeyball(MatrixSparseSkyline<ElemT>& A) {
   A(60,59) = 1;
 }
 
-TEST(SparseSkyline, Creation ) {
+TEST(SparseSkyline, Creation) {
   MatrixSparseSkyline<double> sparse(4);
   sparse(0,0) = 1;
   sparse(0,1) = 2;
   sparse(0,2) = 3;
   sparse(0,3) = 4;
   sparse(1,1) = 5;
-  EXPECT_EQ( sparse(1,0), sparse(0,1) );
-  EXPECT_EQ( sparse(2,0), sparse(0,2) );
-  EXPECT_EQ( sparse(3,0), 4 );
+  EXPECT_EQ(sparse(1,0), sparse(0,1));
+  EXPECT_EQ(sparse(2,0), sparse(0,2));
+  EXPECT_EQ(sparse(3,0), 4);
 
   Vector<double> cv = select_col(sparse,0);
-  ASSERT_EQ( 4u, cv.size() );
-  EXPECT_EQ( 1, cv(0) );
-  EXPECT_EQ( 2, cv(1) );
-  EXPECT_EQ( 3, cv(2) );
-  EXPECT_EQ( 4, cv(3) );
+  ASSERT_EQ(4u, cv.size());
+  EXPECT_EQ(1, cv(0));
+  EXPECT_EQ(2, cv(1));
+  EXPECT_EQ(3, cv(2));
+  EXPECT_EQ(4, cv(3));
 
   cv = select_col(sparse,1);
-  ASSERT_EQ( 4u, cv.size() );
-  EXPECT_EQ( 2, cv(0) );
-  EXPECT_EQ( 5, cv(1) );
-  EXPECT_EQ( 0, cv(2) );
-  EXPECT_EQ( 0, cv(3) );
+  ASSERT_EQ(4u, cv.size());
+  EXPECT_EQ(2, cv(0));
+  EXPECT_EQ(5, cv(1));
+  EXPECT_EQ(0, cv(2));
+  EXPECT_EQ(0, cv(3));
 
   Vector<double> rv = select_row(sparse,2);
-  ASSERT_EQ( 4u, rv.size() );
-  EXPECT_EQ( 3, rv(0) );
-  EXPECT_EQ( 0, rv(1) );
-  EXPECT_EQ( 0, rv(2) );
-  EXPECT_EQ( 0, rv(3) );
+  ASSERT_EQ(4u, rv.size());
+  EXPECT_EQ(3, rv(0));
+  EXPECT_EQ(0, rv(1));
+  EXPECT_EQ(0, rv(2));
+  EXPECT_EQ(0, rv(3));
 }
 
 TEST(SparseSkyline, LDL_decomp_correctness) {
@@ -158,7 +158,7 @@ TEST(SparseSkyline, LDL_decomp_correctness) {
   size_t S = 10;
   boost::mt19937 random_gen(86);
   typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
-  vargen_type generator( random_gen, UNIFORM01<>() );
+  vargen_type generator(random_gen, UNIFORM01<>());
 
   MatrixSparseSkyline<double> sparse_mat(N);
 
@@ -169,15 +169,15 @@ TEST(SparseSkyline, LDL_decomp_correctness) {
   MatrixSparseSkyline<double> original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
-  for ( size_t i = 0; i < N; i++ )
-    for ( size_t j = 0; j < N; j++ )
-      if ( (sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0) )
+  for (size_t i = 0; i < N; i++)
+    for (size_t j = 0; j < N; j++)
+      if ((sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0))
         FAIL() << "Sparse structure was not preserved by sparse LDLT decomposition.\nIndex(" << i << "," << j << ") is " << sparse_mat(i,j) << " and " << original_sparse_mat(i,j) << "\n";
 
   ldl_decomposition(nonsparse_mat);
 
-  for ( size_t i = 0; i < N; i++ )
-    for ( size_t j = 0; j < i; j++ )
+  for (size_t i = 0; i < N; i++)
+    for (size_t j = 0; j < i; j++)
       EXPECT_NEAR(sparse_mat(i,j),nonsparse_mat(i,j),DELTA);
 }
 
@@ -186,7 +186,7 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
   size_t S = 150;
   boost::mt19937 random_gen(86);
   typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
-  vargen_type generator( random_gen, UNIFORM01<>() );
+  vargen_type generator(random_gen, UNIFORM01<>());
 
   MatrixSparseSkyline<double> sparse_mat(N,N);
   MatrixSparseSkyline<double> original_sparse_mat(N,N);
@@ -196,9 +196,9 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
   original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
-  for ( size_t i = 0; i < N; i++ )
-    for ( size_t j = 0; j < i; j++ )
-      if ( (sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0) )
+  for (size_t i = 0; i < N; i++)
+    for (size_t j = 0; j < i; j++)
+      if ((sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0))
         FAIL() << "Sparse structure was not preserved by sparse LDLT decomposition.\nIndex(" << i << "," << j << ") is " << sparse_mat(i,j) << " and " << original_sparse_mat(i,j) << "\n";
 }
 
@@ -207,7 +207,7 @@ TEST(SparseSkyline, LDL_solve) {
   size_t S = 10;
   boost::mt19937 random_gen(42);
   typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
-  vargen_type generator( random_gen, UNIFORM01<>() );
+  vargen_type generator(random_gen, UNIFORM01<>());
 
   Matrix<double> A_nonsparse(N,N);
   MatrixSparseSkyline<double> A_sparse(N,N);
@@ -215,8 +215,8 @@ TEST(SparseSkyline, LDL_solve) {
 
   fill_symmetric_matrix(A_sparse, test_skyline, generator);
   MatrixSparseSkyline<double> A_sparse_original = A_sparse;
-  EXPECT_EQ( A_sparse.cols(), A_sparse_original.cols() );
-  EXPECT_EQ( A_sparse.rows(), A_sparse_original.rows() );
+  EXPECT_EQ(A_sparse.cols(), A_sparse_original.cols());
+  EXPECT_EQ(A_sparse.rows(), A_sparse_original.rows());
   A_nonsparse = A_sparse;
 
   // Create a vector to solve against
@@ -229,13 +229,13 @@ TEST(SparseSkyline, LDL_solve) {
   // Sparse Version
   Vector<double> x_sparse = sparse_solve(A_sparse, b);
 
-  for ( size_t i = 0; i < N; i++ )
-    EXPECT_NEAR( x_nonsparse[i], x_sparse[i], DELTA );
+  for (size_t i = 0; i < N; i++)
+    EXPECT_NEAR(x_nonsparse[i], x_sparse[i], DELTA);
 
   // Back checking (also showing off that multiplication is possible)
   Vector<double> b_prime = A_sparse_original*x_sparse;
-  for ( size_t i = 0; i < N; i++ )
-    EXPECT_NEAR( b_prime[i], b[i], DELTA );
+  for (size_t i = 0; i < N; i++)
+    EXPECT_NEAR(b_prime[i], b[i], DELTA);
 }
 
 TEST(SparseSkyline, LDL_solve_scalability) {
@@ -243,7 +243,7 @@ TEST(SparseSkyline, LDL_solve_scalability) {
   int S = 100;
   boost::mt19937 random_gen(86);
   typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
-  vargen_type generator( random_gen, UNIFORM01<>() );
+  vargen_type generator(random_gen, UNIFORM01<>());
 
   MatrixSparseSkyline<double> A_sparse(N,N);
   Vector<size_t> test_skyline = create_test_skyline(N,S,generator);
@@ -278,7 +278,7 @@ TEST(SparseSkyline, VectorReorganize) {
 
   // Reording back into self
   nrvec = reorganize(nrvec, rvec.inverse());
-  for ( size_t i = 0; i < nrvec.size(); i++ )
+  for (size_t i = 0; i < nrvec.size(); i++)
     EXPECT_EQ(nrvec[i],vec[i]);
 }
 
@@ -287,18 +287,18 @@ TEST(SparseSkyline, VectorLargeReorganize) {
   // VectorAssignImpl that calls std::copy and uses the iterators.
   std::vector<size_t> lookup;
   Vector<float> lvec(10);
-  for ( size_t i = 0, j = 9; i < 10; i++, j-- ) {
+  for (size_t i = 0, j = 9; i < 10; i++, j--) {
     lookup.push_back(j);
     lvec[i] = (i+2)*0.5f;
   }
 
   VectorReorganize<Vector<float> > rlvec2(lvec, lookup);
-  for ( size_t i = 0; i < 10; i++ )
-    EXPECT_EQ( rlvec2[i], lvec[lookup[i]] );
+  for (size_t i = 0; i < 10; i++)
+    EXPECT_EQ(rlvec2[i], lvec[lookup[i]]);
 
   Vector<float> rlvec3 = rlvec2;
-  for ( size_t i = 0; i < 10; i++ )
-    EXPECT_EQ( rlvec3[i], lvec[lookup[i]] );
+  for (size_t i = 0; i < 10; i++)
+    EXPECT_EQ(rlvec3[i], lvec[lookup[i]]);
 }
 
 TEST(SparseSkyline, MatrixReorganize) {
@@ -326,28 +326,28 @@ TEST(SparseSkyline, MatrixReorganize) {
 
   // Reordering back into self
   nrmat = reorganize(nrmat, rmat.inverse());
-  for ( size_t i = 0; i < nrmat.cols(); i++ )
+  for (size_t i = 0; i < nrmat.cols(); i++)
     EXPECT_EQ(nrmat(i,i),mat(i,i));
 }
 
 TEST(SparseSkyline, MatrixLargeReorganize) {
   std::vector<size_t> lookup;
   Matrix<float> mat(10,10);
-  for ( size_t i = 0, j = 9; i < 10; i++, j-- ) {
+  for (size_t i = 0, j = 9; i < 10; i++, j--) {
     lookup.push_back(j);
-    for ( size_t k = 0; k <= i; k++ ) {
+    for (size_t k = 0; k <= i; k++) {
       mat(i,k) = i*k*0.5+2;
       mat(k,i) = mat(i,k);
     }
   }
 
   MatrixReorganize<Matrix<float> > rmat(mat, lookup);
-  for ( size_t i = 0; i < 10; i++ )
-    EXPECT_EQ( rmat(i,i), mat(lookup[i],lookup[i]) );
+  for (size_t i = 0; i < 10; i++)
+    EXPECT_EQ(rmat(i,i), mat(lookup[i],lookup[i]));
 
   Matrix<float> rmat_copy = rmat;
-  for ( size_t i = 0; i < 10; i++ )
-    EXPECT_EQ( rmat_copy(i,i), mat(lookup[i],lookup[i]) );
+  for (size_t i = 0; i < 10; i++)
+    EXPECT_EQ(rmat_copy(i,i), mat(lookup[i],lookup[i]));
 }
 
 TEST(SparseSkyline, CuthillMcKee) {
@@ -360,7 +360,7 @@ TEST(SparseSkyline, CuthillMcKee) {
   // This ordering comes from the MATLAB cuthill mckee example
   size_t ideal_order[61] = {1,6,2,5,7,26,30,10,11,12,3,4,8,27,29,9,15,13,16,17,21,25,42,28,43,38,37,14,20,18,22,24,41,47,44,39,36,33,19,32,23,48,45,46,40,34,53,31,52,49,58,50,57,35,54,51,59,56,55,60,0};
 
-  for ( size_t i = 0; i < new_ordering.size(); i++ )
+  for (size_t i = 0; i < new_ordering.size(); i++)
     EXPECT_EQ(ideal_order[i], new_ordering[i]);
 }
 
@@ -371,84 +371,84 @@ TEST(SparseSkyline, ReorderOptimization) {
   sparse(12,0) = 1.0;
   sparse(33,0) = 5.0;
   // Insuring positive definite
-  for ( size_t i = 0; i < 61; i++ ) {
+  for (size_t i = 0; i < 61; i++) {
     sparse(i,i) += 5;
-    if ( i > 0 )
+    if (i > 0)
       sparse(i-1,i) += 1;
   }
   Matrix<float> common = sparse;
   Vector<float> x_ideal(61);
-  for ( size_t i = 0; i < 61; i++ )
+  for (size_t i = 0; i < 61; i++)
     x_ideal[i] = float((i+1)*0.5);
 
   Vector<float> b = common*x_ideal;
 
   // Standard unsparse unoptimized method
   Vector<double> x_unsparse = inverse(common)*b;
-  EXPECT_EQ( 61u, x_unsparse.size() );
+  EXPECT_EQ(61u, x_unsparse.size());
 
   // Sparse Unoptimized method
   MatrixSparseSkyline<float> sparse_copy = sparse;
   Vector<double> x_sparse = sparse_solve(sparse_copy,b);
-  EXPECT_EQ( 61u, x_sparse.size() );
+  EXPECT_EQ(61u, x_sparse.size());
 
   // Optimized method;
   std::vector<size_t> new_ordering = cuthill_mckee_ordering(sparse,1);
-  math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse( sparse, new_ordering);
+  math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse(sparse, new_ordering);
 
   Vector<size_t> new_skyline = solve_for_skyline(rsparse);
-  Vector<double> x_reorder = sparse_solve( rsparse,
-                                           reorganize(b,new_ordering),
-                                            new_skyline );
-  x_reorder = reorganize(x_reorder, rsparse.inverse() );
-  EXPECT_EQ( 61u, x_reorder.size() );
+  Vector<double> x_reorder = sparse_solve(rsparse,
+                                          reorganize(b,new_ordering),
+                                           new_skyline);
+  x_reorder = reorganize(x_reorder, rsparse.inverse());
+  EXPECT_EQ(61u, x_reorder.size());
 
   //std::cout << "Unsparse Result: " << x_unsparse << "\n";
   //std::cout << "StandardSparseR: " << x_sparse << "\n";
   //std::cout << "Reorder SparseR: " << x_reorder << "\n";
 
   // Make sure old methods still work
-  for ( size_t i = 0; i < 61; i++ )
-    EXPECT_NEAR( x_unsparse[i], x_sparse[i], DELTA );
+  for (size_t i = 0; i < 61; i++)
+    EXPECT_NEAR(x_unsparse[i], x_sparse[i], DELTA);
 
   // Does reorganized method work?
-  for ( size_t i = 0; i < 61; i++ )
-    EXPECT_NEAR( x_unsparse[i], x_reorder[i], DELTA );
+  for (size_t i = 0; i < 61; i++)
+    EXPECT_NEAR(x_unsparse[i], x_reorder[i], DELTA);
 }
 
 TEST(SparseSkyline, ReorderConstCorrectness) {
   // Checking that SparseSkyline works
   math::MatrixSparseSkyline<double> sparse(1,1);
-  ASSERT_EQ( 1u, sparse.cols() );
-  ASSERT_EQ( 1u, sparse.rows() );
+  ASSERT_EQ(1u, sparse.cols());
+  ASSERT_EQ(1u, sparse.rows());
   sparse(0,0) = 1;
-  ASSERT_EQ( 1, sparse(0,0) );
+  ASSERT_EQ(1, sparse(0,0));
   Vector<size_t> skyline = sparse.skyline();
-  ASSERT_EQ( 1u, skyline.size() );
-  EXPECT_EQ( 0u, skyline[0] );
+  ASSERT_EQ(1u, skyline.size());
+  EXPECT_EQ(0u, skyline[0]);
 
   { // Applying second layers that could goof const
-    math::MatrixTranspose<math::MatrixSparseSkyline<double> > tsparse( sparse );
-    ASSERT_EQ( 1u, tsparse.cols() );
-    ASSERT_EQ( 1u, tsparse.rows() );
-    EXPECT_EQ( 1, tsparse(0,0) );
-    const math::MatrixTranspose<math::MatrixSparseSkyline<double> > ctsparse( sparse );
-    ASSERT_EQ( 1u, ctsparse.cols() );
-    ASSERT_EQ( 1u, ctsparse.rows() );
-    EXPECT_EQ( 1, ctsparse(0,0) );
+    math::MatrixTranspose<math::MatrixSparseSkyline<double> > tsparse(sparse);
+    ASSERT_EQ(1u, tsparse.cols());
+    ASSERT_EQ(1u, tsparse.rows());
+    EXPECT_EQ(1, tsparse(0,0));
+    const math::MatrixTranspose<math::MatrixSparseSkyline<double> > ctsparse(sparse);
+    ASSERT_EQ(1u, ctsparse.cols());
+    ASSERT_EQ(1u, ctsparse.rows());
+    EXPECT_EQ(1, ctsparse(0,0));
 
 
     // Another example of the error
     std::vector<size_t> reorder(1);
     reorder[0] = 0;
-    math::MatrixReorganize<math::MatrixSparseSkyline<double> > rsparse( sparse, reorder );
-    ASSERT_EQ( 1u, rsparse.cols() );
-    ASSERT_EQ( 1u, rsparse.rows() );
-    EXPECT_EQ( 1, rsparse(0,0) );
-    const math::MatrixReorganize<math::MatrixSparseSkyline<double> > crsparse( sparse, reorder );
-    ASSERT_EQ( 1u, crsparse.cols() );
-    ASSERT_EQ( 1u, crsparse.rows() );
-    EXPECT_EQ( 1, crsparse(0,0) );
+    math::MatrixReorganize<math::MatrixSparseSkyline<double> > rsparse(sparse, reorder);
+    ASSERT_EQ(1u, rsparse.cols());
+    ASSERT_EQ(1u, rsparse.rows());
+    EXPECT_EQ(1, rsparse(0,0));
+    const math::MatrixReorganize<math::MatrixSparseSkyline<double> > crsparse(sparse, reorder);
+    ASSERT_EQ(1u, crsparse.cols());
+    ASSERT_EQ(1u, crsparse.rows());
+    EXPECT_EQ(1, crsparse(0,0));
 
   }
 }

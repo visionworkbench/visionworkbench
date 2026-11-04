@@ -45,12 +45,12 @@ namespace vw {
     typedef Vector3 result_type;     // 3D error, output of cost function vector
     typedef Matrix<double, 3, 2> jacobian_type;
 
-    CameraGenericLMA( const CameraModel* model, const vw::Vector3& pt ) :
+    CameraGenericLMA(const CameraModel* model, const vw::Vector3& pt) :
       m_model(model), m_point(pt) {}
 
     // Minimize the difference between the vector from the pixel and
     //  the vector from the point to the camera.
-    inline result_type operator()( domain_type const& pix ) const {
+    inline result_type operator()(domain_type const& pix) const {
       try {
         return m_model->pixel_to_vector(pix) - normalize(m_point - m_model->camera_center(pix));
       } catch(...) { // Handle camera misses by returning a very large error

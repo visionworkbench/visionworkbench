@@ -105,7 +105,7 @@ namespace vw {
 
   /// Scales a bounding shape relative to the origin.
   template <class ShapeT, class RealT, int DimN, class ScalarT>
-  inline ShapeT operator*( ShapeBase<ShapeT, RealT, DimN> const& shape, ScalarT s ) {
+  inline ShapeT operator*(ShapeBase<ShapeT, RealT, DimN> const& shape, ScalarT s) {
     ShapeT result = shape.shape_impl();
     result *= s;
     return result;
@@ -113,7 +113,7 @@ namespace vw {
 
   /// Scales a bounding shape relative to the origin.
   template <class ShapeT, class RealT, int DimN, class ScalarT>
-  inline ShapeT operator/( ShapeBase<ShapeT, RealT, DimN> const& shape, ScalarT s ) {
+  inline ShapeT operator/(ShapeBase<ShapeT, RealT, DimN> const& shape, ScalarT s) {
     ShapeT result = shape.shape_impl();
     result /= s;
     return result;
@@ -121,13 +121,13 @@ namespace vw {
 
   /// Scales a bounding shape relative to the origin.
   template <class ShapeT, class RealT, int DimN, class ScalarT>
-  inline ShapeT operator*( ScalarT s, ShapeBase<ShapeT, RealT, DimN> const& shape ) {
+  inline ShapeT operator*(ScalarT s, ShapeBase<ShapeT, RealT, DimN> const& shape) {
     return shape * s;
   }
 
   /// Offsets a bounding shape by the given vector.
   template <class ShapeT, class RealT, int DimN, class VectorT>
-  inline ShapeT operator+( ShapeBase<ShapeT, RealT, DimN> const& shape, VectorBase<VectorT> const& v ) {
+  inline ShapeT operator+(ShapeBase<ShapeT, RealT, DimN> const& shape, VectorBase<VectorT> const& v) {
     ShapeT result = shape.shape_impl();
     result += v.impl();
     return result;
@@ -135,13 +135,13 @@ namespace vw {
 
   /// Offsets a bounding shape by the given vector.
   template <class ShapeT, class RealT, int DimN, class VectorT>
-  inline ShapeT operator+( VectorBase<VectorT> const& v, ShapeBase<ShapeT, RealT, DimN> const& shape ) {
+  inline ShapeT operator+(VectorBase<VectorT> const& v, ShapeBase<ShapeT, RealT, DimN> const& shape) {
     return shape + v;
   }
 
   /// Offsets a bounding shape by the negation of the given vector.
   template <class ShapeT, class RealT, int DimN, class VectorT>
-  inline ShapeT operator-( ShapeBase<ShapeT, RealT, DimN> const& shape, VectorBase<VectorT> const& v ) {
+  inline ShapeT operator-(ShapeBase<ShapeT, RealT, DimN> const& shape, VectorBase<VectorT> const& v) {
     ShapeT result = shape.shape_impl();
     result -= v.impl();
     return result;
@@ -149,13 +149,13 @@ namespace vw {
 
   /// Equality of two bounding shapes.
   template <class ShapeT, class RealT, int DimN>
-  inline bool operator==( ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2 ) {
+  inline bool operator==(ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2) {
     return shape1.shape_impl() == shape2.shape_impl();
   }
 
   /// Inequality of two bounding shapes.
   template <class ShapeT, class RealT, int DimN>
-  inline bool operator!=( ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2 ) {
+  inline bool operator!=(ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2) {
     return shape1.shape_impl() != shape2.shape_impl();
   }
 

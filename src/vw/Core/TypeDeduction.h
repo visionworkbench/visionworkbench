@@ -65,26 +65,26 @@ namespace vw {
       BOOST_STATIC_CONSTANT(uint32, value = type::value);
     };
 
-    _VW_INTERNAL_TYPE_DEDUCTION(              char,  100);
-    _VW_INTERNAL_TYPE_DEDUCTION(       signed char,  200);
-    _VW_INTERNAL_TYPE_DEDUCTION(     unsigned char,  300);
-    _VW_INTERNAL_TYPE_DEDUCTION(      signed short,  400);
-    _VW_INTERNAL_TYPE_DEDUCTION(    unsigned short,  500);
-    _VW_INTERNAL_TYPE_DEDUCTION(        signed int,  600);
-    _VW_INTERNAL_TYPE_DEDUCTION(      unsigned int,  700);
-    _VW_INTERNAL_TYPE_DEDUCTION(       signed long,  800);
-    _VW_INTERNAL_TYPE_DEDUCTION(     unsigned long,  900);
+    _VW_INTERNAL_TYPE_DEDUCTION(char,  100);
+    _VW_INTERNAL_TYPE_DEDUCTION(signed char,  200);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned char,  300);
+    _VW_INTERNAL_TYPE_DEDUCTION(signed short,  400);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned short,  500);
+    _VW_INTERNAL_TYPE_DEDUCTION(signed int,  600);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned int,  700);
+    _VW_INTERNAL_TYPE_DEDUCTION(signed long,  800);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned long,  900);
 #if defined(BOOST_HAS_LONG_LONG)
-    _VW_INTERNAL_TYPE_DEDUCTION(  signed long long, 1000);
+    _VW_INTERNAL_TYPE_DEDUCTION(signed long long, 1000);
     _VW_INTERNAL_TYPE_DEDUCTION(unsigned long long, 1100);
 #endif
 #if defined(BOOST_HAS_MS_INT64)
-    _VW_INTERNAL_TYPE_DEDUCTION(          __int64;, 1200);
-    _VW_INTERNAL_TYPE_DEDUCTION( unsigned __int64;, 1300);
+    _VW_INTERNAL_TYPE_DEDUCTION(__int64;, 1200);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned __int64;, 1300);
 #endif
-    _VW_INTERNAL_TYPE_DEDUCTION(             float, 1400);
-    _VW_INTERNAL_TYPE_DEDUCTION(            double, 1500);
-    _VW_INTERNAL_TYPE_DEDUCTION(       long double, 1600);
+    _VW_INTERNAL_TYPE_DEDUCTION(float, 1400);
+    _VW_INTERNAL_TYPE_DEDUCTION(double, 1500);
+    _VW_INTERNAL_TYPE_DEDUCTION(long double, 1600);
   }}
 
   template <class T1, class T2>

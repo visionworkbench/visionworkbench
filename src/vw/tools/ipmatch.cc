@@ -66,47 +66,47 @@ static void write_match_image(std::string const& out_file_name,
   if (matched_ip1.empty())
     return;
 
-  boost::scoped_ptr<vw::DiskImageResource> irsrc1( DiskImageResource::open(file1) );
-  boost::scoped_ptr<vw::DiskImageResource> irsrc2( DiskImageResource::open(file2) );
+  boost::scoped_ptr<vw::DiskImageResource> irsrc1(DiskImageResource::open(file1));
+  boost::scoped_ptr<vw::DiskImageResource> irsrc2(DiskImageResource::open(file2));
 
   // Work out the scaling to produce the subsampled images. These
   // values are choosen just allow a reasonable rendering time.
   float sub_scale  = sqrt(1500.0 * 1500.0 / float(irsrc1->format().cols * irsrc1->format().rows));
         sub_scale += sqrt(1500.0 * 1500.0 / float(irsrc2->format().cols * irsrc2->format().rows));
   sub_scale /= 2;
-  if ( sub_scale > 1 ) 
+  if (sub_scale > 1) 
     sub_scale = 1;
 
   // Paste the two scaled input images into a composite image
   vw::ImageComposite<PixelRGB<uint8> > composite;
-  if ( irsrc1->has_nodata_read() ) {
-    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >
-                      (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >
-                                                                 (*irsrc1),
-                                                                 irsrc1->nodata_read()))), 
-                                sub_scale)),
-                      0, 0 );
+  if (irsrc1->has_nodata_read()) {
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
+                     (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >
+                                                                (*irsrc1),
+                                                                irsrc1->nodata_read()))), 
+                               sub_scale)),
+                     0, 0);
   } else {
-    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >
-                      (resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), 
-                                sub_scale)),
-                      0, 0 );
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
+                     (resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), 
+                               sub_scale)),
+                     0, 0);
   }
   
-  if ( irsrc2->has_nodata_read() ) {
+  if (irsrc2->has_nodata_read()) {
     composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
                      (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >
                                                                 (*irsrc2),
                                                                 irsrc2->nodata_read()))), 
                                sub_scale)),
-                     int32(irsrc1->format().cols * sub_scale), 0 );
+                     int32(irsrc1->format().cols * sub_scale), 0);
   } else {
     composite.insert(pixel_cast_rescale<PixelRGB<uint8> >
                      (resample(normalize(DiskImageView<PixelGray<float> >(*irsrc2)), 
                                sub_scale)),
-                     int32(irsrc1->format().cols * sub_scale), 0 );
+                     int32(irsrc1->format().cols * sub_scale), 0);
   }
-  composite.set_draft_mode( true );
+  composite.set_draft_mode(true);
   composite.prepare();
 
   // Rasterize the composite so that we can draw on it.
@@ -136,8 +136,8 @@ static void write_match_image(std::string const& out_file_name,
     }
   }
 
-  boost::scoped_ptr<vw::DiskImageResource> rsrc( DiskImageResource::create(out_file_name, comp.format()) );
-  block_write_image( *rsrc, comp, TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
+  boost::scoped_ptr<vw::DiskImageResource> rsrc(DiskImageResource::create(out_file_name, comp.format()));
+  block_write_image(*rsrc, comp, TerminalProgressCallback("tools.ipmatch", "Writing Debug:"));
 }
 
 // See --merge-match-files.
@@ -247,8 +247,8 @@ int main(int argc, char** argv) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if( vm.count("help") ) {
+  if(vm.count("help")) {
     vw_out() << usage.str();
     return 1;
   }
@@ -354,23 +354,23 @@ int main(int argc, char** argv) {
         if (distance_metric == "l2") {
           InterestPointMatcher<L2NormMetric> 
             matcher(flann_method, matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
+          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback("tools.ipmatch","Matching:"));
         } 
         if (distance_metric == "hamming") {
           InterestPointMatcher<HammingMetric> 
             matcher(flann_method, matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
+          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback("tools.ipmatch","Matching:"));
         }
       } else {
         vw_out() << "Not using FLANN.\n";
         // Run interest point matcher that does not use FLANN.
         if (distance_metric == "l2") {
           InterestPointMatcherSimple<L2NormMetric> matcher(matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
+          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback("tools.ipmatch","Matching:"));
         }
         if (distance_metric == "hamming") {
           InterestPointMatcherSimple<HammingMetric> matcher(matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
+          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback("tools.ipmatch","Matching:"));
         }
       } // End non-flann case
 
@@ -389,46 +389,46 @@ int main(int argc, char** argv) {
         if (ransac_constraint == "similarity") {
           math::RandomSampleConsensus<math::SimilarityFittingFunctor, 
                                       math::InterestPointErrorMetric> 
-              ransac( math::SimilarityFittingFunctor(),
-                      math::InterestPointErrorMetric(),
-                      ransac_iterations,
-                      inlier_threshold,
-                      ransac_ip1.size()/2, true);
+              ransac(math::SimilarityFittingFunctor(),
+                     math::InterestPointErrorMetric(),
+                     ransac_iterations,
+                     inlier_threshold,
+                     ransac_ip1.size()/2, true);
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
           math::RandomSampleConsensus<math::HomographyFittingFunctor, 
                                       math::InterestPointErrorMetric> 
-              ransac( math::HomographyFittingFunctor(),
-                      math::InterestPointErrorMetric(),
-                      ransac_iterations,
-                      inlier_threshold,
-                      ransac_ip1.size()/2, true);
+              ransac(math::HomographyFittingFunctor(),
+                     math::InterestPointErrorMetric(),
+                     ransac_iterations,
+                     inlier_threshold,
+                     ransac_ip1.size()/2, true);
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "fundamental") {
           math::RandomSampleConsensus<vw::FundamentalMatrix8PFittingFunctor, 
                                       vw::FundamentalMatrixDistanceErrorMetric> 
-              ransac( vw::FundamentalMatrix8PFittingFunctor(),
-                      vw::FundamentalMatrixDistanceErrorMetric(), 
-                      ransac_iterations, 
-                      inlier_threshold, 
-                      ransac_ip1.size()/2, true );
+              ransac(vw::FundamentalMatrix8PFittingFunctor(),
+                     vw::FundamentalMatrixDistanceErrorMetric(), 
+                     ransac_iterations, 
+                     inlier_threshold, 
+                     ransac_ip1.size()/2, true);
           Matrix<double> F(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Fundamental: " << F << "\n";
           indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "none") {
-          indices.reserve( matched_ip1.size() );
-          for ( size_t i = 0; i < matched_ip1.size(); ++i )
+          indices.reserve(matched_ip1.size());
+          for (size_t i = 0; i < matched_ip1.size(); ++i)
             indices.push_back(i);
         } else {
           vw_out() << "Unknown RANSAC constraint type: " << ransac_constraint
                    << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
           return 1;
         }
-      } catch (const vw::math::RANSACErr& e ) {
+      } catch (const vw::math::RANSACErr& e) {
         vw_out() << "RANSAC Failed: " << e.what() << "\n";
         
         vw_out() << "Consider re-running ipfind with a larger value of --ip-per-tile. "

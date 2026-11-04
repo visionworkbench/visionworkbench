@@ -149,9 +149,9 @@ namespace vw {
   /// a character type, the usual container for an 8-bit numeric
   /// type, to a C++ output stream results in the character being
   /// printed rather than the corresponding number.
-  template <class T> inline T _numeric( T v ) { return v; }
-  inline unsigned _numeric( uint8 v ) { return v; }
-  inline int _numeric( int8 v ) { return v; }
+  template <class T> inline T _numeric(T v) { return v; }
+  inline unsigned _numeric(uint8 v) { return v; }
+  inline int _numeric(int8 v) { return v; }
 
   /// This type function copies the cv-qualifiers and reference
   /// properties of one type onto a second base type.
@@ -174,7 +174,7 @@ namespace vw {
     T m_value;
   public:
     FundamentalTypeClass() : m_value() {}
-    FundamentalTypeClass( T const& value ) : m_value( value ) {}
+    FundamentalTypeClass(T const& value) : m_value(value) {}
     operator T() const { return m_value; }
   };
 

@@ -44,48 +44,48 @@ protected:
 };
 
 // Test datum intersection
-TEST_F( CameraBBoxTest, GeospatialIntersectDatum ) {
-  for ( unsigned i = 0; i < 10; i++ ) {
-    Vector2 input_image( rand()%5616, rand()%3744 );
+TEST_F(CameraBBoxTest, GeospatialIntersectDatum) {
+  for (unsigned i = 0; i < 10; i++) {
+    Vector2 input_image(rand()%5616, rand()%3744);
     bool did_intersect;
     Vector2 lonlat =
-      geospatial_intersect( earth_georef,
-                            pinhole_camera->camera_center(input_image),
-                            pinhole_camera->pixel_to_vector(input_image),
-                            did_intersect );
-    ASSERT_TRUE( did_intersect );
-    double radius = earth_georef.datum().radius( lonlat[0], lonlat[1] );
-    EXPECT_NEAR( radius, 6360070, 10);
-    Vector3 llr( lonlat[0], lonlat[1], 0 );
+      geospatial_intersect(earth_georef,
+                           pinhole_camera->camera_center(input_image),
+                           pinhole_camera->pixel_to_vector(input_image),
+                           did_intersect);
+    ASSERT_TRUE(did_intersect);
+    double radius = earth_georef.datum().radius(lonlat[0], lonlat[1]);
+    EXPECT_NEAR(radius, 6360070, 10);
+    Vector3 llr(lonlat[0], lonlat[1], 0);
     Vector3 ecef = earth_georef.datum().geodetic_to_cartesian(llr);
     Vector3 llr2 = earth_georef.datum().cartesian_to_geodetic(ecef);
-    EXPECT_VECTOR_NEAR( llr2, llr, 1e-4 );
+    EXPECT_VECTOR_NEAR(llr2, llr, 1e-4);
 
-    Vector2 retrn_image = pinhole_camera->point_to_pixel( ecef );
-    EXPECT_VECTOR_NEAR( retrn_image, input_image, 1e-3 );
+    Vector2 retrn_image = pinhole_camera->point_to_pixel(ecef);
+    EXPECT_VECTOR_NEAR(retrn_image, input_image, 1e-3);
   }
 }
 
 // Test the datum version of camera_bbox 
-TEST_F( CameraBBoxTest, CameraBBoxDatum ) {
+TEST_F(CameraBBoxTest, CameraBBoxDatum) {
   float scale; // degrees per pixel
-  BBox2 image_bbox = camera_bbox( earth_georef, pinhole_camera, 5616, 3744, scale );
-  EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(-64.3442, -66.7563), 0.0004 );
-  EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(-64.2840, -66.7254), 0.0004 );
-  EXPECT_NEAR( scale, 2.8e-6, 1e-7 ); // Cam is rotated
+  BBox2 image_bbox = camera_bbox(earth_georef, pinhole_camera, 5616, 3744, scale);
+  EXPECT_VECTOR_NEAR(image_bbox.min(), Vector2(-64.3442, -66.7563), 0.0004);
+  EXPECT_VECTOR_NEAR(image_bbox.max(), Vector2(-64.2840, -66.7254), 0.0004);
+  EXPECT_NEAR(scale, 2.8e-6, 1e-7); // Cam is rotated
 }
 
 // Test the dem version of camera_bbox 
-TEST_F( CameraBBoxTest, CameraBBoxDEM ) {
+TEST_F(CameraBBoxTest, CameraBBoxDEM) {
   GeoReference dem_georef;
   read_georeference(dem_georef, "tinyDemAN.tif");
-  BBox2 image_bbox = camera_bbox( DEM, dem_georef, dem_georef, pinhole_camera, 5616, 3744 );
-  EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(-2.30944e+06,1.10892e+06), 5 );
-  EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(-2.30635e+06,1.11089e+06), 5 );
+  BBox2 image_bbox = camera_bbox(DEM, dem_georef, dem_georef, pinhole_camera, 5616, 3744);
+  EXPECT_VECTOR_NEAR(image_bbox.min(), Vector2(-2.30944e+06,1.10892e+06), 5);
+  EXPECT_VECTOR_NEAR(image_bbox.max(), Vector2(-2.30635e+06,1.11089e+06), 5);
 }
 
 // Try projecting a pixel to and from the DEM using the bbox tool.
-TEST_F( CameraBBoxTest, CameraPixelToXYZ) {
+TEST_F(CameraBBoxTest, CameraPixelToXYZ) {
   GeoReference dem_georef;
   read_georeference(dem_georef, "tinyDemAN.tif");
   Vector2 input_pixel(50,10);

@@ -31,7 +31,7 @@ namespace fs = boost::filesystem;
 namespace vw {
 
 std::string get_extension(std::string const& input, bool make_lower) {
-  boost::filesystem::path ipath( input );
+  boost::filesystem::path ipath(input);
   std::string ext = ipath.extension().string();
   if (make_lower)
     boost::algorithm::to_lower(ext);

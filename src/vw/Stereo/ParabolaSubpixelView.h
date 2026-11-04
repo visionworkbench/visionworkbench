@@ -48,7 +48,7 @@ namespace vw {
              BBox2i const& left_region,      ///< The ROI of the left and right images
              BBox2i const& right_region,     ///  to use in order to do our computations.
              BBox2i const& disparity_region, ///< The ROI in the entire output image
-             BBox2i const& search_range ) const; /// Range of input disparity values in region
+             BBox2i const& search_range) const; /// Range of input disparity values in region
 
   public:
     typedef PixelMask<Vector2f> pixel_type;
@@ -59,15 +59,15 @@ namespace vw {
                          ImageViewRef<PixelGray<float>>    const& left_image,
                          ImageViewRef<PixelGray<float>>    const& right_image,
                          PrefilterModeType prefilter_mode, float prefilter_width,
-                         Vector2i const& kernel_size ) :
-      m_disparity( disparity.impl() ), m_left_image( left_image.impl() ),
-      m_right_image( right_image.impl() ), 
-      m_kernel_size( kernel_size ),
+                         Vector2i const& kernel_size) :
+      m_disparity(disparity.impl()), m_left_image(left_image.impl()),
+      m_right_image(right_image.impl()), 
+      m_kernel_size(kernel_size),
       m_prefilter_mode(prefilter_mode), m_prefilter_width(prefilter_width)
       {
-      VW_ASSERT( m_disparity.cols() == m_left_image.cols() &&
-                 m_disparity.rows() == m_left_image.rows(),
-                 ArgumentErr() << "SubpixelView: Disparity image must match left image." );
+      VW_ASSERT(m_disparity.cols() == m_left_image.cols() &&
+                m_disparity.rows() == m_left_image.rows(),
+                ArgumentErr() << "SubpixelView: Disparity image must match left image.");
 
       // We get a considerable speedup in our 2d subpixel correlation if
       // we go ahead and compute the pseudoinverse of the A matrix (where
@@ -86,26 +86,26 @@ namespace vw {
         -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0,  1.0/6,  -1.0/6,    0.0,  1.0/6,  // = d
         -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,    0.0,   1.0/6,  1.0/6,  1.0/6,  // = e
         -1.0/9,  2.0/9, -1.0/9,  2.0/9,   5.0/9, 2.0/9,  -1.0/9,  2.0/9, -1.0/9 };// = f
-      m_p_A_matrix = Matrix<float,6,9>( pinvA_data );
+      m_p_A_matrix = Matrix<float,6,9>(pinvA_data);
     }
 
     inline int32 cols  () const { return m_disparity.cols(); }
     inline int32 rows  () const { return m_disparity.rows(); }
     inline int32 planes() const { return 1; }
 
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-    inline pixel_type operator() ( int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0 ) const {
-      vw_throw( NoImplErr() << "SubpixelView:operator() has not been implemented." );
+    inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
+    inline pixel_type operator() (int32 /*i*/, int32 /*j*/, int32 /*p*/ = 0) const {
+      vw_throw(NoImplErr() << "SubpixelView:operator() has not been implemented.");
       return pixel_type();
     }
 
     // Block rasterization section does the actual work
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    prerasterize_type prerasterize( BBox2i const& bbox ) const;
+    prerasterize_type prerasterize(BBox2i const& bbox) const;
 
     template <class DestT>
-    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize(prerasterize(bbox), dest, bbox );
+    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   }; // End class ParabolaSubpixelView
 

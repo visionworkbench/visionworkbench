@@ -49,26 +49,26 @@ namespace vw {
     class ForwardLMA : public math::LeastSquaresModelBase<ForwardLMA> {
       const Transform* m_tx;
     public:
-      ForwardLMA( const Transform* tx ) : m_tx(tx) {}
+      ForwardLMA(const Transform* tx) : m_tx(tx) {}
       typedef Vector2   result_type;
       typedef Vector2   domain_type;
       typedef Matrix2x2 jacobian_type;
 
-      inline result_type operator()( domain_type const& x ) const {
-        return m_tx->reverse( x );
+      inline result_type operator()(domain_type const& x) const {
+        return m_tx->reverse(x);
       }
     };
 
     class ReverseLMA : public math::LeastSquaresModelBase<ReverseLMA> {
       const Transform* m_tx;
     public:
-      ReverseLMA( const Transform* tx ) : m_tx(tx) {}
+      ReverseLMA(const Transform* tx) : m_tx(tx) {}
       typedef Vector2   result_type;
       typedef Vector2   domain_type;
       typedef Matrix2x2 jacobian_type;
 
-      inline result_type operator()( domain_type const& x ) const {
-        return m_tx->forward( x );
+      inline result_type operator()(domain_type const& x) const {
+        return m_tx->forward(x);
       }
     };
 
@@ -89,13 +89,13 @@ namespace vw {
     // squares search using the reverse method. This means we get
     // access to both methods even when a function only implements
     // one. It may not be accurate however.
-    virtual Vector2 forward( Vector2 const& point ) const {
+    virtual Vector2 forward(Vector2 const& point) const {
       int status;
-      return levenberg_marquardt( ForwardLMA( this ), point, point, status );
+      return levenberg_marquardt(ForwardLMA(this), point, point, status);
     }
-    virtual Vector2 reverse( Vector2 const& point ) const {
+    virtual Vector2 reverse(Vector2 const& point) const {
       int status;
-      return levenberg_marquardt( ReverseLMA( this ), point, point, status );
+      return levenberg_marquardt(ReverseLMA(this), point, point, status);
     }
 
     /// Specifies the properties of the forward mapping function.
@@ -105,21 +105,21 @@ namespace vw {
     virtual FunctionType reverse_type() const { return DiscontinuousFunction; }
 
     /// This applies the forward transformation to an entire bounding box of pixels.
-    virtual BBox2i forward_bbox( BBox2i const& /*output_bbox*/ ) const { 
-      vw_throw( NoImplErr() << "forward_bbox() is not implemented for this transform." ); 
+    virtual BBox2i forward_bbox(BBox2i const& /*output_bbox*/) const { 
+      vw_throw(NoImplErr() << "forward_bbox() is not implemented for this transform."); 
       return BBox2i(); 
     }
 
     /// This applies the reverse transformation to an entire bounding box of pixels.
-    virtual BBox2i reverse_bbox( BBox2i const& /*input_bbox*/ ) const { 
-      vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); 
+    virtual BBox2i reverse_bbox(BBox2i const& /*input_bbox*/) const { 
+      vw_throw(NoImplErr() << "reverse_bbox() is not implemented for this transform."); 
       return BBox2i(); 
     }
 
     // TODO: Do we use this for anything???
 
     /// Set the tolerance (in pixels) to which this Transform is willing to be approximated.
-    virtual void set_tolerance( double tolerance ) { m_tolerance = tolerance; }
+    virtual void set_tolerance(double tolerance) { m_tolerance = tolerance; }
 
     /// Get the tolerance (in pixels) to which this Transform is willing to be approximated.
     virtual double tolerance() const { return m_tolerance; }
@@ -142,72 +142,72 @@ namespace vw {
     inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-    virtual BBox2i forward_bbox( BBox2i const& bbox ) const {
+    virtual BBox2i forward_bbox(BBox2i const& bbox) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
       if (bbox.empty()) 
         return transformed_bbox; // bugfix
-      switch( txform.forward_type() ) {
+      switch(txform.forward_type()) {
       case ConvexFunction:
-        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
-        transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,bbox.min().y()  ) ) ); // Top right
-        transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),  bbox.max().y()-1) ) ); // Bottom left
-        transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) ); // Bottom right
+        transformed_bbox.grow(txform.forward(Vector2(bbox.min().x(),  bbox.min().y()))); // Top left
+        transformed_bbox.grow(txform.forward(Vector2(bbox.max().x()-1,bbox.min().y()))); // Top right
+        transformed_bbox.grow(txform.forward(Vector2(bbox.min().x(),  bbox.max().y()-1))); // Bottom left
+        transformed_bbox.grow(txform.forward(Vector2(bbox.max().x()-1,bbox.max().y()-1))); // Bottom right
         break;
       case ContinuousFunction:
-        for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x ) { // Top and bottom
-          transformed_bbox.grow( txform.forward( Vector2(x,bbox.min().y()) ) );
-          transformed_bbox.grow( txform.forward( Vector2(x,bbox.max().y()-1) ) );
+        for(int32 x=bbox.min().x(); x<bbox.max().x(); ++x) { // Top and bottom
+          transformed_bbox.grow(txform.forward(Vector2(x,bbox.min().y())));
+          transformed_bbox.grow(txform.forward(Vector2(x,bbox.max().y()-1)));
         }
-        for( int32 y=bbox.min().y()+1; y<bbox.max().y()-1; ++y ) { // Left and right
-          transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),y) ) );
-          transformed_bbox.grow( txform.forward( Vector2(bbox.max().x()-1,y) ) );
+        for(int32 y=bbox.min().y()+1; y<bbox.max().y()-1; ++y) { // Left and right
+          transformed_bbox.grow(txform.forward(Vector2(bbox.min().x(),y)));
+          transformed_bbox.grow(txform.forward(Vector2(bbox.max().x()-1,y)));
         }
         break;
       case DiscontinuousFunction:
-        for( int32 y=bbox.min().y(); y<bbox.max().y(); ++y )
-          for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x )
-            transformed_bbox.grow( txform.forward( Vector2(x,y) ) );
+        for(int32 y=bbox.min().y(); y<bbox.max().y(); ++y)
+          for(int32 x=bbox.min().x(); x<bbox.max().x(); ++x)
+            transformed_bbox.grow(txform.forward(Vector2(x,y)));
         break;
       }
-      return grow_bbox_to_int( transformed_bbox );
+      return grow_bbox_to_int(transformed_bbox);
     }
 
-    virtual BBox2i reverse_bbox( BBox2i const& bbox ) const {
+    virtual BBox2i reverse_bbox(BBox2i const& bbox) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
       if (bbox.empty()) 
         return transformed_bbox; // bugfix
-      switch( txform.reverse_type() ) {
+      switch(txform.reverse_type()) {
       case ConvexFunction:
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),  bbox.min().y()  ) ) ); // Top left
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,bbox.min().y()  ) ) ); // Top right
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),  bbox.max().y()-1) ) ); // Bottom left
-        transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) ); // Bottom right
+        transformed_bbox.grow(txform.reverse(Vector2(bbox.min().x(),  bbox.min().y()))); // Top left
+        transformed_bbox.grow(txform.reverse(Vector2(bbox.max().x()-1,bbox.min().y()))); // Top right
+        transformed_bbox.grow(txform.reverse(Vector2(bbox.min().x(),  bbox.max().y()-1))); // Bottom left
+        transformed_bbox.grow(txform.reverse(Vector2(bbox.max().x()-1,bbox.max().y()-1))); // Bottom right
         break;
       case ContinuousFunction:
-        for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x ) { // Top and bottom
-          transformed_bbox.grow( txform.reverse( Vector2(x,bbox.min().y()) ) );
-          transformed_bbox.grow( txform.reverse( Vector2(x,bbox.max().y()-1) ) );
+        for(int32 x=bbox.min().x(); x<bbox.max().x(); ++x) { // Top and bottom
+          transformed_bbox.grow(txform.reverse(Vector2(x,bbox.min().y())));
+          transformed_bbox.grow(txform.reverse(Vector2(x,bbox.max().y()-1)));
         }
-        for( int32 y=bbox.min().y()+1; y<bbox.max().y()-1; ++y ) { // Left and right
-          transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),y) ) );
-          transformed_bbox.grow( txform.reverse( Vector2(bbox.max().x()-1,y) ) );
+        for(int32 y=bbox.min().y()+1; y<bbox.max().y()-1; ++y) { // Left and right
+          transformed_bbox.grow(txform.reverse(Vector2(bbox.min().x(),y)));
+          transformed_bbox.grow(txform.reverse(Vector2(bbox.max().x()-1,y)));
         }
         break;
       case DiscontinuousFunction:
-        for( int32 y=bbox.min().y(); y<bbox.max().y(); ++y )
-          for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x )
-            transformed_bbox.grow( txform.reverse( Vector2(x,y) ) );
+        for(int32 y=bbox.min().y(); y<bbox.max().y(); ++y)
+          for(int32 x=bbox.min().x(); x<bbox.max().x(); ++x)
+            transformed_bbox.grow(txform.reverse(Vector2(x,y)));
         break;
       }
-      return grow_bbox_to_int( transformed_bbox );
+      return grow_bbox_to_int(transformed_bbox);
     }
 
     // This function is deprecated, and provided for backwards
     // compatibility only.  Use reverse(BBox2i) instead.
-    BBox2i compute_input_bbox( BBox2i const& output_bbox ) const VW_DEPRECATED {
-      return reverse_bbox( output_bbox );
+    BBox2i compute_input_bbox(BBox2i const& output_bbox) const VW_DEPRECATED {
+      return reverse_bbox(output_bbox);
     }
   }; // End class TransformBase
 
@@ -232,8 +232,8 @@ namespace vw {
   public:
     IdentityTransform(){}
 
-    inline Vector2 reverse( Vector2 const& p ) const { return p; }
-    inline Vector2 forward( Vector2 const& p ) const { return p; }
+    inline Vector2 reverse(Vector2 const& p) const { return p; }
+    inline Vector2 forward(Vector2 const& p) const { return p; }
   };
 
   // Resample transform functor
@@ -242,23 +242,23 @@ namespace vw {
   class ResampleTransform : public TransformHelper<ResampleTransform,ConvexFunction,ConvexFunction> {
     double m_xfactor, m_yfactor;
   public:
-    ResampleTransform( double x_scaling, double y_scaling ) :
-      m_xfactor( x_scaling ) , m_yfactor( y_scaling ) {}
+    ResampleTransform(double x_scaling, double y_scaling) :
+      m_xfactor(x_scaling), m_yfactor(y_scaling) {}
 
     template <class VectorT>
-    ResampleTransform( VectorBase<VectorT> const& v ) {
-      VW_ASSERT( v.impl().size() == 2,
-                 ArgumentErr() << "Vector must have 2 dimensions" );
+    ResampleTransform(VectorBase<VectorT> const& v) {
+      VW_ASSERT(v.impl().size() == 2,
+                ArgumentErr() << "Vector must have 2 dimensions");
       m_xfactor = v.impl()[0];
       m_yfactor = v.impl()[1];
     }
 
-    inline Vector2 reverse( Vector2 const& p ) const {
-      return Vector2( p(0) / m_xfactor, p(1) / m_yfactor );
+    inline Vector2 reverse(Vector2 const& p) const {
+      return Vector2(p(0) / m_xfactor, p(1) / m_yfactor);
     }
 
-    inline Vector2 forward( Vector2 const& p ) const {
-      return Vector2( p(0) * m_xfactor, p(1) * m_yfactor );
+    inline Vector2 forward(Vector2 const& p) const {
+      return Vector2(p(0) * m_xfactor, p(1) * m_yfactor);
     }
   };
 
@@ -268,22 +268,22 @@ namespace vw {
     double m_xtrans, m_ytrans;
   public:
     TranslateTransform(double x_translation, double y_translation) :
-      m_xtrans( x_translation ) , m_ytrans( y_translation ) {}
+      m_xtrans(x_translation), m_ytrans(y_translation) {}
 
     template <class VectorT>
-    TranslateTransform( VectorBase<VectorT> const& v ) {
-      VW_ASSERT( v.impl().size() == 2,
-                 ArgumentErr() << "Vector must have 2 dimensions" );
+    TranslateTransform(VectorBase<VectorT> const& v) {
+      VW_ASSERT(v.impl().size() == 2,
+                ArgumentErr() << "Vector must have 2 dimensions");
       m_xtrans = v.impl()[0];
       m_ytrans = v.impl()[1];
     }
 
     inline Vector2 reverse(const Vector2 &p) const {
-      return Vector2( p(0) - m_xtrans, p(1) - m_ytrans );
+      return Vector2(p(0) - m_xtrans, p(1) - m_ytrans);
     }
 
     inline Vector2 forward(const Vector2 &p) const {
-      return Vector2( p(0) + m_xtrans, p(1) + m_ytrans );
+      return Vector2(p(0) + m_xtrans, p(1) + m_ytrans);
     }
   };
 
@@ -294,14 +294,14 @@ namespace vw {
     Matrix2x2 m_matrix, m_matrix_inverse;
     LinearTransform() {}
   public:
-    LinearTransform( Matrix2x2 const& matrix )
-      : m_matrix( matrix ), m_matrix_inverse( inverse( matrix ) ) {}
+    LinearTransform(Matrix2x2 const& matrix)
+      : m_matrix(matrix), m_matrix_inverse(inverse(matrix)) {}
 
-    inline Vector2 forward( Vector2 const& p ) const {
+    inline Vector2 forward(Vector2 const& p) const {
       return m_matrix * p;
     }
 
-    inline Vector2 reverse( Vector2 const& p ) const {
+    inline Vector2 reverse(Vector2 const& p) const {
       return m_matrix_inverse * p;
     }
   };
@@ -314,24 +314,24 @@ namespace vw {
     double m_x, m_y;
     AffineTransform() {}
   public:
-    AffineTransform( Matrix2x2 const& matrix, Vector2 const& offset ) :
-      m_a( matrix(0,0) ), m_b( matrix(0,1) ),
-      m_c( matrix(1,0) ), m_d( matrix(1,1) ),
-      m_x( offset(0) ), m_y( offset(1) )
+    AffineTransform(Matrix2x2 const& matrix, Vector2 const& offset) :
+      m_a(matrix(0,0)), m_b(matrix(0,1)),
+      m_c(matrix(1,0)), m_d(matrix(1,1)),
+      m_x(offset(0)), m_y(offset(1))
     {
-      Matrix2x2 inv = inverse( matrix );
+      Matrix2x2 inv = inverse(matrix);
       m_ai = inv(0,0);
       m_bi = inv(0,1);
       m_ci = inv(1,0);
       m_di = inv(1,1);
     }
 
-    inline Vector2 forward( Vector2 const& p ) const {
+    inline Vector2 forward(Vector2 const& p) const {
       return Vector2(m_a*p[0]+m_b*p[1] + m_x,
                      m_c*p[0]+m_d*p[1] + m_y);
     }
 
-    inline Vector2 reverse( Vector2 const& p ) const {
+    inline Vector2 reverse(Vector2 const& p) const {
       double px = p[0]-m_x;
       double py = p[1]-m_y;
       return Vector2(m_ai*px+m_bi*py,
@@ -348,9 +348,9 @@ namespace vw {
   // Rotate transform functor
   class RotateTransform : public AffineTransform {
   public:
-    RotateTransform( double theta, Vector2 const& translate ) {
+    RotateTransform(double theta, Vector2 const& translate) {
       double c = cos(theta), s=sin(theta);
-      Matrix2x2 rotate( c, -s, s, c );
+      Matrix2x2 rotate(c, -s, s, c);
       Vector2 rhs = translate - (rotate*translate);
       m_a    = rotate(0,0); m_b = rotate(0,1);
       m_c    = rotate(1,0); m_d = rotate(1,1);
@@ -372,18 +372,18 @@ namespace vw {
     HomographyTransform() {}
   public:
 
-    HomographyTransform(Matrix3x3 H) : m_H(H), m_H_inverse( inverse(H) ) {}
+    HomographyTransform(Matrix3x3 H) : m_H(H), m_H_inverse(inverse(H)) {}
 
     inline Vector2 reverse(const Vector2 &p) const {
       double w = m_H_inverse(2,0) * p(0) + m_H_inverse(2,1) * p(1) + m_H_inverse(2,2);
-      return Vector2( ( m_H_inverse(0,0) * p(0) + m_H_inverse(0,1) * p(1) + m_H_inverse(0,2) ) / w,
-                      ( m_H_inverse(1,0) * p(0) + m_H_inverse(1,1) * p(1) + m_H_inverse(1,2) ) / w);
+      return Vector2((m_H_inverse(0,0) * p(0) + m_H_inverse(0,1) * p(1) + m_H_inverse(0,2)) / w,
+                     (m_H_inverse(1,0) * p(0) + m_H_inverse(1,1) * p(1) + m_H_inverse(1,2)) / w);
     }
 
     inline Vector2 forward(const Vector2 &p) const {
       double w = m_H(2,0) * p(0) + m_H(2,1) * p(1) + m_H(2,2);
-      return Vector2( ( m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2) ) / w,
-                      ( m_H(1,0) * p(0) + m_H(1,1) * p(1) + m_H(1,2) ) / w);
+      return Vector2((m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2)) / w,
+                     (m_H(1,0) * p(0) + m_H(1,1) * p(1) + m_H(1,2)) / w);
     }
     friend std::ostream& operator<<(std::ostream&, const HomographyTransform&);
   };
@@ -396,14 +396,14 @@ namespace vw {
   {
     TxT tx;
   public:
-    InverseTransform( TxT const& tx ) : tx(tx) {}
+    InverseTransform(TxT const& tx) : tx(tx) {}
 
-    inline Vector2 forward( Vector2 const& p ) const {
-      return tx.reverse( p );
+    inline Vector2 forward(Vector2 const& p) const {
+      return tx.reverse(p);
     }
 
-    inline Vector2 reverse( Vector2 const& p ) const {
-      return tx.forward( p );
+    inline Vector2 reverse(Vector2 const& p) const {
+      return tx.forward(p);
     }
 
     virtual FunctionType forward_type() const { return tx.reverse_type(); }
@@ -412,8 +412,8 @@ namespace vw {
 
   // Inverts a transform functor via an InverseTransform object.
   template <class TxT>
-  inline InverseTransform<TxT> inverse( TransformBase<TxT> const& tx ) {
-    return InverseTransform<TxT>( tx.impl() );
+  inline InverseTransform<TxT> inverse(TransformBase<TxT> const& tx) {
+    return InverseTransform<TxT>(tx.impl());
   }
 
 
@@ -432,72 +432,72 @@ namespace vw {
     Tx1T tx1;
     Tx2T tx2;
   public:
-    CompositionTransform( Tx1T const& tx1, Tx2T const& tx2 ) : tx1(tx1), tx2(tx2) {}
+    CompositionTransform(Tx1T const& tx1, Tx2T const& tx2) : tx1(tx1), tx2(tx2) {}
 
-    inline Vector2 forward( Vector2 const& p ) const {
-      return tx1.forward( tx2.forward( p ) );
+    inline Vector2 forward(Vector2 const& p) const {
+      return tx1.forward(tx2.forward(p));
     }
 
-    inline Vector2 reverse( Vector2 const& p ) const {
-      return tx2.reverse( tx1.reverse( p ) );
+    inline Vector2 reverse(Vector2 const& p) const {
+      return tx2.reverse(tx1.reverse(p));
     }
 
-    static FunctionType compose_type( FunctionType f, FunctionType g ) {
-      if( f==DiscontinuousFunction || g==DiscontinuousFunction ) return DiscontinuousFunction;
-      if( f==ContinuousFunction || g==ContinuousFunction ) return ContinuousFunction;
+    static FunctionType compose_type(FunctionType f, FunctionType g) {
+      if(f==DiscontinuousFunction || g==DiscontinuousFunction) return DiscontinuousFunction;
+      if(f==ContinuousFunction || g==ContinuousFunction) return ContinuousFunction;
       return ConvexFunction;
     }
 
-    virtual FunctionType forward_type() const { return compose_type( tx1.forward_type(), tx2.forward_type() ); }
-    virtual FunctionType reverse_type() const { return compose_type( tx1.reverse_type(), tx2.reverse_type() ); }
+    virtual FunctionType forward_type() const { return compose_type(tx1.forward_type(), tx2.forward_type()); }
+    virtual FunctionType reverse_type() const { return compose_type(tx1.reverse_type(), tx2.reverse_type()); }
   };
 
   // Composes two transform functors via a CompositionTransform object.
   template <class Tx1T, class Tx2T>
   CompositionTransform<Tx1T,Tx2T>
-  inline compose( TransformBase<Tx1T> const& tx1,
-                  TransformBase<Tx2T> const& tx2 ) {
+  inline compose(TransformBase<Tx1T> const& tx1,
+                 TransformBase<Tx2T> const& tx2) {
     typedef CompositionTransform<Tx1T,Tx2T> result_type;
-    return result_type( tx1.impl(), tx2.impl() );
+    return result_type(tx1.impl(), tx2.impl());
   }
 
   // Composes three transform functors via a CompositionTransform object.
   template <class Tx1T, class Tx2T, class Tx3T>
   CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> >
-  inline compose( TransformBase<Tx1T> const& tx1,
-                  TransformBase<Tx2T> const& tx2,
-                  TransformBase<Tx3T> const& tx3 ) {
+  inline compose(TransformBase<Tx1T> const& tx1,
+                 TransformBase<Tx2T> const& tx2,
+                 TransformBase<Tx3T> const& tx3) {
     typedef CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> > result_type;
-    return result_type( tx1.impl(), compose( tx2, tx3 ) );
+    return result_type(tx1.impl(), compose(tx2, tx3));
   }
 
   // Composes four transform functors via a CompositionTransform object.
   template <class Tx1T, class Tx2T, class Tx3T, class Tx4T>
   CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > >
-  inline compose( TransformBase<Tx1T> const& tx1,
-                  TransformBase<Tx2T> const& tx2,
-                  TransformBase<Tx3T> const& tx3,
-                  TransformBase<Tx4T> const& tx4 ) {
+  inline compose(TransformBase<Tx1T> const& tx1,
+                 TransformBase<Tx2T> const& tx2,
+                 TransformBase<Tx3T> const& tx3,
+                 TransformBase<Tx4T> const& tx4) {
     typedef CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > > result_type;
-    return result_type( tx1.impl(), compose( tx2, tx3, tx4 ) );
+    return result_type(tx1.impl(), compose(tx2, tx3, tx4));
   }
 
   // TransformRef virtualized transform functor adaptor
   class TransformRef : public TransformBase<TransformRef> {
     boost::shared_ptr<Transform> m_transform;
   public:
-    template <class TransformT> explicit TransformRef( TransformT const& transform ) : m_transform( new TransformT( transform ) ) {}
-    explicit TransformRef( boost::shared_ptr<Transform> const& transform ) : m_transform( transform ) {}
+    template <class TransformT> explicit TransformRef(TransformT const& transform) : m_transform(new TransformT(transform)) {}
+    explicit TransformRef(boost::shared_ptr<Transform> const& transform) : m_transform(transform) {}
 
     FunctionType forward_type () const { return m_transform->forward_type(); }
     FunctionType reverse_type () const { return m_transform->reverse_type(); }
     double       tolerance    () const { return m_transform->tolerance   (); }
 
-    Vector2      forward      ( Vector2 const& point ) const { return m_transform->forward( point );     }
-    Vector2      reverse      ( Vector2 const& point ) const { return m_transform->reverse( point );     }
-    BBox2i       forward_bbox ( BBox2i  const& bbox  ) const { return m_transform->forward_bbox( bbox ); }
-    BBox2i       reverse_bbox ( BBox2i  const& bbox  ) const { return m_transform->reverse_bbox( bbox ); }
-    void         set_tolerance( double  tolerance    )       { m_transform->set_tolerance( tolerance );  }
+    Vector2      forward      (Vector2 const& point) const { return m_transform->forward(point);     }
+    Vector2      reverse      (Vector2 const& point) const { return m_transform->reverse(point);     }
+    BBox2i       forward_bbox (BBox2i  const& bbox) const { return m_transform->forward_bbox(bbox); }
+    BBox2i       reverse_bbox (BBox2i  const& bbox) const { return m_transform->reverse_bbox(bbox); }
+    void         set_tolerance(double  tolerance)       { m_transform->set_tolerance(tolerance);  }
   };
 
 
@@ -524,7 +524,7 @@ AffineTransform mat2affine(Matrix3x3 const& T){
   return AffineTransform(submatrix(T, 0, 0, 2, 2), Vector2(T(0, 2), T(1, 2)));
 }
 
-std::ostream& operator<<( std::ostream& os, AffineTransform const& trans ) {
+std::ostream& operator<<(std::ostream& os, AffineTransform const& trans) {
   std::ostringstream oss; // To use custom precision
   oss.precision(10);
   oss << "AffineTransform: " << trans.m_a  << ", " << trans.m_b  << ", " 
@@ -536,7 +536,7 @@ std::ostream& operator<<( std::ostream& os, AffineTransform const& trans ) {
   return os;
 }
 
-std::ostream& operator<<( std::ostream& os, HomographyTransform const& trans ) {
+std::ostream& operator<<(std::ostream& os, HomographyTransform const& trans) {
   std::ostringstream oss; // To use custom precision
   oss.precision(10);
   oss << "HomograpyTransform: " << trans.m_H << std::endl;

@@ -65,10 +65,10 @@ void dPoly::bdBox(double & xll, double & yll, double & xur, double & yur) const 
     return;
   }
 
-  xll = *min_element( vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts );
-  yll = *min_element( vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts );
-  xur = *max_element( vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts );
-  yur = *max_element( vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts );
+  xll = *min_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
+  yll = *min_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
+  xur = *max_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
+  yur = *max_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
 
   return;
 };
@@ -94,8 +94,8 @@ void dPoly::bdBoxes(std::vector<double> & xll, std::vector<double> & yll,
     }else{
       const double * px = vecPtr(m_xv) + start;
       const double * py = vecPtr(m_yv) + start;
-      x0 = *min_element( px, px + numV ); x1 = *max_element( px, px + numV );
-      y0 = *min_element( py, py + numV ); y1 = *max_element( py, py + numV );
+      x0 = *min_element(px, px + numV); x1 = *max_element(px, px + numV);
+      y0 = *min_element(py, py + numV); y1 = *max_element(py, py + numV);
     }
     xll.push_back(x0); xur.push_back(x1);
     yll.push_back(y0); yur.push_back(y1);
@@ -182,14 +182,14 @@ bool dPoly::isXYRect() {
                       std::abs(xur) + std::abs(yur));
 
   // Midpoint test (will catch things the direction test won't)
-  if (std::abs( m_xv[0] + m_xv[2] - m_xv[1] - m_xv[3] ) > tol ) return false;
-  if (std::abs( m_yv[0] + m_yv[2] - m_yv[1] - m_yv[3] ) > tol ) return false;
+  if (std::abs(m_xv[0] + m_xv[2] - m_xv[1] - m_xv[3]) > tol) return false;
+  if (std::abs(m_yv[0] + m_yv[2] - m_yv[1] - m_yv[3]) > tol) return false;
 
   // Direction test
   for (int i = 0; i < m_totalNumVerts; i++) {
-    int i1 = ( i + m_totalNumVerts + 1) % m_totalNumVerts;
+    int i1 = (i + m_totalNumVerts + 1) % m_totalNumVerts;
     if (std::abs(m_xv[i1] - m_xv[i]) > tol &&
-        std::abs(m_yv[i1] - m_yv[i]) > tol )
+        std::abs(m_yv[i1] - m_yv[i]) > tol)
       return false;
   }
 
@@ -274,7 +274,7 @@ void dPoly::clipPoly(// inputs
           cutYv.push_back(y);
         }
       }
-      cutNumVerts.push_back( cutXv.size() );
+      cutNumVerts.push_back(cutXv.size());
 
     }else if (isClosed) {
 
@@ -353,7 +353,7 @@ void dPoly::rotate(double angle) { // The angle is given in degrees
 
   double a = angle*M_PI/180.0, c = cos(a), s= sin(a);
 
-  if (angle == round(angle) && int(angle)%90 == 0 ) {
+  if (angle == round(angle) && int(angle)%90 == 0) {
     // The special case of angle multiple of 90 degrees
     c = round(c), s = round(s);
   }
@@ -1068,8 +1068,8 @@ namespace dPoly_local_functions{
   };
   bool greaterThanPtIndex (ptAndIndex P, ptAndIndex Q) {
 
-    if (greaterThan(P.point, Q.point) ) return true;
-    if (greaterThan(Q.point, P.point) ) return false;
+    if (greaterThan(P.point, Q.point)) return true;
+    if (greaterThan(Q.point, P.point)) return false;
 
     return (P.area > Q.area);
 
@@ -1100,7 +1100,7 @@ void dPoly::sortFromLargestToSmallest(bool counter_cc) {
     if (s > 0) start += m_numVerts[s - 1];
     int numV = m_numVerts[s];
 
-    boxDims[s].point = dPoint( xur[s] - xll[s], yur[s] - yll[s] );
+    boxDims[s].point = dPoint(xur[s] - xll[s], yur[s] - yll[s]);
     boxDims[s].area  = abs(signedPolyArea(numV, vecPtr(m_xv) + start, vecPtr(m_yv) + start,
                                           counter_cc));
     boxDims[s].index = s;
@@ -1276,7 +1276,7 @@ bool dPoly::readPoly(std::string filename,
     // The format we expect is: x y ; layerNo (e.g., 2.3 -1.2 ; 5:16)
     istringstream iss_xy (line);
     double x, y;
-    if ( iss_xy >> x >> y ) {
+    if (iss_xy >> x >> y) {
 
       // This line has valid coordinates, which we read in x and y.
       m_xv.push_back(x);
@@ -1297,14 +1297,14 @@ bool dPoly::readPoly(std::string filename,
     // new one.
     istringstream iss_next(line);
     string val;
-    bool isLastVertexOfCurrPoly = ( isLastLine                               ||
-                                    ( (iss_next >> val) && (val == "next") ) ||
-                                    isPointCloud
-                                    );
+    bool isLastVertexOfCurrPoly = (isLastLine                               ||
+                                   ((iss_next >> val) && (val == "next")) ||
+                                   isPointCloud
+                                   );
     bool isCurrPolyNonEmpty = (beg < end);
     if (isLastVertexOfCurrPoly && isCurrPolyNonEmpty) {
 
-      assert( end == (int)m_xv.size() && end == (int)m_yv.size() );
+      assert(end == (int)m_xv.size() && end == (int)m_yv.size());
 
       if (beg < end - 1              &&
           m_xv[beg] == m_xv[end - 1] &&
@@ -1375,7 +1375,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
     if (!layer.empty()) layer = " ; " + layer;
 
     bool isPolyClosed = true;
-    if ( pIter < (int)m_colors.size() ) isPolyClosed = m_isPolyClosed[pIter];
+    if (pIter < (int)m_colors.size()) isPolyClosed = m_isPolyClosed[pIter];
 
     for (int vIter = 0; vIter < m_numVerts[pIter]; vIter++) { // iterate over vertices
 
@@ -1383,7 +1383,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
       out << m_xv[pos] << ' ' << m_yv[pos] << layer << endl;
 
       // Put one annotation for each vertex, if possible
-      if (annoCount < (int)m_annotations.size() ) {
+      if (annoCount < (int)m_annotations.size()) {
         m_annotations[annoCount].appendTo(out);
         annoCount++;
       }
@@ -1429,9 +1429,9 @@ bool dPoly::getColorInCntFile(const std::string & line, std::string & color) {
 
   istringstream iss(line);
   string equal, colorTag;
-  if ( ! (iss >> colorTag >> equal >> color)        ) return false;
-  if ( colorTag != "#Color" && colorTag != "#color" ) return false;
-  while (color[0] == '#' && color.size() < 7 ) color += "0";
+  if (! (iss >> colorTag >> equal >> color)) return false;
+  if (colorTag != "#Color" && colorTag != "#color") return false;
+  while (color[0] == '#' && color.size() < 7) color += "0";
 
   return true;
 }
@@ -1451,7 +1451,7 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
   m_isPointCloud = isPointCloud;
 
   ifstream fh(filename.c_str());
-  if( !fh ) {
+  if(!fh) {
     cerr << "Could not open " << filename << endl;
     return false;
   }
@@ -1468,7 +1468,7 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
 
   // Parse the header for pol files.
   double tmp;
-  if (type == "pol" && !(fh >> tmp >> tmp >> tmp >> tmp) ) return false;
+  if (type == "pol" && !(fh >> tmp >> tmp >> tmp >> tmp)) return false;
 
   while (1) {
 
@@ -1476,8 +1476,8 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
 
     if (type == "pol") {
       // Extract the number of vertices for pol files
-     if (! (fh >> tmp >> numVerts) ) return true;  // no more vertices
-     if (! (fh >> tmp >> tmp) )      return false; // invalid format
+     if (! (fh >> tmp >> numVerts)) return true;  // no more vertices
+     if (! (fh >> tmp >> tmp))      return false; // invalid format
     }else{
       // Extract the number of vertices and/or color for cnt file.
       // Skip lines with comments.
@@ -1499,7 +1499,7 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
 
     for (int s = 0; s < numVerts; s++) {
       double x, y;
-      if (! (fh >> x >> y) ) return false;
+      if (! (fh >> x >> y)) return false;
       m_xv.push_back(x);
       m_yv.push_back(y);
     }

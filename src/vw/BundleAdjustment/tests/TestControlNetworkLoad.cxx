@@ -26,7 +26,7 @@
 using namespace vw;
 using namespace vw::test;
 
-TEST( ControlNetworkLoad, LoadingGCPNET) {
+TEST(ControlNetworkLoad, LoadingGCPNET) {
 
   // Creating GCP net
   UnlinkName gcpnet("test.cnet");
@@ -35,7 +35,7 @@ TEST( ControlNetworkLoad, LoadingGCPNET) {
   {
     ControlNetwork net("test");
     ControlPoint cp;
-    cp.set_position( Vector3(1,2,3) );
+    cp.set_position(Vector3(1,2,3));
     {
       ControlMeasure cm(4,5,1,1,0);
       cm.set_serial("image1");
@@ -53,7 +53,7 @@ TEST( ControlNetworkLoad, LoadingGCPNET) {
   ControlNetwork net("destination");
   {
     ControlPoint cp;
-    cp.set_position( Vector3(9,3,4) );
+    cp.set_position(Vector3(9,3,4));
     {
       ControlMeasure cm(5,5,1,1,0);
       cp.add_measure(cm);
@@ -64,19 +64,19 @@ TEST( ControlNetworkLoad, LoadingGCPNET) {
     }
     net.add_control_point(cp);
   }
-  EXPECT_TRUE( boost::filesystem::exists( gcpnets.front() ) );
-  EXPECT_EQ( 1u, net.size() );
-  EXPECT_EQ( 1u, gcpnets.size() );
+  EXPECT_TRUE(boost::filesystem::exists(gcpnets.front()));
+  EXPECT_EQ(1u, net.size());
+  EXPECT_EQ(1u, gcpnets.size());
 
   net.add_image_name("image1");
   net.add_image_name("image2");
-  add_ground_control_cnets( net, gcpnets.begin(), gcpnets.end() );
+  add_ground_control_cnets(net, gcpnets.begin(), gcpnets.end());
 
-  ASSERT_EQ( 2u, net.size() );
-  EXPECT_EQ( ControlPoint::GroundControlPoint, net[1].type() );
+  ASSERT_EQ(2u, net.size());
+  EXPECT_EQ(ControlPoint::GroundControlPoint, net[1].type());
 }
 
-TEST( GCPLoad, LoadingGCP ) {
+TEST(GCPLoad, LoadingGCP) {
 
   ControlNetwork cnet("testing");
   std::vector<std::string> gcp_files;

@@ -44,7 +44,7 @@ namespace vw {
 // Note: A nodata pixel is one for which pixel <= nodata.
 template <class ImageT>
 void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double nodata,
-                           vw::InterestPointList      & ip_list, int    radius ){
+                           vw::InterestPointList      & ip_list, int    radius){
 
   size_t prior_ip = ip_list.size();
 
@@ -53,18 +53,18 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
   CropImageT subsection(width,width);   
 
   // Get shrunk bounding box
-  BBox2i bound = bounding_box( image.impl() );
+  BBox2i bound = bounding_box(image.impl());
   bound.contract(radius);
 
   // Decide per point whether to drop it, then compact in one O(n) pass.
   // A per-point erase on the vector ip_list would be O(n^2).
   auto drop_point = [&](InterestPoint const& ip) -> bool {
     // Drop the point if it was too close to the image borders
-    if ( !bound.contains( Vector2i(ip.ix,ip.iy) ) )
+    if (!bound.contains(Vector2i(ip.ix,ip.iy)))
       return true;
 
     // Drop the point if any invalid pixels are too close to it
-    subsection = crop( image.impl(), ip.ix-radius, ip.iy-radius, width, width );
+    subsection = crop(image.impl(), ip.ix-radius, ip.iy-radius, width, width);
     for (auto pixel = subsection.begin(); pixel != subsection.end(); pixel++) {
       if (*pixel == nodata)
         return true;
@@ -73,7 +73,7 @@ void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double noda
   };
   auto keep_end = std::remove_if(ip_list.begin(), ip_list.end(), drop_point);
   ip_list.erase(keep_end, ip_list.end());
-  VW_OUT( DebugMessage, "asp" ) << "Removed " << prior_ip - ip_list.size()
+  VW_OUT(DebugMessage, "asp") << "Removed " << prior_ip - ip_list.size()
                                 << " interest points due to their proximity to nodata values."
                                 << std::endl << "Nodata value used " << nodata << std::endl;
 } // End function remove_ip_near_nodata
@@ -99,10 +99,10 @@ void write_ip_debug_image(std::string const& out_file_name,
   // Get the min and max point intensity
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
-  for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
-    if ( point->interest > max )
+  for (InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point) {
+    if (point->interest > max)
       max = point->interest;
-    if ( point->interest < min )
+    if (point->interest < min)
       min = point->interest;
   }
   float diff = max - min;
@@ -110,7 +110,7 @@ void write_ip_debug_image(std::string const& out_file_name,
   // Create a muted version of the input image
   ImageView<PixelRGB<uint8> > oimage;
   const double IMAGE_FADE_PERCENTAGE = 0.7;
-  if ( has_nodata ) {
+  if (has_nodata) {
     ImageView<PixelMask<float> > gray = resample(create_mask(image, nodata), sub_scale);
     oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(gray) * IMAGE_FADE_PERCENTAGE));
   } else {
@@ -118,10 +118,10 @@ void write_ip_debug_image(std::string const& out_file_name,
   }
 
   // Draw each of the interest points on to the muted input image.
-  for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
+  for (InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point) {
     float norm_i = (point->interest - min)/diff;
     PixelRGB<uint8> color(0,0,0);
-    if ( norm_i < .5 ) {
+    if (norm_i < .5) {
       // Form of red
       color.r() = 255;
       color.g() = (uint8)(2*norm_i*255);
@@ -143,21 +143,21 @@ void write_ip_debug_image(std::string const& out_file_name,
       scale = 0.12*scale;
 
     // Circling point based on the scale
-    for (float a = 0; a < 6; a+=.392 ) {
+    for (float a = 0; a < 6; a+=.392) {
       float a_d = a + .392; // ?
-      Vector2i start( int(2*scale*cos(a  )+x),
-                      int(2*scale*sin(a  )+y) );
-      Vector2i end(   int(2*scale*cos(a_d)+x),
-                      int(2*scale*sin(a_d)+y) );
-      draw_line( oimage, color, start, end );
+      Vector2i start(int(2*scale*cos(a)+x),
+                     int(2*scale*sin(a)+y));
+      Vector2i end(int(2*scale*cos(a_d)+x),
+                   int(2*scale*sin(a_d)+y));
+      draw_line(oimage, color, start, end);
     }
   } // End loop through interest points
 
-  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create(out_file_name,
-                                                                       oimage.format() ) );
+  boost::scoped_ptr<DiskImageResource> rsrc(DiskImageResource::create(out_file_name,
+                                                                      oimage.format()));
   vw_out(InfoMessage,"interest_point") << "\t > Writing out ip debug image: "
                                        << out_file_name << "\n";
-  write_image( *rsrc, oimage);
+  write_image(*rsrc, oimage);
 }
 
 template <class T>

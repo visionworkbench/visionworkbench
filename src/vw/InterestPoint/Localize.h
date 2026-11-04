@@ -34,7 +34,7 @@ namespace vw {
   /// subpixel shift to the fitted peak.
   template <class ElmtT>
   int fit_peak_1D(Vector<ElmtT,3> const& y, ElmtT& x_sub,
-                  ElmtT* coef = NULL ) {
+                  ElmtT* coef = NULL) {
     // Fit the data in the vector y to the parabola a*x^2 + b*x + c
     // where x={-1,0,1}.  This is a simple 3x3 linear system of the form
     // [x_0^2, x_0, 1] [a]
@@ -77,15 +77,15 @@ namespace vw {
     f_vals(0) = interest(pt.ix-1,pt.iy);
     f_vals(1) = interest(pt.ix,pt.iy);
     f_vals(2) = interest(pt.ix+1,pt.iy);
-    fit_peak_1D( f_vals, di, x2coef );
+    fit_peak_1D(f_vals, di, x2coef);
 
     // Fit y location
     f_vals(0) = interest(pt.ix,pt.iy-1);
     f_vals(1) = interest(pt.ix,pt.iy);
     f_vals(2) = interest(pt.ix,pt.iy+1);
-    fit_peak_1D( f_vals, dj, y2coef );
+    fit_peak_1D(f_vals, dj, y2coef);
 
-    if ( (fabs(di)>1) || (fabs(dj)>1)) {
+    if ((fabs(di)>1) || (fabs(dj)>1)) {
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tLocalization correction too large\n";
       return false;
     }
@@ -100,11 +100,11 @@ namespace vw {
   /// InterestPoint object provided and return "true" if the peak is a
   /// strong one.  Return "false" if it is not.
   template <class DataT>
-  bool fit_peak( std::vector<DataT> const& data,
-                 InterestPoint& pt,
-                 ImageOctave const& octave,
-                 float* x2coef=NULL, float* y2coef=NULL,
-                 float* s2coef=NULL ) {
+  bool fit_peak(std::vector<DataT> const& data,
+                InterestPoint& pt,
+                ImageOctave const& octave,
+                float* x2coef=NULL, float* y2coef=NULL,
+                float* s2coef=NULL) {
     // Fit peak by fitting only along each of the three principal
     // directions.  Besides being a lot faster, this also worked
     // better than fitting the whole 3x3x3 neighborhood using a
@@ -115,16 +115,16 @@ namespace vw {
     int k0 = octave.scale_to_plane_index(pt.scale);
 
     // Fit (x,y) position
-    if ( !fit_peak(data[k0].interest(), pt, x2coef, y2coef) )
+    if (!fit_peak(data[k0].interest(), pt, x2coef, y2coef))
       return false;
 
     // Fit scale plane location
     f_vals(0) = data[k0-1].interest()(pt.ix,pt.iy);
     f_vals(1) = data[k0].interest()(pt.ix,pt.iy);
     f_vals(2) = data[k0+1].interest()(pt.ix,pt.iy);
-    fit_peak_1D( f_vals, dp, s2coef );
+    fit_peak_1D(f_vals, dp, s2coef);
 
-    if ( fabs(dp)>1) {
+    if (fabs(dp)>1) {
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tLocalization correction too large\n";
       return false;
     }

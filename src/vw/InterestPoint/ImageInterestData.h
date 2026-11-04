@@ -87,7 +87,7 @@ namespace vw {
 
     template <class ViewT>
     ImageInterestData(ImageViewBase<ViewT> const& img,
-                      ImageViewBase<integral_type> const& integral ) :
+                      ImageViewBase<integral_type> const& integral) :
       m_src(img.impl()),
       m_interest(NULL),
       m_integral(&integral.impl()) {}

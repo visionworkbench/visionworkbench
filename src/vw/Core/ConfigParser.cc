@@ -84,7 +84,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
   desc.add_options()("*", "All");
 
   try {
-    opts = po::parse_config_file( stream, desc );
+    opts = po::parse_config_file(stream, desc);
   } catch (const po::invalid_syntax& e) {
     std::cerr << "Could not parse config file. Ignoring. ("
               << e.what() << ")" << std::endl;
@@ -133,7 +133,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
           if (current_logname == "console")
             current_log.reset();
           else {
-            current_log = shared_ptr<LogInstance>( new LogInstance(logname) );
+            current_log = shared_ptr<LogInstance>(new LogInstance(logname));
             vw_log().add(current_log);
           }
         }

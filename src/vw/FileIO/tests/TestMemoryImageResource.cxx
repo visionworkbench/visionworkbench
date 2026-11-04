@@ -169,7 +169,7 @@ protected:
       ImageView<PixelT> src_(SIZE,SIZE);
       for (size_t row = 0; row < SIZE; ++row) {
         for (size_t col = 0; col < SIZE; ++col) {
-          for ( size_t ch = 0; ch < CompoundNumChannels<PixelT>::value; ch++ ) {
+          for (size_t ch = 0; ch < CompoundNumChannels<PixelT>::value; ch++) {
             switch (ch) {
             case 0:
               src_(col,row)[ch] = float(row)/SIZE; break;
@@ -178,7 +178,7 @@ protected:
             case 2:
               src_(col,row)[ch] = 1 - ((float(row) + col) / 2 / SIZE); break;
             default:
-              src_(col,row)[ch] = float( ch + row ) / SIZE;
+              src_(col,row)[ch] = float(ch + row) / SIZE;
             }
           }
         }
@@ -208,12 +208,12 @@ protected:
 
 // There's an internal switch in the code that treats RGB and Grays differently.
 typedef MemoryOpenEXR<PixelRGB<float> > MemoryOpenEXRRGBF32;
-TEST_F( MemoryOpenEXRRGBF32, RGB_F32 ) {}
+TEST_F(MemoryOpenEXRRGBF32, RGB_F32) {}
 typedef MemoryOpenEXR<PixelRGBA<float> > MemoryOpenEXRRGBAF32;
-TEST_F( MemoryOpenEXRRGBAF32, RGBA_F32 ) {}
+TEST_F(MemoryOpenEXRRGBAF32, RGBA_F32) {}
 typedef MemoryOpenEXR<PixelGray<float> > MemoryOpenEXRGRAYF32;
-TEST_F( MemoryOpenEXRGRAYF32, GRAY_F32 ) {}
+TEST_F(MemoryOpenEXRGRAYF32, GRAY_F32) {}
 typedef MemoryOpenEXR<PixelGrayA<float> > MemoryOpenEXRGRAYAF32;
-TEST_F( MemoryOpenEXRGRAYAF32, GRAYA_F32 ) {}
+TEST_F(MemoryOpenEXRGRAYAF32, GRAYA_F32) {}
 
 #endif

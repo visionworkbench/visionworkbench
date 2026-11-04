@@ -39,7 +39,7 @@ namespace vw {
 namespace internal {
   typedef boost::function<void (std::string const&)> ExtTestFunction;
   void foreach_ext(std::string const& prefix, ExtTestFunction const& callback,
-                  std::set<std::string> const& exclude = std::set<std::string>() );
+                  std::set<std::string> const& exclude = std::set<std::string>());
 }} // namespace vw::internal
 
 #endif // __VW_FILEIO_DISKIMAGERESOURCE_INTERNAL__

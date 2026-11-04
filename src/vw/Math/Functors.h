@@ -106,11 +106,11 @@ namespace vw {
 #if !defined(__VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC)
     // This will actually create a specialization for long doubles
 #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)          \
-    long double operator()( long double arg ) const {   \
+    long double operator()(long double arg) const {   \
       return func##l(arg);                              \
     }
 #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)                         \
-    long double operator()( long double arg1, long double arg2 ) const { \
+    long double operator()(long double arg1, long double arg2) const { \
       return func##l(arg1,arg2);                                        \
     }
 #else
@@ -125,10 +125,10 @@ namespace vw {
       : UnaryReturnBinaryTemplateBind1st<ArgUnaryFunctorType,Arg##name##Functor> { \
         template <class ValT>                                           \
           typename ArgUnaryFunctorType<Arg##name##Functor,ValT>::type   \
-          operator()( ValT arg ) const {                                \
+          operator()(ValT arg) const {                                \
           return func(arg);                                             \
         }                                                               \
-        float operator()( float arg ) const {                           \
+        float operator()(float arg) const {                           \
           return func##f(arg);                                          \
         }                                                               \
         __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)                          \
@@ -138,14 +138,14 @@ namespace vw {
 #define __VW_BINARY_MATH_FUNCTOR(name,func)                             \
     struct ArgArg##name##Functor                                        \
       : BinaryReturnTernaryTemplateBind1st<BinaryFunctorType,ArgArg##name##Functor> { \
-    float operator()( float arg1, float arg2 ) const {                  \
+    float operator()(float arg1, float arg2) const {                  \
     return func##f(arg1,arg2);                                          \
   }                                                                     \
     __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)                             \
     template <class Arg1T, class Arg2T>                                 \
     typename BinaryFunctorType<ArgArg##name##Functor,Arg1T,Arg2T>::type \
-    inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {   \
-    return func( arg1, arg2 );                                          \
+    inline operator()(Arg1T const& arg1, Arg2T const& arg2) const {   \
+    return func(arg1, arg2);                                          \
   }                                                                     \
   };                                                                    \
     template <class ValT>                                               \
@@ -155,8 +155,8 @@ namespace vw {
     ArgVal##name##Functor(ValT val) : m_val(val) {}                     \
     template <class ArgT>                                               \
     typename BinaryFunctorType<ArgArg##name##Functor,ArgT,ValT>::type   \
-    inline operator()( ArgT const& arg ) const {                        \
-    return ArgArg##name##Functor()( arg, m_val );                       \
+    inline operator()(ArgT const& arg) const {                        \
+    return ArgArg##name##Functor()(arg, m_val);                       \
   }                                                                     \
   };                                                                    \
     template <class ValT>                                               \
@@ -166,59 +166,59 @@ namespace vw {
     ValArg##name##Functor(ValT val) : m_val(val) {}                     \
     template <class ArgT>                                               \
     typename BinaryFunctorType<ArgArg##name##Functor,ValT,ArgT>::type   \
-    inline operator()( ArgT const& arg ) const {                        \
-    return ArgArg##name##Functor()( m_val, arg );                       \
+    inline operator()(ArgT const& arg) const {                        \
+    return ArgArg##name##Functor()(m_val, arg);                       \
   }                                                                     \
   };                                                                    \
     using ::func;
 // END __VW_BINARY_MATH_FUNCTOR
 
-    __VW_UNARY_MATH_FUNCTOR( Fabs, fabs )
-    __VW_UNARY_MATH_FUNCTOR( Acos, acos )
-    __VW_UNARY_MATH_FUNCTOR( Asin, asin )
-    __VW_UNARY_MATH_FUNCTOR( Atan, atan )
-    __VW_UNARY_MATH_FUNCTOR( Cos, cos )
-    __VW_UNARY_MATH_FUNCTOR( Sin, sin )
-    __VW_UNARY_MATH_FUNCTOR( Tan, tan )
-    __VW_UNARY_MATH_FUNCTOR( Cosh, cosh )
-    __VW_UNARY_MATH_FUNCTOR( Sinh, sinh )
-    __VW_UNARY_MATH_FUNCTOR( Tanh, tanh )
-    __VW_UNARY_MATH_FUNCTOR( Exp, exp )
-    __VW_UNARY_MATH_FUNCTOR( Log, log )
-    __VW_UNARY_MATH_FUNCTOR( Log10, log10 )
-    __VW_UNARY_MATH_FUNCTOR( Sqrt, sqrt )
-    __VW_UNARY_MATH_FUNCTOR( Ceil, ceil )
-    __VW_UNARY_MATH_FUNCTOR( Floor, floor )
+    __VW_UNARY_MATH_FUNCTOR(Fabs, fabs)
+    __VW_UNARY_MATH_FUNCTOR(Acos, acos)
+    __VW_UNARY_MATH_FUNCTOR(Asin, asin)
+    __VW_UNARY_MATH_FUNCTOR(Atan, atan)
+    __VW_UNARY_MATH_FUNCTOR(Cos, cos)
+    __VW_UNARY_MATH_FUNCTOR(Sin, sin)
+    __VW_UNARY_MATH_FUNCTOR(Tan, tan)
+    __VW_UNARY_MATH_FUNCTOR(Cosh, cosh)
+    __VW_UNARY_MATH_FUNCTOR(Sinh, sinh)
+    __VW_UNARY_MATH_FUNCTOR(Tanh, tanh)
+    __VW_UNARY_MATH_FUNCTOR(Exp, exp)
+    __VW_UNARY_MATH_FUNCTOR(Log, log)
+    __VW_UNARY_MATH_FUNCTOR(Log10, log10)
+    __VW_UNARY_MATH_FUNCTOR(Sqrt, sqrt)
+    __VW_UNARY_MATH_FUNCTOR(Ceil, ceil)
+    __VW_UNARY_MATH_FUNCTOR(Floor, floor)
 
-    __VW_BINARY_MATH_FUNCTOR( Atan2, atan2 )
-    __VW_BINARY_MATH_FUNCTOR( Pow, pow )
-    __VW_BINARY_MATH_FUNCTOR( Hypot, hypot )
+    __VW_BINARY_MATH_FUNCTOR(Atan2, atan2)
+    __VW_BINARY_MATH_FUNCTOR(Pow, pow)
+    __VW_BINARY_MATH_FUNCTOR(Hypot, hypot)
 
 #ifndef WIN32
-    __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
-    __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
-    __VW_UNARY_MATH_FUNCTOR( Atanh, atanh )
+    __VW_UNARY_MATH_FUNCTOR(Acosh, acosh)
+    __VW_UNARY_MATH_FUNCTOR(Asinh, asinh)
+    __VW_UNARY_MATH_FUNCTOR(Atanh, atanh)
 
 #ifdef VW_HAVE_EXP2
-    __VW_UNARY_MATH_FUNCTOR( Exp2, exp2 )
+    __VW_UNARY_MATH_FUNCTOR(Exp2, exp2)
 #endif
 #ifdef VW_HAVE_LOG2
-    __VW_UNARY_MATH_FUNCTOR( Log2, log2 )
+    __VW_UNARY_MATH_FUNCTOR(Log2, log2)
 #endif
 #ifdef VW_HAVE_TGAMMA
-    __VW_UNARY_MATH_FUNCTOR( Tgamma, tgamma )
+    __VW_UNARY_MATH_FUNCTOR(Tgamma, tgamma)
 #endif
-    __VW_UNARY_MATH_FUNCTOR( Lgamma, lgamma )
-    __VW_UNARY_MATH_FUNCTOR( Expm1, expm1 )
-    __VW_UNARY_MATH_FUNCTOR( Log1p, log1p )
-    __VW_UNARY_MATH_FUNCTOR( Cbrt, cbrt )
-    __VW_UNARY_MATH_FUNCTOR( Erf, erf )
-    __VW_UNARY_MATH_FUNCTOR( Erfc, erfc )
-    __VW_UNARY_MATH_FUNCTOR( Round, round )
-      __VW_UNARY_MATH_FUNCTOR( Trunc, trunc )
+    __VW_UNARY_MATH_FUNCTOR(Lgamma, lgamma)
+    __VW_UNARY_MATH_FUNCTOR(Expm1, expm1)
+    __VW_UNARY_MATH_FUNCTOR(Log1p, log1p)
+    __VW_UNARY_MATH_FUNCTOR(Cbrt, cbrt)
+    __VW_UNARY_MATH_FUNCTOR(Erf, erf)
+    __VW_UNARY_MATH_FUNCTOR(Erfc, erfc)
+    __VW_UNARY_MATH_FUNCTOR(Round, round)
+      __VW_UNARY_MATH_FUNCTOR(Trunc, trunc)
 
-      __VW_BINARY_MATH_FUNCTOR( Copysign, copysign )
-    __VW_BINARY_MATH_FUNCTOR( Fdim, fdim )
+      __VW_BINARY_MATH_FUNCTOR(Copysign, copysign)
+    __VW_BINARY_MATH_FUNCTOR(Fdim, fdim)
 #endif
 
 // Clean up the macros we are finished using
@@ -229,12 +229,12 @@ namespace vw {
     // Real part functor
     struct ArgRealFunctor : UnaryReturnTemplateType<MakeReal> {
       template <class ValT>
-      ValT operator()( ValT const& val ) const {
+      ValT operator()(ValT const& val) const {
         return val;
       }
 
       template <class ValT>
-      ValT operator()( std::complex<ValT> const& val ) const {
+      ValT operator()(std::complex<ValT> const& val) const {
         return std::real(val);
       }
     };
@@ -243,12 +243,12 @@ namespace vw {
     // Imaginary part functor
     struct ArgImagFunctor : UnaryReturnTemplateType<MakeReal> {
       template <class ValT>
-      ValT operator()( ValT const& /*val*/ ) const {
+      ValT operator()(ValT const& /*val*/) const {
         return ValT();
       }
 
       template <class ValT>
-      ValT operator()( std::complex<ValT> const& val ) const {
+      ValT operator()(std::complex<ValT> const& val) const {
         return std::imag(val);
       }
     };
@@ -260,8 +260,8 @@ namespace vw {
     /// \cond INTERNAL
     // This is outside ArgAbsFunctor because explicit template
     // specialization doesn't work at class scope.
-    template <bool IntegralN> struct DefaultAbsBehavior { template <class ValT> static inline int apply( ValT val ) { return std::abs(val); } };
-    template <> struct DefaultAbsBehavior<false> { template <class ValT> static inline double apply( ValT val ) { return fabs(val); } };
+    template <bool IntegralN> struct DefaultAbsBehavior { template <class ValT> static inline int apply(ValT val) { return std::abs(val); } };
+    template <> struct DefaultAbsBehavior<false> { template <class ValT> static inline double apply(ValT val) { return fabs(val); } };
     /// \endcond
     struct ArgAbsFunctor {
       template <class Args> struct result;
@@ -279,21 +279,21 @@ namespace vw {
 
       template <class ValT>
       typename result<ArgAbsFunctor(ValT)>::type
-      inline operator()( ValT val ) const {
+      inline operator()(ValT val) const {
         return DefaultAbsBehavior<std::numeric_limits<ValT>::is_integer>::apply(val);
       }
 
-      inline float operator()( float val ) const { return ::fabsf(val); }
-      inline long operator()( long val ) const { return std::labs(val); }
+      inline float operator()(float val) const { return ::fabsf(val); }
+      inline long operator()(long val) const { return std::labs(val); }
 #ifdef VW_HAVE_FABSL
-      inline long double operator()( long double val ) const { return ::fabsl(val); }
+      inline long double operator()(long double val) const { return ::fabsl(val); }
 #endif
 #ifdef VW_HAVE_LLABS
-      inline long long operator()( long long val ) const { return ::llabs(val); }
+      inline long long operator()(long long val) const { return ::llabs(val); }
 #endif
 
       template <class ValT>
-      inline ValT operator()( std::complex<ValT> const& val ) const {
+      inline ValT operator()(std::complex<ValT> const& val) const {
         return std::abs(val);
       }
     };
@@ -302,12 +302,12 @@ namespace vw {
     // Complex conjugation functor
     struct ArgConjFunctor : UnaryReturnSameType {
       template <class ValT>
-      ValT operator()( ValT const& val ) const {
+      ValT operator()(ValT const& val) const {
         return val;
       }
 
       template <class ValT>
-      std::complex<ValT> operator()( std::complex<ValT> const& val ) const {
+      std::complex<ValT> operator()(std::complex<ValT> const& val) const {
         return std::conj(val);
       }
     };
@@ -315,7 +315,7 @@ namespace vw {
     // Square Functor (so we don't have to always invoke POW)
     struct ArgSquareFunctor : UnaryReturnSameType {
       template <class ValT>
-      ValT operator()( ValT const& val ) const {
+      ValT operator()(ValT const& val) const {
         return val*val;
       }
     };
@@ -330,12 +330,12 @@ namespace vw {
       typedef AccumT value_type;
 
       Accumulator() : m_accum(), m_func() {}
-      Accumulator( FuncT const& func ) : m_accum(), m_func(func) {}
-      Accumulator( AccumT const& accum ) : m_accum(accum), m_func() {}
-      Accumulator( AccumT const& accum, FuncT const& func ) : m_accum(accum), m_func(func) {}
+      Accumulator(FuncT const& func) : m_accum(), m_func(func) {}
+      Accumulator(AccumT const& accum) : m_accum(accum), m_func() {}
+      Accumulator(AccumT const& accum, FuncT const& func) : m_accum(accum), m_func(func) {}
 
       template <class ArgT>
-      inline AccumT const& operator()( ArgT const& arg ) {
+      inline AccumT const& operator()(ArgT const& arg) {
         m_func(m_accum, arg);
         return m_accum;
       }
@@ -344,7 +344,7 @@ namespace vw {
         return m_accum;
       }
 
-      void reset( AccumT const& accum = AccumT() ) {
+      void reset(AccumT const& accum = AccumT()) {
         m_accum = accum;
       }
     };
@@ -360,14 +360,14 @@ namespace vw {
 
       MinMaxAccumulator() : m_minval(0), m_maxval(0), m_valid(false) {}
 
-      void operator()( ValT const& arg ) {
-        if ( ! m_valid ) {
+      void operator()(ValT const& arg) {
+        if (! m_valid) {
           m_minval = m_maxval = arg;
           m_valid = true;
         }
         else {
-          if( arg < m_minval ) m_minval = arg;
-          if( m_maxval < arg ) m_maxval = arg;
+          if(arg < m_minval) m_minval = arg;
+          if(m_maxval < arg) m_maxval = arg;
         }
       }
 
@@ -453,8 +453,8 @@ namespace vw {
     public:
       typedef ValT value_type;
 
-      void operator()( ValT const& value ) {
-        m_values.push_back( value );
+      void operator()(ValT const& value) {
+        m_values.push_back(value);
       }
 
       // This is to check if there are any values
@@ -478,7 +478,7 @@ namespace vw {
 
       MeanAccumulator() : m_accum(), m_count() {}
 
-      void operator()( ValT const& value ) {
+      void operator()(ValT const& value) {
         m_accum += value;
         m_count += 1.0;
       }
@@ -502,7 +502,7 @@ namespace vw {
 
       StdDevAccumulator() : mom1_accum(), mom2_accum(), num_samples() {}
 
-      void operator()( ValT const& arg ) {
+      void operator()(ValT const& arg) {
         mom1_accum += arg;
         mom2_accum += (accum_type) arg * arg;
         num_samples += 1.0;

@@ -27,48 +27,48 @@ using namespace vw;
 using namespace vw::test;
 
 // Spherical transform that is ignorant of flattened datums.
-TEST( PointImageManipulation, XYZ_to_LonLat_Estimate ) {
+TEST(PointImageManipulation, XYZ_to_LonLat_Estimate) {
   // Test a full forward and reverse transformation
   Vector3 xyz(-2197110.000000, 1741355.875000, 1898886.875000);
   Vector3 lon_lat_alt = xyz_to_lon_lat_radius_estimate(xyz);
   Vector3 xyz2        = lon_lat_radius_to_xyz_estimate(lon_lat_alt);
 
-  EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
+  EXPECT_VECTOR_NEAR(xyz, xyz2, 1e-2);
 
   // Test to see if things still work for West positive coordinate
   // systems.
   lon_lat_alt = xyz_to_lon_lat_radius_estimate(xyz,false);
   xyz2        = lon_lat_radius_to_xyz_estimate(lon_lat_alt,false);
 
-  EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
+  EXPECT_VECTOR_NEAR(xyz, xyz2, 1e-2);
 
   // See if it still works if using 0-360 range
   xyz[1] = -xyz[1];
   lon_lat_alt = xyz_to_lon_lat_radius_estimate(xyz,true,false);
   xyz2        = lon_lat_radius_to_xyz_estimate(lon_lat_alt);
 
-  EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
+  EXPECT_VECTOR_NEAR(xyz, xyz2, 1e-2);
 }
 
 // These are the more general operators which can actually handle
 // squished datums.
-TEST( PointImageManipulation, GeodeticCartesian ) {
+TEST(PointImageManipulation, GeodeticCartesian) {
   ImageView<Vector3> geodetic(2,2);
-  geodetic(0,0) = Vector3( 90, 10, 100 );
+  geodetic(0,0) = Vector3(90, 10, 100);
   geodetic(0,1) = Vector3(); // An actual valid measurement.
-  geodetic(1,0) = Vector3( 10, 89, 9  );
-  geodetic(1,1) = Vector3(0, 0, std::numeric_limits<double>::quiet_NaN() ); // invalid measure.
+  geodetic(1,0) = Vector3(10, 89, 9);
+  geodetic(1,1) = Vector3(0, 0, std::numeric_limits<double>::quiet_NaN()); // invalid measure.
 
   Datum moon("D_MOON"), earth("WGS84");
   ImageView<Vector3> result_moon  = cartesian_to_geodetic(geodetic_to_cartesian(geodetic, moon),moon);
   ImageView<Vector3> result_earth = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,earth),earth);
-  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_moon.begin(), result_moon.begin()+3, 1e-9 );
-  EXPECT_TRUE( boost::math::isnan(result_moon(1,1).z()) );
-  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 3e-9 ); // earth is bigger, so bigger error too
-  EXPECT_TRUE( boost::math::isnan(result_earth(1,1).z()) );
+  EXPECT_RANGE_NEAR(geodetic.begin(), geodetic.begin()+3, result_moon.begin(), result_moon.begin()+3, 1e-9);
+  EXPECT_TRUE(boost::math::isnan(result_moon(1,1).z()));
+  EXPECT_RANGE_NEAR(geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 3e-9); // earth is bigger, so bigger error too
+  EXPECT_TRUE(boost::math::isnan(result_earth(1,1).z()));
 }
 
-TEST( PointImageManipulation, CartesianGeodetic ) {
+TEST(PointImageManipulation, CartesianGeodetic) {
   ImageView<Vector3> cartesian(2,2);
   cartesian(0,0) = Vector3(1737892,80,5320);
   cartesian(1,0) = Vector3(50,-190,-80);
@@ -78,6 +78,6 @@ TEST( PointImageManipulation, CartesianGeodetic ) {
   Datum moon("D_MOON"), earth("WGS84");
   ImageView<Vector3> result_moon  = geodetic_to_cartesian(cartesian_to_geodetic(cartesian, moon),moon);
   ImageView<Vector3> result_earth = geodetic_to_cartesian(cartesian_to_geodetic(cartesian,earth),earth);
-  EXPECT_SEQ_NEAR( cartesian, result_moon,  1e-6 );
-  EXPECT_SEQ_NEAR( cartesian, result_earth, 1e-6 );
+  EXPECT_SEQ_NEAR(cartesian, result_moon,  1e-6);
+  EXPECT_SEQ_NEAR(cartesian, result_earth, 1e-6);
 }

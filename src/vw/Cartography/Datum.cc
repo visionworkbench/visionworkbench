@@ -90,7 +90,7 @@ void vw::Datum::set_datum_from_spatial_ref(
 void vw::Datum::set_wkt(std::string const& wkt) {
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.importFromWkt(&wkt[0]) != OGRERR_NONE)
-    vw_throw( ArgumentErr() << "Failed to parse: \"" << wkt << "\"." );
+    vw_throw(ArgumentErr() << "Failed to parse: \"" << wkt << "\".");
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
 }
@@ -101,7 +101,7 @@ void vw::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.importFromProj4(proj_str.c_str()) != OGRERR_NONE)
-    vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
+    vw_throw(ArgumentErr() << "Failed to parse: \"" << proj_str << "\".");
 
   set_datum_from_spatial_ref(gdal_spatial_ref);
 }
@@ -180,7 +180,7 @@ void vw::Datum::set_well_known_datum(std::string const& name) {
     return;
   }
 
-  vw::vw_throw( vw::InputErr() << "Unknown datum: " << name << ".");
+  vw::vw_throw(vw::InputErr() << "Unknown datum: " << name << ".");
 }
 
 void vw::Datum::set_semi_major_axis(double val) {
@@ -256,8 +256,8 @@ double vw::Datum::geocentric_radius(double /*lon*/, double lat, double alt) cons
   double b2   = b * b;
   double e2   = (a2 - b2) / a2;
   double rlat = lat * (M_PI/180);
-  double slat = sin( rlat );
-  double clat = cos( rlat );
+  double slat = sin(rlat);
+  double clat = cos(rlat);
   double Rn   = a / sqrt(1.0-e2*slat*slat) + alt;
 
   return sqrt(Rn*Rn*(clat*clat + (1-e2)*(1-e2)*slat*slat));
@@ -362,10 +362,10 @@ vw::Vector3 vw::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
 
   double rlon = (llh.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
-  double slat = sin( rlat );
-  double clat = cos( rlat );
-  double slon = sin( rlon );
-  double clon = cos( rlon );
+  double slat = sin(rlat);
+  double clat = cos(rlat);
+  double slon = sin(rlon);
+  double clon = cos(rlon);
   double radius = a / sqrt(1.0-e2*slat*slat);
 
   return Vector3((radius+llh.z()) * clat * clon,
@@ -379,41 +379,41 @@ vw::Vector3 vw::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
 //
 // This is an improvement over the 1988/Proj4's implementation as it's
 // a smidgen faster and it still works near the center of the datum.
-vw::Vector3 vw::Datum::cartesian_to_geodetic( vw::Vector3 const& xyz ) const {
+vw::Vector3 vw::Datum::cartesian_to_geodetic(vw::Vector3 const& xyz) const {
   const double a2 = m_semi_major_axis * m_semi_major_axis;
   const double b2 = m_semi_minor_axis * m_semi_minor_axis;
   const double e2 = 1 - b2 / a2;
   const double e4 = e2 * e2;
 
-  double xy_dist = sqrt( xyz[0] * xyz[0] + xyz[1] * xyz[1] );
-  double p  = ( xyz[0] * xyz[0] + xyz[1] * xyz[1] ) / a2;
-  double q  = ( 1 - e2 ) * xyz[2] * xyz[2] / a2;
-  double r  = ( p + q - e4 ) / 6.0;
+  double xy_dist = sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1]);
+  double p  = (xyz[0] * xyz[0] + xyz[1] * xyz[1]) / a2;
+  double q  = (1 - e2) * xyz[2] * xyz[2] / a2;
+  double r  = (p + q - e4) / 6.0;
   double r3 = r * r * r;
 
   Vector3 llh;
 
   double evolute = 8 * r3 + e4 * p * q;
   double u = std::numeric_limits<double>::quiet_NaN();
-  if ( evolute > 0 ) {
+  if (evolute > 0) {
     // outside the evolute
     double right_inside_pow = sqrt(e4 * p * q);
-    double sqrt_evolute = sqrt( evolute );
+    double sqrt_evolute = sqrt(evolute);
     u = r + 0.5 * pow(sqrt_evolute + right_inside_pow, 2.0/3.0)
           + 0.5 * pow(sqrt_evolute - right_inside_pow, 2.0/3.0);
-  } else if ( fabs(xyz[2]) < std::numeric_limits<double>::epsilon() ) {
+  } else if (fabs(xyz[2]) < std::numeric_limits<double>::epsilon()) {
     // On the equator plane
     llh[1] = 0;
-    llh[2] = norm_2( xyz ) - m_semi_major_axis;
-  } else if ( evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon() ) {
+    llh[2] = norm_2(xyz) - m_semi_major_axis;
+  } else if (evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon()) {
     // On or inside the evolute
-    double atan_result = atan2( sqrt( e4 * p * q ), sqrt( -evolute ) + sqrt(-8 * r3) );
-    u = -4 * r * sin( 2.0 / 3.0 * atan_result )
-               * cos( M_PI / 6.0 + 2.0 / 3.0 * atan_result );
-  } else if ( fabs(q) < std::numeric_limits<double>::epsilon() and p <= e4 ) {
+    double atan_result = atan2(sqrt(e4 * p * q), sqrt(-evolute) + sqrt(-8 * r3));
+    u = -4 * r * sin(2.0 / 3.0 * atan_result)
+               * cos(M_PI / 6.0 + 2.0 / 3.0 * atan_result);
+  } else if (fabs(q) < std::numeric_limits<double>::epsilon() and p <= e4) {
     // In the singular disc
     llh[2] = -m_semi_major_axis * sqrt(1 - e2) * sqrt(e2 - p) / sqrt(e2);
-    llh[1] = 2 * atan2( sqrt(e4 - p), sqrt(e2*(e2 - p)) + sqrt(1-e2) * sqrt(p) );
+    llh[1] = 2 * atan2(sqrt(e4 - p), sqrt(e2*(e2 - p)) + sqrt(1-e2) * sqrt(p));
   } else {
     // Near the cusps of the evolute
     double inside_pow = sqrt(evolute) + sqrt(e4 * p * q);
@@ -421,26 +421,26 @@ vw::Vector3 vw::Datum::cartesian_to_geodetic( vw::Vector3 const& xyz ) const {
           + 2*r*r * pow(inside_pow,-2.0/3.0);
   }
 
-  if (!std::isnan(u) ) {
-    double v   = sqrt( u * u + e4 * q );
+  if (!std::isnan(u)) {
+    double v   = sqrt(u * u + e4 * q);
     double u_v = u + v;
-    double w   = e2 * ( u_v - q ) / ( 2 * v );
-    double k   = u_v / ( w + sqrt( w * w + u_v ) );
-    double D   = k * xy_dist / ( k + e2 );
+    double w   = e2 * (u_v - q) / (2 * v);
+    double k   = u_v / (w + sqrt(w * w + u_v));
+    double D   = k * xy_dist / (k + e2);
     double dist_2 = D * D + xyz[2] * xyz[2];
-    llh[2] = ( k + e2 - 1 ) * sqrt( dist_2 ) / k;
-    llh[1] = 2 * atan2( xyz[2], sqrt( dist_2 ) + D );
+    llh[2] = (k + e2 - 1) * sqrt(dist_2) / k;
+    llh[1] = 2 * atan2(xyz[2], sqrt(dist_2) + D);
   }
 
-  if ( xy_dist + xyz[0] > ( sqrt(2) - 1 ) * xyz[1] ) {
+  if (xy_dist + xyz[0] > (sqrt(2) - 1) * xyz[1]) {
     // Longitude is between -135 and 135
-    llh[0] = 360.0 * atan2( xyz[1], xy_dist + xyz[0] ) / M_PI;
-  } else if ( xy_dist + xyz[1] < ( sqrt(2) + 1 ) * xyz[0] ) {
+    llh[0] = 360.0 * atan2(xyz[1], xy_dist + xyz[0]) / M_PI;
+  } else if (xy_dist + xyz[1] < (sqrt(2) + 1) * xyz[0]) {
     // Longitude is between -225 and 45
-    llh[0] = - 90.0 + 360.0 * atan2( xyz[0], xy_dist - xyz[1] ) / M_PI;
+    llh[0] = - 90.0 + 360.0 * atan2(xyz[0], xy_dist - xyz[1]) / M_PI;
   } else {
     // Longitude is between -45 and 225
-    llh[0] = 90.0 - 360.0 * atan2( xyz[0], xy_dist + xyz[1] ) / M_PI;
+    llh[0] = 90.0 - 360.0 * atan2(xyz[0], xy_dist + xyz[1]) / M_PI;
   }
   llh[0] -= m_meridian_offset;
   llh[1] *= 180.0 / M_PI;
@@ -546,7 +546,7 @@ vw::datum_intersection(double semi_major_axis, double semi_minor_axis,
   double radius_2 = semi_major_axis * semi_major_axis;
   double alpha = -dot_prod(camera_ctr, camera_vec);
   vw::Vector3 projection = camera_ctr + alpha * camera_vec;
-  if ( norm_2_sqr(projection) > radius_2 ) {
+  if (norm_2_sqr(projection) > radius_2) {
     // did not intersect
     return vw::Vector3();
   }

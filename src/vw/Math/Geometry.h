@@ -59,17 +59,17 @@ namespace math {
     struct ApplyMatrixFunctor {
       Matrix<double,D,D> m;
       template <class MatrixT>
-      ApplyMatrixFunctor( MatrixBase<MatrixT> const& mat ) : m( mat.impl() ) {}
+      ApplyMatrixFunctor(MatrixBase<MatrixT> const& mat) : m(mat.impl()) {}
 
-      Vector<double,D> operator()( Vector<double,D> const& v ) {
+      Vector<double,D> operator()(Vector<double,D> const& v) {
         return m * v;
       }
     };
 
     /// Solve for Normalization Similarity Matrix used for noise rej.
-    vw::Matrix3x3 NormSimilarity( std::vector<Vector3> const& pts ) const;
-    vw::Matrix3x3 BasicDLT( std::vector<Vector3 > const& input,
-                            std::vector<Vector3 > const& output )  const;
+    vw::Matrix3x3 NormSimilarity(std::vector<Vector3> const& pts) const;
+    vw::Matrix3x3 BasicDLT(std::vector<Vector3 > const& input,
+                           std::vector<Vector3 > const& output)  const;
 
     /// Defining a Levenberg Marquard model that will be used to solve
     /// for a homography matrix.
@@ -91,18 +91,18 @@ namespace math {
       typedef Matrix<double> jacobian_type;
 
       // Constructor
-      HomographyModelLMA( Vector<double> const& measure ) : m_measure(measure) {}
+      HomographyModelLMA(Vector<double> const& measure) : m_measure(measure) {}
 
       // Evaluator
-      inline result_type operator()( domain_type const& x ) const {
+      inline result_type operator()(domain_type const& x) const {
         result_type output;
         output.set_size(m_measure.size());
         Matrix3x3 H;
         H(2,2) = 1;
-        VectorProxy<double,8>( H.data() ) = x;
+        VectorProxy<double,8>(H.data()) = x;
 
-        for ( size_t i = 0; i < m_measure.size(); i+=2 ) {
-          Vector3 output_i = H*Vector3( m_measure[i], m_measure[i+1], 1 );
+        for (size_t i = 0; i < m_measure.size(); i+=2) {
+          Vector3 output_i = H*Vector3(m_measure[i], m_measure[i+1], 1);
           output_i /= output_i(2);
           subvector(output,i,2) = subvector(output_i,0,2);
         }
@@ -114,34 +114,34 @@ namespace math {
     /// samples is 4, than a simple DLT is used. Otherwise it will use
     /// a minimization algorithm.
     template <class ContainerT>
-    vw::Matrix<double> operator()( std::vector<ContainerT> const& p1,
-                                   std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute homography. p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute homography. Insufficient data.");
-      VW_ASSERT( p1[0].size() == 3,
-                 vw::ArgumentErr() << "Cannot compute homography. Currently only support homogeneous 2D vectors." );
+    vw::Matrix<double> operator()(std::vector<ContainerT> const& p1,
+                                  std::vector<ContainerT> const& p2,
+                                  vw::Matrix<double> const& seed_input = vw::Matrix<double>()) const {
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute homography. p1 and p2 are not the same size.");
+      VW_ASSERT(p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute homography. Insufficient data.");
+      VW_ASSERT(p1[0].size() == 3,
+                vw::ArgumentErr() << "Cannot compute homography. Currently only support homogeneous 2D vectors.");
 
       // Converting to a container that is used internally.
       std::vector<Vector3 > input(p1.size()), output(p2.size());
-      for ( size_t i = 0; i < p1.size(); i++ ) {
-        input[i] = Vector3( p1[i][0], p1[i][1], p1[i][2] );
+      for (size_t i = 0; i < p1.size(); i++) {
+        input[i] = Vector3(p1[i][0], p1[i][1], p1[i][2]);
       }
-      for ( size_t i = 0; i < p2.size(); i++ ) {
-        output[i] = Vector3( p2[i][0], p2[i][1], p2[i][2] );
+      for (size_t i = 0; i < p2.size(); i++) {
+        output[i] = Vector3(p2[i][0], p2[i][1], p2[i][2]);
       }
 
-      if ( p1.size() == min_elements_needed_for_fit(p1[0] ) ) {
+      if (p1.size() == min_elements_needed_for_fit(p1[0])) {
         // Use DLT
         Matrix3x3 S_in = NormSimilarity(input);
         Matrix3x3 S_out = NormSimilarity(output);
-        std::transform( input.begin(), input.end(), input.begin(),
-                        ApplyMatrixFunctor<3>( S_in ) );
-        std::transform( output.begin(), output.end(), output.begin(),
-                        ApplyMatrixFunctor<3>( S_out ) );
-        Matrix3x3 H_prime = BasicDLT( input, output );
+        std::transform(input.begin(), input.end(), input.begin(),
+                       ApplyMatrixFunctor<3>(S_in));
+        std::transform(output.begin(), output.end(), output.begin(),
+                       ApplyMatrixFunctor<3>(S_out));
+        Matrix3x3 H_prime = BasicDLT(input, output);
         Matrix3x3 H = inverse(S_out)*H_prime*S_in;
         H /= H(2,2);
         return H;
@@ -155,9 +155,9 @@ namespace math {
 
         // Determine if we have a seed .. if not make one.
         Matrix3x3 seed_copy;
-        if ( seed_input == Matrix<double>() ) {
+        if (seed_input == Matrix<double>()) {
           std::vector<ContainerT> p1_small(4), p2_small(4);
-          for ( size_t i = 0; i < 4; i++ ) {
+          for (size_t i = 0; i < 4; i++) {
             p1_small[i] = p1[i];
             p2_small[i] = p2[i];
           }
@@ -167,24 +167,24 @@ namespace math {
         }
 
         // Flatting input & output;
-        Vector<double> input_flat( input.size()*2 );
-        Vector<double> output_flat( output.size()*2 );
-        for ( size_t i = 0; i < input.size(); i++ ) {
+        Vector<double> input_flat(input.size()*2);
+        Vector<double> output_flat(output.size()*2);
+        for (size_t i = 0; i < input.size(); i++) {
           subvector(input_flat,i*2,2) = subvector(input[i],0,2);
           subvector(output_flat,i*2,2) = subvector(output[i],0,2);
         }
 
-        HomographyModelLMA model( input_flat );
+        HomographyModelLMA model(input_flat);
 
         // Flatting Homography matrix into 8-vector
         Vector<double> seed(8);
-        std::copy( seed_copy.data(), seed_copy.data()+8,
-                   &seed(0) );
+        std::copy(seed_copy.data(), seed_copy.data()+8,
+                  &seed(0));
 
         int status = 0;
-        VectorProxy<double,8>( seed_copy.data() ) =
-          levenberg_marquardt( model, seed,
-                               output_flat, status );
+        VectorProxy<double,8>(seed_copy.data()) =
+          levenberg_marquardt(model, seed,
+                              output_flat, status);
 
         return seed_copy;
       }
@@ -210,13 +210,13 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size.");
+      VW_ASSERT(!p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
 
 
       size_t dfree = dim * (dim + 1); // Number of parameters that we're solving for
@@ -294,13 +294,13 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size.");
+      VW_ASSERT(!p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
@@ -367,13 +367,13 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute translation and scale transformation. p1 and p2 are not the same size." );
-      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute translation and scale transformation. Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute translation and scale transformation. p1 and p2 are not the same size.");
+      VW_ASSERT(!p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute translation and scale transformation. Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
@@ -433,13 +433,13 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size.");
+      VW_ASSERT(!p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
@@ -494,13 +494,13 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Cannot compute translation transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute translation transformation.  Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Cannot compute translation transformation.  p1 and p2 are not the same size.");
+      VW_ASSERT(!p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute translation transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);

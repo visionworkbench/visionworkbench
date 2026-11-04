@@ -40,15 +40,15 @@ namespace vw {
 
     // The standard DiskImageResource interface:
 
-    DiskImageResourcePNG( std::string const& filename );
+    DiskImageResourcePNG(std::string const& filename);
 
-    DiskImageResourcePNG( std::string const& filename,
-                          ImageFormat const& format );
+    DiskImageResourcePNG(std::string const& filename,
+                         ImageFormat const& format);
 
     // Additional constructor for passing in options.
-    DiskImageResourcePNG( std::string const& filename,
-                          ImageFormat const& format,
-                          Options const& options );
+    DiskImageResourcePNG(std::string const& filename,
+                         ImageFormat const& format,
+                         Options const& options);
 
     virtual ~DiskImageResourcePNG();
 
@@ -58,23 +58,23 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read(ImageBuffer const& buf, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const;
 
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
 
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format,
-                 Options const& options );
+    void create(std::string const& filename,
+                ImageFormat const& format,
+                Options const& options);
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     // The PNG-specific interface:
 
@@ -84,10 +84,10 @@ namespace vw {
     };
 
     unsigned num_comments() const;
-    Comment const& get_comment( unsigned i ) const;
-    std::string const& get_comment_key  ( unsigned i ) const;
-    std::string const& get_comment_value( unsigned i ) const;
-    void write_comments( std::vector<Comment> const& comments );
+    Comment const& get_comment(unsigned i) const;
+    std::string const& get_comment_key  (unsigned i) const;
+    std::string const& get_comment_value(unsigned i) const;
+    void write_comments(std::vector<Comment> const& comments);
 
     // Options that can be passed in while writing. The default is
     // generally 'good enough'.

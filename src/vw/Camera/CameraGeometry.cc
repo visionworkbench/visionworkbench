@@ -22,19 +22,19 @@
 using namespace vw;
 
 template <>
-Vector3 vw::Convert2HomogenousVec2( vw::InterestPoint const& ip ) {
-  return Vector3( ip.x, ip.y , 1 );
+Vector3 vw::Convert2HomogenousVec2(vw::InterestPoint const& ip) {
+  return Vector3(ip.x, ip.y, 1);
 }
 
 Matrix<double>
-CameraMatrixFittingFunctor::BasicDLT( std::vector<Vector<double> > const& input,
-                                      std::vector<Vector<double> > const& output ) const {
-  VW_ASSERT( input[0].size() == 4 && output[0].size() == 3,
-             vw::ArgumentErr() << "Camera Matrix requires Vector4 inputs and Vector3 outputs." );
+CameraMatrixFittingFunctor::BasicDLT(std::vector<Vector<double> > const& input,
+                                     std::vector<Vector<double> > const& output) const {
+  VW_ASSERT(input[0].size() == 4 && output[0].size() == 3,
+            vw::ArgumentErr() << "Camera Matrix requires Vector4 inputs and Vector3 outputs.");
 
   vw::Matrix<double,12,12> A;
-  for ( unsigned i = 0; i < 6; i++ ) { // Measure iterator
-    for ( unsigned j = 0; j < 4; j++ ) { // Measure's X elem iterator
+  for (unsigned i = 0; i < 6; i++) { // Measure iterator
+    for (unsigned j = 0; j < 4; j++) { // Measure's X elem iterator
       // Filling w*Xt
       A(2*i+1,j) = output[i][2]*input[i][j];
       // Filling -w*Xt
@@ -58,30 +58,30 @@ CameraMatrixFittingFunctor::BasicDLT( std::vector<Vector<double> > const& input,
 }
 
 CameraMatrixFittingFunctor::CameraMatrixModelLMA::CameraMatrixModelLMA
-( std::vector<Vector<double> > const& input,
-  std::vector<Vector<double> > const& output ) :
+(std::vector<Vector<double> > const& input,
+ std::vector<Vector<double> > const& output) :
   m_world_input(input), m_image_output(output) {}
 
 Vector<double>
-CameraMatrixFittingFunctor::CameraMatrixModelLMA::operator()( Vector<double> const& x ) const {
+CameraMatrixFittingFunctor::CameraMatrixModelLMA::operator()(Vector<double> const& x) const {
   result_type output;
-  output.set_size( m_world_input.size() );
+  output.set_size(m_world_input.size());
   Matrix<double,3,4> P = unflatten(x);
 
-  for ( uint32 i = 0; i < m_world_input.size(); i++ ) {
+  for (uint32 i = 0; i < m_world_input.size(); i++) {
     Vector3 reproj = P*m_world_input[i];
     reproj /= reproj[2];
-    output[i] = norm_2( subvector(m_image_output[i],0,2) - subvector(reproj,0,2) );
+    output[i] = norm_2(subvector(m_image_output[i],0,2) - subvector(reproj,0,2));
   }
   return output;
 }
 
 
 Vector<double>
-CameraMatrixFittingFunctor::CameraMatrixModelLMA::flatten( Matrix<double> const& input ) const {
+CameraMatrixFittingFunctor::CameraMatrixModelLMA::flatten(Matrix<double> const& input) const {
   Vector<double,12> output;
-  for ( uint8 i = 0; i < 3; i++ ) {
-    for ( uint8 j = 0; j < 4; j++ ) {
+  for (uint8 i = 0; i < 3; i++) {
+    for (uint8 j = 0; j < 4; j++) {
       output(4*i+j) = input(i,j);
     }
   }
@@ -89,10 +89,10 @@ CameraMatrixFittingFunctor::CameraMatrixModelLMA::flatten( Matrix<double> const&
 }
 
 Matrix<double>
-CameraMatrixFittingFunctor::CameraMatrixModelLMA::unflatten( Vector<double> const& input ) const {
+CameraMatrixFittingFunctor::CameraMatrixModelLMA::unflatten(Vector<double> const& input) const {
   Matrix<double,3,4> output;
-  for ( uint8 i = 0; i < 3; i++ ) {
-    for ( uint8 j = 0; j < 4; j++ ) {
+  for (uint8 i = 0; i < 3; i++) {
+    for (uint8 j = 0; j < 4; j++) {
       output(i,j) = input(4*i+j);
     }
   }
@@ -100,9 +100,9 @@ CameraMatrixFittingFunctor::CameraMatrixModelLMA::unflatten( Vector<double> cons
 }
 
 Vector<double>
-FundamentalMatrixMLFittingFunctor::ProjectiveModelLMA::operator()( Vector<double> const& x )  const {
+FundamentalMatrixMLFittingFunctor::ProjectiveModelLMA::operator()(Vector<double> const& x)  const {
   unsigned number_of_measures = (x.size()-12)/3;
-  Vector<double> output( number_of_measures*4 );
+  Vector<double> output(number_of_measures*4);
 
   // Create second camera
   Matrix<double> P2(3,4);
@@ -111,7 +111,7 @@ FundamentalMatrixMLFittingFunctor::ProjectiveModelLMA::operator()( Vector<double
   select_row(P2,2) = subvector(x,8,4);
 
   // Calculate reprojection error
-  for ( unsigned i = 0, j = 12; i < number_of_measures; i++, j+= 3 ) {
+  for (unsigned i = 0, j = 12; i < number_of_measures; i++, j+= 3) {
     Vector2 reprojection1(x[j]/x[j+2],x[j+1]/x[j+2]);
     subvector(output,4*i,2) = reprojection1;
     Vector3 reprojection2 = P2*Vector4(x[j],x[j+1],x[j+2],1);

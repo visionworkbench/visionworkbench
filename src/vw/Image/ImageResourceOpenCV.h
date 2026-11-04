@@ -55,10 +55,10 @@ class ImageResourceOpenCV : public ImageResource {
     }
 
     // Read the image resource at the given location into the given buffer.
-    virtual void read( ImageBuffer const& dst_buf, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& dst_buf, BBox2i const& bbox) const;
 
     // Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& buf, BBox2i const& bbox);
 
     virtual void flush() {}
 

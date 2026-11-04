@@ -24,10 +24,10 @@
 
 using namespace vw;
 
-bool CAHVOREModel::check_line( std::istream& istream, char letter ) {
+bool CAHVOREModel::check_line(std::istream& istream, char letter) {
   char r1,r2;
   istream >> r1 >> r2;
-  if ( r1 != letter || r2 != '=' )
+  if (r1 != letter || r2 != '=')
     return false;
   return true;
 }
@@ -53,51 +53,51 @@ CAHVOREModel::CAHVOREModel(std::string const& filename) {
     }
     input >> C(0) >> C(1) >> C(2);
 
-    if ( !check_line( input, 'A') )
-      vw_throw( IOErr() << "CAHVOREModel: Could not read A vector\n" );
+    if (!check_line(input, 'A'))
+      vw_throw(IOErr() << "CAHVOREModel: Could not read A vector\n");
     input >> A(0) >> A(1) >> A(2);
 
-    if ( !check_line( input, 'H') )
-      vw_throw( IOErr() << "CAHVOREModel: Could not read H vector\n" );
+    if (!check_line(input, 'H'))
+      vw_throw(IOErr() << "CAHVOREModel: Could not read H vector\n");
     input >> H(0) >> H(1) >> H(2);
 
-    if ( !check_line( input, 'V') )
-      vw_throw( IOErr() << "CAHVOREModel: Could not read V vector\n" );
+    if (!check_line(input, 'V'))
+      vw_throw(IOErr() << "CAHVOREModel: Could not read V vector\n");
     input >> V(0) >> V(1) >> V(2);
 
-    if ( !check_line( input, 'O') )
-      vw_throw( IOErr() << "CAHVOREModel: Could not read O vector\n" );
+    if (!check_line(input, 'O'))
+      vw_throw(IOErr() << "CAHVOREModel: Could not read O vector\n");
     input >> O(0) >> O(1) >> O(2);
 
-    if ( !check_line( input, 'R') )
-      vw_throw( IOErr() << "CAHVOREModel: Could not read R vector\n" );
+    if (!check_line(input, 'R'))
+      vw_throw(IOErr() << "CAHVOREModel: Could not read R vector\n");
     input >> R(0) >> R(1) >> R(2);
 
-    if ( !check_line( input, 'E') )
-      vw_throw( IOErr() << "CAHVOREModel: could not read R vector\n" );
+    if (!check_line(input, 'E'))
+      vw_throw(IOErr() << "CAHVOREModel: could not read R vector\n");
     input >> E(0) >> E(1) >> E(2);
 
-    if ( !check_line( input, 'T') )
-      vw_throw( IOErr() << "CAHVOREModel: could not read T element\n" );
+    if (!check_line(input, 'T'))
+      vw_throw(IOErr() << "CAHVOREModel: could not read T element\n");
     int T;
     input >> T;
 
-    if ( !check_line( input, 'P') )
-      vw_throw( IOErr() << "CAHVOREModel: could not read P element\n" );
+    if (!check_line(input, 'P'))
+      vw_throw(IOErr() << "CAHVOREModel: could not read P element\n");
     input >> P;
 
-    switch( T ) {
+    switch(T) {
     case 1: P = 1.0; break;
     case 2: P = 0.0; break;
     case 3:
-      if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: "
-                                      << P << "\n" );
+      if (P < 0 || P > 1) vw_throw(ArgumentErr() << "Invalid P value: "
+                                     << P << "\n");
       break;
-    default: vw_throw( ArgumentErr() << "Unknown CAHVORE type: " << T << "\n" );
+    default: vw_throw(ArgumentErr() << "Unknown CAHVORE type: " << T << "\n");
     }
 
   } catch (const std::ifstream::failure& e) {
-    vw_throw( IOErr() << "CAHVOREModel: Could not read file: " << filename << " (" << e.what() << ")" );
+    vw_throw(IOErr() << "CAHVOREModel: Could not read file: " << filename << " (" << e.what() << ")");
   }
 }
 
@@ -112,13 +112,13 @@ CAHVOREModel::CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
                            Vector3 const& O_vec, Vector3 const& R_vec,
                            Vector3 const& E_Vec, int T, double P_v) :
   C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
-  switch( T ) {
+  switch(T) {
   case 1: P = 1.0; break;
   case 2: P = 0.0; break;
   case 3:
-    if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
+    if (P < 0 || P > 1) vw_throw(ArgumentErr() << "Invalid P value: " << P_v << "\n");
     break;
-  default: vw_throw( ArgumentErr() << "Unknown CAHVORE type: " << T << "\n" );
+  default: vw_throw(ArgumentErr() << "Unknown CAHVORE type: " << T << "\n");
   }
 }
 
@@ -127,7 +127,7 @@ CAHVOREModel::CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
                            Vector3 const& O_vec, Vector3 const& R_vec,
                            Vector3 const& E_Vec, double P_v) :
   C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
-  if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
+  if (P < 0 || P > 1) vw_throw(ArgumentErr() << "Invalid P value: " << P_v << "\n");
 }
 
 CAHVOREModel::~CAHVOREModel() {}
@@ -150,16 +150,16 @@ void CAHVOREModel::write(std::string const& filename) {
            << "O = " << O(0) << " " << O(1) << " " << O(2) << "\n"
            << "R = " << R(0) << " " << R(1) << " " << R(2) << "\n"
            << "E = " << E(0) << " " << E(1) << " " << E(2) << "\n";
-    if ( P == 0 ) {
+    if (P == 0) {
       output << "T = 2\n";
-    } else if ( P == 1 ) {
+    } else if (P == 1) {
       output << "T = 1\n";
     } else {
       output << "T = 3\n";
     }
     output << "P = " << P << "\n";
-  } catch ( const std::ofstream::failure& e ) {
-    vw_throw( IOErr() << "CAHVOREModel: Could not write file: " << filename << " (" << e.what() << ")" );
+  } catch (const std::ofstream::failure& e) {
+    vw_throw(IOErr() << "CAHVOREModel: Could not write file: " << filename << " (" << e.what() << ")");
   }
 }
 
@@ -189,7 +189,7 @@ vw::Vector3 CAHVOREModel::pixel_to_vector(vw::Vector2 const& pix) const {
     for (int32 n = 0;; ++n) {
       // Checking exit conditions
       if (n > 100)
-        vw_throw( PixelToRayErr() << "CAHVOREModel: Did not converge.\n" );
+        vw_throw(PixelToRayErr() << "CAHVOREModel: Did not converge.\n");
       if (fabs(dchi) < 1e-8)
         break;
 
@@ -226,7 +226,7 @@ vw::Vector3 CAHVOREModel::pixel_to_vector(vw::Vector2 const& pix) const {
   return result;
 }
 
-Vector3 CAHVOREModel::camera_center(Vector2 const& pix ) const { return C; }
+Vector3 CAHVOREModel::camera_center(Vector2 const& pix) const { return C; }
 
 Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
   // Base on JPL's cmod_cahvore_3d_to_2d_general
@@ -244,7 +244,7 @@ Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
 
     // Checking exit conditions
     if (n > 100)
-      vw_throw( PointToPixelErr() << "CAHVOREModel: Did not converge.\n" );
+      vw_throw(PointToPixelErr() << "CAHVOREModel: Did not converge.\n");
     if (fabs(dtheta) < 1e-8)
       break;
 
@@ -256,7 +256,7 @@ Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
     double theta4 = theta * theta3;
     double upsilon = zeta*costh + lambda*sinth
       - (1     - costh) * (E[0] +  E[1]*theta2 +   E[2]*theta4)
-      - (theta - sinth) * (      2*E[1]*theta  + 4*E[2]*theta3);
+      - (theta - sinth) * (2*E[1]*theta  + 4*E[2]*theta3);
 
     // Update theta
     dtheta = (
@@ -268,7 +268,7 @@ Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
 
   // Check the value of theta
   if ((theta * fabs(P)) > M_PI/2)
-    vw_throw( PointToPixelErr() << "CAHVOREModel: Theta out of bounds.\n" );
+    vw_throw(PointToPixelErr() << "CAHVOREModel: Theta out of bounds.\n");
 
   // Approximations for small theta
   Vector3 rp;
@@ -295,13 +295,13 @@ Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
 
   // Calculate the projection
   double alpha  = dot_prod(rp, A);
-  return Vector2( dot_prod(rp,H) / alpha,
-                  dot_prod(rp,V) / alpha );
+  return Vector2(dot_prod(rp,H) / alpha,
+                 dot_prod(rp,V) / alpha);
 }
 
-CAHVModel vw::linearize_camera( CAHVOREModel const& camera_model,
-                                Vector2i const& cahvore_image_size,
-                                Vector2i const& cahv_image_size ) {
+CAHVModel vw::linearize_camera(CAHVOREModel const& camera_model,
+                               Vector2i const& cahvore_image_size,
+                               Vector2i const& cahv_image_size) {
   // Limit to field of view
   const static double limfov = M_PI * 3/4; // 135 degrees field of view.
   const bool minfov          = true;       // Yes, minimize the common field of view
@@ -326,28 +326,28 @@ CAHVModel vw::linearize_camera( CAHVOREModel const& camera_model,
 
   // Choose a camera axis in the middle of the image
   Vector2 p2 = (cahvore_image_size-Vector2i(1,1))/2.0;
-  cahv_model.A = camera_model.pixel_to_vector( p2 );
+  cahv_model.A = camera_model.pixel_to_vector(p2);
 
   // Compute the original right and down vectors
   Vector3 dn = cross_prod(camera_model.A, camera_model.H);
   Vector3 rt = normalize(cross_prod(dn,   camera_model.A));
-  dn = normalize( dn );
+  dn = normalize(dn);
 
   // Adjust the right and down vectors to be orthogonal to new axis
   rt = cross_prod(dn, cahv_model.A);
   dn = normalize(cross_prod(cahv_model.A, rt));
-  rt = normalize( rt );
+  rt = normalize(rt);
 
   // Find horizontal and vertical fields of view
   double hmin = 1, hmax = -1;
-  BOOST_FOREACH( Vector2 const& loop, hpts ) {
+  BOOST_FOREACH(Vector2 const& loop, hpts) {
     const Vector3 u3 = camera_model.pixel_to_vector(loop);
     double cs = dot_prod(cahv_model.A, normalize(u3 - dot_prod(dn, u3) * dn));
     if (hmin > cs) hmin = cs;
     if (hmax < cs) hmax = cs;
   }
   double vmin = 1, vmax = -1;
-  BOOST_FOREACH( Vector2 const& loop, vpts ) {
+  BOOST_FOREACH(Vector2 const& loop, vpts) {
     const Vector3 u3 = camera_model.pixel_to_vector(loop);
     double cs = dot_prod(cahv_model.A,normalize(u3 - dot_prod(rt, u3)*rt));
     if (vmin > cs) vmin = cs;
@@ -356,15 +356,15 @@ CAHVModel vw::linearize_camera( CAHVOREModel const& camera_model,
 
   // Compute the all-encompassing scale factors
   Vector2 cosines;
-  if ( minfov ) {
+  if (minfov) {
     // use max
     cosines = Vector2(hmax,vmax);
   } else {
     // use min
     cosines = Vector2(hmin,vmin);
   }
-  if ( acos(cosines[0]) > limfov ) cosines[0] = cos(limfov);
-  if ( acos(cosines[1]) > limfov ) cosines[1] = cos(limfov);
+  if (acos(cosines[0]) > limfov) cosines[0] = cos(limfov);
+  if (acos(cosines[1]) > limfov) cosines[1] = cos(limfov);
   Vector2 scalars =
     elem_quot(elem_prod(cahv_image_size/2.0,cosines),
               sqrt(Vector2(1,1) - elem_prod(cosines,cosines)));

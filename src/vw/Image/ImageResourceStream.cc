@@ -68,9 +68,9 @@ void SrcImageResourceStream::set_read_format(const ImageFormat& fmt) {
 }
 
 // Read the image resource at the given location into the given buffer.
-void SrcImageResourceStream::read( ImageBuffer const& dst_buf, BBox2i const& bbox ) const {
+void SrcImageResourceStream::read(ImageBuffer const& dst_buf, BBox2i const& bbox) const {
   VW_ASSERT(dst_buf.format.cols == uint32(bbox.width()) && dst_buf.format.rows == uint32(bbox.height()),
-      LogicErr() << VW_CURRENT_FUNCTION << ": Only complete reads are supported" );
+      LogicErr() << VW_CURRENT_FUNCTION << ": Only complete reads are supported");
 
   VW_ASSERT(!m_stream->fail(), IOErr() << "Can't read from stream (the bad or fail flag is already up)");
 
@@ -119,9 +119,9 @@ void DstImageResourceStream::set_write_format(const ImageFormat& fmt) {
 
 
 // Write the given buffer to the image resource at the given location.
-void DstImageResourceStream::write( ImageBuffer const& src_buf, BBox2i const& bbox ) {
+void DstImageResourceStream::write(ImageBuffer const& src_buf, BBox2i const& bbox) {
   VW_ASSERT(src_buf.format.cols == uint32(bbox.width()) && src_buf.format.rows == uint32(bbox.height()),
-      LogicErr() << VW_CURRENT_FUNCTION << ": Only complete writes are supported" );
+      LogicErr() << VW_CURRENT_FUNCTION << ": Only complete writes are supported");
 
   VW_ASSERT(!m_stream->bad(), IOErr() << "Can't write to stream (the bad flag is already up)");
 

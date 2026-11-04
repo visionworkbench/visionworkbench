@@ -121,7 +121,7 @@
 namespace vw {
 
   /// The core exception class.
-  struct Exception VW_IF_EXCEPTIONS( : public std::exception )
+  struct Exception VW_IF_EXCEPTIONS(: public std::exception)
   {
 
     /// The default constructor generates exceptions with empty error
@@ -132,14 +132,14 @@ namespace vw {
     virtual ~Exception() VW_NOTHROW {}
 
     /// Copy Constructor
-    Exception( Exception const& e ) VW_NOTHROW
-      VW_IF_EXCEPTIONS( : std::exception(e) ) {
+    Exception(Exception const& e) VW_NOTHROW
+      VW_IF_EXCEPTIONS(: std::exception(e)) {
       m_desc << e.m_desc.str();
     }
 
     /// Assignment operator copies the error string.
-    Exception& operator=( Exception const& e ) VW_NOTHROW {
-      m_desc.str( e.m_desc.str() );
+    Exception& operator=(Exception const& e) VW_NOTHROW {
+      m_desc.str(e.m_desc.str());
       return *this;
     }
 
@@ -158,10 +158,10 @@ namespace vw {
     /// Returns a string version of this exception's type.
     virtual std::string name() const { return "Exception"; }
 
-    void set( std::string const& s ) { m_desc.str(s); }
+    void set(std::string const& s) { m_desc.str(s); }
     void reset() { m_desc.str(""); }
 
-    VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )
+    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })
 
   protected:
       virtual std::ostringstream& stream() {return m_desc;}
@@ -217,9 +217,9 @@ namespace vw {
 
   #define VW_EXCEPTION_API(exception_type)                                     \
     virtual std::string name() const { return #exception_type; }               \
-    VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )    \
+    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })    \
     template <class T>                                                         \
-    exception_type& operator<<( T const& t ) { stream() << t; return *this; }
+    exception_type& operator<<(T const& t) { stream() << t; return *this; }
 
   /// Invalid function argument exception
   VW_DEFINE_EXCEPTION(ArgumentErr, Exception);
@@ -256,7 +256,7 @@ namespace vw {
   /// can subclass to install an alternative exception handler.
   class ExceptionHandler {
   public:
-    virtual void handle( Exception const& e ) const VW_NORETURN = 0;
+    virtual void handle(Exception const& e) const VW_NORETURN = 0;
     virtual ~ExceptionHandler() VW_NOTHROW {}
   };
 
@@ -267,12 +267,12 @@ namespace vw {
   /// at build time, in which case the default behavior is to
   /// print the error message at the ErrorMessage level and
   /// to call abort().
-  void set_exception_handler( ExceptionHandler const* eh );
+  void set_exception_handler(ExceptionHandler const* eh);
 
   /// Throws an exception via the Vision Workbench error
   /// handling mechanism, which may not actually involvle
   /// throwing an exception in the usual C++ sense.
-  void vw_throw( Exception const& e ) VW_NORETURN;
+  void vw_throw(Exception const& e) VW_NORETURN;
 
 } // namespace vw
 
@@ -280,13 +280,13 @@ namespace vw {
 /// condition is not met.  The VW_DEBUG_ASSERT macro does the same
 /// thing, but is disabled if VW_DEBUG_LEVEL is zero.  The default
 /// value for VW_DEBUG_LEVEL is defined in Debugging.h.
-#define VW_ASSERT(cond,excep) do { if(!(cond)) vw::vw_throw( excep ); } while(0)
-#define VW_LINE_ASSERT(cond) do { if(!(cond)) vw::vw_throw( vw::LogicErr() << "Assertion failed (" << __FILE__ << ":" << __LINE__ << "): " << #cond); } while(0)
+#define VW_ASSERT(cond,excep) do { if(!(cond)) vw::vw_throw(excep); } while(0)
+#define VW_LINE_ASSERT(cond) do { if(!(cond)) vw::vw_throw(vw::LogicErr() << "Assertion failed (" << __FILE__ << ":" << __LINE__ << "): " << #cond); } while(0)
 #if VW_DEBUG_LEVEL == 0
 #define VW_DEBUG_ASSERT(cond,excep) do {} while(0)
 #else
 // Duplicate the definition to avoid extra macro expansion in recusion
-#define VW_DEBUG_ASSERT(cond,excep) do { if(!(cond)) vw::vw_throw( excep ); } while(0)
+#define VW_DEBUG_ASSERT(cond,excep) do { if(!(cond)) vw::vw_throw(excep); } while(0)
 #endif
 
 #endif // __VW_CORE_EXCEPTION_H__

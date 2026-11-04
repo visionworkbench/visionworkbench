@@ -189,7 +189,7 @@ namespace vw {
 
       // If the last character is a newline or carrage return, then
       // we force a call to sync().
-      if ( c == '\n' || c == '\r' )
+      if (c == '\n' || c == '\r')
         locked_sync(buffer);
       return std::char_traits<char>::not_eof(c);
     }
@@ -198,16 +198,16 @@ namespace vw {
       Mutex::Lock lock(m_mutex);
       buffer_type& buffer = m_buffers[ Thread::id() ];
 
-      std::copy(s, s + num, std::back_inserter<buffer_type>( buffer ));
+      std::copy(s, s + num, std::back_inserter<buffer_type>(buffer));
 
       // This is a bit of a hack that forces a sync whenever the
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
-      if ( buffer.size() > 0 ) {
+      if (buffer.size() > 0) {
         size_t last_char_position = buffer.size()-1;
 
-        if ( buffer[last_char_position] == '\n' ||
-             buffer[last_char_position] == '\r' )
+        if (buffer[last_char_position] == '\n' ||
+            buffer[last_char_position] == '\r')
           locked_sync(buffer);
       }
       return num;
@@ -215,7 +215,7 @@ namespace vw {
 
     // You must call this with the lock already held!
     int locked_sync(buffer_type& buffer) {
-      if(!buffer.empty() && m_out ) {
+      if(!buffer.empty() && m_out) {
         m_out->sputn(&buffer[0], boost::numeric_cast<std::streamsize>(buffer.size()));
         m_out->pubsync();
         buffer.clear();
@@ -286,15 +286,15 @@ namespace vw {
 // ---------------------------------------------------
 // Basic stream support
 // ---------------------------------------------------
-std::ostream& vw::vw_out( int log_level, std::string const& log_namespace ) {
+std::ostream& vw::vw_out(int log_level, std::string const& log_namespace) {
   return vw_log()(log_level, log_namespace);
 }
 
-void vw::set_debug_level( int log_level ) {
+void vw::set_debug_level(int log_level) {
   vw_log().console_log().rule_set().add_rule(log_level, "console");
 }
 
-void vw::set_output_stream( std::ostream& stream ) {
+void vw::set_output_stream(std::ostream& stream) {
   vw_log().set_console_stream(stream);
 }
 
@@ -349,7 +349,7 @@ std::ostream& vw::Log::operator() (int log_level, std::string const& log_namespa
     Mutex::Lock multi_ostreams_lock(m_multi_ostreams_mutex);
 
     // Check to see if we have an ostream defined yet for this thread.
-    if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
+    if(m_multi_ostreams.find(Thread::id()) == m_multi_ostreams.end())
       m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
 
     boost::shared_ptr<multi_ostream>& stream = m_multi_ostreams[ Thread::id() ];
@@ -378,7 +378,7 @@ vw::Log::add(std::ostream &stream, LogRuleSet rule_set, bool prepend_infostamp) 
 void
 vw::Log::add(boost::shared_ptr<LogInstance> log) {
   Mutex::Lock lock(m_system_log_mutex);
-  m_logs.push_back( log );
+  m_logs.push_back(log);
 }
 
 void
@@ -394,29 +394,29 @@ vw::Log::console_log() {
 }
 
 void
-vw::Log::set_console_stream(std::ostream& stream, LogRuleSet rule_set, bool prepend_infostamp ) {
+vw::Log::set_console_stream(std::ostream& stream, LogRuleSet rule_set, bool prepend_infostamp) {
   Mutex::Lock lock(m_system_log_mutex);
-  m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp) );
+  m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp));
   m_console_log->rule_set() = rule_set;
 }
 
-bool vw::Log::is_enabled( int log_level,
-                          std::string const& log_namespace ) {
+bool vw::Log::is_enabled(int log_level,
+                         std::string const& log_namespace) {
   // Early exit option before iterating through m_logs
-  if ( m_console_log->rule_set()(log_level, log_namespace) )
+  if (m_console_log->rule_set()(log_level, log_namespace))
     return true;
-  BOOST_FOREACH( boost::shared_ptr<LogInstance> log_instance, m_logs ) {
-    if ( log_instance->rule_set()(log_level, log_namespace) )
+  BOOST_FOREACH(boost::shared_ptr<LogInstance> log_instance, m_logs) {
+    if (log_instance->rule_set()(log_level, log_namespace))
       return true;
   }
   return false;
 }
 
-vw::LogRuleSet::LogRuleSet( LogRuleSet const& copy_log) {
+vw::LogRuleSet::LogRuleSet(LogRuleSet const& copy_log) {
   m_rules = copy_log.m_rules;
 }
 
-vw::LogRuleSet& vw::LogRuleSet::operator=( LogRuleSet const& copy_log) {
+vw::LogRuleSet& vw::LogRuleSet::operator=(LogRuleSet const& copy_log) {
   m_rules = copy_log.m_rules;
   return *this;
 }
@@ -492,7 +492,7 @@ bool vw::LogRuleSet::operator() (int log_level, std::string const& log_namespace
 
     // first rule that matches the namespace spec is applied.
 
-    if (!wildcard_match(rule_ns, lower_namespace) )
+    if (!wildcard_match(rule_ns, lower_namespace))
       continue;
 
     if (rule_lvl == vw::EveryMessage)

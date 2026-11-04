@@ -87,9 +87,9 @@ ImageResourceOpenCV::ImageResourceOpenCV(boost::shared_ptr<cv::Mat> matrix)
   m_format = identify();
 }
 
-void ImageResourceOpenCV::read( ImageBuffer const& dst_buf, BBox2i const& bbox ) const {
+void ImageResourceOpenCV::read(ImageBuffer const& dst_buf, BBox2i const& bbox) const {
   VW_ASSERT(dst_buf.format.cols == uint32(bbox.width()) && dst_buf.format.rows == uint32(bbox.height()),
-      LogicErr()    << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
+      LogicErr()    << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!");
   VW_ASSERT(bbox.min().x() >= 0 && bbox.min().y() >= 0 && uint32(bbox.max().x()) <= m_format.cols && uint32(bbox.max().y()) <= m_format.rows,
       ArgumentErr() << VW_CURRENT_FUNCTION << ": Bounding box must be inside matrix.");
 
@@ -113,9 +113,9 @@ void ImageResourceOpenCV::read( ImageBuffer const& dst_buf, BBox2i const& bbox )
   convert(dst_buf, src_buf, false);
 }
 
-void ImageResourceOpenCV::write( ImageBuffer const& src_buf, BBox2i const& bbox ) {
+void ImageResourceOpenCV::write(ImageBuffer const& src_buf, BBox2i const& bbox) {
   VW_ASSERT(src_buf.format.cols == uint32(bbox.width()) && src_buf.format.rows == uint32(bbox.height()),
-      LogicErr()    << VW_CURRENT_FUNCTION << ": Source buffer has wrong dimensions!" );
+      LogicErr()    << VW_CURRENT_FUNCTION << ": Source buffer has wrong dimensions!");
   VW_ASSERT(bbox.min().x() >= 0 && bbox.min().y() >= 0 && uint32(bbox.max().x()) <= m_format.cols && uint32(bbox.max().y()) <= m_format.rows,
       ArgumentErr() << VW_CURRENT_FUNCTION << ": Bounding box must be inside matrix.");
 

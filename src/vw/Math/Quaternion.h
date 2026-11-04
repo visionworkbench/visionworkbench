@@ -49,133 +49,133 @@ namespace math {
   public:
 
     template <class QuaternionT, class OStreamT>
-    static inline OStreamT& quaternion_to_stream( QuaternionT const& q, OStreamT& os ) {
+    static inline OStreamT& quaternion_to_stream(QuaternionT const& q, OStreamT& os) {
       return os << "[Q]" << q.m_core;
     }
 
     template <class QuaternionT>
-    static inline typename QuaternionT::value_type quaternion_equality( QuaternionT const& a, QuaternionT const& b ) {
+    static inline typename QuaternionT::value_type quaternion_equality(QuaternionT const& a, QuaternionT const& b) {
       return a.m_core == b.m_core;
     }
 
     template <class QuaternionT>
-    static inline typename QuaternionT::value_type quaternion_real( QuaternionT const& q ) {
-      return real( q.m_core );
+    static inline typename QuaternionT::value_type quaternion_real(QuaternionT const& q) {
+      return real(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline Vector<typename QuaternionT::value_type,3> quaternion_imaj( QuaternionT const& q ) {
-      return Vector<typename QuaternionT::value_type,3>( q[1], q[2], q[3] );
+    static inline Vector<typename QuaternionT::value_type,3> quaternion_imaj(QuaternionT const& q) {
+      return Vector<typename QuaternionT::value_type,3>(q[1], q[2], q[3]);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_conj( QuaternionT const& q ) {
-      return conj( q.m_core );
+    static inline QuaternionT quaternion_conj(QuaternionT const& q) {
+      return conj(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline typename QuaternionT::value_type quaternion_norm_1( QuaternionT const& q ) {
-      return l1( q.m_core );
+    static inline typename QuaternionT::value_type quaternion_norm_1(QuaternionT const& q) {
+      return l1(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline typename QuaternionT::value_type quaternion_norm_2( QuaternionT const& q ) {
-      return abs( q.m_core );
+    static inline typename QuaternionT::value_type quaternion_norm_2(QuaternionT const& q) {
+      return abs(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline typename QuaternionT::value_type quaternion_norm_inf( QuaternionT const& q ) {
-      return sup( q.m_core );
+    static inline typename QuaternionT::value_type quaternion_norm_inf(QuaternionT const& q) {
+      return sup(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_inverse( QuaternionT const& q ) {
-      return conj( q.m_core ) / norm( q.m_core );
+    static inline QuaternionT quaternion_inverse(QuaternionT const& q) {
+      return conj(q.m_core) / norm(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_negation( QuaternionT const& q ) {
+    static inline QuaternionT quaternion_negation(QuaternionT const& q) {
       return - q.m_core;
     }
 
     template <class QuaternionT, class ScalarT>
-    static inline QuaternionT quaternion_scalar_sum( QuaternionT const& q, ScalarT s ) {
+    static inline QuaternionT quaternion_scalar_sum(QuaternionT const& q, ScalarT s) {
       return q.m_core + typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
-    static inline QuaternionT quaternion_scalar_difference( QuaternionT const& q, ScalarT s ) {
+    static inline QuaternionT quaternion_scalar_difference(QuaternionT const& q, ScalarT s) {
       return q.m_core - typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
-    static inline QuaternionT quaternion_scalar_product( QuaternionT const& q, ScalarT s ) {
+    static inline QuaternionT quaternion_scalar_product(QuaternionT const& q, ScalarT s) {
       return q.m_core * typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
-    static inline QuaternionT quaternion_scalar_quotient( QuaternionT const& q, ScalarT s ) {
+    static inline QuaternionT quaternion_scalar_quotient(QuaternionT const& q, ScalarT s) {
       return q.m_core / typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_quaternion_sum( QuaternionT const& q1, QuaternionT const& q2 ) {
+    static inline QuaternionT quaternion_quaternion_sum(QuaternionT const& q1, QuaternionT const& q2) {
       return q1.m_core + q2.m_core;
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_quaternion_difference( QuaternionT const& q1, QuaternionT const& q2 ) {
+    static inline QuaternionT quaternion_quaternion_difference(QuaternionT const& q1, QuaternionT const& q2) {
       return q1.m_core - q2.m_core;
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_quaternion_product( QuaternionT const& q1, QuaternionT const& q2 ) {
+    static inline QuaternionT quaternion_quaternion_product(QuaternionT const& q1, QuaternionT const& q2) {
       return q1.m_core * q2.m_core;
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_quaternion_quotient( QuaternionT const& q1, QuaternionT const& q2 ) {
+    static inline QuaternionT quaternion_quaternion_quotient(QuaternionT const& q1, QuaternionT const& q2) {
       return q1.m_core / q2.m_core;
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_exp( QuaternionT const& q ) {
-      return exp( q.m_core );
+    static inline QuaternionT quaternion_exp(QuaternionT const& q) {
+      return exp(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_sin( QuaternionT const& q ) {
-      return sin( q.m_core );
+    static inline QuaternionT quaternion_sin(QuaternionT const& q) {
+      return sin(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_cos( QuaternionT const& q ) {
-      return cos( q.m_core );
+    static inline QuaternionT quaternion_cos(QuaternionT const& q) {
+      return cos(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_tan( QuaternionT const& q ) {
-      return tan( q.m_core );
+    static inline QuaternionT quaternion_tan(QuaternionT const& q) {
+      return tan(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_sinh( QuaternionT const& q ) {
-      return sinh( q.m_core );
+    static inline QuaternionT quaternion_sinh(QuaternionT const& q) {
+      return sinh(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_cosh( QuaternionT const& q ) {
-      return cosh( q.m_core );
+    static inline QuaternionT quaternion_cosh(QuaternionT const& q) {
+      return cosh(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_tanh( QuaternionT const& q ) {
-      return tanh( q.m_core );
+    static inline QuaternionT quaternion_tanh(QuaternionT const& q) {
+      return tanh(q.m_core);
     }
 
     template <class QuaternionT>
-    static inline QuaternionT quaternion_int_pow( QuaternionT const& q, int n ) {
-      return pow( q.m_core, n );
+    static inline QuaternionT quaternion_int_pow(QuaternionT const& q, int n) {
+      return pow(q.m_core, n);
     }
 
   };
@@ -200,16 +200,16 @@ namespace math {
     typedef boost::math::quaternion<ElemT> core_type;
     core_type m_core;
     friend class QuaternionImplementation;
-    Quaternion( core_type const& q ) : m_core(q) {}
+    Quaternion(core_type const& q) : m_core(q) {}
   public:
     typedef ElemT value_type;
 
     Quaternion() {}
 
-    Quaternion( ElemT w, ElemT x, ElemT y, ElemT z ) : m_core( w, x, y, z ) {}
+    Quaternion(ElemT w, ElemT x, ElemT y, ElemT z) : m_core(w, x, y, z) {}
 
     template <class MatrixT>
-    explicit Quaternion( MatrixBase<MatrixT> const& matrix ) {
+    explicit Quaternion(MatrixBase<MatrixT> const& matrix) {
       MatrixT const& rot = matrix.impl();
       ElemT d0 = rot(0,0), d1 = rot(1,1), d2 = rot(2,2);
       ElemT ww = 1.0 + d0 + d1 + d2;
@@ -252,32 +252,32 @@ namespace math {
     }
 
     template <class VectorT>
-    explicit Quaternion( VectorBase<VectorT> const& vec ) {
-      VW_ASSERT( vec.impl().size() == 4,
-		 ArgumentErr() << "Quaternion: Vector input requires 4 elements" );
+    explicit Quaternion(VectorBase<VectorT> const& vec) {
+      VW_ASSERT(vec.impl().size() == 4,
+		 ArgumentErr() << "Quaternion: Vector input requires 4 elements");
       m_core = core_type(vec.impl()[0],vec.impl()[1],vec.impl()[2],vec.impl()[3]);
     }
 
     // Construct quaternion from normalized rotation axis and angle
     template <class VectorT>
-    Quaternion( VectorBase<VectorT> const& axis, ElemT angle ) {
+    Quaternion(VectorBase<VectorT> const& axis, ElemT angle) {
       double ha = angle * 0.5;
       ElemT s = ElemT(sin(ha));
       m_core = core_type(cos(ha), s * axis.impl()[0],
 			 s * axis.impl()[1], s * axis.impl()[2]);
     }
 
-    ElemT operator[]( size_t i ) const {
-      switch ( i ) {
+    ElemT operator[](size_t i) const {
+      switch (i) {
       case 0: return m_core.R_component_1(); break;
       case 1: return m_core.R_component_2(); break;
       case 2: return m_core.R_component_3(); break;
       case 3: return m_core.R_component_4(); break;
       default:
-        vw_throw( ArgumentErr() << "Quaternion: Invalid index" );
+        vw_throw(ArgumentErr() << "Quaternion: Invalid index");
       }
     }
-    ElemT operator()( size_t i ) const { return (*this)[i]; }
+    ElemT operator()(size_t i) const { return (*this)[i]; }
 
     ElemT w() const { return m_core.R_component_1(); }
     ElemT x() const { return m_core.R_component_2(); }
@@ -287,7 +287,7 @@ namespace math {
 
     // Convert to an equivalent set of normalized rotation axis and angle
     template <class VectorT>
-    void axis_angle( VectorBase<VectorT> &axis_, ElemT &angle ) const {
+    void axis_angle(VectorBase<VectorT> &axis_, ElemT &angle) const {
       VectorT & axis = axis_.impl();
 
       Vector<ElemT,3> imag_part = imag(*this);
@@ -312,7 +312,7 @@ namespace math {
     }
 
     template <class MatrixT>
-    void rotation_matrix( MatrixBase<MatrixT>& rot_ ) const {
+    void rotation_matrix(MatrixBase<MatrixT>& rot_) const {
       MatrixT& rot = rot_.impl();
       ElemT w2 = w()*w(), x2 = x()*x(), y2 = y()*y(), z2 = z()*z();
       ElemT wx = w()*x(), wy = w()*y(), wz = w()*z();
@@ -330,171 +330,171 @@ namespace math {
 
     Matrix<ElemT,3,3> rotation_matrix() const {
       Matrix<ElemT,3,3> rot;
-      rotation_matrix( rot );
+      rotation_matrix(rot);
       return rot;
     }
 
     Matrix<ElemT,4,4> rotation_matrix_4() const {
       Matrix<ElemT,4,4> rot;
       rot.set_identity();
-      rotation_matrix( rot );
+      rotation_matrix(rot);
       return rot;
     }
 
     template <class VectorT>
-    Vector<typename VectorT::value_type,3> rotate( VectorBase<VectorT> const& v_ ) const {
+    Vector<typename VectorT::value_type,3> rotate(VectorBase<VectorT> const& v_) const {
       VectorT const& v = v_.impl();
-      return imag( *this * Quaternion(0,v[0],v[1],v[2]) / *this );
+      return imag(*this * Quaternion(0,v[0],v[1],v[2]) / *this);
     }
   };
 
 
   //! Dumps a quaternion to a std::ostream
   template <class QuaternionT>
-  inline std::ostream& operator<<( std::ostream& os, QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_to_stream( q.impl(), os );
+  inline std::ostream& operator<<(std::ostream& os, QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_to_stream(q.impl(), os);
   }
 
   template <class QuaternionT>
-  inline bool operator==( QuaternionBase<QuaternionT> const& a, QuaternionBase<QuaternionT> const& b ) {
-    return QuaternionImplementation::quaternion_equality( a.impl(), b.impl() );
+  inline bool operator==(QuaternionBase<QuaternionT> const& a, QuaternionBase<QuaternionT> const& b) {
+    return QuaternionImplementation::quaternion_equality(a.impl(), b.impl());
   }
 
   template <class QuaternionT>
-  inline typename QuaternionT::value_type real( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_real( q.impl() );
+  inline typename QuaternionT::value_type real(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_real(q.impl());
   }
 
   template <class QuaternionT>
-  inline Vector<typename QuaternionT::value_type,3> imag( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_imaj( q.impl() );
+  inline Vector<typename QuaternionT::value_type,3> imag(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_imaj(q.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT conj( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_conj( q.impl() );
+  inline QuaternionT conj(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_conj(q.impl());
   }
 
   template <class QuaternionT>
-  inline typename QuaternionT::value_type norm_1( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_norm_1( q.impl() );
+  inline typename QuaternionT::value_type norm_1(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_norm_1(q.impl());
   }
 
   template <class QuaternionT>
-  inline typename QuaternionT::value_type norm_2( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_norm_2( q.impl() );
+  inline typename QuaternionT::value_type norm_2(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_norm_2(q.impl());
   }
 
   template <class QuaternionT>
-  inline typename QuaternionT::value_type norm_inf( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_norm_inf( q.impl() );
+  inline typename QuaternionT::value_type norm_inf(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_norm_inf(q.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT inverse( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_inverse( q.impl() );
+  inline QuaternionT inverse(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_inverse(q.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT operator-( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_negation( q.impl() );
+  inline QuaternionT operator-(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_negation(q.impl());
   }
 
   template <class QuaternionT, class ScalarT>
   typename boost::enable_if< IsScalar<ScalarT>, QuaternionT >::type
-  inline operator+( QuaternionBase<QuaternionT> const& q, ScalarT s ) {
-    return QuaternionImplementation::quaternion_scalar_sum( q.impl(), s );
+  inline operator+(QuaternionBase<QuaternionT> const& q, ScalarT s) {
+    return QuaternionImplementation::quaternion_scalar_sum(q.impl(), s);
   }
 
   template <class QuaternionT, class ScalarT>
   typename boost::enable_if< IsScalar<ScalarT>, QuaternionT >::type
-  inline operator-( QuaternionBase<QuaternionT> const& q, ScalarT s ) {
-    return QuaternionImplementation::quaternion_scalar_difference( q.impl(), s );
+  inline operator-(QuaternionBase<QuaternionT> const& q, ScalarT s) {
+    return QuaternionImplementation::quaternion_scalar_difference(q.impl(), s);
   }
 
   template <class QuaternionT, class ScalarT>
   typename boost::enable_if< IsScalar<ScalarT>, QuaternionT >::type
-  inline operator*( QuaternionBase<QuaternionT> const& q, ScalarT s ) {
-    return QuaternionImplementation::quaternion_scalar_product( q.impl(), s );
+  inline operator*(QuaternionBase<QuaternionT> const& q, ScalarT s) {
+    return QuaternionImplementation::quaternion_scalar_product(q.impl(), s);
   }
 
   template <class QuaternionT, class ScalarT>
   typename boost::enable_if< IsScalar<ScalarT>, QuaternionT >::type
-  inline operator/( QuaternionBase<QuaternionT> const& q, ScalarT s ) {
-    return QuaternionImplementation::quaternion_scalar_quotient( q.impl(), s );
+  inline operator/(QuaternionBase<QuaternionT> const& q, ScalarT s) {
+    return QuaternionImplementation::quaternion_scalar_quotient(q.impl(), s);
   }
 
   template <class QuaternionT>
-  inline QuaternionT operator+( QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2 ) {
-    return QuaternionImplementation::quaternion_quaternion_sum( q1.impl(), q2.impl() );
+  inline QuaternionT operator+(QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2) {
+    return QuaternionImplementation::quaternion_quaternion_sum(q1.impl(), q2.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT operator-( QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2 ) {
-    return QuaternionImplementation::quaternion_quaternion_difference( q1.impl(), q2.impl() );
+  inline QuaternionT operator-(QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2) {
+    return QuaternionImplementation::quaternion_quaternion_difference(q1.impl(), q2.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT operator*( QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2 ) {
-    return QuaternionImplementation::quaternion_quaternion_product( q1.impl(), q2.impl() );
+  inline QuaternionT operator*(QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2) {
+    return QuaternionImplementation::quaternion_quaternion_product(q1.impl(), q2.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT operator/( QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2 ) {
-    return QuaternionImplementation::quaternion_quaternion_quotient( q1.impl(), q2.impl() );
+  inline QuaternionT operator/(QuaternionBase<QuaternionT> const& q1, QuaternionBase<QuaternionT> const& q2) {
+    return QuaternionImplementation::quaternion_quaternion_quotient(q1.impl(), q2.impl());
   }
 
   template <class QuaternionT>
-  inline QuaternionT normalize( QuaternionBase<QuaternionT> const& q ) {
+  inline QuaternionT normalize(QuaternionBase<QuaternionT> const& q) {
     return q.impl() / norm_2(q);
   }
 
   using ::exp;
   template <class QuaternionT>
-  inline QuaternionT exp( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_exp( q.impl() );
+  inline QuaternionT exp(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_exp(q.impl());
   }
 
   using ::sin;
   template <class QuaternionT>
-  inline QuaternionT sin( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_sin( q.impl() );
+  inline QuaternionT sin(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_sin(q.impl());
   }
 
   using ::cos;
   template <class QuaternionT>
-  inline QuaternionT cos( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_cos( q.impl() );
+  inline QuaternionT cos(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_cos(q.impl());
   }
 
   using ::tan;
   template <class QuaternionT>
-  inline QuaternionT tan( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_tan( q.impl() );
+  inline QuaternionT tan(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_tan(q.impl());
   }
 
   using ::sinh;
   template <class QuaternionT>
-  inline QuaternionT sinh( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_sinh( q.impl() );
+  inline QuaternionT sinh(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_sinh(q.impl());
   }
 
   using ::cosh;
   template <class QuaternionT>
-  inline QuaternionT cosh( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_cosh( q.impl() );
+  inline QuaternionT cosh(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_cosh(q.impl());
   }
 
   using ::tanh;
   template <class QuaternionT>
-  inline QuaternionT tanh( QuaternionBase<QuaternionT> const& q ) {
-    return QuaternionImplementation::quaternion_tanh( q.impl() );
+  inline QuaternionT tanh(QuaternionBase<QuaternionT> const& q) {
+    return QuaternionImplementation::quaternion_tanh(q.impl());
   }
 
   using ::pow;
   template <class QuaternionT>
-  inline QuaternionT pow( QuaternionBase<QuaternionT> const& q, int n ) {
-    return QuaternionImplementation::quaternion_int_pow( q.impl(), n );
+  inline QuaternionT pow(QuaternionBase<QuaternionT> const& q, int n) {
+    return QuaternionImplementation::quaternion_int_pow(q.impl(), n);
   }
 
   // Convert a 3 component rotation vector pointing in the rotation
@@ -538,7 +538,7 @@ namespace math {
   // to the rotation angle in radian
   template<class MatrixT>
   inline Vector<typename MatrixT::value_type, 3> matrix_to_axis_angle(const MatrixBase<MatrixT>& q) {
-    Vector<typename MatrixT::value_type, 3> res( Quaternion<typename MatrixT::value_type>(q.impl()).axis_angle() );
+    Vector<typename MatrixT::value_type, 3> res(Quaternion<typename MatrixT::value_type>(q.impl()).axis_angle());
     if (res.x() < 0 && res.y() < 0 && res.z() < 0)
       res -= 2.0*M_PI * res /vw::math::norm_2(res);
     return res;

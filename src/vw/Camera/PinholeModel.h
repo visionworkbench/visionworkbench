@@ -228,13 +228,13 @@ namespace vw {
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
 
     // The pinhole camera position does not vary by pixel so the input pixel is ignored.
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2()) const;
     void set_camera_center(Vector3 const& position);
 
     // Pose is a rotation which moves a vector in camera coordinates
     // into world coordinates.
     // - The pinhole camera position does not vary by pixel so the input pixel is ignored.
-    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2()) const;
     void set_camera_pose(Quaternion<double> const& pose);
     void set_camera_pose(Matrix<double,3,3> const& pose);
     
@@ -271,13 +271,13 @@ namespace vw {
     Vector2 point_offset() const;
     double  pixel_pitch () const;
     
-    void set_focal_length(Vector2 const& f, bool rebuild=true );
-    void set_point_offset(Vector2 const& c, bool rebuild=true );
+    void set_focal_length(Vector2 const& f, bool rebuild=true);
+    void set_point_offset(Vector2 const& c, bool rebuild=true);
     void set_pixel_pitch (double pitch);
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables
-    void set_camera_matrix( Matrix<double,3,4> const& p );
+    void set_camera_matrix(Matrix<double,3,4> const& p);
 
     Matrix<double,3,4> camera_matrix() const;
 

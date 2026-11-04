@@ -44,7 +44,7 @@ using namespace vw;
 using namespace vw::test;
 
 // This tests whether premultiplication preserves integer data.
-TEST( ImageResource, PreMultiply ) {
+TEST(ImageResource, PreMultiply) {
   typedef PixelGrayA<uint16> Px;
 
   ImageFormat premult, unpremult;
@@ -88,7 +88,7 @@ class SrcNoopResource : public SrcImageResource {
       : m_fmt(fmt), m_data(data), m_copy(copy) {}
 
     virtual ImageFormat format() const {return m_fmt;}
-    virtual void read( ImageBuffer const& buf, BBox2i const& /*bbox*/ ) const { vw::convert(buf, ImageBuffer(m_fmt, const_cast<uint8*>(m_data))); }
+    virtual void read(ImageBuffer const& buf, BBox2i const& /*bbox*/) const { vw::convert(buf, ImageBuffer(m_fmt, const_cast<uint8*>(m_data))); }
     virtual bool has_block_read() const  {return false;}
     virtual bool has_nodata_read() const {return false;}
     virtual boost::shared_array<const uint8> native_ptr() const {
@@ -96,7 +96,7 @@ class SrcNoopResource : public SrcImageResource {
     }
 };
 
-TEST( ImageResource, NativePtr ) {
+TEST(ImageResource, NativePtr) {
   ImageFormat fmt;
   fmt.cols = fmt.rows = 2;
   fmt.planes = 1;

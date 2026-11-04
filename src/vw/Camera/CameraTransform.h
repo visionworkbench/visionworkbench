@@ -123,62 +123,62 @@ namespace vw {
   /// specifying the edge extension and interpolation modes. Specify the size of the output image.
   template <class ImageT, class SrcCameraT, class DstCameraT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, DstCameraT> >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, Vector2i size, EdgeT const& edge_func, InterpT const& interp_func )
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, Vector2i size, EdgeT const& edge_func, InterpT const& interp_func)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, size[0], size[1], edge_func, interp_func );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, size[0], size[1], edge_func, interp_func);
   }
 
   /// Transform an image from one camera model to another, explicitly
   /// specifying the edge extension and interpolation modes.
   template <class ImageT, class SrcCameraT, class DstCameraT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, DstCameraT> >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, EdgeT const& edge_func, InterpT const& interp_func )
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, EdgeT const& edge_func, InterpT const& interp_func)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, edge_func, interp_func );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, edge_func, interp_func);
   }
 
   /// Transform an image from one camera model to another using
   /// bilinear interpolation, explicitly specifying the edge extension mode.
   template <class ImageT, class SrcCameraT, class DstCameraT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, CameraTransform<SrcCameraT, DstCameraT> >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, EdgeT const& edge_func )
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera, EdgeT const& edge_func)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, edge_func, BilinearInterpolation() );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, edge_func, BilinearInterpolation());
   }
 
   /// Transform an image from one camera model to another, using
   /// zero (black) edge-extension and bilinear interpolation.
   template <class ImageT, class SrcCameraT, class DstCameraT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, DstCameraT> >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera )
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, ZeroEdgeExtension(), BilinearInterpolation() );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, ZeroEdgeExtension(), BilinearInterpolation());
   }
 
   /// Transform an image from one camera model to another, using zero (black) edge-extension 
   /// and bilinear interpolation.  Specify the size of the output image.
   template <class ImageT, class SrcCameraT, class DstCameraT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, DstCameraT> >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera,
-                           Vector2i size)
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera,
+                          Vector2i size)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, size[0], size[1], ZeroEdgeExtension(), BilinearInterpolation() );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, size[0], size[1], ZeroEdgeExtension(), BilinearInterpolation());
   }
 
   /// Transform an image from one camera model to another, using zero (black) edge-extension 
   /// and bilinear interpolation.  Specify the bbox of the output image.
   template <class ImageT, class SrcCameraT, class DstCameraT>
   CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, DstCameraT> > >
-  inline camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera,
-                           BBox2 const &bbox)
+  inline camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, DstCameraT const& dst_camera,
+                          BBox2 const &bbox)
   {
-    CameraTransform<SrcCameraT, DstCameraT> ctx( src_camera, dst_camera );
-    return transform( image, ctx, bbox, ZeroEdgeExtension(), BilinearInterpolation() );
+    CameraTransform<SrcCameraT, DstCameraT> ctx(src_camera, dst_camera);
+    return transform(image, ctx, bbox, ZeroEdgeExtension(), BilinearInterpolation());
   }
 
   /// Transform an image from a camera model to a linearized
@@ -186,13 +186,13 @@ namespace vw {
   /// edge extension and interpolation modes.
   template <class ImageT, class SrcCameraT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
-  inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func, InterpT const& interp_func )
+  inline linearize_camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func, InterpT const& interp_func)
   {
     typename SrcCameraT::linearized_type dst_camera =
-      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
-                        Vector2i(image.impl().cols(), image.impl().rows()) );
-    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
-    return transform( image, ctx, edge_func, interp_func );
+      linearize_camera(src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                       Vector2i(image.impl().cols(), image.impl().rows()));
+    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx(src_camera, dst_camera);
+    return transform(image, ctx, edge_func, interp_func);
   }
 
   /// Transform an image from a camera model to a linearized
@@ -200,13 +200,13 @@ namespace vw {
   /// interpolation, explicitly specifying the edge extension mode.
   template <class ImageT, class SrcCameraT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
-  inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func )
+  inline linearize_camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func)
   {
     typename SrcCameraT::linearized_type dst_camera =
-      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
-                        Vector2i(image.impl().cols(), image.impl().rows()) );
-    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
-    return transform( image, ctx, edge_func, BilinearInterpolation() );
+      linearize_camera(src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                       Vector2i(image.impl().cols(), image.impl().rows()));
+    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx(src_camera, dst_camera);
+    return transform(image, ctx, edge_func, BilinearInterpolation());
   }
 
   /// Transform an image from a camera model to a linearized
@@ -214,13 +214,13 @@ namespace vw {
   /// edge-extension and bilinear interpolation.
   template <class ImageT, class SrcCameraT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
-  inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera )
+  inline linearize_camera_transform(ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera)
   {
     typename SrcCameraT::linearized_type dst_camera =
-      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
-                        Vector2i(image.impl().cols(), image.impl().rows()) );
-    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
-    return transform( image, ctx, ZeroEdgeExtension(), BilinearInterpolation() );
+      linearize_camera(src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                       Vector2i(image.impl().cols(), image.impl().rows()));
+    CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx(src_camera, dst_camera);
+    return transform(image, ctx, ZeroEdgeExtension(), BilinearInterpolation());
   }
 
 

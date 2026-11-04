@@ -66,31 +66,31 @@ namespace vw {
 
     typedef std::map<std::string,std::string> Options;
 
-    DiskImageResourceGDAL( std::string const& filename )
-      : DiskImageResource( filename ) {
-      open( filename );
+    DiskImageResourceGDAL(std::string const& filename)
+      : DiskImageResource(filename) {
+      open(filename);
     }
 
     // Open at a GDAL overview level (0 = first/coarser, -1 = full resolution),
     // read as if it were the full image. For the display pyramid.
-    DiskImageResourceGDAL( std::string const& filename, int overview_level )
-      : DiskImageResource( filename ) {
-      open( filename, overview_level );
+    DiskImageResourceGDAL(std::string const& filename, int overview_level)
+      : DiskImageResource(filename) {
+      open(filename, overview_level);
     }
 
-    DiskImageResourceGDAL( std::string const& filename,
-                           ImageFormat const& format,
-                           Vector2i           block_size = Vector2i(-1,-1) )
-      : DiskImageResource( filename ) {
-      create( filename, format, block_size );
+    DiskImageResourceGDAL(std::string const& filename,
+                          ImageFormat const& format,
+                          Vector2i           block_size = Vector2i(-1,-1))
+      : DiskImageResource(filename) {
+      create(filename, format, block_size);
     }
 
-    DiskImageResourceGDAL( std::string const& filename,
-                           ImageFormat const& format,
-                           Vector2i           block_size,
-                           Options     const& options )
-      : DiskImageResource( filename ) {
-      create( filename, format, block_size, options );
+    DiskImageResourceGDAL(std::string const& filename,
+                          ImageFormat const& format,
+                          Vector2i           block_size,
+                          Options     const& options)
+      : DiskImageResource(filename) {
+      create(filename, format, block_size, options);
     }
 
     virtual ~DiskImageResourceGDAL();
@@ -102,8 +102,8 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read ( ImageBuffer const& dest, BBox2i const& bbox ) const;
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void read (ImageBuffer const& dest, BBox2i const& bbox) const;
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
 
     virtual bool has_block_read  () const {return true;}
     virtual bool has_block_write () const {return true;}
@@ -122,31 +122,31 @@ namespace vw {
     // Ask GDAL if it's compiled with support for this file
     static bool gdal_has_support(std::string const& filename);
 
-    void open  ( std::string const& filename, int overview_level = -1 );
-    void create( std::string const& filename,
-                 ImageFormat const& format,
-                 Vector2i           block_size,
-                 Options     const& options );
+    void open  (std::string const& filename, int overview_level = -1);
+    void create(std::string const& filename,
+                ImageFormat const& format,
+                Vector2i           block_size,
+                Options     const& options);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format,
-                 Vector2i           block_size = Vector2i(-1,-1) ) 
+    void create(std::string const& filename,
+                ImageFormat const& format,
+                Vector2i           block_size = Vector2i(-1,-1)) 
     {
       std::string extension = boost::to_lower_copy(boost::filesystem::path(filename).extension().string());
-      if ( extension == ".tif" || extension == ".tiff" ) {
+      if (extension == ".tif" || extension == ".tiff") {
         // TIFF should use LZW by default
         Options tiff_options;
         tiff_options["COMPRESS"] = "LZW";
-        create( filename, format, block_size, tiff_options );
+        create(filename, format, block_size, tiff_options);
       } else {
-        create( filename, format, block_size, Options() );
+        create(filename, format, block_size, Options());
       }
     }
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     // These functions return pointers to internal data.  They exist
     // to allow users to access underlying special-purpose GDAL

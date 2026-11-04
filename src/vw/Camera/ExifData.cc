@@ -123,11 +123,11 @@ int vw::ExifData::Get16u(const void * Short) {
 // Convert a 32 bit signed value from file's native byte order
 int vw::ExifData::Get32s(const void * Long) {
   if (MotorolaOrder){
-    return  ((( char *)Long)[0] << 24) | (((uint8 *)Long)[1] << 16)
-            | (((uint8 *)Long)[2] << 8 ) | (((uint8 *)Long)[3] << 0 );
+    return  (((char *)Long)[0] << 24) | (((uint8 *)Long)[1] << 16)
+            | (((uint8 *)Long)[2] << 8) | (((uint8 *)Long)[3] << 0);
   } else {
-    return  ((( char *)Long)[3] << 24) | (((uint8 *)Long)[2] << 16)
-            | (((uint8 *)Long)[1] << 8 ) | (((uint8 *)Long)[0] << 0 );
+    return  (((char *)Long)[3] << 24) | (((uint8 *)Long)[2] << 16)
+            | (((uint8 *)Long)[1] << 8) | (((uint8 *)Long)[0] << 0);
   }
 }
 
@@ -212,15 +212,15 @@ const unsigned char * vw::ExifData::dir_entry_addr(const unsigned char * start, 
 
 void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase,
                                 unsigned ExifLength, int NestingLevel) {
-  VW_ASSERT( NestingLevel <= 4, IOErr() << "Maximum directory nesting exceeded (corrupt Exif header)." );
+  VW_ASSERT(NestingLevel <= 4, IOErr() << "Maximum directory nesting exceeded (corrupt Exif header).");
 
   int NumDirEntries = Get16u(DirStart);
   //printf("Number of directory entries: %i\n", NumDirEntries);
 
   const uint8* DirEnd = dir_entry_addr(DirStart, NumDirEntries);
   if (DirEnd + 4 > (OffsetBase + ExifLength)) {
-    VW_ASSERT( DirEnd+2 == OffsetBase+ExifLength || DirEnd == OffsetBase+ExifLength,
-               IOErr() << "Illegally sized directory." );
+    VW_ASSERT(DirEnd+2 == OffsetBase+ExifLength || DirEnd == OffsetBase+ExifLength,
+              IOErr() << "Illegally sized directory.");
   }
 
   for (int de = 0; de < NumDirEntries; de++) {
@@ -231,7 +231,7 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
     int Format = Get16u(DirEntry+2);
     int Components = Get32u(DirEntry+4);
 
-    if ( (Format > ExifData::NUM_FORMATS) || (Format <= 0) ) {
+    if ((Format > ExifData::NUM_FORMATS) || (Format <= 0)) {
       printf("Warning: illegal number format %d for tag %04x\n", Format, Tag);
       continue;
     }
@@ -347,12 +347,12 @@ int vw::ExifData::process_tiff_header(const unsigned char * buffer) {
   if (memcmp(buffer, "II", 2) == 0) {
     MotorolaOrder = 0; //Intel order
   } else {
-    VW_ASSERT( memcmp(buffer, "MM", 2) == 0, IOErr() << "Invalid Exif alignment marker." );
+    VW_ASSERT(memcmp(buffer, "MM", 2) == 0, IOErr() << "Invalid Exif alignment marker.");
     MotorolaOrder = 1; //Motorola order
   }
 
   // Sanity check of bytes 2-3 (arbitrarily always 42 according to standard)
-  VW_ASSERT(Get16u(buffer+2) == 0x2a, IOErr() << "Invalid Exif start." );
+  VW_ASSERT(Get16u(buffer+2) == 0x2a, IOErr() << "Invalid Exif start.");
 
   // Bytes 4-7 contain offset of first IFD
   int first_offset = Get32u(buffer+4);
@@ -366,7 +366,7 @@ void vw::ExifData::process_exif(unsigned char * ExifSection, unsigned int length
 
   // Check the EXIF header component
   static uint8 ExifHeader[] = "Exif\0\0";
-  VW_ASSERT( memcmp(ExifSection+2, ExifHeader, 6) == 0, IOErr() << "Incorrect Exif header." );
+  VW_ASSERT(memcmp(ExifSection+2, ExifHeader, 6) == 0, IOErr() << "Incorrect Exif header.");
 
   int first_offset = process_tiff_header(ExifSection+8);
 
@@ -423,7 +423,7 @@ bool vw::ExifData::read_jpeg_sections(FILE* infile) {
       pos++;
       if (marker != 0xff) break;
 
-      VW_ASSERT( i < 6, IOErr() << "Too many padding bytes." );
+      VW_ASSERT(i < 6, IOErr() << "Too many padding bytes.");
     }
 
     // Read the length of the section.
@@ -431,10 +431,10 @@ bool vw::ExifData::read_jpeg_sections(FILE* infile) {
     int ll = fgetc(infile);
     int itemlen = (lh << 8) | ll;
 
-    VW_ASSERT( itemlen >= 2, IOErr() << "Invalid JPEG marker." );
+    VW_ASSERT(itemlen >= 2, IOErr() << "Invalid JPEG marker.");
 
     uint8* data = (uint8 *)malloc(itemlen);
-    VW_ASSERT( data != NULL, NullPtrErr() << "Could not allocate memory." );
+    VW_ASSERT(data != NULL, NullPtrErr() << "Could not allocate memory.");
 
     // Store first two pre-read bytes.
     data[0] = (uint8)lh;
@@ -442,7 +442,7 @@ bool vw::ExifData::read_jpeg_sections(FILE* infile) {
 
     int got = fread(data+2, 1, itemlen-2, infile); // Read the whole section.
     pos += itemlen;
-    VW_ASSERT( got == itemlen - 2, IOErr() << "Premature end of file." );
+    VW_ASSERT(got == itemlen - 2, IOErr() << "Premature end of file.");
 
     switch(marker){
       case M_SOS:   // stop before hitting compressed data
@@ -479,7 +479,7 @@ bool vw::ExifData::import_data(std::string const &filename) {
   tags.clear();
   FILE * infile = fopen(filename.c_str(), "rb"); // Unix ignores 'b', windows needs it.
 
-  VW_ASSERT( infile != NULL, IOErr() << "Cannot open file.");
+  VW_ASSERT(infile != NULL, IOErr() << "Cannot open file.");
   bool ret = false;
 
   // Identify file type (using suffixes)
@@ -493,7 +493,7 @@ bool vw::ExifData::import_data(std::string const &filename) {
     // Process TIFF IFD structure
     ret = read_tiff_ifd(filename);
   } else {
-    VW_ASSERT( 0, IOErr() << "Cannot determine file type.");
+    VW_ASSERT(0, IOErr() << "Cannot determine file type.");
   }
   fclose(infile);
 

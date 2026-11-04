@@ -85,7 +85,7 @@ namespace vw {
 
   public:
     // Constructors
-    PixelIterator( ViewT const& view, int32 c, int32 r, int32 p=0 )
+    PixelIterator(ViewT const& view, int32 c, int32 r, int32 p=0)
       : m_view(view), m_width(view.cols()), m_height(view.rows()) {
       m_index = p*((int64) m_width*m_height) + r*m_width + c;
       m_pixels_per_plane = (int64) m_width * m_height;
@@ -100,11 +100,11 @@ namespace vw {
      * assignment operators when using the m_view variable, for some
      * reason, so we override them here.
     */
-    PixelIterator( PixelIterator<ViewT> const& cpy ):
+    PixelIterator(PixelIterator<ViewT> const& cpy):
       m_view(cpy.m_view), m_width(cpy.m_width), m_height(cpy.m_height),
       m_index(cpy.m_index), m_pixels_per_plane(cpy.m_pixels_per_plane) { }
 
-    PixelIterator& operator=( PixelIterator<ViewT> const &cpy ) {
+    PixelIterator& operator=(PixelIterator<ViewT> const &cpy) {
       m_view = cpy.m_view;
       m_width = cpy.m_width;
       m_height = cpy.m_height;
@@ -114,7 +114,7 @@ namespace vw {
       return *this;
     }
 
-    explicit PixelIterator( ViewT const& view )
+    explicit PixelIterator(ViewT const& view)
       :  m_view(view), m_width(view.cols()), m_height(view.rows()), m_index(0) {
       m_pixels_per_plane = (int64) m_width * m_height;
     }

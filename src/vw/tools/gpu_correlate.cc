@@ -257,7 +257,7 @@ uniform float crossCheckThreshold; \
 uniform float missingPixel; \
 void main() { \
  vec3 leftValues = texture2DRect(inLeftBestValues, gl_TexCoord[0].st).rgb; \
- vec3 rightValues = texture2DRect(inRightBestValues, vec2(gl_TexCoord[0].s - leftValues.g, gl_TexCoord[0].t - leftValues.b )).rgb; \
+ vec3 rightValues = texture2DRect(inRightBestValues, vec2(gl_TexCoord[0].s - leftValues.g, gl_TexCoord[0].t - leftValues.b)).rgb; \
  float xAbsDifference = abs(leftValues.g - rightValues.g); \
  float yAbsDifference = abs(leftValues.b - rightValues.b); \
  bool withinThreshhold = xAbsDifference < crossCheckThreshold && yAbsDifference < crossCheckThreshold; \

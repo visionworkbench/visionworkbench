@@ -22,7 +22,7 @@
 
 using namespace vw;
 
-TEST( CensusTransform, PointTests ) {
+TEST(CensusTransform, PointTests) {
   ImageView<double> src(8,8); 
   src(0,0)=1; src(1,0)=2; src(2,0)=7; src(3,0)=2; src(4,0)=2; src(5,0)=8; src(6,0)=5; src(7,0)=2;
   src(0,1)=1; src(1,1)=4; src(2,1)=2; src(3,1)=9; src(4,1)=8; src(5,1)=8; src(6,1)=2; src(7,1)=6;
@@ -45,7 +45,7 @@ TEST( CensusTransform, PointTests ) {
 
 }
 
-TEST( HammingDist, Tests) {
+TEST(HammingDist, Tests) {
 
   EXPECT_EQ(hamming_distance(uint8(0x01), uint8(0x00)), 1);
   EXPECT_EQ(hamming_distance(uint8(0xF0), uint8(0x00)), 4);
@@ -56,6 +56,3 @@ TEST( HammingDist, Tests) {
   
   EXPECT_EQ(hamming_distance(uint64(0x00002820A0F038), uint64(0x00002820000030)), 7);
 }
-
-
-

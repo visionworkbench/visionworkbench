@@ -46,20 +46,20 @@ namespace vw {
   // _____________________________________________________________
   template <class IntegralAccessT>
   typename IntegralAccessT::pixel_type
-  inline apply_box_filter_at_point( IntegralAccessT const& src,
-                                    BoxFilter const& box ) {
+  inline apply_box_filter_at_point(IntegralAccessT const& src,
+                                   BoxFilter const& box) {
     typename IntegralAccessT::pixel_type result = 0;
-    for ( size_t b = 0; b < box.size(); b++ ) {
+    for (size_t b = 0; b < box.size(); b++) {
       IntegralAccessT instance = src;
       typename IntegralAccessT::pixel_type box_sum = 0;
-      instance.advance( box[b].start[0],
-                        box[b].start[1] );
+      instance.advance(box[b].start[0],
+                       box[b].start[1]);
       box_sum += *instance;
-      instance.advance( box[b].size[0], 0 );
+      instance.advance(box[b].size[0], 0);
       box_sum -= *instance;
-      instance.advance( -box[b].size[0], box[b].size[1] );
+      instance.advance(-box[b].size[0], box[b].size[1]);
       box_sum -= *instance;
-      instance.advance( box[b].size[0], 0 );
+      instance.advance(box[b].size[0], 0);
       box_sum += *instance;
       result += box[b].weight * box_sum;
     }
@@ -85,13 +85,13 @@ namespace vw {
     typedef ProceduralPixelAccessor<BoxFilterView<IntegralT> > pixel_accessor;
 
     /// Construct BoxFilterView
-    BoxFilterView( IntegralT const& image, BoxFilter const& box ) :
-    m_integral( image ), m_filter( box ) {
+    BoxFilterView(IntegralT const& image, BoxFilter const& box) :
+    m_integral(image), m_filter(box) {
       m_max_filter_size = 0;
-      for ( size_t b = 0; b < m_filter.size(); b++ ) {
-        if ( m_max_filter_size < m_filter[b].size[0] )
+      for (size_t b = 0; b < m_filter.size(); b++) {
+        if (m_max_filter_size < m_filter[b].size[0])
           m_max_filter_size = m_filter[b].size[0];
-        if ( m_max_filter_size < m_filter[b].size[1] )
+        if (m_max_filter_size < m_filter[b].size[1])
           m_max_filter_size = m_filter[b].size[1];
       }
       m_pixel_buffer = m_max_filter_size >> 1;
@@ -101,33 +101,33 @@ namespace vw {
     inline int32 cols() const { return m_integral.cols()-1; }
     inline int32 rows() const { return m_integral.rows()-1; }
     inline int32 planes() const { return m_integral.planes(); }
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
     /// Evaluate
-    inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
-      if ( x < m_pixel_buffer || x >= m_integral.cols()-m_pixel_buffer-1 ||
-           y < m_pixel_buffer || y >= m_integral.rows()-m_pixel_buffer-1 )
+    inline result_type operator()(int32 x, int32 y, int32 p=0) const {
+      if (x < m_pixel_buffer || x >= m_integral.cols()-m_pixel_buffer-1 ||
+          y < m_pixel_buffer || y >= m_integral.rows()-m_pixel_buffer-1)
         return result_type();
-      return apply_box_filter_at_point( m_integral.origin().advance(x,y,p),
-                                        m_filter );
+      return apply_box_filter_at_point(m_integral.origin().advance(x,y,p),
+                                       m_filter);
     }
 
     /// Rasterize function
     typedef BoxFilterView<typename IntegralT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return prerasterize_type( m_integral.prerasterize(bbox), m_filter );
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      return prerasterize_type(m_integral.prerasterize(bbox), m_filter);
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox);
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
   // Convenience Wrappers
   // _____________________________________________________
   template <class ImageT>
-  BoxFilterView<ImageT> box_filter( ImageViewBase<ImageT> const& integral,
-                                    BoxFilter const& box ) {
-    return BoxFilterView<ImageT>( integral.impl(), box );
+  BoxFilterView<ImageT> box_filter(ImageViewBase<ImageT> const& integral,
+                                   BoxFilter const& box) {
+    return BoxFilterView<ImageT>(integral.impl(), box);
   }
 
 }

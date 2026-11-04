@@ -36,55 +36,55 @@ using namespace vw;
 using namespace vw::test;
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-TEST( DiskImageView, Construction ) {
+TEST(DiskImageView, Construction) {
 
   // These contortions ensure that a copy of a DiskImageView will
   // still work even after the original has gone out of scope.
-  boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v1( new DiskImageView<PixelRGB<uint8> >( TEST_SRCDIR"/rgb2x2.png" ) );
-  boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v2( new DiskImageView<PixelRGB<uint8> >( *v1 ) );
+  boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v1(new DiskImageView<PixelRGB<uint8> >(TEST_SRCDIR"/rgb2x2.png"));
+  boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v2(new DiskImageView<PixelRGB<uint8> >(*v1));
   v1.reset();
   ImageView<PixelRGB<uint8> > image = *v2;
 
-  ASSERT_EQ( image.cols(), 2 );
-  ASSERT_EQ( image.rows(), 2 );
-  ASSERT_EQ( image.planes(), 1 );
-  EXPECT_EQ( image(0,0).r(), 128 );
-  EXPECT_EQ( image(0,0).g(), 128 );
-  EXPECT_EQ( image(0,0).b(), 128 );
-  EXPECT_EQ( image(1,0).r(), 85 );
-  EXPECT_EQ( image(1,0).g(), 0 );
-  EXPECT_EQ( image(1,0).b(), 0 );
-  EXPECT_EQ( image(0,1).r(), 0 );
-  EXPECT_EQ( image(0,1).g(), 170 );
-  EXPECT_EQ( image(0,1).b(), 0 );
-  EXPECT_EQ( image(1,1).r(), 0 );
-  EXPECT_EQ( image(1,1).g(), 0 );
-  EXPECT_EQ( image(1,1).b(), 255 );
+  ASSERT_EQ(image.cols(), 2);
+  ASSERT_EQ(image.rows(), 2);
+  ASSERT_EQ(image.planes(), 1);
+  EXPECT_EQ(image(0,0).r(), 128);
+  EXPECT_EQ(image(0,0).g(), 128);
+  EXPECT_EQ(image(0,0).b(), 128);
+  EXPECT_EQ(image(1,0).r(), 85);
+  EXPECT_EQ(image(1,0).g(), 0);
+  EXPECT_EQ(image(1,0).b(), 0);
+  EXPECT_EQ(image(0,1).r(), 0);
+  EXPECT_EQ(image(0,1).g(), 170);
+  EXPECT_EQ(image(0,1).b(), 0);
+  EXPECT_EQ(image(1,1).r(), 0);
+  EXPECT_EQ(image(1,1).g(), 0);
+  EXPECT_EQ(image(1,1).b(), 255);
 }
 #endif
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1 &&((defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1) || (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1))
-TEST( DiskCacheImageView, Construction ) {
+TEST(DiskCacheImageView, Construction) {
   ImageView<PixelRGB<uint8> > orig_image;
-  ASSERT_NO_THROW( read_image( orig_image, TEST_SRCDIR"/rgb2x2.png" ) );
+  ASSERT_NO_THROW(read_image(orig_image, TEST_SRCDIR"/rgb2x2.png"));
 
   DiskCacheImageView<PixelRGB<uint8> > image = orig_image;
 
-  ASSERT_EQ( image.cols(), 2 );
-  ASSERT_EQ( image.rows(), 2 );
-  ASSERT_EQ( image.planes(), 1 );
-  EXPECT_EQ( image(0,0).r(), 128 );
-  EXPECT_EQ( image(0,0).g(), 128 );
-  EXPECT_EQ( image(0,0).b(), 128 );
-  EXPECT_EQ( image(1,0).r(), 85 );
-  EXPECT_EQ( image(1,0).g(), 0 );
-  EXPECT_EQ( image(1,0).b(), 0 );
-  EXPECT_EQ( image(0,1).r(), 0 );
-  EXPECT_EQ( image(0,1).g(), 170 );
-  EXPECT_EQ( image(0,1).b(), 0 );
-  EXPECT_EQ( image(1,1).r(), 0 );
-  EXPECT_EQ( image(1,1).g(), 0 );
-  EXPECT_EQ( image(1,1).b(), 255 );
+  ASSERT_EQ(image.cols(), 2);
+  ASSERT_EQ(image.rows(), 2);
+  ASSERT_EQ(image.planes(), 1);
+  EXPECT_EQ(image(0,0).r(), 128);
+  EXPECT_EQ(image(0,0).g(), 128);
+  EXPECT_EQ(image(0,0).b(), 128);
+  EXPECT_EQ(image(1,0).r(), 85);
+  EXPECT_EQ(image(1,0).g(), 0);
+  EXPECT_EQ(image(1,0).b(), 0);
+  EXPECT_EQ(image(0,1).r(), 0);
+  EXPECT_EQ(image(0,1).g(), 170);
+  EXPECT_EQ(image(0,1).b(), 0);
+  EXPECT_EQ(image(1,1).r(), 0);
+  EXPECT_EQ(image(1,1).g(), 0);
+  EXPECT_EQ(image(1,1).b(), 255);
 
   // Test copying
   {
@@ -104,7 +104,7 @@ TEST( DiskCacheImageView, Construction ) {
 
 // This DiskImageResource test is located in this file so that we can
 //  use DiskImageView to help us test it.
-TEST( DiskImageResource , Raw ) {
+TEST(DiskImageResource, Raw) {
 
   // Create a read-only image reader for the sample image
   ImageFormat format;

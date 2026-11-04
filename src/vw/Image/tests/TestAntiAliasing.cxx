@@ -21,39 +21,39 @@
 
 using namespace vw;
 
-TEST( AntiAliasing, VerifySameOperation ) {
+TEST(AntiAliasing, VerifySameOperation) {
 
   // This just verifies that Weighted Summation View produces the same
   // result as the simplier to write WeightedAAFilter. This is what I
   // used to verify that the new code worked as it was kinda complex.
 
   typedef PixelMask<float> PT;
-  ImageView<PT > input( 4, 4 );
-  input( 0,0 ) = PT(1);
-  input( 2,0 ) = PT(2);
-  input( 3,0 ) = PT(-1);
-  input( 0,1 ) = PT(0);
-  input( 1,1 ) = PT(1);
-  input( 2,1 ) = PT(2);
-  input( 0,2 ) = input( 1,2 ) = input( 2,2 ) = input( 3,2 ) = PT(2);
-  input( 0,3 ) = input( 1,3 ) = input( 2,3 ) = input( 3,3 ) = PT(1);
+  ImageView<PT > input(4, 4);
+  input(0,0) = PT(1);
+  input(2,0) = PT(2);
+  input(3,0) = PT(-1);
+  input(0,1) = PT(0);
+  input(1,1) = PT(1);
+  input(2,1) = PT(2);
+  input(0,2) = input(1,2) = input(2,2) = input(3,2) = PT(2);
+  input(0,3) = input(1,3) = input(2,3) = input(3,3) = PT(1);
 
   ImageView< PT > output_org =
-    per_pixel_accessor_filter( input, WeightedAAFilter( 3 ) );
+    per_pixel_accessor_filter(input, WeightedAAFilter(3));
 
-  for ( size_t y = 0; y < 4; y++ ) {
-    for ( size_t x = 0; x < 4; x++ ) {
-      ASSERT_TRUE( is_valid( output_org(x,y) ) );
+  for (size_t y = 0; y < 4; y++) {
+    for (size_t x = 0; x < 4; x++) {
+      ASSERT_TRUE(is_valid(output_org(x,y)));
     }
   }
 
   ImageView< PT > output_new =
-    weighted_summation( input, 3 );
+    weighted_summation(input, 3);
 
-  for ( size_t y = 0; y < 4; y++ ) {
-    for ( size_t x = 0; x < 4; x++ ) {
-      EXPECT_TRUE( is_valid( output_new(x,y) ) ) << x << "," << y;
-      EXPECT_EQ( output_new(x,y), output_org(x,y) );
+  for (size_t y = 0; y < 4; y++) {
+    for (size_t x = 0; x < 4; x++) {
+      EXPECT_TRUE(is_valid(output_new(x,y))) << x << "," << y;
+      EXPECT_EQ(output_new(x,y), output_org(x,y));
     }
   }
 }

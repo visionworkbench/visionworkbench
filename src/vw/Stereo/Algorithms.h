@@ -39,33 +39,33 @@ namespace vw {
   // This expects the input to already be over cropped.
   template <class AccumulatorType, class ViewT>
   ImageView<typename PixelChannelCast<typename ViewT::pixel_type, AccumulatorType>::type>
-  fast_box_sum( ImageViewBase<ViewT> const& image, Vector2i const& kernel ) {
+  fast_box_sum(ImageViewBase<ViewT> const& image, Vector2i const& kernel) {
     // Sanity check, constants, and types
-    VW_ASSERT( kernel[0] % 2 == 1 && kernel[1] % 2 == 1,
-               ArgumentErr() << "fast_box_sum: Kernel input not sized with odd values." );
+    VW_ASSERT(kernel[0] % 2 == 1 && kernel[1] % 2 == 1,
+              ArgumentErr() << "fast_box_sum: Kernel input not sized with odd values.");
 
     typedef typename ViewT::pixel_accessor PAccT;
     typedef typename ViewT::pixel_type PixelT;
     typedef typename PixelChannelCast<PixelT,AccumulatorType>::type AccumT;
 
-    ViewT const& input( image.impl() ); // This just helps keep the code cleaner
-    VW_DEBUG_ASSERT( input.cols() >= kernel[0] && input.rows() >= kernel[1],
-                     ArgumentErr() << "fast_box_sum: Image is not big enough for kernel." );
+    ViewT const& input(image.impl()); // This just helps keep the code cleaner
+    VW_DEBUG_ASSERT(input.cols() >= kernel[0] && input.rows() >= kernel[1],
+                    ArgumentErr() << "fast_box_sum: Image is not big enough for kernel.");
 
     // Allocating output
-    ImageView<AccumT> output( input.cols()-kernel[0]+1,
-                              input.rows()-kernel[1]+1 );
+    ImageView<AccumT> output(input.cols()-kernel[0]+1,
+                             input.rows()-kernel[1]+1);
     typedef typename ImageView<AccumT>::pixel_accessor OAccT;
 
     // Start column sum
-    std::valarray<AccumT> col_sum(  input.cols() );
+    std::valarray<AccumT> col_sum(input.cols());
     const AccumT* col_sum_end = &col_sum[input.cols()];
     {
       PAccT row_input = input.origin();
-      for ( int32 ky = kernel[1]; ky; --ky ) {
+      for (int32 ky = kernel[1]; ky; --ky) {
         PAccT col_input = row_input;
         AccumT *col = &col_sum[0];
-        while ( col != col_sum_end ) {
+        while (col != col_sum_end) {
           *col++ += *col_input;
           col_input.next_col();
         }
@@ -77,7 +77,7 @@ namespace vw {
     OAccT dst = output.origin();
     PAccT src_row_back = input.origin();
     PAccT src_row_front = input.origin().advance(0,kernel[1]);
-    for ( int32 y = output.rows() - 1; y; --y ) {
+    for (int32 y = output.rows() - 1; y; --y) {
       // Seed row sum
       AccumT row_sum(0);
       row_sum = std::accumulate(&col_sum[0],&col_sum[kernel[0]],
@@ -85,7 +85,7 @@ namespace vw {
 
       // Sum down the row line
       AccumT const *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
-      while( cfront != col_sum_end ) {
+      while(cfront != col_sum_end) {
         *dst = row_sum;
         dst.next_col();
         row_sum += *cfront++ - *cback++;
@@ -96,7 +96,7 @@ namespace vw {
       // Update column sums
       PAccT src_col_back = src_row_back;
       PAccT src_col_front = src_row_front;
-      for ( AccumT* col = &col_sum[0]; col != col_sum_end; ++col ) {
+      for (AccumT* col = &col_sum[0]; col != col_sum_end; ++col) {
         *col += *src_col_front; // We do this in 2 lines to avoid casting.
         *col -= *src_col_back;  // I'm unsure if the assembly is still doing that.
         src_col_back.next_col();
@@ -116,7 +116,7 @@ namespace vw {
 
       // Sum down the row line
       AccumT const *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
-      while( cfront != col_sum_end ) {
+      while(cfront != col_sum_end) {
         *dst = row_sum;
         dst.next_col();
         row_sum += *cfront++ - *cback++;
@@ -236,7 +236,7 @@ inline void texture_preserving_disparity_filter(ImageView<PixelMask<Vector<T, 2>
 
       // TODO: Texture image should always be positive!
       // Skip invalid pixels
-      if (!is_valid(disparity_in(col,row)) || (texture_image(col, row)<0) )
+      if (!is_valid(disparity_in(col,row)) || (texture_image(col, row)<0))
         continue;
 
       float adjusted_texture = (texture_max-texture_image(col, row));

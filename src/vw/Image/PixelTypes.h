@@ -80,11 +80,11 @@ namespace vw {
   // This function is used in messy color space conversions
   // that operate internally using floating-point numbers
   // even when the destination channel type is integral.
-  template <class T> inline T _round_if_needed( typename boost::enable_if<boost::is_floating_point<T>,double>::type v) { return v; }
-  template <class T> inline T _round_if_needed( typename boost::disable_if<boost::is_floating_point<T>,double>::type v) {
+  template <class T> inline T _round_if_needed(typename boost::enable_if<boost::is_floating_point<T>,double>::type v) { return v; }
+  template <class T> inline T _round_if_needed(typename boost::disable_if<boost::is_floating_point<T>,double>::type v) {
     double vr = round(v);
-    if( vr < ChannelRange<T>::min() ) return ChannelRange<T>::min();
-    if( vr > ChannelRange<T>::max() ) return ChannelRange<T>::max();
+    if(vr < ChannelRange<T>::min()) return ChannelRange<T>::min();
+    if(vr > ChannelRange<T>::max()) return ChannelRange<T>::max();
     return (T)(vr);
   }
 
@@ -107,33 +107,33 @@ namespace vw {
     PixelGray() { m_ch[0]=0; }
 
     /// Implicit construction from the raw channel value.
-    PixelGray( ChannelT v ) { m_ch[0]=v; }
+    PixelGray(ChannelT v) { m_ch[0]=v; }
 
     /// Conversion from other PixelGray types.
-    template <class OtherT> PixelGray( PixelGray<OtherT> other ) {
+    template <class OtherT> PixelGray(PixelGray<OtherT> other) {
       m_ch[0] = ChannelT(other[0]);
     }
 
     /// Explicit conversion from PixelGrayA types.  Discards the alpha
     /// channel, which is equivalent to compositing over a black background.
-    template <class OtherT> explicit PixelGray( PixelGrayA<OtherT> other ) {
+    template <class OtherT> explicit PixelGray(PixelGrayA<OtherT> other) {
       m_ch[0]=ChannelT(other[0]);
     }
 
     /// Explicit conversion from PixelRGB types.  Computes the
     /// luminance value by averaging the R, G, and B channels.
-    template <class OtherT> explicit PixelGray( PixelRGB<OtherT> other ) {
+    template <class OtherT> explicit PixelGray(PixelRGB<OtherT> other) {
       typedef typename AccumulatorType<ChannelT>::type a_t;
-      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[0] = ChannelT((a_t(other[0]) + a_t(other[1]) + a_t(other[2])) / 3);
     }
 
     /// Explicit conversion from PixelRGBA types.  Computes the
     /// luminance value by averaging the R, G, and B channels.
     /// Discards the alpha channel, which is equivalent to compositing
     /// over a black background.
-    template <class OtherT> explicit PixelGray( PixelRGBA<OtherT> other ) {
+    template <class OtherT> explicit PixelGray(PixelRGBA<OtherT> other) {
       typedef typename AccumulatorType<ChannelT>::type a_t;
-      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[0] = ChannelT((a_t(other[0]) + a_t(other[1]) + a_t(other[2])) / 3);
     }
 
     /// Automatic down-cast to the raw channel value in numeric contexts.
@@ -154,7 +154,7 @@ namespace vw {
 
   /// Print a PixelGray to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelGray<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelGray<ChannelT> const& pix) {
     return os << "PixelGray(" << _numeric(pix.v()) << ")";
   }
 
@@ -177,42 +177,42 @@ namespace vw {
     /// is marked as explicit to prevent you from accidentally
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelGrayA( ChannelT v ) {
+    explicit PixelGrayA(ChannelT v) {
       m_ch[0]=v;
       m_ch[1]=ChannelRange<ChannelT>::max();
     }
 
     /// Constructs a pixel with the given channel values.
-    PixelGrayA( ChannelT v, ChannelT a ) {
+    PixelGrayA(ChannelT v, ChannelT a) {
       m_ch[0]=v;
       m_ch[1]=a;
     }
 
     /// Explicit conversion from PixelGray types.
-    template <class OtherT> explicit PixelGrayA( PixelGray<OtherT> other ) {
+    template <class OtherT> explicit PixelGrayA(PixelGray<OtherT> other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelRange<ChannelT>::max();
     }
 
     /// Conversion from other PixelGrayA types.
-    template <class OtherT> PixelGrayA( PixelGrayA<OtherT> other ) {
+    template <class OtherT> PixelGrayA(PixelGrayA<OtherT> other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
     }
 
     /// Explicit conversion from PixelRGB types.  Computes the
     /// luminance value by averaging the R, G, and B channels.
-    template <class OtherT> explicit PixelGrayA( PixelRGB<OtherT> other ) {
+    template <class OtherT> explicit PixelGrayA(PixelRGB<OtherT> other) {
       typedef typename AccumulatorType<ChannelT>::type a_t;
-      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[0] = ChannelT((a_t(other[0]) + a_t(other[1]) + a_t(other[2])) / 3);
       m_ch[1] = ChannelRange<ChannelT>::max();
     }
 
     /// Explicit conversion from PixelRGBA types.  Computes the
     /// luminance value by averaging the R, G, and B channels.
-    template <class OtherT> explicit PixelGrayA( PixelRGBA<OtherT> other ) {
+    template <class OtherT> explicit PixelGrayA(PixelRGBA<OtherT> other) {
       typedef typename AccumulatorType<ChannelT>::type a_t;
-      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[0] = ChannelT((a_t(other[0]) + a_t(other[1]) + a_t(other[2])) / 3);
       m_ch[1] = ChannelT(other[3]);
     }
 
@@ -233,22 +233,22 @@ namespace vw {
   VW_DECLARE_PIXEL_TYPE(PixelGrayA,2);
   VW_ALPHA_PIXEL_TRAITS(PixelGray, PixelGrayA);
 
-  template <class T> T& alpha_channel( PixelGrayA<T>& pix ) {
+  template <class T> T& alpha_channel(PixelGrayA<T>& pix) {
     return pix.a();
   }
-  template <class T> const T& alpha_channel( const PixelGrayA<T>& pix ) {
+  template <class T> const T& alpha_channel(const PixelGrayA<T>& pix) {
     return pix.a();
   }
-  template <class T> PixelGray<T>& non_alpha_channels( PixelGrayA<T>& pix ) {
-    return reinterpret_cast<PixelGray<T>&>( pix );
+  template <class T> PixelGray<T>& non_alpha_channels(PixelGrayA<T>& pix) {
+    return reinterpret_cast<PixelGray<T>&>(pix);
   }
-  template <class T> const PixelGray<T>& non_alpha_channels( const PixelGrayA<T>& pix ) {
-    return reinterpret_cast<const PixelGray<T>&>( pix );
+  template <class T> const PixelGray<T>& non_alpha_channels(const PixelGrayA<T>& pix) {
+    return reinterpret_cast<const PixelGray<T>&>(pix);
   }
 
   /// Print a PixelGrayA to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelGrayA<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelGrayA<ChannelT> const& pix) {
     return os << "PixelGrayA(" << _numeric(pix.v()) << "," << _numeric(pix.a()) << ")";
   }
 
@@ -268,42 +268,42 @@ namespace vw {
     PixelRGB() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
 
     /// Explicitly constructs of a gray pixel with the given luminance value.
-    PixelRGB( ChannelT const& v ) { m_ch[0]=m_ch[1]=m_ch[2]=v; };
+    PixelRGB(ChannelT const& v) { m_ch[0]=m_ch[1]=m_ch[2]=v; };
 
     /// Constructs a pixel with the given channel values.
-    PixelRGB( ChannelT const& r, ChannelT const& g, ChannelT const& b ) {
+    PixelRGB(ChannelT const& r, ChannelT const& g, ChannelT const& b) {
       m_ch[0]=r; m_ch[1]=g; m_ch[2]=b;
     }
 
     /// Explicit conversion from PixelGray types.
-    template <class OtherT> explicit PixelRGB( PixelGray<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGB(PixelGray<OtherT> const& other) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
     }
 
     /// Explicit conversion from PixelGrayA types.
-    template <class OtherT> explicit PixelRGB( PixelGrayA<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGB(PixelGrayA<OtherT> const& other) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
     }
 
     /// Conversion from other PixelRGB types.
-    template <class OtherT> PixelRGB( PixelRGB<OtherT> const& other ) {
+    template <class OtherT> PixelRGB(PixelRGB<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
 
     /// Explicit conversion from PixelRGBA types.
-    template <class OtherT> explicit PixelRGB( PixelRGBA<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGB(PixelRGBA<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
 
     /// Explicit conversion from PixelXYZ types.
-    template <class OtherT> explicit PixelRGB( PixelXYZ<OtherT> const& other );
+    template <class OtherT> explicit PixelRGB(PixelXYZ<OtherT> const& other);
 
     /// Explicit conversion from PixelLab types.
-    template <class OtherT> explicit PixelRGB( PixelLab<OtherT> const& other );
+    template <class OtherT> explicit PixelRGB(PixelLab<OtherT> const& other);
 
     /// Channel indexing operators.
     inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
@@ -324,20 +324,20 @@ namespace vw {
 
   /// Print a PixelRGB to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelRGB<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelRGB<ChannelT> const& pix) {
     return os << "PixelRGB(" << _numeric(pix.r()) << "," << _numeric(pix.g()) << "," << _numeric(pix.b()) << ")";
   }
 
   /// Weighted conversion from PixelRGB to PixelGray using user-specified weights.
   template <class ChannelT>
-  PixelGray<ChannelT> weighted_rgb_to_gray( PixelRGB<ChannelT> const& rgb, double rw, double gw, double bw ) {
-    return PixelGray<ChannelT>( (ChannelT)(rgb.r()*rw + rgb.g()*gw + rgb.b()*bw) );
+  PixelGray<ChannelT> weighted_rgb_to_gray(PixelRGB<ChannelT> const& rgb, double rw, double gw, double bw) {
+    return PixelGray<ChannelT>((ChannelT)(rgb.r()*rw + rgb.g()*gw + rgb.b()*bw));
   }
 
   /// Weighted conversion from PixelRGB to PixelGray using the default weights.
   template <class ChannelT>
-  PixelGray<ChannelT> weighted_rgb_to_gray( PixelRGB<ChannelT> const& rgb ) {
-    return weighted_rgb_to_gray( rgb, VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT );
+  PixelGray<ChannelT> weighted_rgb_to_gray(PixelRGB<ChannelT> const& rgb) {
+    return weighted_rgb_to_gray(rgb, VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT);
   }
 
 
@@ -359,30 +359,30 @@ namespace vw {
     /// This is marked as explicit to prevent you from accidentially
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelRGBA( ChannelT const& v ) {
+    explicit PixelRGBA(ChannelT const& v) {
       m_ch[0]=m_ch[1]=m_ch[2]=v;
       m_ch[3]=ChannelRange<ChannelT>::max();
     }
 
     /// Constructs a pixel with the given channel values.
-    PixelRGBA( ChannelT const& r, ChannelT const& g, ChannelT const& b, ChannelT const& a ) {
+    PixelRGBA(ChannelT const& r, ChannelT const& g, ChannelT const& b, ChannelT const& a) {
       m_ch[0]=r; m_ch[1]=g; m_ch[2]=b; m_ch[3]=a;
     }
 
     /// Explicit conversion from PixelGray types.
-    template <class OtherT> explicit PixelRGBA( PixelGray<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGBA(PixelGray<OtherT> const& other) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
       m_ch[3]=ChannelRange<ChannelT>::max();
     }
 
     /// Explicit conversion from PixelGrayA types.
-    template <class OtherT> explicit PixelRGBA( PixelGrayA<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGBA(PixelGrayA<OtherT> const& other) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
       m_ch[3]=ChannelT(other[1]);
     }
 
     /// Explicit conversion from PixelRGB types.
-    template <class OtherT> explicit PixelRGBA( PixelRGB<OtherT> const& other ) {
+    template <class OtherT> explicit PixelRGBA(PixelRGB<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
@@ -390,7 +390,7 @@ namespace vw {
     }
 
     /// Conversion from other PixelRGBA types.
-    template <class OtherT> PixelRGBA( PixelRGBA<OtherT> const& other ) {
+    template <class OtherT> PixelRGBA(PixelRGBA<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
@@ -417,35 +417,35 @@ namespace vw {
   VW_DECLARE_PIXEL_TYPE(PixelRGBA,4);
   VW_ALPHA_PIXEL_TRAITS(PixelRGB, PixelRGBA);
 
-  template <class T> T& alpha_channel( PixelRGBA<T>& pix ) {
+  template <class T> T& alpha_channel(PixelRGBA<T>& pix) {
     return pix.a();
   }
-  template <class T> const T& alpha_channel( const PixelRGBA<T>& pix ) {
+  template <class T> const T& alpha_channel(const PixelRGBA<T>& pix) {
     return pix.a();
   }
-  template <class T> PixelRGB<T>& non_alpha_channels( PixelRGBA<T>& pix ) {
-    return reinterpret_cast<PixelRGB<T>&>( pix );
+  template <class T> PixelRGB<T>& non_alpha_channels(PixelRGBA<T>& pix) {
+    return reinterpret_cast<PixelRGB<T>&>(pix);
   }
-  template <class T> const PixelRGB<T>& non_alpha_channels( const PixelRGBA<T>& pix ) {
-    return reinterpret_cast<const PixelRGB<T>&>( pix );
+  template <class T> const PixelRGB<T>& non_alpha_channels(const PixelRGBA<T>& pix) {
+    return reinterpret_cast<const PixelRGB<T>&>(pix);
   }
 
   /// Print a PixelRGBA to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelRGBA<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelRGBA<ChannelT> const& pix) {
     return os << "RGBA(" << _numeric(pix.r()) << "," << _numeric(pix.g()) << "," << _numeric(pix.b()) << "," << _numeric(pix.a()) << ")";
   }
 
   /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.
   template <class ChannelT>
-  PixelGrayA<ChannelT> weighted_rgb_to_gray( PixelRGBA<ChannelT> const& rgba, double rw, double gw, double bw ) {
-    return PixelGrayA<ChannelT>( (ChannelT)(rgba.r()*rw + rgba.g()*gw + rgba.b()*bw), rgba.a() );
+  PixelGrayA<ChannelT> weighted_rgb_to_gray(PixelRGBA<ChannelT> const& rgba, double rw, double gw, double bw) {
+    return PixelGrayA<ChannelT>((ChannelT)(rgba.r()*rw + rgba.g()*gw + rgba.b()*bw), rgba.a());
   }
 
   /// Weighted conversion from PixelRGBA to PixelGrayA using the default weights.
   template <class ChannelT>
-  PixelGrayA<ChannelT> weighted_rgb_to_gray( PixelRGBA<ChannelT> const& rgba ) {
-    return weighted_rgb_to_gray( rgba, VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT );
+  PixelGrayA<ChannelT> weighted_rgb_to_gray(PixelRGBA<ChannelT> const& rgba) {
+    return weighted_rgb_to_gray(rgba, VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT);
   }
 
 
@@ -470,25 +470,25 @@ namespace vw {
     PixelXYZ() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
 
     /// Explicitly constructs a gray pixel with the given Y value.
-    PixelXYZ( ChannelT const& y ) { m_ch[0]=m_ch[2]=0; m_ch[1]=y; }
+    PixelXYZ(ChannelT const& y) { m_ch[0]=m_ch[2]=0; m_ch[1]=y; }
 
     /// Constructs a pixel with the given channel values.
-    PixelXYZ( ChannelT const& x, ChannelT const& y, ChannelT const& z ) {
+    PixelXYZ(ChannelT const& x, ChannelT const& y, ChannelT const& z) {
       m_ch[0]=x; m_ch[1]=y; m_ch[2]=z;
     }
 
     /// Conversion from other PixelXYZ types.
-    template <class OtherT> PixelXYZ( PixelXYZ<OtherT> const& other ) {
+    template <class OtherT> PixelXYZ(PixelXYZ<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
 
     /// Explicit conversion from PixelRGB types.
-    template <class OtherT> explicit PixelXYZ( PixelRGB<OtherT> const& rgb );
+    template <class OtherT> explicit PixelXYZ(PixelRGB<OtherT> const& rgb);
 
     /// Explicit conversion from PixelLab types.
-    template <class OtherT> explicit PixelXYZ( PixelLab<OtherT> const& lab );
+    template <class OtherT> explicit PixelXYZ(PixelLab<OtherT> const& lab);
 
     /// Channel indexing operator.
     inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
@@ -509,38 +509,38 @@ namespace vw {
 
   /// Print a PixelXYZ to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelXYZ<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelXYZ<ChannelT> const& pix) {
     return os << "PixelXYZ(" << _numeric(pix.x()) << "," << _numeric(pix.y()) << "," << _numeric(pix.z()) << ")";
   }
 
   /// XYZ->RGB conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelRGB<ChannelT>::PixelRGB( PixelXYZ<OtherT> const& xyz ) {
-    r() = _round_if_needed<ChannelT>( VW_XYZ_TO_RGB_XR_WEIGHT*xyz.x() +
-                                      VW_XYZ_TO_RGB_YR_WEIGHT*xyz.y() +
-                                      VW_XYZ_TO_RGB_ZR_WEIGHT*xyz.z() );
-    g() = _round_if_needed<ChannelT>( VW_XYZ_TO_RGB_XG_WEIGHT*xyz.x() +
-                                      VW_XYZ_TO_RGB_YG_WEIGHT*xyz.y() +
-                                      VW_XYZ_TO_RGB_ZG_WEIGHT*xyz.z() );
-    b() = _round_if_needed<ChannelT>( VW_XYZ_TO_RGB_XB_WEIGHT*xyz.x() +
-                                      VW_XYZ_TO_RGB_YB_WEIGHT*xyz.y() +
-                                      VW_XYZ_TO_RGB_ZB_WEIGHT*xyz.z() );
+  PixelRGB<ChannelT>::PixelRGB(PixelXYZ<OtherT> const& xyz) {
+    r() = _round_if_needed<ChannelT>(VW_XYZ_TO_RGB_XR_WEIGHT*xyz.x() +
+                                     VW_XYZ_TO_RGB_YR_WEIGHT*xyz.y() +
+                                     VW_XYZ_TO_RGB_ZR_WEIGHT*xyz.z());
+    g() = _round_if_needed<ChannelT>(VW_XYZ_TO_RGB_XG_WEIGHT*xyz.x() +
+                                     VW_XYZ_TO_RGB_YG_WEIGHT*xyz.y() +
+                                     VW_XYZ_TO_RGB_ZG_WEIGHT*xyz.z());
+    b() = _round_if_needed<ChannelT>(VW_XYZ_TO_RGB_XB_WEIGHT*xyz.x() +
+                                     VW_XYZ_TO_RGB_YB_WEIGHT*xyz.y() +
+                                     VW_XYZ_TO_RGB_ZB_WEIGHT*xyz.z());
   }
 
   /// RGB->XYZ conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelXYZ<ChannelT>::PixelXYZ( PixelRGB<OtherT> const& rgb ) {
-    x() = _round_if_needed<ChannelT>( VW_RGB_TO_XYZ_RX_WEIGHT*rgb.r() +
-                                      VW_RGB_TO_XYZ_GX_WEIGHT*rgb.g() +
-                                      VW_RGB_TO_XYZ_BX_WEIGHT*rgb.b() );
-    y() = _round_if_needed<ChannelT>( VW_RGB_TO_XYZ_RY_WEIGHT*rgb.r() +
-                                      VW_RGB_TO_XYZ_GY_WEIGHT*rgb.g() +
-                                      VW_RGB_TO_XYZ_BY_WEIGHT*rgb.b() );
-    z() = _round_if_needed<ChannelT>( VW_RGB_TO_XYZ_RZ_WEIGHT*rgb.r() +
-                                      VW_RGB_TO_XYZ_GZ_WEIGHT*rgb.g() +
-                                      VW_RGB_TO_XYZ_BZ_WEIGHT*rgb.b() );
+  PixelXYZ<ChannelT>::PixelXYZ(PixelRGB<OtherT> const& rgb) {
+    x() = _round_if_needed<ChannelT>(VW_RGB_TO_XYZ_RX_WEIGHT*rgb.r() +
+                                     VW_RGB_TO_XYZ_GX_WEIGHT*rgb.g() +
+                                     VW_RGB_TO_XYZ_BX_WEIGHT*rgb.b());
+    y() = _round_if_needed<ChannelT>(VW_RGB_TO_XYZ_RY_WEIGHT*rgb.r() +
+                                     VW_RGB_TO_XYZ_GY_WEIGHT*rgb.g() +
+                                     VW_RGB_TO_XYZ_BY_WEIGHT*rgb.b());
+    z() = _round_if_needed<ChannelT>(VW_RGB_TO_XYZ_RZ_WEIGHT*rgb.r() +
+                                     VW_RGB_TO_XYZ_GZ_WEIGHT*rgb.g() +
+                                     VW_RGB_TO_XYZ_BZ_WEIGHT*rgb.b());
   }
 
   // *******************************************************************
@@ -564,25 +564,25 @@ namespace vw {
     PixelLab() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
 
     /// Explicitly constructs a gray pixel with the given L value.
-    PixelLab( ChannelT const& l ) { m_ch[0]=l; m_ch[1]=m_ch[2]=0; }
+    PixelLab(ChannelT const& l) { m_ch[0]=l; m_ch[1]=m_ch[2]=0; }
 
     /// Constructs a pixel with the given channel values.
-    PixelLab( ChannelT const& l, ChannelT const& a, ChannelT const& b ) {
+    PixelLab(ChannelT const& l, ChannelT const& a, ChannelT const& b) {
       m_ch[0]=l; m_ch[1]=a; m_ch[2]=b;
     }
 
     /// Conversion from other PixelLab types.
-    template <class OtherT> PixelLab( PixelLab<OtherT> const& other ) {
+    template <class OtherT> PixelLab(PixelLab<OtherT> const& other) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
 
     /// Explicit conversion from PixelXYZ types.
-    template <class OtherT> explicit PixelLab( PixelXYZ<OtherT> const& xyz );
+    template <class OtherT> explicit PixelLab(PixelXYZ<OtherT> const& xyz);
 
     /// Explicit conversion from PixelRGB types.
-    template <class OtherT> explicit PixelLab( PixelRGB<OtherT> const& rgb );
+    template <class OtherT> explicit PixelLab(PixelRGB<OtherT> const& rgb);
 
     /// Channel indexing operators.
     inline ChannelT      & operator[](size_t i)       { return m_ch[i]; }
@@ -603,7 +603,7 @@ namespace vw {
 
   /// Print a PixelLab to a debugging stream.
   template <class ChannelT>
-  std::ostream& operator<<( std::ostream& os, PixelLab<ChannelT> const& pix ) {
+  std::ostream& operator<<(std::ostream& os, PixelLab<ChannelT> const& pix) {
     return os << "PixelLab(" << _numeric(pix.l()) << "," << _numeric(pix.a()) << "," << _numeric(pix.b()) << ")";
   }
 
@@ -625,7 +625,7 @@ namespace vw {
   /// Lab->XYZ conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelXYZ<ChannelT>::PixelXYZ( PixelLab<OtherT> const& lab ) {
+  PixelXYZ<ChannelT>::PixelXYZ(PixelLab<OtherT> const& lab) {
           double f_y = (lab.l() + 16.0)/116.0;
           double f_x = f_y + lab.a()/500.0;
           double f_z = f_y - lab.b()/200.0;
@@ -642,7 +642,7 @@ namespace vw {
   /// XYZ->Lab conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelLab<ChannelT>::PixelLab( PixelXYZ<OtherT> const& xyz ) {
+  PixelLab<ChannelT>::PixelLab(PixelXYZ<OtherT> const& xyz) {
     double x_xn = xyz.x() / VW_LAB_D65_X_N;
     double y_yn = xyz.y() / VW_LAB_D65_Y_N;
     double z_zn = xyz.z() / VW_LAB_D65_Z_N;
@@ -666,7 +666,7 @@ namespace vw {
   /// Lab->RGB conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelRGB<ChannelT>::PixelRGB( PixelLab<OtherT> const& lab ) {
+  PixelRGB<ChannelT>::PixelRGB(PixelLab<OtherT> const& lab) {
     // Lab->XYZ->RGB
     PixelXYZ<ChannelT> xyz(lab);
     PixelRGB<ChannelT> rgb(xyz);
@@ -678,7 +678,7 @@ namespace vw {
   /// RGB->Lab conversion
   template <class ChannelT>
   template <class OtherT>
-  PixelLab<ChannelT>::PixelLab( PixelRGB<OtherT> const& rgb ) {
+  PixelLab<ChannelT>::PixelLab(PixelRGB<OtherT> const& rgb) {
     // RGB->XYZ->Lab
     PixelXYZ<ChannelT> xyz(rgb);
     PixelLab<ChannelT> lab(xyz);

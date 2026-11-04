@@ -25,71 +25,71 @@
 
 using namespace vw;
 
-TEST( ImageViewRef, Construct ) {
+TEST(ImageViewRef, Construct) {
   const int cols=3, rows=2;
   ImageView<float> image(cols,rows);
-  for( int r=0; r<rows; ++r )
-    for( int c=0; c<cols; ++c )
+  for(int r=0; r<rows; ++r)
+    for(int c=0; c<cols; ++c)
       image(c,r) = (float)(r*cols+c);
 
   ImageViewRef<float> ref = image;
-  ASSERT_EQ( ref.cols(), image.cols() );
-  ASSERT_EQ( ref.rows(), image.rows() );
-  ASSERT_EQ( ref.planes(), image.planes() );
+  ASSERT_EQ(ref.cols(), image.cols());
+  ASSERT_EQ(ref.rows(), image.rows());
+  ASSERT_EQ(ref.planes(), image.planes());
 
   // Test pixel indexing
-  for( int r=0; r<rows; ++r )
-    for( int c=0; c<cols; ++c )
-      EXPECT_EQ( ref(c,r), (float)(r*cols+c) );
+  for(int r=0; r<rows; ++r)
+    for(int c=0; c<cols; ++c)
+      EXPECT_EQ(ref(c,r), (float)(r*cols+c));
 
   // Test full rasterization: optimized case
   ImageView<float> im2 = ref;
-  for( int r=0; r<rows; ++r )
-    for( int c=0; c<cols; ++c )
-      EXPECT_EQ( im2(c,r), ref(c,r) );
+  for(int r=0; r<rows; ++r)
+    for(int c=0; c<cols; ++c)
+      EXPECT_EQ(im2(c,r), ref(c,r));
 
   // Test full rasterization: general case
   ImageView<double> im3 = ref;
-  for( int r=0; r<rows; ++r )
-    for( int c=0; c<cols; ++c )
-      EXPECT_NEAR( im3(c,r), ref(c,r), 1e-8 );
+  for(int r=0; r<rows; ++r)
+    for(int c=0; c<cols; ++c)
+      EXPECT_NEAR(im3(c,r), ref(c,r), 1e-8);
 
   // Test accessor / generic rasterization
   ImageView<float> im4(cols,rows);
-  vw::rasterize( ref, im4, BBox2i(0,0,cols,rows) );
-  for( int r=0; r<rows; ++r )
-    for( int c=0; c<cols; ++c )
-      EXPECT_EQ( im4(c,r), ref(c,r) );
+  vw::rasterize(ref, im4, BBox2i(0,0,cols,rows));
+  for(int r=0; r<rows; ++r)
+    for(int c=0; c<cols; ++c)
+      EXPECT_EQ(im4(c,r), ref(c,r));
 
   // Test partial rasterization
   ImageView<float> im5(cols-1,rows-1);
-  ref.rasterize( im5, BBox2i(1,1,cols-1,rows-1) );
-  for( int r=0; r<rows-1; ++r )
-    for( int c=0; c<cols-1; ++c )
-      EXPECT_EQ( im5(c,r), ref(c+1,r+1) );
+  ref.rasterize(im5, BBox2i(1,1,cols-1,rows-1));
+  for(int r=0; r<rows-1; ++r)
+    for(int c=0; c<cols-1; ++c)
+      EXPECT_EQ(im5(c,r), ref(c+1,r+1));
 
   // Test iterator
   int val=0;
-  for( ImageViewRef<float>::iterator i=ref.begin(), end=ref.end();
-       i!=end; ++i, ++val )
-    EXPECT_EQ( *i, (float)(val) );
+  for(ImageViewRef<float>::iterator i=ref.begin(), end=ref.end();
+      i!=end; ++i, ++val)
+    EXPECT_EQ(*i, (float)(val));
 }
 
-TEST( ImageViewRef, FloatAccess ) {
+TEST(ImageViewRef, FloatAccess) {
   ImageView<float> source(2,1); source(0,0) = 0; source(1,0) = 1;
-  ImageViewRef<float> ref = interpolate( source );
+  ImageViewRef<float> ref = interpolate(source);
 
-  EXPECT_EQ( ref(double(0.5),double(0.0)), 0.5 );
-  EXPECT_EQ( ref(double(0.5),double(0.0),0), 0.5 );
-  EXPECT_EQ( ref(double(0.5),int32(0)), 0.5 );
-  EXPECT_EQ( ref(double(0.5),int32(0),0), 0.5 );
-  EXPECT_EQ( ref(double(0.5),uint32(0)), 0.5 );
-  EXPECT_EQ( ref(double(0.5),uint16(0)), 0.5 );
-  EXPECT_EQ( ref(double(0.5),uint64(0)), 0.5 );
-  EXPECT_EQ( ref(int32(0),int32(0)), 0 );
-  EXPECT_EQ( ref(int32(0),int32(0),0), 0 );
-  EXPECT_EQ( ref(uint32(0),int32(0)), 0 );
-  EXPECT_EQ( ref(uint32(0),int32(0),0), 0 );
-  EXPECT_EQ( ref(char(0),int32(0)), 0 );
-  EXPECT_EQ( ref(char(0),int32(0),0), 0 );
+  EXPECT_EQ(ref(double(0.5),double(0.0)), 0.5);
+  EXPECT_EQ(ref(double(0.5),double(0.0),0), 0.5);
+  EXPECT_EQ(ref(double(0.5),int32(0)), 0.5);
+  EXPECT_EQ(ref(double(0.5),int32(0),0), 0.5);
+  EXPECT_EQ(ref(double(0.5),uint32(0)), 0.5);
+  EXPECT_EQ(ref(double(0.5),uint16(0)), 0.5);
+  EXPECT_EQ(ref(double(0.5),uint64(0)), 0.5);
+  EXPECT_EQ(ref(int32(0),int32(0)), 0);
+  EXPECT_EQ(ref(int32(0),int32(0),0), 0);
+  EXPECT_EQ(ref(uint32(0),int32(0)), 0);
+  EXPECT_EQ(ref(uint32(0),int32(0),0), 0);
+  EXPECT_EQ(ref(char(0),int32(0)), 0);
+  EXPECT_EQ(ref(char(0),int32(0),0), 0);
 }

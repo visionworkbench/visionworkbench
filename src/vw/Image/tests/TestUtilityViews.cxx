@@ -30,32 +30,32 @@
 
 using namespace vw;
 
-TEST( UtilityViews, ConstantView ) {
+TEST(UtilityViews, ConstantView) {
   PixelGray<float32> px(3.5);
   ImageViewRef<PixelGray<float32> > view = constant_view<PixelGray<float32> >(px, 50, 50);
 
-  EXPECT_PIXEL_EQ( view(10, 20), px );
+  EXPECT_PIXEL_EQ(view(10, 20), px);
   view = constant_view(px, view);
-  EXPECT_PIXEL_EQ( view(10, 20), px );
+  EXPECT_PIXEL_EQ(view(10, 20), px);
 }
 
-TEST( UtilityViews, VectorIndexView ) {
+TEST(UtilityViews, VectorIndexView) {
   ImageViewRef<Vector2> view = pixel_index_view(50, 50);
 
-  EXPECT_VECTOR_DOUBLE_EQ( view(10, 20), Vector2(10, 20) );
+  EXPECT_VECTOR_DOUBLE_EQ(view(10, 20), Vector2(10, 20));
   view = pixel_index_view(copy(view));
-  EXPECT_VECTOR_DOUBLE_EQ( view(10, 20), Vector2(10, 20) );
+  EXPECT_VECTOR_DOUBLE_EQ(view(10, 20), Vector2(10, 20));
 }
 
-TEST( UtilityViews, Vector3IndexView ) {
+TEST(UtilityViews, Vector3IndexView) {
   ImageViewRef<Vector3> view = pixel_index3_view(50, 50, 3);
 
-  EXPECT_VECTOR_DOUBLE_EQ( view(10, 20, 2), Vector3(10, 20, 2) );
+  EXPECT_VECTOR_DOUBLE_EQ(view(10, 20, 2), Vector3(10, 20, 2));
   view = pixel_index3_view(view);
-  EXPECT_VECTOR_DOUBLE_EQ( view(10, 20, 2), Vector3(10, 20, 2) );
+  EXPECT_VECTOR_DOUBLE_EQ(view(10, 20, 2), Vector3(10, 20, 2));
 }
 
-TEST( UtilityViews, UniformNoiseView ) {
+TEST(UtilityViews, UniformNoiseView) {
   boost::rand48 gen(10);
 
   ImageViewRef<double> view = uniform_noise_view(gen, 10, 10);
@@ -68,7 +68,7 @@ TEST( UtilityViews, UniformNoiseView ) {
   EXPECT_NE(view(5, 5), view(5, 5));
 }
 
-TEST( UtilityViews, GaussianNoiseView ) {
+TEST(UtilityViews, GaussianNoiseView) {
   boost::rand48 gen(10);
 
   ImageViewRef<double> view = gaussian_noise_view(gen, 1, 0.5, 10, 10);

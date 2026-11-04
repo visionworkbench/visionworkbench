@@ -100,16 +100,16 @@ namespace math {
     m_matrix(0,0), m_skyline(0) {
     }
 
-    MatrixSparseSkyline( size_t size ) :
+    MatrixSparseSkyline(size_t size) :
     m_matrix(size,size), m_skyline(size) {
-      for ( size_t i = 0; i < size; ++i )
+      for (size_t i = 0; i < size; ++i)
         m_skyline[i] = i;
     }
 
-    MatrixSparseSkyline( size_t rows, size_t cols ) :
+    MatrixSparseSkyline(size_t rows, size_t cols) :
     m_matrix(rows,cols), m_skyline(rows) {
-      VW_ASSERT( cols == rows,
-                 ArgumentErr() << "MatrixSparseSkyline must be square and symmetric.\n");
+      VW_ASSERT(cols == rows,
+                ArgumentErr() << "MatrixSparseSkyline must be square and symmetric.\n");
       // Setting non-zero to the identity point;
       for (size_t i = 0; i < rows; ++i)
         m_skyline[i] = i;
@@ -117,17 +117,17 @@ namespace math {
 
     /// Assignment operator specialized for sparse matrices
     template <class ElemT2>
-    MatrixSparseSkyline& operator=( MatrixSparseSkyline<ElemT2> const& m ) {
-      VW_ASSERT( m.rows() == m_matrix.size1() &&
-                 m.cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
-                 << m_matrix.size1() << "x" << m_matrix.size2() << "." );
+    MatrixSparseSkyline& operator=(MatrixSparseSkyline<ElemT2> const& m) {
+      VW_ASSERT(m.rows() == m_matrix.size1() &&
+                m.cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
+                << m_matrix.size1() << "x" << m_matrix.size2() << ".");
       m_matrix.clear();
       VectorClearImpl<Vector<size_t> >::clear(m_skyline);
       // Iterate through non-zero elements
-      for ( typename MatrixSparseSkyline<ElemT>::const_sparse_iterator1 it1 = m.sparse_begin();
-            it1 != m.sparse_end(); it1++ ) {
-        for ( typename MatrixSparseSkyline<ElemT>::const_sparse_iterator2 it2 = it1.begin();
-              it2 != it1.end(); it2++ ) {
+      for (typename MatrixSparseSkyline<ElemT>::const_sparse_iterator1 it1 = m.sparse_begin();
+           it1 != m.sparse_end(); it1++) {
+        for (typename MatrixSparseSkyline<ElemT>::const_sparse_iterator2 it2 = it1.begin();
+             it2 != it1.end(); it2++) {
           (*this)(it2.index1(),it2.index2()) = *it2;
         }
       }
@@ -136,13 +136,13 @@ namespace math {
 
     /// Assignment operator for generic (DESTROYS SPARSITY)
     template <class T>
-    MatrixSparseSkyline& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows() == m_matrix.size1() &&
-                 m.impl().cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
-                 << m_matrix.size1() << "x" << m_matrix.size2() << "." );
+    MatrixSparseSkyline& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows() == m_matrix.size1() &&
+                m.impl().cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
+                << m_matrix.size1() << "x" << m_matrix.size2() << ".");
       VW_OUT(vw::WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
-      for ( size_t i = 0; i < m.rows(); i++ ) {
-        for ( size_t j = 0; j < m.cols(); j++ ) {
+      for (size_t i = 0; i < m.rows(); i++) {
+        for (size_t j = 0; j < m.cols(); j++) {
           (*this)(i,j) = m(i,j);
         }
       }
@@ -154,37 +154,37 @@ namespace math {
     size_t cols() const { return m_matrix.size2(); }
 
     /// Change the size of the matrix
-    void set_size( size_t /*new_rows*/, size_t /*new_cols*/, bool /*preserve*/ = false ) {
-      vw_throw( NoImplErr() << "MatrixSparseSkyline::set_size, code has not been written yet." );
+    void set_size(size_t /*new_rows*/, size_t /*new_cols*/, bool /*preserve*/ = false) {
+      vw_throw(NoImplErr() << "MatrixSparseSkyline::set_size, code has not been written yet.");
     }
 
     /// Element Access
-    reference_type operator()( size_t row, size_t col ) {
+    reference_type operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(),
-                 LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(),
+                LogicErr() << "operator() ran off end of matrix");
 #endif
-      if ( col > row )
+      if (col > row)
         std::swap(row,col);
-      if ( col < m_skyline[row] )
+      if (col < m_skyline[row])
         m_skyline[row] = col;
       return m_matrix(row,col);
     }
 
     /// Element Access
-    const_reference_type operator()( size_t row, size_t col ) const {
+    const_reference_type operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(),
-                 LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(),
+                LogicErr() << "operator() ran off end of matrix");
 #endif
-      if ( col > row )
+      if (col > row)
         return m_matrix(col,row);
       return m_matrix(row,col);
     }
 
     /// Pointer Access
     value_type *data() {
-      vw_throw( NoImplErr() << "MatrixSparseSkyline::data can not provide direct pointer access.");
+      vw_throw(NoImplErr() << "MatrixSparseSkyline::data can not provide direct pointer access.");
       return &(operator()(0,0));
     }
     iterator begin() { return iterator(*this,0,0); }
@@ -203,7 +203,7 @@ namespace math {
 
   /// Dump for MatrixSparseSkyline
   template <class ElemT>
-  inline std::ostream& operator<<( std::ostream& os, MatrixSparseSkyline<ElemT> const& m ) {
+  inline std::ostream& operator<<(std::ostream& os, MatrixSparseSkyline<ElemT> const& m) {
     // Need to first determine the sampling rate. In bundle adjustment
     // it doesn't make sense to show every element as camera variables will
     // come in blocks of 6.
@@ -211,9 +211,9 @@ namespace math {
     size_t curr_sampling_rate = m.cols();
     size_t last_value = 10000;
     const Vector<size_t>& skyline = m.skyline();
-    for ( size_t i = 0; i < skyline.size(); i++ ) {
-      if ( last_value != skyline(i) ) {
-        if ( smallest_sampling_rate  > curr_sampling_rate )
+    for (size_t i = 0; i < skyline.size(); i++) {
+      if (last_value != skyline(i)) {
+        if (smallest_sampling_rate  > curr_sampling_rate)
           smallest_sampling_rate = curr_sampling_rate;
         curr_sampling_rate = 0;
       }
@@ -222,13 +222,13 @@ namespace math {
     }
 
     os << "MatrixSparseSkyline" << m.rows() << "x" << m.cols() << "@" << smallest_sampling_rate << "\n";
-    for ( size_t i = 0, ii=0; i < m.rows(); i += smallest_sampling_rate, ii++ ) {
-      for ( size_t j = 0, jj=0; j < m.cols(); j += smallest_sampling_rate, jj++ ) {
+    for (size_t i = 0, ii=0; i < m.rows(); i += smallest_sampling_rate, ii++) {
+      for (size_t j = 0, jj=0; j < m.cols(); j += smallest_sampling_rate, jj++) {
         ElemT e = m(i,j);
         if (e)
           os << "#";
         else
-          if ( ii%2 == 0 && jj%2 == 0 )
+          if (ii%2 == 0 && jj%2 == 0)
             os << ".";
           else
             os << " ";
@@ -274,14 +274,14 @@ namespace math {
         for (size_t jj = skyline(i); jj < j; ++jj)
           row_sum += A(i,jj)*v[jj];
         if (j >= skyline(i))
-          A(i,j) = ( A(i,j)-row_sum ) / v[j];
+          A(i,j) = (A(i,j)-row_sum) / v[j];
       }
     }
   }
 
   // This version excepts an outside skyline matrix
   template <class MatrixT, class VectorT>
-  void sparse_ldl_decomposition(MatrixBase<MatrixT>& A, const VectorT& skyline ) {
+  void sparse_ldl_decomposition(MatrixBase<MatrixT>& A, const VectorT& skyline) {
     for (size_t j = 0; j < A.impl().cols(); ++j) {
 
       // Compute v(1:j)
@@ -299,7 +299,7 @@ namespace math {
         for (size_t jj = skyline(i); jj < j; ++jj)
           row_sum += A.impl()(i,jj)*v[jj];
         if (j >= skyline(i))
-          A.impl()(i,j) = ( A.impl()(i,j)-row_sum ) / v[j];
+          A.impl()(i,j) = (A.impl()(i,j)-row_sum) / v[j];
       }
     }
   }
@@ -314,7 +314,7 @@ namespace math {
 
   /// WARNING: Modifies the contents of the matrix A.
   template <class ElemT, class VectorT>
-  Vector<ElemT> sparse_solve(MatrixSparseSkyline<ElemT>& A, VectorT const& b ) {
+  Vector<ElemT> sparse_solve(MatrixSparseSkyline<ElemT>& A, VectorT const& b) {
     VW_ASSERT(A.cols() == A.rows(),
               ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
 
@@ -329,7 +329,7 @@ namespace math {
   template <class MatrixT, class VectorT, class VectorSkyT>
   Vector<typename MatrixT::value_type> sparse_solve(MatrixBase<MatrixT>& A,
                                                     VectorT const& b,
-                                                    VectorSkyT const& sky ) {
+                                                    VectorSkyT const& sky) {
     VW_ASSERT(A.impl().cols() == A.impl().rows(),
               ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
 
@@ -352,13 +352,13 @@ namespace math {
   /// WARNING: Modifies the contents of the matrix A.
   template <class ElemT, class BMatrixT>
   Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
-  multi_sparse_solve(MatrixSparseSkyline<ElemT>& A, BMatrixT & B ) {
+  multi_sparse_solve(MatrixSparseSkyline<ElemT>& A, BMatrixT & B) {
     return multi_sparse_solve(A, B, A.skyline());
   }
 
   template <class AMatrixT, class BMatrixT, class VectorT>
   Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
-    multi_sparse_solve(AMatrixT & A, BMatrixT & B, const VectorT& skyline ) {
+    multi_sparse_solve(AMatrixT & A, BMatrixT & B, const VectorT& skyline) {
     VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "multi_sparse_solve: matrix must be square and symmetric.\n");
     VW_ASSERT(A.rows() == B.rows(), ArgumentErr() << "multi_sparse_solve: AX=B means A, B have same # of rows.\n");
 
@@ -388,7 +388,7 @@ namespace math {
   ///
   /// Assumes it receives LDL^T form of A
   template <class ElemT, class VectorT>
-  Vector<ElemT> sparse_solve_ldl(MatrixSparseSkyline<ElemT>& A, VectorT const& b ) {
+  Vector<ElemT> sparse_solve_ldl(MatrixSparseSkyline<ElemT>& A, VectorT const& b) {
     return sparse_solve_ldl(A,b,A.skyline());
   }
 
@@ -465,9 +465,9 @@ namespace math {
     typedef IndexingVectorIterator<const VectorReorganize<VectorT> > const_iterator;
 
     // Constructor
-    explicit VectorReorganize( VectorT& vector, std::vector<size_t> const& lookup ) : m_vector(vector), m_lookup(lookup) {
-      VW_ASSERT( vector.size()==lookup.size(),
-                 ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions" );
+    explicit VectorReorganize(VectorT& vector, std::vector<size_t> const& lookup) : m_vector(vector), m_lookup(lookup) {
+      VW_ASSERT(vector.size()==lookup.size(),
+                ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions");
     }
 
     // Access to internal types
@@ -477,24 +477,24 @@ namespace math {
     std::vector<size_t> const& lookup() const { return m_lookup; }
     std::vector<size_t> inverse() const {
       std::vector<size_t> ilookup;
-      ilookup.resize( m_lookup.size() );
-      for ( size_t i = 0; i < m_lookup.size(); i++ )
+      ilookup.resize(m_lookup.size());
+      for (size_t i = 0; i < m_lookup.size(); i++)
         ilookup[m_lookup[i]] = i;
       return ilookup;
     }
 
     // Standard Properties
     size_t size() const { return m_vector.size(); }
-    void set_size( size_t new_size, bool /*preserve*/=false ) {
-      VW_ASSERT( new_size==size(),
-                 ArgumentErr() << "Cannot resize vector reorganize." );
+    void set_size(size_t new_size, bool /*preserve*/=false) {
+      VW_ASSERT(new_size==size(),
+                ArgumentErr() << "Cannot resize vector reorganize.");
     }
 
     // Element Access
-    reference_type operator()( size_t i ) { return child()[m_lookup[i]]; }
-    const_reference_type operator()( size_t i ) const { return child()[m_lookup[i]]; }
-    reference_type operator[]( size_t i ) { return child()[m_lookup[i]]; }
-    const_reference_type operator[]( size_t i ) const { return child()[m_lookup[i]]; }
+    reference_type operator()(size_t i) { return child()[m_lookup[i]]; }
+    const_reference_type operator()(size_t i) const { return child()[m_lookup[i]]; }
+    reference_type operator[](size_t i) { return child()[m_lookup[i]]; }
+    const_reference_type operator[](size_t i) const { return child()[m_lookup[i]]; }
 
     // Pointer Access
     iterator begin() { return iterator(*this,0); }
@@ -518,35 +518,35 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixReorganize<MatrixT> > const_iterator;
 
     // Constructor
-    explicit MatrixReorganize( MatrixT& matrix, std::vector<size_t> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
-      VW_ASSERT( matrix.cols()==lookup.size() &&
-                 matrix.rows()==lookup.size(),
-                 ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions" );
+    explicit MatrixReorganize(MatrixT& matrix, std::vector<size_t> const& lookup) : m_matrix(matrix), m_lookup(lookup) {
+      VW_ASSERT(matrix.cols()==lookup.size() &&
+                matrix.rows()==lookup.size(),
+                ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions");
     }
 
     // Copy assignment operator
-    MatrixReorganize& operator=( MatrixReorganize const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixReorganize& operator=(MatrixReorganize const& m) {
+      VW_ASSERT(m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixReorganize& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixReorganize& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixReorganize& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    MatrixReorganize& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -557,8 +557,8 @@ namespace math {
     std::vector<size_t> const& lookup() const { return m_lookup; }
     std::vector<size_t> inverse() const {
       std::vector<size_t> ilookup;
-      ilookup.resize( m_lookup.size() );
-      for ( size_t i = 0; i < m_lookup.size(); i++ )
+      ilookup.resize(m_lookup.size());
+      for (size_t i = 0; i < m_lookup.size(); i++)
         ilookup[m_lookup[i]] = i;
       return ilookup;
     }
@@ -566,21 +566,21 @@ namespace math {
     // Standard properties
     size_t rows() const { return m_matrix.rows(); }
     size_t cols() const { return m_matrix.cols(); }
-    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/=false ) {
-      VW_ASSERT( new_rows==rows() && new_cols==cols(),
-                 ArgumentErr() << "Cannot resize matrix reorganize." );
+    void set_size(size_t new_rows, size_t new_cols, bool /*preserve*/=false) {
+      VW_ASSERT(new_rows==rows() && new_cols==cols(),
+                ArgumentErr() << "Cannot resize matrix reorganize.");
     }
 
     // Element Access
-    reference_type operator()( size_t row, size_t col ) {
+    reference_type operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return child()(m_lookup[row],m_lookup[col]);
     }
-    const_reference_type operator()( size_t row, size_t col ) const {
+    const_reference_type operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return child()(m_lookup[row],m_lookup[col]);
     }
@@ -594,26 +594,26 @@ namespace math {
 
   // User ease functions
   template <class VectorT>
-  inline VectorReorganize<VectorT> reorganize( VectorBase<VectorT>& v,
-                                               std::vector<size_t>& lookup ) {
+  inline VectorReorganize<VectorT> reorganize(VectorBase<VectorT>& v,
+                                              std::vector<size_t>& lookup) {
     return VectorReorganize<VectorT>(v.impl(), lookup);
   }
 
   template <class VectorT>
-  inline VectorReorganize<const VectorT> reorganize( VectorBase<VectorT> const& v,
-                                                     std::vector<size_t> const& lookup ) {
+  inline VectorReorganize<const VectorT> reorganize(VectorBase<VectorT> const& v,
+                                                    std::vector<size_t> const& lookup) {
     return VectorReorganize<const VectorT>(v.impl(), lookup);
   }
 
   template <class MatrixT>
-  inline MatrixReorganize<MatrixT> reorganize( MatrixBase<MatrixT>& m,
-                                               std::vector<size_t>& lookup ) {
+  inline MatrixReorganize<MatrixT> reorganize(MatrixBase<MatrixT>& m,
+                                              std::vector<size_t>& lookup) {
     return MatrixReorganize<MatrixT>(m.impl(), lookup);
   }
 
   template <class MatrixT>
-  inline MatrixReorganize<const MatrixT> reorganize( MatrixBase<MatrixT> const& m,
-                                                     std::vector<size_t> const& lookup ) {
+  inline MatrixReorganize<const MatrixT> reorganize(MatrixBase<MatrixT> const& m,
+                                                    std::vector<size_t> const& lookup) {
     return MatrixReorganize<const MatrixT>(m.impl(), lookup);
   }
 
@@ -628,7 +628,7 @@ namespace math {
 
   template <class ElemT>
   std::vector<size_t> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A,
-                                             size_t sampling_rate ) {
+                                             size_t sampling_rate) {
     // First Working out the Sampling Rate (cheat to save time in
     // Bundle Adjustment where sampling rate is the number of camera
     // parameters)
@@ -642,13 +642,13 @@ namespace math {
     typedef boost::graph_traits<Graph>::vertices_size_type size_type;
 
     // Finding Connections
-    Graph G( A.cols() );
-    for ( size_t i = 0; i < A.rows(); i += sampling_rate )
-      for ( size_t j = skyline[i]; j < i; j += sampling_rate )
-        if ( A(i,j) != 0 )
-          for ( size_t ii = 0; ii < sampling_rate; ii++ )
-            for ( size_t jj = 0; jj < sampling_rate; jj++ )
-              boost::add_edge( i+ii, j+jj, G);
+    Graph G(A.cols());
+    for (size_t i = 0; i < A.rows(); i += sampling_rate)
+      for (size_t j = skyline[i]; j < i; j += sampling_rate)
+        if (A(i,j) != 0)
+          for (size_t ii = 0; ii < sampling_rate; ii++)
+            for (size_t jj = 0; jj < sampling_rate; jj++)
+              boost::add_edge(i+ii, j+jj, G);
 
     boost::property_map<Graph,boost::vertex_index_t>::type
       index_map = get(boost::vertex_index, G);
@@ -663,12 +663,12 @@ namespace math {
                            make_degree_map(G));
 
     // Building new lookup chart
-    std::vector<size_t> lookup_chart( A.cols() );
-    for ( size_t i = 0; i < inv_perm.size(); i++ )
+    std::vector<size_t> lookup_chart(A.cols());
+    for (size_t i = 0; i < inv_perm.size(); i++)
       lookup_chart[i] = index_map[inv_perm[i]];
 
     // Finding new bandwidth for debug purposes
-    for (size_type c = 0; c != inv_perm.size(); ++c )
+    for (size_type c = 0; c != inv_perm.size(); ++c)
       perm[index_map[inv_perm[c]]] = c;
     VW_OUT(DebugMessage,"math") << "-> CutHill McKee ending B: "
                                 << boost::bandwidth(G, make_iterator_property_map(&perm[0], index_map, perm[0])) << "\n";
@@ -686,9 +686,9 @@ namespace math {
     MatrixT const& ar = A.impl();
     size_t rows = ar.rows();
     Vector<size_t> skyline(rows);
-    for ( size_t i = 0; i < rows; i++ ) {
+    for (size_t i = 0; i < rows; i++) {
       size_t j = 0;
-      while ( j < i && ar(i,j) == 0 )
+      while (j < i && ar(i,j) == 0)
         j++;
       skyline[i] = j;
     }

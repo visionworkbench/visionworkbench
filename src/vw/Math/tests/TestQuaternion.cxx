@@ -30,10 +30,10 @@ static const double DELTA = 1e-12;
 
 template <typename QuaternionT>
 bool CompareQuaternion(const QuaternionT& expected, const QuaternionT& actual) {
-  if ( fabs(expected.w()-actual.w()) > DELTA ||
-       fabs(expected.x()-actual.x()) > DELTA ||
-       fabs(expected.y()-actual.y()) > DELTA ||
-       fabs(expected.z()-actual.z()) > DELTA )
+  if (fabs(expected.w()-actual.w()) > DELTA ||
+      fabs(expected.x()-actual.x()) > DELTA ||
+      fabs(expected.y()-actual.y()) > DELTA ||
+      fabs(expected.z()-actual.z()) > DELTA)
     return false;
   return true;
 }
@@ -46,24 +46,24 @@ TEST(Quaternion, AxisAngle) {
   // No rotation;  Quaternion should be (1,0,0,0)
   Quat q1(x_axis, 0);
   //CompareQuaternion( Quat(1,0,0,0), q1 );
-  EXPECT_QUAT_EQ( Quat(1,0,0,0), q1 );
+  EXPECT_QUAT_EQ(Quat(1,0,0,0), q1);
 
   // 90-degree rotation about X axis;  Quaternion should be (.707,.707,0,0)
   Quat q2(x_axis, .5*M_PI);
-  EXPECT_QUAT_EQ( Quat( 1./sqrt(2), 1./sqrt(2), 0, 0 ), q2 );
+  EXPECT_QUAT_EQ(Quat(1./sqrt(2), 1./sqrt(2), 0, 0), q2);
 
   // 180-degree rotation about X axis;  Quaternion should be (0,1,0,0)
   //Quat q3(x_axis, M_PI);
   Quat q3(x_axis, 3.1415926535897932L);
-  EXPECT_QUAT_EQ( Quat(0,1,0,0), q3 );
+  EXPECT_QUAT_EQ(Quat(0,1,0,0), q3);
 
   // 180-degree rotation about Y axis;  Quaternion should be (0,0,1,0)
   Quat q4(y_axis, M_PI);
-  EXPECT_QUAT_EQ( Quat(0,0,1,0), q4 );
+  EXPECT_QUAT_EQ(Quat(0,0,1,0), q4);
 
   // 180-degree rotation about Z axis;  Quaternion should be (0,0,0,1)
   Quat q5(z_axis, M_PI);
-  EXPECT_QUAT_EQ( Quat(0,0,0,1), q5 );
+  EXPECT_QUAT_EQ(Quat(0,0,0,1), q5);
 
   // Arbitrary axis
   Vector3 axis(1.2, -2.3, 3.4);
@@ -80,9 +80,9 @@ TEST(Quaternion, AxisAngle) {
       test_angle = -test_angle;
     }
 
-    EXPECT_NEAR( 0, fmod(angle - test_angle, M_PI*2), DELTA );
+    EXPECT_NEAR(0, fmod(angle - test_angle, M_PI*2), DELTA);
     if (fabs(fmod(angle, M_PI*2)) > 1e-10) {
-      EXPECT_NEAR( 0, math::norm_2(test_axis - axis), DELTA );
+      EXPECT_NEAR(0, math::norm_2(test_axis - axis), DELTA);
     }
   }
 }
@@ -106,15 +106,15 @@ TEST(Quaternion, Rotation) {
   Vector3 sol3 = quat.rotate(test_vec);
   Vector3 sol4 = -quat.rotate(-test_vec);
 
-  EXPECT_NEAR( sol1(0),sol2(0), DELTA );
-  EXPECT_NEAR( sol1(1),sol2(1), DELTA );
-  EXPECT_NEAR( sol1(2),sol2(2), DELTA );
-  EXPECT_NEAR( sol1(0),sol3(0), DELTA );
-  EXPECT_NEAR( sol1(1),sol3(1), DELTA );
-  EXPECT_NEAR( sol1(2),sol3(2), DELTA );
-  EXPECT_NEAR( sol1(0),sol4(0), DELTA );
-  EXPECT_NEAR( sol1(1),sol4(1), DELTA );
-  EXPECT_NEAR( sol1(2),sol4(2), DELTA );
+  EXPECT_NEAR(sol1(0),sol2(0), DELTA);
+  EXPECT_NEAR(sol1(1),sol2(1), DELTA);
+  EXPECT_NEAR(sol1(2),sol2(2), DELTA);
+  EXPECT_NEAR(sol1(0),sol3(0), DELTA);
+  EXPECT_NEAR(sol1(1),sol3(1), DELTA);
+  EXPECT_NEAR(sol1(2),sol3(2), DELTA);
+  EXPECT_NEAR(sol1(0),sol4(0), DELTA);
+  EXPECT_NEAR(sol1(1),sol4(1), DELTA);
+  EXPECT_NEAR(sol1(2),sol4(2), DELTA);
 }
 
 
@@ -131,12 +131,12 @@ TEST(Quaternion, RotationMatrix) {
   // check if R*transpose(R) is identity
   T = R_ww * transpose(R_ww) - I;
   for (Matrix3x3::const_iterator it = T.begin(); it != T.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
   // converting the matrix to quaternion and back should not change it
   dQ = R_ww - Quat(R_ww).rotation_matrix();
   for (Matrix3x3::const_iterator it = dQ.begin(); it != dQ.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
 
   // test xx
@@ -150,12 +150,12 @@ TEST(Quaternion, RotationMatrix) {
   // check if is identity
   T = R_xx * transpose(R_xx) - I;
   for (Matrix3x3::const_iterator it = T.begin(); it != T.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
   // converting the matrix to quaternion and back should not change it
   dQ = R_xx - Quat(R_xx).rotation_matrix();
   for (Matrix3x3::const_iterator it = dQ.begin(); it != dQ.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
 
   // test yy
@@ -169,12 +169,12 @@ TEST(Quaternion, RotationMatrix) {
   // check if is identity
   T = R_yy * transpose(R_yy) - I;
   for (Matrix3x3::const_iterator it = T.begin(); it != T.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
   // converting the matrix to quaternion and back should not change it
   dQ = R_yy - Quat(R_yy).rotation_matrix();
   for (Matrix3x3::const_iterator it = dQ.begin(); it != dQ.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
 
   // test zz
@@ -187,12 +187,12 @@ TEST(Quaternion, RotationMatrix) {
 
   T = R_zz * transpose(R_zz) - I;
   for (Matrix3x3::const_iterator it = T.begin(); it != T.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 
   // converting the matrix to quaternion and back should not change it
   dQ = R_zz - Quat(R_zz).rotation_matrix();
   for (Matrix3x3::const_iterator it = dQ.begin(); it != dQ.end(); ++it)
-    EXPECT_NEAR( 0, *it , DELTA );
+    EXPECT_NEAR(0, *it, DELTA);
 }
 
 TEST(Quaternion, AxisAngleQuaternion) {
@@ -204,30 +204,30 @@ TEST(Quaternion, AxisAngleQuaternion) {
   Quat q_x(x / math::norm_2(x), math::norm_2(x));
   Vector3 test(2.13, -812.183, 18.31);
   // rotate vector test by 90° around x axis and compare
-  Vector3 diff_1( Vector3(2.13, -18.31, -812.183) - q_x.rotate(test) );
-  EXPECT_NEAR( diff_1.x(), 0, DELTA );
-  EXPECT_NEAR( diff_1.y(), 0, DELTA );
-  EXPECT_NEAR( diff_1.z(), 0, DELTA );
+  Vector3 diff_1(Vector3(2.13, -18.31, -812.183) - q_x.rotate(test));
+  EXPECT_NEAR(diff_1.x(), 0, DELTA);
+  EXPECT_NEAR(diff_1.y(), 0, DELTA);
+  EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  Vector3 diff_2( Vector3(2.13, -18.31, -812.183) -  math::axis_angle_to_quaternion(x).rotate(test));
-  EXPECT_NEAR( diff_2.x(), 0, DELTA );
-  EXPECT_NEAR( diff_2.y(), 0, DELTA );
-  EXPECT_NEAR( diff_2.z(), 0, DELTA );
+  Vector3 diff_2(Vector3(2.13, -18.31, -812.183) -  math::axis_angle_to_quaternion(x).rotate(test));
+  EXPECT_NEAR(diff_2.x(), 0, DELTA);
+  EXPECT_NEAR(diff_2.y(), 0, DELTA);
+  EXPECT_NEAR(diff_2.z(), 0, DELTA);
 
   // Test conversion back to vector using two-step method
   Vector3 axis_x;
   double angle_x;
   q_x.axis_angle(axis_x, angle_x);
-  EXPECT_NEAR( x.x(), angle_x*axis_x.x(), DELTA );
-  EXPECT_NEAR( x.y(), angle_x*axis_x.y(), DELTA );
-  EXPECT_NEAR( x.z(), angle_x*axis_x.z(), DELTA );
+  EXPECT_NEAR(x.x(), angle_x*axis_x.x(), DELTA);
+  EXPECT_NEAR(x.y(), angle_x*axis_x.y(), DELTA);
+  EXPECT_NEAR(x.z(), angle_x*axis_x.z(), DELTA);
 
   // Test conversion back to vector using "direct" method
-  Vector3 back_x( q_x.axis_angle() );
-  EXPECT_NEAR( x.x(), back_x.x(), DELTA );
-  EXPECT_NEAR( x.y(), back_x.y(), DELTA );
-  EXPECT_NEAR( x.z(), back_x.z(), DELTA );
+  Vector3 back_x(q_x.axis_angle());
+  EXPECT_NEAR(x.x(), back_x.x(), DELTA);
+  EXPECT_NEAR(x.y(), back_x.y(), DELTA);
+  EXPECT_NEAR(x.z(), back_x.z(), DELTA);
 
 
 
@@ -235,30 +235,30 @@ TEST(Quaternion, AxisAngleQuaternion) {
   Quat q_y(y / math::norm_2(y), math::norm_2(y));
   Vector3 test_y(-58.12, -81.19, -48);
   // rotate vector test by 90° around y axis and compare
-  diff_1 = Vector3( Vector3(-48, -81.19, 58.12) - q_y.rotate(test_y) );
-  EXPECT_NEAR( diff_1.x(), 0, DELTA );
-  EXPECT_NEAR( diff_1.y(), 0, DELTA );
-  EXPECT_NEAR( diff_1.z(), 0, DELTA );
+  diff_1 = Vector3(Vector3(-48, -81.19, 58.12) - q_y.rotate(test_y));
+  EXPECT_NEAR(diff_1.x(), 0, DELTA);
+  EXPECT_NEAR(diff_1.y(), 0, DELTA);
+  EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  diff_2 = Vector3( Vector3(-48, -81.19, 58.12) -  math::axis_angle_to_quaternion(y).rotate(test_y));
-  EXPECT_NEAR( diff_2.x(), 0, DELTA );
-  EXPECT_NEAR( diff_2.y(), 0, DELTA );
-  EXPECT_NEAR( diff_2.z(), 0, DELTA );
+  diff_2 = Vector3(Vector3(-48, -81.19, 58.12) -  math::axis_angle_to_quaternion(y).rotate(test_y));
+  EXPECT_NEAR(diff_2.x(), 0, DELTA);
+  EXPECT_NEAR(diff_2.y(), 0, DELTA);
+  EXPECT_NEAR(diff_2.z(), 0, DELTA);
 
   // Test conversion back to vector using two-step method
   Vector3 axis_y;
   double angle_y;
   q_y.axis_angle(axis_y, angle_y);
-  EXPECT_NEAR( y.x(), angle_y*axis_y.x(), DELTA );
-  EXPECT_NEAR( y.y(), angle_y*axis_y.y(), DELTA );
-  EXPECT_NEAR( y.z(), angle_y*axis_y.z(), DELTA );
+  EXPECT_NEAR(y.x(), angle_y*axis_y.x(), DELTA);
+  EXPECT_NEAR(y.y(), angle_y*axis_y.y(), DELTA);
+  EXPECT_NEAR(y.z(), angle_y*axis_y.z(), DELTA);
 
   // Test conversion back to vector using "direct" method
-  Vector3 back_y( q_y.axis_angle() );
-  EXPECT_NEAR( y.x(), back_y.x(), DELTA );
-  EXPECT_NEAR( y.y(), back_y.y(), DELTA );
-  EXPECT_NEAR( y.z(), back_y.z(), DELTA );
+  Vector3 back_y(q_y.axis_angle());
+  EXPECT_NEAR(y.x(), back_y.x(), DELTA);
+  EXPECT_NEAR(y.y(), back_y.y(), DELTA);
+  EXPECT_NEAR(y.z(), back_y.z(), DELTA);
 
 
 
@@ -266,30 +266,30 @@ TEST(Quaternion, AxisAngleQuaternion) {
   Quat q_z(z / math::norm_2(z), math::norm_2(z));
   Vector3 test_z(183.12, 845.43, 73.2);
   // rotate vector test by 90° around z axis and compare
-  diff_1 = Vector3( Vector3(-845.43, 183.12, 73.2) - q_z.rotate(test_z) );
-  EXPECT_NEAR( diff_1.x(), 0, DELTA );
-  EXPECT_NEAR( diff_1.y(), 0, DELTA );
-  EXPECT_NEAR( diff_1.z(), 0, DELTA );
+  diff_1 = Vector3(Vector3(-845.43, 183.12, 73.2) - q_z.rotate(test_z));
+  EXPECT_NEAR(diff_1.x(), 0, DELTA);
+  EXPECT_NEAR(diff_1.y(), 0, DELTA);
+  EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  diff_2 = Vector3( Vector3(-845.43, 183.12, 73.2) -  math::axis_angle_to_quaternion(z).rotate(test_z));
-  EXPECT_NEAR( diff_2.x(), 0, DELTA );
-  EXPECT_NEAR( diff_2.y(), 0, DELTA );
-  EXPECT_NEAR( diff_2.z(), 0, DELTA );
+  diff_2 = Vector3(Vector3(-845.43, 183.12, 73.2) -  math::axis_angle_to_quaternion(z).rotate(test_z));
+  EXPECT_NEAR(diff_2.x(), 0, DELTA);
+  EXPECT_NEAR(diff_2.y(), 0, DELTA);
+  EXPECT_NEAR(diff_2.z(), 0, DELTA);
 
   // Test conversion back to vector using two-step method
   Vector3 axis_z;
   double angle_z;
   q_z.axis_angle(axis_z, angle_z);
-  EXPECT_NEAR( z.x(), angle_z*axis_z.x() , DELTA );
-  EXPECT_NEAR( z.y(), angle_z*axis_z.y() , DELTA );
-  EXPECT_NEAR( z.z(), angle_z*axis_z.z() , DELTA );
+  EXPECT_NEAR(z.x(), angle_z*axis_z.x(), DELTA);
+  EXPECT_NEAR(z.y(), angle_z*axis_z.y(), DELTA);
+  EXPECT_NEAR(z.z(), angle_z*axis_z.z(), DELTA);
 
   // Test conversion back to vector using "direct" method
-  Vector3 back_z( q_z.axis_angle() );
-  EXPECT_NEAR( z.x(), back_z.x() , DELTA );
-  EXPECT_NEAR( z.y(), back_z.y() , DELTA );
-  EXPECT_NEAR( z.z(), back_z.z() , DELTA );
+  Vector3 back_z(q_z.axis_angle());
+  EXPECT_NEAR(z.x(), back_z.x(), DELTA);
+  EXPECT_NEAR(z.y(), back_z.y(), DELTA);
+  EXPECT_NEAR(z.z(), back_z.z(), DELTA);
 }
 
 TEST(Quaternion, AxisAngleToFromMatrix) {
@@ -319,20 +319,20 @@ TEST(Quaternion, AxisAngleToFromMatrix) {
     Matrix3x3 m(matrix_raw[i]);
 
     Vector3 diff_v(matrix_to_axis_angle(m) - v);
-    EXPECT_NEAR( 0, diff_v.x() , DELTA );
-    EXPECT_NEAR( 0, diff_v.y() , DELTA );
-    EXPECT_NEAR( 0, diff_v.z() , DELTA );
+    EXPECT_NEAR(0, diff_v.x(), DELTA);
+    EXPECT_NEAR(0, diff_v.y(), DELTA);
+    EXPECT_NEAR(0, diff_v.z(), DELTA);
 
     Matrix3x3 mat_v(axis_angle_to_matrix(v) - m);
-    EXPECT_NEAR( 0, mat_v(0, 0) , DELTA );
-    EXPECT_NEAR( 0, mat_v(0, 1) , DELTA );
-    EXPECT_NEAR( 0, mat_v(0, 2) , DELTA );
-    EXPECT_NEAR( 0, mat_v(1, 0) , DELTA );
-    EXPECT_NEAR( 0, mat_v(1, 1) , DELTA );
-    EXPECT_NEAR( 0, mat_v(1, 2) , DELTA );
-    EXPECT_NEAR( 0, mat_v(2, 0) , DELTA );
-    EXPECT_NEAR( 0, mat_v(2, 1) , DELTA );
-    EXPECT_NEAR( 0, mat_v(2, 2) , DELTA );
+    EXPECT_NEAR(0, mat_v(0, 0), DELTA);
+    EXPECT_NEAR(0, mat_v(0, 1), DELTA);
+    EXPECT_NEAR(0, mat_v(0, 2), DELTA);
+    EXPECT_NEAR(0, mat_v(1, 0), DELTA);
+    EXPECT_NEAR(0, mat_v(1, 1), DELTA);
+    EXPECT_NEAR(0, mat_v(1, 2), DELTA);
+    EXPECT_NEAR(0, mat_v(2, 0), DELTA);
+    EXPECT_NEAR(0, mat_v(2, 1), DELTA);
+    EXPECT_NEAR(0, mat_v(2, 2), DELTA);
   }
 }
 
@@ -349,63 +349,63 @@ TEST(Quaternion, AxisAngleQuaternionMatrixRandom) {
     double angle;
     q.axis_angle(axis, angle);
     axis *= angle;
-    EXPECT_NEAR( v.x(), axis.x() , DELTA );
-    EXPECT_NEAR( v.y(), axis.y() , DELTA );
-    EXPECT_NEAR( v.z(), axis.z() , DELTA );
+    EXPECT_NEAR(v.x(), axis.x(), DELTA);
+    EXPECT_NEAR(v.y(), axis.y(), DELTA);
+    EXPECT_NEAR(v.z(), axis.z(), DELTA);
 
     // conversion back to axis_angle should give original vector
-    EXPECT_NEAR( v.x(), q.axis_angle().x() , DELTA );
-    EXPECT_NEAR( v.y(), q.axis_angle().y() , DELTA );
-    EXPECT_NEAR( v.z(), q.axis_angle().z() , DELTA );
+    EXPECT_NEAR(v.x(), q.axis_angle().x(), DELTA);
+    EXPECT_NEAR(v.y(), q.axis_angle().y(), DELTA);
+    EXPECT_NEAR(v.z(), q.axis_angle().z(), DELTA);
 
-    Matrix3x3 m( axis_angle_to_matrix(v) );
+    Matrix3x3 m(axis_angle_to_matrix(v));
     Matrix3x3 m_q(q.rotation_matrix());
 
     // test if m created directly from axis_angle and m_q created via quaternion are equal
-    EXPECT_NEAR( m(0,0), m_q(0,0) , DELTA );
-    EXPECT_NEAR( m(0,1), m_q(0,1) , DELTA );
-    EXPECT_NEAR( m(0,2), m_q(0,2) , DELTA );
-    EXPECT_NEAR( m(1,0), m_q(1,0) , DELTA );
-    EXPECT_NEAR( m(1,1), m_q(1,1) , DELTA );
-    EXPECT_NEAR( m(1,2), m_q(1,2) , DELTA );
-    EXPECT_NEAR( m(2,0), m_q(2,0) , DELTA );
-    EXPECT_NEAR( m(2,1), m_q(2,1) , DELTA );
-    EXPECT_NEAR( m(2,2), m_q(2,2) , DELTA );
+    EXPECT_NEAR(m(0,0), m_q(0,0), DELTA);
+    EXPECT_NEAR(m(0,1), m_q(0,1), DELTA);
+    EXPECT_NEAR(m(0,2), m_q(0,2), DELTA);
+    EXPECT_NEAR(m(1,0), m_q(1,0), DELTA);
+    EXPECT_NEAR(m(1,1), m_q(1,1), DELTA);
+    EXPECT_NEAR(m(1,2), m_q(1,2), DELTA);
+    EXPECT_NEAR(m(2,0), m_q(2,0), DELTA);
+    EXPECT_NEAR(m(2,1), m_q(2,1), DELTA);
+    EXPECT_NEAR(m(2,2), m_q(2,2), DELTA);
 
     // test if m is unitary
     Matrix3x3 prod(m*math::transpose(m));
-    EXPECT_NEAR( 1, prod(0,0) , DELTA );
-    EXPECT_NEAR( 0, prod(0,1) , DELTA );
-    EXPECT_NEAR( 0, prod(0,2) , DELTA );
-    EXPECT_NEAR( 0, prod(1,0) , DELTA );
-    EXPECT_NEAR( 1, prod(1,1) , DELTA );
-    EXPECT_NEAR( 0, prod(1,2) , DELTA );
-    EXPECT_NEAR( 0, prod(2,0) , DELTA );
-    EXPECT_NEAR( 0, prod(2,1) , DELTA );
-    EXPECT_NEAR( 1, prod(2,2) , DELTA );
+    EXPECT_NEAR(1, prod(0,0), DELTA);
+    EXPECT_NEAR(0, prod(0,1), DELTA);
+    EXPECT_NEAR(0, prod(0,2), DELTA);
+    EXPECT_NEAR(0, prod(1,0), DELTA);
+    EXPECT_NEAR(1, prod(1,1), DELTA);
+    EXPECT_NEAR(0, prod(1,2), DELTA);
+    EXPECT_NEAR(0, prod(2,0), DELTA);
+    EXPECT_NEAR(0, prod(2,1), DELTA);
+    EXPECT_NEAR(1, prod(2,2), DELTA);
 
     // test if m is rotation matrix (and not reflection)
-    EXPECT_NEAR( 1, det(m) , DELTA );
+    EXPECT_NEAR(1, det(m), DELTA);
 
     // test if we can convert m back to a rotation vector
     Vector3 matrix_back(matrix_to_axis_angle(m));
-    EXPECT_NEAR( v.x(), matrix_back.x() , DELTA );
-    EXPECT_NEAR( v.y(), matrix_back.y() , DELTA );
-    EXPECT_NEAR( v.z(), matrix_back.z() , DELTA );
+    EXPECT_NEAR(v.x(), matrix_back.x(), DELTA);
+    EXPECT_NEAR(v.y(), matrix_back.y(), DELTA);
+    EXPECT_NEAR(v.z(), matrix_back.z(), DELTA);
 
 
     // Quaternion and matrix rotation should give equal results
     Vector3 test(std::rand(), std::rand(), std::rand());
     test /= RAND_MAX;
     Vector3 diff (m*test - q.rotate(test));
-    EXPECT_NEAR( 0, diff.x() , DELTA );
-    EXPECT_NEAR( 0, diff.y() , DELTA );
-    EXPECT_NEAR( 0, diff.z() , DELTA );
+    EXPECT_NEAR(0, diff.x(), DELTA);
+    EXPECT_NEAR(0, diff.y(), DELTA);
+    EXPECT_NEAR(0, diff.z(), DELTA);
 
     // rotation in one direction by (transposed) matrix and other by standard quaternion should give original vector
     Vector3 null_op(math::transpose(m)*q.rotate(test));
-    EXPECT_NEAR( test.x(), null_op.x() , DELTA );
-    EXPECT_NEAR( test.y(), null_op.y() , DELTA );
-    EXPECT_NEAR( test.z(), null_op.z() , DELTA );
+    EXPECT_NEAR(test.x(), null_op.x(), DELTA);
+    EXPECT_NEAR(test.y(), null_op.y(), DELTA);
+    EXPECT_NEAR(test.z(), null_op.z(), DELTA);
   }
 }

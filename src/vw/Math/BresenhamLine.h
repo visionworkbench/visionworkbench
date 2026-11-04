@@ -55,7 +55,7 @@ namespace math {
         std::swap(x0,y0);
         std::swap(x1,y1);
       }
-      if ( x0 > x1 ) {
+      if (x0 > x1) {
         std::swap(x0,x1);
         std::swap(y0,y1);
       }
@@ -71,14 +71,14 @@ namespace math {
   
     /// Construct with two points
     /// - The stop point is the point AFTER the last pixel on the line
-    BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
+    BresenhamLine(vw::Vector2i const& start, vw::Vector2i const& stop) :
       x0(start[0]), y0(start[1]), x1(stop[0]), y1(stop[1]) {
       setup();
     }
 
     /// Construct with two x,y pairs
     /// - The stop point (mx1,my1) is the point AFTER the last pixel on the line
-    BresenhamLine( vw::int32 mx0, vw::int32 my0, vw::int32 mx1, vw::int32 my1 ) :
+    BresenhamLine(vw::int32 mx0, vw::int32 my0, vw::int32 mx1, vw::int32 my1) :
       x0(mx0), y0(my0), x1(mx1), y1(my1) {
       setup();
     }
@@ -95,7 +95,7 @@ namespace math {
     void operator++() {
       x++;
       error -= deltay;
-      if ( error < 0 ) {
+      if (error < 0) {
         y     += ystep;
         error += deltax;
       }

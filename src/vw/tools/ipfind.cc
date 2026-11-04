@@ -195,16 +195,16 @@ int main(int argc, char** argv) {
   // The OpenCV detector types are handled differently than the custom detector types.  
   const bool detector_is_opencv = ((opt.interest_operator == "brisk") ||
                                     (opt.interest_operator == "surf") ||
-                                    (opt.interest_operator == "orb" ) ||
+                                    (opt.interest_operator == "orb") ||
                                     (opt.interest_operator == "akaze") ||
                                     (opt.interest_operator == "kaze") ||
-                                    (opt.interest_operator == "sift")  );
+                                    (opt.interest_operator == "sift"));
   const bool descriptor_is_opencv = ((opt.descriptor_generator == "brisk") ||
                                       (opt.descriptor_generator == "surf") ||
-                                      (opt.descriptor_generator == "orb" ) ||
+                                      (opt.descriptor_generator == "orb") ||
                                       (opt.descriptor_generator == "akaze") ||
                                       (opt.descriptor_generator == "kaze") ||
-                                      (opt.descriptor_generator == "sift")  );
+                                      (opt.descriptor_generator == "sift"));
 
   if (opencv_normalize && !detector_is_opencv) {
     vw_out() << "Cannot use per-tile normalize with a non-OpenCV detector!\n";
@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
           opt.interest_operator == "akaze"  ||
           opt.interest_operator == "kaze"   ||
           //opt.interest_operator == "surf"   ||
-          opt.interest_operator == "sift"    )) {
+          opt.interest_operator == "sift")) {
     vw_out() << "Unknown interest operator: " << opt.interest_operator
              << ". Options are: sift, orb, akaze, brisk, kaze, OBALoG, LoG, Harris, IAGD.\n";
     exit(1);
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
           opt.descriptor_generator == "akaze"  ||
           opt.descriptor_generator == "kaze"   ||
           //opt.descriptor_generator == "surf"   ||
-          opt.descriptor_generator == "sift"   )) {
+          opt.descriptor_generator == "sift")) {
     vw_out() << "Unkown descriptor generator: " << opt.descriptor_generator
              << ". Options are: sift, orb, akaze, brisk, kaze, sgrad, sgrad2, patch.\n";
     exit(1);

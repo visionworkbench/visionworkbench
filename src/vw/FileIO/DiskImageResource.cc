@@ -80,15 +80,15 @@ namespace {
   // This extra class helps to ensure that register_file_type() is only run once.
   vw::RunOnce rdft_once = VW_RUNONCE_INIT;
   void register_default_file_types_internal() {
-    rdft_once.run( register_default_file_types_impl );
+    rdft_once.run(register_default_file_types_impl);
   }
 
   // this one avoids calling the registration function, so it can be called
   // from INSIDE the registration function.
-  void register_file_type_internal( std::string const& extension,
+  void register_file_type_internal(std::string const& extension,
       std::string const& /*disk_image_resource_type*/,
       vw::DiskImageResource::construct_open_func open_func,
-      vw::DiskImageResource::construct_create_func create_func ) {
+      vw::DiskImageResource::construct_create_func create_func) {
 
     // This will create the entries if they don't exist
     (*open_map)[extension]   = open_func;
@@ -129,10 +129,10 @@ void foreach_ext(std::string const& prefix, ExtTestFunction const& callback, std
 
 }}
 
-void vw::DiskImageResource::register_file_type( std::string const& extension,
-                                                std::string const& disk_image_resource_type,
-                                                vw::DiskImageResource::construct_open_func open_func,
-                                                vw::DiskImageResource::construct_create_func create_func )
+void vw::DiskImageResource::register_file_type(std::string const& extension,
+                                               std::string const& disk_image_resource_type,
+                                               vw::DiskImageResource::construct_open_func open_func,
+                                               vw::DiskImageResource::construct_create_func create_func)
 {
   register_default_file_types_internal();
 
@@ -143,11 +143,11 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 /// Hidden function to set up all the default supported types.
 static void register_default_file_types_impl() {
 
-  if( ! open_map   ) open_map   = new OpenMapType();
-  if( ! create_map ) create_map = new CreateMapType();
+  if(! open_map) open_map   = new OpenMapType();
+  if(! create_map) create_map = new CreateMapType();
 
 // Let's cut the verbosity of this func just a bit.
-#define REGISTER(ext, driver) register_file_type_internal( ext, vw::DiskImageResource ## driver::type_static(), &vw::DiskImageResource ## driver::construct_open, &vw::DiskImageResource ## driver::construct_create );
+#define REGISTER(ext, driver) register_file_type_internal(ext, vw::DiskImageResource ## driver::type_static(), &vw::DiskImageResource ## driver::construct_open, &vw::DiskImageResource ## driver::construct_create);
 
   // Give GDAL precedence in reading PDS images when this is supported.
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
@@ -223,14 +223,14 @@ static void register_default_file_types_impl() {
 #undef REGISTER
 }
 
-vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename ) {
+vw::DiskImageResource* vw::DiskImageResource::open(std::string const& filename) {
   register_default_file_types_internal();
   std::string extension = boost::to_lower_copy(fs::path(filename).extension().string());
 
-  if( open_map ) {
-    OpenMapType::iterator i = open_map->find( extension );
-    if( i != open_map->end() ) {
-      DiskImageResource* rsrc = i->second( filename );
+  if(open_map) {
+    OpenMapType::iterator i = open_map->find(extension);
+    if(i != open_map->end()) {
+      DiskImageResource* rsrc = i->second(filename);
       VW_OUT(DebugMessage,"fileio") << "Produce DiskImageResource of type: " << rsrc->type() << "\n";
       return rsrc;
     }
@@ -240,39 +240,39 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
   // on it here in case none of the registered file handlers know how
   // to do the job.
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  if (vw::DiskImageResourceGDAL::gdal_has_support( extension ))
+  if (vw::DiskImageResourceGDAL::gdal_has_support(extension))
     return vw::DiskImageResourceGDAL::construct_open(filename);
 #endif
 
   // If all attempts to find a suitable file driver fails, we throw an
   // exception.
-  vw_throw( NoImplErr() << "Unsupported file format: " << filename );
+  vw_throw(NoImplErr() << "Unsupported file format: " << filename);
   return 0; // never reached
 }
 
 /// Returns a disk image resource with the given filename.  The file
 /// type is determined by the value in 'type'.
-vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, std::string const& type ) {
+vw::DiskImageResource* vw::DiskImageResource::create(std::string const& filename, ImageFormat const& format, std::string const& type) {
   register_default_file_types_internal();
-  if( create_map ) {
-    CreateMapType::iterator i = create_map->find( boost::to_lower_copy(type) );
-    if( i != create_map->end() )
-      return i->second( filename, format );
+  if(create_map) {
+    CreateMapType::iterator i = create_map->find(boost::to_lower_copy(type));
+    if(i != create_map->end())
+      return i->second(filename, format);
   }
-  vw_throw( NoImplErr() << "Unsupported file type \"" << type << "\" for filename: " << filename );
+  vw_throw(NoImplErr() << "Unsupported file type \"" << type << "\" for filename: " << filename);
   return 0; // never reached
 }
 
 /// Returns a disk image resource with the given filename.  The file
 /// type is determined by the extension of the filename.
-vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
+vw::DiskImageResource* vw::DiskImageResource::create(std::string const& filename, ImageFormat const& format) {
   register_default_file_types_internal();
-  if( create_map ) {
-    CreateMapType::iterator i = create_map->find( boost::to_lower_copy(fs::path(filename).extension().string()) );
-    if( i != create_map->end() )
-      return i->second( filename, format );
+  if(create_map) {
+    CreateMapType::iterator i = create_map->find(boost::to_lower_copy(fs::path(filename).extension().string()));
+    if(i != create_map->end())
+      return i->second(filename, format);
   }
-  vw_throw( NoImplErr() << "Unsupported file format: " << filename );
+  vw_throw(NoImplErr() << "Unsupported file format: " << filename);
   return 0; // never reached
 }
 
@@ -287,8 +287,8 @@ boost::shared_ptr<vw::DiskImageResource> vw::DiskImageResourcePtr(std::string co
 }
 
 
-vw::Vector2i vw::file_image_size( std::string const& input ) {
-  boost::shared_ptr<DiskImageResource> rsrc( DiskImageResourcePtr(input));
-  Vector2i size( rsrc->cols(), rsrc->rows() );
+vw::Vector2i vw::file_image_size(std::string const& input) {
+  boost::shared_ptr<DiskImageResource> rsrc(DiskImageResourcePtr(input));
+  Vector2i size(rsrc->cols(), rsrc->rows());
   return size;
 }

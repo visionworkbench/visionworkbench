@@ -57,12 +57,12 @@ namespace {
 
 namespace vw {
 
-  SrcMemoryImageResource* SrcMemoryImageResource::open( const std::string& type, const uint8* data, size_t len ) {
+  SrcMemoryImageResource* SrcMemoryImageResource::open(const std::string& type, const uint8* data, size_t len) {
     boost::shared_array<const uint8> p(data, NOP());
     return SrcMemoryImageResource::open(type, p, len);
   }
 
-  SrcMemoryImageResource* SrcMemoryImageResource::open( const std::string& type, boost::shared_array<const uint8> data, size_t len ) {
+  SrcMemoryImageResource* SrcMemoryImageResource::open(const std::string& type, boost::shared_array<const uint8> data, size_t len) {
 
     std::string ctype = clean_type(type);
     
@@ -86,11 +86,11 @@ namespace vw {
       return new SrcMemoryImageResourceOpenEXR(data, len);
 #endif
     
-    vw_throw( NoImplErr() << "Unsupported file format: " << type );
+    vw_throw(NoImplErr() << "Unsupported file format: " << type);
     return NULL;
   }
 
-  DstMemoryImageResource* DstMemoryImageResource::create( const std::string& type, const ImageFormat& format ) {
+  DstMemoryImageResource* DstMemoryImageResource::create(const std::string& type, const ImageFormat& format) {
 
     std::string ctype = clean_type(type);
     
@@ -114,7 +114,7 @@ namespace vw {
       return new DstMemoryImageResourceOpenEXR(format);
 #endif
     
-    vw_throw( NoImplErr() << "Unsupported file format: " << type );
+    vw_throw(NoImplErr() << "Unsupported file format: " << type);
     return NULL;
   }
 

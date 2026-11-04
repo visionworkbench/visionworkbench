@@ -48,22 +48,22 @@ namespace vw {
     // Given an image and a list of interest points, set each point's descriptor
     // field via compute_descriptor().
     template <class ViewT>
-    void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
-      (*this)( image, points.begin(), points.end() );
+    void operator() (ImageViewBase<ViewT> const& image, InterestPointList& points) {
+      (*this)(image, points.begin(), points.end());
     }
     template <class ViewT, class IterT>
-    void operator() ( ImageViewBase<ViewT> const& image,
-                      IterT start, IterT end ) {
+    void operator() (ImageViewBase<ViewT> const& image,
+                     IterT start, IterT end) {
 
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
       m_integral = IntegralImage(pixel_cast<float>(channel_cast<float>(image.impl())));
 
-      for (IterT i = start; i != end; i++ ) {
+      for (IterT i = start; i != end; i++) {
         // Wrapping integral image for interpolation
-        i->descriptor.set_size( descriptor_size() );
-        compute_descriptor( interpolate(m_integral), *i );
+        i->descriptor.set_size(descriptor_size());
+        compute_descriptor(interpolate(m_integral), *i);
       }
     }
 
@@ -107,44 +107,44 @@ namespace vw {
     }
 
     template <class ViewT>
-    void compute_descriptor ( ImageViewBase<ViewT> const& integral,
-                              InterestPoint& ip ) {
+    void compute_descriptor (ImageViewBase<ViewT> const& integral,
+                             InterestPoint& ip) {
       uint32 write_idx = 0;
       float scale = ip.scale;
       float co = cos(ip.orientation);
       float si = sin(ip.orientation);
-      Matrix2x2 rotate( co, -si, si, co );
+      Matrix2x2 rotate(co, -si, si, co);
 
       // Iterating through all sample locations for histograms
-      for ( std::list<Vector3>::const_iterator center = m_box_properties.begin();
-            center != m_box_properties.end(); center++ ) {
+      for (std::list<Vector3>::const_iterator center = m_box_properties.begin();
+           center != m_box_properties.end(); center++) {
 
         uint32 s_write_idx = 0;
         std::vector<Vector2> responses(18);
         // Sampling 3x3 locations
-        for ( std::list<Vector2>::const_iterator offset = m_33_samp.begin();
-              offset != m_33_samp.end(); offset++ ) {
+        for (std::list<Vector2>::const_iterator offset = m_33_samp.begin();
+             offset != m_33_samp.end(); offset++) {
           Vector2 location = scale*rotate*(center->z()*(*offset)+subvector((*center),0,2));
-          responses[s_write_idx] = rotate*Vector2( HHaarWavelet(integral.impl(),
-                                                                location[0]+ip.x,
-                                                                location[1]+ip.y,
-                                                                2*scale*center->z()),
-                                                   0);
+          responses[s_write_idx] = rotate*Vector2(HHaarWavelet(integral.impl(),
+                                                               location[0]+ip.x,
+                                                               location[1]+ip.y,
+                                                               2*scale*center->z()),
+                                                  0);
           s_write_idx++;
-          responses[s_write_idx] = rotate*Vector2( 0,
-                                                   VHaarWavelet(integral.impl(),
-                                                                location[0]+ip.x,
-                                                                location[1]+ip.y,
-                                                                2*scale*center->z()) );
+          responses[s_write_idx] = rotate*Vector2(0,
+                                                  VHaarWavelet(integral.impl(),
+                                                               location[0]+ip.x,
+                                                               location[1]+ip.y,
+                                                               2*scale*center->z()));
           s_write_idx++;
         }
 
         // Fitting to histogram
-        for ( std::list<Vector2>::const_iterator hist_bin = m_histogram_samp.begin();
-              hist_bin != m_histogram_samp.end(); hist_bin++ ) {
-          for ( size_t i = 0; i < responses.size(); i++ ) {
-            double dot = dot_prod( *hist_bin, responses[i] );
-            if ( dot > 0 )
+        for (std::list<Vector2>::const_iterator hist_bin = m_histogram_samp.begin();
+             hist_bin != m_histogram_samp.end(); hist_bin++) {
+          for (size_t i = 0; i < responses.size(); i++) {
+            double dot = dot_prod(*hist_bin, responses[i]);
+            if (dot > 0)
               ip.descriptor[write_idx] += dot;
           }
           write_idx++;
@@ -152,16 +152,16 @@ namespace vw {
       }
 
       // Normalizing for lighting invariance
-      float distance = norm_2( ip.descriptor );
-      for ( size_t i = 0; i < 128; i++ )
+      float distance = norm_2(ip.descriptor);
+      for (size_t i = 0; i < 128; i++)
         ip.descriptor[i] /= distance;
 
       // Threshold + Normalizing for non-linear lighting
-      for ( size_t i = 0; i < 128; i++ )
-        if ( ip.descriptor[i] > 0.2 )
+      for (size_t i = 0; i < 128; i++)
+        if (ip.descriptor[i] > 0.2)
           ip.descriptor[i] = 0.2;
-      distance = norm_2( ip.descriptor );
-      for ( size_t i = 0; i < 128; i++ )
+      distance = norm_2(ip.descriptor);
+      for (size_t i = 0; i < 128; i++)
         ip.descriptor[i] /= distance;
     }
   };

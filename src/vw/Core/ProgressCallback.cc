@@ -28,14 +28,14 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
 }
 
 // Deprecated Progress Bar
-vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std::string pre_progress_text, uint32_t precision) : m_level(level), m_namespace(".progress"), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
+vw::TerminalProgressCallback::TerminalProgressCallback(MessageLevel level, std::string pre_progress_text, uint32_t precision) : m_level(level), m_namespace(".progress"), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
   boost::replace_all(m_pre_progress_text,"\t","        ");
-  if ( m_level <  InfoMessage )
-    vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
+  if (m_level <  InfoMessage)
+    vw_throw(ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher.");
 
   // Calculating bar length
   m_bar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) - 4 - 3;
-  if ( m_precision > 0 )
+  if (m_precision > 0)
     m_bar_length -= m_precision + 1; // 1 for decimal point
 }
 
@@ -45,8 +45,8 @@ void vw::TerminalProgressCallback::print_progress() const {
     int pi = static_cast<int>(m_progress * double(m_bar_length));
     std::ostringstream p;
     p << "\r" << m_pre_progress_text << "[";
-    for( int i=0; i<pi; ++i ) p << "*";
-    for( int i=m_bar_length; i>pi; --i ) p << ".";
+    for(int i=0; i<pi; ++i) p << "*";
+    for(int i=m_bar_length; i>pi; --i) p << ".";
     p << "] " << std::setprecision(m_precision) << std::fixed << (m_progress*100.0) << "%";
     VW_OUT(m_level, m_namespace) << p.str() << std::flush;
   }

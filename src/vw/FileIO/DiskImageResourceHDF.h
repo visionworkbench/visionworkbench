@@ -40,10 +40,10 @@ namespace vw {
 
     // The standard DiskImageResource interface:
 
-    DiskImageResourceHDF( std::string const& filename );
+    DiskImageResourceHDF(std::string const& filename);
 
-    DiskImageResourceHDF( std::string const& filename, ImageFormat const& /*format*/ ) : DiskImageResource( filename ) {
-      vw_throw( NoImplErr() << "Creating HDF files is not yet supported!" );
+    DiskImageResourceHDF(std::string const& filename, ImageFormat const& /*format*/) : DiskImageResource(filename) {
+      vw_throw(NoImplErr() << "Creating HDF files is not yet supported!");
     }
 
     virtual ~DiskImageResourceHDF();
@@ -54,19 +54,19 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const;
 
-    virtual void write( ImageBuffer const& /*dest*/, BBox2i const& /*bbox*/ ) {
-      vw_throw( NoImplErr() << "Writing to HDF files is not yet supported!" );
+    virtual void write(ImageBuffer const& /*dest*/, BBox2i const& /*bbox*/) {
+      vw_throw(NoImplErr() << "Writing to HDF files is not yet supported!");
     }
 
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
-    void create( std::string const& /*filename*/, ImageFormat const& /*format*/ ) {
-      vw_throw( NoImplErr() << "Creating HDF files is not yet supported!" );
+    void create(std::string const& /*filename*/, ImageFormat const& /*format*/) {
+      vw_throw(NoImplErr() << "Creating HDF files is not yet supported!");
     }
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
     virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
@@ -97,34 +97,34 @@ namespace vw {
     struct SDSBand {
       std::string name;
       int         band;
-      SDSBand( std::string const& name, int band=0 ) : name(name), band(band) {}
+      SDSBand(std::string const& name, int band=0) : name(name), band(band) {}
     };
 
-    void select_sds_planes( std::vector<SDSBand> const& sds_planes );
+    void select_sds_planes(std::vector<SDSBand> const& sds_planes);
 
-    DiskImageResourceHDF& select_sds( std::string const& name );
+    DiskImageResourceHDF& select_sds(std::string const& name);
 
-    void get_sds_fillvalue( std::string const& sds_name, float32& result ) const;
+    void get_sds_fillvalue(std::string const& sds_name, float32& result) const;
 
-    std::vector<AttrInfo> get_sds_attrs( std::string const& sds_name ) const;
+    std::vector<AttrInfo> get_sds_attrs(std::string const& sds_name) const;
 
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int8>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int8& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint8>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint8& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int16>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int16& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int32>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int32& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint32>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint32& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, float32& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float64>& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, float64& result ) const;
-    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::string& result ) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<int8>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, int8& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<uint8>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, uint8& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<int16>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, int16& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, uint16& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<int32>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, int32& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<uint32>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, uint32& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, float32& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::vector<float64>& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, float64& result) const;
+    void get_sds_attr(std::string const& sds_name, std::string const& attr_name, std::string& result) const;
 
   private:
     boost::shared_ptr<DiskImageResourceInfoHDF> m_info;

@@ -93,47 +93,47 @@ namespace math {
     MatrixT      & impl()       { return *static_cast<MatrixT      *>(this); } ///< Returns the derived implementation type.
     MatrixT const& impl() const { return *static_cast<MatrixT const*>(this); } ///< Returns the derived implementation type.
     
-    template <class T>  MatrixT& operator+=( T const& m ) { return impl() = impl() + m; } ///< Sum-assignment operator
-    template <class T>  MatrixT& operator-=( T const& m ) { return impl() = impl() - m; } ///< Difference-assignment operator   
-    template <class T>  MatrixT& operator*=( T s        ) { return impl() = impl() * s; } ///< Product-assignment operator
-    template <class T>  MatrixT& operator/=( T s        ) { return impl() = impl() / s; } ///< Quotient-assignment operator
+    template <class T>  MatrixT& operator+=(T const& m) { return impl() = impl() + m; } ///< Sum-assignment operator
+    template <class T>  MatrixT& operator-=(T const& m) { return impl() = impl() - m; } ///< Difference-assignment operator   
+    template <class T>  MatrixT& operator*=(T s) { return impl() = impl() * s; } ///< Product-assignment operator
+    template <class T>  MatrixT& operator/=(T s) { return impl() = impl() / s; } ///< Quotient-assignment operator
 
     /// Access an individual matrix row, for further access using a second operator[].
-    MatrixRow<MatrixT> operator[]( size_t row ) {
-      return MatrixRow<MatrixT>( impl(), row );
+    MatrixRow<MatrixT> operator[](size_t row) {
+      return MatrixRow<MatrixT>(impl(), row);
     }
 
     /// Access an individual matrix row, for further access using a second operator[].
-    MatrixRow<const MatrixT> operator[]( size_t row ) const {
-      return MatrixRow<const MatrixT>( impl(), row );
+    MatrixRow<const MatrixT> operator[](size_t row) const {
+      return MatrixRow<const MatrixT>(impl(), row);
     }
 
     /// Set the matrix to the identity matrix with the same dimensions.
     void set_identity() {
-      VW_ASSERT( impl().rows()==impl().cols(), LogicErr() << "Only square matrices can be identity matrices." );
+      VW_ASSERT(impl().rows()==impl().cols(), LogicErr() << "Only square matrices can be identity matrices.");
       size_t n=impl().rows();
-      for( size_t i=0; i<n; ++i )
-        for( size_t j=0; j<n; ++j )
+      for(size_t i=0; i<n; ++i)
+        for(size_t j=0; j<n; ++j)
           impl()(i,j)=(i==j)?(typename MatrixT::value_type(1)):(typename MatrixT::value_type(0));
     }
 
     /// Set the matrix to the identity matrix with the given dimensions.
-    void set_identity( size_t size ) {
-      impl().set_size( size, size );
+    void set_identity(size_t size) {
+      impl().set_size(size, size);
       set_identity();
     }
 
     /// Set the matrix to entirely zeros.
     void set_zero() {
-      for( size_t i=0; i<impl().rows(); ++i )
-        for( size_t j=0; j<impl().cols(); ++j )
+      for(size_t i=0; i<impl().rows(); ++i)
+        for(size_t j=0; j<impl().cols(); ++j)
           impl()(i,j) = (typename MatrixT::value_type(0));
     }
 
     // Set the entire matrix to ones
     void set_ones() {
-      for( size_t i=0; i<impl().rows(); ++i )
-        for( size_t j=0; j<impl().cols(); ++j )
+      for(size_t i=0; i<impl().rows(); ++i)
+        for(size_t j=0; j<impl().cols(); ++j)
           impl()(i,j) = (typename MatrixT::value_type(1));
     }
   }; // End class MatrixBase
@@ -151,7 +151,7 @@ namespace math {
   class MatrixNoTmp {
     MatrixT const& m_val;
   public:
-    MatrixNoTmp( MatrixT const& val ) : m_val( val ) {}
+    MatrixNoTmp(MatrixT const& val) : m_val(val) {}
     MatrixT const& impl() const { return m_val; }
   };
 
@@ -159,8 +159,8 @@ namespace math {
   /// of temporary objects during matrix assignment in cases where the
   /// user deems it safe.  Use with care.
   template <class MatrixT>
-  MatrixNoTmp<MatrixT> no_tmp( MatrixBase<MatrixT> const& val ) {
-    return MatrixNoTmp<MatrixT>( val.impl() );
+  MatrixNoTmp<MatrixT> no_tmp(MatrixBase<MatrixT> const& val) {
+    return MatrixNoTmp<MatrixT>(val.impl());
   }
 
 
@@ -187,12 +187,12 @@ namespace math {
     typedef std::ptrdiff_t difference_type;
     typedef std::random_access_iterator_tag iterator_category;
 
-    IndexingMatrixIterator( MatrixT& matrix, difference_type row,
-                            difference_type col ) :
+    IndexingMatrixIterator(MatrixT& matrix, difference_type row,
+                           difference_type col) :
       m_matrix(&matrix), m_row(row), m_col(col) {}
 
     reference operator*() const { return (*m_matrix)(m_row, m_col); }
-    reference operator[]( difference_type n ) const {
+    reference operator[](difference_type n) const {
       IndexingMatrixIterator tmp = *this;
       tmp.advance(n);
       return *tmp;
@@ -219,11 +219,11 @@ namespace math {
       auto tmp = *this; --(*this); return tmp;
     }
 
-    IndexingMatrixIterator& operator+=( difference_type n ) {
+    IndexingMatrixIterator& operator+=(difference_type n) {
       advance(n);
       return *this;
     }
-    IndexingMatrixIterator& operator-=( difference_type n ) {
+    IndexingMatrixIterator& operator-=(difference_type n) {
       advance(-n);
       return *this;
     }
@@ -282,7 +282,7 @@ namespace math {
     MatrixT* m_matrix;
     size_t m_row, m_col;
 
-    void advance( difference_type n ) {
+    void advance(difference_type n) {
       // This safeguards against spurious division by zero troubles encountered
       // on some platforms when performing operations on degenerate matrices.
       if (m_matrix->cols() == 0) return;
@@ -320,80 +320,80 @@ namespace math {
 
     /// Constructs a matrix of zeroes.
     Matrix() {
-      std::memset( core_.data(), 0, RowsN*ColsN*sizeof(ElemT) );
+      std::memset(core_.data(), 0, RowsN*ColsN*sizeof(ElemT));
     }
 
     /// Constructs a matrix whose first element is as given.
-    Matrix( ElemT e1 ) {
+    Matrix(ElemT e1) {
       static_assert(RowsN*ColsN >= 1, "");
       iterator i=begin();
       *(i++)=e1;
-      for( ; i!=end(); ++i ) *i = ElemT();
+      for(; i!=end(); ++i) *i = ElemT();
     }
 
     /// Constructs a matrix whose first two elements are as given.
-    Matrix( ElemT e1, ElemT e2 ) {
+    Matrix(ElemT e1, ElemT e2) {
       static_assert(RowsN*ColsN >= 2, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2;
-      for( ; i!=end(); ++i ) *i = ElemT();
+      for(; i!=end(); ++i) *i = ElemT();
     }
 
     /// Constructs a matrix whose first three elements are as given.
-    Matrix( ElemT e1, ElemT e2, ElemT e3 ) {
+    Matrix(ElemT e1, ElemT e2, ElemT e3) {
       static_assert(RowsN*ColsN >= 3, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3;
-      for( ; i!=end(); ++i ) *i = ElemT();
+      for(; i!=end(); ++i) *i = ElemT();
     }
 
     /// Constructs a matrix whose first four elements are as given.
-    Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
+    Matrix(ElemT e1, ElemT e2, ElemT e3, ElemT e4) {
       static_assert(RowsN*ColsN >= 4, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
-      for( ; i!=end(); ++i ) *i = ElemT();
+      for(; i!=end(); ++i) *i = ElemT();
     }
 
     /// Constructs a matrix whose first 9 elements are as given.
-    Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5,
-            ElemT e6, ElemT e7, ElemT e8, ElemT e9 ) {
+    Matrix(ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5,
+           ElemT e6, ElemT e7, ElemT e8, ElemT e9) {
       static_assert(RowsN*ColsN >= 4, "");
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
       *(i++)=e5; *(i++)=e6; *(i++)=e7; *(i++)=e8; *(i++)=e9;
-      for( ; i!=end(); ++i ) *i = ElemT();
+      for(; i!=end(); ++i) *i = ElemT();
     }
 
     /// Constructs a matrix from given densely-packed row-mjor data.
     /// This constructor copies the data.  If you wish to make a
     /// shallow proxy object instead, see vw::MatrixProxy.
-    Matrix( const ElemT data[RowsN*ColsN] ) {
-      std::copy( data, data+RowsN*ColsN, core_.begin() );
+    Matrix(const ElemT data[RowsN*ColsN]) {
+      std::copy(data, data+RowsN*ColsN, core_.begin());
     }
 
     /// Standard copy constructor.
-    Matrix( Matrix const& m ) : core_( m.core_ ) {}
+    Matrix(Matrix const& m) : core_(m.core_) {}
 
     /// Generalized copy constructor, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    Matrix(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
     }
 
     /// Standard copy assignment operator.
-    Matrix& operator=( Matrix const& m ) {
-      Matrix tmp( m );
+    Matrix& operator=(Matrix const& m) {
+      Matrix tmp(m);
       core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      Matrix tmp( m );
+    Matrix& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      Matrix tmp(m);
       core_ = tmp.core_;
       return *this;
     }
@@ -401,9 +401,9 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Matrix& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    Matrix& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -412,23 +412,23 @@ namespace math {
     size_t cols() const { return ColsN; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_rows==rows() && new_cols==cols(),
-                 ArgumentErr() << "Cannot resize a fixed-size Matrix." );
+    void set_size(size_t new_rows, size_t new_cols, bool /*preserve*/ = false) {
+      VW_ASSERT(new_rows==rows() && new_cols==cols(),
+                ArgumentErr() << "Cannot resize a fixed-size Matrix.");
     }
 
     /// Access an element
-    value_type& operator()( size_t row, size_t col ) {
+    value_type& operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return core_[row*ColsN+col];
     }
 
     /// Access an element
-    value_type const& operator()( size_t row, size_t col ) const {
+    value_type const& operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return core_[row*ColsN+col];
     }
@@ -478,29 +478,29 @@ namespace math {
     Matrix() : m_rows(0), m_cols(0) {}
 
     /// Constructs a zero matrix of the given size.
-    Matrix( size_t rows, size_t cols )
+    Matrix(size_t rows, size_t cols)
       : core_(rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Constructs a matrix of the given size from given
     /// densely-packed row-mjor data.  This constructor copies the
     /// data.  If you wish to make a shallow proxy object instead,
     /// see vw::MatrixProxy.
-    Matrix( size_t rows, size_t cols, const ElemT *data )
+    Matrix(size_t rows, size_t cols, const ElemT *data)
       : core_(data,data+rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Standard copy constructor.
     // FIXME Do we really need this?
-    Matrix( Matrix const& m )
+    Matrix(Matrix const& m)
       : core_(m.core_), m_rows(m.m_rows), m_cols(m.m_cols) {}
 
     /// Generalized copy constructor, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix( MatrixBase<T> const& m )
+    Matrix(MatrixBase<T> const& m)
       : core_(m.impl().begin(),m.impl().end()), m_rows(m.impl().rows()), m_cols(m.impl().cols()) {}
 
     /// Standard copy assignment operator.
-    Matrix& operator=( Matrix const& m ) {
-      Matrix tmp( m );
+    Matrix& operator=(Matrix const& m) {
+      Matrix tmp(m);
       m_rows = tmp.m_rows;
       m_cols = tmp.m_cols;
       core_ = tmp.core_;
@@ -509,8 +509,8 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix& operator=( MatrixBase<T> const& m ) {
-      Matrix tmp( m );
+    Matrix& operator=(MatrixBase<T> const& m) {
+      Matrix tmp(m);
       m_rows = tmp.m_rows;
       m_cols = tmp.m_cols;
       core_ = tmp.core_;
@@ -520,9 +520,9 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Matrix& operator=( MatrixNoTmp<T> const& m ) {
-      if( m.impl().rows()==rows() && m.impl().cols()==cols() ) {
-        std::copy( m.impl().begin(), m.impl().end(), begin() );
+    Matrix& operator=(MatrixNoTmp<T> const& m) {
+      if(m.impl().rows()==rows() && m.impl().cols()==cols()) {
+        std::copy(m.impl().begin(), m.impl().end(), begin());
         return *this;
       }
       else return *this = m.impl();
@@ -532,15 +532,15 @@ namespace math {
     size_t cols() const { return m_cols; } ///< Returns the number of columns in the matrix.
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( size_t rows, size_t cols, bool preserve = false ) {
-      if( preserve ) {
+    void set_size(size_t rows, size_t cols, bool preserve = false) {
+      if(preserve) {
         VarArray<ElemT> other(rows*cols);
         size_t mr = (std::min)(rows,m_rows);
         size_t mc = (std::min)(cols,m_cols);
-        for( size_t r=0; r<mr; ++r )
-          for( size_t c=0; c<mc; ++c )
+        for(size_t r=0; r<mr; ++r)
+          for(size_t c=0; c<mc; ++c)
             other[r*cols+c] = core_[r*m_cols+c];
-        core_.swap( other );
+        core_.swap(other);
       }
       else {
         core_.resize(rows*cols,false);
@@ -550,17 +550,17 @@ namespace math {
     }
 
     /// Access an element
-    value_type& operator()( size_t row, size_t col ) {
+    value_type& operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return core_[row*m_cols+col];
     }
 
     /// Access an element
-    value_type const& operator()( size_t row, size_t col ) const {
+    value_type const& operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return core_[row*m_cols+col];
     }
@@ -596,31 +596,31 @@ namespace math {
     typedef ElemT const* const_iterator;
 
     /// Constructs a matrix proxy
-    MatrixProxy( ElemT* ptr ) : m_ptr(ptr) {}
+    MatrixProxy(ElemT* ptr) : m_ptr(ptr) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) {
-      VW_ASSERT( m.rows()==RowsN && m.cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      Matrix<ElemT,RowsN,ColsN> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixProxy& operator=(MatrixProxy const& m) {
+      VW_ASSERT(m.rows()==RowsN && m.cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      Matrix<ElemT,RowsN,ColsN> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixProxy& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      Matrix<ElemT,RowsN,ColsN> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixProxy& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      Matrix<ElemT,RowsN,ColsN> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    MatrixProxy& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -630,23 +630,23 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_rows==rows() && new_cols==cols(),
-                 ArgumentErr() << "Cannot resize matrix proxy." );
+    void set_size(size_t new_rows, size_t new_cols, bool /*preserve*/ = false) {
+      VW_ASSERT(new_rows==rows() && new_cols==cols(),
+                ArgumentErr() << "Cannot resize matrix proxy.");
     }
 
     /// Access an element
-    value_type& operator()( size_t row, size_t col ) {
+    value_type& operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return m_ptr[row*cols()+col];
     }
 
     /// Access an element
-    value_type const& operator()( size_t row, size_t col ) const {
+    value_type const& operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return m_ptr[row*cols()+col];
     }
@@ -692,36 +692,36 @@ namespace math {
     typedef ElemT const* const_iterator;
 
     /// Constructs a matrix with zero size.
-    MatrixProxy( ElemT* ptr, size_t rows, size_t cols )
+    MatrixProxy(ElemT* ptr, size_t rows, size_t cols)
       : m_ptr(ptr), m_rows(rows), m_cols(cols) {}
 
     template <class ContainerT>
-    MatrixProxy( ContainerT const& container )
+    MatrixProxy(ContainerT const& container)
       : m_ptr(container.data()), m_rows(container.rows()), m_cols(container.cols()) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<ElemT> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixProxy& operator=(MatrixProxy const& m) {
+      VW_ASSERT(m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<ElemT> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixProxy& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<ElemT> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixProxy& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<ElemT> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    MatrixProxy& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -731,23 +731,23 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_rows==rows() && new_cols==cols(),
-                 ArgumentErr() << "Cannot resize matrix proxy." );
+    void set_size(size_t new_rows, size_t new_cols, bool /*preserve*/ = false) {
+      VW_ASSERT(new_rows==rows() && new_cols==cols(),
+                ArgumentErr() << "Cannot resize matrix proxy.");
     }
 
     /// Access an element
-    value_type& operator()( size_t row, size_t col ) {
+    value_type& operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return m_ptr[row*m_cols+col];
     }
 
     /// Access an element
-    value_type const& operator()( size_t row, size_t col ) const {
+    value_type const& operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return m_ptr[row*m_cols+col];
     }
@@ -767,8 +767,8 @@ namespace math {
   /// original image.
   template <class ContainerT>
   MatrixProxy<typename ContainerT::value_type>
-  matrix_proxy( ContainerT const& container ) {
-    return MatrixProxy<typename ContainerT::value_type>( container );
+  matrix_proxy(ContainerT const& container) {
+    return MatrixProxy<typename ContainerT::value_type>(container);
   }
 
   /// Shallow view of an image as a matrix.  Returns a MatrixProxy
@@ -776,8 +776,8 @@ namespace math {
   /// original image.
   template <class DataT>
   MatrixProxy<DataT>
-  matrix_proxy( DataT* data_ptr, size_t rows, size_t cols) {
-    return MatrixProxy<DataT>( data_ptr, rows, cols );
+  matrix_proxy(DataT* data_ptr, size_t rows, size_t cols) {
+    return MatrixProxy<DataT>(data_ptr, rows, cols);
   }
 
 
@@ -801,31 +801,31 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixTranspose<MatrixT> > const_iterator;
 
     /// Constructs a matrix transpose.
-    MatrixTranspose( MatrixT& matrix ) : m_matrix(matrix) {}
+    MatrixTranspose(MatrixT& matrix) : m_matrix(matrix) {}
 
     /// Standard copy assignment operator.
-    MatrixTranspose& operator=( MatrixTranspose const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixTranspose& operator=(MatrixTranspose const& m) {
+      VW_ASSERT(m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixTranspose& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixTranspose& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixTranspose& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    MatrixTranspose& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << ".");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -839,23 +839,23 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_rows==rows() && new_cols==cols(),
-                 ArgumentErr() << "Cannot resize matrix transpose." );
+    void set_size(size_t new_rows, size_t new_cols, bool /*preserve*/ = false) {
+      VW_ASSERT(new_rows==rows() && new_cols==cols(),
+                ArgumentErr() << "Cannot resize matrix transpose.");
     }
 
     /// Access an element
-    reference_type operator()( size_t row, size_t col ) {
+    reference_type operator()(size_t row, size_t col) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return child()(col,row);
     }
 
     /// Access an element
-    const_reference_type operator()( size_t row, size_t col ) const {
+    const_reference_type operator()(size_t row, size_t col) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
 #endif
       return child()(col,row);
     }
@@ -868,25 +868,25 @@ namespace math {
 
   /// Matrix transpose.
   template <class MatrixT>
-  inline MatrixTranspose<MatrixT> transpose( MatrixBase<MatrixT>& m ) {
-    return MatrixTranspose<MatrixT>( m.impl() );
+  inline MatrixTranspose<MatrixT> transpose(MatrixBase<MatrixT>& m) {
+    return MatrixTranspose<MatrixT>(m.impl());
   }
 
   /// Matrix transpose (const overload).
   template <class MatrixT>
-  inline MatrixTranspose<const MatrixT> transpose( MatrixBase<MatrixT> const& m ) {
-    return MatrixTranspose<const MatrixT>( m.impl() );
+  inline MatrixTranspose<const MatrixT> transpose(MatrixBase<MatrixT> const& m) {
+    return MatrixTranspose<const MatrixT>(m.impl());
   }
 
   /// Matrix transpose (transpose overload).
   template <class MatrixT>
-  inline MatrixT& transpose( MatrixTranspose<MatrixT>& m ) {
+  inline MatrixT& transpose(MatrixTranspose<MatrixT>& m) {
     return m.child();
   }
 
   /// Matrix transpose (const transpose overload).
   template <class MatrixT>
-  inline MatrixT const& transpose( MatrixTranspose<MatrixT> const& m ) {
+  inline MatrixT const& transpose(MatrixTranspose<MatrixT> const& m) {
     return m.child();
   }
 
@@ -914,39 +914,39 @@ namespace math {
                                      typename MatrixT::iterator>::type iterator;
     typedef typename MatrixT::const_iterator const_iterator;
 
-    MatrixRow( MatrixT& m, size_t row ) : m(m), row(row) {}
+    MatrixRow(MatrixT& m, size_t row) : m(m), row(row) {}
 
     /// Standard copy assignment operator.
-    MatrixRow& operator=( MatrixRow const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
-      Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixRow& operator=(MatrixRow const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
+      Vector<value_type> tmp(v);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class OtherT>
-    MatrixRow& operator=( VectorBase<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
-      Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixRow& operator=(VectorBase<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
+      Vector<value_type> tmp(v);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     // For the transposed vctor object
     template <class OtherT>
-    MatrixRow& operator=( VectorTranspose<OtherT> const& v ) {
-      VW_ASSERT( v.size() == size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
-      std::copy( v.begin(), v.end(), begin() );
+    MatrixRow& operator=(VectorTranspose<OtherT> const& v) {
+      VW_ASSERT(v.size() == size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
+      std::copy(v.begin(), v.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class OtherT>
-    MatrixRow& operator=( VectorNoTmp<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+    MatrixRow& operator=(VectorNoTmp<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
+      std::copy(v.impl().begin(), v.impl().end(), begin());
       return *this;
     }
 
@@ -955,10 +955,10 @@ namespace math {
 
     size_t size() const { return child().cols(); }
 
-          reference_type operator()( size_t i )       { return child()(row,i); }
-    const_reference_type operator()( size_t i ) const { return child()(row,i); }
-          reference_type operator[]( size_t i )       { return child()(row,i); }
-    const_reference_type operator[]( size_t i ) const { return child()(row,i); }
+          reference_type operator()(size_t i)       { return child()(row,i); }
+    const_reference_type operator()(size_t i) const { return child()(row,i); }
+          reference_type operator[](size_t i)       { return child()(row,i); }
+    const_reference_type operator[](size_t i) const { return child()(row,i); }
 
           iterator begin()       { return child().begin() + row*child().cols(); }
     const_iterator begin() const { return child().begin() + row*child().cols(); }
@@ -973,14 +973,14 @@ namespace math {
 
   /// Extract a row of a matrix as a vector.
   template <class MatrixT>
-  inline MatrixRow<MatrixT> select_row( MatrixBase<MatrixT>& matrix, size_t row ) {
-    return MatrixRow<MatrixT>( matrix.impl(), row );
+  inline MatrixRow<MatrixT> select_row(MatrixBase<MatrixT>& matrix, size_t row) {
+    return MatrixRow<MatrixT>(matrix.impl(), row);
   }
 
   /// Extract a row of a matrix as a vector (const overload).
   template <class MatrixT>
-  inline MatrixRow<const MatrixT> select_row( MatrixBase<MatrixT> const& matrix, size_t row ) {
-    return MatrixRow<const MatrixT>( matrix.impl(), row );
+  inline MatrixRow<const MatrixT> select_row(MatrixBase<MatrixT> const& matrix, size_t row) {
+    return MatrixRow<const MatrixT>(matrix.impl(), row);
   }
 
 
@@ -1005,18 +1005,18 @@ namespace math {
       typedef typename std::iterator_traits<IterT>::difference_type difference_type;
       typedef std::random_access_iterator_tag iterator_category;
 
-      Iterator( IterT const& i, difference_type stride ) :
+      Iterator(IterT const& i, difference_type stride) :
         i(i), stride(stride) {}
 
       reference operator*() const { return *i; }
-      reference operator[]( difference_type n ) const { return *(i + n * stride); }
+      reference operator[](difference_type n) const { return *(i + n * stride); }
 
       Iterator& operator++() { i += stride; return *this; }
       Iterator operator++(int) { auto tmp = *this; i += stride; return tmp; }
       Iterator& operator--() { i -= stride; return *this; }
       Iterator operator--(int) { auto tmp = *this; i -= stride; return tmp; }
-      Iterator& operator+=( difference_type n ) { i += n * stride; return *this; }
-      Iterator& operator-=( difference_type n ) { i -= n * stride; return *this; }
+      Iterator& operator+=(difference_type n) { i += n * stride; return *this; }
+      Iterator& operator-=(difference_type n) { i -= n * stride; return *this; }
 
       friend Iterator operator+(Iterator it, difference_type n) { it += n; return it; }
       friend Iterator operator+(difference_type n, Iterator it) { it += n; return it; }
@@ -1050,31 +1050,31 @@ namespace math {
                                      Iterator<typename MatrixT::iterator> >::type iterator;
     typedef Iterator<typename MatrixT::const_iterator> const_iterator;
 
-    MatrixCol( MatrixT& m, size_t col ) : m(m), col(col) {}
+    MatrixCol(MatrixT& m, size_t col) : m(m), col(col) {}
 
     /// Standard copy assignment operator.
-    MatrixCol& operator=( MatrixCol const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
-      Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixCol& operator=(MatrixCol const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment.");
+      Vector<value_type> tmp(v);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class OtherT>
-    MatrixCol& operator=( VectorBase<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
-      Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    MatrixCol& operator=(VectorBase<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment.");
+      Vector<value_type> tmp(v);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class OtherT>
-    MatrixCol& operator=( VectorNoTmp<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+    MatrixCol& operator=(VectorNoTmp<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment.");
+      std::copy(v.impl().begin(), v.impl().end(), begin());
       return *this;
     }
 
@@ -1083,13 +1083,13 @@ namespace math {
 
     size_t size() const { return child().rows(); }
 
-          reference_type operator()( size_t i )       { return child()(i,col); }
-    const_reference_type operator()( size_t i ) const { return child()(i,col); }
-          reference_type operator[]( size_t i )       { return child()(i,col); }
-    const_reference_type operator[]( size_t i ) const { return child()(i,col); }
+          reference_type operator()(size_t i)       { return child()(i,col); }
+    const_reference_type operator()(size_t i) const { return child()(i,col); }
+          reference_type operator[](size_t i)       { return child()(i,col); }
+    const_reference_type operator[](size_t i) const { return child()(i,col); }
 
-          iterator begin()       { return       iterator( child().begin() + col, child().cols() ); }
-    const_iterator begin() const { return const_iterator( child().begin() + col, child().cols() ); }
+          iterator begin()       { return       iterator(child().begin() + col, child().cols()); }
+    const_iterator begin() const { return const_iterator(child().begin() + col, child().cols()); }
           iterator end  ()       { return begin() + size(); }
     const_iterator end  () const { return begin() + size(); }
 
@@ -1102,14 +1102,14 @@ namespace math {
 
   /// Extract a column of a matrix as a vector.
   template <class MatrixT>
-  inline MatrixCol<MatrixT> select_col( MatrixBase<MatrixT>& matrix, size_t col ) {
-    return MatrixCol<MatrixT>( matrix.impl(), col );
+  inline MatrixCol<MatrixT> select_col(MatrixBase<MatrixT>& matrix, size_t col) {
+    return MatrixCol<MatrixT>(matrix.impl(), col);
   }
 
   /// Extract a column of a matrix as a vector (const overload).
   template <class MatrixT>
-  inline MatrixCol<const MatrixT> select_col( MatrixBase<MatrixT> const& matrix, size_t col ) {
-    return MatrixCol<const MatrixT>( matrix.impl(), col );
+  inline MatrixCol<const MatrixT> select_col(MatrixBase<MatrixT> const& matrix, size_t col) {
+    return MatrixCol<const MatrixT>(matrix.impl(), col);
   }
 
 
@@ -1137,32 +1137,32 @@ namespace math {
     typedef IndexingMatrixIterator<typename std::conditional<std::is_const<MatrixT>::value, const SubMatrix, SubMatrix>::type> iterator;
     typedef IndexingMatrixIterator<const SubMatrix> const_iterator;
 
-    SubMatrix( MatrixT& m, size_t row, size_t col, size_t rows, size_t cols ) :
+    SubMatrix(MatrixT& m, size_t row, size_t col, size_t rows, size_t cols) :
       m_matrix(m), m_row(row), m_col(col), m_rows(rows), m_cols(cols) {}
 
     /// Standard copy assignment operator.
-    SubMatrix& operator=( SubMatrix const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    SubMatrix& operator=(SubMatrix const& m) {
+      VW_ASSERT(m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment.");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    SubMatrix& operator=( MatrixBase<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
-      Matrix<value_type> tmp( m );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+    SubMatrix& operator=(MatrixBase<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment.");
+      Matrix<value_type> tmp(m);
+      std::copy(tmp.begin(), tmp.end(), begin());
       return *this;
     }
 
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    SubMatrix& operator=( MatrixNoTmp<T> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+    SubMatrix& operator=(MatrixNoTmp<T> const& m) {
+      VW_ASSERT(m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment.");
+      std::copy(m.impl().begin(), m.impl().end(), begin());
       return *this;
     }
 
@@ -1172,26 +1172,26 @@ namespace math {
     size_t rows() const { return m_rows; }
     size_t cols() const { return m_cols; }
 
-          reference_type operator()( size_t row, size_t col )       { return child()( row+m_row, col+m_col ); }
-    const_reference_type operator()( size_t row, size_t col ) const { return child()( row+m_row, col+m_col ); }
+          reference_type operator()(size_t row, size_t col)       { return child()(row+m_row, col+m_col); }
+    const_reference_type operator()(size_t row, size_t col) const { return child()(row+m_row, col+m_col); }
 
-          iterator begin()       { return       iterator( *this, 0,      0 ); }
-    const_iterator begin() const { return const_iterator( *this, 0,      0 ); }
-          iterator end  ()       { return       iterator( *this, rows(), 0 ); }
-    const_iterator end  () const { return const_iterator( *this, rows(), 0 ); }
+          iterator begin()       { return       iterator(*this, 0,      0); }
+    const_iterator begin() const { return const_iterator(*this, 0,      0); }
+          iterator end  ()       { return       iterator(*this, rows(), 0); }
+    const_iterator end  () const { return const_iterator(*this, rows(), 0); }
 
   };
 
   /// Extract a submatrix, i.e. a matrix block.
   template <class MatrixT>
-  inline SubMatrix<MatrixT> submatrix( MatrixBase<MatrixT>& matrix, size_t row, size_t col, size_t rows, size_t cols ) {
-    return SubMatrix<MatrixT>( matrix.impl(), row, col, rows, cols );
+  inline SubMatrix<MatrixT> submatrix(MatrixBase<MatrixT>& matrix, size_t row, size_t col, size_t rows, size_t cols) {
+    return SubMatrix<MatrixT>(matrix.impl(), row, col, rows, cols);
   }
 
   /// Extract a submatrix, i.e. a matrix block (const overlaod).
   template <class MatrixT>
-  inline SubMatrix<const MatrixT> submatrix( MatrixBase<MatrixT> const& matrix, size_t row, size_t col, size_t rows, size_t cols ) {
-    return SubMatrix<const MatrixT>( matrix.impl(), row, col, rows, cols );
+  inline SubMatrix<const MatrixT> submatrix(MatrixBase<MatrixT> const& matrix, size_t row, size_t col, size_t rows, size_t cols) {
+    return SubMatrix<const MatrixT>(matrix.impl(), row, col, rows, cols);
   }
 
 
@@ -1210,17 +1210,17 @@ namespace math {
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    MatrixUnaryFunc( MatrixT const& m ) : m(m) {}
+    MatrixUnaryFunc(MatrixT const& m) : m(m) {}
 
     template <class Arg1>
-    MatrixUnaryFunc( MatrixT const& m, Arg1 a1 ) : m(m), func(a1) {}
+    MatrixUnaryFunc(MatrixT const& m, Arg1 a1) : m(m), func(a1) {}
 
     MatrixT const& child() const { return m; }
 
     size_t rows() const { return m.rows(); }
     size_t cols() const { return m.cols(); }
 
-    reference_type operator()( size_t i, size_t j ) const {
+    reference_type operator()(size_t i, size_t j) const {
       return func(child()(i,j));
     }
 
@@ -1294,13 +1294,13 @@ namespace math {
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    MatrixBinaryFunc( Matrix1T const& m1, Matrix2T const& m2 ) : m1(m1), m2(m2), func() {
-      VW_ASSERT( m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc" );
+    MatrixBinaryFunc(Matrix1T const& m1, Matrix2T const& m2) : m1(m1), m2(m2), func() {
+      VW_ASSERT(m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc");
     }
 
     template <class Arg1>
-    MatrixBinaryFunc( Matrix1T const& m1, Matrix2T const& m2, Arg1 a1 ) : m1(m1), m2(m2), func(a1) {
-      VW_ASSERT( m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc" );
+    MatrixBinaryFunc(Matrix1T const& m1, Matrix2T const& m2, Arg1 a1) : m1(m1), m2(m2), func(a1) {
+      VW_ASSERT(m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc");
     }
 
     Matrix1T const& child1() const { return m1; }
@@ -1309,7 +1309,7 @@ namespace math {
     size_t rows() const { return m1.rows(); }
     size_t cols() const { return m1.cols(); }
 
-    reference_type operator()( size_t i, size_t j ) const {
+    reference_type operator()(size_t i, size_t j) const {
       return func(child1()(i,j),child2()(i,j));
     }
 
@@ -1378,13 +1378,13 @@ namespace math {
 
   /// Dumps a matrix to a std::ostream
   template <class MatrixT>
-  inline std::ostream& operator<<( std::ostream& os, MatrixBase<MatrixT> const& m ) {
+  inline std::ostream& operator<<(std::ostream& os, MatrixBase<MatrixT> const& m) {
     MatrixT const& mr = m.impl();
     size_t rows = mr.rows(), cols = mr.cols();
     os << "Matrix" << rows << 'x' << cols << '(';
-    for( size_t r=0; r<rows; ++r ) {
+    for(size_t r=0; r<rows; ++r) {
       os << '(' << mr(r,0);
-      for( size_t c=1; c<cols; ++c )
+      for(size_t c=1; c<cols; ++c)
         os << ',' << mr(r,c);
       os << ')';
     }
@@ -1400,13 +1400,13 @@ namespace math {
   /// object.
   template <class MatrixT>
   Matrix<typename MatrixT::value_type, MatrixRows<MatrixT>::value, MatrixCols<MatrixT>::value>
-  inline eval( MatrixBase<MatrixT> const& m ) {
+  inline eval(MatrixBase<MatrixT> const& m) {
     return m;
   }
 
   /// Forwarding overload for plain Matrix objects.
   template <class ElemT, size_t RowsN, size_t ColsN>
-  inline Matrix<ElemT,RowsN,ColsN> const& eval( Matrix<ElemT,RowsN,ColsN> const& m ) {
+  inline Matrix<ElemT,RowsN,ColsN> const& eval(Matrix<ElemT,RowsN,ColsN> const& m) {
     return m;
   }
 
@@ -1422,7 +1422,7 @@ namespace math {
   /// they have the same dimensions and their elements are all
   /// equivalent with respect to the standard c++ operator==().
   template <class Matrix1T, class Matrix2T>
-  inline bool operator==( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
+  inline bool operator==(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
     if (m1.impl().rows() != m2.impl().rows() ||
         m1.impl().cols() != m2.impl().cols()) { return false; }
 
@@ -1440,7 +1440,7 @@ namespace math {
   /// namespace then you will have to explicitly request this one as
   /// vw::math::equal().
   template <class Matrix1T, class Matrix2T>
-  inline bool equal( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0 ) {
+  inline bool equal(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0) {
     if (m1.impl().rows() != m2.impl().rows() ||
         m1.impl().cols() != m2.impl().cols()) { return false; }
 
@@ -1455,7 +1455,7 @@ namespace math {
   /// only if they have the same dimensions and their elements are all
   /// return true when compared with the standard c++ operator==().
   template <class Matrix1T, class Matrix2T>
-  inline bool operator!=( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
+  inline bool operator!=(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
     return ! (m1 == m2);
   }
 
@@ -1463,7 +1463,7 @@ namespace math {
   /// matrices are considered equal only if they have the same
   /// dimensions and their elements are equal to within the specified tolerance.
   template <class Matrix1T, class Matrix2T>
-  inline bool not_equal( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0 ) {
+  inline bool not_equal(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0) {
     return ! equal(m1, m2, epsilon);
   }
 
@@ -1475,148 +1475,148 @@ namespace math {
   /// Negation of a matrix.
   template <class MatrixT>
   MatrixUnaryFunc<MatrixT, ArgNegationFunctor >
-  inline operator-( MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ArgNegationFunctor>( m.impl() );
+  inline operator-(MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ArgNegationFunctor>(m.impl());
   }
 
   /// Absolute of a matrix
   template <class MatrixT>
   MatrixUnaryFunc<MatrixT, ArgAbsFunctor >
-  inline abs( MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ArgAbsFunctor>( m.impl() );
+  inline abs(MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ArgAbsFunctor>(m.impl());
   }
 
   /// Elementwise sum of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgSumFunctor>
-  inline elem_sum( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgSumFunctor>( m1.impl(), m2.impl() );
+  inline elem_sum(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgSumFunctor>(m1.impl(), m2.impl());
   }
 
   /// Sum of a matrix and a matrix (same as elem_sum).
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgSumFunctor>
-  inline operator+( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return elem_sum( m1, m2 );
+  inline operator+(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return elem_sum(m1, m2);
   }
 
   /// Elementwise sum of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgSumFunctor<ScalarT> > >::type
-  inline elem_sum( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgSumFunctor<ScalarT> >( m.impl(), s );
+  inline elem_sum(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgSumFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise sum of a matrix and a scalar.
   template <class MatrixT, class ScalarT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> > >::type
-  inline elem_sum( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> >( m.impl(), s );
+  inline elem_sum(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise difference of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgDifferenceFunctor>
-  inline elem_diff( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgDifferenceFunctor>( m1.impl(), m2.impl() );
+  inline elem_diff(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgDifferenceFunctor>(m1.impl(), m2.impl());
   }
 
   /// Difference of two matrices (same as elem_diff).
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgDifferenceFunctor>
-  inline operator-( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return elem_diff( m1, m2 );
+  inline operator-(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return elem_diff(m1, m2);
   }
 
   /// Elementwise difference of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgDifferenceFunctor<ScalarT> > >::type
-  inline elem_diff( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgDifferenceFunctor<ScalarT> >( m.impl(), s );
+  inline elem_diff(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgDifferenceFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise difference of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValDifferenceFunctor<ScalarT> > >::type
-  inline elem_diff( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValDifferenceFunctor<ScalarT> >( m.impl(), s );
+  inline elem_diff(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValDifferenceFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise product of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgProductFunctor>
-  inline elem_prod( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgProductFunctor>( m1.impl(), m2.impl() );
+  inline elem_prod(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgProductFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise product of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> > >::type
-  inline elem_prod( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> >( m.impl(), s );
+  inline elem_prod(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Product of a scalar and a matrix (same as elem_prod)
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgProductFunctor<ScalarT> > >::type
-  inline operator*( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return elem_prod( s, m );
+  inline operator*(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return elem_prod(s, m);
   }
 
   /// Elementwise product of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> > >::type
-  inline elem_prod( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> >( m.impl(), s );
+  inline elem_prod(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Product of a matrix and a scalar (same as elem_prod).
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValProductFunctor<ScalarT> > >::type
-  inline operator*( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return elem_prod( m, s );
+  inline operator*(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return elem_prod(m, s);
   }
 
 
   /// Elementwise quotient of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgQuotientFunctor>
-  inline elem_quot( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgQuotientFunctor>( m1.impl(), m2.impl() );
+  inline elem_quot(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgQuotientFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise quotient of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgQuotientFunctor<ScalarT> > >::type
-  inline elem_quot( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgQuotientFunctor<ScalarT> >( m.impl(), s );
+  inline elem_quot(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgQuotientFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise quotient of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> > >::type
-  inline elem_quot( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> >( m.impl(), s );
+  inline elem_quot(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Quotient of a matrix and a scalar (same as elem_quot).
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValQuotientFunctor<ScalarT> > >::type
-  inline operator/( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return elem_quot( m, s );
+  inline operator/(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return elem_quot(m, s);
   }
 
 
@@ -1627,144 +1627,144 @@ namespace math {
   /// Elementwise equality of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgEqualityFunctor>
-  inline elem_eq( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgEqualityFunctor>( m1.impl(), m2.impl() );
+  inline elem_eq(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgEqualityFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise equality of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgEqualityFunctor<ScalarT> > >::type
-  inline elem_eq( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgEqualityFunctor<ScalarT> >( m.impl(), s );
+  inline elem_eq(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgEqualityFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise equality of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValEqualityFunctor<ScalarT> > >::type
-  inline elem_eq( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValEqualityFunctor<ScalarT> >( m.impl(), s );
+  inline elem_eq(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValEqualityFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise inequality of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgInequalityFunctor>
-  inline elem_neq( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgInequalityFunctor>( m1.impl(), m2.impl() );
+  inline elem_neq(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgInequalityFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise inequality of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgInequalityFunctor<ScalarT> > >::type
-  inline elem_neq( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgInequalityFunctor<ScalarT> >( m.impl(), s );
+  inline elem_neq(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgInequalityFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise inequality of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValInequalityFunctor<ScalarT> > >::type
-  inline elem_neq( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValInequalityFunctor<ScalarT> >( m.impl(), s );
+  inline elem_neq(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValInequalityFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise less-than of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanFunctor>
-  inline elem_lt( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanFunctor>( m1.impl(), m2.impl() );
+  inline elem_lt(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise less-than of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgLessThanFunctor<ScalarT> > >::type
-  inline elem_lt( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgLessThanFunctor<ScalarT> >( m.impl(), s );
+  inline elem_lt(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgLessThanFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise less-than of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValLessThanFunctor<ScalarT> > >::type
-  inline elem_lt( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValLessThanFunctor<ScalarT> >( m.impl(), s );
+  inline elem_lt(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValLessThanFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise less-than-or-equal-to of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanOrEqualFunctor>
-  inline elem_lte( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanOrEqualFunctor>( m1.impl(), m2.impl() );
+  inline elem_lte(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgLessThanOrEqualFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise less-than-or-equal-to of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgLessThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_lte( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgLessThanOrEqualFunctor<ScalarT> >( m.impl(), s );
+  inline elem_lte(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgLessThanOrEqualFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise less-than-or-equal-to of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValLessThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_lte( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValLessThanOrEqualFunctor<ScalarT> >( m.impl(), s );
+  inline elem_lte(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValLessThanOrEqualFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise greater-than of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanFunctor>
-  inline elem_gt( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanFunctor>( m1.impl(), m2.impl() );
+  inline elem_gt(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise greater-than of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgGreaterThanFunctor<ScalarT> > >::type
-  inline elem_gt( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgGreaterThanFunctor<ScalarT> >( m.impl(), s );
+  inline elem_gt(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgGreaterThanFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise greater-than of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValGreaterThanFunctor<ScalarT> > >::type
-  inline elem_gt( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValGreaterThanFunctor<ScalarT> >( m.impl(), s );
+  inline elem_gt(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValGreaterThanFunctor<ScalarT> >(m.impl(), s);
   }
 
 
   /// Elementwise greater-than-or-equal-to of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanOrEqualFunctor>
-  inline elem_gte( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanOrEqualFunctor>( m1.impl(), m2.impl() );
+  inline elem_gte(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixBinaryFunc<Matrix1T, Matrix2T, ArgArgGreaterThanOrEqualFunctor>(m1.impl(), m2.impl());
   }
 
   /// Elementwise greater-than-or-equal-to of a scalar and a matrix.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ValArgGreaterThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_gte( ScalarT s, MatrixBase<MatrixT> const& m ) {
-    return MatrixUnaryFunc<MatrixT, ValArgGreaterThanOrEqualFunctor<ScalarT> >( m.impl(), s );
+  inline elem_gte(ScalarT s, MatrixBase<MatrixT> const& m) {
+    return MatrixUnaryFunc<MatrixT, ValArgGreaterThanOrEqualFunctor<ScalarT> >(m.impl(), s);
   }
 
   /// Elementwise greater-than-or-equal-to of a matrix and a scalar.
   template <class ScalarT, class MatrixT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              MatrixUnaryFunc<MatrixT, ArgValGreaterThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_gte( MatrixBase<MatrixT> const& m, ScalarT s ) {
-    return MatrixUnaryFunc<MatrixT, ArgValGreaterThanOrEqualFunctor<ScalarT> >( m.impl(), s );
+  inline elem_gte(MatrixBase<MatrixT> const& m, ScalarT s) {
+    return MatrixUnaryFunc<MatrixT, ArgValGreaterThanOrEqualFunctor<ScalarT> >(m.impl(), s);
   }
 
 
@@ -1774,39 +1774,39 @@ namespace math {
 
   /// Matrix 1-norm
   template <class MatrixT>
-  inline double norm_1( MatrixBase<MatrixT> const& m ) {
+  inline double norm_1(MatrixBase<MatrixT> const& m) {
     double result = 0.0;
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t j=0; j<cols; ++j ) {
+    for(size_t j=0; j<cols; ++j) {
       double sum = 0.0;
-      for( size_t i=0; i<rows; ++i )
-        sum += fabs( m.impl()(i,j) );
-      if( sum > result ) result = sum;
+      for(size_t i=0; i<rows; ++i)
+        sum += fabs(m.impl()(i,j));
+      if(sum > result) result = sum;
     }
     return result;
   }
 
   /// Matrix infinity-norm
   template <class MatrixT>
-  inline double norm_inf( MatrixBase<MatrixT> const& m ) {
+  inline double norm_inf(MatrixBase<MatrixT> const& m) {
     double result = 0.0;
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t i=0; i<rows; ++i ) {
+    for(size_t i=0; i<rows; ++i) {
       double sum = 0.0;
-      for( size_t j=0; j<cols; ++j )
-        sum += fabs( m.impl()(i,j) );
-      if( sum > result ) result = sum;
+      for(size_t j=0; j<cols; ++j)
+        sum += fabs(m.impl()(i,j));
+      if(sum > result) result = sum;
     }
     return result;
   }
 
   /// Matrix Frobenius norm squared (i.e. sum of squares of the elements)
   template <class MatrixT>
-  inline double norm_frobenius_sqr( MatrixBase<MatrixT> const& m ) {
+  inline double norm_frobenius_sqr(MatrixBase<MatrixT> const& m) {
     double result = 0.0;
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t i=0; i<rows; ++i ) {
-      for( size_t j=0; j<cols; ++j ) {
+    for(size_t i=0; i<rows; ++i) {
+      for(size_t j=0; j<cols; ++j) {
         typename MatrixT::value_type e = m.impl()(i,j);
         result += e * e;
       }
@@ -1816,64 +1816,64 @@ namespace math {
 
   /// Matrix Frobenius norm
   template <class MatrixT>
-  inline double norm_frobenius( MatrixBase<MatrixT> const& m ) {
+  inline double norm_frobenius(MatrixBase<MatrixT> const& m) {
     return sqrt(norm_frobenius_sqr(m));
   }
 
   /// Matrix element sum
   template <class MatrixT>
-  inline typename MatrixT::value_type sum( MatrixBase<MatrixT> const& m ) {
+  inline typename MatrixT::value_type sum(MatrixBase<MatrixT> const& m) {
     typename MatrixT::value_type result = typename MatrixT::value_type();
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t i=0; i<rows; ++i )
-      for( size_t j=0; j<cols; ++j )
+    for(size_t i=0; i<rows; ++i)
+      for(size_t j=0; j<cols; ++j)
         result += m.impl()(i,j);
     return result;
   }
 
   /// Matrix element product
   template <class MatrixT>
-  inline typename MatrixT::value_type prod( MatrixBase<MatrixT> const& m ) {
+  inline typename MatrixT::value_type prod(MatrixBase<MatrixT> const& m) {
     typename MatrixT::value_type result = typename MatrixT::value_type(1);
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t i=0; i<rows; ++i )
-      for( size_t j=0; j<cols; ++j )
+    for(size_t i=0; i<rows; ++i)
+      for(size_t j=0; j<cols; ++j)
         result *= m.impl()(i,j);
     return result;
   }
 
   /// Matrix trace
   template <class MatrixT>
-  inline typename MatrixT::value_type trace( MatrixBase<MatrixT> const& m ) {
+  inline typename MatrixT::value_type trace(MatrixBase<MatrixT> const& m) {
     typename MatrixT::value_type result = typename MatrixT::value_type();
-    size_t mindim = std::min( m.impl().rows(), m.impl().cols() );
-    for( size_t i=0; i<mindim; ++i )
+    size_t mindim = std::min(m.impl().rows(), m.impl().cols());
+    for(size_t i=0; i<mindim; ++i)
       result += m.impl()(i,i);
     return result;
   }
 
   /// Optimize the 2x2 simple determinant case
   template <typename T>
-  T det( Matrix<T, 2, 2> const& m ) {
+  T det(Matrix<T, 2, 2> const& m) {
     T const* d = m.data();
     return d[0]*d[3] - d[1]*d[2];
   }
   
   /// Matrix determinant
   template <class MatrixT>
-  typename MatrixT::value_type det( MatrixBase<MatrixT> const& m ) {
+  typename MatrixT::value_type det(MatrixBase<MatrixT> const& m) {
     typename MatrixT::value_type result = typename MatrixT::value_type();
-    VW_ASSERT( m.impl().rows() == m.impl().cols(), vw::ArgumentErr() << "Can only compute determinant of a square matrix." );
+    VW_ASSERT(m.impl().rows() == m.impl().cols(), vw::ArgumentErr() << "Can only compute determinant of a square matrix.");
     std::stack<std::pair<Matrix<typename MatrixT::value_type>,typename MatrixT::value_type> > s;
-    s.push( std::make_pair( m.impl(), 1 ) );
-    while( !s.empty() ) {
+    s.push(std::make_pair(m.impl(), 1));
+    while(!s.empty()) {
       Matrix<typename MatrixT::value_type> a = s.top().first;
       typename MatrixT::value_type scale = s.top().second;
       s.pop();
-      VW_ASSERT( a.rows() == a.cols(), vw::LogicErr() << "Matrix has become non-square." );
+      VW_ASSERT(a.rows() == a.cols(), vw::LogicErr() << "Matrix has become non-square.");
       size_t dim = a.rows();
       Matrix<typename MatrixT::value_type> sub;
-      switch( dim ) {
+      switch(dim) {
       case 0:
         break;
       case 1:
@@ -1884,19 +1884,19 @@ namespace math {
         break;
       default:
         {
-          sub = submatrix( a, 1, 1, dim-1, dim-1 );
-          s.push( std::make_pair( sub, scale*a(0,0) ) );
+          sub = submatrix(a, 1, 1, dim-1, dim-1);
+          s.push(std::make_pair(sub, scale*a(0,0)));
           scale *= -1;
         }
-        for( size_t i=1; i<(dim-1); ++i ) {
-          submatrix( sub, 0, 0, dim-1, i ) = submatrix( a, 1, 0, dim-1, i );
-          submatrix( sub, 0, i, dim-1, dim-i-1 ) = submatrix( a, 1, i+1, dim-1, dim-i-1 );
-          s.push( std::make_pair( sub, scale*a(0,i) ) );
+        for(size_t i=1; i<(dim-1); ++i) {
+          submatrix(sub, 0, 0, dim-1, i) = submatrix(a, 1, 0, dim-1, i);
+          submatrix(sub, 0, i, dim-1, dim-i-1) = submatrix(a, 1, i+1, dim-1, dim-i-1);
+          s.push(std::make_pair(sub, scale*a(0,i)));
           scale *= -1;
         }
         {
-          sub = submatrix( a, 1, 0, dim-1, dim-1 );
-          s.push( std::make_pair( sub, scale*a(0,dim-1) ) );
+          sub = submatrix(a, 1, 0, dim-1, dim-1);
+          s.push(std::make_pair(sub, scale*a(0,dim-1)));
         }
         break;
       }
@@ -1906,36 +1906,36 @@ namespace math {
 
   /// Pull out the maximium element
   template <class MatrixT>
-  inline typename MatrixT::value_type max( MatrixBase<MatrixT> const& m ) {
+  inline typename MatrixT::value_type max(MatrixBase<MatrixT> const& m) {
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    if ( rows == 0 ) return typename MatrixT::value_type(0);
+    if (rows == 0) return typename MatrixT::value_type(0);
     typename MatrixT::value_type result = m.impl()(0,0);
-    for ( size_t i=0; i<rows; ++i )
-      for ( size_t j=0; j<cols; ++j )
-        if ( m.impl()(i,j) > result )
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        if (m.impl()(i,j) > result)
           result = m.impl()(i,j);
     return result;
   }
 
   /// Pull out the minimium element
   template <class MatrixT>
-  inline typename MatrixT::value_type min( MatrixBase<MatrixT> const& m ) {
+  inline typename MatrixT::value_type min(MatrixBase<MatrixT> const& m) {
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    if ( rows == 0 ) return typename MatrixT::value_type(0);
+    if (rows == 0) return typename MatrixT::value_type(0);
     typename MatrixT::value_type result = m.impl()(0,0);
-    for ( size_t i=0; i<rows; ++i )
-      for ( size_t j=0; j<cols; ++j )
-        if ( m.impl()(i,j) < result )
+    for (size_t i=0; i<rows; ++i)
+      for (size_t j=0; j<cols; ++j)
+        if (m.impl()(i,j) < result)
           result = m.impl()(i,j);
     return result;
   }
 
   /// Fill the entire matrix with the specified value
   template <class MatrixT, class ValT>
-  inline void fill( MatrixBase<MatrixT> &m, ValT const& val ) {
+  inline void fill(MatrixBase<MatrixT> &m, ValT const& val) {
     size_t rows = m.impl().rows(), cols = m.impl().cols();
-    for( size_t i=0; i<rows; ++i )
-      for( size_t j=0; j<cols; ++j )
+    for(size_t i=0; i<rows; ++i)
+      for(size_t j=0; j<cols; ++j)
         m.impl()(i,j) = typename MatrixT::value_type(val);
   }
 
@@ -1968,15 +1968,15 @@ namespace math {
     typedef value_type       reference_type;
     typedef value_type const_reference_type;
 
-    MatrixVectorProduct( MatrixT const& m, VectorT const& v ) : m_matrix(m), m_vector(v) {}
+    MatrixVectorProduct(MatrixT const& m, VectorT const& v) : m_matrix(m), m_vector(v) {}
 
     size_t size() const {
       return (TransposeN)?(m_matrix.cols()):(m_matrix.rows());
     }
 
-    reference_type operator()( size_t i ) const {
-      if( TransposeN ) return dot_prod( select_col(m_matrix,i), m_vector );
-      else return dot_prod( select_row(m_matrix,i), m_vector );
+    reference_type operator()(size_t i) const {
+      if(TransposeN) return dot_prod(select_col(m_matrix,i), m_vector);
+      else return dot_prod(select_row(m_matrix,i), m_vector);
     }
 
     class iterator {
@@ -2027,22 +2027,22 @@ namespace math {
   /// Product of a matrix and a vector
   template <class MatrixT, class VectorT>
   MatrixVectorProduct<MatrixT,VectorT,false>
-  inline operator*( MatrixBase<MatrixT> const& m, VectorBase<VectorT> const& v ) {
-    return MatrixVectorProduct<MatrixT,VectorT,false>( m.impl(), v.impl() );
+  inline operator*(MatrixBase<MatrixT> const& m, VectorBase<VectorT> const& v) {
+    return MatrixVectorProduct<MatrixT,VectorT,false>(m.impl(), v.impl());
   }
 
   /// Product of a transposed matrix and a vector
   template <class MatrixT, class VectorT>
   MatrixVectorProduct<MatrixT,VectorT,true>
-  inline operator*( MatrixTranspose<MatrixT> const& m, VectorBase<VectorT> const& v ) {
-    return MatrixVectorProduct<MatrixT,VectorT,true>( m.child(), v.impl() );
+  inline operator*(MatrixTranspose<MatrixT> const& m, VectorBase<VectorT> const& v) {
+    return MatrixVectorProduct<MatrixT,VectorT,true>(m.child(), v.impl());
   }
 
   /// Product of a transposed vector and a matrix
   template <class VectorT, class MatrixT>
   VectorTranspose<const MatrixVectorProduct<MatrixT,VectorT,true> >
-  inline operator*( VectorTranspose<VectorT> const& v, MatrixBase<MatrixT> const& m ) {
-    return transpose(MatrixVectorProduct<MatrixT,VectorT,true>( m.impl(), v.child() ));
+  inline operator*(VectorTranspose<VectorT> const& v, MatrixBase<MatrixT> const& m) {
+    return transpose(MatrixVectorProduct<MatrixT,VectorT,true>(m.impl(), v.child()));
   }
 
 
@@ -2068,7 +2068,7 @@ namespace math {
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    MatrixMatrixProduct( Matrix1T const& m1, Matrix2T const& m2 ) : m_matrix1(m1), m_matrix2(m2) {}
+    MatrixMatrixProduct(Matrix1T const& m1, Matrix2T const& m2) : m_matrix1(m1), m_matrix2(m2) {}
 
     size_t rows() const {
       return (Transpose1N)?(m_matrix1.cols()):(m_matrix1.rows());
@@ -2078,11 +2078,11 @@ namespace math {
       return (Transpose2N)?(m_matrix2.rows()):(m_matrix2.cols());
     }
 
-    reference_type operator()( size_t i, size_t j ) const {
-      if     ( (!Transpose1N)&&(!Transpose2N) ) return dot_prod( select_row(m_matrix1,i), select_col(m_matrix2,j) );
-      else if( (!Transpose1N)&&( Transpose2N) ) return dot_prod( select_row(m_matrix1,i), select_row(m_matrix2,j) );
-      else if( ( Transpose1N)&&(!Transpose2N) ) return dot_prod( select_col(m_matrix1,i), select_col(m_matrix2,j) );
-      else                                      return dot_prod( select_col(m_matrix1,i), select_row(m_matrix2,j) );
+    reference_type operator()(size_t i, size_t j) const {
+      if     ((!Transpose1N)&&(!Transpose2N)) return dot_prod(select_row(m_matrix1,i), select_col(m_matrix2,j));
+      else if((!Transpose1N)&&(Transpose2N)) return dot_prod(select_row(m_matrix1,i), select_row(m_matrix2,j));
+      else if((Transpose1N)&&(!Transpose2N)) return dot_prod(select_col(m_matrix1,i), select_col(m_matrix2,j));
+      else                                      return dot_prod(select_col(m_matrix1,i), select_row(m_matrix2,j));
     }
 
     typedef IndexingMatrixIterator<const MatrixMatrixProduct> iterator;
@@ -2095,8 +2095,8 @@ namespace math {
   /// Product of two matrices.
   template <class Matrix1T, class Matrix2T>
   MatrixMatrixProduct<Matrix1T,Matrix2T,false,false>
-  inline operator*( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    return MatrixMatrixProduct<Matrix1T,Matrix2T,false,false>( m1.impl(), m2.impl() );
+  inline operator*(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2) {
+    return MatrixMatrixProduct<Matrix1T,Matrix2T,false,false>(m1.impl(), m2.impl());
   }
 
 
@@ -2128,16 +2128,16 @@ namespace math {
 
   /// Create a square dynamic identity matrix.
   template <class VectorT>
-  inline Matrix<typename VectorT::value_type> diagonal_matrix( VectorT const& diag ) {
+  inline Matrix<typename VectorT::value_type> diagonal_matrix(VectorT const& diag) {
     Matrix<typename VectorT::value_type> M(diag.size(),diag.size());
-    for( size_t i=0; i<diag.size(); ++i )
+    for(size_t i=0; i<diag.size(); ++i)
       M(i,i) = diag(i);
     return M;
   }
 
   /// Put the elements of a matrix into a vector.
   template <class MatrixT>
-  inline Vector<typename MatrixT::value_type> matrix_to_vector( MatrixT const& M ) {
+  inline Vector<typename MatrixT::value_type> matrix_to_vector(MatrixT const& M) {
     Vector<typename MatrixT::value_type> V(M.cols()*M.rows());
     size_t count = 0;
     for (size_t c = 0; c < M.cols(); c++){
@@ -2151,10 +2151,10 @@ namespace math {
 
   /// Put the elements of a vector of size n*n into a square matrix.
   template <class VectorT>
-  inline Matrix<typename VectorT::value_type> vector_to_matrix( VectorT const& V ) {
+  inline Matrix<typename VectorT::value_type> vector_to_matrix(VectorT const& V) {
     size_t lv = V.size();
     size_t lm = (size_t)round(std::sqrt(double(lv)));
-    VW_ASSERT( lm*lm == lv, LogicErr() << "Only vectors of size n*n can be made into a square matrix." );
+    VW_ASSERT(lm*lm == lv, LogicErr() << "Only vectors of size n*n can be made into a square matrix.");
 
     Matrix<typename VectorT::value_type> M(lm, lm);
     size_t count = 0;
@@ -2174,14 +2174,14 @@ namespace math {
   Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
          (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
          (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)>
-  inline operator*( VectorBase<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
+  inline operator*(VectorBase<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2) {
     typedef Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
                    (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
                    (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
-    result.set_size( v1.impl().size(), v2.size() );
-    for( size_t i=0; i<v1.impl().size(); ++i )
-      for( size_t j=0; j<v2.size(); ++j )
+    result.set_size(v1.impl().size(), v2.size());
+    for(size_t i=0; i<v1.impl().size(); ++i)
+      for(size_t j=0; j<v2.size(); ++j)
         result(i,j) = v1.impl()(i) * v2(j);
     return result;
   }
@@ -2192,14 +2192,14 @@ namespace math {
   Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
                               (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
                               (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)>
-  inline outer_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+  inline outer_prod(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
     typedef Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
                    (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
                    (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
-    result.set_size( v1.impl().size(), v2.impl().size() );
-    for( size_t i=0; i<v1.impl().size(); ++i )
-      for( size_t j=0; j<v2.impl().size(); ++j )
+    result.set_size(v1.impl().size(), v2.impl().size());
+    for(size_t i=0; i<v1.impl().size(); ++i)
+      for(size_t j=0; j<v2.impl().size(); ++j)
         result(i,j) = v1.impl()(i) * v2.impl()(j);
     return result;
   }
@@ -2210,14 +2210,14 @@ namespace math {
       T const* d = m.data();
       T det = d[0]*d[3] - d[1]*d[2];
       if (det == T(0))
-        vw_throw( MathErr() << "Matrix is singular in inverse()" );
+        vw_throw(MathErr() << "Matrix is singular in inverse()");
       Matrix<T, 2, 2> out(d[3]/det, -d[1]/det, -d[2]/det, d[0]/det);
       return out;
   }
   
   /// Matrix inversion
   template <class MatrixT>
-  inline Matrix<typename MatrixT::value_type> inverse( MatrixBase<MatrixT> const& m ) {
+  inline Matrix<typename MatrixT::value_type> inverse(MatrixBase<MatrixT> const& m) {
 
     typedef typename MatrixT::value_type value_type;
     value_type zero = value_type();
@@ -2225,17 +2225,17 @@ namespace math {
     Matrix<value_type> buf = m;
 
     // Initialize the permutation
-    Vector<size_t> pm( size );
-    for ( size_t i=0; i<size; ++i ) pm(i) = i;
+    Vector<size_t> pm(size);
+    for (size_t i=0; i<size; ++i) pm(i) = i;
 
     // Perform LU decomposition with partial pivoting
-    for ( size_t i=0; i<size; ++i) {
+    for (size_t i=0; i<size; ++i) {
       MatrixCol<Matrix<value_type> > mci(buf,i);
       MatrixRow<Matrix<value_type> > mri(buf,i);
-      size_t i_norm_inf = i + index_norm_inf( subvector(mci,i,size-i) );
-      if ( buf(i_norm_inf,i) == zero )
-        vw_throw( MathErr() << "Matrix is singular in inverse()" );
-      if ( i_norm_inf != i ) {
+      size_t i_norm_inf = i + index_norm_inf(subvector(mci,i,size-i));
+      if (buf(i_norm_inf,i) == zero)
+        vw_throw(MathErr() << "Matrix is singular in inverse()");
+      if (i_norm_inf != i) {
         size_t pbuf = pm(i);
         pm(i) = pm(i_norm_inf);
         pm(i_norm_inf) = pbuf;
@@ -2243,23 +2243,23 @@ namespace math {
         mri = select_row(buf,i_norm_inf);
         select_row(buf,i_norm_inf) = rowbuf;
       }
-      if ( i != size-1 ) {
+      if (i != size-1) {
         subvector(mci,i+1,size-i-1) /= buf(i,i);
-        submatrix(buf, i+1, i+1, size-i-1, size-i-1) -= outer_prod( subvector(mci, i+1, size-i-1), subvector(mri,i+1,size-i-1) );
+        submatrix(buf, i+1, i+1, size-i-1, size-i-1) -= outer_prod(subvector(mci, i+1, size-i-1), subvector(mri,i+1,size-i-1));
       }
     }
 
     // Build up a permuted identity matrix
     Matrix<value_type> inverse(size,size);
-    for ( size_t i=0; i<size; ++i )
+    for (size_t i=0; i<size; ++i)
       inverse(i,pm(i)) = value_type(1);
 
     // Divide by the lower-triangular term
-    for ( size_t i=0; i<size; ++i ) {
-      for ( size_t j=0; j<size; ++j ) {
+    for (size_t i=0; i<size; ++i) {
+      for (size_t j=0; j<size; ++j) {
         value_type t = inverse(i,j);
-        if ( t != zero ) {
-          for ( size_t k=i+1; k<size; ++k ) {
+        if (t != zero) {
+          for (size_t k=i+1; k<size; ++k) {
             inverse(k,j) -= buf(k,i) * t;
           }
         }
@@ -2267,11 +2267,11 @@ namespace math {
     }
 
     // Divide by the upper-triangular term
-    for ( ssize_t i=size-1; i>=0; --i ) {
-      for ( ssize_t j=size-1; j>=0; --j ) {
+    for (ssize_t i=size-1; i>=0; --i) {
+      for (ssize_t j=size-1; j>=0; --j) {
         value_type t = inverse(i,j) /= buf(i,i);
-        if ( t != zero ) {
-          for ( ssize_t k=i-1; k>=0; --k )
+        if (t != zero) {
+          for (ssize_t k=i-1; k>=0; --k)
             inverse(k,j) -= buf(k,i) * t;
         }
       }

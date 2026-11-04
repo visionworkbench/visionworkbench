@@ -40,26 +40,26 @@ namespace vw {
     virtual ~KMLQuadTreeConfig() {}
 
     // Set the extents (in degrees) of the quadtree.
-    void set_longlat_bbox( BBox2 const& bbox );
+    void set_longlat_bbox(BBox2 const& bbox);
 
     // Set the title of the root KML file.
-    void set_title( std::string const& title );
+    void set_title(std::string const& title);
 
     // Set the maximum level of detail (in pixels) at which each resolution
     // of the quadtree is displayed.
-    void set_max_lod_pixels( int32 pixels );
+    void set_max_lod_pixels(int32 pixels);
 
     // Set the drawOrder offset.  Overlays with positive offets are drawn on top.
-    void set_draw_order_offset( int32 offset );
+    void set_draw_order_offset(int32 offset);
 
     // Set an option string of additional metadata to be included in the root KML file.
-    void set_metadata( std::string const& data );
+    void set_metadata(std::string const& data);
 
     // Configure the given quadtree to generate this KML.  This enables image
     // cropping and sets the image path function, branch function, and metadata
     // function.  If you intend to override any of these, be sure to do so
     // *after* calling configure() or your changes will be overwritten.
-    void configure( QuadTreeGenerator& qtree ) const;
+    void configure(QuadTreeGenerator& qtree) const;
 
     vw::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 

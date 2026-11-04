@@ -40,10 +40,10 @@ TEST(InpaintView, compile) {
   blobs(3,4) = PixelMask<uint8>(100);
 
   // Process blobs
-  BlobIndexThreaded bindex( blobs, 100, 100 );
-  EXPECT_EQ( 3u, bindex.num_blobs() );
+  BlobIndexThreaded bindex(blobs, 100, 100);
+  EXPECT_EQ(3u, bindex.num_blobs());
 
   ImageView<PixelMask<uint8> > dummy(10, 10);
-  InpaintView< ImageView<PixelMask<uint8> > > ipView( dummy, bindex, true, PixelMask<uint8>());
+  InpaintView< ImageView<PixelMask<uint8> > > ipView(dummy, bindex, true, PixelMask<uint8>());
   
 }

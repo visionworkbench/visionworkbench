@@ -34,46 +34,46 @@ TEST(GeoReferenceUtils, CropAndResample) {
   affine(2,2) = 1;
   affine(0,2) = 30;   // 30 deg east
   affine(1,2) = -35;  // 35 deg south
-  GeoReference input_pa( Datum("WGS84"), affine, GeoReference::PixelAsArea );
-  GeoReference crop_pa = crop( input_pa, 200, 400 );
-  GeoReference resample_pa = resample( input_pa, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pa.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
-                      crop_pa.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2()),
-                      resample_pa.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pa.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pa.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+  GeoReference input_pa(Datum("WGS84"), affine, GeoReference::PixelAsArea);
+  GeoReference crop_pa = crop(input_pa, 200, 400);
+  GeoReference resample_pa = resample(input_pa, 0.5, 2);
+  EXPECT_VECTOR_NEAR(input_pa.pixel_to_lonlat(Vector2(200, 400)),
+                     crop_pa.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pa.pixel_to_lonlat(Vector2()),
+                     crop_pa.pixel_to_lonlat(Vector2(-200,-400)), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pa.pixel_to_lonlat(Vector2()),
+                     resample_pa.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pa.pixel_to_lonlat(Vector2(100,100)),
+                     resample_pa.pixel_to_lonlat(Vector2(50,200)), 1e-7);
 
-  GeoReference input_pp( Datum("WGS84"), affine, GeoReference::PixelAsPoint );
-  GeoReference crop_pp = crop( input_pp, 200, 400 );
-  GeoReference resample_pp = resample( input_pp, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+  GeoReference input_pp(Datum("WGS84"), affine, GeoReference::PixelAsPoint);
+  GeoReference crop_pp = crop(input_pp, 200, 400);
+  GeoReference resample_pp = resample(input_pp, 0.5, 2);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2(200, 400)),
+                     crop_pp.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2()),
+                     crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2()),
+                     resample_pp.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2(100,100)),
+                     resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7);
 
   // Test with a projection that doesn't use degrees.
-  input_pp.set_equirectangular( 40, 40, 50, 0, 0 );
-  crop_pp =  crop( input_pp, 200, 400 );
-  resample_pp = resample( input_pp, 0.5, 2 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
-                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
-                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
-  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
-                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+  input_pp.set_equirectangular(40, 40, 50, 0, 0);
+  crop_pp =  crop(input_pp, 200, 400);
+  resample_pp = resample(input_pp, 0.5, 2);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2(200, 400)),
+                     crop_pp.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2()),
+                     crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2()),
+                     resample_pp.pixel_to_lonlat(Vector2()), 1e-7);
+  EXPECT_VECTOR_NEAR(input_pp.pixel_to_lonlat(Vector2(100,100)),
+                     resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7);
 }
 
 
-TEST( GeoReferenceUtils, gdal_write_checks ) {
+TEST(GeoReferenceUtils, gdal_write_checks) {
 
   // Init a georef, the numbers are pretty arbitrary, it just must be valid
   vw::GeoReference georef;
@@ -98,7 +98,7 @@ TEST( GeoReferenceUtils, gdal_write_checks ) {
   block_write_gdal_image("dem.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
 } 
 
-TEST( GeoReferenceUtils, gdal_read_checks) {
+TEST(GeoReferenceUtils, gdal_read_checks) {
   // Verify that our GDAL read function assigns the -180 to 180
   // longitude range to this image that could go either way.
   GeoReference georef;
@@ -106,7 +106,7 @@ TEST( GeoReferenceUtils, gdal_read_checks) {
 }
 
 
-TEST( GeoReferenceUtils, haversine_distance) {
+TEST(GeoReferenceUtils, haversine_distance) {
   // Simple check like what we use to compute image meters per pixel
 
   double radius = 6371000; // meters  

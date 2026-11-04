@@ -117,19 +117,19 @@ namespace vw {
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<EdgeExtensionView<ImageT, ExtensionT> > pixel_accessor;
 
-    EdgeExtensionView( ImageT const& image )
+    EdgeExtensionView(ImageT const& image)
       : m_image(image), m_xoffset(0), m_yoffset(0), 
         m_cols(image.cols()), m_rows(image.rows()), m_extension_func() {}
 
-    EdgeExtensionView( ImageT const& image, ExtensionT const& extension )
+    EdgeExtensionView(ImageT const& image, ExtensionT const& extension)
       : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), 
         m_rows(image.rows()), m_extension_func(extension) {}
 
-    EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows )
+    EdgeExtensionView(ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows)
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), 
         m_cols(cols), m_rows(rows), m_extension_func() {}
 
-    EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows, ExtensionT const& extension )
+    EdgeExtensionView(ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows, ExtensionT const& extension)
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), 
         m_cols(cols), m_rows(rows), m_extension_func(extension) {}
 
@@ -138,25 +138,25 @@ namespace vw {
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
-    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const { 
+    inline result_type operator()(int32 i, int32 j, int32 p = 0) const { 
       return m_extension_func(m_image,i+m_xoffset,j+m_yoffset,p); 
     }
 
     ImageT     const& child() const { return m_image;          }
     ExtensionT const& func () const { return m_extension_func; }
-    BBox2i source_bbox( BBox2i const& bbox ) const {
-      return m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
+    BBox2i source_bbox(BBox2i const& bbox) const {
+      return m_extension_func.source_bbox(m_image, bbox + Vector2i(m_xoffset, m_yoffset));
     }
 
     typedef EdgeExtensionView<typename ImageT::prerasterize_type,ExtensionT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      BBox2i src_bbox = source_bbox( bbox );
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      BBox2i src_bbox = source_bbox(bbox);
       // Make degenerate bboxes sane
-      if( src_bbox.empty() ) src_bbox = BBox2i(0,0,0,0);
+      if(src_bbox.empty()) src_bbox = BBox2i(0,0,0,0);
       VW_OUT(VerboseDebugMessage, "image") << "EdgeExtensionView: prerasterizing child view with bbox " << src_bbox << ".\n";
-      return prerasterize_type(m_image.prerasterize(src_bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
+      return prerasterize_type(m_image.prerasterize(src_bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func);
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
   };
 
   template <class ImageT, class ExtensionT>
@@ -165,8 +165,8 @@ namespace vw {
   public:
     SparseImageCheck(EdgeExtensionView<ImageT, ExtensionT> const& view)
       : m_view(view) {}
-    bool operator()( BBox2i const& bbox ) const {
-      return SparseImageCheck<ImageT>(m_view.child())( m_view.source_bbox( bbox ) );
+    bool operator()(BBox2i const& bbox) const {
+      return SparseImageCheck<ImageT>(m_view.child())(m_view.source_bbox(bbox));
     }
   };
 
@@ -185,46 +185,46 @@ namespace vw {
   /// consistent with \ref vw::crop, so if you wish to expand the image
   /// you must specify a negative offset!
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows, ExtensionT const& extension ) {
-    return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), x_offset, y_offset, cols, rows, extension );
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend(ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows, ExtensionT const& extension) {
+    return EdgeExtensionView<ImageT,ExtensionT>(v.impl(), x_offset, y_offset, cols, rows, extension);
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It takes a bounding box object (BBox2i) as an argument.
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, BBox2i const& bbox, ExtensionT const& extension ) {
-    return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(), extension );
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend(ImageViewBase<ImageT> const& v, BBox2i const& bbox, ExtensionT const& extension) {
+    return EdgeExtensionView<ImageT,ExtensionT>(v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(), extension);
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows ) {
-    return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), x_offset, y_offset, cols, rows );
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend(ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows) {
+    return EdgeExtensionView<ImageT,ConstantEdgeExtension>(v.impl(), x_offset, y_offset, cols, rows);
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It takes a bounding box object (BBox2i) as an argument and uses the default
   /// vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, BBox2i const& bbox ) {
-    return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend(ImageViewBase<ImageT> const& v, BBox2i const& bbox) {
+    return EdgeExtensionView<ImageT,ConstantEdgeExtension>(v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height());
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It does not alter the bounding box of the image, but still allows access
   /// beyond the bounding box.
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ExtensionT const& extension ) {
-    return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), extension );
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend(ImageViewBase<ImageT> const& v, ExtensionT const& extension) {
+    return EdgeExtensionView<ImageT,ExtensionT>(v.impl(), extension);
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It does not alter the bounding box of the image, but still allows access
   /// beyond the bounding box using the default vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v ) {
-    return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl() );
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend(ImageViewBase<ImageT> const& v) {
+    return EdgeExtensionView<ImageT,ConstantEdgeExtension>(v.impl());
   }
 
 } // namespace vw

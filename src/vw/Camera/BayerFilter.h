@@ -39,8 +39,8 @@ namespace vw {
 
     ImageView<PixelRGB<channel_type> > output_image(view.cols(), view.rows());
 
-    for( int32 j=0; j<output_image.rows(); ++j ) {
-      for( int32 i=0; i<output_image.cols(); ++i ) {
+    for(int32 j=0; j<output_image.rows(); ++j) {
+      for(int32 i=0; i<output_image.cols(); ++i) {
         if((i%2)!=(j%2)) { //green
           g=view(i+1,j+1).v();
           if(i%2) {

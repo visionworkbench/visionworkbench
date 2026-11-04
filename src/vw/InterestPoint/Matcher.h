@@ -92,10 +92,10 @@ namespace vw {
                     bool quiet = false) const;
 
     /// Return the two lists of matching interest points based on the metric.
-    void operator()( std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
-                     std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
-                     bool quiet = false) const;
+    void operator()(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
+                    std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
+                    bool quiet = false) const;
   };
 
 
@@ -112,10 +112,10 @@ namespace vw {
     : m_distance_metric(metric), m_threshold(threshold) { }
 
     /// Return the two lists of matching interest points based on the metric.
-    void operator()( std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
-                     std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
-                     bool quiet = false ) const;
+    void operator()(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2,
+                    std::vector<InterestPoint>& matched_ip1, std::vector<InterestPoint>& matched_ip2,
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
+                    bool quiet = false) const;
   };
 
 

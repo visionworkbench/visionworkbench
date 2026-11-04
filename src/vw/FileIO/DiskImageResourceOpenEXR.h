@@ -40,21 +40,21 @@ namespace vw {
 
   public:
 
-    DiskImageResourceOpenEXR( std::string const& filename )
-      : DiskImageResource( filename )
+    DiskImageResourceOpenEXR(std::string const& filename)
+      : DiskImageResource(filename)
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
-      open( filename );
+      open(filename);
     }
 
-    DiskImageResourceOpenEXR( std::string const& filename,
-                              ImageFormat const& format )
-      : DiskImageResource( filename )
+    DiskImageResourceOpenEXR(std::string const& filename,
+                             ImageFormat const& format)
+      : DiskImageResource(filename)
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
-      create( filename, format );
+      create(filename, format);
     }
 
     virtual ~DiskImageResourceOpenEXR();
@@ -65,19 +65,19 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const;
 
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
 
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     virtual bool has_block_write () const {return true; }
     virtual bool has_nodata_write() const {return false;}

@@ -62,9 +62,9 @@ class CacheTest : public ::testing::Test {
     const static int num_cache_blocks = 3;
 
     CacheTest() :
-      cache( num_cache_blocks*dimension*dimension ), cache_handles( num_actual_blocks ) {
+      cache(num_cache_blocks*dimension*dimension), cache_handles(num_actual_blocks) {
         for (uint8 i = 0; i < num_actual_blocks; ++i) {
-          cache_handles[i] = cache.insert( BlockGenerator( dimension, i ) );
+          cache_handles[i] = cache.insert(BlockGenerator(dimension, i));
         }
     }
 };
@@ -81,7 +81,7 @@ TEST_F(CacheTest, CacheLineLRU) {
 
     ASSERT_FALSE(h.valid());
     EXPECT_EQ(i, *h);
-    EXPECT_NO_THROW( h.release() );
+    EXPECT_NO_THROW(h.release());
     EXPECT_TRUE(h.valid());
 
     boost::shared_ptr<BlockGenerator::value_type> ptr = h;
@@ -108,7 +108,7 @@ TEST_F(CacheTest, Priority) {
   // prime the cache
   for (int i = 0; i < num_actual_blocks; ++i) {
     EXPECT_EQ(i, *cache_handles[i]);
-    EXPECT_NO_THROW( cache_handles[i].release() );
+    EXPECT_NO_THROW(cache_handles[i].release());
   }
 
   //make sure last element is valid
@@ -120,8 +120,8 @@ TEST_F(CacheTest, Priority) {
 
   // bring the first element back into cache
   ASSERT_FALSE(cache_handles[0].valid());
-  EXPECT_EQ( 0, *cache_handles[0] );
-  EXPECT_NO_THROW( cache_handles[0].release() );
+  EXPECT_EQ(0, *cache_handles[0]);
+  EXPECT_NO_THROW(cache_handles[0].release());
   EXPECT_TRUE(cache_handles[0].valid());
 
   // make sure that the deprioritized element dropped out of cache
@@ -157,10 +157,10 @@ TEST(Cache, Types) {
 
   // value should have copied once
   EXPECT_EQ(1, *h1);
-  EXPECT_NO_THROW( h1.release() );
+  EXPECT_NO_THROW(h1.release());
   // shared_ptr should not have copied
   EXPECT_EQ(0, *h2);
-  EXPECT_NO_THROW( h2.release() );
+  EXPECT_NO_THROW(h2.release());
 }
 
 // Here's a more aggressive test that uses many threads plus a good
@@ -172,7 +172,7 @@ public:
   size_t size() const { return 1024; }
   boost::shared_ptr<value_type> generate() const {
     char number = rand() % 255;
-    boost::shared_ptr<value_type> ptr( new value_type(1024,number) );
+    boost::shared_ptr<value_type> ptr(new value_type(1024,number));
     return ptr;
   }
 };
@@ -181,48 +181,48 @@ class TestTask : public vw::Task {
   std::vector<Cache::Handle<ArrayDataGenerator> > m_handles;
 
 public:
-  TestTask( std::vector<Cache::Handle<ArrayDataGenerator> > const& handles ) : m_handles( handles ) {}
+  TestTask(std::vector<Cache::Handle<ArrayDataGenerator> > const& handles) : m_handles(handles) {}
 
   virtual ~TestTask() {}
   virtual void operator()() {
     size_t index_a = rand() % m_handles.size(),
       index_b = rand() % m_handles.size();
-    std::vector<uint8> a( (const std::vector<uint8>&)(*m_handles[index_a]) );
+    std::vector<uint8> a((const std::vector<uint8>&)(*m_handles[index_a]));
     m_handles[index_a].release();
-    std::vector<uint8> b( (const std::vector<uint8>&)(*m_handles[index_b]) );
+    std::vector<uint8> b((const std::vector<uint8>&)(*m_handles[index_b]));
     m_handles[index_b].release();
-    VW_ASSERT( a.size() != 0, IOErr() << "Size is wrong!" );
-    VW_ASSERT( b.size() != 0, IOErr() << "Size is wrong!" );
-    std::vector<uint8> c( a.size() );
-    for ( size_t i = 0; i < a.size(); i++ ) {
+    VW_ASSERT(a.size() != 0, IOErr() << "Size is wrong!");
+    VW_ASSERT(b.size() != 0, IOErr() << "Size is wrong!");
+    std::vector<uint8> c(a.size());
+    for (size_t i = 0; i < a.size(); i++) {
       c[i] = a[i] + b[i];
     }
     // Don't let the compiler optimize this away.
-    volatile int result = std::accumulate(c.begin(), c.end(), 0 );
+    volatile int result = std::accumulate(c.begin(), c.end(), 0);
     EXPECT_EQ(result, result); // Rm compiler warning due to unused variable
   }
 };
 
 TEST(Cache, StressTest) {
   typedef Cache::Handle<ArrayDataGenerator> handle_t;
-  vw::Cache cache( 6*1024 );
+  vw::Cache cache(6*1024);
 
   // Creating handles for our data
   std::vector<handle_t> handles;
-  for ( size_t i = 0; i < 24; i++ ) {
-    handles.push_back( cache.insert( ArrayDataGenerator() ) );
+  for (size_t i = 0; i < 24; i++) {
+    handles.push_back(cache.insert(ArrayDataGenerator()));
   }
 
   // Create a FIFO buffer with a 1000 threads ... 12 running at
   // anytime that try to access the cache randomly.
   FifoWorkQueue queue(12);
-  for ( size_t i = 0; i < 1000; i++ ) {
-    boost::shared_ptr<Task> task( new TestTask(handles) );
-    queue.add_task( task );
+  for (size_t i = 0; i < 1000; i++) {
+    boost::shared_ptr<Task> task(new TestTask(handles));
+    queue.add_task(task);
   }
 
   // If this test fails ... it will deadlock. Maybe we should have
   // this entire test case in a different thread where I can measure
   // its time?
-  EXPECT_NO_THROW( queue.join_all(); );
+  EXPECT_NO_THROW(queue.join_all(););
 }

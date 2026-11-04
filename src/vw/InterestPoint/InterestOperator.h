@@ -101,7 +101,7 @@ namespace vw {
     // TODO: this should return something
     template <class DataT>
     inline void operator() (DataT& data, float scale = 1.0) const {
-      data.set_interest(ImageViewRef<typename DataT::source_type::pixel_type>( scale * laplacian_filter(data.source())));
+      data.set_interest(ImageViewRef<typename DataT::source_type::pixel_type>(scale * laplacian_filter(data.source())));
     }
 
     template <class DataT>

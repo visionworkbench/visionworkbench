@@ -33,7 +33,7 @@ using namespace vw;
 using namespace vw::test;
 
 template <template<class> class TraitT, class T>
-static bool bool_trait( T const& /*arg*/ ) {
+static bool bool_trait(T const& /*arg*/) {
   return TraitT<T>::value;
 }
 
@@ -46,16 +46,16 @@ public:
   typedef PixelT result_type;
   typedef ProceduralPixelAccessor<TestPatternView> pixel_accessor;
 
-  TestPatternView( int32 cols, int32 rows, int32 planes = 1 )
+  TestPatternView(int32 cols, int32 rows, int32 planes = 1)
     : m_cols(cols), m_rows(rows), m_planes(planes) {}
 
   inline int32 cols  () const { return m_cols;   }
   inline int32 rows  () const { return m_rows;   }
   inline int32 planes() const { return m_planes; }
 
-  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-  inline result_type operator()( int32 col, int32 row, int32 /*plane*/=0 ) const {
+  inline result_type operator()(int32 col, int32 row, int32 /*plane*/=0) const {
     typedef typename PixelChannelType<result_type>::type ChannelT;
     int32 intermediate = (col%1024)*(row%1024);
     return result_type(ChannelT(ChannelRange<result_type>::max() *
@@ -63,9 +63,9 @@ public:
   }
 
   typedef TestPatternView prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
-  template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-    vw::rasterize( prerasterize(bbox), dest, bbox );
+  inline prerasterize_type prerasterize(BBox2i /*bbox*/) const { return *this; }
+  template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
   }
 };
 
@@ -75,8 +75,8 @@ namespace vw {
 }
 
 template <class PixelT>
-TestPatternView<PixelT> test_pattern_view( PixelT const& /*value*/, int32 cols, int32 rows, int32 planes=1 ) {
-  return TestPatternView<PixelT>( cols, rows, planes );
+TestPatternView<PixelT> test_pattern_view(PixelT const& /*value*/, int32 cols, int32 rows, int32 planes=1) {
+  return TestPatternView<PixelT>(cols, rows, planes);
 }
 
 
@@ -88,8 +88,8 @@ protected:
     moon.set_well_known_geogcs("D_MOON");
 
     DEM.set_size(20,20);
-    for ( uint32 i = 0; i < 20; i++ )
-      for ( uint32 j = 0; j <20; j++ )
+    for (uint32 i = 0; i < 20; i++)
+      for (uint32 j = 0; j <20; j++)
         DEM(i,j) = 10000 - 100*(pow(10.-i,2.)+pow(10.-j,2));
     Matrix<double> geotrans = vw::math::identity_matrix<3>();
     geotrans(0,2) = 85;
@@ -104,44 +104,44 @@ protected:
   ImageView<float> DEM;
 };
 
-TEST_F( OrthoImageTest, OrthoImageRun ) {
+TEST_F(OrthoImageTest, OrthoImageRun) {
   // These tests need to be careful. ImageViewRefs can't be used since
   // they are not
   {
     ImageView<PixelGray<uint8> > ortho_right =
-      resample(orthoproject( interpolate(DEM,BicubicInterpolation()), moon,
-                             test_pattern_view(PixelGray<uint8>(),5725,5725),
-                             apollo.get(), BicubicInterpolation(),
-                             ZeroEdgeExtension()),16);
+      resample(orthoproject(interpolate(DEM,BicubicInterpolation()), moon,
+                            test_pattern_view(PixelGray<uint8>(),5725,5725),
+                            apollo.get(), BicubicInterpolation(),
+                            ZeroEdgeExtension()),16);
     ImageView<PixelGray<uint8> > ortho_wrong =
-      resample(orthoproject( DEM, moon,
-                             test_pattern_view(PixelGray<uint8>(),5725,5725),
-                             apollo.get(), BicubicInterpolation(),
-                             ZeroEdgeExtension()),16);
+      resample(orthoproject(DEM, moon,
+                            test_pattern_view(PixelGray<uint8>(),5725,5725),
+                            apollo.get(), BicubicInterpolation(),
+                            ZeroEdgeExtension()),16);
     // Verifying that interpolating the DEM removes other interpolation error
-    EXPECT_LT( ortho_right(142,16), ortho_right(146,16) );
-    EXPECT_LT( ortho_wrong(142,16), ortho_right(146,16) );
-    EXPECT_LE( ortho_wrong(146,16), ortho_right(146,16) );
-    EXPECT_EQ( ortho_wrong(144,16), ortho_right(144,16) ); // check same
+    EXPECT_LT(ortho_right(142,16), ortho_right(146,16));
+    EXPECT_LT(ortho_wrong(142,16), ortho_right(146,16));
+    EXPECT_LE(ortho_wrong(146,16), ortho_right(146,16));
+    EXPECT_EQ(ortho_wrong(144,16), ortho_right(144,16)); // check same
   }
 
   ImageView<PixelGray<uint8> > ortho =
-    orthoproject( interpolate(DEM,BicubicInterpolation()), moon,
-                  test_pattern_view(PixelGray<uint8>(),5725,5725),
-                  apollo.get(), BicubicInterpolation(),
-                  ZeroEdgeExtension() );
+    orthoproject(interpolate(DEM,BicubicInterpolation()), moon,
+                 test_pattern_view(PixelGray<uint8>(),5725,5725),
+                 apollo.get(), BicubicInterpolation(),
+                 ZeroEdgeExtension());
 
 
   // Verifying the color - Maybe a problem since these are not accurate?
   Vector2 lonlat = moon.pixel_to_lonlat(Vector2(12,4));
   Vector3 xyz = LonLatRadToXYZEstimateFunctor()(Vector3(lonlat[0], lonlat[1],
                                                 1737400+DEM(12,4)));
-  Vector2i camloc = apollo->point_to_pixel( xyz );
-  EXPECT_GT( camloc[0], 0 );
-  EXPECT_GT( camloc[1], 0 );
-  EXPECT_LT( camloc[0], 5725 );
-  EXPECT_LT( camloc[1], 5725 );
-  EXPECT_EQ( ortho(12,4)[0], test_pattern_view(PixelGray<uint8>(), 5725, 5725)(camloc[0],camloc[1])[0] );
+  Vector2i camloc = apollo->point_to_pixel(xyz);
+  EXPECT_GT(camloc[0], 0);
+  EXPECT_GT(camloc[1], 0);
+  EXPECT_LT(camloc[0], 5725);
+  EXPECT_LT(camloc[1], 5725);
+  EXPECT_EQ(ortho(12,4)[0], test_pattern_view(PixelGray<uint8>(), 5725, 5725)(camloc[0],camloc[1])[0]);
 
   // Test the version of orthoproject which distinguishes no-data vs
   // no-processed-data.
@@ -156,7 +156,7 @@ TEST_F( OrthoImageTest, OrthoImageRun ) {
     orthoproject_markNoProcessedData(interpolate(maskedDEM, BicubicInterpolation()), moon,
                                      test_pattern_view(PixelGrayA<uint8>(),5725,5725),
                                      apollo.get(), BicubicInterpolation(),
-                                     ZeroEdgeExtension() );
+                                     ZeroEdgeExtension());
   EXPECT_EQ(ortho_NP(0, 0),  PixelGrayA<uint8>(0,0));    // transparent pixel, no-data
   EXPECT_EQ(ortho_NP(5, 6),  PixelGrayA<uint8>(0,255));  // black pixel, no-processed-data
   EXPECT_EQ(ortho_NP(19, 4), PixelGrayA<uint8>(27,255)); // non-transparent and non-black pixel
@@ -164,41 +164,41 @@ TEST_F( OrthoImageTest, OrthoImageRun ) {
 }
 
 
-TEST_F( OrthoImageTest, OrthoTraits ) {
+TEST_F(OrthoImageTest, OrthoTraits) {
   OrthoImageView<ImageView<float>,TestPatternView<PixelGray<uint8> >,
     BicubicInterpolation, ZeroEdgeExtension, false>
-  ortho_nonfloat( DEM, moon, TestPatternView<PixelGray<uint8> >(5725,5725),
-                  apollo.get(), BicubicInterpolation(), ZeroEdgeExtension() );
+  ortho_nonfloat(DEM, moon, TestPatternView<PixelGray<uint8> >(5725,5725),
+                 apollo.get(), BicubicInterpolation(), ZeroEdgeExtension());
 
-  ASSERT_FALSE( bool_trait<IsFloatingPointIndexable>( ortho_nonfloat ) );
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( ortho_nonfloat ) );
+  ASSERT_FALSE(bool_trait<IsFloatingPointIndexable>(ortho_nonfloat));
+  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(ortho_nonfloat));
 
   OrthoImageView<InterpolationView<ImageView<float>,BicubicInterpolation>,TestPatternView<PixelGray<uint8> >,
     BicubicInterpolation, ZeroEdgeExtension, false>
-  ortho_float( InterpolationView<ImageView<float>,BicubicInterpolation>(DEM),
-               moon, TestPatternView<PixelGray<uint8> >(5725,5725),
-               apollo.get(), BicubicInterpolation(), ZeroEdgeExtension() );
+  ortho_float(InterpolationView<ImageView<float>,BicubicInterpolation>(DEM),
+              moon, TestPatternView<PixelGray<uint8> >(5725,5725),
+              apollo.get(), BicubicInterpolation(), ZeroEdgeExtension());
 
-  ASSERT_TRUE( bool_trait<IsFloatingPointIndexable>( ortho_float ) );
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( ortho_float ) );
+  ASSERT_TRUE(bool_trait<IsFloatingPointIndexable>(ortho_float));
+  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(ortho_float));
 
   // Additional tests to verify that interpolate is not messing up orthoproject
-  ASSERT_TRUE( bool_trait<IsFloatingPointIndexable>(orthoproject(
-                  interpolate(DEM,BicubicInterpolation()), moon,
-                  test_pattern_view(PixelGray<uint8>(),5725,5725),
-                  apollo.get(), BicubicInterpolation(),
-                  ZeroEdgeExtension())) );
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>(orthoproject(
-                  interpolate(DEM,BicubicInterpolation()), moon,
-                  test_pattern_view(PixelGray<uint8>(),5725,5725),
-                  apollo.get(), BicubicInterpolation(),
-                  ZeroEdgeExtension())) );
+  ASSERT_TRUE(bool_trait<IsFloatingPointIndexable>(orthoproject(
+                 interpolate(DEM,BicubicInterpolation()), moon,
+                 test_pattern_view(PixelGray<uint8>(),5725,5725),
+                 apollo.get(), BicubicInterpolation(),
+                 ZeroEdgeExtension())));
+  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(orthoproject(
+                 interpolate(DEM,BicubicInterpolation()), moon,
+                 test_pattern_view(PixelGray<uint8>(),5725,5725),
+                 apollo.get(), BicubicInterpolation(),
+                 ZeroEdgeExtension())));
   // Edge extend is not floating point indexable
-  ASSERT_FALSE( bool_trait<IsFloatingPointIndexable>(edge_extend(orthoproject(
-                  interpolate(DEM,BicubicInterpolation()), moon,
-                  test_pattern_view(PixelGray<uint8>(),5725,5725),
-                  apollo.get(), BicubicInterpolation(),
-                  ZeroEdgeExtension()), ZeroEdgeExtension())) );
+  ASSERT_FALSE(bool_trait<IsFloatingPointIndexable>(edge_extend(orthoproject(
+                 interpolate(DEM,BicubicInterpolation()), moon,
+                 test_pattern_view(PixelGray<uint8>(),5725,5725),
+                 apollo.get(), BicubicInterpolation(),
+                 ZeroEdgeExtension()), ZeroEdgeExtension())));
 }
 
 #endif

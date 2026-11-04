@@ -117,7 +117,7 @@ namespace vw {
 
   public: // Functions
 
-    WorkQueue(int num_threads = vw_settings().default_num_threads() );
+    WorkQueue(int num_threads = vw_settings().default_num_threads());
     virtual ~WorkQueue();
 
     //TODO: Should all of these be public?

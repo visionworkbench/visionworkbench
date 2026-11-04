@@ -32,7 +32,7 @@
 
 namespace vw {
 
-  bool read_pds_georeference( GeoReference& georef, DiskImageResourcePDS const& resource );
+  bool read_pds_georeference(GeoReference& georef, DiskImageResourcePDS const& resource);
   // We do not support writing PDS images at this time.
   // void write_pds_georeference( DiskImageResourcePDS& resource, GeoReference const& georef );
 

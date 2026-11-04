@@ -34,20 +34,20 @@
 
 namespace vw {
 
-  bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
-  void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
+  bool read_gdal_georeference(GeoReference& georef, DiskImageResourceGDAL const& resource);
+  void write_gdal_georeference(DiskImageResourceGDAL& resource, GeoReference const& georef);
 
   // Read an arbitrary name = value pair from the geoheader.
-  bool read_gdal_string( DiskImageResourceGDAL const& resource, std::string const& str_name,
-                         std::string & str_val );
+  bool read_gdal_string(DiskImageResourceGDAL const& resource, std::string const& str_name,
+                        std::string & str_val);
 
   // Read all name = value pairs from the geoheader.
-  bool read_gdal_strings( DiskImageResourceGDAL const& resource, 
-                          std::map<std::string, std::string> & value_pairs);
+  bool read_gdal_strings(DiskImageResourceGDAL const& resource, 
+                         std::map<std::string, std::string> & value_pairs);
 
   // Write an arbitrary name = value pair in the geoheader.
-  void write_gdal_string( DiskImageResourceGDAL& resource, std::string const& str_name,
-                          std::string const& str_val );
+  void write_gdal_string(DiskImageResourceGDAL& resource, std::string const& str_name,
+                         std::string const& str_val);
 
   // This is helpful with geoid correction tables. Call this before reading
   // a file that may trigger this warning.

@@ -45,36 +45,36 @@ namespace impl {
 
   /// A special inlinable implementation of round()
   /// for the common case of double->int32.
-  inline int32 _round( double val ) {
-    if( val < 0 ) return int32(val-0.5);
+  inline int32 _round(double val) {
+    if(val < 0) return int32(val-0.5);
     else return int32(val+0.5);
   }
 
   /// A special inlinable implementation of round()
   /// for the common case of float->int32.
-  inline int32 _round( float val ) {
-    if( val < 0 ) return int32(val-0.5f);
+  inline int32 _round(float val) {
+    if(val < 0) return int32(val-0.5f);
     else return int32(val+0.5f);
   }
 
   // Make _round() resolve unambiguously to a no-op if the input type
   // is integral, in which case the float and double variants are
   // equally valid.
-  inline int8   _round( int8 v )   { return v; }
-  inline uint8  _round( uint8 v )  { return v; }
-  inline int16  _round( int16 v )  { return v; }
-  inline uint16 _round( uint16 v ) { return v; }
-  inline int32  _round( int32 v )  { return v; }
-  inline uint32 _round( uint32 v ) { return v; }
-  inline int64  _round( int64 v )  { return v; }
-  inline uint64 _round( uint64 v ) { return v; }
+  inline int8   _round(int8 v)   { return v; }
+  inline uint8  _round(uint8 v)  { return v; }
+  inline int16  _round(int16 v)  { return v; }
+  inline uint16 _round(uint16 v) { return v; }
+  inline int32  _round(int32 v)  { return v; }
+  inline uint32 _round(uint32 v) { return v; }
+  inline int64  _round(int64 v)  { return v; }
+  inline uint64 _round(uint64 v) { return v; }
 
   /// A special inlinable implementation of floor()
   /// for the common case of double->int32.
-  inline int32 _floor( double val ) {
-    if( val < 0 ) {
+  inline int32 _floor(double val) {
+    if(val < 0) {
       int32 ival = int32(val);
-      if( double(ival)==val ) return ival;
+      if(double(ival)==val) return ival;
       else return ival - 1;
     }
     else return int32(val);
@@ -83,7 +83,7 @@ namespace impl {
   /// A replacement for the C++ modulo operator % which sucks less.
   /// Always returns a value in the range [0,b), or (b,0] if b<0.
   template <class T>
-  inline T mod( T a, T b ) {
+  inline T mod(T a, T b) {
     T m = a%b;
     return (b<0) ? ((m>0)?(m+b):(m)) : ((m<0)?(m+b):(m));
   }
@@ -94,16 +94,16 @@ namespace impl {
   /// distribution from zero to x.  For small values of x
   /// we use a Taylor series expansion.  For large values
   /// of x we defer to erfc, below.
-  inline double erf( double x ) {
+  inline double erf(double x) {
     static const double two_sqrtpi= 1.128379167095513; // 2/sqrt(pi)
-    if( fabs(x) > 2.0 ) return 1.0 - erfc(x);
+    if(fabs(x) > 2.0) return 1.0 - erfc(x);
     double xsqr=x*x, term=x, accum=x;
     int i=1;
     do {
       term *= -xsqr/i;
       accum += term / (2*i+1);
       ++i;
-    } while( fabs(term/accum) > 1e-12 ); // About 40 bits of accuracy
+    } while(fabs(term/accum) > 1e-12); // About 40 bits of accuracy
     return two_sqrtpi * accum;
   }
 
@@ -111,10 +111,10 @@ namespace impl {
   /// error function.  For large values of x we use a
   /// continued fraction expansion.  For small values of x
   /// we defer to erf, above.
-  inline double erfc( double x ) {
+  inline double erfc(double x) {
     static const double one_sqrtpi= 0.5641895835477563; // 1/sqrt(pi)
-    if( fabs(x) < 2.0 ) return 1.0 - erf(x);
-    if( x < 0 ) return 2.0 - erfc(-x);
+    if(fabs(x) < 2.0) return 1.0 - erf(x);
+    if(x < 0) return 2.0 - erfc(-x);
     double n1=1, n2=x;                  // last two numerators
     double d1=x, d2=x*x+0.5;            // last two denominators
     double q1,   q2=n2/d2;              // last two approximations
@@ -130,7 +130,7 @@ namespace impl {
       coeff += 0.5;
       q1 = q2;
       q2 = n2/d2;
-    } while ( fabs(q1-q2)/q2 > 1e-12 ); // About 40 bits of accuracy
+    } while (fabs(q1-q2)/q2 > 1e-12); // About 40 bits of accuracy
     return one_sqrtpi * exp(-x*x) * q2;
   }
 
@@ -205,12 +205,12 @@ namespace impl {
 #endif // WIN32
 
 #if defined(__APPLE__) && defined(__POWERPC__)
-  inline long double erfl( long double arg ) {
-    return erf( (double)arg );
+  inline long double erfl(long double arg) {
+    return erf((double)arg);
   }
 
-  inline long double erfcl( long double arg ) {
-    return erfc( (double)arg );
+  inline long double erfcl(long double arg) {
+    return erfc((double)arg);
   }
 #endif
 

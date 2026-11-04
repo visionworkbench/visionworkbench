@@ -151,7 +151,7 @@ double compute_kittler_illingworth_jt(std::vector<double> const& histogram,
 
     // Compute J(T).
     double J = 1.0 + 2.0*(P1*log(sigma1) + P2*log(sigma2)) 
-                   - 2.0*(P1*log(P1    ) + P2*log(P2    ));
+                   - 2.0*(P1*log(P1) + P2*log(P2));
     return J;
 } // End function compute_kittler_illingworth_jt
 
@@ -209,7 +209,7 @@ typedef PixelMask<RadarType> RadarTypeM;
 /// Functor to convert a sentinel1 pixel from digital numbers (DN) to decibels (DB)
 struct Sentinel1DnToDb : public ReturnFixedType<PixelMask<float> > {
   Sentinel1DnToDb(){}
-  PixelMask<float> operator()( PixelMask<Sentinel1Type> p ) const {
+  PixelMask<float> operator()(PixelMask<Sentinel1Type> p) const {
     PixelMask<float> output = PixelMask<float>(10*log10(p.child()));
     if (!is_valid(p))
       invalidate(output);
@@ -220,8 +220,8 @@ struct Sentinel1DnToDb : public ReturnFixedType<PixelMask<float> > {
 /// Function to convert a sentinel1 image from digital numbers (DN) to decibels (DB)
 template <class ImageT>
 UnaryPerPixelView<ImageT,Sentinel1DnToDb>
-inline sentinel1_dn_to_db( ImageViewBase<ImageT> const& image) {
-  return UnaryPerPixelView<ImageT,Sentinel1DnToDb>( image.impl(), Sentinel1DnToDb() );
+inline sentinel1_dn_to_db(ImageViewBase<ImageT> const& image) {
+  return UnaryPerPixelView<ImageT,Sentinel1DnToDb>(image.impl(), Sentinel1DnToDb());
 }
 
 
@@ -288,7 +288,7 @@ private: // Variables
 public: // Functions
 
   // Constructor
-  ImageTileMeansView( ImageT  const& input_image, int tile_size)
+  ImageTileMeansView(ImageT  const& input_image, int tile_size)
                   : m_input_image(input_image), 
                     m_width (input_image.cols()/tile_size), 
                     m_height(input_image.rows()/tile_size), 
@@ -298,11 +298,11 @@ public: // Functions
   inline int32 rows  () const { return m_height; }
   inline int32 planes() const { return 1; }
 
-  inline result_type operator()( int32 i, int32 j, int32 p=0 ) const
+  inline result_type operator()(int32 i, int32 j, int32 p=0) const
   { return 0; } // NOT IMPLEMENTED!
  
   typedef ProceduralPixelAccessor<ImageTileMeansView<ImageT> > pixel_accessor;
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
   /// Compute the mean and percentage of valid pixels in an entire image
   double mean_and_validity(CropView<ImageView<RadarTypeM> > const& image, double &mean) const {
@@ -323,7 +323,7 @@ public: // Functions
                            
 
   typedef CropView<ImageView<result_type> > prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
     
     // This function is only set up for 1x1 output tiles.
     if ((bbox.width() != 1) || (bbox.height() != 1))
@@ -380,13 +380,13 @@ public: // Functions
       validate(tile(0, 0));
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
-    return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
+    return prerasterize_type(tile, -bbox.min().x(), -bbox.min().y(), cols(), rows());
 
   } // End prerasterize function
 
  template <class DestT>
- inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-   vw::rasterize( prerasterize(bbox), dest, bbox );
+ inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+   vw::rasterize(prerasterize(bbox), dest, bbox);
  }
 
 }; // End class ImageTileMeansView
@@ -450,7 +450,7 @@ struct DefuzzTwoFunctor : public ReturnFixedType<float> {
 
 // Define comparison function (just compare the first elements)
 template <typename T>
-bool less_than_function_pair_first( const T& a, const T& b) { 
+bool less_than_function_pair_first(const T& a, const T& b) { 
   return a.first < b.first; 
 }
 
@@ -533,8 +533,8 @@ size_t select_best_tiles(ImageView<PixelMask<Vector2f> >    & tile_means_stddevs
     for (int c=0; c<tile_stddevs.cols(); ++c) {
       // The tile must have a high stddev and also be below the global mean
       //  since water tends to be darker than land.
-      if ( (tile_stddevs(c,r) > std_dev_cutoff) &&
-           (tile_means  (c,r) < global_mean   )   ) {
+      if ((tile_stddevs(c,r) > std_dev_cutoff) &&
+          (tile_means  (c,r) < global_mean)) {
         n_prime_tiles.push_back(Vector2i(c,r));
         n_prime_std_dev.push_back(tile_stddevs(c,r));
         n_prime_mean.push_back   (tile_means  (c,r));

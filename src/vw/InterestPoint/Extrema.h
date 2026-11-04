@@ -235,22 +235,22 @@ namespace vw {
 
   /// Find spatial/scale peaks of some type in the image octave.
   template <class DataT>
-  int find_peaks( InterestPointList& interest_points,
-                  std::vector<DataT> const& data,
-                  ImageOctave const& octave) {
+  int find_peaks(InterestPointList& interest_points,
+                 std::vector<DataT> const& data,
+                 ImageOctave const& octave) {
     // Check that we have a few planes of corner response function
     // (interest) and that all planes are the same size.
-    VW_ASSERT( !data.empty(), ArgumentErr() << "Data vector is empty.\n" );
+    VW_ASSERT(!data.empty(), ArgumentErr() << "Data vector is empty.\n");
     int32 ncols = data[0].interest().cols();
     int32 nrows = data[0].interest().rows();
     unsigned nplanes = data.size();
 
     // Make sure all planes are the same size
     for (unsigned k=0; k < nplanes; k++){
-      VW_ASSERT( ncols == data[k].interest().cols(),
-                 ArgumentErr() << "Planes must be the same size.\n" );
-      VW_ASSERT( nrows == data[k].interest().rows(),
-                 ArgumentErr() << "Planes must be the same size.\n" );
+      VW_ASSERT(ncols == data[k].interest().cols(),
+                ArgumentErr() << "Planes must be the same size.\n");
+      VW_ASSERT(nrows == data[k].interest().rows(),
+                ArgumentErr() << "Planes must be the same size.\n");
     }
 
     // In this implementation, we don't want to compare plane 0 to

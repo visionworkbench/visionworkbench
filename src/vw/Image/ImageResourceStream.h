@@ -49,7 +49,7 @@ class SrcImageResourceStream : public SrcImageResource, private boost::noncopyab
     // Read the stream and write to the given buffer.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw
     // bytes will be copied.
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const;
 
     // Will reset read pointer to start to allow another read.
     // Will throw for unseekable streams.
@@ -82,7 +82,7 @@ class DstImageResourceStream : public DstImageResource, private boost::noncopyab
     // Read the given buffer and write to the stream.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw
     // bytes will be copied.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& buf, BBox2i const& bbox);
 
     virtual void flush();
 
@@ -126,14 +126,14 @@ class ImageResourceStream : public ImageResource, public SrcImageResourceStream,
     // Read the stream and write to the given buffer.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw
     // bytes will be copied.
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const {
+    virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const {
       SrcImageResourceStream::read(dest, bbox);
     }
 
     // Read the given buffer and write to the stream.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw
     // bytes will be copied.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) {
+    virtual void write(ImageBuffer const& buf, BBox2i const& bbox) {
       DstImageResourceStream::write(buf, bbox);
     }
 

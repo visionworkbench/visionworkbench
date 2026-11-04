@@ -337,7 +337,7 @@ public:
              ((edge_wrapper(output_tile, c - 1, r - 1) > 0) ||
               (edge_wrapper(output_tile, c,     r - 1) > 0) ||
               (edge_wrapper(output_tile, c + 1, r - 1) > 0) ||
-              (edge_wrapper(output_tile, c - 1, r    ) > 0))))
+              (edge_wrapper(output_tile, c - 1, r) > 0))))
           output_tile(c, r) = m_output_true;
         else
           output_tile(c, r) = m_output_false;
@@ -353,7 +353,7 @@ public:
             ((edge_wrapper(output_tile, c + 1, r + 1) > 0) ||
              (edge_wrapper(output_tile, c,     r + 1) > 0) ||
              (edge_wrapper(output_tile, c - 1, r + 1) > 0) ||
-             (edge_wrapper(output_tile, c + 1, r    ) > 0)))
+             (edge_wrapper(output_tile, c + 1, r) > 0)))
           output_tile(c, r) = m_output_true;
       }
     }

@@ -42,13 +42,13 @@ struct InterestPoint;
 
   // Transform Functors
   template <class VectorT>
-  Vector3 Convert2HomogenousVec2( VectorT const& v ) {
-    if ( v.size() == 2 )
-      return Vector3( v[0], v[1], 1 );
-    return Vector3( v[0], v[1], v[2] );
+  Vector3 Convert2HomogenousVec2(VectorT const& v) {
+    if (v.size() == 2)
+      return Vector3(v[0], v[1], 1);
+    return Vector3(v[0], v[1], v[2]);
   }
   template <>
-  Vector3 Convert2HomogenousVec2( vw::InterestPoint const& ip );
+  Vector3 Convert2HomogenousVec2(vw::InterestPoint const& ip);
 
   // Measurement Prep Functors
   struct SimilarityNormalizingFunctor {
@@ -57,31 +57,31 @@ struct InterestPoint;
     struct MatrixApplyFunc {
       Matrix<double> m_matrix;
       template <class MatrixT>
-      MatrixApplyFunc( MatrixBase<MatrixT> const& m ) : m_matrix(m.impl()) {}
+      MatrixApplyFunc(MatrixBase<MatrixT> const& m) : m_matrix(m.impl()) {}
 
       // In-place modifier (use with for_each)
-      void operator()( ContainerT & v ) const { v = m_matrix*v; }
+      void operator()(ContainerT & v) const { v = m_matrix*v; }
 
       // Copy modifier (use with transform)
-      ContainerT operator()( ContainerT const& v ) const { return m_matrix*v; }
+      ContainerT operator()(ContainerT const& v) const { return m_matrix*v; }
     };
 
     // Solve for normalizing similarity matrix
     template <class ContainerT>
     vw::Matrix<double>
-    NormSimilarity( std::vector<ContainerT> const& pts ) const {
+    NormSimilarity(std::vector<ContainerT> const& pts) const {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
 
       Vector<double> translation;
       translation.set_size(dimension-1);
-      BOOST_FOREACH( const ContainerT& p, pts ) {
+      BOOST_FOREACH(const ContainerT& p, pts) {
         translation += subvector(p,0,dimension-1);
       }
       translation /= num_points;
 
       double scale = 0;
-      BOOST_FOREACH( const ContainerT& p, pts ) {
+      BOOST_FOREACH(const ContainerT& p, pts) {
         Vector<double> delta = subvector(p,0,dimension-1) - translation;
         scale += norm_2(delta);
       }
@@ -90,7 +90,7 @@ struct InterestPoint;
       Matrix<double> s;
       s.set_size(dimension,dimension);
       s.set_identity();
-      for ( unsigned i = 0; i < dimension-1; i++ ) {
+      for (unsigned i = 0; i < dimension-1; i++) {
         s(i,i) *= scale;
         s(i,dimension-1) = -scale*translation[i];
       }
@@ -105,9 +105,9 @@ struct InterestPoint;
 
   struct CameraMatrixErrorMetric {
     template <class RelationT, class ContainerT>
-    double operator()( RelationT const& H,
-                       ContainerT const& p1,
-                       ContainerT const& p2 ) const {
+    double operator()(RelationT const& H,
+                      ContainerT const& p1,
+                      ContainerT const& p2) const {
       Vector<double> projection = H*p1;
       projection /= projection[2];
       return norm_2(p2-projection);
@@ -122,8 +122,8 @@ struct InterestPoint;
     unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 6; }
 
     // Simple linear solution
-    Matrix<double> BasicDLT( std::vector<Vector<double> > const& input,
-                             std::vector<Vector<double> > const& output ) const;
+    Matrix<double> BasicDLT(std::vector<Vector<double> > const& input,
+                            std::vector<Vector<double> > const& output) const;
 
     // Non-linear solution to an over-constrained problem
     class CameraMatrixModelLMA : public math::LeastSquaresModelBase<CameraMatrixModelLMA> {
@@ -139,70 +139,70 @@ struct InterestPoint;
       typedef Matrix<double> jacobian_type;
 
       // Constructor
-      CameraMatrixModelLMA( std::vector<Vector<double> > const& input,
-                            std::vector<Vector<double> > const& output );
+      CameraMatrixModelLMA(std::vector<Vector<double> > const& input,
+                           std::vector<Vector<double> > const& output);
 
       // Evaluator
-      result_type operator()( domain_type const& x ) const;
+      result_type operator()(domain_type const& x) const;
 
       // Helper functions
-      Vector<double> flatten( Matrix<double> const& input ) const;
-      Matrix<double> unflatten( Vector<double> const& input ) const;
+      Vector<double> flatten(Matrix<double> const& input) const;
+      Matrix<double> unflatten(Vector<double> const& input) const;
     };
 
     // Interface for solving for Camera Matrix (switches between DLT
     // and Gold Standard)
     template <class ContainerT>
     result_type
-    operator()( std::vector<ContainerT> const& p1,
-                std::vector<ContainerT> const& p2,
-                vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Camera Matrix requires equal number of input and output measures." );
-      VW_ASSERT( p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute camera matrix. Insufficient measurements." );
-      VW_ASSERT( p1[0].size() == 4 && p2[0].size() == 3,
-                 vw::ArgumentErr() << "Incorrect input format: p1 needs to Vector4 and p2 need to be Vector3." );
+    operator()(std::vector<ContainerT> const& p1,
+               std::vector<ContainerT> const& p2,
+               vw::Matrix<double> const& seed_input = vw::Matrix<double>()) const {
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Camera Matrix requires equal number of input and output measures.");
+      VW_ASSERT(p1.size() >= min_elements_needed_for_fit(p1[0]),
+                vw::ArgumentErr() << "Cannot compute camera matrix. Insufficient measurements.");
+      VW_ASSERT(p1[0].size() == 4 && p2[0].size() == 3,
+                vw::ArgumentErr() << "Incorrect input format: p1 needs to Vector4 and p2 need to be Vector3.");
 
       // Converting to internal format
       std::vector<Vector<double> > input, output;
-      BOOST_FOREACH( const ContainerT& p, p1 ) {
-        input.push_back( Vector4( p[0], p[1], p[2], p[3] ) );
+      BOOST_FOREACH(const ContainerT& p, p1) {
+        input.push_back(Vector4(p[0], p[1], p[2], p[3]));
       }
-      BOOST_FOREACH( const ContainerT& p, p2 ) {
-        output.push_back( Vector3( p[0], p[1], p[2] ) );
+      BOOST_FOREACH(const ContainerT& p, p2) {
+        output.push_back(Vector3(p[0], p[1], p[2]));
       }
 
       // Normalizing
-      Matrix<double> S_in = NormSimilarity( input );
-      Matrix<double> S_out = NormSimilarity( output );
-      std::for_each( input.begin(), input.end(),
-                     MatrixApplyFunc<Vector<double> >( S_in ) );
-      std::for_each( output.begin(), output.end(),
-                     MatrixApplyFunc<Vector<double> >( S_out ) );
+      Matrix<double> S_in = NormSimilarity(input);
+      Matrix<double> S_out = NormSimilarity(output);
+      std::for_each(input.begin(), input.end(),
+                    MatrixApplyFunc<Vector<double> >(S_in));
+      std::for_each(output.begin(), output.end(),
+                    MatrixApplyFunc<Vector<double> >(S_out));
 
       Matrix<double> p;
-      if ( p1.size() == min_elements_needed_for_fit(p1[0] ) ) {
+      if (p1.size() == min_elements_needed_for_fit(p1[0])) {
         // Use DLT
-        Matrix<double> P_prime = BasicDLT( input, output );
+        Matrix<double> P_prime = BasicDLT(input, output);
 
         p = inverse(S_out)*P_prime*S_in;
       } else {
         Matrix<double> seed_matrix = seed_input;
 
         // Perform DLT if needed
-        if ( seed_matrix.cols() == 0 )
-          seed_matrix = BasicDLT( input, output );
+        if (seed_matrix.cols() == 0)
+          seed_matrix = BasicDLT(input, output);
 
         // Iterative solution be here
-        CameraMatrixModelLMA model( input, output );
-        Vector<double> seed = model.flatten( seed_matrix );
+        CameraMatrixModelLMA model(input, output);
+        Vector<double> seed = model.flatten(seed_matrix);
         int status = 0;
         Vector<double> objective;
-        objective.set_size( input.size() );
-        Vector<double> result = levenberg_marquardt( model, seed,
-                                                     objective, status );
-        seed_matrix = model.unflatten( result );
+        objective.set_size(input.size());
+        Vector<double> result = levenberg_marquardt(model, seed,
+                                                    objective, status);
+        seed_matrix = model.unflatten(result);
 
         // Denormalization
         p = inverse(S_out)*seed_matrix*S_in;
@@ -222,18 +222,18 @@ struct InterestPoint;
 
   struct FundamentalMatrixSampsonErrorMetric {
     template <class RelationT, class ContainerT>
-    double operator()( RelationT const& F,
-                       ContainerT const& p1,
-                       ContainerT const& p2 ) const {
+    double operator()(RelationT const& F,
+                      ContainerT const& p1,
+                      ContainerT const& p2) const {
       return fabs(transpose(p2)*F*p1) + fabs(transpose(p1)*transpose(F)*p2);
     }
   };
 
   struct FundamentalMatrixDistanceErrorMetric {
     template <class RelationT, class ContainerT>
-    double operator()( RelationT const& F,
-                       ContainerT const& p1,
-                       ContainerT const& p2 ) const {
+    double operator()(RelationT const& F,
+                      ContainerT const& p1,
+                      ContainerT const& p2) const {
       Vector3 line = F*p1;
       return fabs(dot_prod(line,p2))/norm_2(subvector(line,0,2));
     }
@@ -251,27 +251,27 @@ struct InterestPoint;
     ///  of points from the same camera at different positions.
     template <class ContainerT>
     result_type
-    operator()( std::vector<ContainerT> const& p1,
-                std::vector<ContainerT> const& p2,
-                vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+    operator()(std::vector<ContainerT> const& p1,
+               std::vector<ContainerT> const& p2,
+               vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>()) const {
 
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures." );
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures.");
 
       // Converting to internal format
       std::vector<Vector<double> > input(p1.size()), output(p2.size());
-      std::transform( p1.begin(), p1.end(), input.begin(),  Convert2HomogenousVec2<ContainerT> );
-      std::transform( p2.begin(), p2.end(), output.begin(), Convert2HomogenousVec2<ContainerT> );
+      std::transform(p1.begin(), p1.end(), input.begin(),  Convert2HomogenousVec2<ContainerT>);
+      std::transform(p2.begin(), p2.end(), output.begin(), Convert2HomogenousVec2<ContainerT>);
 
       // Normalizing
-      Matrix<double> S_in  = NormSimilarity( input  );
-      Matrix<double> S_out = NormSimilarity( output );
-      std::for_each( input.begin(),  input.end(),  MatrixApplyFunc<Vector<double> >( S_in  ) );
-      std::for_each( output.begin(), output.end(), MatrixApplyFunc<Vector<double> >( S_out ) );
+      Matrix<double> S_in  = NormSimilarity(input);
+      Matrix<double> S_out = NormSimilarity(output);
+      std::for_each(input.begin(),  input.end(),  MatrixApplyFunc<Vector<double> >(S_in));
+      std::for_each(output.begin(), output.end(), MatrixApplyFunc<Vector<double> >(S_out));
 
       // Constructing A
       Matrix<double> A(p1.size(),9);
-      for ( size_t i = 0; i < p1.size(); i++ ) {
+      for (size_t i = 0; i < p1.size(); i++) {
         A(i,0) = output[i][0]*input[i][0];
         A(i,1) = output[i][0]*input[i][1];
         A(i,2) = output[i][0];
@@ -283,7 +283,7 @@ struct InterestPoint;
         A(i,8) = 1;
       }
 
-      VW_ASSERT( math::rank(A) >= 8, MathErr() << "Measurements produce rank deficient A." );
+      VW_ASSERT(math::rank(A) >= 8, MathErr() << "Measurements produce rank deficient A.");
 
       // Pulling singular vector of smallest singular value of A
       Matrix<double> U,VT;
@@ -291,7 +291,7 @@ struct InterestPoint;
       svd(A,U,S,VT);
       Matrix3x3 F;
       int i = 0;
-      for ( Matrix<double,3,3>::iterator it = F.begin(); it != F.end(); it++ ) {
+      for (Matrix<double,3,3>::iterator it = F.begin(); it != F.end(); it++) {
         (*it) = VT(VT.rows()-1,i);
         i++;
       }
@@ -316,9 +316,9 @@ struct InterestPoint;
 
     // Skew symmetric matrix or []x operation
     template <class VectorT>
-    Matrix<double> skew_symm( VectorBase<VectorT> const& b ) const {
-      VW_ASSERT( b.impl().size() == 3,
-                 vw::ArgumentErr() << "Skew Symmetric is only elemented for 3 element vectors." );
+    Matrix<double> skew_symm(VectorBase<VectorT> const& b) const {
+      VW_ASSERT(b.impl().size() == 3,
+                vw::ArgumentErr() << "Skew Symmetric is only elemented for 3 element vectors.");
       VectorT const& v = b.impl();
       Matrix3x3 skew;
       skew(0,1) = -v[2];
@@ -332,9 +332,9 @@ struct InterestPoint;
 
     template <class VectorT>
     Vector4
-    OneSideTriangulation( Matrix<double> const& P2,
-                          VectorBase<VectorT> const& meas1,
-                          VectorBase<VectorT> const& meas2) const {
+    OneSideTriangulation(Matrix<double> const& P2,
+                         VectorBase<VectorT> const& meas1,
+                         VectorBase<VectorT> const& meas2) const {
       VectorT const& v1 = meas1.impl();
       VectorT const& v2 = meas2.impl();
       Matrix<double> A(4,4);
@@ -361,30 +361,30 @@ struct InterestPoint;
       typedef Matrix<double> jacobian_type;
 
       // Evaluator
-      result_type operator()( domain_type const& x )  const;
+      result_type operator()(domain_type const& x)  const;
     };
 
     /// Solve for the fundamental matrix F using two sets of observation of a set
     ///  of points from the same camera at different positions.
     template <class ContainerT>
     result_type
-    operator()( std::vector<ContainerT> const& p1,
-                std::vector<ContainerT> const& p2,
-                vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+    operator()(std::vector<ContainerT> const& p1,
+               std::vector<ContainerT> const& p2,
+               vw::Matrix<double> const& seed_input = vw::Matrix<double>()) const {
 
-      VW_ASSERT( p1.size() == p2.size(),
-                 vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures." );
+      VW_ASSERT(p1.size() == p2.size(),
+                vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures.");
 
       // Determine if to use 8P
-      if ( p1.size() == 8 )
+      if (p1.size() == 8)
         return FundamentalMatrix8PFittingFunctor()(p1,p2);
 
       // Converting to internal format
       std::vector<Vector<double> > input(p1.size()), output(p2.size());
-      std::transform( p1.begin(), p1.end(), input.begin(),
-                      Convert2HomogenousVec2<ContainerT> );
-      std::transform( p2.begin(), p2.end(), output.begin(),
-                      Convert2HomogenousVec2<ContainerT> );
+      std::transform(p1.begin(), p1.end(), input.begin(),
+                     Convert2HomogenousVec2<ContainerT>);
+      std::transform(p2.begin(), p2.end(), output.begin(),
+                     Convert2HomogenousVec2<ContainerT>);
 
       // Getting epipole
       Matrix<double> U, VT;
@@ -405,7 +405,7 @@ struct InterestPoint;
       subvector(seed,8,4) = select_row(P2,2);
 
       // Triangulating
-      for ( unsigned i = 0, j = 12; i < input.size(); i++, j+=3 ) {
+      for (unsigned i = 0, j = 12; i < input.size(); i++, j+=3) {
         Vector4 projection = OneSideTriangulation(P2,input[i],output[i]);
         projection /= projection[3];
         subvector(seed,j,3) = subvector(projection,0,3);
@@ -413,15 +413,15 @@ struct InterestPoint;
 
       // Setting Objective
       Vector<double> objective(4*input.size());
-      for ( unsigned i = 0; i < input.size(); i++ ) {
+      for (unsigned i = 0; i < input.size(); i++) {
         subvector(objective,4*i,2) = subvector(input[i],0,2);
         subvector(objective,4*i+2,2) = subvector(output[i],0,2);
       }
 
       int status = 0;
       Vector<double> result =
-        levenberg_marquardt( model, seed,
-                             objective, status );
+        levenberg_marquardt(model, seed,
+                            objective, status);
 
       select_row(P2,0) = subvector(result,0,4);
       select_row(P2,1) = subvector(result,4,4);

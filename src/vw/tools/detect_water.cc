@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
@@ -102,9 +102,9 @@ int main(int argc, char **argv) {
   //   implementation but it does not work well.
   boost::algorithm::to_lower(mode);
   bool radar_mode     = (mode.find("sentinel1") != std::string::npos);
-  bool landsat_mode   = (mode.find("landsat"  ) != std::string::npos);
+  bool landsat_mode   = (mode.find("landsat") != std::string::npos);
   bool worldview_mode = (mode.find("worldview") != std::string::npos);
-  bool spot_mode      = (mode.find("spot"     ) != std::string::npos);
+  bool spot_mode      = (mode.find("spot") != std::string::npos);
   if (!radar_mode && !landsat_mode && !worldview_mode && !spot_mode) {
     std::cout << "Error: Unrecognized 'mode' option!  Choices are " 
               << "'sentinel1' , 'landsat', and 'worldview'.\n";
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     vw_settings().set_default_num_threads(write_options.num_threads);
   }
 
-  if( vm.count("output-path") < 1 ) {
+  if(vm.count("output-path") < 1) {
     std::cerr << "Error: must specify the output file!" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;

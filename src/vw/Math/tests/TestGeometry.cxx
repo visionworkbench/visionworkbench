@@ -58,16 +58,16 @@ TEST(Geometry, HomographyFittingFunctor) {
   for (unsigned i = 0; i < A.rows(); ++i) {
     p1.push_back(select_row(A,i));
     p2.push_back(select_row(B,i));
-    if ( i < 4 ) {
+    if (i < 4) {
       p1_s.push_back(select_row(A,i));
       p2_s.push_back(select_row(B,i));
     }
   }
 
   // DLT version (there's a loss of precision in complete_svd)
-  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1_s,p2_s), 4.9e-13 );
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1_s,p2_s), 4.9e-13);
   // DLT & Levenberg Marquardt Version (it's better with noise and conflict)
-  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  4e-14 );
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  4e-14);
 }
 
 TEST(Geometry, AffinityFittingFunctor) {
@@ -99,7 +99,7 @@ TEST(Geometry, AffinityFittingFunctor) {
     p2.push_back(select_row(B,i));
   }
 
-  EXPECT_MATRIX_NEAR( S, AffineFittingFunctor()(p1,p2), 1e-14 );
+  EXPECT_MATRIX_NEAR(S, AffineFittingFunctor()(p1,p2), 1e-14);
 }
 
 TEST(Geometry, AffinityFittingFunctorN) {
@@ -136,7 +136,7 @@ TEST(Geometry, AffinityFittingFunctorN) {
     p2.push_back(select_row(B,i));
   }
 
-  EXPECT_MATRIX_NEAR( S, AffineFittingFunctorN<3>()(p1,p2), 1e-14 );
+  EXPECT_MATRIX_NEAR(S, AffineFittingFunctorN<3>()(p1,p2), 1e-14);
 }
 
 TEST(Geometry, SimilarityFittingFunctorN) {
@@ -178,7 +178,7 @@ TEST(Geometry, SimilarityFittingFunctorN) {
     p2.push_back(select_row(B,i));
   }
 
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14 );
+  EXPECT_MATRIX_NEAR(S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14);
 }
 
 TEST(Geometry, TranslationScaleFittingFunctorN) {
@@ -216,7 +216,7 @@ TEST(Geometry, TranslationScaleFittingFunctorN) {
     p2.push_back(select_row(B,i));
   }
 
-  EXPECT_MATRIX_NEAR( S, TranslationScaleFittingFunctorN<3>()(p1,p2), 1e-14 );
+  EXPECT_MATRIX_NEAR(S, TranslationScaleFittingFunctorN<3>()(p1,p2), 1e-14);
 }
 
 
@@ -258,7 +258,7 @@ TEST(Geometry, TranslationRotationFittingFunctorN) {
     p2.push_back(select_row(B,i));
   }
 
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14 );
+  EXPECT_MATRIX_NEAR(S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14);
 }
 
 TEST(Geometry, SimilarityFittingFunctor) {
@@ -301,7 +301,7 @@ TEST(Geometry, SimilarityFittingFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR(S, SimilarityFittingFunctor()(p1,p2), 1.8e-15);
 }
 
 TEST(Geometry, TranslationRotationFittingFunctor) {
@@ -343,7 +343,7 @@ TEST(Geometry, TranslationRotationFittingFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, TranslationRotationFittingFunctor()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR(S, TranslationRotationFittingFunctor()(p1,p2), 1.8e-15);
 }
 
 TEST(Geometry, TranslationFittingFunctor) {
@@ -380,7 +380,7 @@ TEST(Geometry, TranslationFittingFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, TranslationFittingFunctor()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR(S, TranslationFittingFunctor()(p1,p2), 1.8e-15);
 }
 
 TEST(Geometry, TranslationFittingFunctorN) {
@@ -419,5 +419,5 @@ TEST(Geometry, TranslationFittingFunctorN) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, TranslationFittingFunctorN<3>()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR(S, TranslationFittingFunctorN<3>()(p1,p2), 1.8e-15);
 }

@@ -62,15 +62,15 @@ namespace vw {
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2()) const;
 
     // Overloaded versions also return partial derviatives in a Matrix.
     Vector2 point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const;
     Vector3 pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const;
 
-    void get_point_derivatives( Vector3 const& P, double& u, double& v,
-                                Vector3& grad_u, Vector3& grad_v,
-                                Matrix3x3& hess_u, Matrix3x3& hess_v ) const;
+    void get_point_derivatives(Vector3 const& P, double& u, double& v,
+                               Vector3& grad_u, Vector3& grad_v,
+                               Matrix3x3& hess_u, Matrix3x3& hess_v) const;
 
     /// Write CAHVOR model to file.
     void write(std::string const& filename);
@@ -91,12 +91,12 @@ namespace vw {
   /// same) You must supply the dimensions of the CAHVOR image that
   /// you are dewarping, as well as the dimensions of the dewarped
   /// cahv image (if they differ).
-  CAHVModel linearize_camera( CAHVORModel const& camera_model,
-                              Vector2i const& cavhor_image_size,
-                              Vector2i const& cahv_image_size );
+  CAHVModel linearize_camera(CAHVORModel const& camera_model,
+                             Vector2i const& cavhor_image_size,
+                             Vector2i const& cahv_image_size);
 
-  CAHVModel linearize_camera( CAHVORModel const& camera_model,
-                              int32 ix, int32 iy, int32 ox, int32 oy ) VW_DEPRECATED;
+  CAHVModel linearize_camera(CAHVORModel const& camera_model,
+                             int32 ix, int32 iy, int32 ox, int32 oy) VW_DEPRECATED;
 
 }      // namespace vw
 

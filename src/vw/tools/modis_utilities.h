@@ -73,7 +73,7 @@ double get_modis_file_scale_factor(std::string const& path) {
 
   if ((path.find("sur_refl_b01") != std::string::npos) || 
       (path.find("sur_refl_b02") != std::string::npos) || 
-      (path.find("QC_250m"     ) != std::string::npos) ) {
+      (path.find("QC_250m") != std::string::npos)) {
     return 1.0; // 250m
   }
   return 2.0; // 500m
@@ -166,7 +166,7 @@ void load_modis_georef(std::vector<std::string> const& image_files,
     return;
   }
   
-  vw_throw( ArgumentErr() << "Failed to load georef from any input MODIS channel!\n");
+  vw_throw(ArgumentErr() << "Failed to load georef from any input MODIS channel!\n");
 }
 
 

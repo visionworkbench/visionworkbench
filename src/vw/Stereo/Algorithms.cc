@@ -80,8 +80,8 @@ void disparity_neighbor_filter(ImageView<PixelMask<Vector2i>> const& disparity_i
       vals[0] = disparity_in(col-1, row-1);
       vals[1] = disparity_in(col,   row-1);
       vals[2] = disparity_in(col+1, row-1);
-      vals[3] = disparity_in(col-1, row  );
-      vals[4] = disparity_in(col+1, row  );
+      vals[3] = disparity_in(col-1, row);
+      vals[4] = disparity_in(col+1, row);
       vals[5] = disparity_in(col-1, row+1);
       vals[6] = disparity_in(col,   row+1);
       vals[7] = disparity_in(col+1, row+1);

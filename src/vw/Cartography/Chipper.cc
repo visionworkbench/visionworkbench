@@ -331,7 +331,7 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
             ArgumentErr() << "Chipper: book-keeping failure!\n");
   
   VW_ASSERT(int(widemax-widemin+1) <= m_numMaxPtsInChip,
-            ArgumentErr() << "Chipper: book-keeping failure!\n" );
+            ArgumentErr() << "Chipper: book-keeping failure!\n");
 
   // Store the current chip in the appropriate place in
   // m_outImg.
@@ -343,7 +343,7 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
 
   VW_ASSERT(startx + m_blockSize <= m_outImg.cols() &&
             starty + m_blockSize <= m_outImg.rows(),
-            ArgumentErr() << "Chipper: Out of bounds!\n" );
+            ArgumentErr() << "Chipper: Out of bounds!\n");
 
   int count = -1;
   for (size_t idx = widemin; idx <= widemax; ++idx){

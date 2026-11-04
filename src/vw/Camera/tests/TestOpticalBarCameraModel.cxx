@@ -97,17 +97,17 @@ TEST(OpticalBarModel, CreateCamera) {
   vw::CamPtr cam1;
   cam1 = vw::CamPtr(raw_ptr);
 
-  ASSERT_TRUE( cam1.get() != 0 );
+  ASSERT_TRUE(cam1.get() != 0);
 
 
   // A more accurate test is just to project out and back into the same camera
-  for ( size_t i = 0; i < 3000; i += 200 ) {
-    for ( size_t j = 0; j < 2400; j += 200 ) {
+  for (size_t i = 0; i < 3000; i += 200) {
+    for (size_t j = 0; j < 2400; j += 200) {
       Vector2 pixel(i,j);
       Vector3 center = cam1->camera_center(pixel);
-      EXPECT_VECTOR_NEAR( pixel,
-                          cam1->point_to_pixel( center + 2e4*cam1->pixel_to_vector(pixel) ),
-                          1e-2 /*pixels*/);
+      EXPECT_VECTOR_NEAR(pixel,
+                         cam1->point_to_pixel(center + 2e4*cam1->pixel_to_vector(pixel)),
+                         1e-2 /*pixels*/);
     }
   }
 

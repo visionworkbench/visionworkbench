@@ -32,9 +32,9 @@ TEST(Statistics, vector_stats) {
     vec[i] = static_cast<double>(i);
   }
   
-  EXPECT_EQ( 2, vw::math::mean(vec) );
-  EXPECT_EQ( 2, vw::math::median(vec) );
-  EXPECT_NEAR( 1.58114, vw::math::standard_deviation(vec, 2), DELTA );
+  EXPECT_EQ(2, vw::math::mean(vec));
+  EXPECT_EQ(2, vw::math::median(vec));
+  EXPECT_NEAR(1.58114, vw::math::standard_deviation(vec, 2), DELTA);
   
 }
 
@@ -58,9 +58,9 @@ TEST(Statistics, histogram) {
   hist(6);
   
   EXPECT_EQ(11, hist.get_total_num_values());
-  EXPECT_EQ( 2, hist.get_bin_value (0));
-  EXPECT_EQ( 3, hist.get_bin_value (4));
-  EXPECT_EQ( 6, hist.get_bin_center(4));
+  EXPECT_EQ(2, hist.get_bin_value (0));
+  EXPECT_EQ(3, hist.get_bin_value (4));
+  EXPECT_EQ(6, hist.get_bin_center(4));
 }
 
 
@@ -74,21 +74,21 @@ TEST(Statistics, CDF_cauchy) {
 
   { // Default settings
     CDFAccumulator<double> cdf;
-    for ( uint16 i = 0; i < 50000; i++ )
-      cdf( generator() );
+    for (uint16 i = 0; i < 50000; i++)
+      cdf(generator());
 
-    EXPECT_NEAR( cdf.median(), 35.0, 2.0 );
-    EXPECT_NEAR( cdf.first_quartile(), -45, 4.0 );
-    EXPECT_NEAR( cdf.third_quartile(), 115, 4.0 );
+    EXPECT_NEAR(cdf.median(), 35.0, 2.0);
+    EXPECT_NEAR(cdf.first_quartile(), -45, 4.0);
+    EXPECT_NEAR(cdf.third_quartile(), 115, 4.0);
   }
   { // More quantiles == more precision
     CDFAccumulator<double> cdf(2000,500);
-    for ( uint16 i = 0; i < 50000; i++ )
-      cdf( generator() );
+    for (uint16 i = 0; i < 50000; i++)
+      cdf(generator());
 
-    EXPECT_NEAR( cdf.median(), 35.0, 1.0 );
-    EXPECT_NEAR( cdf.first_quartile(), -45, 2.0 );
-    EXPECT_NEAR( cdf.third_quartile(), 115, 2.0 );
+    EXPECT_NEAR(cdf.median(), 35.0, 1.0);
+    EXPECT_NEAR(cdf.first_quartile(), -45, 2.0);
+    EXPECT_NEAR(cdf.third_quartile(), 115, 2.0);
   }
 }
 
@@ -100,28 +100,28 @@ TEST(Statistics, CDF_triangular) {
 
   { // Default settings
     CDFAccumulator<double> cdf;
-    for ( uint16 i = 0; i < 50000; i++ )
-      cdf( generator() );
+    for (uint16 i = 0; i < 50000; i++)
+      cdf(generator());
 
-    EXPECT_NEAR( cdf.median(), 51.833, 1.0 );
-    EXPECT_NEAR( cdf.first_quartile(), 39.6, 2.0 );
-    EXPECT_NEAR( cdf.third_quartile(), 61.3, 2.0 );
-    EXPECT_NEAR( cdf.approximate_mean(), 50, 1.0 );
-    EXPECT_NEAR( cdf.approximate_mean(0.05), 50, 0.5 );
-    EXPECT_NEAR( cdf.approximate_stddev(), 14.7196, 2.0 );
-    EXPECT_NEAR( cdf.approximate_stddev(0.05), 14.7196, 1.0 );
+    EXPECT_NEAR(cdf.median(), 51.833, 1.0);
+    EXPECT_NEAR(cdf.first_quartile(), 39.6, 2.0);
+    EXPECT_NEAR(cdf.third_quartile(), 61.3, 2.0);
+    EXPECT_NEAR(cdf.approximate_mean(), 50, 1.0);
+    EXPECT_NEAR(cdf.approximate_mean(0.05), 50, 0.5);
+    EXPECT_NEAR(cdf.approximate_stddev(), 14.7196, 2.0);
+    EXPECT_NEAR(cdf.approximate_stddev(0.05), 14.7196, 1.0);
   }
   { // More quantiles == more precision
     CDFAccumulator<double> cdf(2000,500);
-    for ( uint16 i = 0; i < 50000; i++ )
-      cdf( generator() );
+    for (uint16 i = 0; i < 50000; i++)
+      cdf(generator());
 
-    EXPECT_NEAR( cdf.median(), 51.833, 0.5 );
-    EXPECT_NEAR( cdf.first_quartile(), 39.6, 1.0 );
-    EXPECT_NEAR( cdf.third_quartile(), 61.3, 1.0 );
-    EXPECT_NEAR( cdf.approximate_mean(), 50, 0.5 );
-    EXPECT_NEAR( cdf.approximate_mean(0.05), 50, 0.25 );
-    EXPECT_NEAR( cdf.approximate_stddev(), 14.7196, 3.0 );
-    EXPECT_NEAR( cdf.approximate_stddev(0.05), 14.7196, 0.5 );
+    EXPECT_NEAR(cdf.median(), 51.833, 0.5);
+    EXPECT_NEAR(cdf.first_quartile(), 39.6, 1.0);
+    EXPECT_NEAR(cdf.third_quartile(), 61.3, 1.0);
+    EXPECT_NEAR(cdf.approximate_mean(), 50, 0.5);
+    EXPECT_NEAR(cdf.approximate_mean(0.05), 50, 0.25);
+    EXPECT_NEAR(cdf.approximate_stddev(), 14.7196, 3.0);
+    EXPECT_NEAR(cdf.approximate_stddev(0.05), 14.7196, 0.5);
   }
 }

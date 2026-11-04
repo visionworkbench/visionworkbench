@@ -72,4 +72,3 @@ double get_default_nodata(int channel_type) {
 }
 
 } // namespace vw
-

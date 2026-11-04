@@ -163,7 +163,7 @@ namespace {
 #ifdef VW_HAVE_GETPWUID
     // Not set? Try a last ditch effort...
     struct passwd *pw;
-    pw = getpwuid( getuid() );
+    pw = getpwuid(getuid());
     if (pw && pw->pw_dir && strlen(pw->pw_dir))
       return std::string(pw->pw_dir) + "/.vwrc";
 #endif

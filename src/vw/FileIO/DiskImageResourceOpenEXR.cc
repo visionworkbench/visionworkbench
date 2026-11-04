@@ -61,7 +61,7 @@ namespace {
       case 0 : return "R"; break;
       case 1 : return "G"; break;
       case 2 : return "B"; break;
-      default: vw_throw( vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")" );
+      default: vw_throw(vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")");
       }
 
     } else if (pixel_format == vw::VW_PIXEL_RGBA) {
@@ -70,7 +70,7 @@ namespace {
       case 1 : return "G"; break;
       case 2 : return "B"; break;
       case 3 : return "A"; break;
-      default: vw_throw( vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")" );
+      default: vw_throw(vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")");
       }
 
     }
@@ -113,7 +113,7 @@ vw::Vector2i vw::DiskImageResourceOpenEXR::block_write_size() const {
 // the file and that it has a sane pixel format.  In general VIL does
 // not give us any useful information about the pixel format, so we
 // make some guesses here based on the channel count.
-void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
+void vw::DiskImageResourceOpenEXR::open(std::string const& filename)
 {
   try {
     // Open Image file and read the header
@@ -121,7 +121,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
 
     // Check to make sure that the file_ptr is not already in use.
     if (m_input_file_ptr)
-      vw_throw( IOErr() << "Disk image resources do not yet support reuse." );
+      vw_throw(IOErr() << "Disk image resources do not yet support reuse.");
 
     m_input_file_ptr = new Imf::InputFile(filename.c_str());
 
@@ -142,7 +142,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     // Determine the number of image channels
     Imf::ChannelList::ConstIterator iter = reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().begin();
     int num_channels = 0;
-    while( iter != reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() ) {
+    while(iter != reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end()) {
       num_channels++;
       iter++;
     }
@@ -160,11 +160,11 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
       m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
     }
   } catch (const Iex::ErrnoExc& e) { // Catches non existant files
-    vw_throw( vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
+    vw_throw(vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what());
   } catch (const Iex::InputExc& e) { // Catches non open exr image
-    vw_throw( vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
+    vw_throw(vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what());
   } catch (const Iex::BaseExc& e) {
-    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
+    vw_throw(vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what());
   }
 }
 
@@ -185,7 +185,7 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
     // Create the file header with the appropriate number of
     // channels.  Label the channels in order starting with "Channel 0".
     Imf::Header header (m_format.cols,m_format.rows);
-    for ( uint32 nn = 0; nn < m_format.planes; nn++) {
+    for (uint32 nn = 0; nn < m_format.planes; nn++) {
       m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
       header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
     }
@@ -201,7 +201,7 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
 
     m_output_file_ptr = new Imf::TiledOutputFile(m_filename.c_str(), header);
   } catch (const Iex::BaseExc& e) {
-    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
+    vw_throw(vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what());
   }
 }
 
@@ -228,7 +228,7 @@ void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block)
     // Create the file header with the appropriate number of
     // channels.  Label the channels in order starting with "Channel 0".
     Imf::Header header (m_format.cols,m_format.rows);
-    for ( size_t nn = 0; nn < m_format.planes; nn++) {
+    for (size_t nn = 0; nn < m_format.planes; nn++) {
       m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
       header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
     }
@@ -238,13 +238,13 @@ void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block)
     m_output_file_ptr = new Imf::OutputFile(m_filename.c_str(), header);
 
   } catch (const Iex::BaseExc& e) {
-    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
+    vw_throw(vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what());
   }
 }
 
 // Bind the resource to a file for writing.
-void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
-                                           ImageFormat const& format )
+void vw::DiskImageResourceOpenEXR::create(std::string const& filename,
+                                          ImageFormat const& format)
 {
   VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
             NoImplErr() << "DiskImageResourceOpenEXR: Cannot create " << filename << "\n\t"
@@ -253,7 +253,7 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
   m_filename = filename;
   m_format = format;
   m_format.channel_type = VW_CHANNEL_FLOAT32;
-  m_format.planes = std::max( format.planes, num_channels( format.pixel_format ) );
+  m_format.planes = std::max(format.planes, num_channels(format.pixel_format));
 
   // Open the EXR file and set up the header information
   m_labels.resize(m_format.planes);
@@ -263,12 +263,12 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 }
 
 // Read the disk image into the given buffer.
-void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
+void vw::DiskImageResourceOpenEXR::read(ImageBuffer const& dest, BBox2i const& bbox) const
 {
   VW_OUT(VerboseDebugMessage, "fileio") << "DiskImageResourceOpenEXR: Reading OpenEXR Block " << bbox << "\n";
 
   if (!m_input_file_ptr)
-    vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened." );
+    vw_throw(LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened.");
 
   try {
     Imf::Header header;
@@ -295,7 +295,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     // that we need to reorder the channel names when they are
     // labelled as RGB or RGBA.  For other channel naming schemes, we
     // just go with alphabetical, since that's all we've got.
-    if ( m_format.planes == 3 ) {
+    if (m_format.planes == 3) {
       if (find(channel_names.begin(), channel_names.end(), "R") != channel_names.end() &&
           find(channel_names.begin(), channel_names.end(), "G") != channel_names.end() &&
           find(channel_names.begin(), channel_names.end(), "B") != channel_names.end()) {
@@ -303,7 +303,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
         channel_names[1] = "G";
         channel_names[2] = "B";
       }
-    } else if ( m_format.planes == 4 ) {
+    } else if (m_format.planes == 4) {
       if (find(channel_names.begin(), channel_names.end(), "R") != channel_names.end() &&
           find(channel_names.begin(), channel_names.end(), "G") != channel_names.end() &&
           find(channel_names.begin(), channel_names.end(), "B") != channel_names.end() &&
@@ -319,7 +319,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     ImageView<float> src_image(width, height, m_format.planes);
     ImageBuffer src = src_image.buffer();
     Imf::FrameBuffer frameBuffer;
-    for ( size_t nn = 0; nn < m_format.planes; ++nn ) {
+    for (size_t nn = 0; nn < m_format.planes; ++nn) {
       char* base = reinterpret_cast<char*>(&src_image(0,0,nn));
       frameBuffer.insert(
           channel_names[nn].c_str(),
@@ -343,28 +343,28 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
       reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min<int32>(bbox.min().y() + (height-1), m_format.rows));
     }
 
-    convert( dest, src_image.buffer(), m_rescale );
+    convert(dest, src_image.buffer(), m_rescale);
 
   } catch (const Iex::BaseExc& e) {
-    vw_throw( vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what() );
+    vw_throw(vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what());
   }
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& bbox )
+void vw::DiskImageResourceOpenEXR::write(ImageBuffer const& src, BBox2i const& bbox)
 {
   VW_OUT(VerboseDebugMessage, "fileio") << "DiskImageResourceOpenEXR: Writing OpenEXR Block " << bbox << "\n";
 
   if (!m_output_file_ptr)
-    vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not write file. No file has been opened." );
+    vw_throw(LogicErr() << "DiskImageResourceOpenEXR: Could not write file. No file has been opened.");
 
   // This is pretty simple since we always write 32-bit floating point
   // files.  Note that we handle multi-channel images with interleaved
   // planes.  We've already ensured that either planes==1 or
   // channels==1.
-  ImageView<float> dst_image( bbox.width(), bbox.height(), m_format.planes );
+  ImageView<float> dst_image(bbox.width(), bbox.height(), m_format.planes);
   ImageBuffer dst = dst_image.buffer();
-  convert( dst, src, m_rescale );
+  convert(dst, src, m_rescale);
 
   try {
     Imf::FrameBuffer frameBuffer;
@@ -398,20 +398,20 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
     }
 
   } catch (const Iex::BaseExc& e) {
-    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what() );
+    vw_throw(vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what());
   }
 
 }
 
 // A FileIO hook to open a file for reading
-vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_open( std::string const& filename ) {
-  return new DiskImageResourceOpenEXR( filename );
+vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_open(std::string const& filename) {
+  return new DiskImageResourceOpenEXR(filename);
 }
 
 // A FileIO hook to open a file for writing
-vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_create( std::string const& filename,
-                                                                       ImageFormat const& format ) {
-  return new DiskImageResourceOpenEXR( filename, format );
+vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_create(std::string const& filename,
+                                                                      ImageFormat const& format) {
+  return new DiskImageResourceOpenEXR(filename, format);
 }
 
 #endif // VW_HAVE_PKG_OPENEXR

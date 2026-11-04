@@ -66,12 +66,12 @@ uint8 get_census_value_3x3(ImageView<uint8> const& image, int col, int row) {
   uint8 output = 0;
   uint8 center = image(col, row);
   if (image(col-1, row-1) > center) output += 128;
-  if (image(col  , row-1) > center) output +=  64;
+  if (image(col, row-1) > center) output +=  64;
   if (image(col+1, row-1) > center) output +=  32;
-  if (image(col-1, row  ) > center) output +=  16;
-  if (image(col+1, row  ) > center) output +=   8;
+  if (image(col-1, row) > center) output +=  16;
+  if (image(col+1, row) > center) output +=   8;
   if (image(col-1, row+1) > center) output +=   4;
-  if (image(col  , row+1) > center) output +=   2;
+  if (image(col, row+1) > center) output +=   2;
   if (image(col+1, row+1) > center) output +=   1;
   return output;
 }

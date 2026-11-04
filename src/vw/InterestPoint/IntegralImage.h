@@ -101,9 +101,9 @@ namespace vw {
   // - size      = side of the square used for evaluate
   // For an interpolated integral view x and y may be fractional.
   template <class ViewT, class NumberT>
-  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+  inline float HHaarWavelet(ImageViewBase<ViewT> const& integral,
+                            NumberT const& x, NumberT const& y,
+                            float const& size) {
 
     float response;
     float half_size = size / 2.0;
@@ -127,9 +127,9 @@ namespace vw {
   // - size      = side of the square used for evaluate
   // For an interpolated integral view x and y may be fractional.
   template <class ViewT, class NumberT>
-  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+  inline float VHaarWavelet(ImageViewBase<ViewT> const& integral,
+                            NumberT const& x, NumberT const& y,
+                            float const& size) {
 
     float response;
     float half_size = size / 2.0;

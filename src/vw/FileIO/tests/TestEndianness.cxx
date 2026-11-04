@@ -26,7 +26,7 @@
 using namespace vw;
 using namespace vw::test;
 
-TEST( Endianness, SameEndPNG ) {
+TEST(Endianness, SameEndPNG) {
   // this tests to make sure VW can read images back in in the same
   // endianness it wrote them out in
 
@@ -46,22 +46,22 @@ TEST( Endianness, SameEndPNG ) {
   img3(1,0) = pixel_cast<P16>(three);
   img3(1,1) = pixel_cast<P16>(four);
 
-  EXPECT_EQ(img3(0,0), pixel_cast<P16>(  one));
-  EXPECT_EQ(img3(0,1), pixel_cast<P16>(  two));
+  EXPECT_EQ(img3(0,0), pixel_cast<P16>(one));
+  EXPECT_EQ(img3(0,1), pixel_cast<P16>(two));
   EXPECT_EQ(img3(1,0), pixel_cast<P16>(three));
-  EXPECT_EQ(img3(1,1), pixel_cast<P16>( four));
+  EXPECT_EQ(img3(1,1), pixel_cast<P16>(four));
 
   write_image(fn, img3);
 
   read_image(img4, fn);
 
-  EXPECT_EQ(img4(0,0), pixel_cast<P16>(  one));
-  EXPECT_EQ(img4(0,1), pixel_cast<P16>(  two));
+  EXPECT_EQ(img4(0,0), pixel_cast<P16>(one));
+  EXPECT_EQ(img4(0,1), pixel_cast<P16>(two));
   EXPECT_EQ(img4(1,0), pixel_cast<P16>(three));
-  EXPECT_EQ(img4(1,1), pixel_cast<P16>( four));
+  EXPECT_EQ(img4(1,1), pixel_cast<P16>(four));
 }
 
-TEST( Endianness, DifferentEndPNG ) {
+TEST(Endianness, DifferentEndPNG) {
   // This tests to make sure a ground-truth png is read in with the right
   // endianness.
 

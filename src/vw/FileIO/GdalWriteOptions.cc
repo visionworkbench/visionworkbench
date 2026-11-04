@@ -69,11 +69,11 @@ void GdalWriteOptions::setVwSettingsFromOpt() {
   }
   
   boost::algorithm::to_upper(this->tif_compress);
-  boost::algorithm::trim( this->tif_compress );
-  VW_ASSERT( this->tif_compress == "NONE" || this->tif_compress == "LZW" ||
-             this->tif_compress == "DEFLATE" || this->tif_compress == "PACKBITS",
-             ArgumentErr() << "\"" << this->tif_compress
-             << "\" is not a valid options for TIF_COMPRESS." );
+  boost::algorithm::trim(this->tif_compress);
+  VW_ASSERT(this->tif_compress == "NONE" || this->tif_compress == "LZW" ||
+            this->tif_compress == "DEFLATE" || this->tif_compress == "PACKBITS",
+            ArgumentErr() << "\"" << this->tif_compress
+            << "\" is not a valid options for TIF_COMPRESS.");
   this->gdal_options["COMPRESS"] = this->tif_compress;
   
 }

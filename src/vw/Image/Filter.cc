@@ -32,7 +32,7 @@
 int vw::compute_kernel_size(double sigma){
   // This function is used outside of vw::generate_gaussian_kernel as well.
   int size = (int32)(7*sigma);
-  if( size<3 ) size = 3;
-  else if( size%2==0 ) size -= 1;
+  if(size<3) size = 3;
+  else if(size%2==0) size -= 1;
   return size;
 }

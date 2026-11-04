@@ -83,13 +83,13 @@ namespace math{
   class ConstantStepSize {
     double stepsize;
   public:
-    ConstantStepSize( double stepsize ) : stepsize(stepsize) {}
+    ConstantStepSize(double stepsize) : stepsize(stepsize) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& /*func*/,
-                                            typename FuncT::domain_type const& pos,
-                                            typename FuncT::result_type const& /*val*/,
-                                            typename FuncT::gradient_type const& /*grad*/,
-                                            typename FuncT::gradient_type const& dir ) const {
+    typename FuncT::domain_type operator()(FuncT const& /*func*/,
+                                           typename FuncT::domain_type const& pos,
+                                           typename FuncT::result_type const& /*val*/,
+                                           typename FuncT::gradient_type const& /*grad*/,
+                                           typename FuncT::gradient_type const& dir) const {
       return pos + stepsize * dir;
     }
   };
@@ -99,21 +99,21 @@ namespace math{
     double m_initial_stepsize, m_beta, m_sigma;
     static const int m_max_iterations = 1000;
   public:
-    ArmijoStepSize( double initial_stepsize=1.0, double beta=0.1, double sigma=0.001 )
+    ArmijoStepSize(double initial_stepsize=1.0, double beta=0.1, double sigma=0.001)
       : m_initial_stepsize(initial_stepsize), m_beta(beta), m_sigma(sigma) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& func,
-                                            typename FuncT::domain_type const& pos,
-                                            typename FuncT::result_type const& val,
-                                            typename FuncT::gradient_type const& grad,
-                                            typename FuncT::gradient_type const& dir ) const {
+    typename FuncT::domain_type operator()(FuncT const& func,
+                                           typename FuncT::domain_type const& pos,
+                                           typename FuncT::result_type const& val,
+                                           typename FuncT::gradient_type const& grad,
+                                           typename FuncT::gradient_type const& dir) const {
       double stepsize = m_initial_stepsize;
       double thresh = m_sigma*m_initial_stepsize*dot_prod(grad,dir);
       int count = 0;
-      while( true ) {
+      while(true) {
         typename FuncT::domain_type new_pos = pos + stepsize * dir;
         typename FuncT::result_type new_val = func(new_pos);
-        if( new_val - val <= thresh || count > m_max_iterations ) return new_pos;
+        if(new_val - val <= thresh || count > m_max_iterations) return new_pos;
         //if( ( stepsize < 1e-20 && val-new_val > 0 ) || stepsize < 1e-40 ) {
         //  VW_OUT(DebugMessage, "math") << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
         //  return new_pos;
@@ -130,14 +130,14 @@ namespace math{
     double initial_stepsize;
     double mu, sigma, gamma;
   public:
-    CharalambousStepSize( double initial_stepsize=1.0, double mu=1e-3, double sigma=0.01, double gamma=1e-2 )
+    CharalambousStepSize(double initial_stepsize=1.0, double mu=1e-3, double sigma=0.01, double gamma=1e-2)
       : initial_stepsize(initial_stepsize), mu(mu), sigma(sigma), gamma(gamma) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& func,
-                                            typename FuncT::domain_type const& pos,
-                                            typename FuncT::result_type const& val,
-                                            typename FuncT::gradient_type const& grad,
-                                            typename FuncT::gradient_type const& dir ) const {
+    typename FuncT::domain_type operator()(FuncT const& func,
+                                           typename FuncT::domain_type const& pos,
+                                           typename FuncT::result_type const& val,
+                                           typename FuncT::gradient_type const& grad,
+                                           typename FuncT::gradient_type const& dir) const {
       double stepdelta = initial_stepsize;
       double base_slope = dot_prod(grad,dir);
       double cur_stepsize = 0;
@@ -146,7 +146,7 @@ namespace math{
       VW_OUT(DebugMessage, "math") << "*** CharalambousStepSize ***" << std::endl;
       VW_OUT(DebugMessage, "math") << "Initial val: " << cur_val << std::endl;
       VW_OUT(DebugMessage, "math") << "Initial slope: " << cur_slope << std::endl;
-      while( true ) {
+      while(true) {
         double new_stepsize = cur_stepsize + stepdelta;
         VW_OUT(DebugMessage, "math") << "step: " << new_stepsize << std::endl;
         typename FuncT::domain_type new_pos = pos + new_stepsize * dir;
@@ -155,12 +155,12 @@ namespace math{
         double new_slope = dot_prod(new_grad,dir);
         VW_OUT(DebugMessage, "math") << "val: " << new_val << std::endl;
         VW_OUT(DebugMessage, "math") << "slope: " << new_slope << std::endl;
-        if( new_val <= val + mu*new_stepsize*base_slope && fabs(new_slope) <= -sigma*base_slope ) {
+        if(new_val <= val + mu*new_stepsize*base_slope && fabs(new_slope) <= -sigma*base_slope) {
           VW_OUT(DebugMessage, "math") << "*** ACCEPTING! ***" << std::endl;
           return new_pos;
         }
-        else if( new_slope <= 0 ) {
-          if( new_val >= val ) {
+        else if(new_slope <= 0) {
+          if(new_val >= val) {
             VW_OUT(DebugMessage, "math") << "Too large!" << std::endl;
             stepdelta *= 0.1;
           }
@@ -178,7 +178,7 @@ namespace math{
           double b = 2*(3*(new_val-cur_val) - (2*cur_slope+new_slope)*stepdelta)/(stepdelta*stepdelta);
           VW_OUT(DebugMessage, "math") << "a=" << a << " b=" << b << " c=" << cur_slope << std::endl;
           double step = 0;
-          if( fabs(a)*stepdelta < 1e-4*fabs(b) ) {
+          if(fabs(a)*stepdelta < 1e-4*fabs(b)) {
             VW_OUT(DebugMessage, "math") << "Quadratic" << std::endl;
             step = -cur_slope/b;
           }
@@ -187,8 +187,8 @@ namespace math{
             step = (-b+sqrt(b*b-4*a*cur_slope))/(2*a);
           }
           VW_OUT(DebugMessage, "math") << "Before: " << step << std::endl;
-          if( step < gamma*stepdelta ) step = gamma*stepdelta;
-          else if( step > (1-gamma)*stepdelta ) step = (1-gamma)*stepdelta;
+          if(step < gamma*stepdelta) step = gamma*stepdelta;
+          else if(step > (1-gamma)*stepdelta) step = (1-gamma)*stepdelta;
           VW_OUT(DebugMessage, "math") << "After: " << step << std::endl;
           stepdelta = step;
         }
@@ -198,16 +198,16 @@ namespace math{
 
 
   template <class FuncT, class StepT>
-  typename FuncT::domain_type steepest_descent( FuncT const& func,
-                                                typename FuncT::domain_type const& seed,
-                                                StepT const& step,
-                                                int numiters ) {
+  typename FuncT::domain_type steepest_descent(FuncT const& func,
+                                               typename FuncT::domain_type const& seed,
+                                               StepT const& step,
+                                               int numiters) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);
     VW_OUT(DebugMessage, "math") << "Initial: " << val << std::endl;
-    for( int i=0; i<numiters; ++i ) {
-      typename FuncT::gradient_type grad = func.gradient( pos );
-      pos = step( func, pos, val, grad, -grad );
+    for(int i=0; i<numiters; ++i) {
+      typename FuncT::gradient_type grad = func.gradient(pos);
+      pos = step(func, pos, val, grad, -grad);
       val = func(pos);
       VW_OUT(DebugMessage, "math") << "Step " << i << ": " << val << std::endl;
     }
@@ -216,22 +216,22 @@ namespace math{
 
 
   template <class FuncT, class StepT>
-  typename FuncT::domain_type conjugate_gradient( FuncT const& func,
-                                                  typename FuncT::domain_type const& seed,
-                                                  StepT const& step,
-                                                  int numiters ) {
+  typename FuncT::domain_type conjugate_gradient(FuncT const& func,
+                                                 typename FuncT::domain_type const& seed,
+                                                 StepT const& step,
+                                                 int numiters) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);
     VW_OUT(DebugMessage, "math") << "Initial: " << val << std::endl;
     double last_grad_norm2 = 0;
     typename FuncT::gradient_type last_dir;
-    for( int i=0; i<numiters; ++i ) {
+    for(int i=0; i<numiters; ++i) {
       typename FuncT::gradient_type grad = func.gradient(pos);
       typename FuncT::gradient_type dir = -grad;
       double grad_norm2 = dot_prod(grad,grad);
-      if( i % VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS != 0 && func.dimension() != 0 )
+      if(i % VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS != 0 && func.dimension() != 0)
         dir += (grad_norm2/last_grad_norm2)*last_dir;
-      pos = step( func, pos, val, grad, dir );
+      pos = step(func, pos, val, grad, dir);
       last_grad_norm2 = grad_norm2;
       last_dir = dir;
       val = func(pos);

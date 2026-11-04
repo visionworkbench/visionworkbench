@@ -352,23 +352,23 @@ namespace vw {
 
   /// Write georeferencing information to an image resource.  You should
   /// generally call this prior to writing image data to the resource.
-  void write_georeference( ImageResource& resource, GeoReference const& georef );
+  void write_georeference(ImageResource& resource, GeoReference const& georef);
 
   /// A function to read the value of a variable with given name from a geotiff
   /// file header. Return an empty string on failure.
   std::string read_header_string(std::string filename, std::string const& str_name);
 
   /// A function to read a string with given name from geotiff header
-  bool read_header_string( ImageResource const& resource, std::string const& str_name,
-                           std::string & str_val );
+  bool read_header_string(ImageResource const& resource, std::string const& str_name,
+                          std::string & str_val);
 
   /// A function to read all strings with given name from geotiff header
-  bool read_header_strings( ImageResource const& resource,
-                            std::map<std::string, std::string> & value_pairs);
+  bool read_header_strings(ImageResource const& resource,
+                           std::map<std::string, std::string> & value_pairs);
 
   /// A function to write a a string with given name and value to geotiff header
-  void write_header_string( ImageResource& resource, std::string const& str_name,
-                            std::string const& str_val );
+  void write_header_string(ImageResource& resource, std::string const& str_name,
+                           std::string const& str_val);
 
   // Given an integer box, generate points on its boundary and the
   // diagonal. We assume the max is not exclusive, to ensure even boxes

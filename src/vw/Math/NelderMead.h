@@ -57,7 +57,7 @@ namespace math {
     void insert_vertex(vertex_type vertex) {
       vertex_iterator iter = m_vertices.begin();
 
-      while ( iter != m_vertices.end() && vertex.second < (*iter).second )
+      while (iter != m_vertices.end() && vertex.second < (*iter).second)
         iter++;
 
       m_vertices.insert(iter, vertex);
@@ -77,7 +77,7 @@ namespace math {
     DomainT mean_vertex_location() {
       vertex_iterator iter = m_vertices.begin();
       DomainT mean_location = (*iter).first;
-      while ( ++iter != m_vertices.end())
+      while (++iter != m_vertices.end())
         mean_location += (*iter).first;
 
       return mean_location / m_vertices.size();
@@ -95,20 +95,20 @@ namespace math {
       // other vertices are chosen by picking points in each of the
       // standard unit vector directions.  The distance in each
       // direction is determined by the scale variable.
-      m_vertices.push_front( vertex_type(seed, m_func(seed)) );
+      m_vertices.push_front(vertex_type(seed, m_func(seed)));
 
       for (unsigned i=0; i < seed.size(); ++i) {
         DomainT vertex = seed;
         vertex[i] += scales[i];
-        insert_vertex( vertex_type(vertex, m_func(vertex)) );
+        insert_vertex(vertex_type(vertex, m_func(vertex)));
       }
     }
 
     // Print out the current set of simplex vertices along with the
     // score at each vertex.
     void print_vertices() {
-      for ( vertex_iterator iter = m_vertices.begin();
-            iter != m_vertices.end(); ++iter) {
+      for (vertex_iterator iter = m_vertices.begin();
+           iter != m_vertices.end(); ++iter) {
         VW_OUT(DebugMessage, "math") << "\tSIMPLEX: " << (*iter).first << "[" << (*iter).second << "]   ";
       }
       VW_OUT(InfoMessage, "math") << "\n";
@@ -180,7 +180,7 @@ namespace math {
       }
 
       // Finally, add in the moved vertex back into the simplex.
-      insert_vertex( vertex_type(new_loc, new_val) );
+      insert_vertex(vertex_type(new_loc, new_val));
 
       // ... and return the amount of improvement.
       return highest_vtx.second - new_val;
@@ -188,9 +188,9 @@ namespace math {
   };
 
   template <class FuncT, class DomainT, class ScaleT>
-  DomainT nelder_mead( FuncT const& func, DomainT const& seed, ScaleT const& scale,
-                       int &status, bool verbose = false, int restarts = 1,
-                       double tolerance = 1e-16, int max_iterations = 1000) {
+  DomainT nelder_mead(FuncT const& func, DomainT const& seed, ScaleT const& scale,
+                      int &status, bool verbose = false, int restarts = 1,
+                      double tolerance = 1e-16, int max_iterations = 1000) {
     DomainT result = seed;
     status = optimization::eNelderMeadConvergedRelTolerance;
 
@@ -231,7 +231,7 @@ namespace math {
   }
 
   template <class FuncT, class DomainT>
-    DomainT nelder_mead( FuncT const& func, DomainT const& seed, int &status, bool verbose = false,
+    DomainT nelder_mead(FuncT const& func, DomainT const& seed, int &status, bool verbose = false,
                        int restarts = 1, double tolerance = 1e-16, int max_iterations = 1000) {
     vw::Vector<double> scale(seed.size());
     fill(scale,1.0);

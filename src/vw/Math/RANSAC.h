@@ -70,7 +70,7 @@ namespace math {
     double operator() (RelationT  const& H,
                        ContainerT const& p1,
                        ContainerT const& p2) const {
-      return vw::math::norm_2( p2 - H * p1 );
+      return vw::math::norm_2(p2 - H * p1);
     }
   };
 
@@ -92,7 +92,7 @@ namespace math {
       Vector<double, dim+1> inter_result = H*p1_h;
       // Re-normalizing. This conditional should only throw if H is
       // an homography matrix
-      if ( inter_result[dim] != 1 )
+      if (inter_result[dim] != 1)
         inter_result /= inter_result[dim];
 
       return vw::math::norm_2(p2_h - inter_result);
@@ -145,7 +145,7 @@ namespace math {
       for (int i = 0; i < n; ++i) {
         bool done = false;
         while (!done) {
-          samples[i] = static_cast<int>( (static_cast<double>(std::rand()) / divisor) * size );
+          samples[i] = static_cast<int>((static_cast<double>(std::rand()) / divisor) * size);
           done = true;
           for (int j = 0; j < i; j++)
             if (samples[i] == samples[j])
@@ -224,7 +224,7 @@ namespace math {
           H = attempt_ransac(p1, p2);
           success = true;
           break; 
-        } catch ( const std::exception& e ) { 
+        } catch (const std::exception& e) { 
           vw_out() << e.what() << "\n";
           if (!m_reduce_min_num_output_inliers_if_no_fit) 
             break;
@@ -237,7 +237,7 @@ namespace math {
       }
 
       if (!success) 
-        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data.");
+        vw_throw(RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data.");
 
       return H;
     }
@@ -247,18 +247,18 @@ namespace math {
     typename FittingFuncT::result_type attempt_ransac(std::vector<ContainerT1> const& p1,
                                                       std::vector<ContainerT2> const& p2) const {
 
-      VW_ASSERT( !p1.empty(),
-                 RANSACErr() << "RANSAC Error.  Insufficient data.\n");
-      VW_ASSERT( p1.size() == p2.size(),
-                 RANSACErr() << "RANSAC Error.  Data vectors are not the same size." );
+      VW_ASSERT(!p1.empty(),
+                RANSACErr() << "RANSAC Error.  Insufficient data.\n");
+      VW_ASSERT(p1.size() == p2.size(),
+                RANSACErr() << "RANSAC Error.  Data vectors are not the same size.");
 
       int min_elems_for_fit = m_fitting_func.min_elements_needed_for_fit(p1[0]);
 
-      VW_ASSERT( (int)p1.size() >= min_elems_for_fit,
-                 RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting functor. (" << p1.size() << "/" << min_elems_for_fit << ")\n");
+      VW_ASSERT((int)p1.size() >= min_elems_for_fit,
+                RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting functor. (" << p1.size() << "/" << min_elems_for_fit << ")\n");
 
-      VW_ASSERT( m_min_num_output_inliers >= min_elems_for_fit,
-                 RANSACErr() << "RANSAC Error.  Number of requested inliers is less than min number of elements needed for fit. (" << m_min_num_output_inliers << "/" << min_elems_for_fit << ")\n");
+      VW_ASSERT(m_min_num_output_inliers >= min_elems_for_fit,
+                RANSACErr() << "RANSAC Error.  Number of requested inliers is less than min number of elements needed for fit. (" << m_min_num_output_inliers << "/" << min_elems_for_fit << ")\n");
 
       // Allocate the random indicies before running multiple threads in parallel
       // to ensure a deterministic outcome. It is important that all integers are unique.

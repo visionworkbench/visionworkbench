@@ -56,8 +56,8 @@ namespace math {
 //#  include <Accelerate/Accelerate.h>
    typedef __CLPK_integer f77_int;
 #else
-#  if (defined(VW_HAVE_PKG_FLAPACK)           ) || \
-      (defined(VW_HAVE_PKG_SLAPACK)           ) || \
+#  if (defined(VW_HAVE_PKG_FLAPACK)) || \
+      (defined(VW_HAVE_PKG_SLAPACK)) || \
       (defined(VW_HAVE_PKG_STANDALONE_FLAPACK))
 
     //#pragma message ( "Using Fortran based LAPACK!" )
@@ -65,7 +65,7 @@ namespace math {
     // fortran-based
     typedef int32  f77_int;
 
-#  elif (defined(VW_HAVE_PKG_CLAPACK)                   ) || \
+#  elif (defined(VW_HAVE_PKG_CLAPACK)) || \
         (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS)) || \
         (defined(VW_HAVE_PKG_LAPACK))
 
@@ -176,14 +176,14 @@ namespace math {
                            f77_int *lda, double *b, f77_int *ldb, f77_int *info);
 
     void sgetrf_(f77_int *m, f77_int *n, float *a, f77_int *lda,
-                 f77_int *ipiv, f77_int *info );
+                 f77_int *ipiv, f77_int *info);
     void dgetrf_(f77_int *m, f77_int *n, double *a, f77_int *lda,
-                 f77_int *ipiv, f77_int *info );
+                 f77_int *ipiv, f77_int *info);
 
     void sgetrs_(char *trans, f77_int* n, f77_int *nrhs, float *a, f77_int *lda,
-                 f77_int *ipiv, float *b, f77_int *ldb, f77_int *info );
+                 f77_int *ipiv, float *b, f77_int *ldb, f77_int *info);
     void dgetrs_(char *trans, f77_int* n, f77_int *nrhs, double *a, f77_int *lda,
-                 f77_int *ipiv, double *b, f77_int *ldb, f77_int *info );
+                 f77_int *ipiv, double *b, f77_int *ldb, f77_int *info);
   } // end extern "C"
   } // anon namespace
 #endif

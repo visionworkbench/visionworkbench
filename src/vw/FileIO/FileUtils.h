@@ -21,10 +21,10 @@ namespace vw{
   void create_out_dir(std::string out_prefix);
 
   /// Strip the directory out of a file path
-  std::string strip_directory( std::string const& input);
+  std::string strip_directory(std::string const& input);
 
   /// Strip the directory and extension out of a file path
-  std::string strip_directory_and_extension( std::string const& input);
+  std::string strip_directory_and_extension(std::string const& input);
   
   /// Returns the folder of the provided path.
   std::string get_folder(std::string const& input);

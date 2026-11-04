@@ -43,24 +43,24 @@ namespace vw {
   public:
 
     /// Default constructor. Constructs an empty sphere.
-    SphereBase() : m_empty( true ) {}
+    SphereBase() : m_empty(true) {}
 
     /// Constructs a sphere with the given center and radius.
     template <class VectorT>
-    SphereBase( VectorBase<VectorT> const& center, RealT radius ) :
-      m_center( center ), m_radius( radius ), m_empty( false ) {}
+    SphereBase(VectorBase<VectorT> const& center, RealT radius) :
+      m_center(center), m_radius(radius), m_empty(false) {}
 
     /// Constructs a 2D sphere with the given center point
     /// coordinates and radius.  (Only valid for 2D spheres.)
-    SphereBase( RealT centerx, RealT centery, RealT radius )
-      : m_center( Vector<RealT,2>(centerx,centery) ),
-        m_radius( radius ), m_empty( false ) {}
+    SphereBase(RealT centerx, RealT centery, RealT radius)
+      : m_center(Vector<RealT,2>(centerx,centery)),
+        m_radius(radius), m_empty(false) {}
 
     /// Constructs a 3D sphere with the given center point
     /// coordinates and radius.  (Only valid for 3D spheres.)
-    SphereBase( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : m_center( Vector<RealT,3>(centerx,centery,centerz) ),
-        m_radius( radius ), m_empty( false ) {}
+    SphereBase(RealT centerx, RealT centery, RealT centerz, RealT radius)
+      : m_center(Vector<RealT,3>(centerx,centery,centerz)),
+        m_radius(radius), m_empty(false) {}
 
     /// Returns the derived implementation type.
     SphereT& impl() { return *static_cast<SphereT*>(this); }
@@ -70,7 +70,7 @@ namespace vw {
 
     /// Grows a sphere to include the given point.
     template <class VectorT>
-    void grow( VectorBase<VectorT> const& point ) {
+    void grow(VectorBase<VectorT> const& point) {
       VW_ASSERT(m_center.size() == 0 || point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
       if (empty()) {
         m_center = point;
@@ -94,7 +94,7 @@ namespace vw {
 
     /// Grows a sphere to include the given sphere.
     template <class SphereT1, class RealT1, int DimN1>
-    void grow( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
+    void grow(SphereBase<SphereT1, RealT1, DimN1> const& sphere) {
       if (sphere.empty())
         return;
       if (empty()) {
@@ -110,7 +110,7 @@ namespace vw {
 
     /// Crops (intersects) this sphere to the given sphere.
     template <class SphereT1, class RealT1, int DimN1>
-    void crop( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
+    void crop(SphereBase<SphereT1, RealT1, DimN1> const& sphere) {
       if (empty() || sphere.empty())
         return;
       Vector<RealT, DimN> v = sphere.center_() - m_center;
@@ -148,20 +148,20 @@ namespace vw {
     }
 
     /// Expands this sphere by the given offset in every direction.
-    void expand( RealT offset ) {
+    void expand(RealT offset) {
       if (!empty())
         m_radius += offset;
     }
 
     /// Contracts this sphere by the given offset in every direction.
-    void contract( RealT offset ) {
+    void contract(RealT offset) {
       if (!empty())
         m_radius -= offset;
     }
 
     /// Returns true if the given point is contained in the sphere.
     template <class VectorT>
-    bool contains( const VectorBase<VectorT> &point ) const {
+    bool contains(const VectorBase<VectorT> &point) const {
       VW_ASSERT(m_center.size() == 0 || point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
       return (!empty() && (norm_2(m_center - point) <= (double)m_radius));
     }
@@ -169,14 +169,14 @@ namespace vw {
     /// Returns true if the given sphere is entirely contained
     /// in this sphere.
     template <class SphereT1, class RealT1, int DimN1>
-    bool contains( const SphereBase<SphereT1, RealT1, DimN1> &sphere ) const {
+    bool contains(const SphereBase<SphereT1, RealT1, DimN1> &sphere) const {
       return (!empty() && !sphere.empty() && (norm_2(m_center - sphere.center_()) <= (double)(m_radius - sphere.radius())));
     }
 
     /// Returns true if the given sphere intersects this
     /// sphere.
     template <class SphereT1, class RealT1, int DimN1>
-    bool intersects( const SphereBase<SphereT1, RealT1, DimN1>& sphere ) const {
+    bool intersects(const SphereBase<SphereT1, RealT1, DimN1>& sphere) const {
       return (!empty() && !sphere.empty() && (norm_2(m_center - sphere.center_()) <= (double)(m_radius + sphere.radius())));
     }
 
@@ -206,7 +206,7 @@ namespace vw {
 
     /// Scales the sphere relative to the origin.
     template <class ScalarT>
-    SphereBase& operator*=( ScalarT s ) {
+    SphereBase& operator*=(ScalarT s) {
       m_center *= s;
       m_radius *= s;
       return *this;
@@ -214,7 +214,7 @@ namespace vw {
 
     /// Scales the sphere relative to the origin.
     template <class ScalarT>
-    SphereBase& operator/=( ScalarT s ) {
+    SphereBase& operator/=(ScalarT s) {
       m_center /= s;
       m_radius /= s;
       return *this;
@@ -222,14 +222,14 @@ namespace vw {
 
     /// Offsets the sphere by the given vector.
     template <class VectorT>
-    SphereBase& operator+=( VectorBase<VectorT> const& v ) {
+    SphereBase& operator+=(VectorBase<VectorT> const& v) {
       m_center += v;
       return *this;
     }
 
     /// Offsets the sphere by the negation of the given vector.
     template <class VectorT>
-    SphereBase& operator-=( VectorBase<VectorT> const& v ) {
+    SphereBase& operator-=(VectorBase<VectorT> const& v) {
       m_center -= v;
       return *this;
     }
@@ -242,7 +242,7 @@ namespace vw {
 
   /// Scales a sphere relative to the origin.
   template <class SphereT, class RealT, int DimN, class ScalarT>
-  inline SphereT operator*( SphereBase<SphereT, RealT, DimN> const& sphere, ScalarT s ) {
+  inline SphereT operator*(SphereBase<SphereT, RealT, DimN> const& sphere, ScalarT s) {
     SphereT result = sphere.impl();
     result *= s;
     return result;
@@ -250,7 +250,7 @@ namespace vw {
 
   /// Scales a sphere relative to the origin.
   template <class SphereT, class RealT, int DimN, class ScalarT>
-  inline SphereT operator/( SphereBase<SphereT, RealT, DimN> const& sphere, ScalarT s ) {
+  inline SphereT operator/(SphereBase<SphereT, RealT, DimN> const& sphere, ScalarT s) {
     SphereT result = sphere.impl();
     result /= s;
     return result;
@@ -258,13 +258,13 @@ namespace vw {
 
   /// Scales a sphere relative to the origin.
   template <class SphereT, class RealT, int DimN, class ScalarT>
-  inline SphereT operator*( ScalarT s, SphereBase<SphereT, RealT, DimN> const& sphere ) {
+  inline SphereT operator*(ScalarT s, SphereBase<SphereT, RealT, DimN> const& sphere) {
     return sphere * s;
   }
 
   /// Offsets a sphere by the given vector.
   template <class SphereT, class RealT, int DimN, class VectorT>
-  inline SphereT operator+( SphereBase<SphereT, RealT, DimN> const& sphere, VectorBase<VectorT> const& v ) {
+  inline SphereT operator+(SphereBase<SphereT, RealT, DimN> const& sphere, VectorBase<VectorT> const& v) {
     SphereT result = sphere.impl();
     result += v.impl();
     return result;
@@ -272,13 +272,13 @@ namespace vw {
 
   /// Offsets a sphere by the given vector.
   template <class SphereT, class RealT, int DimN, class VectorT>
-  inline SphereT operator+( VectorBase<VectorT> const& v, SphereBase<SphereT, RealT, DimN> const& sphere ) {
+  inline SphereT operator+(VectorBase<VectorT> const& v, SphereBase<SphereT, RealT, DimN> const& sphere) {
     return sphere + v;
   }
 
   /// Offsets a sphere by the negation of the given vector.
   template <class SphereT, class RealT, int DimN, class VectorT>
-  inline SphereT operator-( SphereBase<SphereT, RealT, DimN> const& sphere, VectorBase<VectorT> const& v ) {
+  inline SphereT operator-(SphereBase<SphereT, RealT, DimN> const& sphere, VectorBase<VectorT> const& v) {
     SphereT result = sphere.impl();
     result -= v.impl();
     return result;
@@ -286,19 +286,19 @@ namespace vw {
 
   /// Equality of two spheres.
   template <class SphereT1, class RealT1, int DimN1, class SphereT2, class RealT2, int DimN2>
-  inline bool operator==( SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2 ) {
+  inline bool operator==(SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2) {
     return sphere1.center_()==sphere2.center_() && sphere1.radius()==sphere2.radius();
   }
 
   /// Inequality of two spheres.
   template <class SphereT1, class RealT1, int DimN1, class SphereT2, class RealT2, int DimN2>
-  inline bool operator!=( SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2 ) {
+  inline bool operator!=(SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2) {
     return sphere1.center_()!=sphere2.center_() || sphere1.radius()!=sphere2.radius();
   }
 
   /// Writes a sphere to an ostream.
   template <class SphereT, class RealT, int DimN>
-  std::ostream& operator<<( std::ostream& os, SphereBase<SphereT,RealT,DimN> const& sphere ) {
+  std::ostream& operator<<(std::ostream& os, SphereBase<SphereT,RealT,DimN> const& sphere) {
     return os << "(" << sphere.center_() << "-" << sphere.radius() << ")";
   }
 
@@ -317,31 +317,31 @@ namespace vw {
 
     /// Constructs a sphere with the given center and radius.
     template <class VectorT>
-    Sphere( VectorBase<VectorT> const& center, RealT radius ) :
-      SphereBase<Sphere<RealT, DimN>, RealT, DimN>( center, radius ) {}
+    Sphere(VectorBase<VectorT> const& center, RealT radius) :
+      SphereBase<Sphere<RealT, DimN>, RealT, DimN>(center, radius) {}
 
     /// Constructs a 2D sphere with the given center point
     /// coordinates and radius.  (Only valid for 2D spheres.)
-    Sphere( RealT centerx, RealT centery, RealT radius )
-      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>( centerx, centery, radius ) {
-      BOOST_STATIC_ASSERT( DimN==2 );
+    Sphere(RealT centerx, RealT centery, RealT radius)
+      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>(centerx, centery, radius) {
+      BOOST_STATIC_ASSERT(DimN==2);
     }
 
     /// Constructs a 3D sphere with the given center point
     /// coordinates and radius.  (Only valid for 3D spheres.)
-    Sphere( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>( centerx, centery, centerz, radius ) {
-      BOOST_STATIC_ASSERT( DimN==3 );
+    Sphere(RealT centerx, RealT centery, RealT centerz, RealT radius)
+      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>(centerx, centery, centerz, radius) {
+      BOOST_STATIC_ASSERT(DimN==3);
     }
 
     /// Copy constructor.
     template <class SphereT1, class RealT1, int DimN1>
-    Sphere( SphereBase<SphereT1, RealT1, DimN1> const& sphere )
-      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>( sphere.center_() , sphere.radius() ) {}
+    Sphere(SphereBase<SphereT1, RealT1, DimN1> const& sphere)
+      : SphereBase<Sphere<RealT, DimN>, RealT, DimN>(sphere.center_(), sphere.radius()) {}
 
     /// Copy assignment operator.
     template <class SphereT1, class RealT1, int DimN1>
-    Sphere& operator=( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
+    Sphere& operator=(SphereBase<SphereT1, RealT1, DimN1> const& sphere) {
       this->center_() = sphere.center_();
       this->radius() = sphere.radius();
       this->m_empty = sphere.empty();
@@ -360,27 +360,27 @@ namespace vw {
 
     /// Constructs a sphere with the given center and radius.
     template <class VectorT>
-    Sphere( VectorBase<VectorT> const& center, RealT radius ) :
-      SphereBase<Sphere<RealT, 0>, RealT, 0>( center, radius ) {}
+    Sphere(VectorBase<VectorT> const& center, RealT radius) :
+      SphereBase<Sphere<RealT, 0>, RealT, 0>(center, radius) {}
 
     /// Constructs a 2D sphere with the given center point
     /// coordinates and radius.  (Only valid for 2D spheres.)
-    Sphere( RealT centerx, RealT centery, RealT radius )
-      : SphereBase<Sphere<RealT, 0>, RealT, 0>( centerx, centery, radius ) {}
+    Sphere(RealT centerx, RealT centery, RealT radius)
+      : SphereBase<Sphere<RealT, 0>, RealT, 0>(centerx, centery, radius) {}
 
     /// Constructs a 3D sphere with the given center point
     /// coordinates and radius.  (Only valid for 3D spheres.)
-    Sphere( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : SphereBase<Sphere<RealT, 0>, RealT, 0>( centerx, centery, centerz, radius ) {}
+    Sphere(RealT centerx, RealT centery, RealT centerz, RealT radius)
+      : SphereBase<Sphere<RealT, 0>, RealT, 0>(centerx, centery, centerz, radius) {}
 
     /// Copy constructor.
     template <class SphereT1, class RealT1, int DimN1>
-    Sphere( SphereBase<SphereT1, RealT1, DimN1> const& sphere )
-      : SphereBase<Sphere<RealT, 0>, RealT, 0>( sphere.center_() , sphere.radius() ) {}
+    Sphere(SphereBase<SphereT1, RealT1, DimN1> const& sphere)
+      : SphereBase<Sphere<RealT, 0>, RealT, 0>(sphere.center_(), sphere.radius()) {}
 
     /// Copy assignment operator.
     template <class SphereT1, class RealT1, int DimN1>
-    Sphere& operator=( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
+    Sphere& operator=(SphereBase<SphereT1, RealT1, DimN1> const& sphere) {
       this->center_() = sphere.center_();
       this->radius() = sphere.radius();
       this->m_empty = sphere.empty();

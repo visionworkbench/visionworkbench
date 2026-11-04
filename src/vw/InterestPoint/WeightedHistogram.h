@@ -36,7 +36,7 @@ namespace vw {
 /// The kernel size may be specified; if it is not then the default
 /// value of zero indicates the kernel size should be computed from sigma.
 template <class KernelT>
-int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
+int make_gaussian_kernel_2d(KernelT& kernel, float sigma, int usewidth=0) {
   std::vector<float> kernel_1d;
   generate_gaussian_kernel(kernel_1d, sigma, usewidth);
   int kerwidth = kernel_1d.size();

@@ -37,11 +37,11 @@ struct dPoint{
 
 
 inline bool operator< (dPoint P, dPoint Q){
-  return ( P.x < Q.x ) || (P.x == Q.x && P.y < Q.y);
+  return (P.x < Q.x) || (P.x == Q.x && P.y < Q.y);
 }
 
 inline bool greaterThan (dPoint P, dPoint Q){
-  return ( P.x > Q.x ) || (P.x == Q.x && P.y > Q.y);
+  return (P.x > Q.x) || (P.x == Q.x && P.y > Q.y);
 }
 
 struct anno {
@@ -133,7 +133,7 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
   }
 
   inline bool operator==(segDist s, segDist t){
-    return ( s.dist == t.dist ) && ( s.begx == t.begx ) && ( s.begy == t.begy );
+    return (s.dist == t.dist) && (s.begx == t.begx) && (s.begy == t.begy);
   }
 
   inline std::ostream& operator<<(std::ostream & output, const segDist & S) {

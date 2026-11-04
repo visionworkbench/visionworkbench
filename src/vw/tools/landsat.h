@@ -108,11 +108,11 @@ public: // Definitions
 public: // Functions
 
   /// Constructor
-  SplitChannelFileView( std::vector<std::string> const& input_files)
+  SplitChannelFileView(std::vector<std::string> const& input_files)
                   : m_input_files(input_files){
     // Verify that the correct number of input files were passed in.
     if (input_files.size() != N)
-      vw_throw( ArgumentErr() << "SplitChannelFileView created with incorrect number of input files!\n");
+      vw_throw(ArgumentErr() << "SplitChannelFileView created with incorrect number of input files!\n");
       
     // Record the image size to save time later
     boost::shared_ptr<vw::DiskImageResource> resource1(vw::DiskImageResourcePtr(input_files[0]));
@@ -124,8 +124,8 @@ public: // Functions
       boost::shared_ptr<vw::DiskImageResource> resource2(vw::DiskImageResourcePtr(input_files[i]));
             
       if ((m_cols != static_cast<int>(resource2->format().cols)) || 
-          (m_rows != static_cast<int>(resource2->format().rows))   )
-        vw_throw( ArgumentErr() << "SplitChannelFileView: Input files must all be the same size!\n");
+          (m_rows != static_cast<int>(resource2->format().rows)))
+        vw_throw(ArgumentErr() << "SplitChannelFileView: Input files must all be the same size!\n");
     }
   }
 
@@ -133,17 +133,17 @@ public: // Functions
   inline int32 rows  () const { return m_rows; }
   inline int32 planes() const { return 1; }
 
-  inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { 
-    vw_throw( NoImplErr() << "SplitChannelFileView: () function not implemented!\n");
+  inline result_type operator()(int32 i, int32 j, int32 p=0) const { 
+    vw_throw(NoImplErr() << "SplitChannelFileView: () function not implemented!\n");
     return result_type();
   }
 
  
   typedef ProceduralPixelAccessor<SplitChannelFileView<T, N> > pixel_accessor;
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
   typedef CropView<ImageView<result_type> > prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
     // Init the tile
     ImageView<result_type> tile(bbox.width(), bbox.height());
     
@@ -159,8 +159,8 @@ public: // Functions
   } // End prerasterize function
 
  template <class DestT>
- inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-   vw::rasterize( prerasterize(bbox), dest, bbox );
+ inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+   vw::rasterize(prerasterize(bbox), dest, bbox);
  }
  
 private: // Variables
@@ -215,7 +215,7 @@ void load_landsat_image(LandsatImage &image, std::vector<std::string> const& ima
       }
     }
     if (!found)
-      vw_throw( ArgumentErr() << "Error: No input file contained landsat channel " << chan+1<< "\n");
+      vw_throw(ArgumentErr() << "Error: No input file contained landsat channel " << chan+1<< "\n");
   } // End loop for finding input channels
 
   // Set up image view object which reads from the input files
@@ -276,7 +276,7 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
   // Find the metadata file
   std::string metadata_path = find_string_in_list(image_files,".txt");
   if (metadata_path.empty())
-    vw_throw( ArgumentErr() << "Error: Landsat metadata file not found!\n");
+    vw_throw(ArgumentErr() << "Error: Landsat metadata file not found!\n");
 
   metadata.sun_elevation_degrees = 0; // Init to flag value
 
@@ -316,7 +316,7 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
   handle.close();
 
   if ((metadata.sun_elevation_degrees == 0) || (metadata.toa_mult[0] == 0))
-    vw_throw( ArgumentErr() << "Error: Failed to read in required metadata!\n");
+    vw_throw(ArgumentErr() << "Error: Failed to read in required metadata!\n");
     
   // Correct the TOA conversions to account for sun elevation angle
   double sun_elevation_radians = DEG_TO_RAD*metadata.sun_elevation_degrees;
@@ -340,7 +340,7 @@ void load_landsat_georef(std::vector<std::string> const& image_files,
       return;
   }
   
-  vw_throw( ArgumentErr() << "Failed to load georef from any input Landsat channel!\n");
+  vw_throw(ArgumentErr() << "Failed to load georef from any input Landsat channel!\n");
 }
 
 /// Convert an input landsat pixel to top-of-atmosphere.
@@ -369,7 +369,7 @@ public:
   LandsatToaFunctor(LandsatMetadataContainer const& metadata)
    : m_metadata(metadata) {}
   
-  LandsatToaPixelType operator()( LandsatPixelType const& pixel) const {
+  LandsatToaPixelType operator()(LandsatPixelType const& pixel) const {
     return convert_to_toa(pixel, m_metadata);
   }
 };
@@ -377,21 +377,21 @@ public:
 
 /// Compute the Floating Algae Index
 struct detect_water_fai_functor {
-  bool operator()( LandsatToaPixelType const& pixel) const {
+  bool operator()(LandsatToaPixelType const& pixel) const {
     return pixel[NIR] + (pixel[RED] + (pixel[SWIR1] - pixel[RED])*(170/990));
   }
 };
 
 /// Compute NDTI (Turbidity) index
 struct detect_water_ndti_functor {
-  bool operator()( LandsatToaPixelType const& pixel) const {
+  bool operator()(LandsatToaPixelType const& pixel) const {
     return compute_index(pixel[RED], pixel[GREEN]);
   }
 };
 
 /// Compute NDSI index
 struct detect_water_ndsi_functor {
-  bool operator()( LandsatToaPixelType const& pixel) const {
+  bool operator()(LandsatToaPixelType const& pixel) const {
     return compute_index(pixel[GREEN], pixel[SWIR1]);
   }
 };
@@ -495,7 +495,7 @@ public:
   DetectWaterLandsatFunctor(float sun_elevation_degrees=45, double sensitivity=1.0)
    : m_water_thresh(compute_water_threshold(sun_elevation_degrees)*sensitivity) {}
   
-  uint8 operator()( LandsatToaPixelType const& pixel) const {
+  uint8 operator()(LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel)){
       if (detect_water(pixel) > m_water_thresh)
         return FLOOD_DETECT_WATER;
@@ -510,7 +510,7 @@ public:
 /// DEBUG class to output the raw water detection score.
 class DetectWaterLandsatFunctorScore  : public ReturnFixedType<float> {
 public: 
-  float operator()( LandsatToaPixelType const& pixel) const {
+  float operator()(LandsatToaPixelType const& pixel) const {
     if (is_valid(pixel))
       return detect_water(pixel);
     else

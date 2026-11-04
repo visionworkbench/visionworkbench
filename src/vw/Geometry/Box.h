@@ -53,35 +53,35 @@ namespace vw {
     Box() {}
 
     /// Constructs a box with the given minimal and maximal points.
-    Box( Vector<RealT, DimN> const& min, Vector<RealT, DimN> const& max )
-      : BBox<RealT, DimN>( min, max ) {}
+    Box(Vector<RealT, DimN> const& min, Vector<RealT, DimN> const& max)
+      : BBox<RealT, DimN>(min, max) {}
 
     /// Constructs a 2D box with the given minimal point coordinates
     /// and dimensions.  (Only valid for 2D boxes.)
-    Box( RealT minx, RealT miny, RealT width, RealT height )
-      : BBox<RealT, DimN>( Vector<RealT,2>(minx,miny),
-                           Vector<RealT,2>(minx+width,miny+height) )
+    Box(RealT minx, RealT miny, RealT width, RealT height)
+      : BBox<RealT, DimN>(Vector<RealT,2>(minx,miny),
+                          Vector<RealT,2>(minx+width,miny+height))
     {
-      BOOST_STATIC_ASSERT( DimN==2 );
+      BOOST_STATIC_ASSERT(DimN==2);
     }
 
     /// Constructs a 3D box with the given minimal point coordinates
     /// and dimensions.  (Only valid for 3D boxes.)
-    Box( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
-      : BBox<RealT, DimN>( Vector<RealT,3>(minx,miny,minz),
-                           Vector<RealT,3>(minx+width,miny+height,minz+depth) )
+    Box(RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth)
+      : BBox<RealT, DimN>(Vector<RealT,3>(minx,miny,minz),
+                          Vector<RealT,3>(minx+width,miny+height,minz+depth))
     {
-      BOOST_STATIC_ASSERT( DimN==3 );
+      BOOST_STATIC_ASSERT(DimN==3);
     }
 
     /// Generalized copy constructor.
     template <class RealT1, int DimN1>
-    Box( BBox<RealT1, DimN1> const& bbox )
-      : BBox<RealT, DimN>( bbox.min(), bbox.max() ) {}
+    Box(BBox<RealT1, DimN1> const& bbox)
+      : BBox<RealT, DimN>(bbox.min(), bbox.max()) {}
 
     /// Generalized copy assignment operator.
     template <class RealT1, int DimN1>
-    Box& operator=( BBox<RealT1, DimN1> const& bbox ) {
+    Box& operator=(BBox<RealT1, DimN1> const& bbox) {
       this->min() = bbox.min();
       this->max() = bbox.max();
       return *this;
@@ -93,7 +93,7 @@ namespace vw {
     }
 
     /// Writes the box.
-    void write( std::ostream& os = std::cout, bool binary = false ) const {
+    void write(std::ostream& os = std::cout, bool binary = false) const {
       std::vector<Vector<RealT, DimN> > points;
       points.push_back(this->min());
       points.push_back(this->max());
@@ -101,14 +101,14 @@ namespace vw {
     }
 
     /// Writes the box.
-    void write( const char *fn, bool binary = false ) const {
+    void write(const char *fn, bool binary = false) const {
       if (binary) {
-        std::ofstream of( fn, std::ofstream::out | std::ofstream::binary );
+        std::ofstream of(fn, std::ofstream::out | std::ofstream::binary);
         write(of, binary);
         of.close();
       }
       else {
-        std::ofstream of( fn );
+        std::ofstream of(fn);
         write(of, binary);
         of.close();
       }
@@ -118,52 +118,52 @@ namespace vw {
 
   /// Scales a box relative to the origin.
   template <class RealT, int DimN, class ScalarT>
-  inline Box<RealT, DimN> operator*( Box<RealT, DimN> const& box, ScalarT s ) {
+  inline Box<RealT, DimN> operator*(Box<RealT, DimN> const& box, ScalarT s) {
     return box.bbox() * s;
   }
 
   /// Scales a box relative to the origin.
   template <class RealT, int DimN, class ScalarT>
-  inline Box<RealT, DimN> operator/( Box<RealT, DimN> const& box, ScalarT s ) {
+  inline Box<RealT, DimN> operator/(Box<RealT, DimN> const& box, ScalarT s) {
     return box.bbox() / s;
   }
 
   /// Scales a box relative to the origin.
   template <class RealT, int DimN, class ScalarT>
-  inline Box<RealT, DimN> operator*( ScalarT s, Box<RealT, DimN> const& box ) {
+  inline Box<RealT, DimN> operator*(ScalarT s, Box<RealT, DimN> const& box) {
     return s * box.bbox();
   }
 
   /// Translates a box by the given vector.
   template <class RealT, int DimN, class VectorT>
-  inline Box<RealT, DimN> operator+( Box<RealT, DimN> const& box, VectorBase<VectorT> const& v ) {
+  inline Box<RealT, DimN> operator+(Box<RealT, DimN> const& box, VectorBase<VectorT> const& v) {
     return box.bbox() + v;
   }
 
   /// Translates a box by the given vector.
   template <class RealT, int DimN, class VectorT>
-  inline Box<RealT, DimN> operator+( VectorBase<VectorT> const& v, Box<RealT, DimN> const& box ) {
+  inline Box<RealT, DimN> operator+(VectorBase<VectorT> const& v, Box<RealT, DimN> const& box) {
     return v + box.bbox();
   }
 
   /// Translates a box by the negation of the given vector.
   template <class RealT, int DimN, class VectorT>
-  inline Box<RealT, DimN> operator-( Box<RealT, DimN> const& box, VectorBase<VectorT> const& v ) {
+  inline Box<RealT, DimN> operator-(Box<RealT, DimN> const& box, VectorBase<VectorT> const& v) {
     return box.bbox() - v;
   }
 
   /// Writes a box to a file.
   template <class RealT, int DimN>
-  void write_box( std::string const& filename, Box<RealT,DimN> const& box, bool binary = false ) {
+  void write_box(std::string const& filename, Box<RealT,DimN> const& box, bool binary = false) {
     box.write(filename.c_str(), binary);
   }
 
   /// Reads a box from a file.
   template <class RealT, int DimN>
-  void read_box( std::string const& filename, Box<RealT,DimN>& box, bool binary = false ) {
+  void read_box(std::string const& filename, Box<RealT,DimN>& box, bool binary = false) {
     std::vector<Vector<RealT,DimN> > points;
     read_point_list(filename, points, binary);
-    VW_ASSERT( points.size() == 2, IOErr() << "Incorrect number of points in box file!" );
+    VW_ASSERT(points.size() == 2, IOErr() << "Incorrect number of points in box file!");
     box = Box<RealT,DimN>(points[0], points[1]);
   }
 

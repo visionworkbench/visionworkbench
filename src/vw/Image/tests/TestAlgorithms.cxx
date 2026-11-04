@@ -34,122 +34,122 @@ using namespace vw;
 
 typedef PixelRGB<double> PixelT;
 
-TEST( Algorithms, Fill ) {
+TEST(Algorithms, Fill) {
   PixelT fillval(1,2,3);
   ImageView<PixelT> fl(2,1);
-  fill( fl, fillval );
+  fill(fl, fillval);
 
-  EXPECT_PIXEL_EQ( fillval, fl(0,0) );
-  EXPECT_PIXEL_EQ( fillval, fl(1,0) );
+  EXPECT_PIXEL_EQ(fillval, fl(0,0));
+  EXPECT_PIXEL_EQ(fillval, fl(1,0));
 }
 
-TEST( Algorithms, Clamp ) {
+TEST(Algorithms, Clamp) {
   ImageView<PixelT> im(2,1);
   im(0,0) = PixelT(0.5,0.9,1.5);
   im(1,0) = PixelT(-1,0,1);
 
   ImageView<PixelT> c1 = clamp(im,-0.2,0.2);
-  EXPECT_PIXEL_EQ( PixelT(0.2, 0.2, 0.2), c1(0,0) );
-  EXPECT_PIXEL_EQ( PixelT(-0.2, 0.0, 0.2), c1(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(0.2, 0.2, 0.2), c1(0,0));
+  EXPECT_PIXEL_EQ(PixelT(-0.2, 0.0, 0.2), c1(1,0));
 
   ImageView<PixelT> c2 = clamp(im,0.8);
-  EXPECT_PIXEL_EQ( PixelT(0.5, 0.8, 0.8), c2(0,0) );
-  EXPECT_PIXEL_EQ( PixelT(0.0, 0.0, 0.8), c2(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(0.5, 0.8, 0.8), c2(0,0));
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.0, 0.8), c2(1,0));
 
   ImageView<PixelT> c3 = clamp(im);
-  EXPECT_PIXEL_EQ( PixelT(0.5, 0.9, 1.0), c3(0,0) );
-  EXPECT_PIXEL_EQ( PixelT(0.0, 0.0, 1.0), c3(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(0.5, 0.9, 1.0), c3(0,0));
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.0, 1.0), c3(1,0));
 }
 
-TEST( Algorithms, Normalize ) {
+TEST(Algorithms, Normalize) {
   ImageView<PixelT > im(2,1);
   im(0,0) = PixelT(0.5,1.5,2.5);
   im(1,0) = PixelT(-1.5,0,1);
 
   ImageView<PixelT > n1 = normalize(im,-0.2,0.2);
-  EXPECT_PIXEL_NEAR( PixelT(0.0, 0.1, 0.2), n1(0,0), 1e-7 );
-  EXPECT_PIXEL_NEAR( PixelT(-0.2, -0.05, 0.05), n1(1,0), 1e-7 );
+  EXPECT_PIXEL_NEAR(PixelT(0.0, 0.1, 0.2), n1(0,0), 1e-7);
+  EXPECT_PIXEL_NEAR(PixelT(-0.2, -0.05, 0.05), n1(1,0), 1e-7);
 
   ImageView<PixelT > n2 = normalize(im,0.8);
-  EXPECT_PIXEL_NEAR( PixelT(0.4, 0.6, 0.8), n2(0,0), 1e-7 );
-  EXPECT_PIXEL_NEAR( PixelT(0.0, 0.3, 0.5), n2(1,0), 1e-7 );
+  EXPECT_PIXEL_NEAR(PixelT(0.4, 0.6, 0.8), n2(0,0), 1e-7);
+  EXPECT_PIXEL_NEAR(PixelT(0.0, 0.3, 0.5), n2(1,0), 1e-7);
 
   ImageView<PixelT > n3 = normalize(im);
-  EXPECT_PIXEL_NEAR( PixelT(0.5, 0.75, 1.0), n3(0,0), 1e-7 );
-  EXPECT_PIXEL_NEAR( PixelT(0.0, 0.375, 0.625), n3(1,0), 1e-7 );
+  EXPECT_PIXEL_NEAR(PixelT(0.5, 0.75, 1.0), n3(0,0), 1e-7);
+  EXPECT_PIXEL_NEAR(PixelT(0.0, 0.375, 0.625), n3(1,0), 1e-7);
 
   ImageView<PixelT > n4 = normalize(im,0,1,-2,2);
-  EXPECT_PIXEL_NEAR( PixelT(0, 4, 8), n4(0,0), 1e-7 );
-  EXPECT_PIXEL_NEAR( PixelT(-8,-2,2), n4(1,0), 1e-7 );
+  EXPECT_PIXEL_NEAR(PixelT(0, 4, 8), n4(0,0), 1e-7);
+  EXPECT_PIXEL_NEAR(PixelT(-8,-2,2), n4(1,0), 1e-7);
 
   // Int16 version
   ImageView<int16> im2(4,1);
   im2(0,0) = -30000; im2(1,0) = -15000;
   im2(2,0) =  15000; im2(3,0) =  30000;
   ImageView<int16> out2 = normalize(im2,-30000,30000,0,30000);
-  EXPECT_EQ( int16(    0), out2(0,0));
-  EXPECT_EQ( int16( 7500), out2(1,0));
-  EXPECT_EQ( int16(22500), out2(2,0));
-  EXPECT_EQ( int16(30000), out2(3,0));
+  EXPECT_EQ(int16(0), out2(0,0));
+  EXPECT_EQ(int16(7500), out2(1,0));
+  EXPECT_EQ(int16(22500), out2(2,0));
+  EXPECT_EQ(int16(30000), out2(3,0));
 }
 
-TEST( Algorithms, Threshold ) {
+TEST(Algorithms, Threshold) {
   ImageView<PixelT > im(2,1);
   im(0,0) = PixelT(0.5,1.5,2.5);
   im(1,0) = PixelT(-1.5,0,1);
 
   ImageView<PixelT > t1 = threshold(im,0.5,-0.2,0.2);
-  EXPECT_PIXEL_EQ( PixelT( -0.2, 0.2, 0.2 ), t1(0,0) );
-  EXPECT_PIXEL_EQ( PixelT( -0.2, -0.2, 0.2 ), t1(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(-0.2, 0.2, 0.2), t1(0,0));
+  EXPECT_PIXEL_EQ(PixelT(-0.2, -0.2, 0.2), t1(1,0));
 
   ImageView<PixelT > t2 = threshold(im,0.6,0.8);
-  EXPECT_PIXEL_EQ( PixelT( 0.0, 0.8, 0.8 ), t2(0,0) );
-  EXPECT_PIXEL_EQ( PixelT( 0.0, 0.0, 0.8 ), t2(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.8, 0.8), t2(0,0));
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.0, 0.8), t2(1,0));
 
   ImageView<PixelT > t3 = threshold(im,0.6);
-  EXPECT_PIXEL_EQ( PixelT( 0.0, 1.0, 1.0 ), t3(0,0) );
-  EXPECT_PIXEL_EQ( PixelT( 0.0, 0.0, 1.0 ), t3(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(0.0, 1.0, 1.0), t3(0,0));
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.0, 1.0), t3(1,0));
 
   ImageView<PixelT > t4 = threshold(im);
-  EXPECT_PIXEL_EQ( PixelT( 1.0, 1.0, 1.0 ), t4(0,0) );
-  EXPECT_PIXEL_EQ( PixelT( 0.0, 0.0, 1.0 ), t4(1,0) );
+  EXPECT_PIXEL_EQ(PixelT(1.0, 1.0, 1.0), t4(0,0));
+  EXPECT_PIXEL_EQ(PixelT(0.0, 0.0, 1.0), t4(1,0));
 }
 
-TEST( Algorithms, NormalizeRetainAlpha ) {
+TEST(Algorithms, NormalizeRetainAlpha) {
   typedef PixelGrayA<float> Px;
   ImageView<Px> im(2,1);
-  im(0,0) = Px( 1.0, 0.2 );
-  im(1,0) = Px( 2.0, 0.8 );
+  im(0,0) = Px(1.0, 0.2);
+  im(1,0) = Px(2.0, 0.8);
 
   ImageView<Px> n1 = normalize_retain_alpha(im,0,2,0,1);
-  EXPECT_PIXEL_NEAR( Px( 0.5, 0.2), n1(0,0), 1e-7 );
-  EXPECT_PIXEL_NEAR( Px( 1.0, 0.8), n1(1,0), 1e-7 );
+  EXPECT_PIXEL_NEAR(Px(0.5, 0.2), n1(0,0), 1e-7);
+  EXPECT_PIXEL_NEAR(Px(1.0, 0.8), n1(1,0), 1e-7);
 
   // Int16 Version
   ImageView<PixelGrayA<int16> > im2(4,1);
   im2(0,0) = PixelGrayA<int16>(-30000,-3200);
   im2(1,0) = PixelGrayA<int16>(-15000,100);
-  im2(2,0) = PixelGrayA<int16>( 15000,300);
-  im2(3,0) = PixelGrayA<int16>( 30000,32000);
+  im2(2,0) = PixelGrayA<int16>(15000,300);
+  im2(3,0) = PixelGrayA<int16>(30000,32000);
   ImageView<PixelGrayA<int16> > out2 =
     normalize_retain_alpha(im2,-30000,30000,0,30000);
 
-  EXPECT_PIXEL_EQ( PixelGrayA<int16>(0,    -3200), out2(0,0) );
-  EXPECT_PIXEL_EQ( PixelGrayA<int16>(7500, 100),   out2(1,0) );
-  EXPECT_PIXEL_EQ( PixelGrayA<int16>(22500,300),   out2(2,0) );
-  EXPECT_PIXEL_EQ( PixelGrayA<int16>(30000,32000), out2(3,0) );
+  EXPECT_PIXEL_EQ(PixelGrayA<int16>(0,    -3200), out2(0,0));
+  EXPECT_PIXEL_EQ(PixelGrayA<int16>(7500, 100),   out2(1,0));
+  EXPECT_PIXEL_EQ(PixelGrayA<int16>(22500,300),   out2(2,0));
+  EXPECT_PIXEL_EQ(PixelGrayA<int16>(30000,32000), out2(3,0));
 }
 
-TEST( Algorithms, Grassfirealpha ) {
+TEST(Algorithms, Grassfirealpha) {
   ImageView<uint8> im(5,5);
   fill(crop(im,1,1,3,3), 255);
   ImageView<uint8> g = grassfire(im);
-  EXPECT_EQ( 0, g(0,0) );
-  EXPECT_EQ( 1, g(1,1) );
-  EXPECT_EQ( 2, g(2,2) );
-  EXPECT_EQ( 1, g(3,3) );
-  EXPECT_EQ( 0, g(4,4) );
-  EXPECT_EQ( 1, g(1,2) );
+  EXPECT_EQ(0, g(0,0));
+  EXPECT_EQ(1, g(1,1));
+  EXPECT_EQ(2, g(2,2));
+  EXPECT_EQ(1, g(3,3));
+  EXPECT_EQ(0, g(4,4));
+  EXPECT_EQ(1, g(1,2));
 
   // Just make sure this compiles
   ImageView<PixelGray<float> > im2(5,5);
@@ -158,7 +158,7 @@ TEST( Algorithms, Grassfirealpha ) {
   grassfire(im2, g2);
 }
 
-TEST( Algorithms, Grassfire_no_border ) {
+TEST(Algorithms, Grassfire_no_border) {
   ImageView<uint16> im(5,5);
   fill(im, 255);
   im(2, 2) = 0; // Only the center pixel is zero
@@ -167,12 +167,12 @@ TEST( Algorithms, Grassfire_no_border ) {
   for (int r=0; r<5; ++r) {
     for (int c=0; c<5; ++c) {
       uint16 ans = abs(2-r) + abs(2-c);
-      EXPECT_EQ( ans, g(c,r) );
+      EXPECT_EQ(ans, g(c,r));
     }
   }
 }
 
-TEST( Algorithms, CenterlineWeights ) {
+TEST(Algorithms, CenterlineWeights) {
   ImageView<uint8> image(5,5);
   fill(crop(image,1,1,3,3), 255);
   ImageView<double> weights;
@@ -187,127 +187,127 @@ TEST( Algorithms, CenterlineWeights ) {
   EXPECT_NEAR(0.5,   weights(1,2), EPS);
 }
 
-TEST( Algorithms, BoundingBox ) {
+TEST(Algorithms, BoundingBox) {
   ImageView<PixelT> im(2,5);
   BBox2i b1 = bounding_box(im);
-  EXPECT_EQ( 2, b1.width() );
-  EXPECT_EQ( 5, b1.height() );
-  EXPECT_VECTOR_FLOAT_EQ( Vector2i(), b1.min() );
-  EXPECT_VECTOR_FLOAT_EQ( Vector2i(2,5), b1.max() );
+  EXPECT_EQ(2, b1.width());
+  EXPECT_EQ(5, b1.height());
+  EXPECT_VECTOR_FLOAT_EQ(Vector2i(), b1.min());
+  EXPECT_VECTOR_FLOAT_EQ(Vector2i(2,5), b1.max());
 
   im.set_size(10,66);
   BBox2i b2 = bounding_box(im);
-  EXPECT_EQ( 10, b2.width() );
-  EXPECT_EQ( 66, b2.height() );
-  EXPECT_VECTOR_FLOAT_EQ( Vector2i(), b2.min() );
-  EXPECT_VECTOR_FLOAT_EQ( Vector2i(10,66), b2.max() );
+  EXPECT_EQ(10, b2.width());
+  EXPECT_EQ(66, b2.height());
+  EXPECT_VECTOR_FLOAT_EQ(Vector2i(), b2.min());
+  EXPECT_VECTOR_FLOAT_EQ(Vector2i(10,66), b2.max());
 }
 
-TEST( Algorithms, NonZeroBoundingBox ) {
+TEST(Algorithms, NonZeroBoundingBox) {
   ImageView<uint8> im(10,10);
   fill(crop(im,4,2,4,8),255);
   BBox2i b1 = nonzero_data_bounding_box(im);
-  EXPECT_EQ( 4, b1.width() );
-  EXPECT_EQ( 8, b1.height() );
-  EXPECT_VECTOR_FLOAT_EQ( Vector2i(4,2), b1.min() );
+  EXPECT_EQ(4, b1.width());
+  EXPECT_EQ(8, b1.height());
+  EXPECT_VECTOR_FLOAT_EQ(Vector2i(4,2), b1.min());
 }
 
-TEST( Algorithms, TransparentOpaque ) {
+TEST(Algorithms, TransparentOpaque) {
   typedef PixelGrayA<float> Px;
   ImageView<Px> im1(2,1);
   im1(1,0) = Px(0,.5);
-  EXPECT_FALSE( is_transparent(im1) );
-  EXPECT_FALSE( is_opaque(im1) );
+  EXPECT_FALSE(is_transparent(im1));
+  EXPECT_FALSE(is_opaque(im1));
 
   ImageView<Px> im2(2,1);
   im2(0,0) = Px(.5,0); im2(1,0) = Px(.8,0);
-  EXPECT_TRUE( is_transparent(im2) );
-  EXPECT_FALSE( is_opaque(im2) );
+  EXPECT_TRUE(is_transparent(im2));
+  EXPECT_FALSE(is_opaque(im2));
 
   ImageView<Px> im3(2,1);
   im3(0,0) = Px(.7,1); im3(1,0) = Px(0,1);
-  EXPECT_FALSE( is_transparent(im3) );
-  EXPECT_TRUE( is_opaque(im3) );
+  EXPECT_FALSE(is_transparent(im3));
+  EXPECT_TRUE(is_opaque(im3));
 
   ImageView<Px> im4(2,1);
   im4(0,0) = Px(.7,0.5); im4(1,0) = Px(1.0,0.5);
-  EXPECT_FALSE( is_transparent(im4) );
-  EXPECT_FALSE( is_opaque(im4) );
+  EXPECT_FALSE(is_transparent(im4));
+  EXPECT_FALSE(is_opaque(im4));
 
-  EXPECT_FALSE( is_transparent(im4(0,0)) );
-  EXPECT_FALSE( is_opaque(im4(0,0)) );
+  EXPECT_FALSE(is_transparent(im4(0,0)));
+  EXPECT_FALSE(is_opaque(im4(0,0)));
 
-  EXPECT_FALSE( is_transparent(im4(1,0)) );
-  EXPECT_FALSE( is_opaque(im4(1,0)) );
+  EXPECT_FALSE(is_transparent(im4(1,0)));
+  EXPECT_FALSE(is_opaque(im4(1,0)));
 }
 
-TEST( Algorithms, SubdivideBBox ) {
+TEST(Algorithms, SubdivideBBox) {
   ImageView<uint8> bin1(5,5);
   std::vector<BBox2i> bout1 = subdivide_bbox(bin1,2,2);
-  EXPECT_EQ( 9u, bout1.size() );
-  EXPECT_EQ( 2, bout1.front().width() );
-  EXPECT_EQ( 2, bout1.front().height() );
-  EXPECT_EQ( 1, bout1.back().width() );
-  EXPECT_EQ( 1, bout1.back().height() );
+  EXPECT_EQ(9u, bout1.size());
+  EXPECT_EQ(2, bout1.front().width());
+  EXPECT_EQ(2, bout1.front().height());
+  EXPECT_EQ(1, bout1.back().width());
+  EXPECT_EQ(1, bout1.back().height());
 
   ImageView<uint8> bin2(9,10);
   std::vector<BBox2i> bout2 = subdivide_bbox(bin2,3,4);
-  EXPECT_EQ( 9u, bout2.size() );
-  EXPECT_EQ( 3, bout2.front().width() );
-  EXPECT_EQ( 4, bout2.front().height() );
-  EXPECT_EQ( 3, bout2.back().width() );
-  EXPECT_EQ( 2, bout2.back().height() );
+  EXPECT_EQ(9u, bout2.size());
+  EXPECT_EQ(3, bout2.front().width());
+  EXPECT_EQ(4, bout2.front().height());
+  EXPECT_EQ(3, bout2.back().width());
+  EXPECT_EQ(2, bout2.back().height());
 }
 
-TEST( Algorithms, MeanFillTransparent ) {
+TEST(Algorithms, MeanFillTransparent) {
   typedef PixelGrayA<uint8> Px8;
   typedef PixelRGBA<float32> PxF;
   typedef PixelGray<float32> NoP;
 
   {
     ImageView<Px8> im(2,2);
-    fill( im, Px8() );
+    fill(im, Px8());
     im(1,1) = Px8(128);
-    ImageView<Px8> r = mean_fill_transparent( im );
-    EXPECT_FALSE( is_transparent(r(1,1)) );
-    EXPECT_TRUE( is_transparent(r(0,0)) );
-    EXPECT_TRUE( is_transparent(r(1,0)) );
-    EXPECT_TRUE( is_transparent(r(0,1)) );
-    EXPECT_EQ( 128, non_alpha_channels(r(0,0)) );
-    EXPECT_EQ( 128, non_alpha_channels(r(1,0)) );
-    EXPECT_EQ( 128, non_alpha_channels(r(0,1)) );
+    ImageView<Px8> r = mean_fill_transparent(im);
+    EXPECT_FALSE(is_transparent(r(1,1)));
+    EXPECT_TRUE(is_transparent(r(0,0)));
+    EXPECT_TRUE(is_transparent(r(1,0)));
+    EXPECT_TRUE(is_transparent(r(0,1)));
+    EXPECT_EQ(128, non_alpha_channels(r(0,0)));
+    EXPECT_EQ(128, non_alpha_channels(r(1,0)));
+    EXPECT_EQ(128, non_alpha_channels(r(0,1)));
   }
 
   {
     ImageView<PxF> im(2,2);
-    fill( im, PxF() );
+    fill(im, PxF());
     im(1,1) = PxF(PixelRGB<float32>(0.5,0.1,0.2));
-    ImageView<PxF> r = mean_fill_transparent( im );
-    EXPECT_FALSE( is_transparent(r(1,1)) );
-    EXPECT_TRUE( is_transparent(r(0,0)) );
-    EXPECT_TRUE( is_transparent(r(1,0)) );
-    EXPECT_TRUE( is_transparent(r(0,1)) );
-    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
-                  non_alpha_channels(r(0,0)) );
-    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
-                  non_alpha_channels(r(0,0)) );
-    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
-                  non_alpha_channels(r(0,0)) );
+    ImageView<PxF> r = mean_fill_transparent(im);
+    EXPECT_FALSE(is_transparent(r(1,1)));
+    EXPECT_TRUE(is_transparent(r(0,0)));
+    EXPECT_TRUE(is_transparent(r(1,0)));
+    EXPECT_TRUE(is_transparent(r(0,1)));
+    EXPECT_VW_EQ(PixelRGB<float32>(0.5,0.1,0.2),
+                 non_alpha_channels(r(0,0)));
+    EXPECT_VW_EQ(PixelRGB<float32>(0.5,0.1,0.2),
+                 non_alpha_channels(r(0,0)));
+    EXPECT_VW_EQ(PixelRGB<float32>(0.5,0.1,0.2),
+                 non_alpha_channels(r(0,0)));
   }
 
   {
     ImageView<NoP> im(2,2);
-    fill( im, NoP() );
+    fill(im, NoP());
     im(1,1) = NoP(0.7);
-    ImageView<NoP> r = mean_fill_transparent( im );
-    EXPECT_VW_EQ( NoP(), r(0,0) );
-    EXPECT_VW_EQ( NoP(), r(1,0) );
-    EXPECT_VW_EQ( NoP(), r(0,1) );
-    EXPECT_VW_EQ( NoP(0.7), r(1,1) );
+    ImageView<NoP> r = mean_fill_transparent(im);
+    EXPECT_VW_EQ(NoP(), r(0,0));
+    EXPECT_VW_EQ(NoP(), r(1,0));
+    EXPECT_VW_EQ(NoP(), r(0,1));
+    EXPECT_VW_EQ(NoP(0.7), r(1,1));
   }
 }
 
-TEST( Algorithms, TwoThresholdFill ) {
+TEST(Algorithms, TwoThresholdFill) {
 
   const float low_thresh  = 2.0;
   const float high_thresh = 6.0;
@@ -339,7 +339,7 @@ TEST( Algorithms, TwoThresholdFill ) {
   EXPECT_EQ(OFF, output(4,1));
 }
 
-TEST( Algorithms, MedianFilter ) {
+TEST(Algorithms, MedianFilter) {
 
   // Create a test image
   ImageView<float> image(6, 6);
@@ -355,13 +355,13 @@ TEST( Algorithms, MedianFilter ) {
 
   // Check results
   EXPECT_EQ(10, output(1,1));
-  EXPECT_EQ( 6, output(0,2));
-  EXPECT_EQ( 8, output(5,2));
+  EXPECT_EQ(6, output(0,2));
+  EXPECT_EQ(8, output(5,2));
   EXPECT_EQ(10, output(2,4));
-  EXPECT_EQ( 7, output(1,4));
+  EXPECT_EQ(7, output(1,4));
 }
 
-TEST( Algorithms, StdDevFilter ) {
+TEST(Algorithms, StdDevFilter) {
 
   // Create a test image
   ImageView<float> image(6, 6);
@@ -378,8 +378,8 @@ TEST( Algorithms, StdDevFilter ) {
   // Check results
   const double eps = 0.01;
   EXPECT_NEAR(3.13, output(1,1), eps);
-  EXPECT_NEAR( 3.08, output(0,2), eps);
-  EXPECT_NEAR( 1.97, output(5,2), eps);
+  EXPECT_NEAR(3.08, output(0,2), eps);
+  EXPECT_NEAR(1.97, output(5,2), eps);
   EXPECT_NEAR(1.945, output(2,4), eps);
-  EXPECT_NEAR( 2.096, output(1,4), eps);
+  EXPECT_NEAR(2.096, output(1,4), eps);
 }

@@ -40,22 +40,22 @@ using namespace boost::assign;
 
 
 
-TEST( BlobIndex, BlobIndex ) {
+TEST(BlobIndex, BlobIndex) {
   typedef PixelMask<uint8> MPx;
   ImageView<MPx> im(7,5);
-  fill( crop(im,1,1,3,1), MPx(255) ); // Blob 1
-  fill( crop(im,2,3,2,1), MPx(255) ); // Blob 2
-  fill( crop(im,5,1,1,3), MPx(255) );
+  fill(crop(im,1,1,3,1), MPx(255)); // Blob 1
+  fill(crop(im,2,3,2,1), MPx(255)); // Blob 2
+  fill(crop(im,5,1,1,3), MPx(255));
   im(6,2) = MPx(5); // Blob 3
 
-  ImageView<uint8> idx =  blob_index( im );
-  EXPECT_EQ( 3, int(max_channel_value(idx)) );
-  EXPECT_EQ( idx(1,1), idx(2,1) ); // Verify blob 1
-  EXPECT_NE( idx(0,0), idx(1,1) );
-  EXPECT_EQ( idx(2,4), idx(3,4) ); // Verify blob 2
-  EXPECT_NE( idx(1,1), idx(2,4) );
-  EXPECT_EQ( idx(5,1), idx(6,2) ); // Verify blob 3
-  EXPECT_NE( idx(6,2), idx(1,1) );
+  ImageView<uint8> idx =  blob_index(im);
+  EXPECT_EQ(3, int(max_channel_value(idx)));
+  EXPECT_EQ(idx(1,1), idx(2,1)); // Verify blob 1
+  EXPECT_NE(idx(0,0), idx(1,1));
+  EXPECT_EQ(idx(2,4), idx(3,4)); // Verify blob 2
+  EXPECT_NE(idx(1,1), idx(2,4));
+  EXPECT_EQ(idx(5,1), idx(6,2)); // Verify blob 3
+  EXPECT_NE(idx(6,2), idx(1,1));
 }
 /*
 TEST(BlobIndexThreaded, TestImage1) {
@@ -85,21 +85,21 @@ TEST(BlobIndex, BlobCompressedIntersect) {
   std::vector<std::list<int32> > starts, ends;
   starts += list_of(0), list_of(0), list_of(0), list_of(0), list_of(0);
   ends += list_of(5), list_of(1), list_of(1), list_of(1), list_of(1);
-  blob::BlobCompressed test_blob( Vector2i(5,5), starts, ends );
+  blob::BlobCompressed test_blob(Vector2i(5,5), starts, ends);
 
   test_blob.print();
 
-  EXPECT_FALSE( test_blob.intersects( BBox2i(6,6,2,2) ) );
-  EXPECT_FALSE( test_blob.intersects( BBox2i(4,4,1,1) ) );
-  EXPECT_FALSE( test_blob.intersects( BBox2i(6,4,3,1) ) );
-  EXPECT_FALSE( test_blob.intersects( BBox2i(3,5,2,8) ) );
-  EXPECT_TRUE( test_blob.intersects( BBox2i(6,2,4,10) ) );
-  EXPECT_TRUE( test_blob.intersects( BBox2i(3,4,6,2) ) );
-  EXPECT_TRUE( test_blob.intersects( BBox2i(4,7,2,2) ) );
+  EXPECT_FALSE(test_blob.intersects(BBox2i(6,6,2,2)));
+  EXPECT_FALSE(test_blob.intersects(BBox2i(4,4,1,1)));
+  EXPECT_FALSE(test_blob.intersects(BBox2i(6,4,3,1)));
+  EXPECT_FALSE(test_blob.intersects(BBox2i(3,5,2,8)));
+  EXPECT_TRUE(test_blob.intersects(BBox2i(6,2,4,10)));
+  EXPECT_TRUE(test_blob.intersects(BBox2i(3,4,6,2)));
+  EXPECT_TRUE(test_blob.intersects(BBox2i(4,7,2,2)));
 }
 
 
-TEST( BlobIndex, BlobSizesView ) {
+TEST(BlobIndex, BlobSizesView) {
 
   // Create a test image (zero pixels will be masked)
   ImageView<float> image(6, 6);

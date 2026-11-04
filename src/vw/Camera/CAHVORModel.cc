@@ -48,31 +48,31 @@ CAHVORModel::CAHVORModel(std::string const& filename) {
 
     input >> r1 >> r2;
     if (r1 != 'A' || r2 != '=')
-      vw_throw( IOErr() << "CAHVORModel: Could not read A vector\n" );
+      vw_throw(IOErr() << "CAHVORModel: Could not read A vector\n");
     input >> A(0) >> A(1) >> A(2);
 
     input >> r1 >> r2;
     if (r1 != 'H' || r2 != '=')
-      vw_throw( IOErr() << "CAHVORModel: Could not read H vector\n" );
+      vw_throw(IOErr() << "CAHVORModel: Could not read H vector\n");
     input >> H(0) >> H(1) >> H(2);
 
     input >> r1 >> r2;
     if (r1 != 'V' || r2 != '=')
-      vw_throw( IOErr() << "CAHVORModel: Could not read V vector\n" );
+      vw_throw(IOErr() << "CAHVORModel: Could not read V vector\n");
     input >> V(0) >> V(1) >> V(2);
 
     input >> r1 >> r2;
     if (r1 != 'O' || r2 != '=')
-      vw_throw( IOErr() << "CAHVORModel: Could not read O vector\n" );
+      vw_throw(IOErr() << "CAHVORModel: Could not read O vector\n");
     input >> O(0) >> O(1) >> O(2);
 
     input >> r1 >> r2;
     if (r1 != 'R' || r2 != '=')
-      vw_throw( IOErr() << "CAHVORModel: Could not read R vector\n" );
+      vw_throw(IOErr() << "CAHVORModel: Could not read R vector\n");
     input >> R(0) >> R(1) >> R(2);
 
   } catch (const std::ifstream::failure& e) {
-    vw_throw( IOErr() << "CAHVORModel: Could not read file: " << filename << " (" << e.what() << ")" );
+    vw_throw(IOErr() << "CAHVORModel: Could not read file: " << filename << " (" << e.what() << ")");
   }
 }
 
@@ -106,7 +106,7 @@ void CAHVORModel::write(std::string const& filename) {
            << "R = " << R(0) << " " << R(1) << " " << R(2) << "\n";
 
   } catch (const std::ofstream::failure& e) {
-    vw_throw( IOErr() << "CAHVORModel: Could not write file: " << filename << " (" << e.what() << ")" );
+    vw_throw(IOErr() << "CAHVORModel: Could not write file: " << filename << " (" << e.what() << ")");
   }
 }
 
@@ -346,7 +346,7 @@ Vector3 CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
   return normalize(rr - (1 - u)*lambda);
 }
 
-Vector3 CAHVORModel::camera_center( Vector2 const& pix ) const { return C; }
+Vector3 CAHVORModel::camera_center(Vector2 const& pix) const { return C; }
 
 // vector_to_pixel with partial_derivatives
 Vector2 CAHVORModel::point_to_pixel(Vector3 const& point,
@@ -442,8 +442,8 @@ Vector2 CAHVORModel::point_to_pixel(Vector3 const& point) const {
   double alpha = dot_prod(pp_c, A);
 
   // Calculate the projection
-  return Vector2( dot_prod(pp_c,H) / alpha,
-                  dot_prod(pp_c,V) / alpha );
+  return Vector2(dot_prod(pp_c,H) / alpha,
+                 dot_prod(pp_c,V) / alpha);
 }
 
 // linearize_camera
@@ -456,9 +456,9 @@ Vector2 CAHVORModel::point_to_pixel(Vector3 const& point) const {
 // (identical to A) and R (all terms zero) will not be output. Note
 // that image warping will be necessary in order to use the new
 // models.
-CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
-                                Vector2i const& cahvor_image_size,
-                                Vector2i const& cahv_image_size ) {
+CAHVModel vw::linearize_camera(CAHVORModel const& camera_model,
+                               Vector2i const& cahvor_image_size,
+                               Vector2i const& cahv_image_size) {
 
   CAHVModel output_camera;
   output_camera.C = camera_model.C;
@@ -482,10 +482,10 @@ CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
   vpts[4] = Vector2((cahvor_image_size[0]-1)/2,cahvor_image_size[1]-1);
   vpts[5] = cahvor_image_size - Vector2(1,1);
 
-  BOOST_FOREACH( Vector2 const& local, vpts ) {
+  BOOST_FOREACH(Vector2 const& local, vpts) {
     output_camera.A += camera_model.pixel_to_vector(local);
   }
-  BOOST_FOREACH( Vector2 const& local, hpts ) {
+  BOOST_FOREACH(Vector2 const& local, hpts) {
     output_camera.A += camera_model.pixel_to_vector(local);
   }
   output_camera.A = normalize(output_camera.A);
@@ -504,7 +504,7 @@ CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
 
   // Horizontal
   double hmin = 1, hmax = -1;
-  BOOST_FOREACH( Vector2 const& loop, hpts ) {
+  BOOST_FOREACH(Vector2 const& loop, hpts) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
                                   normalize(u3 - dot_prod(dn, u3) * dn)));
@@ -514,10 +514,10 @@ CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
 
   // Vertical
   double vmin = 1, vmax = -1;
-  BOOST_FOREACH( Vector2 const& loop, vpts ) {
+  BOOST_FOREACH(Vector2 const& loop, vpts) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
-                                  normalize(u3 - dot_prod(rt, u3) * rt) ) );
+                                  normalize(u3 - dot_prod(rt, u3) * rt)));
     if (vmin > sn) vmin = sn;
     if (vmax < sn) vmax = sn;
   }
@@ -526,16 +526,16 @@ CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
   Vector2 scale_factors;
   Vector2 image_center = (cahv_image_size-Vector2(1,1))/2.0;
   Vector2 image_center_2 = elem_prod(image_center,image_center);
-  if ( minfov ) {
+  if (minfov) {
     // Use min value
     scale_factors =
-      sqrt( elem_quot(image_center_2,
-                      Vector2(hmin*hmin,vmin*vmin)) - image_center_2 );
+      sqrt(elem_quot(image_center_2,
+                     Vector2(hmin*hmin,vmin*vmin)) - image_center_2);
   } else {
     // Use max value
     scale_factors =
-      sqrt( elem_quot(image_center_2,
-                      Vector2(hmax*hmax,vmax*vmax)) - image_center_2 );
+      sqrt(elem_quot(image_center_2,
+                     Vector2(hmax*hmax,vmax*vmax)) - image_center_2);
   }
 
   // Assign idealized image centers and coordinate angles
@@ -545,18 +545,18 @@ CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
   return output_camera;
 }
 
-CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
-                                int32 ix, int32 iy, int32 ox, int32 oy ) {
-  return vw::linearize_camera( camera_model,
-                               Vector2i( ix, iy), Vector2i(ox, oy) );
+CAHVModel vw::linearize_camera(CAHVORModel const& camera_model,
+                               int32 ix, int32 iy, int32 ox, int32 oy) {
+  return vw::linearize_camera(camera_model,
+                              Vector2i(ix, iy), Vector2i(ox, oy));
 }
 
 // Note: the second derivatives with respect to motion of the point are the
 // same as the second derivatives with respect to motion of the camera, and
 // the first derivatives are opposite.
-void CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
-                                         Vector3& grad_u, Vector3& grad_v,
-                                         Matrix3x3& hess_u, Matrix3x3& hess_v ) const {
+void CAHVORModel::get_point_derivatives(Vector3 const& P, double& u, double& v,
+                                        Vector3& grad_u, Vector3& grad_v,
+                                        Matrix3x3& hess_u, Matrix3x3& hess_v) const {
   // Compute the image plane position
   double xi = dot_prod(P-C,O);
   Vector3 lambda = P-C-xi*O;
@@ -573,18 +573,18 @@ void CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
   Vector3 grad_mu = 2*(R[1]+2*R[2]*tau)*(lambda/xi-tau*O)/xi;
   Vector3 HuA = H - u*A;
   Vector3 VvA = V - v*A;
-  grad_u = ( (1+mu)*HuA - mu*dot_prod(O,HuA)*O + dot_prod(lambda,HuA)*grad_mu ) / denom;
-  grad_v = ( (1+mu)*VvA - mu*dot_prod(O,VvA)*O + dot_prod(lambda,VvA)*grad_mu ) / denom;
+  grad_u = ((1+mu)*HuA - mu*dot_prod(O,HuA)*O + dot_prod(lambda,HuA)*grad_mu) / denom;
+  grad_v = ((1+mu)*VvA - mu*dot_prod(O,VvA)*O + dot_prod(lambda,VvA)*grad_mu) / denom;
 
   // Compute the Hessians
   Matrix3x3 I; I.set_identity();
-  Matrix3x3 hess_tau = 2/(xi*xi) * ( I + (3*tau-1)*outer_prod(O,O)
-                                     - 2*(outer_prod(O,lambda)+outer_prod(lambda,O))/xi );
+  Matrix3x3 hess_tau = 2/(xi*xi) * (I + (3*tau-1)*outer_prod(O,O)
+                                    - 2*(outer_prod(O,lambda)+outer_prod(lambda,O))/xi);
   Matrix3x3 hess_mu = (R[1]+2*R[2]*tau)*hess_tau + 2*R[2]*outer_prod(grad_tau,grad_tau);
-  Matrix3x3 tmp_u = outer_prod( grad_mu, HuA - dot_prod(O,HuA)*O )
-    + outer_prod( grad_u, mu*dot_prod(O,A)*O - dot_prod(lambda,A)*grad_mu - (1+mu)*A );
-  hess_u = ( tmp_u + transpose(tmp_u) + dot_prod(lambda,HuA)*hess_mu ) / denom;
-  Matrix3x3 tmp_v = outer_prod( grad_mu, VvA - dot_prod(O,VvA)*O )
-    + outer_prod( grad_v, mu*dot_prod(O,A)*O - dot_prod(lambda,A)*grad_mu - (1+mu)*A );
-  hess_v = ( tmp_v + transpose(tmp_v) + dot_prod(lambda,VvA)*hess_mu ) / denom;
+  Matrix3x3 tmp_u = outer_prod(grad_mu, HuA - dot_prod(O,HuA)*O)
+    + outer_prod(grad_u, mu*dot_prod(O,A)*O - dot_prod(lambda,A)*grad_mu - (1+mu)*A);
+  hess_u = (tmp_u + transpose(tmp_u) + dot_prod(lambda,HuA)*hess_mu) / denom;
+  Matrix3x3 tmp_v = outer_prod(grad_mu, VvA - dot_prod(O,VvA)*O)
+    + outer_prod(grad_v, mu*dot_prod(O,A)*O - dot_prod(lambda,A)*grad_mu - (1+mu)*A);
+  hess_v = (tmp_v + transpose(tmp_v) + dot_prod(lambda,VvA)*hess_mu) / denom;
 }

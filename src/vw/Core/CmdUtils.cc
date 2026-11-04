@@ -80,7 +80,7 @@ namespace vw {
     if (!ans.empty() && ans[ans.length()-1] == '\n') 
       ans.erase(ans.length()-1); 
     
-    if ( ans.find("not found") != std::string::npos )
+    if (ans.find("not found") != std::string::npos)
       throw std::runtime_error("Could not find path to " + prog_name);      
     
     return ans;

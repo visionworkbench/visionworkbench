@@ -34,11 +34,11 @@ namespace vw {
   class DiskImageResourceTIFF : public DiskImageResource {
   public:
 
-    DiskImageResourceTIFF( std::string const& filename );
+    DiskImageResourceTIFF(std::string const& filename);
 
-    DiskImageResourceTIFF( std::string const& filename,
-                           ImageFormat const& format,
-                           bool use_compression = false );
+    DiskImageResourceTIFF(std::string const& filename,
+                          ImageFormat const& format,
+                          bool use_compression = false);
 
     virtual ~DiskImageResourceTIFF() {}
 
@@ -55,19 +55,19 @@ namespace vw {
 
     virtual Vector2i block_read_size() const;
 
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const;
 
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
 
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     void use_lzw_compression(bool state) { m_use_compression = state; }
 

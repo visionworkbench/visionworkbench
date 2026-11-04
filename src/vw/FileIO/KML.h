@@ -46,7 +46,7 @@ namespace vw {
     int count;
   };
 
-  std::ostream& operator<<( std::ostream& os, TabCount const& tab);
+  std::ostream& operator<<(std::ostream& os, TabCount const& tab);
 
   // KMLFile:
   // Class wrapper for KML file.
@@ -58,9 +58,9 @@ namespace vw {
     std::string m_directory;  // Directory location (used for trees)
     std::stack<std::string> m_bracket_names;
   public:
-    KMLFile( std::string filename,
-             std::string name,
-             std::string directory="" );
+    KMLFile(std::string filename,
+            std::string name,
+            std::string directory="");
     ~KMLFile(); // Closes file out
 
     // Access internal
@@ -69,65 +69,65 @@ namespace vw {
     std::string directory() const { return m_directory; }
 
     // Lower Level Writing Functions
-    void open_bracket  ( std::string name );
+    void open_bracket  (std::string name);
     void close_bracket ();
-    void close_brackets( int );
+    void close_brackets(int);
     void close_all_brackets();
 
     // Low Level Functions
-    void enter_folder( std::string name="",
-                       std::string description="" );
+    void enter_folder(std::string name="",
+                      std::string description="");
     void exit_folder();
     
     /// Add a single placemark to the KML file
-    void append_placemark( double lon, double lat,
-                           std::string name="",
-                           std::string description="",
-                           std::string style="",
-                           double altitude=0,
-                           bool extrude=false );
+    void append_placemark(double lon, double lat,
+                          std::string name="",
+                          std::string description="",
+                          std::string style="",
+                          double altitude=0,
+                          bool extrude=false);
                            
     /// Add a line segment to the KML file
-    void append_line( std::vector<Vector3> coordinates,
-                      std::string name="",
-                      std::string style="");
+    void append_line(std::vector<Vector3> coordinates,
+                     std::string name="",
+                     std::string style="");
                            
     /// Add a 3d model to the KML file
-    void append_model( std::string path_to_model,
-                       double lon, double lat,
-                       vw::Quaternion<double> pose,
-                       std::string name,
-                       std::string description,
-                       double altitude,
-                       double scale );
+    void append_model(std::string path_to_model,
+                      double lon, double lat,
+                      vw::Quaternion<double> pose,
+                      std::string name,
+                      std::string description,
+                      double altitude,
+                      double scale);
                        
     /// LatLonAltBox: This is a bounding box, that only displays contents
     /// when viewer is inside box.
-    void append_latlonaltbox( float north,
-                              float south,
-                              float east,
-                              float west );
+    void append_latlonaltbox(float north,
+                             float south,
+                             float east,
+                             float west);
                               
     /// Lod: This sets the min max pixel viewing range for an object
-    void append_lod( float min, float max );
+    void append_lod(float min, float max);
     
     /// Style: Defines an Icon to use later
     /// - If hide_label is set, the placemark labels will only be shown if highlighted.
-    void append_style( std::string id, std::string color_hex,
-                       float scale, std::string image_url,
-                       bool hide_label=false );
+    void append_style(std::string id, std::string color_hex,
+                      float scale, std::string image_url,
+                      bool hide_label=false);
 
     /// Style: Defines a line style to use later
-    void append_line_style( std::string id, std::string color_hex,
-                            float width=1.0);
+    void append_line_style(std::string id, std::string color_hex,
+                           float width=1.0);
    
     /// StyleMap: Maps two styles together to create a bipolar icon
-    void append_stylemap( std::string id,
-                          std::string style_normal,
-                          std::string style_highlight );
-    void append_network( std::string link,
-                         double north, double south,
-                         double east, double west );
+    void append_stylemap(std::string id,
+                         std::string style_normal,
+                         std::string style_highlight);
+    void append_network(std::string link,
+                        double north, double south,
+                        double east, double west);
 
     void close_kml(); // If it seems the file wasn't finished, try this.
   protected:

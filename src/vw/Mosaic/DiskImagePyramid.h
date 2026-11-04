@@ -385,12 +385,12 @@ namespace vw {
       return;
 
     if (subsample < 2)
-      vw_throw( ArgumentErr()
-                << "Must subsample by a factor of at least 2.\n");
+      vw_throw(ArgumentErr()
+               << "Must subsample by a factor of at least 2.\n");
 
     if (lowest_resolution_subimage_num_pixels < 4)
-      vw_throw( ArgumentErr()
-                << "The lowest resolution subimage must be at least 2x2 in size.\n");
+      vw_throw(ArgumentErr()
+               << "The lowest resolution subimage must be at least 2x2 in size.\n");
 
     m_pyramid.push_back(custom_read<PixelT>(base_file));
 
@@ -464,7 +464,7 @@ namespace vw {
                                                 double & scale_out, BBox2i & region_out) const {
 
     if (m_pyramid.empty())
-      vw_throw( ArgumentErr() << "Uninitialized image pyramid.\n");
+      vw_throw(ArgumentErr() << "Uninitialized image pyramid.\n");
 
     // Find the right pyramid level to use
     int level = pyramidLevel(scale_in);

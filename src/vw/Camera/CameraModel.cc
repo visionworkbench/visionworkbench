@@ -25,7 +25,7 @@
 
 
 std::ostream& vw::operator<<(std::ostream& ostr,
-                             vw::AdjustedCameraModel const& cam ) {
+                             vw::AdjustedCameraModel const& cam) {
   ostr.precision(18);
   ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
        << " Rot:          " << cam.m_rotation
@@ -39,7 +39,7 @@ namespace vw {
 
 Quaternion<double>
 CameraModel::camera_pose(Vector2 const& pix) const {
-  vw_throw( NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()" );
+  vw_throw(NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()");
   return Quaternion<double>();
 }
 

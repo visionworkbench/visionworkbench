@@ -100,7 +100,7 @@ public:
 
   inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-  inline pixel_type operator()( double/*i*/, double/*j*/, int32/*p*/ = 0 ) const {
+  inline pixel_type operator()(double/*i*/, double/*j*/, int32/*p*/ = 0) const {
     vw_throw(NoImplErr() << "CorrEval::operator() is not implemented.");
     return pixel_type();
   }

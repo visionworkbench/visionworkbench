@@ -79,7 +79,7 @@ namespace vw{
     
     VecT vec;
     for (int i = 0; i < (int)vec.size(); i++){
-      if (! (iss >> vec[i]) )
+      if (! (iss >> vec[i]))
         vw::vw_throw(vw::ArgumentErr() << "Failed to extract value from: " << str << "\n");
     }
     return vec;

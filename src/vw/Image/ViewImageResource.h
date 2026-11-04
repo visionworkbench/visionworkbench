@@ -55,7 +55,7 @@ namespace vw {
     ViewT m_view;
 
   public:
-    ViewImageResourceImpl( ImageViewBase<ViewT> const& view ) :
+    ViewImageResourceImpl(ImageViewBase<ViewT> const& view) :
       m_view(view.impl()) {}
 
     virtual ~ViewImageResourceImpl() {}
@@ -68,10 +68,10 @@ namespace vw {
     virtual bool has_nodata_read () const {return false;}
 
     /// Read the image resource at the given location into the given buffer.
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
-      VW_ASSERT( bbox.min().x() >= 0 && bbox.min().y() >= 0 &&
-                 bbox.max().x() <= cols() && bbox.max().y() <= rows(),
-                 ArgumentErr() << "ViewImageResource::read(): bbox exceeds view dimensions." );
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const {
+      VW_ASSERT(bbox.min().x() >= 0 && bbox.min().y() >= 0 &&
+                bbox.max().x() <= cols() && bbox.max().y() <= rows(),
+                ArgumentErr() << "ViewImageResource::read(): bbox exceeds view dimensions.");
       ImageView<typename ViewT::pixel_type> region = crop(m_view, bbox);
       ImageBuffer src = region.buffer();
       convert(buf, src);
@@ -92,17 +92,17 @@ namespace vw {
 
     template <class ViewT>
     explicit ViewImageResource(ImageViewBase<ViewT> const& view, Vector2i block_size) :
-      m_rsrc( new ViewImageResourceImpl<ViewT>(view) ), m_block_size(block_size) {}
+      m_rsrc(new ViewImageResourceImpl<ViewT>(view)), m_block_size(block_size) {}
 
     template <class ViewT>
     explicit ViewImageResource(ImageViewBase<ViewT> const& view) :
-      m_rsrc( new ViewImageResourceImpl<ViewT>(view) ),
+      m_rsrc(new ViewImageResourceImpl<ViewT>(view)),
       m_block_size(Vector2i(view.impl().cols(), view.impl().rows())) {}
 
     virtual ImageFormat format() const { return m_rsrc->format(); }
 
     /// Read the image resource at the given location into the given buffer.
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const {
       return m_rsrc->read(buf, bbox);
     }
 
@@ -115,7 +115,7 @@ namespace vw {
     virtual Vector2i block_read_size() const { return m_block_size; }
 
     /// Set the preferred block size/alignment for partial reads
-    virtual void set_block_read_size( Vector2i const& size ) { m_block_size = size; }
+    virtual void set_block_read_size(Vector2i const& size) { m_block_size = size; }
 
     /// Force any changes to be written to the resource.
     virtual void flush() {}

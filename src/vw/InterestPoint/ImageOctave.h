@@ -69,32 +69,32 @@ public:
   /// This constructor is intended for building the first octave from a
   /// source image.
   template <class ViewT_in>
-  ImageOctave( ImageViewBase<ViewT_in> const& src_im, int numscales) {
+  ImageOctave(ImageViewBase<ViewT_in> const& src_im, int numscales) {
     base_scale = 1;
-    set_scales( numscales );
+    set_scales(numscales);
 
-    build_using( src_im );
+    build_using(src_im);
   }
 
   /// Calculate the scale corresponding to a plane index.
-  float plane_index_to_scale( float plane_index ) const {
-    float s = base_scale*pow(2.0f, plane_index / ((float)scales_per_octave) );
+  float plane_index_to_scale(float plane_index) const {
+    float s = base_scale*pow(2.0f, plane_index / ((float)scales_per_octave));
     return s;
   }
 
   /// Static function for calculating plane index from scale.
-  static int scale_to_plane_index( int base, int scales, float scale) {
+  static int scale_to_plane_index(int base, int scales, float scale) {
     return (int)(scales * (log(scale) - log((float)base))/M_LN2 + 0.00001);
   }
 
   /// Calculate the plane index most closely matching a scale.
-  int scale_to_plane_index( float scale ) const {
+  int scale_to_plane_index(float scale) const {
     return ImageOctave::scale_to_plane_index(base_scale, scales_per_octave, scale);
   }
 
   /// Sets the number of scales, the initial sigma, the ratio of
   /// sigmas, and the vector of sigmas.
-  int set_scales( int scalesperoctave ) {
+  int set_scales(int scalesperoctave) {
     // Set number of scales per octave
     scales_per_octave = scalesperoctave;
 
@@ -121,7 +121,7 @@ public:
   // TODO: Use supersampled view as the first scale
   // TODO: this could be done a little more efficiently
   template <class ViewT_in>
-  int build_using(ImageViewBase<ViewT_in> const& src_im ) {
+  int build_using(ImageViewBase<ViewT_in> const& src_im) {
     // Construct enough image plane containers for the number of
     // scales in the octave
     scales.clear();
@@ -137,7 +137,7 @@ public:
     // quadrature, so a few smaller kernels in succession can produce
     // the output of a larger kernel with fewer operations.
     if (sigma[0]>camera_sigma){
-      float use_sigma = sqrt( sigma[0]*sigma[0] - camera_sigma*camera_sigma );
+      float use_sigma = sqrt(sigma[0]*sigma[0] - camera_sigma*camera_sigma);
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << 0 << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[0] << std::endl;
@@ -148,7 +148,7 @@ public:
 
     // Each next plane is blurred version of the previous
     for (int i=1; i<num_planes; i++){
-      float use_sigma = sqrt( sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1] );
+      float use_sigma = sqrt(sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1]);
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << i << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[i] << std::endl;
@@ -188,7 +188,7 @@ public:
     // Now the rest (#2 and up) are blurred versions as before
     float use_sigma;
     for (int k=2; k<num_planes; k++){
-      use_sigma = sqrt( sigma[k]*sigma[k] - sigma[k-1]*sigma[k-1] );
+      use_sigma = sqrt(sigma[k]*sigma[k] - sigma[k-1]*sigma[k-1]);
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << k << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[k] << std::endl;
@@ -209,7 +209,7 @@ public:
     for (int k=0; k<num_planes; k++){
       imagenum = (int)(log((float)base_scale)/log(2.0)) * num_planes + k;
       snprintf(fname, sizeof(fname), "scale_%02d.jpg", imagenum);
-      vw::write_image( fname, scales[k] );
+      vw::write_image(fname, scales[k]);
     }
   }
 };

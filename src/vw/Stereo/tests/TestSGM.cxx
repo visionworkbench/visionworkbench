@@ -23,7 +23,7 @@
 
 using namespace vw;
 
-TEST( SGM, constant_offset ) {
+TEST(SGM, constant_offset) {
  
   // For this perfect test case, the correct disparity is (2,1) for each pixel!
   int min_disp_x  = -4;

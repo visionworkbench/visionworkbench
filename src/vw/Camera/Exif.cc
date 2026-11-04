@@ -204,9 +204,9 @@ vw::Vector2 vw::ExifView::get_focal_length_pix() const {
   query_by_tag(EXIF_FocalLength, focal_length);
   query_by_tag(EXIF_FocalPlaneXResolution, focal_plane_res[0]);
   query_by_tag(EXIF_FocalPlaneYResolution, focal_plane_res[1]);
-  if ( focal_plane_res[0] <= 0 )
+  if (focal_plane_res[0] <= 0)
     vw_throw(ExifErr() << "Illegal value for FocalPlaneXResolution");
-  if ( focal_plane_res[1] <= 0 )
+  if (focal_plane_res[1] <= 0)
     vw_throw(ExifErr() << "Illegal value for FocalPlaneYResolution");
   int32 focal_plane_resolution_unit = 2;
   try { query_by_tag(EXIF_FocalPlaneResolutionUnit, focal_plane_resolution_unit); } catch (const ExifErr&) {}

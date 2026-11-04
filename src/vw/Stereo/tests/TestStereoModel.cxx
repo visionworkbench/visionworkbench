@@ -30,18 +30,18 @@
 using namespace vw;
 using namespace vw::math;
 
-TEST( StereoModel, PinholeStereo ) {
+TEST(StereoModel, PinholeStereo) {
   Vector3 pos1, pos2;
   pos2 = Vector3(1,0,0);
 
   Matrix3x3 pose1, pose2;
   pose1.set_identity();
   pose2.set_identity();
-  vw::PinholeModel pin1( pos1, pose1,
-                         1, 1, 0, 0);
+  vw::PinholeModel pin1(pos1, pose1,
+                        1, 1, 0, 0);
 
-  vw::PinholeModel pin2( pos2, pose2,
-                         1, 1, 0, 0);
+  vw::PinholeModel pin2(pos2, pose2,
+                        1, 1, 0, 0);
 
   Vector3 point(2,0,1);
   Vector2 px1 = pin1.point_to_pixel(point);
@@ -51,11 +51,11 @@ TEST( StereoModel, PinholeStereo ) {
     StereoModel st(&pin1,&pin2);
     double error;
     Vector3 pt2 = st(px1, px2, error);
-    EXPECT_VECTOR_NEAR( point, pt2, 1e-6 );
+    EXPECT_VECTOR_NEAR(point, pt2, 1e-6);
   }
 }
 
-TEST( StereoModel, AdjustedStereo ) {
+TEST(StereoModel, AdjustedStereo) {
 
   Vector3 pos1, pos2;
   pos2 = Vector3(1,0,0);
@@ -64,8 +64,8 @@ TEST( StereoModel, AdjustedStereo ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  boost::shared_ptr<CameraModel> pin1 = boost::shared_ptr<CameraModel>(new vw::PinholeModel( pos1, pose1, 1, 1, 0, 0));
-  boost::shared_ptr<CameraModel> pin2 = boost::shared_ptr<CameraModel>(new vw::PinholeModel( pos2, pose2, 1, 1, 0, 0));
+  boost::shared_ptr<CameraModel> pin1 = boost::shared_ptr<CameraModel>(new vw::PinholeModel(pos1, pose1, 1, 1, 0, 0));
+  boost::shared_ptr<CameraModel> pin2 = boost::shared_ptr<CameraModel>(new vw::PinholeModel(pos2, pose2, 1, 1, 0, 0));
 
   Vector3 point(2,0,1);
 
@@ -90,7 +90,7 @@ TEST( StereoModel, AdjustedStereo ) {
     double error;
     Vector3 pt2 = st(px1, px2, error);
 
-    EXPECT_VECTOR_NEAR( point, pt2, 1e-6 );
+    EXPECT_VECTOR_NEAR(point, pt2, 1e-6);
   }
 }
 
@@ -102,25 +102,25 @@ TEST(StereoView, PixelMaskVec2) {
   pose1.set_identity();
   pose2.set_identity();
 
-  vw::PinholeModel pin1( Vector3(),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin1(Vector3(),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
-  vw::PinholeModel pin2( Vector3(1,0,0),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin2(Vector3(1,0,0),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
   ImageView<PixelMask<Vector2f> > disparity(3,1);
-  disparity(1,0) = PixelMask<Vector2f>( Vector2f(-1,0) );
-  disparity(2,0) = PixelMask<Vector2f>( Vector2f(-1.3,0) );
+  disparity(1,0) = PixelMask<Vector2f>(Vector2f(-1,0));
+  disparity(2,0) = PixelMask<Vector2f>(Vector2f(-1.3,0));
 
-  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_DOUBLE_EQ( pc(0,0), Vector3() );
-  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+  ImageView<Vector3> pc = stereo_triangulate(disparity, &pin1, &pin2);
+  EXPECT_VECTOR_DOUBLE_EQ(pc(0,0), Vector3());
+  EXPECT_VECTOR_NEAR(pc(1,0), Vector3(0,0,1), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(2,0), Vector3(0.769,0,0.769), 1e-2);
 }
 
-TEST( StereoView, Vec2 ) {
+TEST(StereoView, Vec2) {
   Vector3 pos1, pos2;
   pos2 = Vector3(1,0,0);
 
@@ -128,26 +128,26 @@ TEST( StereoView, Vec2 ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  vw::PinholeModel pin1( Vector3(),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin1(Vector3(),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
-  vw::PinholeModel pin2( Vector3(1,0,0),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin2(Vector3(1,0,0),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
   ImageView<Vector2f> disparity(3,1);
   disparity(0,0) = Vector2f(-1.5,0);
   disparity(1,0) = Vector2f(-1,0);
   disparity(2,0) = Vector2f(-1.3,0);
 
-  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+  ImageView<Vector3> pc = stereo_triangulate(disparity, &pin1, &pin2);
+  EXPECT_VECTOR_NEAR(pc(0,0), Vector3(-0.666,0,0.666), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(1,0), Vector3(0,0,1), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(2,0), Vector3(0.769,0,0.769), 1e-2);
 }
 
-TEST( StereoView, PixelMaskFloat ) {
+TEST(StereoView, PixelMaskFloat) {
   Vector3 pos1, pos2;
   pos2 = Vector3(1,0,0);
 
@@ -155,25 +155,25 @@ TEST( StereoView, PixelMaskFloat ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  vw::PinholeModel pin1( Vector3(),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin1(Vector3(),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
-  vw::PinholeModel pin2( Vector3(1,0,0),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin2(Vector3(1,0,0),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
   ImageView<PixelMask<float> > disparity(3,1);
   disparity(1,0) = PixelMask<float>(-1);
   disparity(2,0) = PixelMask<float>(-1.3);
 
-  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_DOUBLE_EQ( pc(0,0), Vector3() );
-  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+  ImageView<Vector3> pc = stereo_triangulate(disparity, &pin1, &pin2);
+  EXPECT_VECTOR_DOUBLE_EQ(pc(0,0), Vector3());
+  EXPECT_VECTOR_NEAR(pc(1,0), Vector3(0,0,1), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(2,0), Vector3(0.769,0,0.769), 1e-2);
 }
 
-TEST( StereoView, Float ) {
+TEST(StereoView, Float) {
   Vector3 pos1, pos2;
   pos2 = Vector3(1,0,0);
 
@@ -181,21 +181,21 @@ TEST( StereoView, Float ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  vw::PinholeModel pin1( Vector3(),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin1(Vector3(),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
-  vw::PinholeModel pin2( Vector3(1,0,0),
-                         math::identity_matrix<3>(),
-                         1, 1, 1, 0);
+  vw::PinholeModel pin2(Vector3(1,0,0),
+                        math::identity_matrix<3>(),
+                        1, 1, 1, 0);
 
   ImageView<float> disparity(3,1);
   disparity(0,0) = -1.5;
   disparity(1,0) = -1;
   disparity(2,0) = -1.3;
 
-  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
-  EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
-  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+  ImageView<Vector3> pc = stereo_triangulate(disparity, &pin1, &pin2);
+  EXPECT_VECTOR_NEAR(pc(0,0), Vector3(-0.666,0,0.666), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(1,0), Vector3(0,0,1), 1e-2);
+  EXPECT_VECTOR_NEAR(pc(2,0), Vector3(0.769,0,0.769), 1e-2);
 }

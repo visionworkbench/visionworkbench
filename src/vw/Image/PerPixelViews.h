@@ -47,7 +47,7 @@ namespace vw {
     typedef pixel_type const            result_type;
     typedef ProceduralPixelAccessor<PerPixelIndexView> pixel_accessor;
 
-    PerPixelIndexView( FuncT func, int32 cols, int32 rows, int32 planes = 1 )
+    PerPixelIndexView(FuncT func, int32 cols, int32 rows, int32 planes = 1)
       : m_func(func), m_cols(cols), m_rows(rows), m_planes(planes) {}
 
     inline int32 cols  () const { return m_cols;   }
@@ -56,14 +56,14 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( double i, double j, int32 p = 0 ) const {
-      return m_func( i, j, p );
+    inline result_type operator()(double i, double j, int32 p = 0) const {
+      return m_func(i, j, p);
     }
 
     typedef PerPixelIndexView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    inline prerasterize_type prerasterize(BBox2i const& /*bbox*/) const { return *this; }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
@@ -87,14 +87,14 @@ namespace vw {
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
     typedef typename ImageIterT::offset_type offset_type;
 
-    UnaryPerPixelAccessor( ImageIterT const& iter, FuncT const& func ) : m_iter(iter), m_func(func) {}
+    UnaryPerPixelAccessor(ImageIterT const& iter, FuncT const& func) : m_iter(iter), m_func(func) {}
     inline UnaryPerPixelAccessor& next_col  () { m_iter.next_col();   return *this; }
     inline UnaryPerPixelAccessor& prev_col  () { m_iter.prev_col();   return *this; }
     inline UnaryPerPixelAccessor& next_row  () { m_iter.next_row();   return *this; }
     inline UnaryPerPixelAccessor& prev_row  () { m_iter.prev_row();   return *this; }
     inline UnaryPerPixelAccessor& next_plane() { m_iter.next_plane(); return *this; }
     inline UnaryPerPixelAccessor& prev_plane() { m_iter.prev_plane(); return *this; }
-    inline UnaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
+    inline UnaryPerPixelAccessor& advance(offset_type di, offset_type dj, ssize_t dp=0) { m_iter.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter); }
   };
 
@@ -108,26 +108,26 @@ namespace vw {
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
     typedef UnaryPerPixelAccessor<typename ImageT::pixel_accessor, FuncT>                        pixel_accessor;
 
-    UnaryPerPixelView( ImageT const& image                    ) : m_image(image), m_func()     {}
-    UnaryPerPixelView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
+    UnaryPerPixelView(ImageT const& image) : m_image(image), m_func()     {}
+    UnaryPerPixelView(ImageT const& image, FuncT const& func) : m_image(image), m_func(func) {}
 
     inline int32 cols  () const { return m_image.cols();   }
     inline int32 rows  () const { return m_image.rows();   }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(),m_func); }
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image(i,j,p)); }
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const { return m_func(m_image(i,j,p)); }
 
     template <class ViewT>
-    UnaryPerPixelView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    UnaryPerPixelView& operator=(ImageViewBase<ViewT> const& view) {
+      view.impl().rasterize(*this, BBox2i(0,0,view.impl().cols(),view.impl().rows()));
       return *this;
     }
 
     /// \cond INTERNAL
     typedef UnaryPerPixelView<typename ImageT::prerasterize_type, FuncT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_func ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const { return prerasterize_type(m_image.prerasterize(bbox), m_func); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
     /// \endcond
   };
 
@@ -196,8 +196,8 @@ namespace vw {
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type     pixel_type;
     typedef ProceduralPixelAccessor<UnaryPerPixelIndexView>                                          pixel_accessor;
 
-    UnaryPerPixelIndexView( ImageT const& image                    ) : m_image(image), m_func() {}
-    UnaryPerPixelIndexView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
+    UnaryPerPixelIndexView(ImageT const& image) : m_image(image), m_func() {}
+    UnaryPerPixelIndexView(ImageT const& image, FuncT const& func) : m_image(image), m_func(func) {}
 
     inline int32 cols  () const { return m_image.cols  (); }
     inline int32 rows  () const { return m_image.rows  (); }
@@ -205,18 +205,18 @@ namespace vw {
 
     //inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(), m_func); }
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image(i,j,p), i, j, p); }
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const { return m_func(m_image(i,j,p), i, j, p); }
 
     template <class ViewT>
-    UnaryPerPixelIndexView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    UnaryPerPixelIndexView& operator=(ImageViewBase<ViewT> const& view) {
+      view.impl().rasterize(*this, BBox2i(0,0,view.impl().cols(),view.impl().rows()));
       return *this;
     }
 
     /// \cond INTERNAL
     typedef UnaryPerPixelIndexView<typename ImageT::prerasterize_type, FuncT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_func ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const { return prerasterize_type(m_image.prerasterize(bbox), m_func); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
     /// \endcond
   }; // End class UnaryPerPixelIndexView
 

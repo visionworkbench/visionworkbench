@@ -67,14 +67,14 @@ namespace vw {
 
   template <class PixelT>
   inline PerPixelIndexView<ConstantIndexFunctor<PixelT> >
-  constant_view( PixelT const& value, int32 cols, int32 rows, int32 planes = 1 ) {
+  constant_view(PixelT const& value, int32 cols, int32 rows, int32 planes = 1) {
     typedef PerPixelIndexView<ConstantIndexFunctor<PixelT> > result_type;
-    return result_type( ConstantIndexFunctor<PixelT>(value), cols, rows, planes );
+    return result_type(ConstantIndexFunctor<PixelT>(value), cols, rows, planes);
   }
 
   template <class PixelT, class ImageT>
   inline PerPixelIndexView<ConstantIndexFunctor<PixelT> >
-  constant_view( PixelT value, ImageViewBase<ImageT> const& image ) {
+  constant_view(PixelT value, ImageViewBase<ImageT> const& image) {
     return constant_view(value,
                          image.impl().cols(),
                          image.impl().rows(),
@@ -93,14 +93,14 @@ namespace vw {
   };
 
   inline PerPixelIndexView<VectorIndexFunctor>
-  pixel_index_view( int32 cols, int32 rows, int32 planes = 1 ) {
+  pixel_index_view(int32 cols, int32 rows, int32 planes = 1) {
     typedef PerPixelIndexView<VectorIndexFunctor> result_type;
-    return result_type( VectorIndexFunctor(), cols, rows, planes );
+    return result_type(VectorIndexFunctor(), cols, rows, planes);
   }
 
   template <class ImageT>
   inline PerPixelIndexView<VectorIndexFunctor>
-  pixel_index_view( ImageViewBase<ImageT> const& image ) {
+  pixel_index_view(ImageViewBase<ImageT> const& image) {
     return pixel_index_view(image.impl().cols(),
                             image.impl().rows(),
                             image.impl().planes());
@@ -118,14 +118,14 @@ namespace vw {
   };
 
   inline PerPixelIndexView<Vector3IndexFunctor>
-  pixel_index3_view( int32 cols, int32 rows, int32 planes = 1 ) {
+  pixel_index3_view(int32 cols, int32 rows, int32 planes = 1) {
     typedef PerPixelIndexView<Vector3IndexFunctor> result_type;
-    return result_type( Vector3IndexFunctor(), cols, rows, planes );
+    return result_type(Vector3IndexFunctor(), cols, rows, planes);
   }
 
   template <class ImageT>
   inline PerPixelIndexView<Vector3IndexFunctor>
-  pixel_index3_view( ImageViewBase<ImageT> const& image ) {
+  pixel_index3_view(ImageViewBase<ImageT> const& image) {
     return pixel_index3_view(image.impl().cols(),
                              image.impl().rows(),
                              image.impl().planes());
@@ -147,17 +147,17 @@ namespace vw {
 
   template <class GenT>
   inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, UNIFORM01<> > > >
-  uniform_noise_view( GenT& gen, int32 cols, int32 rows, int32 planes = 1) {
+  uniform_noise_view(GenT& gen, int32 cols, int32 rows, int32 planes = 1) {
     typedef boost::variate_generator<GenT&, UNIFORM01<> > vargen_type;
     typedef PerPixelIndexView<IndexIndependentFunctor<vargen_type> > return_type;
     vargen_type vargen(gen, UNIFORM01<>());
-    return return_type( IndexIndependentFunctor<vargen_type>(vargen),
-                        cols, rows, planes );
+    return return_type(IndexIndependentFunctor<vargen_type>(vargen),
+                       cols, rows, planes);
   }
 
   template <class GenT, class ImageT>
   inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, UNIFORM01<> > > >
-  uniform_noise_view( GenT& gen, ImageViewBase<ImageT> const& image ) {
+  uniform_noise_view(GenT& gen, ImageViewBase<ImageT> const& image) {
     return uniform_noise_view(gen,
                               image.impl().cols(),
                               image.impl().rows(),
@@ -166,20 +166,20 @@ namespace vw {
 
   template <class GenT>
   inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, boost::normal_distribution<> > > >
-  gaussian_noise_view( GenT& gen, double mean, double sigma,
-                       int32 cols, int32 rows, int32 planes = 1 ) {
+  gaussian_noise_view(GenT& gen, double mean, double sigma,
+                      int32 cols, int32 rows, int32 planes = 1) {
     typedef boost::variate_generator<GenT&, boost::normal_distribution<> > vargen_type;
     typedef PerPixelIndexView<IndexIndependentFunctor<vargen_type> > return_type;
     boost::normal_distribution<> dist(mean, sigma);
     vargen_type vargen(gen, dist);
-    return return_type( IndexIndependentFunctor<vargen_type>(vargen),
-                        cols, rows, planes );
+    return return_type(IndexIndependentFunctor<vargen_type>(vargen),
+                       cols, rows, planes);
   }
 
   template <class GenT, class ImageT>
   inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, boost::normal_distribution<> > > >
-  gaussian_noise_view( GenT& gen, double mean, double sigma,
-                       ImageViewBase<ImageT> const& image ) {
+  gaussian_noise_view(GenT& gen, double mean, double sigma,
+                      ImageViewBase<ImageT> const& image) {
     return gaussian_noise_view(gen, mean, sigma,
                                image.impl().cols(),
                                image.impl().rows(),

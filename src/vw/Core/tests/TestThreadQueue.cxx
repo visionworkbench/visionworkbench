@@ -60,7 +60,7 @@ TEST(ThreadQueue, Threaded) {
 
   for (size_t i = 0; i < threads.size(); ++i) {
     TheTask task(new PushTask(q, 10, uint32(i)));
-    TheThread thread( new Thread(task) );
+    TheThread thread(new Thread(task));
     threads[i] = std::make_pair(task, thread);
   }
 

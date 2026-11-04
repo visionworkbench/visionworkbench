@@ -378,83 +378,83 @@ void OpticalBarModel::read(std::string const& filename) {
   std::ifstream cam_file;
   cam_file.open(filename.c_str());
   if (cam_file.fail())
-    vw_throw( IOErr() << "OpticalBarModel::read_file: Could not open file: " << filename );
+    vw_throw(IOErr() << "OpticalBarModel::read_file: Could not open file: " << filename);
 
   // Check for version number on the first line
   std::string line;
   std::getline(cam_file, line);
   if (line.find("VERSION") == std::string::npos) {
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Version missing!\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Version missing!\n");
   }
 
   int file_version = 1;
   sscanf(line.c_str(),"VERSION_%d", &file_version); // Parse the version of the input file
   if (file_version < 4)
-    vw_throw( ArgumentErr() << "OpticalBarModel::read_file(): Versions prior to 4 are not supported!\n" );
+    vw_throw(ArgumentErr() << "OpticalBarModel::read_file(): Versions prior to 4 are not supported!\n");
 
   // Read the camera type
   std::getline(cam_file, line);
   if (line.find("OPTICAL_BAR") == std::string::npos)
-        vw_throw( ArgumentErr() 
+        vw_throw(ArgumentErr() 
                  << "OpticalBarModel::read_file: Expected OPTICAL_BAR type, but got type "
-                 << line );
+                 << line);
 
   // Start parsing all the parameters from the lines.
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"image_size = %d %d",
       &m_image_size[0], &m_image_size[1]) != 2) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the image size\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the image size\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"image_center = %lf %lf",
       &m_center_loc_pixels[0], &m_center_loc_pixels[1]) != 2) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the image center\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the image center\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"pitch = %lf", &m_pixel_size) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the pixel pitch\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the pixel pitch\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"f = %lf", &m_focal_length) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the focal_length\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the focal_length\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"scan_time = %lf", &m_scan_time) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the scan time\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the scan time\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"forward_tilt = %lf", &m_forward_tilt_radians) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the forward tilt angle\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the forward tilt angle\n");
   }
   
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"iC = %lf %lf %lf", 
         &m_initial_position(0), &m_initial_position(1), &m_initial_position(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the initial position\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the initial position\n");
   }
 
   // Read and convert the rotation matrix.
   Matrix3x3 rot_mat;
   std::getline(cam_file, line);
-  if ( !cam_file.good() ||
-       sscanf(line.c_str(), "iR = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-              &rot_mat(0,0), &rot_mat(0,1), &rot_mat(0,2),
-              &rot_mat(1,0), &rot_mat(1,1), &rot_mat(1,2),
-              &rot_mat(2,0), &rot_mat(2,1), &rot_mat(2,2)) != 9 ) {
+  if (!cam_file.good() ||
+      sscanf(line.c_str(), "iR = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+             &rot_mat(0,0), &rot_mat(0,1), &rot_mat(0,2),
+             &rot_mat(1,0), &rot_mat(1,1), &rot_mat(1,2),
+             &rot_mat(2,0), &rot_mat(2,1), &rot_mat(2,2)) != 9) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the rotation matrix\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the rotation matrix\n");
   }
   Quat q(rot_mat);
   m_initial_pose = q.axis_angle();
@@ -462,26 +462,26 @@ void OpticalBarModel::read(std::string const& filename) {
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"speed = %lf", &m_speed) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the speed\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the speed\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"mean_earth_radius = %lf", &m_mean_earth_radius) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the mean earth radius\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the mean earth radius\n");
   }
   
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"mean_surface_elevation = %lf", &m_mean_surface_elevation) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the mean surface elevation\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the mean surface elevation\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"motion_compensation_factor = %lf",
                                  &m_motion_compensation) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read motion compensation factor\n" );
+    vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read motion compensation factor\n");
   }
 
   std::getline(cam_file, line);
@@ -492,7 +492,7 @@ void OpticalBarModel::read(std::string const& filename) {
   if (line.find("velocity = ") != std::string::npos) {
     if (sscanf(line.c_str(),"velocity = %lf %lf %lf",
                &m_velocity[0], &m_velocity[1], &m_velocity[2]) != 3) {
-      vw_throw( IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n" );
+      vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the velocity\n");
     }
     m_have_velocity_vec = true;
   } else {
@@ -506,7 +506,7 @@ void OpticalBarModel::read(std::string const& filename) {
   if (line.find("final_pose = ") != std::string::npos) {
     if (sscanf(line.c_str(),"final_pose = %lf %lf %lf",
                &m_final_pose[0], &m_final_pose[1], &m_final_pose[2]) != 3) {
-      vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the final pose\n" );
+      vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the final pose\n");
     }
   } else {
     m_final_pose = m_initial_pose;
@@ -523,8 +523,8 @@ void OpticalBarModel::write(std::string const& filename) const {
 
   // Open the output file for writing
   std::ofstream cam_file(filename.c_str());
-  if( !cam_file.is_open() ) 
-    vw_throw( IOErr() << "OpticalBarModel::write: Could not open file: " << filename );
+  if(!cam_file.is_open()) 
+    vw_throw(IOErr() << "OpticalBarModel::write: Could not open file: " << filename);
 
   // Write the pinhole camera model parts
   //   # digits to survive double->text->double conversion
@@ -572,7 +572,7 @@ void OpticalBarModel::write(std::string const& filename) const {
   cam_file.close();
 }
 
-std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model) {
+std::ostream& operator<<(std::ostream& os, OpticalBarModel const& camera_model) {
   os << "\n------------------------ Optical Bar Model -----------------------\n\n";
   os << " Image size:             " << camera_model.m_image_size             << "\n";
   os << " Center loc (pixels):    " << camera_model.m_center_loc_pixels      << "\n";

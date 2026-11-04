@@ -46,28 +46,28 @@ BBox<RealT, DimN>::BBox() {
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-BBox<RealT, DimN>::BBox( BBox<RealT1, DimN1> const& bbox )
+BBox<RealT, DimN>::BBox(BBox<RealT1, DimN1> const& bbox)
   : m_min(bbox.min()), m_max(bbox.max()) {}
 
 
 
 template <class RealT, size_t DimN>
-BBox<RealT, DimN>::BBox( RealT minx, RealT miny, RealT width, RealT height )
-  : m_min(Vector<RealT,2>(minx,      miny       )),
+BBox<RealT, DimN>::BBox(RealT minx, RealT miny, RealT width, RealT height)
+  : m_min(Vector<RealT,2>(minx,      miny)),
     m_max(Vector<RealT,2>(minx+width,miny+height)) {
   checkLengthEqual<2>();
 }
 
 template <class RealT, size_t DimN>
-BBox<RealT, DimN>::BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
-  : m_min(Vector<RealT,3>(minx,      miny,       minz      )),
+BBox<RealT, DimN>::BBox(RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth)
+  : m_min(Vector<RealT,3>(minx,      miny,       minz)),
     m_max(Vector<RealT,3>(minx+width,miny+height,minz+depth)) {
   checkLengthEqual<3>();
 }
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-BBox<RealT, DimN>& BBox<RealT, DimN>::operator=( BBox<RealT1, DimN1> const& bbox ) {
+BBox<RealT, DimN>& BBox<RealT, DimN>::operator=(BBox<RealT1, DimN1> const& bbox) {
   this->min() = bbox.min();
   this->max() = bbox.max();
   return *this;
@@ -99,7 +99,7 @@ void BBox<RealT, DimN>::grow(VectorBase<VectorT> const& point) {
 /// Grows a bounding box to include the given bounding box.
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-void BBox<RealT, DimN>::grow( BBox<RealT1, DimN1> const& bbox ){
+void BBox<RealT, DimN>::grow(BBox<RealT1, DimN1> const& bbox){
   if (bbox.empty())
     return;
   grow(bbox.min()); grow(bbox.max());
@@ -107,21 +107,21 @@ void BBox<RealT, DimN>::grow( BBox<RealT1, DimN1> const& bbox ){
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-void BBox<RealT, DimN>::crop( BBox<RealT1, DimN1> const& bbox ) {
+void BBox<RealT, DimN>::crop(BBox<RealT1, DimN1> const& bbox) {
   VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
             ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
-  for( size_t i=0; i<m_min.size(); ++i ) {
-    if( m_min[i] < bbox.min()[i] ) 
+  for(size_t i=0; i<m_min.size(); ++i) {
+    if(m_min[i] < bbox.min()[i]) 
       m_min[i] = bbox.min()[i];
 
-    if( m_max[i] > bbox.max()[i] ) 
+    if(m_max[i] > bbox.max()[i]) 
       m_max[i] = bbox.max()[i];
   }
 }
 
 template <class RealT, size_t DimN>
 template <class VectorT>
-bool BBox<RealT, DimN>::contains( const VectorBase<VectorT> &point ) const {
+bool BBox<RealT, DimN>::contains(const VectorBase<VectorT> &point) const {
   using namespace vector_containment_comparison;
   VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), 
             ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
@@ -130,7 +130,7 @@ bool BBox<RealT, DimN>::contains( const VectorBase<VectorT> &point ) const {
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-bool BBox<RealT, DimN>::contains( const BBox<RealT1, DimN1> &bbox ) const {
+bool BBox<RealT, DimN>::contains(const BBox<RealT1, DimN1> &bbox) const {
   using namespace vector_containment_comparison;
   VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
             ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
@@ -139,12 +139,12 @@ bool BBox<RealT, DimN>::contains( const BBox<RealT1, DimN1> &bbox ) const {
 
 template <class RealT, size_t DimN>
 template <class RealT1, size_t DimN1>
-bool BBox<RealT, DimN>::intersects( const BBox<RealT1, DimN1>& bbox ) const {
+bool BBox<RealT, DimN>::intersects(const BBox<RealT1, DimN1>& bbox) const {
   VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
             ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
-  for( size_t i=0; i<m_min.size(); ++i ) {
-    if( m_min[i] >= bbox.max()[i] ||
-        m_max[i] <= bbox.min()[i] )
+  for(size_t i=0; i<m_min.size(); ++i) {
+    if(m_min[i] >= bbox.max()[i] ||
+       m_max[i] <= bbox.min()[i])
       return false;
   }
   return (m_min.size() != 0);
@@ -154,14 +154,14 @@ bool BBox<RealT, DimN>::intersects( const BBox<RealT1, DimN1>& bbox ) const {
   
 template <class RealT, size_t DimN>
 bool BBox<RealT, DimN>::empty() const {
-  for( size_t i=0; i<m_min.size(); ++i )
+  for(size_t i=0; i<m_min.size(); ++i)
     if (m_min[i] >= m_max[i]) return true;
   return (m_min.size() <= 0);
 }
 
 template <class RealT, size_t DimN>
 bool BBox<RealT, DimN>::fully_empty() const {
-  for( size_t i=0; i<m_min.size(); ++i )
+  for(size_t i=0; i<m_min.size(); ++i)
     if (m_min[i] > m_max[i]) return true;
   return (m_min.size() <= 0);
 }
@@ -225,9 +225,9 @@ void BBox<RealT, DimN>::set_size(Vector<RealT, DimN> size) {
 }
 
 template <class RealT, size_t DimN>
-void BBox<RealT, DimN>::expand( RealT offset ) {
+void BBox<RealT, DimN>::expand(RealT offset) {
   if (empty()) return; // Bug fix for underflow/overflow
-  for( size_t i=0; i<m_min.size(); ++i ) {
+  for(size_t i=0; i<m_min.size(); ++i) {
     m_min[i] -= offset;
     m_max[i] += offset;
   }
@@ -235,20 +235,20 @@ void BBox<RealT, DimN>::expand( RealT offset ) {
 
 template <class RealT, size_t DimN>
 template <class VectorT>
-void BBox<RealT, DimN>::expand( VectorBase<VectorT> const& vec ) {
+void BBox<RealT, DimN>::expand(VectorBase<VectorT> const& vec) {
   VW_ASSERT(m_min.size() == 0 || vec.impl().size() == m_min.size(), 
             ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
   if (empty()) return; // Bug fix for underflow/overflow
-  for( size_t i=0; i<m_min.size(); ++i ) {
+  for(size_t i=0; i<m_min.size(); ++i) {
     m_min[i] -= vec.impl()[i];
     m_max[i] += vec.impl()[i];
   }
 }
 
 template <class RealT, size_t DimN>
-void BBox<RealT, DimN>::contract( RealT offset ) {
+void BBox<RealT, DimN>::contract(RealT offset) {
   if (empty()) return; // Bug fix for overflow/underflow
-  for( size_t i=0; i<m_min.size(); ++i ) {
+  for(size_t i=0; i<m_min.size(); ++i) {
     m_min[i] += offset;
     m_max[i] -= offset;
   }
@@ -256,9 +256,9 @@ void BBox<RealT, DimN>::contract( RealT offset ) {
 
 template <class RealT, size_t DimN>
 template <class ScalarT>
-BBox<RealT, DimN>& BBox<RealT, DimN>::operator*=( ScalarT s ) {
-  VW_ASSERT( s > 0, ArgumentErr()
-             << "Cannot scale a box by a non-positive number." );
+BBox<RealT, DimN>& BBox<RealT, DimN>::operator*=(ScalarT s) {
+  VW_ASSERT(s > 0, ArgumentErr()
+            << "Cannot scale a box by a non-positive number.");
   if (empty()) return *this; // Bug fix for underflow/overflow
   m_min *= s;
   m_max *= s;
@@ -267,9 +267,9 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator*=( ScalarT s ) {
 
 template <class RealT, size_t DimN>
 template <class ScalarT>
-BBox<RealT, DimN>& BBox<RealT, DimN>::operator/=( ScalarT s ) {
-  VW_ASSERT( s > 0, ArgumentErr()
-             << "Cannot scale a box by a non-positive number." );
+BBox<RealT, DimN>& BBox<RealT, DimN>::operator/=(ScalarT s) {
+  VW_ASSERT(s > 0, ArgumentErr()
+            << "Cannot scale a box by a non-positive number.");
   if (empty()) return *this; // Bug fix for underflow/overflow
   m_min /= s;
   m_max /= s;
@@ -278,7 +278,7 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator/=( ScalarT s ) {
 
 template <class RealT, size_t DimN>
 template <class VectorT>
-BBox<RealT, DimN>& BBox<RealT, DimN>::operator+=( VectorBase<VectorT> const& v ) {
+BBox<RealT, DimN>& BBox<RealT, DimN>::operator+=(VectorBase<VectorT> const& v) {
   if (empty()) return *this; // Bug fix for underflow/overflow
   m_min += v;
   m_max += v;
@@ -287,7 +287,7 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator+=( VectorBase<VectorT> const& v )
 
 template <class RealT, size_t DimN>
 template <class VectorT>
-BBox<RealT, DimN>& BBox<RealT, DimN>::operator-=( VectorBase<VectorT> const& v ) {
+BBox<RealT, DimN>& BBox<RealT, DimN>::operator-=(VectorBase<VectorT> const& v) {
   if (empty()) return *this; // Bug fix for underflow/overflow
   m_min -= v;
   m_max -= v;
@@ -299,61 +299,61 @@ BBox<RealT, DimN>& BBox<RealT, DimN>::operator-=( VectorBase<VectorT> const& v )
 // - Some of these operations should probably have been named class functions.
 
 template <class RealT, size_t DimN, class ScalarT>
-inline BBox<RealT, DimN> operator*( BBox<RealT, DimN> const& bbox, ScalarT s ) {
+inline BBox<RealT, DimN> operator*(BBox<RealT, DimN> const& bbox, ScalarT s) {
   BBox<RealT, DimN> result = bbox;
   result *= s;
   return result;
 }
 
 template <class RealT, size_t DimN, class ScalarT>
-inline BBox<RealT, DimN> operator/( BBox<RealT, DimN> const& bbox, ScalarT s ) {
+inline BBox<RealT, DimN> operator/(BBox<RealT, DimN> const& bbox, ScalarT s) {
   BBox<RealT, DimN> result = bbox;
   result /= s;
   return result;
 }
 
 template <class RealT, size_t DimN, class VectorT>
-inline BBox<RealT, DimN> operator+( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+inline BBox<RealT, DimN> operator+(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v) {
   BBox<RealT, DimN> result = bbox;
   result += v.impl();
   return result;
 }
 
 template <class RealT, size_t DimN, class VectorT>
-inline BBox<RealT, DimN> operator-( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+inline BBox<RealT, DimN> operator-(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v) {
   BBox<RealT, DimN> result = bbox;
   result -= v.impl();
   return result;
 }
 
 template <class RealT1, size_t DimN1, class RealT2, size_t DimN2>
-inline bool operator==( BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2 ) {
+inline bool operator==(BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2) {
   return bbox1.min()==bbox2.min() && bbox1.max()==bbox2.max();
 }
 
 template <class RealT1, size_t DimN1, class RealT2, size_t DimN2>
-inline bool operator!=( BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2 ) {
+inline bool operator!=(BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2) {
   return bbox1.min()!=bbox2.min() || bbox1.max()!=bbox2.max();
 }
 
 
 template <class RealT>
-std::ostream& operator<<( std::ostream& os, BBox<RealT,2> const& bbox ) {
+std::ostream& operator<<(std::ostream& os, BBox<RealT,2> const& bbox) {
   return os << "Min: (" << bbox.min()[0] << ", " << bbox.min()[1] << ") width: " << bbox.width() << " height: " << bbox.height();
 }
 
 template <class RealT, size_t DimN, class VectorT>
-inline BBox<RealT, DimN> elem_prod( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+inline BBox<RealT, DimN> elem_prod(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v) {
   if (bbox.empty()) 
     return BBox<RealT, DimN>(); // Bug fix for underflow/overflow
-  return BBox<RealT, DimN>( elem_prod(bbox.min(),v), elem_prod(bbox.max(),v) );
+  return BBox<RealT, DimN>(elem_prod(bbox.min(),v), elem_prod(bbox.max(),v));
 }
 
 template <class RealT, size_t DimN, class VectorT>
-inline BBox<RealT, DimN> elem_quot( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+inline BBox<RealT, DimN> elem_quot(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v) {
   if (bbox.empty()) 
     return BBox<RealT, DimN>(); // Bug fix for underflow/overflow
-  return BBox<RealT, DimN>( elem_quot(bbox.min(),v), elem_quot(bbox.max(),v) );
+  return BBox<RealT, DimN>(elem_quot(bbox.min(),v), elem_quot(bbox.max(),v));
 }
 
 
@@ -365,9 +365,9 @@ inline BBox<RealT, DimN> elem_quot( BBox<RealT, DimN> const& bbox, VectorBase<Ve
 // to the smallest enclosing integer bounding box.
 template <class RealT1, size_t DimN1>
 inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
-grow_bbox_to_int( math::BBox<RealT1, DimN1> const& bbox ) {
+grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox) {
   BBox<int32,DimN1> result;
-  for ( size_t i = 0; i < DimN1; i++ ) {
+  for (size_t i = 0; i < DimN1; i++) {
 
     // Bug fix: Cannot grow a completely empty box.
     // Note: A box with bbox.min()[i] == bbox.max()[i]
@@ -389,4 +389,3 @@ grow_bbox_to_int( math::BBox<RealT1, DimN1> const& bbox ) {
 }
 
 } // namespace vw
-

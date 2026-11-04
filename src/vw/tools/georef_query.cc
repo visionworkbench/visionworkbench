@@ -39,7 +39,7 @@ using namespace vw;
 /// \file georef_query.cc Tool for making queries about GeoRef information on an image file.
 
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
   // Output formats list
   const int OUTPUT_LAT_LON   = 0;
@@ -75,21 +75,21 @@ int main( int argc, char *argv[] )
     po::options_description all_options;
     all_options.add(general_options).add(positional);
 
-    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).style( po::command_line_style::unix_style ).run(), vm );
+    po::store(po::command_line_parser(argc, argv).options(all_options).positional(positional_desc).style(po::command_line_style::unix_style).run(), vm);
 
-    po::notify( vm );
+    po::notify(vm);
   } catch (po::error const& e) {
-    vw::vw_throw( vw::ArgumentErr() << "Error parsing input:\n"
-                  << e.what() << "\n" << usage << general_options );
+    vw::vw_throw(vw::ArgumentErr() << "Error parsing input:\n"
+                 << e.what() << "\n" << usage << general_options);
   }
 
   // Check for required inputs
-  if ( !vm.count("inputImage") )
-    vw_throw( vw::ArgumentErr() << "Requires <input image> in order to proceed.\n\n"
-              << usage << general_options );
-  if ( !vm.count("print-bounds") && !(vm.count("row") && vm.count("col")) && !(vm.count("lat") && vm.count("lon")) )
-    vw_throw( vw::ArgumentErr() << "Requires either print-bounds, row/col, or lat/lon in order to proceed.\n\n"
-              << usage << general_options );
+  if (!vm.count("inputImage"))
+    vw_throw(vw::ArgumentErr() << "Requires <input image> in order to proceed.\n\n"
+             << usage << general_options);
+  if (!vm.count("print-bounds") && !(vm.count("row") && vm.count("col")) && !(vm.count("lat") && vm.count("lon")))
+    vw_throw(vw::ArgumentErr() << "Requires either print-bounds, row/col, or lat/lon in order to proceed.\n\n"
+             << usage << general_options);
 
 
 
@@ -118,8 +118,8 @@ int main( int argc, char *argv[] )
       xString = "col";
       break;
     default: // Error
-          vw_throw( vw::ArgumentErr() << "Invalid value given for outputFormat!.\n\n"
-                        << usage << general_options );
+          vw_throw(vw::ArgumentErr() << "Invalid value given for outputFormat!.\n\n"
+                       << usage << general_options);
   }
 
 

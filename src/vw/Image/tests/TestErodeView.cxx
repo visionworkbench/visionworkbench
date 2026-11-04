@@ -25,22 +25,22 @@ using namespace vw;
 
 TEST(ErodeView, basic_test) {
   ImageView<PixelMask<uint8> > test(3,3);
-  EXPECT_EQ( PixelMask<uint8>(), test(0,0) );
-  EXPECT_FALSE( is_valid(test(0,0)) );
+  EXPECT_EQ(PixelMask<uint8>(), test(0,0));
+  EXPECT_FALSE(is_valid(test(0,0)));
   test(1,1) = PixelMask<uint8>(100);
-  EXPECT_TRUE( is_valid(test(1,1)) );
+  EXPECT_TRUE(is_valid(test(1,1)));
 
-  BlobIndexThreaded bindex( test, 100 );
-  EXPECT_EQ( 1u, bindex.num_blobs() );
+  BlobIndexThreaded bindex(test, 100);
+  EXPECT_EQ(1u, bindex.num_blobs());
 
   ImageViewRef<PixelMask<uint8> > erode_ref =
-    ErodeView<ImageView<PixelMask<uint8> > >( test, bindex );
-  EXPECT_FALSE( is_valid(erode_ref(1,1)) );
-  EXPECT_FALSE( is_valid(erode_ref(0,0)) );
+    ErodeView<ImageView<PixelMask<uint8> > >(test, bindex);
+  EXPECT_FALSE(is_valid(erode_ref(1,1)));
+  EXPECT_FALSE(is_valid(erode_ref(0,0)));
   ImageView<PixelMask<uint8> > eroded = erode_ref;
-  EXPECT_FALSE( is_valid(eroded(0,0) ) );
-  EXPECT_FALSE( is_valid(eroded(1,1) ) );
-  EXPECT_EQ( 0, eroded(1,1).child() );
+  EXPECT_FALSE(is_valid(eroded(0,0)));
+  EXPECT_FALSE(is_valid(eroded(1,1)));
+  EXPECT_EQ(0, eroded(1,1).child());
 }
 
 TEST(ErodeView, larger_test) {
@@ -83,19 +83,19 @@ TEST(ErodeView, larger_test) {
   blobs(3,4) = PixelMask<uint8>(100);
 
   // Process blobs
-  BlobIndexThreaded bindex( blobs, 100, 100 );
-  EXPECT_EQ( 3u, bindex.num_blobs() );
+  BlobIndexThreaded bindex(blobs, 100, 100);
+  EXPECT_EQ(3u, bindex.num_blobs());
 
   // Set up blobs as erosion mask on image
   ImageViewRef<PixelMask<uint8> > erode_ref =
-    ErodeView<ImageView<PixelMask<uint8> > >( test, bindex );
+    ErodeView<ImageView<PixelMask<uint8> > >(test, bindex);
 
-  EXPECT_FALSE( is_valid(erode_ref(1,0)) );
-  EXPECT_FALSE( is_valid(erode_ref(1,2)) );
-  EXPECT_TRUE ( is_valid(erode_ref(4,4) ) );
+  EXPECT_FALSE(is_valid(erode_ref(1,0)));
+  EXPECT_FALSE(is_valid(erode_ref(1,2)));
+  EXPECT_TRUE (is_valid(erode_ref(4,4)));
   ImageView<PixelMask<uint8> > eroded = erode_ref;
-  EXPECT_FALSE( is_valid(eroded(3,2) ) );
-  EXPECT_FALSE( is_valid(eroded(3,4) ) );
-  EXPECT_TRUE ( is_valid(eroded(4,3) ) );
+  EXPECT_FALSE(is_valid(eroded(3,2)));
+  EXPECT_FALSE(is_valid(eroded(3,4)));
+  EXPECT_TRUE (is_valid(eroded(4,3)));
 
 }

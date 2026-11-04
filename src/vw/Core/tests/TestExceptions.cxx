@@ -43,8 +43,8 @@ TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
   Level2Err l2;
   l1 << "Test message1.";
   l2 << "Test message2.";
-  EXPECT_EQ(l1.name() , "Level1Err" );
-  EXPECT_EQ(l2.name() , "Level2Err" );
+  EXPECT_EQ(l1.name(), "Level1Err");
+  EXPECT_EQ(l2.name(), "Level2Err");
 
   EXPECT_THROW(throw Level1Err(), Exception);
   EXPECT_THROW(throw Level1Err(), Level1Err);
@@ -62,10 +62,10 @@ TEST(Exceptions, HAS_EXCEPTIONS(Ext)) {
   EXPECT_THROW(throw Code2(), Code0);
   EXPECT_THROW(throw Code2(), Exception);
 
-  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code2);
-  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code1);
-  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code0);
-  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Exception);
+  EXPECT_THROW(vw_throw(Code2() << "Rawr"), Code2);
+  EXPECT_THROW(vw_throw(Code2() << "Rawr"), Code1);
+  EXPECT_THROW(vw_throw(Code2() << "Rawr"), Code0);
+  EXPECT_THROW(vw_throw(Code2() << "Rawr"), Exception);
 
   try {
   } catch (const Code0& c) {

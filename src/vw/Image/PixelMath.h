@@ -58,43 +58,43 @@ namespace vw {
 #define VW_PIXEL_MATH_UNARY_FUNCTION(func,ftor)       \
   template <class PixelT>                             \
   typename CompoundResult<ftor,PixelT>::type          \
-  inline func( PixelMathBase<PixelT> const& pixel ) { \
-    return compound_apply( ftor(), pixel.impl() );    \
+  inline func(PixelMathBase<PixelT> const& pixel) { \
+    return compound_apply(ftor(), pixel.impl());    \
   }
 
 #define VW_PIXEL_MATH_BINARY_PP_FUNCTION(func,ftor)                     \
   template <class Pixel1T, class Pixel2T>                               \
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, typename CompoundResult<ftor,Pixel1T,Pixel2T>::type >::type \
-  inline func( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) { \
-    return compound_apply(ftor(), pixel1.impl(), pixel2.impl() );       \
+  inline func(PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2) { \
+    return compound_apply(ftor(), pixel1.impl(), pixel2.impl());       \
   }
 
 #define VW_PIXEL_MATH_BINARY_PS_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
   typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
-  inline func( PixelMathBase<PixelT> const& pixel, ScalarT scalar ) {   \
-    return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
+  inline func(PixelMathBase<PixelT> const& pixel, ScalarT scalar) {   \
+    return compound_apply(ftor<ScalarT>(scalar), pixel.impl());        \
   }
 
 #define VW_PIXEL_MATH_BINARY_IP_FUNCTION(func,ftor)                     \
   template <class Pixel1T, class Pixel2T>                               \
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, Pixel1T&>::type \
-  inline func( PixelMathBase<Pixel1T>& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) { \
-    return compound_apply_in_place(ftor(), pixel1.impl(), pixel2.impl() ); \
+  inline func(PixelMathBase<Pixel1T>& pixel1, PixelMathBase<Pixel2T> const& pixel2) { \
+    return compound_apply_in_place(ftor(), pixel1.impl(), pixel2.impl()); \
   }
 
 #define VW_PIXEL_MATH_BINARY_IS_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
   typename boost::enable_if< IsScalar<ScalarT>, PixelT&>::type          \
-  inline func( PixelMathBase<PixelT>& pixel, ScalarT scalar ) {         \
-    return compound_apply_in_place(ftor<ScalarT>(scalar), pixel.impl() ); \
+  inline func(PixelMathBase<PixelT>& pixel, ScalarT scalar) {         \
+    return compound_apply_in_place(ftor<ScalarT>(scalar), pixel.impl()); \
   }
 
 #define VW_PIXEL_MATH_BINARY_SP_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
   typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
-  inline func( ScalarT scalar, PixelMathBase<PixelT> const& pixel ) {   \
-    return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
+  inline func(ScalarT scalar, PixelMathBase<PixelT> const& pixel) {   \
+    return compound_apply(ftor<ScalarT>(scalar), pixel.impl());        \
   }
 
 #define VW_PIXEL_MATH_STD_UNARY_FUNCTION(func,ftor)     \
@@ -134,17 +134,17 @@ namespace vw {
 
   template <class Pixel1T, class Pixel2T>
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, bool >::type
-  inline operator==( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) {
-    for( size_t c=0; c<CompoundNumChannels<Pixel1T>::value; ++c )
-      if( compound_select_channel<typename CompoundChannelType<Pixel1T>::type>(pixel1.impl(),c) !=
-          compound_select_channel<typename CompoundChannelType<Pixel2T>::type>(pixel2.impl(),c) )
+  inline operator==(PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2) {
+    for(size_t c=0; c<CompoundNumChannels<Pixel1T>::value; ++c)
+      if(compound_select_channel<typename CompoundChannelType<Pixel1T>::type>(pixel1.impl(),c) !=
+         compound_select_channel<typename CompoundChannelType<Pixel2T>::type>(pixel2.impl(),c))
         return false;
     return true;
   }
 
   template <class Pixel1T, class Pixel2T>
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, bool >::type
-  inline operator!=( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) {
+  inline operator!=(PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2) {
     return !(pixel1==pixel2);
   }
 

@@ -27,64 +27,64 @@ using namespace vw::math;
 static const double DELTA = 1e-5;
 
 template <class T1, class T2>
-static bool is_of_type( T2 ) {
+static bool is_of_type(T2) {
   return boost::is_same<T1,T2>::value;
 }
 
 TEST(Functors, Real) {
   ArgRealFunctor f;
-  EXPECT_EQ( f(2.0), 2.0 );
-  EXPECT_EQ( f(std::complex<double>(2.0,3.0)), 2.0 );
-  EXPECT_TRUE( is_of_type<float>( f(float()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(double()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f((long double)(0)) ) );
-  EXPECT_TRUE( is_of_type<int>( f(int()) ) );
-  EXPECT_TRUE( is_of_type<float>( f(std::complex<float> ()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(std::complex<double> ()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f(std::complex<long double> ()) ) );
-  EXPECT_TRUE( is_of_type<int>( f(std::complex<int> ()) ) );
+  EXPECT_EQ(f(2.0), 2.0);
+  EXPECT_EQ(f(std::complex<double>(2.0,3.0)), 2.0);
+  EXPECT_TRUE(is_of_type<float>(f(float())));
+  EXPECT_TRUE(is_of_type<double>(f(double())));
+  EXPECT_TRUE(is_of_type<long double>(f((long double)(0))));
+  EXPECT_TRUE(is_of_type<int>(f(int())));
+  EXPECT_TRUE(is_of_type<float>(f(std::complex<float> ())));
+  EXPECT_TRUE(is_of_type<double>(f(std::complex<double> ())));
+  EXPECT_TRUE(is_of_type<long double>(f(std::complex<long double> ())));
+  EXPECT_TRUE(is_of_type<int>(f(std::complex<int> ())));
 }
 
 TEST(Functors, Imag) {
   ArgImagFunctor f;
-  EXPECT_EQ( f(2.0), 0.0 );
-  EXPECT_EQ( f(std::complex<double>(2.0,3.0)), 3.0 );
-  EXPECT_TRUE( is_of_type<float>( f(float()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(double()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f((long double)(0)) ) );
-  EXPECT_TRUE( is_of_type<int>( f(int()) ) );
-  EXPECT_TRUE( is_of_type<float>( f(std::complex<float>()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(std::complex<double>()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f(std::complex<long double>()) ) );
-  EXPECT_TRUE( is_of_type<int>( f(std::complex<int>()) ) );
+  EXPECT_EQ(f(2.0), 0.0);
+  EXPECT_EQ(f(std::complex<double>(2.0,3.0)), 3.0);
+  EXPECT_TRUE(is_of_type<float>(f(float())));
+  EXPECT_TRUE(is_of_type<double>(f(double())));
+  EXPECT_TRUE(is_of_type<long double>(f((long double)(0))));
+  EXPECT_TRUE(is_of_type<int>(f(int())));
+  EXPECT_TRUE(is_of_type<float>(f(std::complex<float>())));
+  EXPECT_TRUE(is_of_type<double>(f(std::complex<double>())));
+  EXPECT_TRUE(is_of_type<long double>(f(std::complex<long double>())));
+  EXPECT_TRUE(is_of_type<int>(f(std::complex<int>())));
 }
 
 TEST(Functors, Abs) {
   ArgAbsFunctor f;
-  EXPECT_EQ( f(2.0), 2.0 );
-  EXPECT_EQ( f(-2.0), 2.0 );
-  EXPECT_DOUBLE_EQ( f(std::complex<double>(3.0,4.0)), 5.0 );
-  EXPECT_TRUE( is_of_type<float>( f(float()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(double()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f((long double)(0)) ) );
-  EXPECT_TRUE( is_of_type<int>( f(int()) ) );
-  EXPECT_TRUE( is_of_type<float>( f(std::complex<float>()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(std::complex<double>()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f(std::complex<long double>()) ) );
+  EXPECT_EQ(f(2.0), 2.0);
+  EXPECT_EQ(f(-2.0), 2.0);
+  EXPECT_DOUBLE_EQ(f(std::complex<double>(3.0,4.0)), 5.0);
+  EXPECT_TRUE(is_of_type<float>(f(float())));
+  EXPECT_TRUE(is_of_type<double>(f(double())));
+  EXPECT_TRUE(is_of_type<long double>(f((long double)(0))));
+  EXPECT_TRUE(is_of_type<int>(f(int())));
+  EXPECT_TRUE(is_of_type<float>(f(std::complex<float>())));
+  EXPECT_TRUE(is_of_type<double>(f(std::complex<double>())));
+  EXPECT_TRUE(is_of_type<long double>(f(std::complex<long double>())));
 }
 
 TEST(Functors, Conj) {
   ArgConjFunctor f;
-  EXPECT_EQ( f(2.0), 2.0 );
-  EXPECT_EQ( f(std::complex<double>(1.0,2.0)), std::complex<double>(1.0,-2.0) );
-  EXPECT_TRUE( is_of_type<float>( f(float()) ) );
-  EXPECT_TRUE( is_of_type<double>( f(double()) ) );
-  EXPECT_TRUE( is_of_type<long double>( f((long double)(0)) ) );
-  EXPECT_TRUE( is_of_type<int>( f(int()) ) );
-  EXPECT_TRUE( is_of_type<std::complex<float> >( f(std::complex<float>()) ) );
-  EXPECT_TRUE( is_of_type<std::complex<double> >( f(std::complex<double>()) ) );
-  EXPECT_TRUE( is_of_type<std::complex<long double> >( f(std::complex<long double>()) ) );
-  EXPECT_TRUE( is_of_type<std::complex<int> >( f(std::complex<int>()) ) );
+  EXPECT_EQ(f(2.0), 2.0);
+  EXPECT_EQ(f(std::complex<double>(1.0,2.0)), std::complex<double>(1.0,-2.0));
+  EXPECT_TRUE(is_of_type<float>(f(float())));
+  EXPECT_TRUE(is_of_type<double>(f(double())));
+  EXPECT_TRUE(is_of_type<long double>(f((long double)(0))));
+  EXPECT_TRUE(is_of_type<int>(f(int())));
+  EXPECT_TRUE(is_of_type<std::complex<float> >(f(std::complex<float>())));
+  EXPECT_TRUE(is_of_type<std::complex<double> >(f(std::complex<double>())));
+  EXPECT_TRUE(is_of_type<std::complex<long double> >(f(std::complex<long double>())));
+  EXPECT_TRUE(is_of_type<std::complex<int> >(f(std::complex<int>())));
 }
 
 TEST(Functors, Median){
@@ -95,7 +95,7 @@ TEST(Functors, Median){
   V(5);
 
   // The median better be 6.5
-  EXPECT_TRUE( V.value() == 6.5 );
+  EXPECT_TRUE(V.value() == 6.5);
 }
 
 TEST(Functors, StdDev){
@@ -105,7 +105,7 @@ TEST(Functors, StdDev){
   V(3);
   V(5);
 
-  EXPECT_TRUE( V.value() == 2.3848480035423640366 );
+  EXPECT_TRUE(V.value() == 2.3848480035423640366);
 }
 
 TEST(Functors, DestructiveMedian){
@@ -117,7 +117,7 @@ TEST(Functors, DestructiveMedian){
   V.push_back(5);
 
   // The median better be 6.5
-  EXPECT_TRUE( median_in_place(V) == 6.5 );
+  EXPECT_TRUE(median_in_place(V) == 6.5);
 }
 
 TEST(Functors, DestructiveNmad){
@@ -128,7 +128,7 @@ TEST(Functors, DestructiveNmad){
   V.push_back(3);
   V.push_back(5);
 
-  EXPECT_TRUE( nmad_in_place(V) == 2.9652 );
+  EXPECT_TRUE(nmad_in_place(V) == 2.9652);
 }
 
 TEST(Functors, DestructivePercentile){
@@ -141,65 +141,65 @@ TEST(Functors, DestructivePercentile){
 
   // Start with new W each time, as it will be messed up
 
-  W = V; EXPECT_TRUE( percentile_in_place(V,   0) == 3 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  20) == 3 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  25) == 3 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  26) == 5 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  45) == 5 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  50) == 5 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  51) == 8 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  70) == 8 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  75) == 8 );
-  W = V; EXPECT_TRUE( percentile_in_place(V,  76) == 9 );
-  W = V; EXPECT_TRUE( percentile_in_place(V, 100) == 9 );
+  W = V; EXPECT_TRUE(percentile_in_place(V,   0) == 3);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  20) == 3);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  25) == 3);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  26) == 5);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  45) == 5);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  50) == 5);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  51) == 8);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  70) == 8);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  75) == 8);
+  W = V; EXPECT_TRUE(percentile_in_place(V,  76) == 9);
+  W = V; EXPECT_TRUE(percentile_in_place(V, 100) == 9);
   
 }
 
 #define TEST_UNARY_MATH_FUNCTOR(func,arg,result)                        \
   do {                                                                                                    \
     Arg##func##Functor f;                                                                                 \
-    EXPECT_NEAR( (result), f((float)(arg)),       DELTA );                                                        \
-    EXPECT_NEAR( (result), f((double)(arg)),      DELTA );                                                       \
-    EXPECT_NEAR( (result), f((long double)(arg)), DELTA );                                                  \
-    EXPECT_TRUE( is_of_type<float>(f((float)(arg))) );                                                      \
-    EXPECT_TRUE( is_of_type<double>(f((double)(arg))) );                                                    \
-    EXPECT_TRUE( is_of_type<long double>(f((long double)(arg))) );                                          \
-    EXPECT_TRUE( is_of_type<double>(f((int)(arg))) );                                                       \
+    EXPECT_NEAR((result), f((float)(arg)),       DELTA);                                                        \
+    EXPECT_NEAR((result), f((double)(arg)),      DELTA);                                                       \
+    EXPECT_NEAR((result), f((long double)(arg)), DELTA);                                                  \
+    EXPECT_TRUE(is_of_type<float>(f((float)(arg))));                                                      \
+    EXPECT_TRUE(is_of_type<double>(f((double)(arg))));                                                    \
+    EXPECT_TRUE(is_of_type<long double>(f((long double)(arg))));                                          \
+    EXPECT_TRUE(is_of_type<double>(f((int)(arg))));                                                       \
   } while(false)
 
 #define TEST_BINARY_MATH_FUNCTOR(func,arg1,arg2,result)                                                   \
   do {                                                                                                    \
     ArgArg##func##Functor f;                                                                              \
-    EXPECT_NEAR( (result), f((float)(arg1),(float)(arg2)),             DELTA );                                         \
-    EXPECT_NEAR( (result), f((double)(arg1),(double)(arg2)),           DELTA );                                       \
-    EXPECT_NEAR( (result), f((long double)(arg1),(long double)(arg2)), DELTA );                             \
-    EXPECT_TRUE( is_of_type<float>(f((float)(arg1),(float)(arg2))) );                                       \
-    EXPECT_TRUE( is_of_type<double>(f((double)(arg1),(double)(arg2))) );                                    \
-    EXPECT_TRUE( is_of_type<long double>(f((long double)(arg1),(long double)(arg2))) );                     \
-    EXPECT_TRUE( is_of_type<double>( f((float)(arg1),(double)(arg2))) );                                    \
-    EXPECT_TRUE( is_of_type<long double>( f((float)(arg1),(long double)(arg2))) );                          \
-    EXPECT_TRUE( is_of_type<double>( f((int)(arg1),(int)(arg2))) );                                         \
-    EXPECT_TRUE( is_of_type<float>( f((int)(arg1),(float)(arg2))) );                                        \
-    EXPECT_NEAR( (result), ArgVal##func##Functor<float>(arg2)((float)(arg1)),             DELTA );                      \
-    EXPECT_NEAR( (result), ArgVal##func##Functor<double>(arg2)((double)(arg1)),           DELTA );                    \
-    EXPECT_NEAR( (result), ArgVal##func##Functor<long double>(arg2)((long double)(arg1)), DELTA );          \
-    EXPECT_TRUE( is_of_type<float>(ArgVal##func##Functor<float>(arg2)((float)(arg1))) );                    \
-    EXPECT_TRUE( is_of_type<double>(ArgVal##func##Functor<double>(arg2)((double)(arg1))) );                 \
-    EXPECT_TRUE( is_of_type<long double>(ArgVal##func##Functor<long double>(arg2)((long double)(arg1))) );  \
-    EXPECT_TRUE( is_of_type<double>( ArgVal##func##Functor<double>(arg2)((float)(arg1))) );                 \
-    EXPECT_TRUE( is_of_type<long double>( ArgVal##func##Functor<long double>(arg2)((float)(arg1))) );       \
-    EXPECT_TRUE( is_of_type<double>( ArgVal##func##Functor<int>((int)(arg2))((int)(arg1))) );               \
-    EXPECT_TRUE( is_of_type<float>( ArgVal##func##Functor<float>(arg2)((int)(arg1))) );                     \
-    EXPECT_NEAR( (result), ValArg##func##Functor<float>(arg1)((float)(arg2)),             DELTA );                      \
-    EXPECT_NEAR( (result), ValArg##func##Functor<double>(arg1)((double)(arg2)),           DELTA );                    \
-    EXPECT_NEAR( (result), ValArg##func##Functor<long double>(arg1)((long double)(arg2)), DELTA );          \
-    EXPECT_TRUE( is_of_type<float>(ValArg##func##Functor<float>(arg1)((float)(arg2))) );                    \
-    EXPECT_TRUE( is_of_type<double>(ValArg##func##Functor<double>(arg1)((double)(arg2))) );                 \
-    EXPECT_TRUE( is_of_type<long double>(ValArg##func##Functor<long double>(arg1)((long double)(arg2))) );  \
-    EXPECT_TRUE( is_of_type<double>( ValArg##func##Functor<float>(arg1)((double)(arg2))) );                 \
-    EXPECT_TRUE( is_of_type<long double>( ValArg##func##Functor<float>(arg1)((long double)(arg2))) );       \
-    EXPECT_TRUE( is_of_type<double>( ValArg##func##Functor<int>((int)(arg1))((int)(arg2))) );               \
-    EXPECT_TRUE( is_of_type<float>( ValArg##func##Functor<int>((int)arg1)((float)(arg2))) );                \
+    EXPECT_NEAR((result), f((float)(arg1),(float)(arg2)),             DELTA);                                         \
+    EXPECT_NEAR((result), f((double)(arg1),(double)(arg2)),           DELTA);                                       \
+    EXPECT_NEAR((result), f((long double)(arg1),(long double)(arg2)), DELTA);                             \
+    EXPECT_TRUE(is_of_type<float>(f((float)(arg1),(float)(arg2))));                                       \
+    EXPECT_TRUE(is_of_type<double>(f((double)(arg1),(double)(arg2))));                                    \
+    EXPECT_TRUE(is_of_type<long double>(f((long double)(arg1),(long double)(arg2))));                     \
+    EXPECT_TRUE(is_of_type<double>(f((float)(arg1),(double)(arg2))));                                    \
+    EXPECT_TRUE(is_of_type<long double>(f((float)(arg1),(long double)(arg2))));                          \
+    EXPECT_TRUE(is_of_type<double>(f((int)(arg1),(int)(arg2))));                                         \
+    EXPECT_TRUE(is_of_type<float>(f((int)(arg1),(float)(arg2))));                                        \
+    EXPECT_NEAR((result), ArgVal##func##Functor<float>(arg2)((float)(arg1)),             DELTA);                      \
+    EXPECT_NEAR((result), ArgVal##func##Functor<double>(arg2)((double)(arg1)),           DELTA);                    \
+    EXPECT_NEAR((result), ArgVal##func##Functor<long double>(arg2)((long double)(arg1)), DELTA);          \
+    EXPECT_TRUE(is_of_type<float>(ArgVal##func##Functor<float>(arg2)((float)(arg1))));                    \
+    EXPECT_TRUE(is_of_type<double>(ArgVal##func##Functor<double>(arg2)((double)(arg1))));                 \
+    EXPECT_TRUE(is_of_type<long double>(ArgVal##func##Functor<long double>(arg2)((long double)(arg1))));  \
+    EXPECT_TRUE(is_of_type<double>(ArgVal##func##Functor<double>(arg2)((float)(arg1))));                 \
+    EXPECT_TRUE(is_of_type<long double>(ArgVal##func##Functor<long double>(arg2)((float)(arg1))));       \
+    EXPECT_TRUE(is_of_type<double>(ArgVal##func##Functor<int>((int)(arg2))((int)(arg1))));               \
+    EXPECT_TRUE(is_of_type<float>(ArgVal##func##Functor<float>(arg2)((int)(arg1))));                     \
+    EXPECT_NEAR((result), ValArg##func##Functor<float>(arg1)((float)(arg2)),             DELTA);                      \
+    EXPECT_NEAR((result), ValArg##func##Functor<double>(arg1)((double)(arg2)),           DELTA);                    \
+    EXPECT_NEAR((result), ValArg##func##Functor<long double>(arg1)((long double)(arg2)), DELTA);          \
+    EXPECT_TRUE(is_of_type<float>(ValArg##func##Functor<float>(arg1)((float)(arg2))));                    \
+    EXPECT_TRUE(is_of_type<double>(ValArg##func##Functor<double>(arg1)((double)(arg2))));                 \
+    EXPECT_TRUE(is_of_type<long double>(ValArg##func##Functor<long double>(arg1)((long double)(arg2))));  \
+    EXPECT_TRUE(is_of_type<double>(ValArg##func##Functor<float>(arg1)((double)(arg2))));                 \
+    EXPECT_TRUE(is_of_type<long double>(ValArg##func##Functor<float>(arg1)((long double)(arg2))));       \
+    EXPECT_TRUE(is_of_type<double>(ValArg##func##Functor<int>((int)(arg1))((int)(arg2))));               \
+    EXPECT_TRUE(is_of_type<float>(ValArg##func##Functor<int>((int)arg1)((float)(arg2))));                \
   } while(false)
 
 TEST(Functors, Acos)  { TEST_UNARY_MATH_FUNCTOR(Acos,  0.5, 1.04719755);   }
@@ -274,8 +274,8 @@ TEST(Functiors, Median) {
   boost::variate_generator<boost::mt19937&,
     boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
-  for ( uint16 i = 0; i < 50000; i++ )
-    median( generator() );
+  for (uint16 i = 0; i < 50000; i++)
+    median(generator());
 
-  EXPECT_NEAR( median.value(), 35.0, 1.5 );
+  EXPECT_NEAR(median.value(), 35.0, 1.5);
 }

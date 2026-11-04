@@ -35,28 +35,28 @@ namespace vw {
   class DiskImageResourceJPEG : public DiskImageResource {
   public:
 
-    DiskImageResourceJPEG( std::string const& filename,
-                           int subsample_factor = 1,
-                           size_t byte_offset = 0)
-      : DiskImageResource( filename )
+    DiskImageResourceJPEG(std::string const& filename,
+                          int subsample_factor = 1,
+                          size_t byte_offset = 0)
+      : DiskImageResource(filename)
     {
       m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
-      open( filename, subsample_factor, byte_offset );
+      open(filename, subsample_factor, byte_offset);
     }
 
-    DiskImageResourceJPEG( std::string const& filename,
-                           ImageFormat const& format )
-      : DiskImageResource( filename )
+    DiskImageResourceJPEG(std::string const& filename,
+                          ImageFormat const& format)
+      : DiskImageResource(filename)
     {
       m_subsample_factor = default_subsampling_factor;
       m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
-      create( filename, format );
+      create(filename, format);
     }
 
     virtual ~DiskImageResourceJPEG();
@@ -67,9 +67,9 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+    virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const;
 
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
 
     virtual void flush();
 
@@ -96,17 +96,17 @@ namespace vw {
       default_subsampling_factor = subsample_factor;
     }
 
-    void open( std::string const& filename,
-               int subsample_factor = 1,
-               size_t byte_offset = 0);
+    void open(std::string const& filename,
+              int subsample_factor = 1,
+              size_t byte_offset = 0);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     virtual bool has_block_write()  const {return false;}
     virtual bool has_nodata_write() const {return false;}

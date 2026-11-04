@@ -47,12 +47,12 @@ namespace vw {
     typedef typename ImageT::pixel_type result_type;
     typedef ProceduralPixelAccessor<BlockRasterizeView> pixel_accessor;
 
-    BlockRasterizeView( ImageT const& image, Vector2i const block_size,
-                        int num_threads = 0, Cache *cache = NULL )
-      : m_child           ( new ImageT(image) ),
-        m_block_size      ( block_size ),
-        m_num_threads     ( num_threads ),
-        m_cache_ptr       ( cache ) {
+    BlockRasterizeView(ImageT const& image, Vector2i const block_size,
+                       int num_threads = 0, Cache *cache = NULL)
+      : m_child           (new ImageT(image)),
+        m_block_size      (block_size),
+        m_num_threads     (num_threads),
+        m_cache_ptr       (cache) {
 
       if (m_block_size.x() <= 0 || m_block_size.y() <= 0)
         m_block_size = image_block::get_default_block_size<pixel_type>
@@ -69,19 +69,19 @@ namespace vw {
     inline int32 cols  () const { return m_child->cols();   }
     inline int32 rows  () const { return m_child->rows();   }
     inline int32 planes() const { return m_child->planes(); }
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0, 0 ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0, 0); }
 
-    inline result_type operator()( int32 x, int32 y, int32 p = 0 ) const {
+    inline result_type operator()(int32 x, int32 y, int32 p = 0) const {
 #if VW_DEBUG_LEVEL > 1
       VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" 
                                            << x << "," << y << "," << p << ")" << std::endl;
 #endif
-      if ( m_cache_ptr ) {
+      if (m_cache_ptr) {
         // Note that requesting a value from a handle forces that data to be generated.
         // Early-out optimization for single-block resources
-        if( m_block_manager.only_one_block() ) {
+        if(m_block_manager.only_one_block()) {
           const Cache::Handle<image_block::BlockGenerator<ImageT> >& handle = m_block_manager.quick_single_block();
-          result_type result = handle->operator()( x, y, p );
+          result_type result = handle->operator()(x, y, p);
           handle.release();
           return result;
         }
@@ -90,8 +90,8 @@ namespace vw {
         const Cache::Handle<image_block::BlockGenerator<ImageT> >& handle
             = m_block_manager.block(block_index);
         Vector2i start_pixel = m_block_manager.get_block_start_pixel(block_index);
-        result_type result = handle->operator()( x - start_pixel.x(),
-                                                 y - start_pixel.y(), p );
+        result_type result = handle->operator()(x - start_pixel.x(),
+                                                y - start_pixel.y(), p);
         handle.release(); // Let the Cache know we are finished with this block of data.
         return result;
       }
@@ -103,20 +103,20 @@ namespace vw {
     ImageT const& child() const { return *m_child; }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       // Init output data
-      ImageView<pixel_type> buf( bbox.width(), bbox.height(), planes() );
+      ImageView<pixel_type> buf(bbox.width(), bbox.height(), planes());
       // Fill in the output data from this view
-      rasterize( buf, bbox );
+      rasterize(buf, bbox);
       // "Fake" the bbox image so it looks like a full size image.
-      return CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
+      return CropView<ImageView<pixel_type> >(buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()));
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
       // Create functor to rasterize this image into the destination image
-      RasterizeFunctor<DestT> rasterizer( *this, dest, bbox.min() );
+      RasterizeFunctor<DestT> rasterizer(*this, dest, bbox.min());
       // Set up block processor to call the functor in parallel blocks.
-      image_block::BlockProcessor<RasterizeFunctor<DestT> > process( rasterizer, m_block_size, m_num_threads );
+      image_block::BlockProcessor<RasterizeFunctor<DestT> > process(rasterizer, m_block_size, m_num_threads);
       // Tell the block processor to do all the work.
       process(bbox);
     }
@@ -131,26 +131,26 @@ namespace vw {
       DestT const& m_dest;
       Vector2i     m_offset;
     public:
-      RasterizeFunctor( BlockRasterizeView const& view, DestT const& dest, Vector2i const& offset )
+      RasterizeFunctor(BlockRasterizeView const& view, DestT const& dest, Vector2i const& offset)
         : m_view(view), m_dest(dest), m_offset(offset) {}
 
       /// Rasterize part of m_view into m_dest.
-      void operator()( BBox2i const& bbox ) const {
+      void operator()(BBox2i const& bbox) const {
 #if VW_DEBUG_LEVEL > 1
         VW_OUT(VerboseDebugMessage, "image") << "BlockRasterizeView::RasterizeFunctor( " << bbox << " )" << std::endl;
 #endif
-        if( m_view.m_cache_ptr ) {
+        if(m_view.m_cache_ptr) {
           // Ask the cache managing object to get the image tile, we might already have it.
           Vector2i block_index = m_view.m_block_manager.get_block_index(bbox);
 
           const Cache::Handle<image_block::BlockGenerator<ImageT> >& handle
             = m_view.m_block_manager.block(block_index);
-          handle->rasterize( crop( m_dest, bbox-m_offset ),
-                             bbox - m_view.m_block_manager.get_block_start_pixel(block_index) );
+          handle->rasterize(crop(m_dest, bbox-m_offset),
+                            bbox - m_view.m_block_manager.get_block_start_pixel(block_index));
           handle.release();
         }
         else // No cache, generate the image tile from scratch.
-          m_view.child().rasterize( crop( m_dest, bbox-m_offset ), bbox );
+          m_view.child().rasterize(crop(m_dest, bbox-m_offset), bbox);
       }
     }; // End class RasterizeFunctor
 
@@ -170,23 +170,23 @@ namespace vw {
 
   /// Create a BlockRasterizeView with no caching.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image,
-                                                     Vector2i const& block_size, int num_threads = 0 ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads );
+  inline BlockRasterizeView<ImageT> block_rasterize(ImageViewBase<ImageT> const& image,
+                                                    Vector2i const& block_size, int num_threads = 0) {
+    return BlockRasterizeView<ImageT>(image.impl(), block_size, num_threads);
   }
 
   /// Create a BlockRasterizeView using the vw system Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image,
-                                                 Vector2i const& block_size, int num_threads = 0 ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &vw_system_cache() );
+  inline BlockRasterizeView<ImageT> block_cache(ImageViewBase<ImageT> const& image,
+                                                Vector2i const& block_size, int num_threads = 0) {
+    return BlockRasterizeView<ImageT>(image.impl(), block_size, num_threads, &vw_system_cache());
   }
 
   /// Create a BlockRasterizeView using the provided Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image,
-                                                 Vector2i const& block_size, int num_threads, Cache& cache ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &cache );
+  inline BlockRasterizeView<ImageT> block_cache(ImageViewBase<ImageT> const& image,
+                                                Vector2i const& block_size, int num_threads, Cache& cache) {
+    return BlockRasterizeView<ImageT>(image.impl(), block_size, num_threads, &cache);
   }
 
 

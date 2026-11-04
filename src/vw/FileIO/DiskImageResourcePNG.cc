@@ -61,7 +61,7 @@ DiskImageResourcePNG::Options::Options() {
   using_palette_alpha = false;
 }
 
-void DiskImageResourcePNG::set_default_compression_level( int level ) {
+void DiskImageResourcePNG::set_default_compression_level(int level) {
   default_compression_level = level;
 }
 
@@ -92,7 +92,7 @@ struct png_context_t : private boost::noncopyable {
     VW_ASSERT(filename, ArgumentErr() << "Filename cannot be null");
     VW_ASSERT(m != PNG_UNINIT, ArgumentErr() << "png_context_t constructed with uninitialized argument");
 
-    file.reset(new std::fstream(filename, (m == PNG_READ ? std::ios::in : std::ios::out) | std::ios_base::binary ));
+    file.reset(new std::fstream(filename, (m == PNG_READ ? std::ios::in : std::ios::out) | std::ios_base::binary));
 
     if(!file || !file->is_open())
       vw_throw(ArgumentErr() << "DiskImageResourcePNG: Unable to open file " << filename << ".");
@@ -254,7 +254,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
         // so the row is gray+alpha (2 channels), not 1. Missing this under-sizes
         // the scanline and libpng overruns it (e.g. grayscale PNGs written with a
         // nodata value).
-        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
+        if(png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS)) {
           channels = 2;
           outer->m_format.pixel_format = VW_PIXEL_GRAYA;
         }
@@ -266,7 +266,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case PNG_COLOR_TYPE_PALETTE:
         channels = 3;
         outer->m_format.pixel_format = VW_PIXEL_RGB;
-        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
+        if(png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS)) {
           channels++;
           outer->m_format.pixel_format = VW_PIXEL_RGBA;
         }
@@ -275,7 +275,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
         channels = 3;
         outer->m_format.pixel_format = VW_PIXEL_RGB;
         // As above, a tRNS chunk is expanded to an alpha channel, giving RGBA.
-        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
+        if(png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS)) {
           channels = 4;
           outer->m_format.pixel_format = VW_PIXEL_RGBA;
         }
@@ -316,7 +316,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     if(current_line != 0)
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
 
-    boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
+    boost::scoped_array<png_bytep> row_pointers(new png_bytep[outer->m_format.rows]);
     for(size_t i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = static_cast<png_bytep>(dst.get()) + i * outer->m_format.cols * cstride;
     png_read_image(ctx.ptr, row_pointers.get());
@@ -335,7 +335,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   // Fetches the comments out of the PNG when we first open it.
   void read_comments() {
-    if( comments_loaded ) return;
+    if(comments_loaded) return;
     advance(outer->rows()-current_line);
     png_read_end(ctx.ptr, ctx.info);
     comments_loaded = true;
@@ -344,18 +344,18 @@ struct DiskImageResourcePNG::vw_png_read_context:
     int num_text;
     int num_comments = png_get_text(ctx.ptr, ctx.info, &text_ptr, &num_text);
     comments.clear();
-    for ( int i=0; i<num_comments; ++i )
+    for (int i=0; i<num_comments; ++i)
     {
       DiskImageResourcePNG::Comment c;
       c.key = text_ptr[i].key;
       c.text = text_ptr[i].text;
 #ifdef PNG_iTXt_SUPPORTED
-      if ( text_ptr[i].lang )
+      if (text_ptr[i].lang)
         c.lang = text_ptr[i].lang;
-      if ( text_ptr[i].lang_key )
+      if (text_ptr[i].lang_key)
         c.lang_key = text_ptr[i].lang_key;
 #endif
-      switch( text_ptr[i].compression )
+      switch(text_ptr[i].compression)
       {
         case PNG_TEXT_COMPRESSION_NONE:
           c.utf8 = false;
@@ -379,16 +379,16 @@ struct DiskImageResourcePNG::vw_png_read_context:
           VW_OUT(WarningMessage, "fileio") << "Unsupported PNG comment type in PNG read!" << std::endl;
           continue;
       }
-      comments.push_back( c );
+      comments.push_back(c);
     }
   }
 
 private:
   // Function for reading data, given to PNG.
-  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
+  static void read_data(png_structp png_ptr, png_bytep data, png_size_t length)
   {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));;
-    fs->read( reinterpret_cast<char*>(data), length );
+    fs->read(reinterpret_cast<char*>(data), length);
   }
 };
 
@@ -494,7 +494,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
   // to the file. Closing happens when the context is destroyed.
   void write(const ImageBuffer &buf) const
   {
-    boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
+    boost::scoped_array<png_bytep> row_pointers(new png_bytep[outer->m_format.rows]);
 
     for(size_t i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
@@ -505,36 +505,36 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
   void read_comments() {
     if (!comments_written)
-      vw_throw( ArgumentErr() << "DiskImageResourcePNG: No comments written to be read." );
+      vw_throw(ArgumentErr() << "DiskImageResourcePNG: No comments written to be read.");
   }
 
-  void write_comments( std::vector<DiskImageResourcePNG::Comment> const& c ) {
+  void write_comments(std::vector<DiskImageResourcePNG::Comment> const& c) {
     comments = c;
     comments_written = true;
 
     // Convert vector of comments into the PNG format
     png_textp text = new png_text[comments.size()];
-    for ( size_t i = 0; i < comments.size(); i++ ) {
-      text[i].key =  strcpy( new char[comments[i].key.size() + 1],
-                             comments[i].key.c_str() );
-      text[i].text = strcpy( new char[comments[i].text.size() + 1],
-                             comments[i].text.c_str() );
+    for (size_t i = 0; i < comments.size(); i++) {
+      text[i].key =  strcpy(new char[comments[i].key.size() + 1],
+                            comments[i].key.c_str());
+      text[i].text = strcpy(new char[comments[i].text.size() + 1],
+                            comments[i].text.c_str());
       text[i].text_length = comments[i].text.size();
       text[i].compression = comments[i].compressed;
 #ifdef PNG_iTXt_SUPPORTED
       text[i].itxt_length = 0;
-      text[i].lang = strcpy( new char[comments[i].lang.size() + 1],
-                             comments[i].lang.c_str() );
-      text[i].lang_key = strcpy( new char[comments[i].lang_key.size() + 1],
-                                 comments[i].lang_key.c_str() );
+      text[i].lang = strcpy(new char[comments[i].lang.size() + 1],
+                            comments[i].lang.c_str());
+      text[i].lang_key = strcpy(new char[comments[i].lang_key.size() + 1],
+                                comments[i].lang_key.c_str());
 #endif
     }
 
     // Actually write the comments
-    png_set_text(ctx.ptr, ctx.info, text, comments.size() );
+    png_set_text(ctx.ptr, ctx.info, text, comments.size());
 
     // Clean up
-    for ( size_t i = 0; i < comments.size(); i++ ) {
+    for (size_t i = 0; i < comments.size(); i++) {
       delete[] text[i].key;
       delete[] text[i].text;
 #ifdef PNG_iTXt_SUPPORTED
@@ -547,13 +547,13 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
 private:
   // Function for libpng to use to write as we're not using FILE*.
-  static void write_data( png_structp png_ptr, png_bytep data, png_size_t length )
+  static void write_data(png_structp png_ptr, png_bytep data, png_size_t length)
   {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
-    fs->write( (char*)data, length );
+    fs->write((char*)data, length);
   }
 
-  static void flush_data( png_structp png_ptr)
+  static void flush_data(png_structp png_ptr)
   {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->flush();
@@ -568,67 +568,67 @@ private:
  *********************** CONSTRUCTORS & DESTRUCTORS ********************
 ***********************************************************************/
 
-DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename )
+DiskImageResourcePNG::DiskImageResourcePNG(std::string const& filename)
   : DiskImageResource(filename)
 {
   open(filename);
 }
 
-DiskImageResource* DiskImageResourcePNG::construct_open( std::string const& filename ) {
-  return new DiskImageResourcePNG( filename );
+DiskImageResource* DiskImageResourcePNG::construct_open(std::string const& filename) {
+  return new DiskImageResourcePNG(filename);
 }
 
 vw::DiskImageResourcePNG::~DiskImageResourcePNG() {
 }
 
-DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, ImageFormat const& format ):
-  DiskImageResource( filename )
-{
-  create( filename, format );
-}
-
-DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options):
+DiskImageResourcePNG::DiskImageResourcePNG(std::string const& filename, ImageFormat const& format):
   DiskImageResource(filename)
 {
-  create( filename, format, options );
+  create(filename, format);
 }
 
-DiskImageResource* DiskImageResourcePNG::construct_create( std::string const& filename,
-                                                           ImageFormat const& format )
+DiskImageResourcePNG::DiskImageResourcePNG(std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options):
+  DiskImageResource(filename)
 {
-  return new DiskImageResourcePNG( filename, format );
+  create(filename, format, options);
+}
+
+DiskImageResource* DiskImageResourcePNG::construct_create(std::string const& filename,
+                                                          ImageFormat const& format)
+{
+  return new DiskImageResourcePNG(filename, format);
 }
 
 /***********************************************************************
  ************************ STUFF FOR READING ****************************
 ***********************************************************************/
 
-void DiskImageResourcePNG::open( std::string const& /*filename*/ ) {
-  m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
+void DiskImageResourcePNG::open(std::string const& /*filename*/) {
+  m_ctx = boost::shared_ptr<vw_png_context>(new vw_png_read_context(const_cast<DiskImageResourcePNG *>(this)));
 
   // Block reading is supported, we only use it in the event of really large images.
-  if ( size_t(cols())*rows()*4*3 > vw_settings().system_cache_size() )
-    m_block_size = Vector2i( cols(), 128 ); // 128 seems like a good number.
+  if (size_t(cols())*rows()*4*3 > vw_settings().system_cache_size())
+    m_block_size = Vector2i(cols(), 128); // 128 seems like a good number.
   else
-    m_block_size = Vector2i( cols(), rows() );
+    m_block_size = Vector2i(cols(), rows());
 }
 
-void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const
+void DiskImageResourcePNG::read(ImageBuffer const& dest, BBox2i const& bbox) const
 {
   vw_png_read_context *ctx = dynamic_cast<vw_png_read_context *>(m_ctx.get());
   const int start_line = bbox.min().y();
   const int end_line = bbox.max().y();
   // Error checking.
-  VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
-             ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!" );
+  VW_ASSERT(int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
+            ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!");
 
-  boost::scoped_array<uint8> buf( new uint8[size_t(ctx->cstride) * bbox.width() * bbox.height()] );
+  boost::scoped_array<uint8> buf(new uint8[size_t(ctx->cstride) * bbox.width() * bbox.height()]);
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
-  if( ctx->interlaced )
+  if(ctx->interlaced)
   {
-    if( bbox.height() != rows() )
-      vw_throw( NoImplErr() << "DiskImageResourcePNG: Reading interlaced files line-by-line is currently unsupported." );
+    if(bbox.height() != rows())
+      vw_throw(NoImplErr() << "DiskImageResourcePNG: Reading interlaced files line-by-line is currently unsupported.");
 
     ctx->readall(buf);
   }
@@ -678,7 +678,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
 }
 
 void DiskImageResourcePNG::read_reset() const {
-  m_ctx.reset( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
+  m_ctx.reset(new DiskImageResourcePNG::vw_png_read_context(const_cast<DiskImageResourcePNG *>(this)));
 }
 
 unsigned DiskImageResourcePNG::num_comments() const {
@@ -686,60 +686,60 @@ unsigned DiskImageResourcePNG::num_comments() const {
   return boost::numeric_cast<unsigned>(m_ctx->comments.size());
 }
 
-DiskImageResourcePNG::Comment const& DiskImageResourcePNG::get_comment( unsigned i ) const {
+DiskImageResourcePNG::Comment const& DiskImageResourcePNG::get_comment(unsigned i) const {
   m_ctx->read_comments();
   return m_ctx->comments[i];
 }
 
-std::string const& DiskImageResourcePNG::get_comment_key( unsigned i ) const {
+std::string const& DiskImageResourcePNG::get_comment_key(unsigned i) const {
   m_ctx->read_comments();
   return get_comment(i).key;
 }
 
-std::string const& DiskImageResourcePNG::get_comment_value( unsigned i ) const {
+std::string const& DiskImageResourcePNG::get_comment_value(unsigned i) const {
   m_ctx->read_comments();
   return get_comment(i).text;
 }
 
-void DiskImageResourcePNG::write_comments( std::vector<DiskImageResourcePNG::Comment> const& comments ) {
+void DiskImageResourcePNG::write_comments(std::vector<DiskImageResourcePNG::Comment> const& comments) {
   vw_png_write_context *ctx = dynamic_cast<vw_png_write_context*>(m_ctx.get());
-  if ( !ctx )
-    vw_throw( ArgumentErr() << "DiskImageResourcePNG: Attempting to write comments on a file opened for reading." );
-  ctx->write_comments( comments );
+  if (!ctx)
+    vw_throw(ArgumentErr() << "DiskImageResourcePNG: Attempting to write comments on a file opened for reading.");
+  ctx->write_comments(comments);
 }
 
 /***********************************************************************
  ************************ STUFF FOR WRITING ****************************
 ***********************************************************************/
 
-void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format ) {
-  DiskImageResourcePNG::create( filename, format, DiskImageResourcePNG::Options() );
+void DiskImageResourcePNG::create(std::string const& filename, ImageFormat const& format) {
+  DiskImageResourcePNG::create(filename, format, DiskImageResourcePNG::Options());
 }
 
-void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options )
+void DiskImageResourcePNG::create(std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options)
 {
   if(m_ctx.get() != NULL)
-    vw_throw( IOErr() << "DiskImageResourcePNG: A file is already open." );
+    vw_throw(IOErr() << "DiskImageResourcePNG: A file is already open.");
 
   m_filename = filename;
   m_format = format;
   // png is stored unpremultiplied
   m_format.premultiplied = false;
 
-  m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_write_context( const_cast<DiskImageResourcePNG *>(this), options ) );
+  m_ctx = boost::shared_ptr<vw_png_context>(new vw_png_write_context(const_cast<DiskImageResourcePNG *>(this), options));
 
   // Block writing is not supported
-  m_block_size = Vector2i( cols(), rows() );
+  m_block_size = Vector2i(cols(), rows());
 }
 
-void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
+void DiskImageResourcePNG::write(ImageBuffer const& src, BBox2i const& bbox)
 {
-  vw_png_write_context *ctx = dynamic_cast<vw_png_write_context *>( m_ctx.get() );
+  vw_png_write_context *ctx = dynamic_cast<vw_png_write_context *>(m_ctx.get());
 
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourcePNG does not support partial writes." );
-  VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
-             ArgumentErr() << "DiskImageResourcePNG: Buffer has wrong dimensions in PNG write." );
+  VW_ASSERT(bbox.width()==int(cols()) && bbox.height()==int(rows()),
+            NoImplErr() << "DiskImageResourcePNG does not support partial writes.");
+  VW_ASSERT(src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
+            ArgumentErr() << "DiskImageResourcePNG: Buffer has wrong dimensions in PNG write.");
 
   // Set up the image buffer and convert the data into this buffer.
   ImageBuffer dst;

@@ -118,8 +118,8 @@ QuatLagrangianInterpolation::QuatLagrangianInterpolation
 
   // Perform a bunch of checks on construction
   VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n");
-  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"            );
-  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"        );
+  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n");
+  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n");
   VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n");
 
   size_t num_times = round((m_last_time - m_start_time) / m_time_delta) + 1;

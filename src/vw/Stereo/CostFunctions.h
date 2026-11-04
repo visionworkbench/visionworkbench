@@ -157,7 +157,7 @@ namespace vw {
     // Does nothing
     AbsoluteCost(ImageViewBase<ImageT> const& /*left*/,
                  ImageViewBase<ImageT> const& /*right*/,
-                 Vector2i const& /*kernel_size*/ ) {}
+                 Vector2i const& /*kernel_size*/) {}
 
     BinaryPerPixelView<ImageT, ImageT, AbsDifferenceFunctor>
     operator()(ImageViewBase<ImageT> const& left, ImageViewBase<ImageT> const& right) const {
@@ -183,10 +183,10 @@ namespace vw {
 
     // Does nothing
     SquaredCost(ImageT const& /*left*/, ImageT const& /*right*/,
-                            Vector2i const& /*kernel_size*/ ) {}
+                            Vector2i const& /*kernel_size*/) {}
 
     BinaryPerPixelView<ImageT, ImageT, SquaredDifferenceFunctor>
-    operator()(ImageT const& left, ImageT const& right ) const {
+    operator()(ImageT const& left, ImageT const& right) const {
       typedef BinaryPerPixelView<ImageT, ImageT, SquaredDifferenceFunctor> result_type;
       return result_type(left.impl(),right.impl());
     }
@@ -210,7 +210,7 @@ namespace vw {
                                       accumulator_type>::type pixel_accumulator_type;
     ImageView<pixel_accumulator_type> left_precision, right_precision;
 
-    NCCCost(ImageT const& left, ImageT const& right, Vector2i const& kernel_size ) {
+    NCCCost(ImageT const& left, ImageT const& right, Vector2i const& kernel_size) {
       left_precision = pixel_accumulator_type(1.0) /
         fast_box_sum<accumulator_type>(square(left.impl()), kernel_size);
       right_precision = pixel_accumulator_type(1.0) /
@@ -218,7 +218,7 @@ namespace vw {
     }
     
     BinaryPerPixelView<ImageT, ImageT, CrossCorrelationFunctor>
-    operator()( ImageT const& left, ImageT const& right ) const {
+    operator()(ImageT const& left, ImageT const& right) const {
       typedef BinaryPerPixelView<ImageT, ImageT, CrossCorrelationFunctor> result_type;
       return result_type(left.impl(),right.impl());
     }

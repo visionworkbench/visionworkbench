@@ -99,7 +99,7 @@ void load_spot67_image(std::vector<std::string> const& input_paths,
   
   std::string image_path = find_string_in_list(input_paths, ".tif");
   if (image_path.empty())
-    vw_throw( ArgumentErr() << "Error: SPOT image file not found!\n");
+    vw_throw(ArgumentErr() << "Error: SPOT image file not found!\n");
     
   // TODO: Is zero always the nodata value?
   image = create_mask(
@@ -107,7 +107,7 @@ void load_spot67_image(std::vector<std::string> const& input_paths,
   
   DiskImageResourceGDAL disk_resource(image_path);
   if (!read_georeference(georef, disk_resource)) 
-    vw_throw( ArgumentErr() << "Failed to read georeference from image " << image_path <<"\n");
+    vw_throw(ArgumentErr() << "Failed to read georeference from image " << image_path <<"\n");
 }
 
 
@@ -119,7 +119,7 @@ void load_worldview23_image(std::vector<std::string> const& input_paths,
   // Find the image file
   std::string image_path = find_string_in_list(input_paths, ".tif");
   if (image_path.empty())
-    vw_throw( ArgumentErr() << "Error: WorldView image file not found!\n");
+    vw_throw(ArgumentErr() << "Error: WorldView image file not found!\n");
 
   // Load 8 bands from one image
   // - The band order is Coastal, Blue, Green, Yellow, Red, Red-Edge, Near-IR1, Near-IR2
@@ -135,7 +135,7 @@ void load_worldview23_image(std::vector<std::string> const& input_paths,
 
   DiskImageResourceGDAL disk_resource(image_path);
   if (!read_georeference(georef, disk_resource)) 
-    vw_throw( ArgumentErr() << "Failed to read georeference from image " << image_path <<"\n");
+    vw_throw(ArgumentErr() << "Failed to read georeference from image " << image_path <<"\n");
 }
 /*
 void read_spot67_metadata() {
@@ -159,9 +159,9 @@ struct WorldViewMetadataContainer {
   void populate_derived_values() {
     // Extract numbers
     // - Input format: "2016-10-23T17:46:54.796950Z;"
-    int   year   = atoi(datetime.substr( 0,4).c_str());
-    int   month  = atoi(datetime.substr( 5,2).c_str());
-    int   day    = atoi(datetime.substr( 8,2).c_str());
+    int   year   = atoi(datetime.substr(0,4).c_str());
+    int   month  = atoi(datetime.substr(5,2).c_str());
+    int   day    = atoi(datetime.substr(8,2).c_str());
     int   hour   = atoi(datetime.substr(11,2).c_str());
     int   minute = atoi(datetime.substr(14,2).c_str());
     float second = atof(datetime.substr(17,8).c_str());
@@ -176,7 +176,7 @@ void load_worldview23_metadata(std::vector<std::string> const& input_paths,
   // Find the metadata file
   std::string metadata_path = find_string_in_list(input_paths, ".IMD");
   if (metadata_path.empty())
-    vw_throw( ArgumentErr() << "Error: WorldView metadata file not found!\n");
+    vw_throw(ArgumentErr() << "Error: WorldView metadata file not found!\n");
     
   // Search the file for the metadata
   std::ifstream handle(metadata_path.c_str());
@@ -189,13 +189,13 @@ void load_worldview23_metadata(std::vector<std::string> const& input_paths,
       size_t eqpos = line.find("=");
       std::string name = line.substr(eqpos+2);
       channel_index = -1;
-      if (name == "BAND_C" ) channel_index = 0;
-      if (name == "BAND_B" ) channel_index = 1;
-      if (name == "BAND_G" ) channel_index = 2;
-      if (name == "BAND_Y" ) channel_index = 3;
-      if (name == "BAND_R" ) channel_index = 4;
+      if (name == "BAND_C") channel_index = 0;
+      if (name == "BAND_B") channel_index = 1;
+      if (name == "BAND_G") channel_index = 2;
+      if (name == "BAND_Y") channel_index = 3;
+      if (name == "BAND_R") channel_index = 4;
       if (name == "BAND_RE") channel_index = 5;
-      if (name == "BAND_N" ) channel_index = 6;
+      if (name == "BAND_N") channel_index = 6;
       if (name == "BAND_N2") channel_index = 7;
       continue;
     }
@@ -203,14 +203,14 @@ void load_worldview23_metadata(std::vector<std::string> const& input_paths,
     // Check for values
     if (line.find("absCalFactor") != std::string::npos) {
       if (channel_index < 0)
-        vw_throw( ArgumentErr() << "Error reading absCalFactor in metadata file!\n");
+        vw_throw(ArgumentErr() << "Error reading absCalFactor in metadata file!\n");
       metadata.abs_cal_factor[channel_index] = parse_metadata_line(line);
       ++found_count;
       continue;
     }
     if (line.find("effectiveBandwidth") != std::string::npos) {
       if (channel_index < 0)
-        vw_throw( ArgumentErr() << "Error reading effectiveBandwidth in metadata file!\n");
+        vw_throw(ArgumentErr() << "Error reading effectiveBandwidth in metadata file!\n");
       metadata.effective_bandwidth[channel_index] = parse_metadata_line(line);
       ++found_count;
       continue;
@@ -231,7 +231,7 @@ void load_worldview23_metadata(std::vector<std::string> const& input_paths,
 
   // Check that we got what we need
   if (found_count != 2*NUM_WORLDVIEW_BANDS+2)
-    vw_throw( ArgumentErr() << "Failed to find all required metadata!\n");
+    vw_throw(ArgumentErr() << "Failed to find all required metadata!\n");
 
   // Compute derived metadata values
   metadata.populate_derived_values();
@@ -266,29 +266,29 @@ public:
   WorldView23ToaFunctor(WorldViewMetadataContainer const& metadata)
    : m_metadata(metadata) {}
   
-  WorldView23ToaPixelType operator()( WorldView23PixelType const& pixel) const {
+  WorldView23ToaPixelType operator()(WorldView23PixelType const& pixel) const {
     return convert_to_toa(pixel, m_metadata);
   }
 };
 
 /// Compute NDVI index
-float compute_ndvi( WorldView23ToaPixelType const& pixel) {
+float compute_ndvi(WorldView23ToaPixelType const& pixel) {
   return compute_index(pixel[RED], pixel[NIR2]);
 }
 
 /// Compute NDWI index
-float compute_ndwi( WorldView23ToaPixelType const& pixel) {
+float compute_ndwi(WorldView23ToaPixelType const& pixel) {
   return compute_index(pixel[BLUE], pixel[NIR1]);
 }
 
 /// Compute NDWI2 index
 /// - Both of these calculations are sometimes listed as "NDWI"
-float compute_ndwi2( WorldView23ToaPixelType const& pixel) {
+float compute_ndwi2(WorldView23ToaPixelType const& pixel) {
   return compute_index(pixel[COASTAL], pixel[NIR2]);
 }
 
 /// Compute SDI index
-float compute_sdi( WorldView23ToaPixelType const& pixel) {
+float compute_sdi(WorldView23ToaPixelType const& pixel) {
   float denom = pixel[NIR2] + pixel[BLUE];
   if (denom == 0)
     return 10; // Avoid divide-by-zero
@@ -298,12 +298,12 @@ float compute_sdi( WorldView23ToaPixelType const& pixel) {
 // SPOT functions - note that TOA is not available!
 
 /// Compute NDVI index - SPOT
-float compute_ndvi_spot( Spot67PixelType const& pixel) {
+float compute_ndvi_spot(Spot67PixelType const& pixel) {
   return compute_index(pixel[SPOT_RED], pixel[SPOT_NIR]);
 }
 
 /// Compute NDWI index - SPOT
-float compute_ndwi_spot( Spot67PixelType const& pixel) {
+float compute_ndwi_spot(Spot67PixelType const& pixel) {
   return compute_index(pixel[SPOT_BLUE], pixel[SPOT_NIR]);
 }
 
@@ -311,7 +311,7 @@ float compute_ndwi_spot( Spot67PixelType const& pixel) {
 
 class NdviFunctor  : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
+  PixelMask<float> operator()(WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndvi(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -320,7 +320,7 @@ public:
 };
 class NdwiFunctor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
+  PixelMask<float> operator()(WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndwi(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -329,7 +329,7 @@ public:
 };
 class Ndwi2Functor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
+  PixelMask<float> operator()(WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_ndwi2(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -338,7 +338,7 @@ public:
 };
 class SdiFunctor : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( WorldView23ToaPixelType const& pixel) const {
+  PixelMask<float> operator()(WorldView23ToaPixelType const& pixel) const {
     PixelMask<float> output(compute_sdi(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -348,7 +348,7 @@ public:
 
 class NdviFunctorSpot67 : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( Spot67PixelType const& pixel) const {
+  PixelMask<float> operator()(Spot67PixelType const& pixel) const {
     PixelMask<float> output(compute_ndvi_spot(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -357,7 +357,7 @@ public:
 };
 class NdwiFunctorSpot67 : public ReturnFixedType<PixelMask<float> > {
 public:
-  PixelMask<float> operator()( Spot67PixelType const& pixel) const {
+  PixelMask<float> operator()(Spot67PixelType const& pixel) const {
     PixelMask<float> output(compute_ndwi_spot(pixel));
     if (!is_valid(pixel))
       invalidate(output);
@@ -377,7 +377,7 @@ class DetectWaterWorldView23Functor  : public ReturnFixedType<uint8> {
 public:
   DetectWaterWorldView23Functor(double sensitivity=1.0) : m_sensitivity(sensitivity) {}
   
-  uint8 operator()( WorldView23ToaPixelType const& pixel) const {
+  uint8 operator()(WorldView23ToaPixelType const& pixel) const {
     if (is_valid(pixel)){
 
       float ndvi  = compute_ndvi(pixel);
@@ -401,7 +401,7 @@ class DetectWaterSpot67Functor  : public ReturnFixedType<uint8> {
 public:
   DetectWaterSpot67Functor(double sensitivity=1.0) : m_sensitivity(sensitivity) {}
   
-  uint8 operator()( Spot67PixelType const& pixel) const {
+  uint8 operator()(Spot67PixelType const& pixel) const {
     if (is_valid(pixel)){
       // Very simple way to look for water!
       float ndvi  = compute_ndvi_spot(pixel);

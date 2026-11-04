@@ -31,9 +31,9 @@ namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
   template <class MatrixT>
-  inline Vector3 rotation_matrix_to_euler_xyz( MatrixBase<MatrixT> const& m ) {
-    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
-               ArgumentErr() << "Matrix must have dimensions 3x3." );
+  inline Vector3 rotation_matrix_to_euler_xyz(MatrixBase<MatrixT> const& m) {
+    VW_ASSERT(m.impl().cols() == 3 && m.impl().rows() == 3,
+              ArgumentErr() << "Matrix must have dimensions 3x3.");
     double omega = asin(-m.impl()(2,0));
     double kappa = atan2(m.impl()(1,0),m.impl()(0,0));
     double phi = atan2(m.impl()(2,1),m.impl()(2,2));
@@ -43,10 +43,10 @@ namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
   template <class MatrixT>
-  inline Vector3 rotation_matrix_to_euler_zyx( MatrixBase<MatrixT> const& m ) {
-    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
-               ArgumentErr() << "Matrix must have dimensions 3x3." );
-    double omega = asin ( m.impl()(0,2)); // y
+  inline Vector3 rotation_matrix_to_euler_zyx(MatrixBase<MatrixT> const& m) {
+    VW_ASSERT(m.impl().cols() == 3 && m.impl().rows() == 3,
+              ArgumentErr() << "Matrix must have dimensions 3x3.");
+    double omega = asin (m.impl()(0,2)); // y
     double kappa = atan2(-m.impl()(0,1),m.impl()(0,0)); // z
     double phi   = atan2(-m.impl()(1,2),m.impl()(2,2)); // x
 
@@ -56,8 +56,8 @@ namespace math {
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
   template <class MatrixT>
   inline Vector3 rotation_matrix_to_euler_yxz(MatrixBase<MatrixT> const& m) {
-    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
-               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    VW_ASSERT(m.impl().cols() == 3 && m.impl().rows() == 3,
+              ArgumentErr() << "Matrix must have dimensions 3x3.");
     double cos_phi = sqrt (1 - m.impl()(2,1) * m.impl()(2,1));
     double phi = atan2(m.impl()(2,1), cos_phi);
     double omega = atan2(-m.impl()(2,0), m.impl()(2,2));
@@ -68,8 +68,8 @@ namespace math {
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
   template <class MatrixT>
   inline Vector3 rotation_matrix_to_euler_zxy(MatrixBase<MatrixT> const& m) {
-    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
-               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    VW_ASSERT(m.impl().cols() == 3 && m.impl().rows() == 3,
+              ArgumentErr() << "Matrix must have dimensions 3x3.");
     double sin_phi = -m.impl()(1,2);
     double cos_phi = sqrt (1 - sin_phi*sin_phi);
     double phi = atan2(sin_phi, cos_phi);
@@ -163,35 +163,35 @@ namespace math {
   }
 
   // Specific version optimized for Rxyz euler angles and quaternions
-  inline Quaternion<double> euler_xyz_to_quaternion( Vector3 const& v ) {
-    double cx2 = cos( v[0]*0.5 );
-    double sx2 = sin( v[0]*0.5 );
-    double cy2 = cos( v[1]*0.5 );
-    double sy2 = sin( v[1]*0.5 );
-    double cz2 = cos( v[2]*0.5 );
-    double sz2 = sin( v[2]*0.5 );
-    return Quaternion<double>( cx2*cy2*cz2 + sx2*sy2*sz2,
-                               sx2*cy2*cz2 - cx2*sy2*sz2,
-                               cx2*sy2*cz2 + sx2*cy2*sz2,
-                               cx2*cy2*sz2 - sx2*sy2*cz2 );
+  inline Quaternion<double> euler_xyz_to_quaternion(Vector3 const& v) {
+    double cx2 = cos(v[0]*0.5);
+    double sx2 = sin(v[0]*0.5);
+    double cy2 = cos(v[1]*0.5);
+    double sy2 = sin(v[1]*0.5);
+    double cz2 = cos(v[2]*0.5);
+    double sz2 = sin(v[2]*0.5);
+    return Quaternion<double>(cx2*cy2*cz2 + sx2*sy2*sz2,
+                              sx2*cy2*cz2 - cx2*sy2*sz2,
+                              cx2*sy2*cz2 + sx2*cy2*sz2,
+                              cx2*cy2*sz2 - sx2*sy2*cz2);
   }
   // Warning, this could gimbal lock! If you need more accurate solutions:
   //  convert first to rotation matrix and then to euler.
-  inline Vector3 quaternion_to_euler_xyz( Quaternion<double> const& q ) {
+  inline Vector3 quaternion_to_euler_xyz(Quaternion<double> const& q) {
     double test = q[0]*q[2]-q[3]*q[1];
     // Testing for gimbal lock, if we're within 0.2 degrees of the poles
-    if ( test > 0.499999 ) {
-      VW_OUT( WarningMessage, "math" ) << "Q2E_XYZ: North Gimbal Lock!\n";
-      return Vector3( -2*atan2(q[3],q[0]), M_PI/2, 0 );
-    } else if ( test < -0.499999 ) {
-      VW_OUT( WarningMessage, "math" ) << "Q2E_XYZ: South Gimbal Lock!\n";
-      return Vector3( 2*atan2(q[3],q[0]), -M_PI/2, 0 );
+    if (test > 0.499999) {
+      VW_OUT(WarningMessage, "math") << "Q2E_XYZ: North Gimbal Lock!\n";
+      return Vector3(-2*atan2(q[3],q[0]), M_PI/2, 0);
+    } else if (test < -0.499999) {
+      VW_OUT(WarningMessage, "math") << "Q2E_XYZ: South Gimbal Lock!\n";
+      return Vector3(2*atan2(q[3],q[0]), -M_PI/2, 0);
     }
-    return Vector3 ( atan2( 2*(q[0]*q[1]+q[2]*q[3]),
-                            1-2*(q[1]*q[1]+q[2]*q[2]) ),
-                     asin( 2*test ),
-                     atan2( 2*(q[0]*q[3]+q[1]*q[2]),
-                            1-2*(q[2]*q[2]+q[3]*q[3]) ) );
+    return Vector3 (atan2(2*(q[0]*q[1]+q[2]*q[3]),
+                           1-2*(q[1]*q[1]+q[2]*q[2])),
+                    asin(2*test),
+                    atan2(2*(q[0]*q[3]+q[1]*q[2]),
+                           1-2*(q[2]*q[2]+q[3]*q[3])));
   }
 
 }} // namespace vw::math

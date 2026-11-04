@@ -36,7 +36,7 @@ class TestTask : public Task, private boost::noncopyable {
     m_value = 1;
 
     int count = 0;
-    while( !terminate ) {
+    while(!terminate) {
       Thread::sleep_ms(10);
       if (count++ > 500) {
         std::cerr << "Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occurred?" << std::endl;
@@ -58,9 +58,9 @@ TEST(ThreadPool, Basic) {
   boost::shared_ptr<TestTask> task2 (new TestTask);
   boost::shared_ptr<TestTask> task3 (new TestTask);
 
-  ASSERT_EQ( 0, task1->value() );
-  ASSERT_EQ( 0, task2->value() );
-  ASSERT_EQ( 0, task3->value() );
+  ASSERT_EQ(0, task1->value());
+  ASSERT_EQ(0, task2->value());
+  ASSERT_EQ(0, task3->value());
 
   FifoWorkQueue queue(4);
   queue.add_task(task1);
@@ -71,16 +71,16 @@ TEST(ThreadPool, Basic) {
   // thread to start and to set the flag.  This should really be done with a
   // condition variable.
   Thread::sleep_ms(200);
-  EXPECT_EQ( 1, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
-  EXPECT_EQ( 1, task3->value() );
+  EXPECT_EQ(1, task1->value());
+  EXPECT_EQ(1, task2->value());
+  EXPECT_EQ(1, task3->value());
 
   Thread::sleep_ms(100);
   task3->kill();
   Thread::sleep_ms(100);
-  EXPECT_EQ( 1, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
-  EXPECT_EQ( 3, task3->value() );
+  EXPECT_EQ(1, task1->value());
+  EXPECT_EQ(1, task2->value());
+  EXPECT_EQ(3, task3->value());
 
   task2->kill();
   task1->kill();
@@ -92,9 +92,9 @@ TEST(ThreadPool, LimitedThreads) {
   boost::shared_ptr<TestTask> task1 (new TestTask);
   boost::shared_ptr<TestTask> task2 (new TestTask);
   boost::shared_ptr<TestTask> task3 (new TestTask);
-  ASSERT_EQ( 0, task1->value() );
-  ASSERT_EQ( 0, task2->value() );
-  ASSERT_EQ( 0, task3->value() );
+  ASSERT_EQ(0, task1->value());
+  ASSERT_EQ(0, task2->value());
+  ASSERT_EQ(0, task3->value());
 
   FifoWorkQueue queue(2);
   queue.add_task(task1);
@@ -105,16 +105,16 @@ TEST(ThreadPool, LimitedThreads) {
   // the thread to start and to set the flag.  This should really be
   // done with a condition variable.
   Thread::sleep_ms(200);
-  EXPECT_EQ( 1, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
+  EXPECT_EQ(1, task1->value());
+  EXPECT_EQ(1, task2->value());
 
   Thread::sleep_ms(100);
-  EXPECT_EQ( 0, task3->value() );
+  EXPECT_EQ(0, task3->value());
   task1->kill();
   Thread::sleep_ms(100);
-  EXPECT_EQ( 3, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
-  EXPECT_EQ( 1, task3->value() );
+  EXPECT_EQ(3, task1->value());
+  EXPECT_EQ(1, task2->value());
+  EXPECT_EQ(1, task3->value());
 
   task2->kill();
   task3->kill();
@@ -127,9 +127,9 @@ TEST(ThreadPool, SpawnNewTasks) {
   boost::shared_ptr<TestTask> task1 (new TestTask);
   boost::shared_ptr<TestTask> task2 (new TestTask);
   boost::shared_ptr<TestTask> task3 (new TestTask);
-  ASSERT_EQ( 0, task1->value() );
-  ASSERT_EQ( 0, task2->value() );
-  ASSERT_EQ( 0, task3->value() );
+  ASSERT_EQ(0, task1->value());
+  ASSERT_EQ(0, task2->value());
+  ASSERT_EQ(0, task3->value());
 
   FifoWorkQueue queue(8);
   queue.add_task(task1);
@@ -139,30 +139,30 @@ TEST(ThreadPool, SpawnNewTasks) {
   // Give the tasks a chance to start up...
   Thread::sleep_ms(100);
 
-  EXPECT_EQ( 1, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
+  EXPECT_EQ(1, task1->value());
+  EXPECT_EQ(1, task2->value());
 
   Thread::sleep_ms(100);
   task1->kill();
   Thread::sleep_ms(100);
-  EXPECT_EQ( 3, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
-  EXPECT_EQ( 1, task3->value() );
+  EXPECT_EQ(3, task1->value());
+  EXPECT_EQ(1, task2->value());
+  EXPECT_EQ(1, task3->value());
 
 
   boost::shared_ptr<TestTask> task4 (new TestTask);
   boost::shared_ptr<TestTask> task5 (new TestTask);
   boost::shared_ptr<TestTask> task6 (new TestTask);
-  ASSERT_EQ( 0, task4->value() );
-  ASSERT_EQ( 0, task5->value() );
-  ASSERT_EQ( 0, task6->value() );
+  ASSERT_EQ(0, task4->value());
+  ASSERT_EQ(0, task5->value());
+  ASSERT_EQ(0, task6->value());
   queue.add_task(task4);
   queue.add_task(task5);
   queue.add_task(task6);
   Thread::sleep_ms(100);
-  EXPECT_EQ( 1, task4->value() );
-  EXPECT_EQ( 1, task5->value() );
-  EXPECT_EQ( 1, task6->value() );
+  EXPECT_EQ(1, task4->value());
+  EXPECT_EQ(1, task5->value());
+  EXPECT_EQ(1, task6->value());
 
   task2->kill();
   task3->kill();
@@ -177,42 +177,42 @@ TEST(ThreadPool, OrderedWorkQueue) {
   boost::shared_ptr<TestTask> task1 (new TestTask);
   boost::shared_ptr<TestTask> task2 (new TestTask);
   boost::shared_ptr<TestTask> task3 (new TestTask);
-  ASSERT_EQ( 0, task1->value() );
-  ASSERT_EQ( 0, task2->value() );
-  ASSERT_EQ( 0, task3->value() );
+  ASSERT_EQ(0, task1->value());
+  ASSERT_EQ(0, task2->value());
+  ASSERT_EQ(0, task3->value());
 
   OrderedWorkQueue queue(8);
   queue.add_task(task1, 2);
   queue.add_task(task2, 1);
 
-  ASSERT_EQ( 0, task1->value() );
-  ASSERT_EQ( 0, task2->value() );
-  ASSERT_EQ( 0, task3->value() );
+  ASSERT_EQ(0, task1->value());
+  ASSERT_EQ(0, task2->value());
+  ASSERT_EQ(0, task3->value());
 
   queue.add_task(task3, 0);
   Thread::sleep_ms(100);
-  EXPECT_EQ( 1, task1->value() );
-  EXPECT_EQ( 1, task2->value() );
-  EXPECT_EQ( 1, task3->value() );
+  EXPECT_EQ(1, task1->value());
+  EXPECT_EQ(1, task2->value());
+  EXPECT_EQ(1, task3->value());
 
   boost::shared_ptr<TestTask> task4 (new TestTask);
   boost::shared_ptr<TestTask> task5 (new TestTask);
   boost::shared_ptr<TestTask> task6 (new TestTask);
-  ASSERT_EQ( 0, task4->value() );
-  ASSERT_EQ( 0, task5->value() );
-  ASSERT_EQ( 0, task6->value() );
+  ASSERT_EQ(0, task4->value());
+  ASSERT_EQ(0, task5->value());
+  ASSERT_EQ(0, task6->value());
   queue.add_task(task4, 3);
   queue.add_task(task5, 5);
   Thread::sleep_ms(100);
-  EXPECT_EQ( 1, task4->value() );
-  EXPECT_EQ( 0, task5->value() );
-  EXPECT_EQ( 0, task6->value() );
+  EXPECT_EQ(1, task4->value());
+  EXPECT_EQ(0, task5->value());
+  EXPECT_EQ(0, task6->value());
 
   queue.add_task(task6, 4);
   Thread::sleep_ms(100);
-  EXPECT_EQ( 1, task4->value() );
-  EXPECT_EQ( 1, task5->value() );
-  EXPECT_EQ( 1, task6->value() );
+  EXPECT_EQ(1, task4->value());
+  EXPECT_EQ(1, task5->value());
+  EXPECT_EQ(1, task6->value());
 
   task1->kill();
   task2->kill();

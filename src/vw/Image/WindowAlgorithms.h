@@ -52,7 +52,7 @@ public:
                                       pixel_accessor; ///< The view's pixel_accessor type.
 
   /// Constructor
-  StdDevView( ImageT const& image, Vector2i window_size, EdgeT  const& edge = EdgeT() )
+  StdDevView(ImageT const& image, Vector2i window_size, EdgeT  const& edge = EdgeT())
     : m_image(image), m_edge(edge), m_window_size(window_size) {
     m_half_width  = m_window_size[0]/2;
     m_half_height = m_window_size[1]/2;
@@ -63,17 +63,17 @@ public:
   inline int32 planes() const { return m_image.planes(); }
 
   /// Returns a pixel_accessor pointing to the origin.
-  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
   /// Not implemented, the class is designed for fast operation on tiles.
-  inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+  inline result_type operator()(int32 x, int32 y, int32 p=0) const {
     vw_throw(NoImplErr() << "StdDevView::operator()(...) is not implemented");
     return pixel_type();
   }
 
   // Generate the output tile
   typedef CropView<ImageView<typename ImageT::pixel_type> > prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
     // Rasterize the input support region
     BBox2i larger_bbox = bbox;
@@ -115,8 +115,8 @@ public:
     return crop(dst, -bbox.min().x(), -bbox.min().y(), m_image.cols(), m_image.rows());
   }
 
-  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-    vw::rasterize( prerasterize(bbox), dest, bbox );
+  template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
   }
 }; // End class StdDevView
 
@@ -163,9 +163,9 @@ public:
                                       pixel_accessor; ///< The view's pixel_accessor type.
 
   /// Constructor
-  WindowFunctionView( ImageT const& image, Vector2i window_size,
-                      FuncT  const& functor, 
-                      EdgeT  const& edge = EdgeT() )
+  WindowFunctionView(ImageT const& image, Vector2i window_size,
+                     FuncT  const& functor, 
+                     EdgeT  const& edge = EdgeT())
     : m_image(image), m_edge(edge), m_functor(functor), m_window_size(window_size) {
     m_half_width  = m_window_size[0]/2;
     m_half_height = m_window_size[1]/2;
@@ -176,10 +176,10 @@ public:
   inline int32 planes() const { return m_image.planes(); }
 
   /// Returns a pixel_accessor pointing to the origin.
-  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
   /// Returns the pixel at the given position in the given plane.
-  inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+  inline result_type operator()(int32 x, int32 y, int32 p=0) const {
     BBox2i roi(x-m_half_width, y-m_half_height, m_window_size[0], m_window_size[1]);
     return m_functor(edge_extend(m_image, roi, m_edge));
   }
@@ -189,21 +189,21 @@ public:
   //   do the computation on a per-tile basis.
   typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type> >, 
                              FuncT, NoEdgeExtension> prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
     // Compute the required base of support for the input bounding box
-    BBox2i src_bbox( bbox.min().x() - m_half_width, 
-                     bbox.min().y() - m_half_height,
-                     bbox.width () + m_window_size[0]-1, 
-                     bbox.height() + m_window_size[1]-1 );
+    BBox2i src_bbox(bbox.min().x() - m_half_width, 
+                    bbox.min().y() - m_half_height,
+                    bbox.width () + m_window_size[0]-1, 
+                    bbox.height() + m_window_size[1]-1);
     // Take an edge extended image view of the input support region
     ImageView<typename ImageT::pixel_type> src = edge_extend(m_image, src_bbox, m_edge);
     // Use the crop trick to fake that the support region is the same size as the entire image.
-    return prerasterize_type( crop(src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows()),
-                              m_window_size, m_functor, NoEdgeExtension() );
+    return prerasterize_type(crop(src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows()),
+                             m_window_size, m_functor, NoEdgeExtension());
   }
 
-  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-    vw::rasterize( prerasterize(bbox), dest, bbox );
+  template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+    vw::rasterize(prerasterize(bbox), dest, bbox);
   }
 }; // End class WindowFunctionView
 

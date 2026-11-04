@@ -33,26 +33,25 @@ class NotNoDataFunctor {
   channel_type m_nodata;
   typedef ChannelRange<channel_type> range_type;
 public:
-  NotNoDataFunctor( channel_type nodata ) : m_nodata(nodata) {}
+  NotNoDataFunctor(channel_type nodata) : m_nodata(nodata) {}
 
   template <class Args> struct result {
     typedef channel_type type;
   };
 
-  inline channel_type operator()( channel_type const& val ) const {
+  inline channel_type operator()(channel_type const& val) const {
     return (val != m_nodata) && !std::isnan(val) ? range_type::max() : range_type::min();
   }
 };
 
 template <class ImageT, class NoDataT>
 UnaryPerPixelView<ImageT,UnaryCompoundFunctor<NotNoDataFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type>  >
-inline notnodata( ImageViewBase<ImageT> const& image, NoDataT nodata ) {
+inline notnodata(ImageViewBase<ImageT> const& image, NoDataT nodata) {
   typedef UnaryCompoundFunctor<NotNoDataFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type> func_type;
-  func_type func( nodata );
-  return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
+  func_type func(nodata);
+  return UnaryPerPixelView<ImageT,func_type>(image.impl(), func);
 }
   
 }
 
 #endif // __VW_IMAGE_NODATA_ALG_H__
-

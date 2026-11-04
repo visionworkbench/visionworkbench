@@ -41,7 +41,7 @@ namespace vw { namespace detail {
     sum = 0.0;
     ImageView<float> weight(kern_width, kern_height);
     for (int32 j = 0; j < kern_height; ++j) {
-      for (int32 i = 0; i < kern_width; ++i ) {
+      for (int32 i = 0; i < kern_width; ++i) {
         weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
                               (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
         sum += weight(i,j);
@@ -68,7 +68,7 @@ namespace vw { namespace detail {
   
   inline double
   blake_zisserman_robust_coefficient (double delta_norm, double b) {
-    return -log(exp(-(delta_norm*delta_norm) ) + b);
+    return -log(exp(-(delta_norm*delta_norm)) + b);
   }
   
   struct HuberError {
@@ -91,7 +91,7 @@ namespace vw { namespace detail {
     
     ImageView<float> weight(kern_width, kern_height);
     for (int j = 0; j < kern_height; ++j) {
-      for (int i = 0; i < kern_width; ++i ) {
+      for (int i = 0; i < kern_width; ++i) {
         weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
                               (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
       }
@@ -109,7 +109,7 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
                                            BBox2i region_of_interest,
                                            bool do_horizontal_subpixel,
                                            bool do_vertical_subpixel,
-                                           bool /*verbose*/ ) {
+                                           bool /*verbose*/) {
   typedef Vector<float,6> Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
   typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
@@ -125,10 +125,10 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
   //const float M_MIN_VAR2_NOISE = 1e-6;
   const float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
-  VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-             disparity_map.rows() == left_image.rows(),
-             ArgumentErr() << "subpixel_correlation: left image and "
-             << "disparity map do not have the same dimensions.");
+  VW_ASSERT(disparity_map.cols() == left_image.cols() &&
+            disparity_map.rows() == left_image.rows(),
+            ArgumentErr() << "subpixel_correlation: left image and "
+            << "disparity map do not have the same dimensions.");
 
   // Currently unused confidence_image code
   //ImageView<float> confidence_image(left_image.cols(),
@@ -158,9 +158,9 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
 
   // Iterate over all of the pixels in the disparity map except for
   // the outer edges.
-  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
-        y < std::min(left_image.rows()-kern_half_height,
-                     region_of_interest.max().y()+1); ++y) {
+  for (int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
+       y < std::min(left_image.rows()-kern_half_height,
+                    region_of_interest.max().y()+1); ++y) {
 
     for (int32 x=std::max(region_of_interest.min().x()-1,kern_half_width);
          x < std::min(left_image.cols()-kern_half_width,
@@ -170,7 +170,7 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
                             kern_width, kern_height);
 
       // Skip over pixels for which we have no initial disparity estimate
-      if ( !is_valid(disparity_map(x,y)) )
+      if (!is_valid(disparity_map(x,y)))
         continue;
 
       // Define and initialize the model params
@@ -212,7 +212,7 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
         // is less than one half of the window width.  If not, then
         // we are probably having trouble converging and we abort
         // this pixel!!
-        if (norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+        if (norm_2(Vector2f(d[2],d[5])) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
           break;
 
         float x_base = x + disparity_map(x,y)[0];
@@ -243,8 +243,8 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
           float plane_norm_factor = 1.0/sqrt(2*M_PI*var2_plane);
 
           //reset lhs and rhs
-          std::fill( lhs.begin(), lhs.end(), 0.0f );
-          std::fill( rhs.begin(), rhs.end(), 0.0f );
+          std::fill(lhs.begin(), lhs.end(), 0.0f);
+          std::fill(rhs.begin(), rhs.end(), 0.0f);
 
           in_curr_sum_I_e_val = 0.0;
           float mean_noise_tmp  = 0.0;
@@ -310,7 +310,7 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
               // We combine the error value with the derivative and
               // add this to the update equation.
               float weight  = robust_weight*(*w_ptr);
-              if ( weight < 1e-26 ) {
+              if (weight < 1e-26) {
                 // avoid underflow
                 I_x_ptr.next_col();
                 I_y_ptr.next_col();
@@ -482,9 +482,9 @@ void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disp
 
       }
 
-      if ( norm_2( Vector2f(d[2],d[5]) ) >
-           AFFINE_SUBPIXEL_MAX_TRANSLATION ||
-           std::isnan(d[2]) || std::isnan(d[5]) )
+      if (norm_2(Vector2f(d[2],d[5])) >
+          AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+          std::isnan(d[2]) || std::isnan(d[5]))
         invalidate(disparity_map(x,y));
       else
         remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
@@ -503,7 +503,7 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
                                          BBox2i region_of_interest,
                                          bool   do_horizontal_subpixel,
                                          bool   do_vertical_subpixel,
-                                         bool /*verbose*/ ) {
+                                         bool /*verbose*/) {
   typedef Vector<float,6>   Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
   typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
@@ -517,10 +517,10 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
   const unsigned M_MAX_EM_ITER = 2;
   const float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
-  VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-             disparity_map.rows() == left_image.rows(),
-             ArgumentErr() << "subpixel_correlation: left image and "
-             << "disparity map do not have the same dimensions.");
+  VW_ASSERT(disparity_map.cols() == left_image.cols() &&
+            disparity_map.rows() == left_image.rows(),
+            ArgumentErr() << "subpixel_correlation: left image and "
+            << "disparity map do not have the same dimensions.");
 
   // Interpolated Input Images
   InterpolationView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
@@ -546,9 +546,9 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
 
   // Iterate over all of the pixels in the disparity map except for
   // the outer edges.
-  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
-        y < std::min(left_image.rows()-kern_half_height,
-                     region_of_interest.max().y()+1); ++y) {
+  for (int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
+       y < std::min(left_image.rows()-kern_half_height,
+                    region_of_interest.max().y()+1); ++y) {
 
     for (int32 x=std::max(region_of_interest.min().x()-1,kern_half_width);
          x < std::min(left_image.cols()-kern_half_width,
@@ -558,7 +558,7 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
                             kern_width, kern_height);
 
       // Skip over pixels for which we have no initial disparity estimate
-      if ( !is_valid(disparity_map(x,y)) )
+      if (!is_valid(disparity_map(x,y)))
         continue;
 
       // Define and initialize the model params
@@ -599,7 +599,7 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
         // is less than one half of the window width.  If not, then
         // we are probably having trouble converging and we abort
         // this pixel!!
-        if (norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+        if (norm_2(Vector2f(d[2],d[5])) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
           break;
 
         float x_base = x + disparity_map(x,y)[0];
@@ -626,8 +626,8 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
           float plane_norm_factor = 1.0/sqrt(2*M_PI*var2_plane);
 
           //reset lhs and rhs
-          std::fill( lhs.begin(), lhs.end(), 0.0f );
-          std::fill( rhs.begin(), rhs.end(), 0.0f );
+          std::fill(lhs.begin(), lhs.end(), 0.0f);
+          std::fill(rhs.begin(), rhs.end(), 0.0f);
 
           in_curr_sum_I_e_val = 0.0;
           float mean_noise_tmp  = 0.0;
@@ -685,7 +685,7 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
               // We combine the error value with the derivative and
               // add this to the update equation.
               float weight  = gamma_plane*(*w_ptr);
-              if ( weight < 1e-26 ) {
+              if (weight < 1e-26) {
                 // avoid underflow
                 I_x_ptr.next_col();
                 I_y_ptr.next_col();
@@ -776,7 +776,7 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
           }
 
           // Checking for early termination
-          if ( skip == kern_pixels )
+          if (skip == kern_pixels)
             break;
 
           // Fill in symmetric entries
@@ -832,9 +832,9 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
 
       }
 
-      if ( norm_2( Vector2f(d[2],d[5]) ) >
-           AFFINE_SUBPIXEL_MAX_TRANSLATION ||
-           std::isnan(d[2]) || std::isnan(d[5]) )
+      if (norm_2(Vector2f(d[2],d[5])) >
+          AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+          std::isnan(d[2]) || std::isnan(d[5]))
         invalidate(disparity_map(x,y));
       else
         remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
@@ -851,7 +851,7 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
                                       BBox2i region_of_interest,
                                       bool   do_horizontal_subpixel,
                                       bool   do_vertical_subpixel,
-                                      bool /*verbose*/ ) {
+                                      bool /*verbose*/) {
   
   typedef Vector<float,6  > Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
@@ -866,10 +866,10 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
   const unsigned MAX_NUM_ITERATIONS = 10;  // <-- Does not seem to make a big difference around 8ish
   const float    two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
-  VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-             disparity_map.rows() == left_image.rows(),
-             ArgumentErr() << "subpixel_correlation: left image and "
-             << "disparity map do not have the same dimensions.");
+  VW_ASSERT(disparity_map.cols() == left_image.cols() &&
+            disparity_map.rows() == left_image.rows(),
+            ArgumentErr() << "subpixel_correlation: left image and "
+            << "disparity map do not have the same dimensions.");
 
   // It seems like Bicubic interpolation should help here, but when tested it produced undetectable
   //  changes in the results and significantly increased the run time.  This is true for both the pyramid
@@ -904,9 +904,9 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
   ImageView<float> w(kern_width, kern_height);
 
   // Iterate over all of the pixels in the disparity map except for the outer edges.
-  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
-              y < std::min(left_image.rows()-kern_half_height,
-                           region_of_interest.max().y()+1); ++y) {
+  for (int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
+             y < std::min(left_image.rows()-kern_half_height,
+                          region_of_interest.max().y()+1); ++y) {
 
     for (int32 x = std::max(region_of_interest.min().x()-1,kern_half_width);
                x < std::min(left_image.cols()-kern_half_width,
@@ -916,7 +916,7 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
                             kern_width, kern_height);
 
       // Skip over pixels for which we have no initial disparity estimate
-      if ( !is_valid(disparity_map(x,y)) )
+      if (!is_valid(disparity_map(x,y)))
         continue;
 
       // Define and initialize the model params
@@ -957,7 +957,7 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
         // is less than one half of the window width.  If not, then
         // we are probably having trouble converging and we abort
         // this pixel!!
-        if (norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+        if (norm_2(Vector2f(d[2],d[5])) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
           break;
 
         float x_base = x + disparity_map(x,y)[0];
@@ -988,8 +988,8 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
         float minRow = -y_base + SAFETY_BUFFER;
         float maxRow = right_image.rows() - y_base - SAFETY_BUFFER;
         for (int i=0; i<4; ++i) { // If each corner of the kernel is in the safe bounds we should be safe
-          if ( (xVals[i] >= maxCol) || (xVals[i] <= minCol) ||
-               (yVals[i] >= maxRow) || (yVals[i] <= minRow)   ) {
+          if ((xVals[i] >= maxCol) || (xVals[i] <= minCol) ||
+              (yVals[i] >= maxRow) || (yVals[i] <= minRow)) {
             use_unsafe_interp = false;
             break;
           }
@@ -1187,9 +1187,9 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
       } // End multiple iteration loop
       
       // If there is too much translation in our affine transform or we got NaNs, invalidate the pixel
-      if ( norm_2( Vector2f(d[2],d[5]) ) >
-           AFFINE_SUBPIXEL_MAX_TRANSLATION ||
-           std::isnan(d[2]) || std::isnan(d[5]) )
+      if (norm_2(Vector2f(d[2],d[5])) >
+          AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+          std::isnan(d[2]) || std::isnan(d[5]))
         invalidate(disparity_map(x,y));
       else
         remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
@@ -1220,10 +1220,10 @@ void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map
   const unsigned MAX_NUM_ITERATIONS = 10;
   const float    two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
-  VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-             disparity_map.rows() == left_image.rows(),
-             ArgumentErr() << "subpixel_correlation: left image and "
-             << "disparity map do not have the same dimensions.");
+  VW_ASSERT(disparity_map.cols() == left_image.cols() &&
+            disparity_map.rows() == left_image.rows(),
+            ArgumentErr() << "subpixel_correlation: left image and "
+            << "disparity map do not have the same dimensions.");
 
   // Interpolated Input Images
   InterpolationView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
@@ -1248,9 +1248,9 @@ void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map
   ImageView<float> w(kern_width, kern_height);
 
   // Iterate over all of the pixels in the disparity map except for the outer edges.
-  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
-              y < std::min(left_image.rows()-kern_half_height,
-                           region_of_interest.max().y()+1); ++y) {
+  for (int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
+             y < std::min(left_image.rows()-kern_half_height,
+                          region_of_interest.max().y()+1); ++y) {
 
     for (int32 x = std::max(region_of_interest.min().x()-1,kern_half_width);
                x < std::min(left_image.cols()-kern_half_width,
@@ -1260,7 +1260,7 @@ void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map
                             kern_width, kern_height);
 
       // Skip over pixels for which we have no initial disparity estimate
-      if ( !is_valid(disparity_map(x,y)) )
+      if (!is_valid(disparity_map(x,y)))
         continue;
 
       // We are just solving for a simple translation vector
@@ -1380,8 +1380,8 @@ void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map
       } // End multiple iteration loop
       
       // If there is too much translation in our affine transform or we got NaNs, invalidate the pixel
-      if ( norm_2(d) > SUBPIXEL_MAX_TRANSLATION ||
-           std::isnan(d[0]) || std::isnan(d[1]) )
+      if (norm_2(d) > SUBPIXEL_MAX_TRANSLATION ||
+          std::isnan(d[0]) || std::isnan(d[1]))
         invalidate(disparity_map(x,y));
       else
         remove_mask(disparity_map(x,y)) += d;
@@ -1403,10 +1403,10 @@ int vw::adjust_weight_image(ImageView<float> &weight,
     IViewFAcc weight_col_acc = weight_row_acc;
     IViewFAcc template_col_acc = template_row_acc;
     IViewDAcc disp_col_acc = disp_row_acc;
-    for (int32 i = 0; i < weight_template.cols(); ++i ) {
+    for (int32 i = 0; i < weight_template.cols(); ++i) {
 
       // Mask is zero if the disparity map's pixel is missing...
-      if ( !is_valid(*disp_col_acc) )
+      if (!is_valid(*disp_col_acc))
         *weight_col_acc = 0;
 
       // ... otherwise we use the weight from the weight template

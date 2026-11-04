@@ -41,7 +41,7 @@ namespace vw {
     typedef typename ImageT::result_type    result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    CacheTileAwareView( ImageT const& image, vw::Vector2i tile_size ) : m_child( image ), m_tile_size( tile_size ) {}
+    CacheTileAwareView(ImageT const& image, vw::Vector2i tile_size) : m_child(image), m_tile_size(tile_size) {}
 
     inline vw::int32 cols  () const { return m_child.cols  (); }
     inline vw::int32 rows  () const { return m_child.rows  (); }
@@ -49,29 +49,29 @@ namespace vw {
 
     inline pixel_accessor origin() const { return m_child.origin(); }
 
-    inline result_type operator()( vw::int32 i, vw::int32 j, vw::int32 p=0 ) const {
+    inline result_type operator()(vw::int32 i, vw::int32 j, vw::int32 p=0) const {
       return m_child(i,j,p);
     }
 
     typedef vw::CropView<vw::ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( vw::BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(vw::BBox2i const& bbox) const {
 
       // Fancy rasterize in section of m_tile_size
-      std::vector<BBox2i> subregions = subdivide_bbox( bbox, m_tile_size.x(), m_tile_size.y() );
-      ImageView<pixel_type> output( bbox.width(), bbox.height() );
-      BOOST_FOREACH( BBox2i const& sub, subregions ) {
-        crop( output, sub - bbox.min() ) = crop( m_child, sub );
+      std::vector<BBox2i> subregions = subdivide_bbox(bbox, m_tile_size.x(), m_tile_size.y());
+      ImageView<pixel_type> output(bbox.width(), bbox.height());
+      BOOST_FOREACH(BBox2i const& sub, subregions) {
+        crop(output, sub - bbox.min()) = crop(m_child, sub);
       }
-      return crop( output, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
+      return crop(output, -bbox.min().x(), -bbox.min().y(), cols(), rows());
     }
-    template <class DestT> inline void rasterize( DestT const& dest, vw::BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    template <class DestT> inline void rasterize(DestT const& dest, vw::BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
   template <class ImageT>
-  inline CacheTileAwareView<ImageT> cache_tile_aware_render( ImageT const& v, vw::Vector2i const& tile_size ) {
-    return CacheTileAwareView<ImageT>( v, tile_size );
+  inline CacheTileAwareView<ImageT> cache_tile_aware_render(ImageT const& v, vw::Vector2i const& tile_size) {
+    return CacheTileAwareView<ImageT>(v, tile_size);
   }
 
   // Weighted Summation filter for antialiasing. This insures that we
@@ -93,29 +93,29 @@ namespace vw {
     typedef pixel_type result_type;
     typedef vw::ProceduralPixelAccessor<WeightedSummationView<ImageT> > pixel_accessor;
 
-    WeightedSummationView( ImageT const& image, vw::int32 reduce_amt ) : m_image(image), m_reduce_amt(reduce_amt) {}
+    WeightedSummationView(ImageT const& image, vw::int32 reduce_amt) : m_image(image), m_reduce_amt(reduce_amt) {}
 
     // Standard info
     inline vw::int32 cols  () const { return m_image.cols  (); }
     inline vw::int32 rows  () const { return m_image.rows  (); }
     inline vw::int32 planes() const { return m_image.planes(); }
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
     // Returns the pixel at the given position in the given plane.
-    inline result_type operator()( vw::int32 x, vw::int32 y, vw::int32 p=0 ) const {
-      vw_throw( vw::NoImplErr() << "WeightedSummationView doesn't support single pixel access.");
+    inline result_type operator()(vw::int32 x, vw::int32 y, vw::int32 p=0) const {
+      vw_throw(vw::NoImplErr() << "WeightedSummationView doesn't support single pixel access.");
     }
 
     typedef vw::CropView<vw::ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( vw::BBox2i const& bbox ) const {
-      ImageView<pixel_type> dest( bbox.width(), bbox.height(), m_image.planes() );
+    inline prerasterize_type prerasterize(vw::BBox2i const& bbox) const {
+      ImageView<pixel_type> dest(bbox.width(), bbox.height(), m_image.planes());
       rasterize(dest, bbox);
-      return prerasterize_type( dest, BBox2i( -bbox.min().x(), -bbox.min().y(),
-                                              m_image.cols(), m_image.rows() ) );
+      return prerasterize_type(dest, BBox2i(-bbox.min().x(), -bbox.min().y(),
+                                             m_image.cols(), m_image.rows()));
     }
 
     template <class DestT>
-    void rasterize( DestT const& dest, vw::BBox2i const& bbox ) const {
+    void rasterize(DestT const& dest, vw::BBox2i const& bbox) const {
 
       typedef typename UnmaskedPixelType<pixel_type>::type unmasked_type;
 
@@ -125,18 +125,18 @@ namespace vw {
       typedef typename ImageView<int32>::pixel_accessor      CPA;
 
       BBox2i child_bbox = bbox;
-      child_bbox.max() += Vector2i( m_reduce_amt - 1,
-                                    m_reduce_amt - 1 );
+      child_bbox.max() += Vector2i(m_reduce_amt - 1,
+                                   m_reduce_amt - 1);
       ImageView<pixel_type> src_buf = edge_extend(m_image,child_bbox,ZeroEdgeExtension());
 
-      ImageView<sum_type> work( bbox.width(), bbox.height() + m_reduce_amt - 1 );
-      ImageView<int32> count( bbox.width(), bbox.height() + m_reduce_amt - 1 );
+      ImageView<sum_type> work(bbox.width(), bbox.height() + m_reduce_amt - 1);
+      ImageView<int32> count(bbox.width(), bbox.height() + m_reduce_amt - 1);
 
       {// Sum in the X direction
         IPA irow = src_buf.origin();
         WPA wrow = work.origin();
         CPA crow = count.origin();
-        for ( int32 y = 0; y < work.rows(); y++ ) {
+        for (int32 y = 0; y < work.rows(); y++) {
           // Start sum with first kernel
           IPA icol = irow;
           IPA icol_lookahead = icol;
@@ -145,13 +145,13 @@ namespace vw {
 
           sum_type sum;
           set_all(sum, 0);
-          validate( sum ); // redundant
+          validate(sum); // redundant
 
           int32 count = 0;
-          for ( int32 i = m_reduce_amt; i; i-- ) {
-            if ( is_valid( *icol_lookahead ) ) {
+          for (int32 i = m_reduce_amt; i; i--) {
+            if (is_valid(*icol_lookahead)) {
               count++;
-              sum += ( *icol_lookahead ).child();
+              sum += (*icol_lookahead).child();
             }
             icol_lookahead.next_col();
           }
@@ -161,14 +161,14 @@ namespace vw {
           ccol.next_col();
 
           // Fast sum the rest of the pixels using prior results
-          for ( int32 x = 1; x < work.cols(); x++ ) {
-            if ( is_valid( *icol ) ) {
+          for (int32 x = 1; x < work.cols(); x++) {
+            if (is_valid(*icol)) {
               count--;
-              sum -= ( *icol ).child();
+              sum -= (*icol).child();
             }
-            if ( is_valid( *icol_lookahead ) ) {
+            if (is_valid(*icol_lookahead)) {
               count++;
-              sum += ( *icol_lookahead ).child();
+              sum += (*icol_lookahead).child();
             }
             *wcol = sum;
             *ccol = count;
@@ -185,12 +185,12 @@ namespace vw {
         } // End of y loop for sum in X direction
       }
 
-      ImageView<pixel_type> output( bbox.width(), bbox.height() );
+      ImageView<pixel_type> output(bbox.width(), bbox.height());
       { // Sum in the Y direction
         WPA wcol = work.origin();
         CPA ccol = count.origin();
         IPA ocol = output.origin();
-        for ( int32 x = 0; x < bbox.width(); x++ ) {
+        for (int32 x = 0; x < bbox.width(); x++) {
           // Start sequence by hand summing the first kernel
           WPA wrow = wcol;
           WPA wrow_lookahead = wcol;
@@ -200,30 +200,30 @@ namespace vw {
 
           sum_type sum;
           set_all(sum, 0);
-          validate( sum ); // redundant
+          validate(sum); // redundant
 
           int32 count = 0;
-          for ( int32 i = m_reduce_amt; i; i-- ) {
+          for (int32 i = m_reduce_amt; i; i--) {
             sum += *wrow_lookahead;
             count += *crow_lookahead;
             wrow_lookahead.next_row();
             crow_lookahead.next_row();
           }
           *orow = sum / count;
-          if ( count < 1 )
-            invalidate( *orow );
+          if (count < 1)
+            invalidate(*orow);
           orow.next_row();
 
           // Fast sum the rest of the pixels in the column
-          for ( int32 y = 1; y < bbox.height(); y++ ) {
+          for (int32 y = 1; y < bbox.height(); y++) {
             sum += *wrow_lookahead;
             sum -= *wrow;
             count += *crow_lookahead;
             count -= *crow;
 
             *orow = sum / count;
-            if ( count < 1 )
-              invalidate( *orow );
+            if (count < 1)
+              invalidate(*orow);
             wrow.next_row();
             wrow_lookahead.next_row();
             crow.next_row();
@@ -242,8 +242,8 @@ namespace vw {
   };
 
   template <class ImageT>
-  inline WeightedSummationView<ImageT> weighted_summation( vw::ImageViewBase<ImageT> const& v, vw::int32 reduction_amt ) {
-    return WeightedSummationView<ImageT>( v.impl(), reduction_amt );
+  inline WeightedSummationView<ImageT> weighted_summation(vw::ImageViewBase<ImageT> const& v, vw::int32 reduction_amt) {
+    return WeightedSummationView<ImageT>(v.impl(), reduction_amt);
   }
 
   // Weighted Summation filter for antialiasing. This insures that we
@@ -256,26 +256,26 @@ namespace vw {
   class WeightedAAFilter : public vw::UnaryReturnTemplateType<vw::PixelTypeFromPixelAccessor> {
     vw::int32 m_reduce_amt;
   public:
-    WeightedAAFilter( vw::int32 reduce_amt ) : m_reduce_amt( reduce_amt ) {}
+    WeightedAAFilter(vw::int32 reduce_amt) : m_reduce_amt(reduce_amt) {}
 
     vw::BBox2i work_area() const { return vw::BBox2i(0,0,m_reduce_amt,m_reduce_amt); }
 
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type
-    operator()( PixelAccessorT acc ) const {
+    operator()(PixelAccessorT acc) const {
 
       typedef typename SumType<typename PixelAccessorT::pixel_type,
                                typename PixelAccessorT::pixel_type >::type sum_type;
 
       sum_type sum;
       set_all(sum, 0);
-      validate( sum ); // redundant
+      validate(sum); // redundant
 
       int32 count = 0;
-      for ( int32 r=m_reduce_amt; r; --r ) {
+      for (int32 r=m_reduce_amt; r; --r) {
         PixelAccessorT col_acc = acc;
-        for ( int32 c=m_reduce_amt; c; --c) {
-          if ( is_valid( *col_acc ) ) {
+        for (int32 c=m_reduce_amt; c; --c) {
+          if (is_valid(*col_acc)) {
             count++;
             sum += (*col_acc);
           }
@@ -283,21 +283,21 @@ namespace vw {
         }
         acc.next_row();
       }
-      if ( !count )
-        invalidate( sum );
+      if (!count)
+        invalidate(sum);
       return sum / count;
     }
   };
 
   template <class ViewT>
   vw::TransformView<vw::InterpolationView<WeightedSummationView<ViewT>, vw::NearestPixelInterpolation>, vw::ResampleTransform>
-  resample_aa( vw::ImageViewBase<ViewT> const& input, double factor ) {
+  resample_aa(vw::ImageViewBase<ViewT> const& input, double factor) {
     typedef WeightedSummationView<ViewT> inner_type;
     typedef TransformView<InterpolationView<inner_type, NearestPixelInterpolation>, ResampleTransform> return_type;
-    return return_type( InterpolationView<inner_type, NearestPixelInterpolation>( weighted_summation( input.impl(), int32(1.0/factor) ) ),
-                        ResampleTransform( factor, factor ),
-                        int32(.5+(input.impl().cols()*factor)),
-                        int32(.5+(input.impl().rows()*factor)) );
+    return return_type(InterpolationView<inner_type, NearestPixelInterpolation>(weighted_summation(input.impl(), int32(1.0/factor))),
+                       ResampleTransform(factor, factor),
+                       int32(.5+(input.impl().cols()*factor)),
+                       int32(.5+(input.impl().rows()*factor)));
   }
 
 }

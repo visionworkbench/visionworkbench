@@ -107,8 +107,8 @@ namespace vw {
     Mutex m_mutex;
 
     // Help functions
-    bool has_leading_wildcard( std::string const& exp );
-    std::string after_wildcard( std::string const& exp );
+    bool has_leading_wildcard(std::string const& exp);
+    std::string after_wildcard(std::string const& exp);
 
   public:
     // by default, the LogRuleSet is set up to pass "console" messages
@@ -118,8 +118,8 @@ namespace vw {
 
     // Ensure Copyable semantics (Mutex is not copyable, so we create our own
     // mutex and copy the internal rules)
-    LogRuleSet( LogRuleSet const& copy_log);
-    LogRuleSet& operator=( LogRuleSet const& copy_log);
+    LogRuleSet(LogRuleSet const& copy_log);
+    LogRuleSet& operator=(LogRuleSet const& copy_log);
 
     void add_rule(int log_level, std::string const& log_namespace);
     void clear();
@@ -235,15 +235,15 @@ namespace vw {
     ///
     /// LogRuleSets still lock on access of their operator().
     /// We're also using shared_ptr, which lock on access.
-    bool is_enabled( int log_level = vw::InfoMessage,
-                     std::string const& log_namespace="console" );
+    bool is_enabled(int log_level = vw::InfoMessage,
+                    std::string const& log_namespace="console");
   };
 
   /// The vision workbench logging operator.  Use this to generate a
   /// message in the system log using the given log_level and
   /// log_namespace.
-  std::ostream& vw_out( int log_level = vw::InfoMessage,
-                        std::string const& log_namespace = "console" );
+  std::ostream& vw_out(int log_level = vw::InfoMessage,
+                       std::string const& log_namespace = "console");
 
   /// A macro for vw_out that allows for lazy evaluation. It achieves
   /// this by putting a conditional around the stream operation.
@@ -252,12 +252,12 @@ namespace vw {
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log
   /// by manipulating the Log::system_log().console_log().rule_set().
-  void set_debug_level( int log_level ) VW_DEPRECATED;
+  void set_debug_level(int log_level) VW_DEPRECATED;
 
   /// Deprecated: Set the output stream for the system console log to
   /// an arbitrary C++ ostream.  You should use
   /// Log::system_log().set_console_stream() instead.
-  void set_output_stream( std::ostream& stream ) VW_DEPRECATED;
+  void set_output_stream(std::ostream& stream) VW_DEPRECATED;
 
 } // namespace vw
 

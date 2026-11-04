@@ -81,7 +81,7 @@ namespace vw {
   }; // End class ImageFormat
 
   /// Dumps an ImageFormat to a std::ostream
-  inline std::ostream& operator<<( std::ostream& os, ImageFormat const& f ) {
+  inline std::ostream& operator<<(std::ostream& os, ImageFormat const& f) {
 
     os << "ImageFormat rows: " << f.rows << "  cols: " << f.cols
        << "  planes: " << f.planes << "  pixel_format: " << f.pixel_format
@@ -92,7 +92,7 @@ namespace vw {
 
   /// Copies image pixel data from the source buffer to the destination
   /// buffer, converting the pixel format and channel type as required.
-  void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
+  void convert(ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false);
   
   /// Throws an exception if src cannot be converted to dst using the convert() function.
   /// - Using this function allows us to throw a legible error message instead of gibberish.
@@ -109,7 +109,7 @@ namespace vw {
       virtual int32 planes() const {return format().planes;}
 
       /// Returns the number of channels in a image resource.
-      int32 channels() const { return num_channels( pixel_format() ); }
+      int32 channels() const { return num_channels(pixel_format()); }
 
       /// Returns the native pixel format of the resource.
       virtual PixelFormatEnum pixel_format() const {return format().pixel_format;}
@@ -121,7 +121,7 @@ namespace vw {
       virtual ImageFormat format() const = 0;
 
       /// Read the image resource at the given location into the given buffer.
-      virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
+      virtual void read(ImageBuffer const& buf, BBox2i const& bbox) const = 0;
 
       /// Does this resource support block reads?
       // If you override this to true, you must implement the other block_read functions
@@ -153,7 +153,7 @@ namespace vw {
       virtual ~DstImageResource() {}
 
       /// Write the given buffer to the image resource at the given location.
-      virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
+      virtual void write(ImageBuffer const& buf, BBox2i const& bbox) = 0;
 
       // Does this resource support block writes?
       // If you override this to true, you must implement the other block_write functions
@@ -175,7 +175,7 @@ namespace vw {
       virtual bool has_nodata_write() const = 0;
 
       /// Set a nodata value that will be stored in the underlying stream
-      virtual void set_nodata_write( double /*value*/ ) {
+      virtual void set_nodata_write(double /*value*/) {
         vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_write().");
       }
 
@@ -229,7 +229,7 @@ namespace vw {
     }
 
     /// Returns a cropped version of this bufffer.
-    inline ImageBuffer cropped( BBox2i const& bbox ) const {
+    inline ImageBuffer cropped(BBox2i const& bbox) const {
       ImageBuffer self = *this;
       self.data = (uint8*)self.data + cstride*bbox.min().x() + rstride*bbox.min().y();
       self.format.cols = bbox.width();
@@ -239,17 +239,17 @@ namespace vw {
 
     /// Read the image resource at the given location into the given buffer.
     /// - Though the ImageBuffer object is const, the contents of the buffer will change!
-    inline void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
-      convert( buf, cropped(bbox) );
+    inline void read(ImageBuffer const& buf, BBox2i const& bbox) const {
+      convert(buf, cropped(bbox));
     }
 
     /// Write the given buffer to the image resource at the given location.
-    inline void write( ImageBuffer const& buf, BBox2i const& bbox ) {
-      convert( cropped(bbox), buf );
+    inline void write(ImageBuffer const& buf, BBox2i const& bbox) {
+      convert(cropped(bbox), buf);
     }
 
     /// Return a pointer to the pixel at (u,v,p)
-    inline void* operator()( int32 i, int32 j, int32 p = 0 ) const {
+    inline void* operator()(int32 i, int32 j, int32 p = 0) const {
       return ((uint8*)data) + (i*cstride + j*rstride + p*pstride);
     }
 

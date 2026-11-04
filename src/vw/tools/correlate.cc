@@ -52,7 +52,7 @@ using namespace vw;
 // TODO(oalexan1): Make all options below use the Options structure
 struct Options: vw::GdalWriteOptions {};
 
-int main( int argc, char *argv[] ) {
+int main(int argc, char *argv[]) {
 
   Options opt;
   std::string left_file_name, right_file_name;
@@ -83,7 +83,7 @@ int main( int argc, char *argv[] ) {
     ("right",      po::value(&right_file_name),                "Explicitly specify the \"right\" input file")
     ("log",        po::value(&log)->default_value(1.4),        "Apply LOG filter with the given sigma, or 0 to disable")
     ("h-corr-min", po::value(&h_corr_min)->default_value(-30), "Minimum horizontal disparity")
-    ("h-corr-max", po::value(&h_corr_max)->default_value( 30), "Maximum horizontal disparity")
+    ("h-corr-max", po::value(&h_corr_max)->default_value(30), "Maximum horizontal disparity")
     ("v-corr-min", po::value(&v_corr_min)->default_value(-5),  "Minimum vertical disparity")
     ("v-corr-max", po::value(&v_corr_max)->default_value(5),   "Maximum vertical disparity")
     ("xkernel",    po::value(&xkernel)->default_value(15),     "Horizontal correlation kernel size")
@@ -116,8 +116,8 @@ int main( int argc, char *argv[] ) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(general_options).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(general_options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
@@ -132,7 +132,7 @@ int main( int argc, char *argv[] ) {
 
   opt.setVwSettingsFromOpt();
 
-  if( vm.count("left") != 1 || vm.count("right") != 1 ) {
+  if(vm.count("left") != 1 || vm.count("right") != 1) {
     vw_out() << "Error: Must specify one (and only one) left and right input file!" << std::endl;
     vw_out() << general_options << std::endl;
     return 1;
@@ -154,27 +154,27 @@ int main( int argc, char *argv[] ) {
     std::vector<Vector3> ransac_ip1 = vw::iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = vw::iplist_to_vectorlist(matched_ip2);
     vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 
-        ransac( vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true );
-    alignment = ransac( ransac_ip2, ransac_ip1 );
+        ransac(vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true);
+    alignment = ransac(ransac_ip2, ransac_ip1);
 
-    DiskImageView<PixelGray<float> > right_disk_image( right_file_name );
+    DiskImageView<PixelGray<float> > right_disk_image(right_file_name);
     right_file_name = "aligned_right.tif";
-    write_image( right_file_name, transform(right_disk_image, HomographyTransform(alignment)),
-                 TerminalProgressCallback( "tools.correlate", "Aligning: ") );
+    write_image(right_file_name, transform(right_disk_image, HomographyTransform(alignment)),
+                TerminalProgressCallback("tools.correlate", "Aligning: "));
     found_alignment = true;
   }
 
   // Load input images
-  DiskImageView<PixelGray<float> > left_disk_image (left_file_name );
-  DiskImageView<PixelGray<float> > right_disk_image(right_file_name );
+  DiskImageView<PixelGray<float> > left_disk_image (left_file_name);
+  DiskImageView<PixelGray<float> > right_disk_image(right_file_name);
   int cols = std::min(left_disk_image.cols(),right_disk_image.cols());
   int rows = std::min(left_disk_image.rows(),right_disk_image.rows());
   ImageViewRef<PixelGray<float> > left  = edge_extend(left_disk_image, 0,0,cols,rows);
   ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
   // Set up masks
-  ImageView<uint8> left_mask  = constant_view( uint8(255), left );
-  ImageView<uint8> right_mask = constant_view( uint8(255), right);
+  ImageView<uint8> left_mask  = constant_view(uint8(255), left);
+  ImageView<uint8> right_mask = constant_view(uint8(255), right);
   if (vm.count("mask-value")) {
     left_mask  = apply_mask(copy_mask(left_mask,  create_mask(left,  mask_value)), 0);
     right_mask = apply_mask(copy_mask(right_mask, create_mask(right, mask_value)), 0);
@@ -255,8 +255,8 @@ int main( int argc, char *argv[] ) {
 */
 
   //ImageViewRef<PixelMask<Vector2f> > result = pixel_cast<PixelMask<Vector2f> >(disparity_map);
-  if ( found_alignment )
-    disparity_map = transform_disparities(disparity_map, HomographyTransform(alignment) );
+  if (found_alignment)
+    disparity_map = transform_disparities(disparity_map, HomographyTransform(alignment));
 
   // Actually invoke the raster
   {

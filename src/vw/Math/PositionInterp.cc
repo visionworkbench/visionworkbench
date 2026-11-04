@@ -252,8 +252,8 @@ LagrangianInterpolation::LagrangianInterpolation
 
   // Perform a bunch of checks on construction
   VW_ASSERT(m_samples.size() > 1,            ArgumentErr() << "Expecting at least two samples.\n");
-  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n"            );
-  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n"        );
+  VW_ASSERT(m_radius         > 1,            ArgumentErr() << "Radius must be > 0.\n");
+  VW_ASSERT(m_time_delta     > 0,            ArgumentErr() << "Time delta must be > 0.\n");
   VW_ASSERT(m_last_time      > m_start_time, ArgumentErr() << "Last time must be > start time.\n");
 
   size_t num_times = round((m_last_time - m_start_time) / m_time_delta)+1;
@@ -395,9 +395,9 @@ Curve3DPositionInterpolation::Curve3DPositionInterpolation
 
   // Populate the Z matrix
   for (size_t i = 0; i < position_samples.size(); i++) {
-    Z(3*i  , 0) = 1.0;
-    Z(3*i  , 1) = t(i);
-    Z(3*i  , 2) = t(i)*t(i);
+    Z(3*i, 0) = 1.0;
+    Z(3*i, 1) = t(i);
+    Z(3*i, 2) = t(i)*t(i);
     Z(3*i+1, 3) = 1.0;
     Z(3*i+1, 4) = t(i);
     Z(3*i+1, 5) = t(i)*t(i);

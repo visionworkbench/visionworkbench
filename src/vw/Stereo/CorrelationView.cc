@@ -217,9 +217,9 @@ namespace vw {
     
       vw_out(DebugMessage, "stereo") << "--- Created pyramid level " << i << std::endl;    
       vw_out(DebugMessage, "stereo") << "Left  pyramid size = "
-                                     << bounding_box(left_pyramid[i]     ) << std::endl;
+                                     << bounding_box(left_pyramid[i]) << std::endl;
       vw_out(DebugMessage, "stereo") << "Right pyramid size = "
-                                     << bounding_box(right_pyramid[i]    ) << std::endl;
+                                     << bounding_box(right_pyramid[i]) << std::endl;
       vw_out(DebugMessage, "stereo") << "Left  pyramid mask size = "
                                      << bounding_box(left_mask_pyramid[i]) << std::endl;
       vw_out(DebugMessage, "stereo") << "Right pyramid mask size = "
@@ -409,7 +409,7 @@ namespace vw {
         if (level < max_pyramid_levels) {
           prev_disp_ptr = &prev_disparity;
           vw_out(VerboseDebugMessage, "stereo") << "Disparity size      = "
-                                                << bounding_box(disparity    ) << std::endl;
+                                                << bounding_box(disparity) << std::endl;
           vw_out(VerboseDebugMessage, "stereo") << "Prev Disparity size = "
                                                 << bounding_box(prev_disparity) << std::endl;
         }

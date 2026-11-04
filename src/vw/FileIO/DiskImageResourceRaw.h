@@ -41,10 +41,10 @@ namespace vw {
   public:
 
     /// The file contains no header info so the user must provide it.
-    DiskImageResourceRaw( std::string const& filename,
-                          ImageFormat const& format,
-                          bool read_only = true,
-                          Vector2i const& block_size=Vector2i(-1,-1))
+    DiskImageResourceRaw(std::string const& filename,
+                         ImageFormat const& format,
+                         bool read_only = true,
+                         Vector2i const& block_size=Vector2i(-1,-1))
       : DiskImageResource(filename) { 
       open(filename, format, read_only, block_size); 
     }
@@ -68,29 +68,29 @@ namespace vw {
     virtual void flush() {m_stream.flush();}
 
     /// Bind the resource to a file for reading and/or writing.
-    void open( std::string const& filename,
-               ImageFormat const& format,
-               bool read_only = true,
-               Vector2i const& block_size=Vector2i(-1,-1));
+    void open(std::string const& filename,
+              ImageFormat const& format,
+              bool read_only = true,
+              Vector2i const& block_size=Vector2i(-1,-1));
 
                  
     /// Closes any open file.
     void close();
 
     /// Factory function
-    static DiskImageResource* construct( std::string const& filename,
-                                         ImageFormat const& format,
-                                         bool read_only = true,
-                                         Vector2i const& block_size=Vector2i(-1,-1) ){
+    static DiskImageResource* construct(std::string const& filename,
+                                        ImageFormat const& format,
+                                        bool read_only = true,
+                                        Vector2i const& block_size=Vector2i(-1,-1)){
       return new DiskImageResourceRaw(filename, format, read_only, block_size);
     }
     
     // Factory function required by DiskImageResource.cc
     // -> These are hardcoded to only work with SPOT5 data!
-    static DiskImageResource* construct_open( std::string const& filename ); 
+    static DiskImageResource* construct_open(std::string const& filename); 
     
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format ) {
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format) {
       return new DiskImageResourceRaw(filename, format);
     }
 

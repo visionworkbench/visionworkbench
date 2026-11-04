@@ -229,7 +229,7 @@ namespace vw {
   }; // End class OpticalBarModel
 
   /// Output stream method
-  std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model);
+  std::ostream& operator<<(std::ostream& os, OpticalBarModel const& camera_model);
 
 }      // namespace asp
 

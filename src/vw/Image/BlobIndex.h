@@ -71,38 +71,38 @@ namespace blob {
     std::vector< std::list<int32> > m_row_start; // assumed to be ordered
     std::vector< std::list<int32> > m_row_end;
 
-    void shift_x ( int32 const& value );
+    void shift_x (int32 const& value);
     void refactor();
 
   public:
-    BlobCompressed( Vector2i const& top_left,
-                    std::vector<std::list<int32> > const& row_start,
-                    std::vector<std::list<int32> > const& row_end );
+    BlobCompressed(Vector2i const& top_left,
+                   std::vector<std::list<int32> > const& row_start,
+                   std::vector<std::list<int32> > const& row_end);
     BlobCompressed();
 
     // Standard Access point
     Vector2i const& min() const;
     Vector2i      & min();
 
-    std::list<int32> const& start( uint32 const& index ) const;
-    std::list<int32> const& end  ( uint32 const& index ) const;
+    std::list<int32> const& start(uint32 const& index) const;
+    std::list<int32> const& end  (uint32 const& index) const;
 
     int32 num_rows() const;
     size_t size   () const; // Please use sparingly
 
     BBox2i bounding_box() const;
-    bool intersects( BBox2i const& input ) const;
+    bool intersects(BBox2i const& input) const;
 
     // Specific conditionals used by BlobIndexThreaded
-    bool is_on_right ( BlobCompressed const& right  ) const;
-    bool is_on_bottom( BlobCompressed const& bottom ) const;
+    bool is_on_right (BlobCompressed const& right) const;
+    bool is_on_bottom(BlobCompressed const& bottom) const;
 
     // Append a row (since these guys are built a row at a time )
-    void add_row( Vector2i const& start, int const& width );
+    void add_row(Vector2i const& start, int const& width);
     // Use to expand this blob into a non overlapped area
-    void absorb( BlobCompressed const& victim );
+    void absorb(BlobCompressed const& victim);
     // Dump listing of every pixel used
-    void decompress( std::list<Vector2i>& output ) const;
+    void decompress(std::list<Vector2i>& output) const;
     // Print internal data
     void print() const;
   };
@@ -117,15 +117,15 @@ namespace blob {
   public:
     // Constructor performs processing
     template <class SourceT>
-    BlobIndex( ImageViewBase<SourceT> const& src, // Masked input image
-               ImageView<uint32>           & dst, // Output image contains labeled blobs
-               uint /*max_area*/=0 ) {
+    BlobIndex(ImageViewBase<SourceT> const& src, // Masked input image
+              ImageView<uint32>           & dst, // Output image contains labeled blobs
+              uint /*max_area*/=0) {
 
-      if ( src.impl().planes() > 1 )
-        vw_throw( NoImplErr()
-                  << "Blob index currently only works with 2D images." );
-      dst.set_size( src.impl().cols(),
-                    src.impl().rows() );
+      if (src.impl().planes() > 1)
+        vw_throw(NoImplErr()
+                 << "Blob index currently only works with 2D images.");
+      dst.set_size(src.impl().cols(),
+                   src.impl().rows());
       fill(dst,0);
 
       // Initialize Graph used to pair blobs
@@ -141,7 +141,7 @@ namespace blob {
         typename ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
 
         // Top Corner
-        if ( is_valid(*s_acc) ) {
+        if (is_valid(*s_acc)) {
           *d_acc = m_blob_count;
           m_blob_count++;
         }
@@ -149,9 +149,9 @@ namespace blob {
         // Top Row
         s_acc.next_col();
         d_acc.next_col();
-        for ( int32 i = 1; i < dst.cols(); i++ ) {
-          if ( is_valid(*s_acc) ) {
-            if ( is_valid(*p_s_acc) ) { // Last pixel and this pixel valid
+        for (int32 i = 1; i < dst.cols(); i++) {
+          if (is_valid(*s_acc)) {
+            if (is_valid(*p_s_acc)) { // Last pixel and this pixel valid
               *d_acc = *p_d_acc; // Extend the current blob label.
             } else { // Start of a new blob
               *d_acc = m_blob_count;
@@ -172,7 +172,7 @@ namespace blob {
         d_acc_row.advance(0,1);
 
         // Loop through the rows
-        for (int j = dst.rows()-1; j; --j ) {
+        for (int j = dst.rows()-1; j; --j) {
           // Leading and trailing iterators for the input and output images.
           typename SourceT::pixel_accessor             s_acc = s_acc_row;
           typename SourceT::pixel_accessor           p_s_acc = s_acc_row;
@@ -182,18 +182,18 @@ namespace blob {
           // Process
           
           // Loop through columns
-          for ( int i = dst.cols(); i; --i ) {
+          for (int i = dst.cols(); i; --i) {
           
-            if ( is_valid(*s_acc) ) { // Current pixel is valid
+            if (is_valid(*s_acc)) { // Current pixel is valid
             
               // TODO: Can we make this more efficient?
             
-              if ( i != dst.cols() ) { // Not the first column
+              if (i != dst.cols()) { // Not the first column
                 // Check the pixel to the left
                 p_s_acc.advance(-1,0);
                 p_d_acc.advance(-1,0);
-                if ( is_valid(*p_s_acc) ) { // It is valid...
-                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) // Will this case ever trigger? How is d_acc set here?
+                if (is_valid(*p_s_acc)) { // It is valid...
+                  if ((*d_acc != 0) && (*d_acc != *p_d_acc)) // Will this case ever trigger? How is d_acc set here?
                     boost::add_edge(*p_d_acc,*d_acc,connections);
                   else
                     *d_acc = *p_d_acc;
@@ -201,8 +201,8 @@ namespace blob {
                 // Check the pixel to the upper left
                 p_s_acc.advance(0,-1);
                 p_d_acc.advance(0,-1);
-                if ( is_valid(*p_s_acc) ) { // If valid...
-                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) // If current pixel and prev pixel have different labels
+                if (is_valid(*p_s_acc)) { // If valid...
+                  if ((*d_acc != 0) && (*d_acc != *p_d_acc)) // If current pixel and prev pixel have different labels
                     boost::add_edge(*p_d_acc,*d_acc,connections); // Add a connection between the labels in boost
                   else
                     *d_acc = *p_d_acc; // Copy the label from the previous pixel
@@ -215,8 +215,8 @@ namespace blob {
               // Check the upper pixel
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
-              if ( is_valid(*p_s_acc) ) {
-                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) )
+              if (is_valid(*p_s_acc)) {
+                if ((*d_acc != 0) && (*d_acc != *p_d_acc))
                   boost::add_edge(*p_d_acc,*d_acc,connections);
                 else
                   *d_acc = *p_d_acc;
@@ -225,9 +225,9 @@ namespace blob {
               // Check the upper right pixel
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
-              if ( i != 1 ) { // If not on the last column
-                if ( is_valid(*p_s_acc) ) {
-                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) )
+              if (i != 1) { // If not on the last column
+                if (is_valid(*p_s_acc)) {
+                  if ((*d_acc != 0) && (*d_acc != *p_d_acc))
                     boost::add_edge(*p_d_acc,*d_acc,connections);
                   else
                     *d_acc = *p_d_acc;
@@ -237,7 +237,7 @@ namespace blob {
               // Move the trailing iterators up to the current pixel location.
               p_s_acc.advance(-1,1);
               p_d_acc.advance(-1,1);
-              if ( *d_acc == 0 ) { // If we have not yet assigned this pixel, start a new blob.
+              if (*d_acc == 0) { // If we have not yet assigned this pixel, start a new blob.
                 *d_acc = m_blob_count;
                 m_blob_count++;
               }
@@ -268,7 +268,7 @@ namespace blob {
         ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
 
         // Loop through rows
-        for ( int32 r = 0; r < dst.rows(); r++ ) {
+        for (int32 r = 0; r < dst.rows(); r++) {
           ImageView<uint32>::pixel_accessor d_acc = p_d_acc;
           bool building_segment=false;
            int32 start_col = 0;
@@ -276,9 +276,9 @@ namespace blob {
           
           // Loop through columns
           // - In each column, build up a run-length-encoding for each blob.
-          for ( int32 c = 0; c < dst.cols(); c++ ) {
-            if ( (*d_acc) != 0 ) { // If labeled pixel...
-              if ( building_segment && (index != component[*d_acc]) ) {
+          for (int32 c = 0; c < dst.cols(); c++) {
+            if ((*d_acc) != 0) { // If labeled pixel...
+              if (building_segment && (index != component[*d_acc])) {
                 vw_throw(LogicErr() << "Insert seems wrong.\n");
                 // I believe the way it's processed this shouldn't happen
               } else if (!building_segment) {
@@ -287,17 +287,17 @@ namespace blob {
                 index     = component[*d_acc]; // Get the true label for this pixel
                 start_col = c;
               }
-            } else if ( building_segment ) {
+            } else if (building_segment) {
               // Finished with this blob for now, add an RLE segment
               building_segment = false;
-              m_c_blob[index-1].add_row( Vector2i(start_col,r), c-start_col );
+              m_c_blob[index-1].add_row(Vector2i(start_col,r), c-start_col);
             }
             d_acc.next_col();
           }
           
-          if ( building_segment ) { // Hit the end of a row building a blob, cut it off.
-            m_c_blob[index-1].add_row( Vector2i(start_col,r),
-                                       dst.cols()-start_col );
+          if (building_segment) { // Hit the end of a row building a blob, cut it off.
+            m_c_blob[index-1].add_row(Vector2i(start_col,r),
+                                      dst.cols()-start_col);
           }
           p_d_acc.next_row();
         }
@@ -309,7 +309,7 @@ namespace blob {
     uint32 num_blobs() const;
 
     // Access to blobs
-    BlobCompressed const& blob( uint32 const& index ) const;
+    BlobCompressed const& blob(uint32 const& index) const;
   };
 
 
@@ -329,11 +329,11 @@ namespace blob {
     int m_id;
     int m_max_area;
   public:
-    BlobIndexTask( ImageViewBase<SourceT> const& view,
-                   BBox2i const& bbox, Mutex &mutex,
-                   std::deque<BlobCompressed> & blobs,
-                   std::deque<BBox2i> & blob_boxes,
-                   int const& id, int const& max_area ) :
+    BlobIndexTask(ImageViewBase<SourceT> const& view,
+                  BBox2i const& bbox, Mutex &mutex,
+                  std::deque<BlobCompressed> & blobs,
+                  std::deque<BBox2i> & blob_boxes,
+                  int const& id, int const& max_area) :
     m_view(view), m_bbox(bbox), m_append_mutex(mutex),
       m_c_blob(blobs), m_blob_bbox(blob_boxes), m_id(id), m_max_area(max_area) {}
 
@@ -341,26 +341,26 @@ namespace blob {
       Stopwatch sw;
       sw.start();
       ImageView<uint32> index_image(m_bbox.width(),
-                                            m_bbox.height() );
+                                            m_bbox.height());
 
       // Render so threads don't wait on each other
       ImageView<typename SourceT::pixel_type> cropped_copy = crop(m_view,m_bbox);
       // Decided only to do trimming in the global perspective. This
       // avoids weird edge effects.
-      BlobIndex bindex( cropped_copy, index_image);
+      BlobIndex bindex(cropped_copy, index_image);
 
       // Build local bboxes
-      std::vector<BBox2i> local_bboxes( bindex.num_blobs() );
-      for ( uint32 i = 0; i < bindex.num_blobs(); i++ ) {
+      std::vector<BBox2i> local_bboxes(bindex.num_blobs());
+      for (uint32 i = 0; i < bindex.num_blobs(); i++) {
         local_bboxes[i] = bindex.blob(i).bounding_box() + m_bbox.min();
       }
 
       { // Append results (single thread)
         Mutex::Lock lock(m_append_mutex);
-        for ( uint i = 0; i < local_bboxes.size(); i++ ) {
-          m_c_blob.push_back( bindex.blob(i) );
+        for (uint i = 0; i < local_bboxes.size(); i++) {
+          m_c_blob.push_back(bindex.blob(i));
           m_c_blob.back().min() += m_bbox.min(); // Fix offset
-          m_blob_bbox.push_back( local_bboxes[i] );
+          m_blob_bbox.push_back(local_bboxes[i]);
         }
       }
 
@@ -373,9 +373,9 @@ namespace blob {
 
   // Simple interface
   template <class SourceT>
-  ImageView<uint32> blob_index( ImageViewBase<SourceT> const& src ) {
-    ImageView<uint32> result( src.impl().cols(), src.impl().rows() );
-    blob::BlobIndex( src, result );
+  ImageView<uint32> blob_index(ImageViewBase<SourceT> const& src) {
+    ImageView<uint32> result(src.impl().cols(), src.impl().rows());
+    blob::BlobIndex(src, result);
     return result;
   }
 
@@ -393,8 +393,8 @@ class BlobIndexThreaded {
 
   // Tasks might section a blob in half.
   // This will match them
-  void consolidate( Vector2i const& image_size,
-                    Vector2i const& proc_block_size );
+  void consolidate(Vector2i const& image_size,
+                   Vector2i const& proc_block_size);
 
  public:
  
@@ -402,14 +402,14 @@ class BlobIndexThreaded {
   /// - This is the function to call to detect blobs!
   /// - Blobs larger than max_area (if > zero) are discarded.
   template <class SourceT>
-  BlobIndexThreaded( ImageViewBase<SourceT> const& src,
-                     int32 const& max_area    = 0,
-                     int32 const& tile_size   = vw_settings().default_tile_size(),
-                     int32 const& num_threads = vw_settings().default_num_threads()
-                     )
+  BlobIndexThreaded(ImageViewBase<SourceT> const& src,
+                    int32 const& max_area    = 0,
+                    int32 const& tile_size   = vw_settings().default_tile_size(),
+                    int32 const& num_threads = vw_settings().default_num_threads()
+                    )
     : m_max_area(max_area), m_tile_size(tile_size) {
     
-    std::vector<BBox2i> bboxes = subdivide_bbox( src.impl(), m_tile_size, m_tile_size );
+    std::vector<BBox2i> bboxes = subdivide_bbox(src.impl(), m_tile_size, m_tile_size);
     // User needs to remember to give a pixel mask'd input
     typedef blob::BlobIndexTask<SourceT> task_type;
     if (bboxes.size() > 1){
@@ -417,36 +417,36 @@ class BlobIndexThreaded {
       sw.start();
       FifoWorkQueue queue(num_threads);
       
-      for ( size_t i = 0; i < bboxes.size(); ++i ) {
+      for (size_t i = 0; i < bboxes.size(); ++i) {
         boost::shared_ptr<task_type> task(new task_type(src, bboxes[i],
                                                         m_insert_mutex,
                                                         m_c_blob, m_blob_bbox,
-                                                        i, m_max_area ));
+                                                        i, m_max_area));
         queue.add_task(task);
       }
       queue.join_all();
       
       sw.stop();
       vw_out(DebugMessage,"inpaint") << "Blob detection took " << sw.elapsed_seconds() << "s\n";
-      consolidate( Vector2i( src.impl().cols(), src.impl().rows() ),
-                   Vector2i( m_tile_size, m_tile_size ) );
+      consolidate(Vector2i(src.impl().cols(), src.impl().rows()),
+                  Vector2i(m_tile_size, m_tile_size));
     }else if (bboxes.size() == 1){
       // This is a special case when we want to fill in holes
       // in a single small image.
       boost::shared_ptr<task_type> task(new task_type(src, bboxes[0],
                                                       m_insert_mutex,
                                                       m_c_blob, m_blob_bbox,
-                                                      0, m_max_area ));
+                                                      0, m_max_area));
       (*task.get())();
     }
     
 
     // Cull blobs that are too big.
-    if ( m_max_area > 0 ) {
-      for ( std::deque<blob::BlobCompressed>::iterator iter = m_c_blob.begin();
-            iter != m_c_blob.end(); iter++ ) {
-        if ( iter->size() > m_max_area ) {
-          iter = m_c_blob.erase( iter );
+    if (m_max_area > 0) {
+      for (std::deque<blob::BlobCompressed>::iterator iter = m_c_blob.begin();
+           iter != m_c_blob.end(); iter++) {
+        if (iter->size() > m_max_area) {
+          iter = m_c_blob.erase(iter);
           iter--;
         }
       }
@@ -462,8 +462,8 @@ class BlobIndexThreaded {
 
     size_t max_area = (size_t)max_size * (size_t)max_size;
 
-    for ( std::deque<blob::BlobCompressed>::iterator iter = m_c_blob.begin();
-          iter != m_c_blob.end(); iter++ ) {
+    for (std::deque<blob::BlobCompressed>::iterator iter = m_c_blob.begin();
+         iter != m_c_blob.end(); iter++) {
 
       BBox2i blob_bbox = iter->bounding_box();
 
@@ -474,8 +474,8 @@ class BlobIndexThreaded {
         too_big = (blob_bbox.width()  > max_size ||
                    blob_bbox.height() > max_size);
 
-      if ( too_big ) {
-        iter = m_c_blob.erase( iter );
+      if (too_big) {
+        iter = m_c_blob.erase(iter);
         iter--;
       }else{
         m_blob_bbox.push_back(blob_bbox);
@@ -488,10 +488,10 @@ class BlobIndexThreaded {
   // Access for the users
   uint32 num_blobs() const;
   /// ?
-  void blob( uint32 const& index,
-             std::list<Vector2i>& output ) const;
+  void blob(uint32 const& index,
+            std::list<Vector2i>& output) const;
   /// ?
-  blob::BlobCompressed const& compressed_blob( uint32 const& index ) const;
+  blob::BlobCompressed const& compressed_blob(uint32 const& index) const;
 
   typedef std::deque<blob::BlobCompressed>::iterator             blob_iterator;
   typedef std::deque<blob::BlobCompressed>::const_iterator const_blob_iterator;
@@ -500,7 +500,7 @@ class BlobIndexThreaded {
         blob_iterator end();
   const_blob_iterator end() const;
 
-  BBox2i const& blob_bbox( uint32 const& index ) const;
+  BBox2i const& blob_bbox(uint32 const& index) const;
   typedef std::deque<BBox2i>::iterator             bbox_iterator;
   typedef std::deque<BBox2i>::const_iterator const_bbox_iterator;
         bbox_iterator bbox_begin();
@@ -524,8 +524,8 @@ public:
   ///   will increase the run time but will improve accuracy long, narrow blobs
   ///   near tile borders.
   /// - "size_limit" is the maximum size score that can be assigned to a blob.
-  BlobSizesView( ImageViewBase<ImageT> const& img, int expand_size, 
-                 uint32 size_limit = std::numeric_limits<uint32>::max()):
+  BlobSizesView(ImageViewBase<ImageT> const& img, int expand_size, 
+                uint32 size_limit = std::numeric_limits<uint32>::max()):
     m_input_image(img.impl()), m_expand_size(expand_size), m_size_limit(size_limit){}
 
   // Image View interface
@@ -537,9 +537,9 @@ public:
   inline int32 rows  () const { return m_input_image.rows(); }
   inline int32 planes() const { return 1; }
 
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-  inline pixel_type operator()( double i, double j, int32 p = 0 ) const {
+  inline pixel_type operator()(double i, double j, int32 p = 0) const {
     vw_throw(NoImplErr() << "operator()(...) is not implemented");
     return pixel_type();
   }
@@ -608,7 +608,7 @@ public:
     // Perform tile size faking trick to make small tile look the size of the entire image
     return prerasterize_type(output_tile,
                              -bbox.min().x(), -bbox.min().y(),
-                             cols(), rows() );
+                             cols(), rows());
   }
 
   template <class DestT>

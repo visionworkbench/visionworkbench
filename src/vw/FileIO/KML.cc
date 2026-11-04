@@ -32,8 +32,8 @@ namespace vw {
 
   // TAB COUNT ////////////////////////////////////////////////////
 
-  std::ostream& operator<<( std::ostream& os, TabCount const& tab) {
-    for ( int i = 0; i < tab.count; i++ )
+  std::ostream& operator<<(std::ostream& os, TabCount const& tab) {
+    for (int i = 0; i < tab.count; i++)
       os << "\t";
     return os;
   }
@@ -41,12 +41,12 @@ namespace vw {
   // KML FILE /////////////////////////////////////////////////////
 
   // Constructor / Deconstructor
-  KMLFile::KMLFile( std::string filename,
-                    std::string name,
-                    std::string directory ) : m_filename(filename), m_name(name), m_directory(directory) {
+  KMLFile::KMLFile(std::string filename,
+                   std::string name,
+                   std::string directory) : m_filename(filename), m_name(name), m_directory(directory) {
     m_tab.count = 0;
-    boost::to_lower( m_name );
-    boost::replace_all( m_name, " ", "_" );
+    boost::to_lower(m_name);
+    boost::replace_all(m_name, " ", "_");
 
     open_kml();
   }
@@ -57,7 +57,7 @@ namespace vw {
 
   // Lower Level Writing Functions
 
-  void KMLFile::open_bracket( std::string name ) {
+  void KMLFile::open_bracket(std::string name) {
     m_bracket_names.push(name);
     m_output_file << m_tab << "<" << name << ">\n";
     m_tab.count++;
@@ -67,14 +67,14 @@ namespace vw {
     m_output_file << m_tab << "</" << m_bracket_names.top() << ">\n";
     m_bracket_names.pop();
   }
-  void KMLFile::close_brackets( int i ) {
-    while ( i != 0 ) {
+  void KMLFile::close_brackets(int i) {
+    while (i != 0) {
       close_bracket();
       i--;
     }
   }
   void KMLFile::close_all_brackets() {
-    while ( !m_bracket_names.empty() )
+    while (!m_bracket_names.empty())
       close_bracket();
   }
 
@@ -82,12 +82,12 @@ namespace vw {
 
   // Enter / Exit Folder
   // This creates those actual folders in GE that the user can turn on or off.
-  void KMLFile::enter_folder( std::string name,
-                              std::string desc ) {
+  void KMLFile::enter_folder(std::string name,
+                             std::string desc) {
     open_bracket("Folder");
-    if ( !name.empty() )
+    if (!name.empty())
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( !desc.empty() )
+    if (!desc.empty())
       m_output_file << m_tab << "<description>"<< desc <<"</description>\n";
   }
 
@@ -98,22 +98,22 @@ namespace vw {
   // Append Objects
 
   // Placemark: This creates the simple generic pushpin marker
-  void KMLFile::append_placemark( double lon, double lat,
-                                  std::string name,
-                                  std::string description,
-                                  std::string style,
-                                  double altitude,
-                                  bool extrude ) {
+  void KMLFile::append_placemark(double lon, double lat,
+                                 std::string name,
+                                 std::string description,
+                                 std::string style,
+                                 double altitude,
+                                 bool extrude) {
     open_bracket("Placemark");
-    if ( !name.empty() )
+    if (!name.empty())
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( !description.empty() )
+    if (!description.empty())
       m_output_file << m_tab << "<description>"
                     << description << "</description>\n";
-    if ( !style.empty())
+    if (!style.empty())
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("Point");
-    if ( extrude )
+    if (extrude)
       m_output_file << m_tab << "<extrude>1</extrude>\n";
     m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
     m_output_file << m_tab << "<coordinates>"<< std::setw(10)
@@ -122,13 +122,13 @@ namespace vw {
     close_brackets(2);
   }
   
-  void KMLFile::append_line( std::vector<Vector3> coordinates,
-                             std::string name,
-                             std::string style ) {
+  void KMLFile::append_line(std::vector<Vector3> coordinates,
+                            std::string name,
+                            std::string style) {
     open_bracket("Placemark");
-    if ( !name.empty() )
+    if (!name.empty())
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( !style.empty())
+    if (!style.empty())
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("LineString");
     m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
@@ -142,13 +142,13 @@ namespace vw {
 
   // Model: Puts in a 3D model provided by path with a specific
   // position and pose
-  void KMLFile::append_model( std::string path_to_model,
-                              double lon, double lat,
-                              vw::Quaternion<double> pose,
-                              std::string name,
-                              std::string description,
-                              double altitude,
-                              double scale) {
+  void KMLFile::append_model(std::string path_to_model,
+                             double lon, double lat,
+                             vw::Quaternion<double> pose,
+                             std::string name,
+                             std::string description,
+                             double altitude,
+                             double scale) {
 
     // Converts from GE's default rotation which is oriented over the
     // site frame to a standard planetocentric rotation.
@@ -158,9 +158,9 @@ namespace vw {
     double heading = angles(0)*180/M_PI, tilt = angles(1)*180/M_PI, roll = angles(2)*180/M_PI;
 
     open_bracket("Placemark");
-    if ( !name.empty() )
+    if (!name.empty())
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    if ( !description.empty() )
+    if (!description.empty())
       m_output_file << m_tab << "<description>"
                     << description << "</description>\n";
 
@@ -200,8 +200,8 @@ namespace vw {
     close_bracket();
   }
 
-  void KMLFile::append_latlonaltbox( float north, float south,
-                                     float east, float west ) {
+  void KMLFile::append_latlonaltbox(float north, float south,
+                                    float east, float west) {
     open_bracket("LatLonAltBox");
     m_output_file << m_tab << "<north>"<<north<<"</north>\n";
     m_output_file << m_tab << "<south>"<<south<<"</south>\n";
@@ -211,16 +211,16 @@ namespace vw {
   }
 
   
-  void KMLFile::append_lod( float min, float max ) {
+  void KMLFile::append_lod(float min, float max) {
     open_bracket("Lod");
     m_output_file << m_tab << "<minLodPixels>"<<min<<"</minLodPixels>\n";
     m_output_file << m_tab << "<maxLodPixels>"<<max<<"</maxLodPixels>\n";
     close_bracket();
   }
 
-  void KMLFile::append_style( std::string id, std::string color_hex,
-                              float scale, std::string image_url,
-                              bool hide_label ) {
+  void KMLFile::append_style(std::string id, std::string color_hex,
+                             float scale, std::string image_url,
+                             bool hide_label) {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
     m_tab.count++;
     if (hide_label) {
@@ -229,7 +229,7 @@ namespace vw {
       close_brackets(1);
     }
     open_bracket("IconStyle");
-    if (!color_hex.empty() )
+    if (!color_hex.empty())
       m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
     m_output_file << m_tab << "<scale>" << scale << "</scale>\n";
     open_bracket("Icon");
@@ -239,12 +239,12 @@ namespace vw {
     m_output_file << m_tab << "</Style>\n";
   }
 
-  void KMLFile::append_line_style( std::string id, std::string color_hex,
-                                   float width) {
+  void KMLFile::append_line_style(std::string id, std::string color_hex,
+                                  float width) {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
     m_tab.count++;
     open_bracket("LineStyle");
-    if (!color_hex.empty() )
+    if (!color_hex.empty())
       m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
     m_output_file << m_tab << "<width>" << width << "</width>\n";
     close_brackets(1);
@@ -253,9 +253,9 @@ namespace vw {
   }
 
 
-  void KMLFile::append_stylemap( std::string id,
-                                 std::string style_normal,
-                                 std::string style_highlight ) {
+  void KMLFile::append_stylemap(std::string id,
+                                std::string style_normal,
+                                std::string style_highlight) {
     m_output_file << m_tab << "<StyleMap id=\"" << id << "\">\n";
     m_tab.count++;
     open_bracket("Pair");
@@ -272,14 +272,14 @@ namespace vw {
 
   // NetworkLink: Links to another KML file, this also contains an LOD
   // that conditionals the opening of the link.
-  void KMLFile::append_network( std::string link,
-                                double north, double south,
-                                double east, double west ) {
+  void KMLFile::append_network(std::string link,
+                               double north, double south,
+                               double east, double west) {
     open_bracket("NetworkLink");
     open_bracket("Region");
-    append_latlonaltbox( north, south,
-                         east, west );
-    append_lod( 512, -1 );
+    append_latlonaltbox(north, south,
+                        east, west);
+    append_lod(512, -1);
     close_bracket();
     open_bracket("Link");
     m_output_file << m_tab << "<href>" << link << "</href><viewRefreshMode>onRegion</viewRefreshMode>\n";
@@ -289,18 +289,18 @@ namespace vw {
   // Open / Close Stuff
   void KMLFile::open_kml() {
     std::ostringstream path;
-    if ( !m_directory.empty() )
+    if (!m_directory.empty())
       path << m_directory << "/";
     path << m_filename;
-    fs::path kml_path( path.str() );
+    fs::path kml_path(path.str());
 
     // We need this logic because m_filename may iself
     // be like dir/file.kml rather than simply file.kml
     fs::path dir_name = kml_path.parent_path();
     if (! dir_name.empty())
-      fs::create_directories( dir_name );
+      fs::create_directories(dir_name);
 
-    m_output_file.open( kml_path, std::ios::out);
+    m_output_file.open(kml_path, std::ios::out);
 
     if (!m_output_file.good())
       vw_throw(IOErr() <<  "An error occurred while trying to write KML file.");

@@ -47,39 +47,39 @@ protected:
 
 typedef CostFunction<PixelGray<float> > CostFunctionGRAYF32;
 
-TEST_F( CostFunctionGRAYF32, AbsDiff ) {
+TEST_F(CostFunctionGRAYF32, AbsDiff) {
   typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
   typedef ImageView<rpixel_type> result_type;
-  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 90 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( ChannelRange<channel_type>::max() ), result(1,1) );
+  result_type result = AbsoluteCost<image_type>(input1, input2, kernel_size)(input1, input2);
+  EXPECT_VW_EQ(rpixel_type(0), result(0,0));
+  EXPECT_VW_EQ(rpixel_type(90), result(0,1));
+  EXPECT_VW_EQ(rpixel_type(90), result(1,0));
+  EXPECT_VW_EQ(rpixel_type(ChannelRange<channel_type>::max()), result(1,1));
 }
 
-TEST_F( CostFunctionGRAYF32, SquaredDiff ) {
+TEST_F(CostFunctionGRAYF32, SquaredDiff) {
   typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
   typedef ImageView<rpixel_type> result_type;
-  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
+  result_type result = SquaredCost<image_type>(input1, input2, kernel_size)(input1, input2);
+  EXPECT_VW_EQ(rpixel_type(0), result(0,0));
+  EXPECT_VW_EQ(rpixel_type(8100), result(0,1));
+  EXPECT_VW_EQ(rpixel_type(8100), result(1,0));
+  EXPECT_VW_EQ(rpixel_type(pow(ChannelRange<channel_type>::max(),2)), result(1,1));
 }
 
-TEST_F( CostFunctionGRAYF32, CrossCorrelation ) {
+TEST_F(CostFunctionGRAYF32, CrossCorrelation) {
   typedef PixelChannelCast<pixel_type,SqrDiffAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
   typedef ImageView<rpixel_type> result_type;
-  result_type result = NCCCost<image_type>(input1, input2, kernel_size)( input1, input2 );
-  EXPECT_VW_EQ( rpixel_type( 16384 ), result(0,0) );
-  EXPECT_VW_EQ( rpixel_type( 1000 ), result(0,1) );
-  EXPECT_VW_EQ( rpixel_type( 1000 ), result(1,0) );
-  EXPECT_VW_EQ( rpixel_type( 0 ), result(1,1) );
+  result_type result = NCCCost<image_type>(input1, input2, kernel_size)(input1, input2);
+  EXPECT_VW_EQ(rpixel_type(16384), result(0,0));
+  EXPECT_VW_EQ(rpixel_type(1000), result(0,1));
+  EXPECT_VW_EQ(rpixel_type(1000), result(1,0));
+  EXPECT_VW_EQ(rpixel_type(0), result(1,1));
 }
 
-TEST( CostFunction, AccumulatorType ) {
+TEST(CostFunction, AccumulatorType) {
   // I'm mostly just checking to make sure they exist
-  EXPECT_TRUE( (boost::is_same<float,AbsoluteCost<ImageView<float>, false >::accumulator_type>::value) );
-  EXPECT_TRUE( (boost::is_same<double,SquaredCost<ImageView<float>, false >::accumulator_type>::value) );
-  EXPECT_TRUE( (boost::is_same<double,NCCCost<ImageView<float>, false>::accumulator_type>::value) );
+  EXPECT_TRUE((boost::is_same<float,AbsoluteCost<ImageView<float>, false >::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,SquaredCost<ImageView<float>, false >::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,NCCCost<ImageView<float>, false>::accumulator_type>::value));
 }

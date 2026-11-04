@@ -187,8 +187,8 @@ void cutEdge(double x0, double y0, double x1, double y1,
   double dot0 = nx*x0 + ny*y0;
   double dot1 = nx*x1 + ny*y1;
   
-  assert( (dot0 <= H && dot1 >= H) || (dot0 >= H && dot1 <= H ) );
-  assert( dot0 != dot1 );
+  assert((dot0 <= H && dot1 >= H) || (dot0 >= H && dot1 <= H));
+  assert(dot0 != dot1);
 
   // Find t such that (1-t)*(x0, y0) + t*(x1, y1) intersect the
   // cutting line

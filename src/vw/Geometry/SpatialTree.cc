@@ -40,17 +40,17 @@
 namespace vw {
 
   /*virtual*/ double GeomPrimitive::distance(const Vector<double> & /*point*/) const {
-    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement distance()!" );
+    VW_ASSERT(0, LogicErr() << "Child class of GeomPrimitive does not implement distance()!");
     return 0;
   }
 
   /*virtual*/ bool GeomPrimitive::contains(const Vector<double> & /*point*/) const {
-    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement contains()!" );
+    VW_ASSERT(0, LogicErr() << "Child class of GeomPrimitive does not implement contains()!");
     return 0;
   }
 
   /*virtual*/ bool GeomPrimitive::intersects(const GeomPrimitive * /*prim*/) const {
-    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement intersects()!" );
+    VW_ASSERT(0, LogicErr() << "Child class of GeomPrimitive does not implement intersects()!");
     return 0;
   }
 
@@ -559,7 +559,7 @@ namespace {
     }
     virtual bool operator()(const ApplyState &state) {
       GeomPrimitive *prim = state.list_elem->prim;
-      if (prim->bounding_box().intersects(*m_box) )
+      if (prim->bounding_box().intersects(*m_box))
         m_prims->push_back(prim);
       return true; // continue processing
     }
@@ -806,7 +806,7 @@ namespace vw {
   void
   SpatialTree::intersects(const BBoxT &box,
                           std::list<GeomPrimitive*> &prims) const {
-    IntersectsAllFunctor func( &box, &prims);
+    IntersectsAllFunctor func(&box, &prims);
     apply(func, m_num_quadrants, m_root_node);
   }
 
@@ -975,7 +975,7 @@ namespace vw {
   }
 
   SpatialTree::SpatialTree(int num_primitives, GeomPrimitive **prims, int max_create_level /*= -1*/) {
-    VW_ASSERT( prims != 0 && prims[0] != 0, ArgumentErr() << "No GeomPrimitives provided." );
+    VW_ASSERT(prims != 0 && prims[0] != 0, ArgumentErr() << "No GeomPrimitives provided.");
     m_dim = prims[0]->bounding_box().min().size();
     m_num_quadrants = (int)((unsigned)1 << (unsigned)m_dim);
     m_root_node = new SpatialTreeNode(m_num_quadrants);

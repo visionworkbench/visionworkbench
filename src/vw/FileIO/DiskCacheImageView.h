@@ -51,7 +51,7 @@ namespace vw {
 
     ~DiskCacheHandle() {
       VW_OUT(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
-      boost::filesystem::remove( m_filename );
+      boost::filesystem::remove(m_filename);
     }
 
     inline const DiskImageView<PixelT>& view() const { return m_disk_image_view; }
@@ -65,7 +65,7 @@ namespace vw {
 
     template <class ViewT>
     void initialize(ImageViewBase<ViewT> const& view,
-                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) {
       TemporaryFile file(m_directory, false, "vw_cache_", "." + m_file_type);
 
       VW_OUT(InfoMessage, "fileio") << "Creating disk cache of image in: " << file.filename() << "\n";
@@ -73,7 +73,7 @@ namespace vw {
       ImageFormat fmt(view.format());
       fmt.pixel_format = PixelFormatID<PixelT>::value;
 
-      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create( file.filename(), fmt));
+      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(file.filename(), fmt));
       if (r->has_block_write())
         r->set_block_write_size(Vector2i(vw_settings().default_tile_size(), vw_settings().default_tile_size()));
       block_write_image(*r, pixel_cast_rescale<PixelT>(view), progress_callback);
@@ -92,7 +92,7 @@ namespace vw {
     template <class ViewT>
     DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif",
                        const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
-                       std::string const& directory = "/tmp" ) :
+                       std::string const& directory = "/tmp") :
       m_file_type(file_type), m_directory(directory) {
       this->initialize(view.impl(), progress_callback);
     }
@@ -103,21 +103,21 @@ namespace vw {
 
     inline pixel_accessor origin() const { return m_handle->view().origin(); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_handle->view()(i, j, p); }
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const { return m_handle->view()(i, j, p); }
 
     template <class ViewT>
-    DiskCacheImageView& operator=( ImageViewBase<ViewT> const& view ) {
+    DiskCacheImageView& operator=(ImageViewBase<ViewT> const& view) {
       this->initialize(view.impl());
       return *this;
     }
 
     /// \cond INTERNAL
     typedef typename DiskImageView<PixelT>::prerasterize_type prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       return m_handle->view().prerasterize(bbox);
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
     /// \endcond
   };

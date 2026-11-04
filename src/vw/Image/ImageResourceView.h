@@ -45,16 +45,16 @@ namespace vw {
     typedef ProceduralPixelAccessor<ImageResourceView<PixelT> > pixel_accessor;
 
     /// Constructs an ImageResourceView of the given resource.
-    ImageResourceView( boost::shared_ptr<SrcImageResource> resource )
-      : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
+    ImageResourceView(boost::shared_ptr<SrcImageResource> resource)
+      : m_rsrc(resource), m_planes(m_rsrc->planes()), m_rsrc_mutex(new Mutex)
     {
       initialize();
     }
 
     /// Constructs an ImageResourceView of the given resource.  Takes
     /// ownership of the resource object (i.e. deletes it when it's done using it).
-    ImageResourceView( SrcImageResource *resource )
-      : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
+    ImageResourceView(SrcImageResource *resource)
+      : m_rsrc(resource), m_planes(m_rsrc->planes()), m_rsrc_mutex(new Mutex)
     {
       initialize();
     }
@@ -67,33 +67,33 @@ namespace vw {
     inline int32 planes() const { return m_planes;       }
 
     /// Returns the pixel at the given position in the given plane.
-    result_type operator()( int32 x, int32 y, int32 plane=0 ) const {
+    result_type operator()(int32 x, int32 y, int32 plane=0) const {
       Mutex::Lock lock(*m_rsrc_mutex);
 #if VW_DEBUG_LEVEL > 1
       VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
 #endif
       ImageView<PixelT> buffer(1,1,m_planes);
-      read_image( buffer, *m_rsrc, BBox2i(x,y,1,1) );
+      read_image(buffer, *m_rsrc, BBox2i(x,y,1,1));
       return buffer(0,0,plane);
     }
 
     /// Returns a pixel_accessor pointing to the origin.
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
     const SrcImageResource *resource() const { return m_rsrc.get(); }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      ImageView<PixelT> buf( bbox.width(), bbox.height() );
-      rasterize( buf, bbox );
-      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      ImageView<PixelT> buf(bbox.width(), bbox.height());
+      rasterize(buf, bbox);
+      return CropView<ImageView<PixelT> >(buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()));
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
       Mutex::Lock lock(*m_rsrc_mutex);
 #if VW_DEBUG_LEVEL > 1
       VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;
 #endif
-      read_image( dest, *m_rsrc, bbox );
+      read_image(dest, *m_rsrc, bbox);
     }
 
   private:

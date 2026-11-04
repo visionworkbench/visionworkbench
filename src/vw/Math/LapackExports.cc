@@ -29,7 +29,7 @@ namespace math {
   namespace detail {
     void _check_info(const f77_int *info, const char* func, const char* file, const int line) {
       if (*info < 0)
-        vw::vw_throw( vw::ArgumentErr() << file << ":" << line << "LAPACK reported an error with argument " << -(*info) << " in " << func);
+        vw::vw_throw(vw::ArgumentErr() << file << ":" << line << "LAPACK reported an error with argument " << -(*info) << " in " << func);
     }
   }
 
@@ -97,7 +97,7 @@ D_orgrq(d, double);
 
 #define D_gelsd(prefix, type)\
   void gelsd(f77_int m, f77_int n, f77_int nrhs, type *a, f77_int lda, type *b, f77_int ldb, type *s, type rcond, f77_int *rank, type *work, f77_int lwork, f77_int* iwork, f77_int *info) { \
-    prefix ## gelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info ); \
+    prefix ## gelsd_(&m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info); \
     CHECK(); \
   }
 
@@ -106,7 +106,7 @@ D_gelsd(d, double);
 
 #define D_gelss(prefix, type)\
   void gelss(f77_int m, f77_int n, f77_int rhs, type *a, f77_int lda, type *b, f77_int ldb, type *s, type rcond, f77_int *rank, type *work, f77_int lwork, f77_int *info) { \
-    prefix ## gelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info ); \
+    prefix ## gelss_(&m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info); \
     CHECK(); \
   }
 
@@ -132,8 +132,8 @@ D_posv(s, float);
 D_posv(d, double);
 
 #define D_getrf(prefix, type)\
-  void getrf(f77_int m, f77_int n, type *a, f77_int lda, f77_int *ipiv, f77_int *info ) { \
-    prefix ## getrf_(&m, &n, a, &lda, ipiv, info );                     \
+  void getrf(f77_int m, f77_int n, type *a, f77_int lda, f77_int *ipiv, f77_int *info) { \
+    prefix ## getrf_(&m, &n, a, &lda, ipiv, info);                     \
     CHECK();                                                            \
   }
 
@@ -141,8 +141,8 @@ D_getrf(s, float);
 D_getrf(d, double);
 
 #define D_getrs(prefix, type)                   \
-  void getrs(char trans, f77_int n, f77_int nrhs, type *a, f77_int lda, f77_int *ipiv, type *b, f77_int ldb, f77_int *info ) { \
-    prefix ## getrs_(&trans, &n, &nrhs, a, &lda, ipiv, b, &ldb, info ); \
+  void getrs(char trans, f77_int n, f77_int nrhs, type *a, f77_int lda, f77_int *ipiv, type *b, f77_int ldb, f77_int *info) { \
+    prefix ## getrs_(&trans, &n, &nrhs, a, &lda, ipiv, b, &ldb, info); \
     CHECK();                                                            \
   }
 

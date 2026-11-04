@@ -89,13 +89,13 @@ namespace vw {
 	try {
           // Try to open a handle
 	  vw_out() << "Loading: " << fileName << std::endl;
-	  m_fileHandles.push_back( ImgPtr(new DiskImageView<PixelT>(fileName) ) );
+	  m_fileHandles.push_back(ImgPtr(new DiskImageView<PixelT>(fileName)));
 	}catch(std::exception const& e){
 	  freeup_handles_not_thread_safe();
-	  m_fileHandles.push_back( ImgPtr() );
+	  m_fileHandles.push_back(ImgPtr());
 	}
       }else{
-        m_fileHandles.push_back( ImgPtr() );
+        m_fileHandles.push_back(ImgPtr());
       }
       
       int index = m_fileHandles.size() - 1;
@@ -160,7 +160,7 @@ namespace vw {
 	boxes_dist.push_back(dist);
       }
 
-      if (boxes_dist.size() != m_fileHandles.size() ) 
+      if (boxes_dist.size() != m_fileHandles.size()) 
 	vw_throw(ArgumentErr() << "Book-keeping failure in " <<
 		 __FILE__ << "\n");
       

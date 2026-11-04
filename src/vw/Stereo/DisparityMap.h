@@ -48,7 +48,7 @@ namespace vw {
   //
   /// Determine the range of disparity values present in the disparity map.
   template <class ViewT>
-  BBox2f get_disparity_range(ImageViewBase<ViewT> const& disparity_map ) {
+  BBox2f get_disparity_range(ImageViewBase<ViewT> const& disparity_map) {
     typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type accum_type;
     PixelAccumulator<EWMinMaxAccumulator<accum_type>> accumulator;
 
@@ -72,7 +72,7 @@ namespace vw {
   template <class PixelT>
   struct MissingPixelImageFunc: public vw::ReturnFixedType<PixelRGB<uint8> > {
     PixelRGB<uint8> operator() (PixelT const& pix) const {
-      if ( is_valid(pix) )
+      if (is_valid(pix))
         return PixelRGB<uint8>(200,200,200);
       else
         return PixelRGB<uint8>(255,0,0);
@@ -101,14 +101,14 @@ namespace vw {
     BBox2i     m_search_range;
 
     template <class MaskPT>
-    bool has_valid_mask( ImageView<MaskPT> const& mask ) const {
+    bool has_valid_mask(ImageView<MaskPT> const& mask) const {
       typedef typename ImageView<MaskPT>::pixel_accessor Pacc;
       Pacc row_acc =
         mask.origin();
-      for ( int32 r = mask.rows(); r; --r ) {
+      for (int32 r = mask.rows(); r; --r) {
         Pacc col_acc = row_acc;
-        for ( int32 c = mask.cols(); c; --c ) {
-          if ( *col_acc )
+        for (int32 c = mask.cols(); c; --c) {
+          if (*col_acc)
             return true;
           col_acc.next_col();
         }
@@ -122,14 +122,14 @@ namespace vw {
     typedef typename ViewT::pixel_type result_type;
     typedef ProceduralPixelAccessor<DisparityMaskView> pixel_accessor;
 
-    DisparityMaskView( ImageViewBase<ViewT>      const& image,
-                       ImageViewBase<MaskView1T> const& mask1,
-                       ImageViewBase<MaskView2T> const& mask2,
-                       BBox2i const& search_range = BBox2i() ) :
-      m_input_view(image.impl()), m_mask1_view(mask1.impl()), m_mask2_view(mask2.impl()), m_search_range( search_range ) {
-      VW_DEBUG_ASSERT( image.impl().cols() == mask1.impl().cols() &&
-                       image.impl().rows() == mask1.impl().rows(),
-                       ArgumentErr() << "disparity_mask: input and left mask are not same dimensions." );
+    DisparityMaskView(ImageViewBase<ViewT>      const& image,
+                      ImageViewBase<MaskView1T> const& mask1,
+                      ImageViewBase<MaskView2T> const& mask2,
+                      BBox2i const& search_range = BBox2i()) :
+      m_input_view(image.impl()), m_mask1_view(mask1.impl()), m_mask2_view(mask2.impl()), m_search_range(search_range) {
+      VW_DEBUG_ASSERT(image.impl().cols() == mask1.impl().cols() &&
+                      image.impl().rows() == mask1.impl().rows(),
+                      ArgumentErr() << "disparity_mask: input and left mask are not same dimensions.");
     }
 
     // Standard required ImageView interface
@@ -137,25 +137,25 @@ namespace vw {
     inline int32 rows  () const { return m_input_view.rows  (); }
     inline int32 planes() const { return m_input_view.planes(); }
 
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const {
+    inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
+    inline result_type operator()(int32 i, int32 j, int32 p = 0) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      if ( i < 0 || j < 0 || p < 0 ||
-           i > m_mask1_view.cols() || j > m_mask1_view.rows() ||
-           p > m_mask1_view.planes() ) {
-        vw_throw( ArgumentErr() << "DisparityMaskView::operator() - invalid index [" << i << " "
-                  << j << " " << p << "]" );
+      if (i < 0 || j < 0 || p < 0 ||
+          i > m_mask1_view.cols() || j > m_mask1_view.rows() ||
+          p > m_mask1_view.planes()) {
+        vw_throw(ArgumentErr() << "DisparityMaskView::operator() - invalid index [" << i << " "
+                 << j << " " << p << "]");
       }
 #endif
-      if ( !m_mask1_view(i,j,p) )
+      if (!m_mask1_view(i,j,p))
         return result_type();
       result_type disparity =
         m_input_view(i,j,p);
-      if ( !is_valid(disparity) )
+      if (!is_valid(disparity))
         return result_type();
-      if ( i+disparity[0] < 0 || i+disparity[0] >= m_mask2_view.cols() ||
-           j+disparity[1] < 0 || j+disparity[1] >= m_mask2_view.rows() ||
-           m_mask2_view(i+disparity[0],j+disparity[1],p) == 0 )
+      if (i+disparity[0] < 0 || i+disparity[0] >= m_mask2_view.cols() ||
+          j+disparity[1] < 0 || j+disparity[1] >= m_mask2_view.rows() ||
+          m_mask2_view(i+disparity[0],j+disparity[1],p) == 0)
         return result_type();
       return disparity;
     }
@@ -178,76 +178,76 @@ namespace vw {
       // Check to see if mask1 is even occupied, if not let's not
       // prerasterize anything and let this view just return a blank
       // disparity map.
-      if ( !has_valid_mask(mask1_preraster.child()) )
-        return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,
-                                       cols(),rows()),
-                                  mask1_preraster,
-                                  crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
+      if (!has_valid_mask(mask1_preraster.child()))
+        return prerasterize_type(crop(ImageView<ViewPT>(0,0),0,0,
+                                      cols(),rows()),
+                                 mask1_preraster,
+                                 crop(ImageView<Mask2PT>(0,0),0,0,0,0));
 
       // We have bbox so now we know what sections of the
       // right mask to prerasterize.
-      if ( m_search_range != BBox2i() ) {
+      if (m_search_range != BBox2i()) {
         BBox2i right_bbox = bbox;
         right_bbox.min() += m_search_range.min();
         right_bbox.max() += m_search_range.max();
-        right_bbox.crop( bounding_box(m_mask2_view) );
+        right_bbox.crop(bounding_box(m_mask2_view));
 
         CropView<ImageView<Mask2PT> > mask2_preraster =
-          crop( ImageView<Mask2PT>( crop(m_mask2_view,right_bbox) ),
-                -right_bbox.min().x(), -right_bbox.min().y(),
-                m_mask2_view.cols(), m_mask2_view.rows() );
-        if ( !has_valid_mask(mask2_preraster.child()) ) {
+          crop(ImageView<Mask2PT>(crop(m_mask2_view,right_bbox)),
+               -right_bbox.min().x(), -right_bbox.min().y(),
+               m_mask2_view.cols(), m_mask2_view.rows());
+        if (!has_valid_mask(mask2_preraster.child())) {
           // It appears the right mask is completely empty. In order
           // to make this view early exit, we'll set the left mask to entire zero.
-          fill( mask1_preraster.child(), Mask1PT() );
-          return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
-                                    mask1_preraster,
-                                    crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
+          fill(mask1_preraster.child(), Mask1PT());
+          return prerasterize_type(crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
+                                   mask1_preraster,
+                                   crop(ImageView<Mask2PT>(0,0),0,0,0,0));
         }
 
         // Actually rasterize the disparity
-        return prerasterize_type( crop(ImageView<ViewPT>(crop(m_input_view,bbox)),
-                                       -bbox.min().x(), -bbox.min().y(), cols(), rows() ),
-                                  mask1_preraster, mask2_preraster );
+        return prerasterize_type(crop(ImageView<ViewPT>(crop(m_input_view,bbox)),
+                                      -bbox.min().x(), -bbox.min().y(), cols(), rows()),
+                                 mask1_preraster, mask2_preraster);
       }
 
       // If we don't know the search range, prerasterize the
       // disparity and work it out by reading the data.
       CropView<ImageView<ViewPT> > disp_preraster =
-        crop( ImageView<ViewPT>( crop(m_input_view, bbox) ),
-              -bbox.min().x(), -bbox.min().y(), cols(), rows() );
+        crop(ImageView<ViewPT>(crop(m_input_view, bbox)),
+             -bbox.min().x(), -bbox.min().y(), cols(), rows());
       typedef typename UnmaskedPixelType<ViewPT>::type accum_t;
       PixelAccumulator<EWMinMaxAccumulator<accum_t> > accumulator;
-      for_each_pixel( disp_preraster.child(), accumulator );
-      if ( !accumulator.is_valid() )
-        return prerasterize_type( disp_preraster,
-                                  mask1_preraster,
-                                  crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
+      for_each_pixel(disp_preraster.child(), accumulator);
+      if (!accumulator.is_valid())
+        return prerasterize_type(disp_preraster,
+                                 mask1_preraster,
+                                 crop(ImageView<Mask2PT>(0,0),0,0,0,0));
       accum_t input_min = accumulator.minimum();
       accum_t input_max = accumulator.maximum();
       BBox2i preraster(bbox.min() + floor(Vector2f(input_min[0],input_min[1])),
-                       bbox.max() + ceil(Vector2f(input_max[0],input_max[1])) );
-      preraster.crop( bounding_box( m_mask2_view ) );
+                       bbox.max() + ceil(Vector2f(input_max[0],input_max[1])));
+      preraster.crop(bounding_box(m_mask2_view));
       // The bottom might be a little confusing. We're rasterizing the
       // part of mask2 that we know the input disparity will actually touch.
-      return prerasterize_type( disp_preraster,
-                                mask1_preraster,
-                                crop( ImageView<Mask2PT>( crop(m_mask2_view,preraster) ),
-                                      -preraster.min().x(), -preraster.min().y(),
-                                      m_mask2_view.cols(),
-                                      m_mask2_view.rows() ) );
+      return prerasterize_type(disp_preraster,
+                               mask1_preraster,
+                               crop(ImageView<Mask2PT>(crop(m_mask2_view,preraster)),
+                                     -preraster.min().x(), -preraster.min().y(),
+                                     m_mask2_view.cols(),
+                                     m_mask2_view.rows()));
     }
 
     template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox ); }
+      vw::rasterize(prerasterize(bbox), dest, bbox); }
   };
 
   template <class ViewT, class MaskView1T, class MaskView2T>
   DisparityMaskView<ViewT, MaskView1T, MaskView2T>
-  disparity_mask( ImageViewBase<ViewT>      const& disparity_map,
-                  ImageViewBase<MaskView1T> const& left_mask,
-                  ImageViewBase<MaskView2T> const& right_mask,
-                  BBox2i const& search_range = BBox2i() ) {
+  disparity_mask(ImageViewBase<ViewT>      const& disparity_map,
+                 ImageViewBase<MaskView1T> const& left_mask,
+                 ImageViewBase<MaskView2T> const& right_mask,
+                 BBox2i const& search_range = BBox2i()) {
     return DisparityMaskView<ViewT,MaskView1T,MaskView2T>(disparity_map.impl(),left_mask.impl(),right_mask.impl(), search_range);
   }
 
@@ -269,13 +269,13 @@ namespace vw {
 
   public:
 
-    DisparityRangeMaskFunc(PixelT const& min, PixelT const& max ) :
+    DisparityRangeMaskFunc(PixelT const& min, PixelT const& max) :
       m_min(remove_mask(min)), m_max(remove_mask(max)) {}
 
     PixelT operator() (PixelT const& pix, Vector2 const& loc) const {
-      if ( is_valid(pix) ) {
-        if ( loc[0]+pix[0] < m_min[0] || loc[0]+pix[0] >= m_max[0]-1 ||
-             loc[1]+pix[1] < m_min[0] || loc[1]+pix[1] >= m_max[1]-1 )
+      if (is_valid(pix)) {
+        if (loc[0]+pix[0] < m_min[0] || loc[0]+pix[0] >= m_max[0]-1 ||
+            loc[1]+pix[1] < m_min[0] || loc[1]+pix[1] >= m_max[1]-1)
           return PixelT(); // return invalid
       }
       return pix;
@@ -284,18 +284,18 @@ namespace vw {
 
   template <class ViewT>
   BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, DisparityRangeMaskFunc<typename ViewT::pixel_type> >
-  disparity_range_mask( ImageViewBase<ViewT> const& disparity_map,
-                        typename ViewT::pixel_type const& min,
-                        typename ViewT::pixel_type const& max ) {
+  disparity_range_mask(ImageViewBase<ViewT> const& disparity_map,
+                       typename ViewT::pixel_type const& min,
+                       typename ViewT::pixel_type const& max) {
 
     // Note: We use the PixelIndexView and Binary per pixel filter
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
     typedef DisparityRangeMaskFunc<typename ViewT::pixel_type> func_type;
     typedef BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, func_type> view_type;
-    return view_type( disparity_map.impl(),
-                      pixel_index_view(disparity_map),
-                      func_type( min, max) );
+    return view_type(disparity_map.impl(),
+                     pixel_index_view(disparity_map),
+                     func_type(min, max));
   }
 
   // ================================================================================
@@ -336,7 +336,7 @@ namespace vw {
     RmOutliersUsingThreshFunc(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
       m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
       m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
-      m_state( new RmOutliersState() ) {
+      m_state(new RmOutliersState()) {
       m_state->rejected_points = m_state->total_points = 0;
 
       VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
@@ -351,7 +351,7 @@ namespace vw {
     int32  total_points       () const { return m_state->total_points;    }
 
     BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
-                                             Vector2i( m_half_h_kernel,  m_half_v_kernel)); }
+                                             Vector2i(m_half_h_kernel,  m_half_v_kernel)); }
 
     /// Returns either a copy of the input pixel (PASS) or an empty invalid pixel (FAIL)
     template <class PixelAccessorT>
@@ -366,9 +366,9 @@ namespace vw {
           PixelAccessorT col_acc = row_acc;
           for(int32 xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk) {
 
-            if( is_valid(*col_acc) &&
-                fabs((*acc)[0]-(*col_acc)[0]) <= m_pixel_threshold &&
-                fabs((*acc)[1]-(*col_acc)[1]) <= m_pixel_threshold) {
+            if(is_valid(*col_acc) &&
+               fabs((*acc)[0]-(*col_acc)[0]) <= m_pixel_threshold &&
+               fabs((*acc)[1]-(*col_acc)[1]) <= m_pixel_threshold) {
               matched++;
             }
             col_acc.next_col();
@@ -376,7 +376,7 @@ namespace vw {
           }
           row_acc.next_row();
         }
-        if( ((double)matched/(double)total) < m_rejection_threshold){
+        if(((double)matched/(double)total) < m_rejection_threshold){
           m_state->rejected_points++;
           return typename PixelAccessorT::pixel_type();  //Return invalid pixel
         }
@@ -436,7 +436,7 @@ namespace vw {
                        ),
                       //func_type_thresh( 1, 1, 1.0, 0.75 ) // overly restrictive
                       // at least 1 neighbor must be within 3 pixels
-                      func_type( 1, 1, 3.0, 0.20 )
+                      func_type(1, 1, 3.0, 0.20)
                       );
   }
 
@@ -463,7 +463,7 @@ namespace vw {
                             double max_mean_diff) :
       m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
       m_max_mean_diffSq(max_mean_diff*max_mean_diff),
-      m_state( new RmOutliersState() ) {
+      m_state(new RmOutliersState()) {
       m_state->rejected_points = m_state->total_points = 0;
     
       VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
@@ -593,7 +593,7 @@ namespace vw {
                                              h_half_kernel, v_half_kernel,
                                              max_mean_diff),
                       // Constants set to find only very isolated pixels
-                      func_type_thresh( 1, 1, 3.0, 0.2 ) );
+                      func_type_thresh(1, 1, 3.0, 0.2));
   }
 
   // Method 3: Use the standard deviation of the kernel pixels to
@@ -624,7 +624,7 @@ namespace vw {
     RmOutliersUsingStdDev(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
       m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
       m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
-      m_state( new RmOutliersState() ) {
+      m_state(new RmOutliersState()) {
       m_state->rejected_points = m_state->total_points = 0;
 
       VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
@@ -713,7 +713,7 @@ namespace vw {
       double errorY = std::abs(thisY - meanY);
             
       if ((errorX > m_pixel_threshold*stdDevX) || 
-          (errorY > m_pixel_threshold*stdDevY)   ){
+          (errorY > m_pixel_threshold*stdDevY)){
         m_state->rejected_points++;
         return typename PixelAccessorT::pixel_type();  // Return invalid pixel
       }
@@ -762,7 +762,7 @@ namespace vw {
     return outer_type(rm_outliers_using_stddev(disparity_map.impl(),
                                                h_half_kernel, v_half_kernel,
                                                pixel_threshold, rejection_threshold),
-                      func_type_thresh( 1, 1, 3.0, 0.2 ) ); // Constants set to find only very isolated pixels
+                      func_type_thresh(1, 1, 3.0, 0.2)); // Constants set to find only very isolated pixels
   }
 
   // Method 4: Fit a plane to the other pixels and see how well the
@@ -797,7 +797,7 @@ namespace vw {
     RmOutliersUsingPlane(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
       m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
       m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
-      m_state( new RmOutliersState() ) {
+      m_state(new RmOutliersState()) {
       m_state->rejected_points = m_state->total_points = 0;
 
       VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
@@ -891,8 +891,8 @@ namespace vw {
       double errorY = pointToPlaneDist(thisLocY, yPlane);
             
       // Reject pixels greater than N deviations from the mean
-      if ( (errorX > m_pixel_threshold*xStdDev) ||
-           (errorY > m_pixel_threshold*yStdDev) ){
+      if ((errorX > m_pixel_threshold*xStdDev) ||
+          (errorY > m_pixel_threshold*yStdDev)){
         m_state->rejected_points++;
         return typename PixelAccessorT::pixel_type();  // Return invalid pixel
       }
@@ -942,7 +942,7 @@ namespace vw {
                                               h_half_kernel, v_half_kernel,
                                               pixel_threshold, rejection_threshold),
                       // Constants set to find only very isolated pixels
-                      func_type_thresh( 1, 1, 3.0, 0.2 ) );
+                      func_type_thresh(1, 1, 3.0, 0.2));
   }
 
   //  std_dev_image()
@@ -1030,7 +1030,7 @@ namespace vw {
       Vector2 old_point(loc[0] + pix[0],
                         loc[1] + pix[1]);
       Vector2 new_point = m_trans.reverse(old_point);       // apply the inverse transform
-      if ( is_valid(pix) )
+      if (is_valid(pix))
         return PixelT(new_point[0] - loc[0],
                       new_point[1] - loc[1]);
       else {
@@ -1175,11 +1175,11 @@ template <class ViewT>
   public:
     template <class DisparityT>
     DisparityTransform(ImageViewBase<DisparityT> const& offset_image) :
-      m_offset_image( interpolate(inner_view(offset_image.impl()),InterpT(),EdgeT()) ) {}
+      m_offset_image(interpolate(inner_view(offset_image.impl()),InterpT(),EdgeT())) {}
 
-    inline Vector2 reverse(const Vector2 &p ) const {
+    inline Vector2 reverse(const Vector2 &p) const {
       PixelMask<Vector2f> offset = m_offset_image(p.x(),p.y());
-      if ( !is_valid(offset) )
+      if (!is_valid(offset))
         return Vector2(-1,p.y());
       return p + offset.child();
     }
@@ -1230,10 +1230,10 @@ template <class ViewT>
     typedef typename MaskedPixelType<PixelT>::type return_type;
   public:
     template <class MaskedPixelT>
-    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
-      if ( is_valid(value) )
+    return_type operator()(PixelT const& value, MaskedPixelT const& mask) const {
+      if (is_valid(value))
         return value;
-      if ( is_valid(mask) )
+      if (is_valid(mask))
         return mask;
       return value;
     }
@@ -1241,10 +1241,10 @@ template <class ViewT>
 
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMaskData<typename ViewT::pixel_type> >
-  intersect_mask_and_data( ImageViewBase<ViewT> const& view,
-                           ImageViewBase<MaskViewT> const& mask_view ) {
+  intersect_mask_and_data(ImageViewBase<ViewT> const& view,
+                          ImageViewBase<MaskViewT> const& mask_view) {
     typedef BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMaskData<typename ViewT::pixel_type> > view_type;
-    return view_type( view.impl(), mask_view.impl(), IntersectPixelMaskData<typename ViewT::pixel_type>() );
+    return view_type(view.impl(), mask_view.impl(), IntersectPixelMaskData<typename ViewT::pixel_type>());
   }
 
   // Disparity Downsample
@@ -1256,68 +1256,68 @@ template <class ViewT>
     typedef typename boost::remove_reference<typename ImageT::result_type>::type result_type;
     typedef ProceduralPixelAccessor<DisparitySubsampleView<ImageT> > pixel_accessor;
 
-    DisparitySubsampleView( ImageT const& image ) : m_child(image) {}
+    DisparitySubsampleView(ImageT const& image) : m_child(image) {}
 
     inline int32 cols() const { return 1 + (m_child.cols()-1)/2; }
     inline int32 rows() const { return 1 + (m_child.rows()-1)/2; }
     inline int32 planes() const { return m_child.planes(); }
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const {
       int32 ci = i << 1; int32 cj = j << 1;
       typedef typename AccumulatorType<typename PixelChannelType<result_type>::type>::type cnt_type;
       typedef typename CompoundChannelCast<result_type, cnt_type>::type bff_type;
       bff_type buffer;
       cnt_type count = 0;
-      if ( is_valid( m_child(ci,cj,p) ) ) {
+      if (is_valid(m_child(ci,cj,p))) {
         count+=10; buffer += 10*bff_type(m_child(ci,cj,p));
       }
-      if ( is_valid( m_child(ci+1,cj,p) ) ) {
+      if (is_valid(m_child(ci+1,cj,p))) {
         count+=5; buffer += 5*bff_type(m_child(ci+1,cj,p));
       }
-      if ( is_valid( m_child(ci,cj+1,p) ) ) {
+      if (is_valid(m_child(ci,cj+1,p))) {
         count+=5; buffer += 5*bff_type(m_child(ci,cj+1,p));
       }
-      if ( is_valid( m_child(ci-1,cj,p) ) ) {
+      if (is_valid(m_child(ci-1,cj,p))) {
         count+=5; buffer += 5*m_child(ci-1,cj,p);
       }
-      if ( is_valid( m_child(ci,cj-1,p) ) ) {
+      if (is_valid(m_child(ci,cj-1,p))) {
         count+=5; buffer += 5*m_child(ci,cj-1,p);
       }
-      if ( is_valid( m_child(ci+1,cj+1,p) ) ) {
+      if (is_valid(m_child(ci+1,cj+1,p))) {
         count+=2; buffer += 2*m_child(ci+1,cj+1,p);
       }
-      if ( is_valid( m_child(ci-1,cj-1,p) ) ) {
+      if (is_valid(m_child(ci-1,cj-1,p))) {
         count+=2; buffer += 2*m_child(ci-1,cj-1,p);
       }
-      if ( is_valid( m_child(ci-1,cj+1,p) ) ) {
+      if (is_valid(m_child(ci-1,cj+1,p))) {
         count+=2; buffer += 2*m_child(ci-1,cj+1,p);
       }
-      if ( is_valid( m_child(ci+1,cj-1,p) ) ) {
+      if (is_valid(m_child(ci+1,cj-1,p))) {
         count+=2; buffer += 2*m_child(ci+1,cj-1,p);
       }
-      if ( count > 0 ) {
+      if (count > 0) {
         validate(buffer);
-        return buffer / (count*2 );
+        return buffer / (count*2);
       }
       return result_type();
     }
 
     typedef DisparitySubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       BBox2i expanded_bbox = 2*bbox;
       expanded_bbox.expand(1);
       return prerasterize_type(m_child.prerasterize(expanded_bbox)); }
     template <class DestT>
-    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
   template <class ViewT>
   DisparitySubsampleView<EdgeExtensionView<ViewT,ConstantEdgeExtension> >
-  disparity_subsample( ImageViewBase<ViewT> const& view ) {
-    return DisparitySubsampleView<EdgeExtensionView<ViewT,ConstantEdgeExtension> >( edge_extend(view.impl()) );
+  disparity_subsample(ImageViewBase<ViewT> const& view) {
+    return DisparitySubsampleView<EdgeExtensionView<ViewT,ConstantEdgeExtension> >(edge_extend(view.impl()));
   }
 
   // Disparity Upsample
@@ -1329,31 +1329,31 @@ template <class ViewT>
     typedef typename boost::remove_reference<typename ImageT::result_type>::type result_type;
     typedef ProceduralPixelAccessor<DisparityUpsampleView<ImageT> > pixel_accessor;
 
-    DisparityUpsampleView( ImageT const& image ) : m_child(image) {}
+    DisparityUpsampleView(ImageT const& image) : m_child(image) {}
 
     inline int32 cols() const { return m_child.cols()*2; }
     inline int32 rows() const { return m_child.rows()*2; }
     inline int32 planes() const { return m_child.planes(); }
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const {
       int32 ci = i >> 1; int32 cj = j >> 1;
       return m_child(ci,cj,p)*2;
     }
 
     typedef DisparityUpsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       return prerasterize_type(m_child.prerasterize(bbox)); }
     template <class DestT>
-    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize(prerasterize(bbox), dest, bbox);
     }
   };
 
   template <class ViewT>
   DisparityUpsampleView<ViewT>
-  disparity_upsample( ImageViewBase<ViewT> const& view ) {
-    return DisparityUpsampleView<ViewT>( view.impl() );
+  disparity_upsample(ImageViewBase<ViewT> const& view) {
+    return DisparityUpsampleView<ViewT>(view.impl());
   }
 
 }    // namespace vw

@@ -68,14 +68,14 @@ namespace vw {
     typedef const Vector3 result_type;
     typedef ProceduralPixelAccessor<StereoView> pixel_accessor;
 
-    StereoView( DisparityImageT const& disparity_map,
-                vw::CameraModel const* camera_model1,
-                vw::CameraModel const* camera_model2) :
+    StereoView(DisparityImageT const& disparity_map,
+               vw::CameraModel const* camera_model1,
+               vw::CameraModel const* camera_model2) :
       m_disparity_map(disparity_map),
       m_stereo_model(camera_model1, camera_model2) {}
 
-    StereoView( DisparityImageT const& disparity_map,
-                StereoModel const& stereo_model) :
+    StereoView(DisparityImageT const& disparity_map,
+               StereoModel const& stereo_model) :
       m_disparity_map(disparity_map),
       m_stereo_model(stereo_model) {}
 
@@ -85,9 +85,9 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( size_t i, size_t j, size_t p=0 ) const {
+    inline result_type operator()(size_t i, size_t j, size_t p=0) const {
       double error;
-      if ( is_valid(m_disparity_map(i,j,p)) )
+      if (is_valid(m_disparity_map(i,j,p)))
         return m_stereo_model(Vector2(i,j),
                               Vector2(i,j) + DispHelper(m_disparity_map(i,j,p)),
                               error);
@@ -100,12 +100,12 @@ namespace vw {
     // the requested pixel is missing in the disparity map or if the
     // stereo geometry returns a bad match (e.g. if the rays
     // diverged).
-    inline double error( int32 i, int32 j, int32 p=0 ) const {
+    inline double error(int32 i, int32 j, int32 p=0) const {
       double error = 1e-10;
-      if ( is_valid(m_disparity_map(i,j,p)) )
-        StereoModelHelper( m_stereo_model, Vector2(i,j),
-                           m_disparity_map(i,j,p), error );
-      if ( error < 0 )
+      if (is_valid(m_disparity_map(i,j,p)))
+        StereoModelHelper(m_stereo_model, Vector2(i,j),
+                          m_disparity_map(i,j,p), error);
+      if (error < 0)
         return 0;
       return error;
     }
@@ -114,16 +114,16 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef StereoView<typename DisparityImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_disparity_map.prerasterize(bbox), m_stereo_model ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const { return prerasterize_type(m_disparity_map.prerasterize(bbox), m_stereo_model); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
     /// \endcond
   };
 
   template <class ImageT>
-  StereoView<ImageT> stereo_triangulate( ImageViewBase<ImageT> const& v,
-                                         vw::CameraModel const* camera1,
-                                         vw::CameraModel const* camera2 ) {
-    return StereoView<ImageT>( v.impl(), camera1, camera2 );
+  StereoView<ImageT> stereo_triangulate(ImageViewBase<ImageT> const& v,
+                                        vw::CameraModel const* camera1,
+                                        vw::CameraModel const* camera2) {
+    return StereoView<ImageT>(v.impl(), camera1, camera2);
   }
 
   // This per pixel functor applies a universe radius to a point
@@ -153,7 +153,7 @@ namespace vw {
   public:
     UniverseRadiusFunc(Vector3 universe_origin, double near_radius = 0, double far_radius = std::numeric_limits<double>::max()):
       m_origin(universe_origin), m_near_radius(near_radius), m_far_radius(far_radius),
-      m_state( new UniverseRadiusState() ) {
+      m_state(new UniverseRadiusState()) {
       VW_ASSERT(m_near_radius >= 0 && m_far_radius >= 0,
                 vw::ArgumentErr() << "UniverseRadius: radii must be >= 0.");
       VW_ASSERT(m_near_radius <= m_far_radius,
@@ -169,7 +169,7 @@ namespace vw {
     template <class ElemT>
     Vector<ElemT,3> operator() (Vector<ElemT,3> const& pix) const {
       m_state->total_points++;
-      if (pix != Vector<ElemT,3>() ) {
+      if (pix != Vector<ElemT,3>()) {
         double dist = norm_2(pix - m_origin);
         if ((m_near_radius != 0 && dist < m_near_radius) ||
             (m_far_radius != 0 && dist > m_far_radius)) {
@@ -186,7 +186,7 @@ namespace vw {
     template <class ElemT>
     Vector<ElemT,4> operator() (Vector<ElemT,4> const& pix) const {
       m_state->total_points++;
-      if (subvector(pix,0,3) != Vector<ElemT,3>() ) {
+      if (subvector(pix,0,3) != Vector<ElemT,3>()) {
         double dist = norm_2(subvector(pix,0,3) - m_origin);
         if ((m_near_radius != 0 && dist < m_near_radius) ||
             (m_far_radius != 0 && dist > m_far_radius)) {
@@ -203,7 +203,7 @@ namespace vw {
     template <class ElemT>
     Vector<ElemT,6> operator() (Vector<ElemT,6> const& pix) const {
       m_state->total_points++;
-      if (subvector(pix,0,3) != Vector<ElemT,3>() ) {
+      if (subvector(pix,0,3) != Vector<ElemT,3>()) {
         double dist = norm_2(subvector(pix,0,3) - m_origin);
         if ((m_near_radius != 0 && dist < m_near_radius) ||
             (m_far_radius != 0 && dist > m_far_radius)) {

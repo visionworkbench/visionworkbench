@@ -40,7 +40,7 @@ namespace vw {
 ///     an image but make it look like the entire image.
 template <class ImageT>
 inline CropView<ImageView<typename ImageT::pixel_type> >
-          makeHiddenCroppedView( ImageT &imageToCrop, BBox2i const& bbox )
+          makeHiddenCroppedView(ImageT &imageToCrop, BBox2i const& bbox)
 {
   // - First crop wraps a portion of input image in the bounding box.
   // - The ImageView forces rasterization of the cropped input image into a buffer.
@@ -76,18 +76,18 @@ public: // Definitions
 public: // Functions
 
   /// Construct class from image and blobs to be masked
-  ErodeView( ImageViewBase<ImageT>       const& under_image,
-             std::list<blob::BlobCompressed> const& blobList);
+  ErodeView(ImageViewBase<ImageT>       const& under_image,
+            std::list<blob::BlobCompressed> const& blobList);
 
   /// Construct class from image and blobs to be masked
-  ErodeView( ImageViewBase<ImageT> const& under_image,
-             BlobIndexThreaded         const& blobIndex);
+  ErodeView(ImageViewBase<ImageT> const& under_image,
+            BlobIndexThreaded         const& blobIndex);
 
   /// Construct class from as image and another instance of this class.
   /// - The blobs from the other instance are applied to the new image.
   template <class T>
-  ErodeView( ImageViewBase<ImageT> const& under_image,
-             ErodeView<T>              const& parentInstance);
+  ErodeView(ImageViewBase<ImageT> const& under_image,
+            ErodeView<T>              const& parentInstance);
 
 
   // Return size information
@@ -99,7 +99,7 @@ public: // Functions
   inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
 
   /// Return the value for the given pixel.
-  inline result_type operator()( int32 i, int32 j, int32 p=0 ) const;
+  inline result_type operator()(int32 i, int32 j, int32 p=0) const;
 
 
   // These are the functions to add invalid pixels to the mask
@@ -110,11 +110,11 @@ public: // Functions
 
 
   /// Generate a new ErodeView of the cropped, rasterized underlying image.
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const;
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const;
 
   /// Rasterize all pixels in bbox to the output destination.
   template <class DestT>
-  inline void rasterize( DestT const& dest, BBox2i const& bbox ) const;
+  inline void rasterize(DestT const& dest, BBox2i const& bbox) const;
 
   /// Write out the sparse container contents showing which pixels are masked.
   void print_structure() const;
@@ -149,15 +149,15 @@ private: // Functions
 
 /// Convenience wrapper to construct from a list of BlobCompressed
 template <class SourceT>
-inline ErodeView<SourceT> applyErodeView( ImageViewBase<SourceT>      const& src,
-                                          std::list<blob::BlobCompressed> const& blobList) {
+inline ErodeView<SourceT> applyErodeView(ImageViewBase<SourceT>      const& src,
+                                         std::list<blob::BlobCompressed> const& blobList) {
   return ErodeView<SourceT>(src, blobList);
 }
 
 /// Convenience wrapper to construct from BlobIndexThreaded
 template <class SourceT>
-inline ErodeView<SourceT> applyErodeView( ImageViewBase<SourceT> const& src,
-                                          BlobIndexThreaded          const& bindex) {
+inline ErodeView<SourceT> applyErodeView(ImageViewBase<SourceT> const& src,
+                                         BlobIndexThreaded          const& bindex) {
   return ErodeView<SourceT>(src, bindex);
 }
 
@@ -166,37 +166,37 @@ inline ErodeView<SourceT> applyErodeView( ImageViewBase<SourceT> const& src,
 
 
 template <class ImageT>
-ErodeView<ImageT>::ErodeView( ImageViewBase<ImageT>       const& under_image,
-                              std::list<blob::BlobCompressed> const& blobList)
+ErodeView<ImageT>::ErodeView(ImageViewBase<ImageT>       const& under_image,
+                             std::list<blob::BlobCompressed> const& blobList)
     : m_under_image(under_image.impl())
 {
   // Create new array for storing blob information, then import.
-  m_data.reset( new std::vector<map_type>(under_image.impl().rows()) );
+  m_data.reset(new std::vector<map_type>(under_image.impl().rows()));
   absorb(blobList);
 }
 
 template <class ImageT>
-ErodeView<ImageT>::ErodeView( ImageViewBase<ImageT> const& under_image,
-                              BlobIndexThreaded         const& blobIndex)
+ErodeView<ImageT>::ErodeView(ImageViewBase<ImageT> const& under_image,
+                             BlobIndexThreaded         const& blobIndex)
     : m_under_image(under_image.impl())
 {
   // Create new array for storing blob information, then import.
-  m_data.reset( new std::vector<map_type>(under_image.impl().rows()) );
+  m_data.reset(new std::vector<map_type>(under_image.impl().rows()));
   absorb(blobIndex);
 }
 
 
 template <class ImageT>
 template <class T>
-ErodeView<ImageT>::ErodeView( ImageViewBase<ImageT> const& under_image,
-                              ErodeView<T>              const& parentInstance)
+ErodeView<ImageT>::ErodeView(ImageViewBase<ImageT> const& under_image,
+                             ErodeView<T>              const& parentInstance)
     : m_data(parentInstance.m_data), m_under_image(under_image.impl())
 {
 }
 
 
 template <class ImageT>
-typename ErodeView<ImageT>::result_type ErodeView<ImageT>::operator()( int32 i, int32 j, int32 p) const
+typename ErodeView<ImageT>::result_type ErodeView<ImageT>::operator()(int32 i, int32 j, int32 p) const
 {
 
   // Get next container entry after column 'i'.  Since each container is labeled
@@ -204,12 +204,12 @@ typename ErodeView<ImageT>::result_type ErodeView<ImageT>::operator()( int32 i, 
   typename map_type::const_iterator it;
   it = blobRow(j).lower_bound(i);
 
-  if ( it != blobRow(j).end() )  // If a segment possibly containing 'i' was found
+  if (it != blobRow(j).end())  // If a segment possibly containing 'i' was found
   {
     int32 startIndex = it->second; // Get the starting index of this section
-    if ( i < startIndex )
+    if (i < startIndex)
     {
-      return m_under_image( i, j, p ); // The segment does not contain the requested pixel, use the underlying image
+      return m_under_image(i, j, p); // The segment does not contain the requested pixel, use the underlying image
     }
     else
     {
@@ -217,7 +217,7 @@ typename ErodeView<ImageT>::result_type ErodeView<ImageT>::operator()( int32 i, 
     }
   }
 
-  return m_under_image( i, j, p ); // No segment contains the requested pixel, use the underlying image
+  return m_under_image(i, j, p); // No segment contains the requested pixel, use the underlying image
 }
 
 template <class ImageT>
@@ -235,9 +235,9 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
     const int fullImageRow = row + yOffset;
     if (m_data->size() <= static_cast<size_t>(fullImageRow))
     {
-      vw_throw( InputErr() << "\nInput blob row " << fullImageRow
-                               << " is greater than underlying image height "
-                               << m_data->size() << "!\n" );
+      vw_throw(InputErr() << "\nInput blob row " << fullImageRow
+                              << " is greater than underlying image height "
+                              << m_data->size() << "!\n");
     }
 
     // Loop through all segments for this row
@@ -281,7 +281,7 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
 
         // Handle case where there is no segment overlap or adjacency
         // - In many applications all segments will trigger this condition
-        if ( (oldSegmentEnd < (segmentStart-1)) || (oldSegmentStart > (segmentEnd+1)) )
+        if ((oldSegmentEnd < (segmentStart-1)) || (oldSegmentStart > (segmentEnd+1)))
         {
           // Move on to the next existing segment
           ++i;
@@ -289,7 +289,7 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
         }
 
         // Handle case where existing segment completely contains the new segment
-        if ( (oldSegmentStart <= segmentStart) && (oldSegmentEnd >= segmentEnd) )
+        if ((oldSegmentStart <= segmentStart) && (oldSegmentEnd >= segmentEnd))
         {
           // Quit this loop and move on to the next new segment
           skipNewSegment = true;
@@ -297,7 +297,7 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
         }
 
         // Handle case where new segment completely contains the old segment
-        if ( (oldSegmentStart >= segmentStart) && (oldSegmentEnd <= segmentEnd) )
+        if ((oldSegmentStart >= segmentStart) && (oldSegmentEnd <= segmentEnd))
         {
           // Remove this existing segment and move on to the next one
           map_type::iterator tempIter = i;
@@ -307,8 +307,8 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
         }
 
         // Handle other overlap cases
-        if ( ( (oldSegmentEnd   >= (segmentStart-1)) && (oldSegmentEnd   <= (segmentEnd+1)) ) ||
-             ( (oldSegmentStart >= (segmentStart-1)) && (oldSegmentStart <= (segmentEnd+1)) )  )
+        if (((oldSegmentEnd   >= (segmentStart-1)) && (oldSegmentEnd   <= (segmentEnd+1))) ||
+            ((oldSegmentStart >= (segmentStart-1)) && (oldSegmentStart <= (segmentEnd+1))))
         {
           // Expand the new segment so it fully contains the old segment
           if (oldSegmentStart < segmentStart)
@@ -323,7 +323,7 @@ void ErodeView<ImageT>::absorb(blob::BlobCompressed const& newBlob)
           continue;
         }
 
-        vw_throw( LogicErr() << "\nFailed to compare row segments!\n" );
+        vw_throw(LogicErr() << "\nFailed to compare row segments!\n");
 
        } // End of loop through possible overlapping segments
 
@@ -363,34 +363,34 @@ void ErodeView<ImageT>::absorb(const BlobIndexThreaded &blobIndex)
 }
 
 template <class ImageT>
-typename ErodeView<ImageT>::prerasterize_type ErodeView<ImageT>::prerasterize( BBox2i const& bbox ) const
+typename ErodeView<ImageT>::prerasterize_type ErodeView<ImageT>::prerasterize(BBox2i const& bbox) const
 {
   // Rasterize only the required portion of the input image, then wrap it so
   //  that it looks like the full image for coordinate access purposes.
   inner_pre_type preraster = makeHiddenCroppedView(m_under_image, bbox);
 
   // Create a new ErodeView to wrap the cropped rasterized image
-  ErodeView<inner_pre_type> croppedBlobMasked( preraster, *this );
+  ErodeView<inner_pre_type> croppedBlobMasked(preraster, *this);
   return croppedBlobMasked;
 }
 
 template <class ImageT>
 template <class DestT>
-void ErodeView<ImageT>::rasterize( DestT const& dest, BBox2i const& bbox ) const
+void ErodeView<ImageT>::rasterize(DestT const& dest, BBox2i const& bbox) const
 {
   /// Call the default rasterization function on the prerasterized image section.
-  vw::rasterize( prerasterize(bbox), dest, bbox );
+  vw::rasterize(prerasterize(bbox), dest, bbox);
 }
 
 template <class ImageT>
 void ErodeView<ImageT>::print_structure() const
 {
   vw_out() << "ErodeView Structure:\n";
-  for ( uint32 r = 0; r < m_data->size(); ++r )  // For each row
+  for (uint32 r = 0; r < m_data->size(); ++r)  // For each row
   {
     vw_out() << r << " | ";
     // For each data segment
-    for ( typename map_type::const_iterator it = blobRow(r).begin(); it != blobRow(r).end(); ++it )
+    for (typename map_type::const_iterator it = blobRow(r).begin(); it != blobRow(r).end(); ++it)
     {
       vw_out() << "(" << it->second << "->" << it->first << ")";
     }

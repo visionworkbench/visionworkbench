@@ -122,8 +122,8 @@ namespace vw {
     // Methods
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel (Vector3 const& point) const;
-    virtual Vector3 pixel_to_vector(Vector2 const& pix  ) const;
-    virtual Vector3 camera_center  (Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
+    virtual Vector3 camera_center  (Vector2 const& /*pix*/ = Vector2()) const;
 
     /// Write CAHV model to file
     void write(std::string const& filename);

@@ -65,8 +65,8 @@ namespace vw {
     typedef ProceduralPixelAccessor<SparseCompositeView<ImageT> > pixel_accessor;
 
     // Standard stuff
-    SparseCompositeView( ImageViewBase<ImageT> const& under_image,
-                         bool allow_overlap = false ) :
+    SparseCompositeView(ImageViewBase<ImageT> const& under_image,
+                        bool allow_overlap = false) :
       m_data(under_image.impl().rows()), m_allow_overlap(allow_overlap),
       m_under_image(under_image.impl()) {}
 
@@ -76,63 +76,63 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const {
 
       // Get next container entry after column 'i'.  Since each container is labeled
       //   with the last column in that section, this finds the section which might contain 'i'.
       typename map_type::const_iterator it;
       it = m_data[j].upper_bound(i);
 
-      if ( it != m_data[j].end() ) { // If a segment possibly containing 'i' was found
+      if (it != m_data[j].end()) { // If a segment possibly containing 'i' was found
         int32 s_idx = it->first - it->second.size(); // Get the starting index of this section
-        if ( i < s_idx )
-          return m_under_image( i, j, p ); // The segment does not contain the requested pixel, use the underlying image
+        if (i < s_idx)
+          return m_under_image(i, j, p); // The segment does not contain the requested pixel, use the underlying image
         else
           return it->second[i-s_idx];     // The segment contains the data, return it
       }
-      return m_under_image( i, j, p ); // No segment contains the requested pixel, use the underlying image
+      return m_under_image(i, j, p); // No segment contains the requested pixel, use the underlying image
     }
 
     typedef SparseCompositeView<ImageT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const { return *this; }
     template <class DestT>
-    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      rasterize( prerasterize(bbox), dest, bbox );
+    inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      rasterize(prerasterize(bbox), dest, bbox);
     }
 
     // Difficult insertation
     template <class InputT>
-    void absorb( Vector2i starting_index,
-                 ImageViewBase<InputT> const& image_base ) {
+    void absorb(Vector2i starting_index,
+                ImageViewBase<InputT> const& image_base) {
 
       InputT image = image_base.impl();
-      VW_DEBUG_ASSERT( starting_index[0] >= 0 && starting_index[1] >= 0,
-                       NoImplErr() << "SparseCompositeView doesn't support insertation behind image origin.\n" );
+      VW_DEBUG_ASSERT(starting_index[0] >= 0 && starting_index[1] >= 0,
+                      NoImplErr() << "SparseCompositeView doesn't support insertation behind image origin.\n");
 
       // Building temporary data structure
       // - The goal is to record lists of consecutive valid pixels along each row of the input image.
       std::vector<std::list<int32> > t_row_end(image.rows()); // List of all segment stop points for each row.
       std::vector<std::list<std::vector<pixel_type> > > t_row_data(image.rows()); // List of pixels for each segment on each row.
 
-      for ( int32 r = 0; r < image.rows(); ++r ) { // For each row in input patch
+      for (int32 r = 0; r < image.rows(); ++r) { // For each row in input patch
         std::vector<pixel_type> temp;
         bool building_segment = false;
-        for ( int32 c = 0; c < image.cols(); ++c ) { // For each col in input patch
-          if ( is_valid( image(c,r) ) ) {
-            if ( !building_segment ) { // Start building a segment if we are not already then record the pixel
+        for (int32 c = 0; c < image.cols(); ++c) { // For each col in input patch
+          if (is_valid(image(c,r))) {
+            if (!building_segment) { // Start building a segment if we are not already then record the pixel
               building_segment = true;
-              temp.push_back( image(c,r) );
+              temp.push_back(image(c,r));
             } else
-              temp.push_back( image(c,r) );
+              temp.push_back(image(c,r));
           }
-          else if ( building_segment ) { // Input pixel is invalid and building a segment
+          else if (building_segment) { // Input pixel is invalid and building a segment
             t_row_end[r].push_back(c);        // Record the stopping point along the row
             building_segment = false;         // Stop building the segment
-            t_row_data[r].push_back( temp );  // Store the list of pixels we collected for this segment
+            t_row_data[r].push_back(temp);  // Store the list of pixels we collected for this segment
             temp.clear();
           }
         } // End loop through columns
-        if ( building_segment ) { // Finished the row while still building the segment
+        if (building_segment) { // Finished the row while still building the segment
                                   // Close out the row the same as if we hit an invalid pixel
           t_row_end[r].push_back(image.cols());
           t_row_data[r].push_back(temp);
@@ -141,35 +141,35 @@ namespace vw {
       } // End loop through rows
 
       // Fix x offset to each segment end value so that it is correct in the global sense
-      for ( uint32 i = 0; i < t_row_end.size(); ++i ) // For each row
-        for ( std::list<int32>::iterator iter = t_row_end[i].begin(); // For each segmment
-              iter != t_row_end[i].end(); ++iter )
+      for (uint32 i = 0; i < t_row_end.size(); ++i) // For each row
+        for (std::list<int32>::iterator iter = t_row_end[i].begin(); // For each segmment
+             iter != t_row_end[i].end(); ++iter)
           *iter += starting_index[0];
 
       // Inserting into global data set
-      if ( int32(m_data.size()) < starting_index[1]+image.rows() )
-        m_data.resize( starting_index[1]+image.rows() ); // Allocate local sparse storage if needed
+      if (int32(m_data.size()) < starting_index[1]+image.rows())
+        m_data.resize(starting_index[1]+image.rows()); // Allocate local sparse storage if needed
 
       // Loop through all rows contained in the input image patch
-      for ( int32 t_i=0, m_i=starting_index[1];
-            t_i < image.rows(); ++t_i, ++m_i ) {
+      for (int32 t_i=0, m_i=starting_index[1];
+           t_i < image.rows(); ++t_i, ++m_i) {
 
         // Insert a strip at a time
         std::list<int32>::const_iterator t_e_iter = t_row_end[t_i].begin();
         typename std::list<std::vector<pixel_type> >::const_iterator t_d_iter = t_row_data[t_i].begin();
-        while ( t_e_iter != t_row_end[t_i].end() ) {
-          typename map_type::iterator it = m_data[m_i].lower_bound( *t_e_iter );
-          if ( it == m_data[m_i].end() ) { // Doesn't appear anything is this far right
+        while (t_e_iter != t_row_end[t_i].end()) {
+          typename map_type::iterator it = m_data[m_i].lower_bound(*t_e_iter);
+          if (it == m_data[m_i].end()) { // Doesn't appear anything is this far right
             m_data[m_i][*t_e_iter] = *t_d_iter;
-          } else if ( it == m_data[m_i].begin() ) {
+          } else if (it == m_data[m_i].begin()) {
             // Nothing in front of this point.
             int32 m_start_idx = it->first - it->second.size();
-            if ( *t_e_iter > m_start_idx )
-              vw_throw( NoImplErr() << "SparseCompositeView at this time doesn't allow insert over existing data.\n");
-            else if ( *t_e_iter == m_start_idx ) // Append to front
-              it->second.insert( it->second.begin(),
-                                 t_d_iter->begin(),
-                                 t_d_iter->end() );
+            if (*t_e_iter > m_start_idx)
+              vw_throw(NoImplErr() << "SparseCompositeView at this time doesn't allow insert over existing data.\n");
+            else if (*t_e_iter == m_start_idx) // Append to front
+              it->second.insert(it->second.begin(),
+                                t_d_iter->begin(),
+                                t_d_iter->end());
             else // Whole new key
               m_data[m_i][*t_e_iter] = *t_d_iter;
           } else {
@@ -178,13 +178,13 @@ namespace vw {
             prev_it--;
             int32 t_start_idx = *t_e_iter - t_d_iter->size();
             int32 m_start_idx = it->first - it->second.size();
-            if ( (t_start_idx < prev_it->first) ||
-                 (*t_e_iter > m_start_idx) )
-              vw_throw( NoImplErr() << "SparseCompositeView at this time doesn't allow insert over existing data.\n");
-            else if ( *t_e_iter == m_start_idx ) // Append to front
-              it->second.insert( it->second.begin(),
-                                 t_d_iter->begin(),
-                                 t_d_iter->end() );
+            if ((t_start_idx < prev_it->first) ||
+                (*t_e_iter > m_start_idx))
+              vw_throw(NoImplErr() << "SparseCompositeView at this time doesn't allow insert over existing data.\n");
+            else if (*t_e_iter == m_start_idx) // Append to front
+              it->second.insert(it->second.begin(),
+                                t_d_iter->begin(),
+                                t_d_iter->end());
             else // Whole new key
               m_data[m_i][*t_e_iter] = *t_d_iter;
           }
@@ -198,10 +198,10 @@ namespace vw {
     // Debug structure
     void print_structure() const {
       vw_out() << "SparseCompositeView Structure:\n";
-      for ( uint32 i = 0; i < m_data->size(); ++i ) {
+      for (uint32 i = 0; i < m_data->size(); ++i) {
         vw_out() << i << " | ";
-        for ( typename map_type::const_iterator it = (*m_data)[i].begin();
-              it != (*m_data)[i].end(); ++it ) {
+        for (typename map_type::const_iterator it = (*m_data)[i].begin();
+             it != (*m_data)[i].end(); ++it) {
           int32 start = it->first - it->second.size();
           vw_out() << "(" << start << "->" << it->first << ")";
         }

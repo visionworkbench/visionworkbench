@@ -115,7 +115,7 @@ namespace vw {
     /// - Automatically locks the mutex when constructed, unlocks on destruction.
     class WriteLock : private boost::unique_lock<Mutex>, private boost::noncopyable {
     public:
-      inline WriteLock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
+      inline WriteLock(Mutex &mutex) : boost::unique_lock<Mutex>(mutex) {}
       void lock()          { boost::unique_lock<Mutex>::lock(); }
       void unlock()        { boost::unique_lock<Mutex>::unlock(); }
     };
@@ -124,7 +124,7 @@ namespace vw {
     /// - Automatically locks the mutex when constructed, unlocks on destruction.
     class ReadLock : private boost::shared_lock<Mutex>, private boost::noncopyable {
     public:
-      inline ReadLock( Mutex &mutex ) : boost::shared_lock<Mutex>( mutex ) {}
+      inline ReadLock(Mutex &mutex) : boost::shared_lock<Mutex>(mutex) {}
       void lock()          { boost::shared_lock<Mutex>::lock(); }
       void unlock()        { boost::shared_lock<Mutex>::unlock(); }
     };
@@ -146,7 +146,7 @@ namespace vw {
     // A unique scoped lock class, used to lock and unlock a Mutex (only one can own at a time).
     class Lock : private boost::unique_lock<RecursiveMutex>, private boost::noncopyable {
     public:
-      inline Lock( RecursiveMutex &mutex ) : boost::unique_lock<RecursiveMutex>( mutex ) {}
+      inline Lock(RecursiveMutex &mutex) : boost::unique_lock<RecursiveMutex>(mutex) {}
       void lock()   { boost::unique_lock<RecursiveMutex>::lock(); }
       void unlock() { boost::unique_lock<RecursiveMutex>::unlock(); }
     }; // End class Lock
@@ -185,13 +185,13 @@ namespace vw {
     /// constructable.  The thread made a copy of the task, and this
     /// instance is no longer directly accessibly from the parent thread.
     template<class TaskT>
-    inline Thread( TaskT task ) : m_thread( task ) {}
+    inline Thread(TaskT task) : m_thread(task) {}
 
     /// This variant of the constructor takes a shared pointer to a task.
     /// The thread makes a copy of the shared pointer task, allowing
     /// the parent to still access the task instance that is running in the thread.
     template<class TaskT>
-    inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
+    inline Thread(boost::shared_ptr<TaskT> task) : m_thread(TaskHelper<TaskT>(task)) {}
 
     /// Destroys the thread. User is expected to either call join() themselves,
     /// or let the thread run free. We don't call join() here because most users
@@ -221,7 +221,7 @@ namespace vw {
     /// time.  The thread will not be scheduled to run at all for the
     /// duration, so machine resources are free for other
     /// threads/processes.
-    static inline void sleep_ms( uint32 milliseconds ) {
+    static inline void sleep_ms(uint32 milliseconds) {
       boost::xtime xt;
 #if BOOST_VERSION >= 105000
       boost::xtime_get(&xt, boost::TIME_UTC_);

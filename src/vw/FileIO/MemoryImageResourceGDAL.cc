@@ -32,7 +32,7 @@ namespace {
   }
   // GDAL warns when GDALClose is called on a NULL, even though it's documented
   // as being okay...
-  void GDALCloseNullOk( GDALDatasetH x) {
+  void GDALCloseNullOk(GDALDatasetH x) {
     if (x)
       ::GDALClose(x);
   }
@@ -66,12 +66,12 @@ SrcMemoryImageResourceGDAL::SrcMemoryImageResourceGDAL(boost::shared_array<const
     m_data->open();
 }
 
-void SrcMemoryImageResourceGDAL::read( ImageBuffer const& dst, BBox2i const& bbox_ ) const {
+void SrcMemoryImageResourceGDAL::read(ImageBuffer const& dst, BBox2i const& bbox_) const {
   size_t width = bbox_.width(), height = bbox_.height(), planes = dst.format.planes;
-  VW_ASSERT( dst.format.cols == width && dst.format.rows == height,
-             ArgumentErr() << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
-  VW_ASSERT( dst.format.cols == size_t(cols()) && dst.format.rows == size_t(rows()),
-             ArgumentErr() << VW_CURRENT_FUNCTION << ": Partial reads are not supported");
+  VW_ASSERT(dst.format.cols == width && dst.format.rows == height,
+            ArgumentErr() << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!");
+  VW_ASSERT(dst.format.cols == size_t(cols()) && dst.format.rows == size_t(rows()),
+            ArgumentErr() << VW_CURRENT_FUNCTION << ": Partial reads are not supported");
 
   // shared rather than scoped so we get a deleter.
   boost::shared_array<uint8> buf;
@@ -86,7 +86,7 @@ void SrcMemoryImageResourceGDAL::read( ImageBuffer const& dst, BBox2i const& bbo
     return;
   } else {
     size_t bufsize = m_data->line_bytes() * height * planes;
-    buf.reset( new uint8[bufsize] );
+    buf.reset(new uint8[bufsize]);
     m_data->read(m_data->fmt(), buf.get(), bufsize);
   }
 
@@ -123,8 +123,8 @@ class DstMemoryImageResourceGDAL::Data : public vw::detail::GdalIOCompress {
       if (!m_fn.empty())
           VSIUnlink(m_fn.c_str()); // ignore return code, we can't do anything if it failed
     }
-    const uint8* data() const { return VSIGetMemFileBuffer( m_fn.c_str(), 0, FALSE); }
-    size_t size() const {vsi_l_offset s; VSIGetMemFileBuffer( m_fn.c_str(), &s, FALSE); return s; }
+    const uint8* data() const { return VSIGetMemFileBuffer(m_fn.c_str(), 0, FALSE); }
+    size_t size() const {vsi_l_offset s; VSIGetMemFileBuffer(m_fn.c_str(), &s, FALSE); return s; }
 };
 
 
@@ -134,10 +134,10 @@ DstMemoryImageResourceGDAL::DstMemoryImageResourceGDAL(const ImageFormat& fmt)
   m_data->open();
 }
 
-void DstMemoryImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox_ ) {
+void DstMemoryImageResourceGDAL::write(ImageBuffer const& src, BBox2i const& bbox_) {
   size_t width = bbox_.width(), height = bbox_.height(), planes = src.format.planes;
-  VW_ASSERT( src.format.cols == width && src.format.rows == height,
-             ArgumentErr() << VW_CURRENT_FUNCTION << ": partial writes not supported." );
+  VW_ASSERT(src.format.cols == width && src.format.rows == height,
+            ArgumentErr() << VW_CURRENT_FUNCTION << ": partial writes not supported.");
   VW_ASSERT(m_data->ready(), LogicErr() << "Multiple writes to one DstMemoryImageResourceGDAL. Probably a bug?");
 
   // shared rather than scoped so we get a deleter.
@@ -151,9 +151,9 @@ void DstMemoryImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bb
   // If we don't need to convert, we write directly from the src buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
   if (simple)
-    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(src.data)), NOP() );
+    buf.reset(reinterpret_cast<uint8*>(const_cast<void*>(src.data)), NOP());
   else {
-    buf.reset( new uint8[bufsize] );
+    buf.reset(new uint8[bufsize]);
 
     ImageFormat dst_fmt(m_data->fmt());
     dst_fmt.rows = height;

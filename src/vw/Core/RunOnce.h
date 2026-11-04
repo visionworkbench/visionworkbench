@@ -42,8 +42,8 @@ namespace vw {
   struct RunOnce {
     boost::once_flag m_flag;
 
-    inline void run( void (*func)() ) {
-      boost::call_once( func, m_flag );
+    inline void run(void (*func)()) {
+      boost::call_once(func, m_flag);
     }
   };
 

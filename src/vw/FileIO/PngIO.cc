@@ -52,7 +52,7 @@ void PngIODecompress::read(uint8* buffer, size_t bufsize) {
   size_t skip = line_bytes();
   VW_ASSERT(bufsize >= m_fmt.rows * skip, LogicErr() << "Buffer is too small");
 
-  boost::scoped_array<png_bytep> rows( new png_bytep[m_fmt.rows] );
+  boost::scoped_array<png_bytep> rows(new png_bytep[m_fmt.rows]);
   for(size_t i=0; i < m_fmt.rows; ++i)
     rows[i] = reinterpret_cast<png_bytep>(buffer + i * m_rstride);
 
@@ -170,7 +170,7 @@ void PngIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_t
   png_write_info(m_ctx, m_info);
   png_set_swap(m_ctx);
 
-  boost::scoped_array<png_bytep> row_pointers( new png_bytep[rows] );
+  boost::scoped_array<png_bytep> row_pointers(new png_bytep[rows]);
 
   png_bytep row = reinterpret_cast<png_bytep>(const_cast<uint8*>(data));
   for(size_t i = 0; i < rows; i++) {
@@ -209,7 +209,7 @@ void PngIOCompress::open() {
       break;
     default:
       bit_depth = 8;
-      if ( bit_depth/8 != int(channel_size( fmt().channel_type )) ) {
+      if (bit_depth/8 != int(channel_size(fmt().channel_type))) {
         VW_OUT(WarningMessage,"fileio") << "PngIO: Output type rescaled from VW_CHANNEL_" << channel_type_name(fmt().channel_type) << " to VW_CHANNEL_UINT8" << std::endl;
         m_fmt.channel_type = VW_CHANNEL_UINT8;
       }

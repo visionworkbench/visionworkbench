@@ -84,7 +84,7 @@ bool StereoModel::are_nearly_parallel(double angle_tol,
 
   bool are_par = true;
   for (int p = 0; p < int(camDirs.size()) - 1; p++){
-    if ( 1 - dot_prod(camDirs[p], camDirs[p+1]) >= tol )
+    if (1 - dot_prod(camDirs[p], camDirs[p+1]) >= tol)
       are_par = false;
   }
   return are_par;
@@ -115,7 +115,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
       
       Vector2 pix = pixVec[p];
       if (pix != pix || // i.e., NaN
-          pix == vw::CameraModel::invalid_pixel() ) 
+          pix == vw::CameraModel::invalid_pixel()) 
         continue;
       
       camDirs.push_back(m_cameras[p]->pixel_to_vector(pix));
@@ -135,7 +135,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     // Reflect points that fall behind one of the two cameras.
     bool reflect = false;
     for (int p = 0; p < (int)camCtrs.size(); p++)
-      if (dot_prod(result - camCtrs[p], camDirs[p]) < 0 ) reflect = true;
+      if (dot_prod(result - camCtrs[p], camDirs[p]) < 0) reflect = true;
     if (reflect)
       result = -result + 2*camCtrs[0];
 
@@ -190,7 +190,7 @@ Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
   
 
   int num_cams = camDirs.size();
-  if ( num_cams == 2 ){
+  if (num_cams == 2){
     // Two-ray triangulation
     return triangulate_pair(camDirs[0], camCtrs[0], camDirs[1], camCtrs[1], errorVec);
   }
@@ -274,11 +274,11 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
       fflush(stdout);
     }
     for (int32 x = 0; x < disparity_map.cols(); x++) {
-      if ( is_valid(disparity_map(x,y)) ) {
-        xyz(x,y) = (*this)(Vector2( x, y),
-                           Vector2( x+disparity_map(x,y)[0],
-                                    y+disparity_map(x,y)[1]),
-                           error(x,y) );
+      if (is_valid(disparity_map(x,y))) {
+        xyz(x,y) = (*this)(Vector2(x, y),
+                           Vector2(x+disparity_map(x,y)[0],
+                                   y+disparity_map(x,y)[1]),
+                           error(x,y));
 
         if (error(x,y) >= 0) {
           // Keep track of error statistics

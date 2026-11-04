@@ -64,7 +64,7 @@ namespace vw {
     for (size_t it = 1; it < mat.size(); it++) {
       if (mat[0].size() != mat[it].size()) {
         vw::vw_throw(ArgumentErr() << "Not all rows have the same number of values in: "
-                     << filename << "\n" );
+                     << filename << "\n");
       }
     }
 

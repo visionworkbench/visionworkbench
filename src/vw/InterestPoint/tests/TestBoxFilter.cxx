@@ -25,20 +25,20 @@
 
 using namespace vw;
 
-TEST( BoxFilter, ApplyBoxFilter ) {
+TEST(BoxFilter, ApplyBoxFilter) {
   ImageView<float> image(3,3);
 
   float count = 0;
-  for ( uint32 i = 0; i < 3; i++ ) {
-    for ( uint32 j = 0; j < 3; j++ ) {
+  for (uint32 i = 0; i < 3; i++) {
+    for (uint32 j = 0; j < 3; j++) {
       image(i,j) = count;
       count++;
     }
   }
 
-  ImageView<float> integral = IntegralImage( image );
-  EXPECT_EQ( 4, integral.cols() );
-  EXPECT_EQ( 4, integral.rows() );
+  ImageView<float> integral = IntegralImage(image);
+  EXPECT_EQ(4, integral.cols());
+  EXPECT_EQ(4, integral.rows());
 
   BoxFilter filter;
   filter.resize(2);
@@ -49,24 +49,24 @@ TEST( BoxFilter, ApplyBoxFilter ) {
   filter[1].size = Vector2i(3,3);
   filter[1].weight = 1;
 
-  float response = apply_box_filter_at_point( integral.origin().advance(1,1),
-                                              filter );
-  EXPECT_NEAR( 0, response, 1e-5 );
+  float response = apply_box_filter_at_point(integral.origin().advance(1,1),
+                                             filter);
+  EXPECT_NEAR(0, response, 1e-5);
 }
 
-TEST( BoxFilter, FilterView ) {
+TEST(BoxFilter, FilterView) {
   ImageView<float> image(4,4);
   float count = 0;
-  for ( uint8 i = 0; i < 4; i++ ) {
-    for ( uint8 j = 0; j < 4; j++ ) {
+  for (uint8 i = 0; i < 4; i++) {
+    for (uint8 j = 0; j < 4; j++) {
       image(i,j) = count;
       count++;
     }
   }
   image(3,3) = 20;
-  ImageView<float> integral = IntegralImage( image );
-  EXPECT_EQ( 5, integral.cols() );
-  EXPECT_EQ( 5, integral.rows() );
+  ImageView<float> integral = IntegralImage(image);
+  EXPECT_EQ(5, integral.cols());
+  EXPECT_EQ(5, integral.rows());
 
   BoxFilter filter;
   filter.resize(2);
@@ -77,14 +77,14 @@ TEST( BoxFilter, FilterView ) {
   filter[1].size = Vector2i(3,3);
   filter[1].weight = 1;
 
-  ImageView<float> applied = box_filter( integral, filter );
-  EXPECT_EQ( 4, applied.cols() );
-  EXPECT_EQ( 4, applied.rows() );
+  ImageView<float> applied = box_filter(integral, filter);
+  EXPECT_EQ(4, applied.cols());
+  EXPECT_EQ(4, applied.rows());
 
-  EXPECT_NEAR( 0, applied(1,1), 1e-5 );
-  EXPECT_NEAR( 5, applied(2,2), 1e-5 );
-  EXPECT_NEAR( 0, applied(1,2), 1e-5 );
-  EXPECT_NEAR( 0, applied(2,1), 1e-5 );
-  EXPECT_NEAR( 0, applied(0,0), 1e-5 );
-  EXPECT_NEAR( 0, applied(3,3), 1e-5 );
+  EXPECT_NEAR(0, applied(1,1), 1e-5);
+  EXPECT_NEAR(5, applied(2,2), 1e-5);
+  EXPECT_NEAR(0, applied(1,2), 1e-5);
+  EXPECT_NEAR(0, applied(2,1), 1e-5);
+  EXPECT_NEAR(0, applied(0,0), 1e-5);
+  EXPECT_NEAR(0, applied(3,3), 1e-5);
 }

@@ -27,22 +27,22 @@
 
 using namespace vw;
 
-TEST( Matcher, IPComparison ) {
+TEST(Matcher, IPComparison) {
   std::vector<InterestPoint> ip_list;
-  ip_list.push_back( InterestPoint(0,0,0,3) );
-  ip_list.push_back( InterestPoint(0,0,0,5) );
-  ip_list.push_back( InterestPoint(0,0,0,1) );
-  ip_list.push_back( InterestPoint(0,0,0,7) );
-  ip_list.push_back( InterestPoint(0,0,0,9) );
-  ip_list.push_back( InterestPoint(0,0,0,5.3) );
+  ip_list.push_back(InterestPoint(0,0,0,3));
+  ip_list.push_back(InterestPoint(0,0,0,5));
+  ip_list.push_back(InterestPoint(0,0,0,1));
+  ip_list.push_back(InterestPoint(0,0,0,7));
+  ip_list.push_back(InterestPoint(0,0,0,9));
+  ip_list.push_back(InterestPoint(0,0,0,5.3));
 
   std::stable_sort(ip_list.begin(), ip_list.end());
 
-  EXPECT_EQ( ip_list.front().interest, 9 );
-  EXPECT_EQ( ip_list.back().interest,  1 );
+  EXPECT_EQ(ip_list.front().interest, 9);
+  EXPECT_EQ(ip_list.back().interest,  1);
 }
 
-TEST( Matcher, DistanceMetric ) {
+TEST(Matcher, DistanceMetric) {
   InterestPoint ip1(0,0);
   InterestPoint ip2(5,0);
   ip1.descriptor = Vector3(0,1,0);
@@ -71,7 +71,7 @@ TEST( Matcher, DistanceMetric ) {
   EXPECT_NEAR(metric3(ip1, ip2), 20, 1e-3);
 }
 
-TEST( Matcher, Matcher ) {
+TEST(Matcher, Matcher) {
   InterestPoint ip1a(0,0,1.0,1.0,0.0);
   InterestPoint ip2a(20,0,2.0,2.0,M_PI);
   InterestPoint ip2b(20,0,2.0,2.0,M_PI);
@@ -99,16 +99,16 @@ TEST( Matcher, Matcher ) {
   std::string flann_method = "kmeans";
   InterestPointMatcher<L2NormMetric> matcher(flann_method);
   matcher(ip1_list, ip2_list, matched_ip1, matched_ip2);
-  matcher(ip1_list, ip2_list, matched_indexes );
+  matcher(ip1_list, ip2_list, matched_indexes);
 
-  EXPECT_EQ( int(matched_ip1.size()), 1);
-  EXPECT_EQ( int(matched_ip2.size()), 1);
-  EXPECT_EQ( matched_indexes.size(), 1);
+  EXPECT_EQ(int(matched_ip1.size()), 1);
+  EXPECT_EQ(int(matched_ip2.size()), 1);
+  EXPECT_EQ(matched_indexes.size(), 1);
 
-  EXPECT_VECTOR_NEAR( matched_ip1.begin()->descriptor,
-                      Vector3( 0, 7.7, 0 ), 1e-6 );
-  EXPECT_VECTOR_EQ( matched_ip2.begin()->descriptor,
-                    Vector3(0,8,0) );
+  EXPECT_VECTOR_NEAR(matched_ip1.begin()->descriptor,
+                     Vector3(0, 7.7, 0), 1e-6);
+  EXPECT_VECTOR_EQ(matched_ip2.begin()->descriptor,
+                   Vector3(0,8,0));
 
-  EXPECT_EQ( matched_indexes[0], 3 );
+  EXPECT_EQ(matched_indexes[0], 3);
 }

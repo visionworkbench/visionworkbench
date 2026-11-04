@@ -58,8 +58,8 @@ void for_each_pixel(ModisImage const& modis, ModisProductImage const& modis_prod
 
 /// Simple EVI based classifier
 struct detect_water_evi_functor {
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
-    bool criteria1 = (products[EVI] <= 0.3 ) && (products[LSWI]-products[EVI] >= 0.05);
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+    bool criteria1 = (products[EVI] <= 0.3) && (products[LSWI]-products[EVI] >= 0.05);
     bool criteria2 = (products[EVI] <= 0.05) && (products[LSWI] <= 0.0);
     return (criteria1 || criteria2);
   }
@@ -71,7 +71,7 @@ struct detect_water_evi_functor {
 /// - This method implements a very simple decision tree from several standard MODIS data products.
 /// - The default constants were tuned for (wet) rice paddy detection.
 struct detect_water_xiao_functor {
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
     return (products[LSWI] - products[NDVI] >=0.05) || (products[LSWI] - products[EVI] >= 0.05);
   }
 };
@@ -82,7 +82,7 @@ struct detect_water_xiao_functor {
 struct detect_water_diff_functor {
   detect_water_diff_functor(double threshold) : m_threshold(threshold) {}
   float m_threshold;
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
     return (pixel[B2] - pixel[B1]) <= m_threshold;
   }
 };
@@ -93,7 +93,7 @@ struct detect_water_diff_functor {
 struct detect_water_dartmouth_functor {
   detect_water_dartmouth_functor(double threshold) : m_threshold(threshold) {}
   float m_threshold;
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
     float A = 500;
     float B = 2500;
     return (pixel[B2]+A)/(pixel[B1]+B) <= m_threshold;
@@ -104,7 +104,7 @@ struct detect_water_dartmouth_functor {
 struct detect_water_mod_ndwi_functor {
   detect_water_mod_ndwi_functor(double threshold) : m_threshold(threshold) {}
   float m_threshold;
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
     if (pixel[B4] + pixel[B6] == 0)
       return false;
     return (pixel[B6] - pixel[B4]) / (pixel[B4] + pixel[B6]) <= m_threshold;
@@ -118,7 +118,7 @@ struct detect_water_mod_ndwi_functor {
 struct detect_water_fai_functor {
   detect_water_fai_functor(double threshold) : m_threshold(threshold) {}
   float m_threshold;
-  bool operator()( ModisPixelType const& pixel, ModisProductPixelType const& products) const {
+  bool operator()(ModisPixelType const& pixel, ModisProductPixelType const& products) const {
     float constant = (859.0 - 645) / (1240 - 645);
     return (pixel[B2] - (pixel[B1] + constant*(pixel[B5] - pixel[B1]))) <= m_threshold;
   }

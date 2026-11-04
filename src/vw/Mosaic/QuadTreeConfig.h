@@ -31,7 +31,7 @@ namespace vw {
   public:
     virtual ~QuadTreeConfig() {}
     /// 
-    virtual void configure( QuadTreeGenerator& qtree ) const = 0;
+    virtual void configure(QuadTreeGenerator& qtree) const = 0;
     /// 
     virtual vw::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0) = 0;
     

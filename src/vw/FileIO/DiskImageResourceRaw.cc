@@ -49,29 +49,29 @@ void DiskImageResourceRaw::close() {
 }
 
 // Factory functions required by DiskImageResource.cc
-DiskImageResource* DiskImageResourceRaw::construct_open( std::string const& filename ) {
+DiskImageResource* DiskImageResourceRaw::construct_open(std::string const& filename) {
   std::string dim_file = find_associated_spot5_dim_file(filename);
   if (dim_file.empty()) 
-    vw_throw( ArgumentErr() << "Could not find .DIM file for: " << filename);
+    vw_throw(ArgumentErr() << "Could not find .DIM file for: " << filename);
   
   return DiskImageResourceRaw::construct(filename, image_format_from_spot5_DIM(dim_file));
 }
   
 void DiskImageResourceRaw::check_format() const {
   if (m_format.planes != 1)
-    vw_throw( NoImplErr() << "DiskImageResourceRaw does not support multi-plane images.");
+    vw_throw(NoImplErr() << "DiskImageResourceRaw does not support multi-plane images.");
   if (num_channels(m_format.pixel_format) != 1)
-    vw_throw( NoImplErr() << "DiskImageResourceRaw does not yet support multi-channel images.");
+    vw_throw(NoImplErr() << "DiskImageResourceRaw does not yet support multi-channel images.");
   if ((m_format.cols < 1) || (m_format.rows < 1))
-    vw_throw( ArgumentErr() << "Input image is size zero!");    
+    vw_throw(ArgumentErr() << "Input image is size zero!");    
 }
 
 void DiskImageResourceRaw::set_block_write_size(const Vector2i& block_size) {
 
-  if ( (block_size[0] > cols()) || (block_size[1] > rows()) )
-    vw_throw( ArgumentErr() << "Requested block size is too big!");
+  if ((block_size[0] > cols()) || (block_size[1] > rows()))
+    vw_throw(ArgumentErr() << "Requested block size is too big!");
 
-  if ( (block_size[0] < 0) || (block_size[1] < 0) ){ // Use a default size
+  if ((block_size[0] < 0) || (block_size[1] < 0)){ // Use a default size
     if (rows() < 1024)
       m_block_size = Vector2i(cols(), rows());
     else
@@ -97,18 +97,18 @@ void DiskImageResourceRaw::open(std::string const& filename, ImageFormat const& 
   else
     m_stream.open(filename.c_str(), fstream::in|fstream::out|fstream::binary);
   if (!m_stream.is_open())
-    vw_throw( vw::ArgumentErr() << "DiskImageResourceRaw: Failed to open \"" << filename << "\"." );
+    vw_throw(vw::ArgumentErr() << "DiskImageResourceRaw: Failed to open \"" << filename << "\".");
 }
 
-void DiskImageResourceRaw::read( ImageBuffer const& dest, BBox2i const& bbox )  const {
+void DiskImageResourceRaw::read(ImageBuffer const& dest, BBox2i const& bbox)  const {
 
   // Check that the input parameters are valid
-  VW_ASSERT( (bbox.width ()<=cols()) &&
-             (bbox.height()<=rows()),
-             IOErr() << "Requested read bbox is out of bounds." );
-  VW_ASSERT( (static_cast<int>(dest.format.cols)>=bbox.width ()) &&
-             (static_cast<int>(dest.format.rows)>=bbox.height()),
-             IOErr() << "Buffer is too small for requested read bbox." );
+  VW_ASSERT((bbox.width ()<=cols()) &&
+            (bbox.height()<=rows()),
+            IOErr() << "Requested read bbox is out of bounds.");
+  VW_ASSERT((static_cast<int>(dest.format.cols)>=bbox.width ()) &&
+            (static_cast<int>(dest.format.rows)>=bbox.height()),
+            IOErr() << "Buffer is too small for requested read bbox.");
 
   // Compute the raw data positions (in bytes) in the file we need to read.
   // - For now we only support a single channel so it is pretty simple.
@@ -147,14 +147,14 @@ void DiskImageResourceRaw::read( ImageBuffer const& dest, BBox2i const& bbox )  
   convert(dest, source, false); 
 }
 
-void DiskImageResourceRaw::write( ImageBuffer const& source, BBox2i const& bbox ) {
+void DiskImageResourceRaw::write(ImageBuffer const& source, BBox2i const& bbox) {
   // Check that the input parameters are valid
-  VW_ASSERT( (bbox.width ()<=cols()) &&
-             (bbox.height()<=rows()),
-             IOErr() << "Requested read bbox is out of bounds." );
-  VW_ASSERT( (static_cast<int>(source.format.cols)>=bbox.width ()) &&
-             (static_cast<int>(source.format.rows)>=bbox.height()),
-             IOErr() << "Buffer is too small for requested read bbox." );
+  VW_ASSERT((bbox.width ()<=cols()) &&
+            (bbox.height()<=rows()),
+            IOErr() << "Requested read bbox is out of bounds.");
+  VW_ASSERT((static_cast<int>(source.format.cols)>=bbox.width ()) &&
+            (static_cast<int>(source.format.rows)>=bbox.height()),
+            IOErr() << "Buffer is too small for requested read bbox.");
 
   // Compute the raw data positions (in bytes) in the file we need to read.
   // - For now we only support a single channel so it is pretty simple.
@@ -304,7 +304,7 @@ vw::ImageFormat DiskImageResourceRaw::image_format_from_spot5_DIM(std::string co
   }
 
   if (image_size[0] <= 0 || image_size[1] <= 0)
-    vw_throw( ArgumentErr() << "Could not parse correctly the image size from: " << camera_file);
+    vw_throw(ArgumentErr() << "Could not parse correctly the image size from: " << camera_file);
     
   vw::ImageFormat format;
   format.cols          = image_size[0];

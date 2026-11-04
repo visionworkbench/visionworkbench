@@ -78,7 +78,7 @@ TEST(GeoTransform, nadgrids) {
 }
 */
 
-TEST( GeoTransform, BasicTransform ) {
+TEST(GeoTransform, BasicTransform) {
   GeoReference src_georef;
   src_georef.set_well_known_geogcs("WGS84");
 
@@ -90,11 +90,11 @@ TEST( GeoTransform, BasicTransform ) {
   Vector2 fwd = geotx.forward(Vector2(25,25)),
     rev = geotx.reverse(Vector2(25,25));
 
-  EXPECT_VECTOR_NEAR( fwd, Vector2(25,25), 1e-16 );
-  EXPECT_VECTOR_NEAR( rev, Vector2(25,25), 1e-16 );
+  EXPECT_VECTOR_NEAR(fwd, Vector2(25,25), 1e-16);
+  EXPECT_VECTOR_NEAR(rev, Vector2(25,25), 1e-16);
 }
 
-TEST( GeoTransform, UTMFarZone ) {
+TEST(GeoTransform, UTMFarZone) {
   // This tests for a bug where forward_bbox calls latlon_to_* for a latlon
   // that is invalid for a utm zone.
 
@@ -132,15 +132,15 @@ TEST( GeoTransform, UTMFarZone ) {
   BBox2i bbox, bbox2;
 
   // This should work
-  EXPECT_NO_THROW( bbox = geotx.forward_bbox(BBox2i(0,0,size[0],size[1])) );
+  EXPECT_NO_THROW(bbox = geotx.forward_bbox(BBox2i(0,0,size[0],size[1])));
 
   // This should not throw an exception, even though we encounter a
   // proj.4 error because it tries to look up a lonlat that is outside
   // the utm zone, because this routine catches all exceptions.
-  EXPECT_NO_THROW( bbox2 = geotx.reverse_bbox(BBox2i(0,0,size[0],size[1])));
+  EXPECT_NO_THROW(bbox2 = geotx.reverse_bbox(BBox2i(0,0,size[0],size[1])));
 }
 
-TEST( GeoTransform, StereographicSingularity ) {
+TEST(GeoTransform, StereographicSingularity) {
   // Test forward bbox actually hits the limit of platecarre
   GeoReference ll_georef, stereo_georef;
 
@@ -156,8 +156,8 @@ TEST( GeoTransform, StereographicSingularity ) {
 
   GeoTransform geotx(stereo_georef, ll_georef);
   BBox2i output, input(50,50,100,100);
-  EXPECT_NO_THROW( output = geotx.forward_bbox(input) );
-  EXPECT_NEAR( 0, output.min()[1], 2 );
+  EXPECT_NO_THROW(output = geotx.forward_bbox(input));
+  EXPECT_NEAR(0, output.min()[1], 2);
 }
 
 TEST(GeoTransform, skipProjectionTest) {
@@ -245,8 +245,8 @@ TEST(GeoTransform, RefToRef) {
   //std::cout << "point2 = " << point2 << std::endl;
   //std::cout << "pixel2 = " << pixel2 << std::endl;
   
-  Vector2 point2       = trans.pixel_to_point     (pixel1      );
-  Vector2 pixel2       = trans.point_to_pixel     (point1      );
+  Vector2 point2       = trans.pixel_to_point     (pixel1);
+  Vector2 pixel2       = trans.point_to_pixel     (point1);
   BBox2   pixel_bbox_2 = trans.point_to_pixel_bbox(point_bbox_1);
   BBox2   point_bbox_2 = trans.pixel_to_point_bbox(pixel_bbox_1);
   

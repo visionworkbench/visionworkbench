@@ -40,58 +40,58 @@ namespace math {
 
     /// Implement < operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline bool operator<( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
-      for( size_t i=0; i<v1.impl().size(); ++i)
-        if( ! ( v1.impl()[i] < v2.impl()[i] ) ) return false;
+    inline bool operator<(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths.");
+      for(size_t i=0; i<v1.impl().size(); ++i)
+        if(! (v1.impl()[i] < v2.impl()[i])) return false;
       return true;
     }
 
     /// Implement <= operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline bool operator<=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
-      for( size_t i=0; i<v1.impl().size(); ++i)
-        if( ! ( v1.impl()[i] <= v2.impl()[i] ) ) return false;
+    inline bool operator<=(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths.");
+      for(size_t i=0; i<v1.impl().size(); ++i)
+        if(! (v1.impl()[i] <= v2.impl()[i])) return false;
       return true;
     }
 
     /// Implement > operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline bool operator>( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
-      for( size_t i=0; i<v1.impl().size(); ++i)
-        if( ! ( v1.impl()[i] > v2.impl()[i] ) ) return false;
+    inline bool operator>(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths.");
+      for(size_t i=0; i<v1.impl().size(); ++i)
+        if(! (v1.impl()[i] > v2.impl()[i])) return false;
       return true;
     }
 
     /// Implement >= operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline bool operator>=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
-      for( size_t i=0; i<v1.impl().size(); ++i)
-        if( ! ( v1.impl()[i] >= v2.impl()[i] ) ) return false;
+    inline bool operator>=(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths.");
+      for(size_t i=0; i<v1.impl().size(); ++i)
+        if(! (v1.impl()[i] >= v2.impl()[i])) return false;
       return true;
     }
 
     /// Implement max() operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline VectorT1 max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different lengths." );
+    inline VectorT1 max(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different lengths.");
       VectorT1 v3;
       v3.set_size(v1.impl().size());
-      for( size_t i=0; i<v1.impl().size(); ++i)
+      for(size_t i=0; i<v1.impl().size(); ++i)
         v3[i] = std::max(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
 
     /// Implement min() operation for VectorBase
     template <class VectorT1, class VectorT2>
-    inline VectorT1 min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different lengths." );
+    inline VectorT1 min(VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2) {
+      VW_ASSERT(v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different lengths.");
       VectorT1 v3;
       v3.set_size(v1.impl().size());
-      for( size_t i=0; i<v1.impl().size(); ++i)
+      for(size_t i=0; i<v1.impl().size(); ++i)
         v3[i] = std::min(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
@@ -122,25 +122,25 @@ struct Int2Type
 
     /// Constructs a bounding box with the given minimal and maximal points.
     template <class VectorT1, class VectorT2>
-    BBox( VectorBase<VectorT1> const& min, 
-          VectorBase<VectorT2> const& max ) : m_min( min ), m_max( max ) {}
+    BBox(VectorBase<VectorT1> const& min, 
+         VectorBase<VectorT2> const& max) : m_min(min), m_max(max) {}
 
     /// Constructs a 2D bounding box with the given minimal point
     /// coordinates and dimensions.  (Only valid for 2D bounding boxes.)
-    inline BBox( RealT minx, RealT miny, RealT width, RealT height );
+    inline BBox(RealT minx, RealT miny, RealT width, RealT height);
 
     /// Constructs a 3D bounding box with the given minimal point
     /// coordinates and dimensions.  (Only valid for 3D bouding boxes.)
-    inline BBox( RealT minx,  RealT miny,   RealT minz, 
-                 RealT width, RealT height, RealT depth );
+    inline BBox(RealT minx,  RealT miny,   RealT minz, 
+                RealT width, RealT height, RealT depth);
 
     /// Copy constructor.
     template <class RealT1, size_t DimN1>
-    inline BBox( BBox<RealT1, DimN1> const& bbox );
+    inline BBox(BBox<RealT1, DimN1> const& bbox);
 
     /// Copy assignment operator.
     template <class RealT1, size_t DimN1>
-    inline BBox& operator=( BBox<RealT1, DimN1> const& bbox );
+    inline BBox& operator=(BBox<RealT1, DimN1> const& bbox);
 
 
     /// Returns true if the bounding box is empty (i.e. degenerate).
@@ -165,52 +165,52 @@ struct Int2Type
 
     inline void set_size(Vector<RealT, DimN> size); ///< Set the size to the new value with the origin kept constant.
 
-    inline void expand  ( RealT offset ); ///< Expands   this bounding box by the given offset in every direction.
-    inline void contract( RealT offset ); ///< Contracts this bounding box by the given offset in every direction.
+    inline void expand  (RealT offset); ///< Expands   this bounding box by the given offset in every direction.
+    inline void contract(RealT offset); ///< Contracts this bounding box by the given offset in every direction.
 
     /// Overload of the expand function that expands in each dimension according to the vector value.
     template <class VectorT>
-    inline void expand( const VectorBase<VectorT> &point );
+    inline void expand(const VectorBase<VectorT> &point);
 
     /// Grows a bounding box to include the given point.
     template <class VectorT>
-    inline void grow( VectorBase<VectorT> const& point );
+    inline void grow(VectorBase<VectorT> const& point);
 
     /// Grows a bounding box to include the given bounding box.
     template <class RealT1, size_t DimN1>
-    inline void grow( BBox<RealT1, DimN1> const& bbox );
+    inline void grow(BBox<RealT1, DimN1> const& bbox);
 
     /// Crops (intersects) this bounding box to the given bounding box.
     template <class RealT1, size_t DimN1>
-    inline void crop( BBox<RealT1, DimN1> const& bbox );
+    inline void crop(BBox<RealT1, DimN1> const& bbox);
 
     /// Returns true if the given point is contained in the bounding box.
     template <class VectorT>
-    inline bool contains( const VectorBase<VectorT> &point ) const;
+    inline bool contains(const VectorBase<VectorT> &point) const;
 
     /// Returns true if the given bounding box is entirely contained in this bounding box.
     template <class RealT1, size_t DimN1>
-    inline bool contains( const BBox<RealT1, DimN1> &bbox ) const;
+    inline bool contains(const BBox<RealT1, DimN1> &bbox) const;
 
     /// Returns true if the given bounding box intersects this bounding box.
     template <class RealT1, size_t DimN1>
-    inline bool intersects( const BBox<RealT1, DimN1>& bbox ) const;
+    inline bool intersects(const BBox<RealT1, DimN1>& bbox) const;
 
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
-    inline BBox& operator*=( ScalarT s );
+    inline BBox& operator*=(ScalarT s);
 
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
-    inline BBox& operator/=( ScalarT s );
+    inline BBox& operator/=(ScalarT s);
 
     /// Offsets the bounding box by the given vector.
     template <class VectorT>
-    inline BBox& operator+=( VectorBase<VectorT> const& v );
+    inline BBox& operator+=(VectorBase<VectorT> const& v);
 
     /// Offsets the bounding box by the negation of the given vector.
     template <class VectorT>
-    inline BBox& operator-=( VectorBase<VectorT> const& v );
+    inline BBox& operator-=(VectorBase<VectorT> const& v);
 
   private: // Functions
   
@@ -220,7 +220,7 @@ struct Int2Type
     template <size_t N>
     void checkLengthGte() const { checkLengthGteP<N>(Int2Type< DimN!=0 >()); }    
     template <size_t N>
-    void checkLengthGteP(Int2Type<true>) const { BOOST_STATIC_ASSERT( DimN >= N ); }
+    void checkLengthGteP(Int2Type<true>) const { BOOST_STATIC_ASSERT(DimN >= N); }
     template <size_t N>
     void checkLengthGteP(Int2Type<false>) const { 
       VW_ASSERT(this->min().size() >= N, LogicErr() << "BBoxN has insufficient dimension for function call!"); 
@@ -230,7 +230,7 @@ struct Int2Type
     template <size_t N>
     void checkLengthEqual() const { checkLengthEqualP<N>(Int2Type< DimN!=0 >()); }
     template <size_t N>
-    void checkLengthEqualP(Int2Type<true>) const { BOOST_STATIC_ASSERT( DimN == N ); }
+    void checkLengthEqualP(Int2Type<true>) const { BOOST_STATIC_ASSERT(DimN == N); }
     template <size_t N>
     void checkLengthEqualP(Int2Type<false>) const {}
 
@@ -245,54 +245,54 @@ struct Int2Type
 
   /// Scales a bounding box relative to the origin.
   template <class RealT, size_t DimN, class ScalarT>
-  inline BBox<RealT, DimN> operator*( BBox<RealT, DimN> const& bbox, ScalarT s );
+  inline BBox<RealT, DimN> operator*(BBox<RealT, DimN> const& bbox, ScalarT s);
 
   /// Scales a bounding box relative to the origin.
   template <class RealT, size_t DimN, class ScalarT>
-  inline BBox<RealT, DimN> operator/( BBox<RealT, DimN> const& bbox, ScalarT s );
+  inline BBox<RealT, DimN> operator/(BBox<RealT, DimN> const& bbox, ScalarT s);
 
   /// Scales a bounding box relative to the origin.
   template <class RealT, size_t DimN, class ScalarT>
-  inline BBox<RealT, DimN> operator*( ScalarT s, BBox<RealT, DimN> const& bbox ) { return bbox * s; }
+  inline BBox<RealT, DimN> operator*(ScalarT s, BBox<RealT, DimN> const& bbox) { return bbox * s; }
 
   /// Offsets a bounding box by the given vector.
   template <class RealT, size_t DimN, class VectorT>
-  inline BBox<RealT, DimN> operator+( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v );
+  inline BBox<RealT, DimN> operator+(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v);
 
   /// Offsets a bounding box by the given vector.
   template <class RealT, size_t DimN, class VectorT>
-  inline BBox<RealT, DimN> operator+( VectorBase<VectorT> const& v, BBox<RealT, DimN> const& bbox ) { return bbox + v; }
+  inline BBox<RealT, DimN> operator+(VectorBase<VectorT> const& v, BBox<RealT, DimN> const& bbox) { return bbox + v; }
 
   /// Offsets a bounding box by the negation of the given vector.
   template <class RealT, size_t DimN, class VectorT>
-  inline BBox<RealT, DimN> operator-( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v );
+  inline BBox<RealT, DimN> operator-(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v);
 
   /// Equality of two bounding boxes.
   template <class RealT1, size_t DimN1, class RealT2, size_t DimN2>
-  inline bool operator==( BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2 );
+  inline bool operator==(BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2);
 
   /// Inequality of two bounding boxes.
   template <class RealT1, size_t DimN1, class RealT2, size_t DimN2>
-  inline bool operator!=( BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2 );
+  inline bool operator!=(BBox<RealT1,DimN1> const& bbox1, BBox<RealT2,DimN2> const& bbox2);
 
   /// Writes a bounding box to an ostream.
   template <class RealT, size_t DimN>
-  std::ostream& operator<<( std::ostream& os, BBox<RealT,DimN> const& bbox ) {
+  std::ostream& operator<<(std::ostream& os, BBox<RealT,DimN> const& bbox) {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
   }
 
 
   /// Specialization for 2d boxes
   template <class RealT>
-  std::ostream& operator<<( std::ostream& os, BBox<RealT,2> const& bbox );
+  std::ostream& operator<<(std::ostream& os, BBox<RealT,2> const& bbox);
 
   /// Asymmetricaly scale a bounding box, by elementwise vector product
   template <class RealT, size_t DimN, class VectorT>
-  inline BBox<RealT, DimN> elem_prod( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v );
+  inline BBox<RealT, DimN> elem_prod(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v);
 
   /// Asymmetricaly scale a bounding box, by elementwise vector quotient
   template <class RealT, size_t DimN, class VectorT>
-  inline BBox<RealT, DimN> elem_quot( BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v );
+  inline BBox<RealT, DimN> elem_quot(BBox<RealT, DimN> const& bbox, VectorBase<VectorT> const& v);
 
   // End functions for BBox
   //--------------------------------------------------------------------
@@ -321,12 +321,12 @@ struct Int2Type
   /// to the smallest enclosing integer bounding box.
   template <class RealT1, size_t DimN1>
   inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
-  grow_bbox_to_int( math::BBox<RealT1, DimN1> const& bbox );
+  grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox);
 
   // For BBoxes that are already int, do nothing
   template <class RealT1, size_t DimN1>
   inline typename boost::enable_if<boost::is_integral<RealT1>,BBox<RealT1,DimN1> >::type
-  grow_bbox_to_int( math::BBox<RealT1, DimN1> const& bbox ) { return bbox; }
+  grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox) { return bbox; }
 } // namespace vw
 
 

@@ -27,7 +27,7 @@
 using namespace vw;
 using namespace vw::test;
 
-TEST( GeoReference, Core) {
+TEST(GeoReference, Core) {
   GeoReference georef;
   georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   georef.set_well_known_geogcs("WGS84");
@@ -41,14 +41,14 @@ TEST( GeoReference, Core) {
   georef.set_transform(affine);
 
   Vector2 pix = georef.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2());
 
   georef.set_pixel_interpretation(GeoReference::PixelAsArea);
   pix = georef.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(-0.5,-0.5));
 }
 
-TEST( GeoReference, BasicGeographic ) {
+TEST(GeoReference, BasicGeographic) {
   GeoReference georef;
   georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   georef.set_well_known_geogcs("WGS84");
@@ -57,21 +57,21 @@ TEST( GeoReference, BasicGeographic ) {
   // coordinate system.
   Vector2 loc = georef.pixel_to_point(Vector2(0,0));
   Vector2 pix = georef.point_to_pixel(Vector2(0,0));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2() );
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2());
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2());
 
   loc = georef.pixel_to_point(Vector2(90,90));
   pix = georef.point_to_pixel(Vector2(90,90));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(90,90) );
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(90,90) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(90,90));
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(90,90));
 
   loc = georef.pixel_to_point(Vector2(-90,-90));
   pix = georef.point_to_pixel(Vector2(-90,-90));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(-90,-90) );
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-90,-90) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(-90,-90));
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(-90,-90));
 }
 
-TEST( GeoReference, AffineTransform ) {
+TEST(GeoReference, AffineTransform) {
   GeoReference georef;
   georef.set_well_known_geogcs("WGS84");
   Matrix3x3 affine;
@@ -88,12 +88,12 @@ TEST( GeoReference, AffineTransform ) {
   // pixel in an image).
   georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   Vector2 loc = georef.pixel_to_point(Vector2(0,0));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(30,-35) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(30,-35));
 
   // Here, we are essentially querying for location (-0.5,-0.5)
   georef.set_pixel_interpretation(GeoReference::PixelAsArea);
   loc = georef.pixel_to_point(Vector2(-0.5,-0.5));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(30,-35) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(30,-35));
 
   // Test that, given a point in the projected space, you can
   // recover the proper pixel location.  (remember, the VW assumes
@@ -101,14 +101,14 @@ TEST( GeoReference, AffineTransform ) {
   // hand pixel in an image).
   georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   Vector2 pix = georef.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2());
 
   georef.set_pixel_interpretation(GeoReference::PixelAsArea);
   pix = georef.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(-0.5,-0.5));
 }
 
-TEST( GeoReference, BasicProjections ) {
+TEST(GeoReference, BasicProjections) {
   // Set up a spherical datum for testing purposes.
   GeoReference georef;
   georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
@@ -121,16 +121,16 @@ TEST( GeoReference, BasicProjections ) {
   // Test an unprojected coordinate system
   // -------------------------------------
   Vector2 loc = georef.pixel_to_point(Vector2(500,500));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(500,500) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(500,500));
 
   Vector2 pix = georef.point_to_pixel(Vector2(500,500));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(500,500) );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(500,500));
 
   Vector2 lon_lat = georef.point_to_lonlat(Vector2(140,89));
-  EXPECT_VECTOR_NEAR( lon_lat, Vector2(140,89), 1e-7 );
+  EXPECT_VECTOR_NEAR(lon_lat, Vector2(140,89), 1e-7);
 
   loc = georef.lonlat_to_point(lon_lat);
-  EXPECT_VECTOR_NEAR( loc, Vector2(140,89), 1e-7 );
+  EXPECT_VECTOR_NEAR(loc, Vector2(140,89), 1e-7);
 
   // ----------------------------------
   // Test a projected coordinate system
@@ -138,10 +138,10 @@ TEST( GeoReference, BasicProjections ) {
   georef.set_sinusoidal(0,0,0); // center longitude = 0
 
   loc = georef.pixel_to_point(Vector2(500,500));
-  EXPECT_VECTOR_DOUBLE_EQ( loc, Vector2(500,500) );
+  EXPECT_VECTOR_DOUBLE_EQ(loc, Vector2(500,500));
 
   pix = georef.point_to_pixel(Vector2(500,500));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(500,500) );
+  EXPECT_VECTOR_DOUBLE_EQ(pix, Vector2(500,500));
 
   // Whip up a home-brew sinusoidal projection for testing against proj.4
   double lon = 20;
@@ -152,10 +152,10 @@ TEST( GeoReference, BasicProjections ) {
 
   lon_lat = Vector2(lon,lat);
   loc = georef.lonlat_to_point(lon_lat);
-  EXPECT_VECTOR_NEAR( loc, Vector2(x,y), 2 );
+  EXPECT_VECTOR_NEAR(loc, Vector2(x,y), 2);
 
   lon_lat = georef.point_to_lonlat(loc);
-  EXPECT_VECTOR_NEAR( lon_lat, Vector2(lon,lat), 1e-7 );
+  EXPECT_VECTOR_NEAR(lon_lat, Vector2(lon,lat), 1e-7);
 
   double x_1 = 7000/meters_per_degree;
   double y_1 = 3000/meters_per_degree;
@@ -163,13 +163,13 @@ TEST( GeoReference, BasicProjections ) {
   double lat_1 = y_1;
 
   lon_lat = georef.point_to_lonlat(Vector2(7000,3000));
-  EXPECT_VECTOR_NEAR( lon_lat, Vector2(lon_1,lat_1), 1e-7 );
+  EXPECT_VECTOR_NEAR(lon_lat, Vector2(lon_1,lat_1), 1e-7);
 
   loc = georef.lonlat_to_point(lon_lat);
-  EXPECT_VECTOR_NEAR( loc, Vector2(7000,3000), 1e-7 );
+  EXPECT_VECTOR_NEAR(loc, Vector2(7000,3000), 1e-7);
 }
 
-TEST( GeoReference, UTM_to_LonLat ) {
+TEST(GeoReference, UTM_to_LonLat) {
   std::vector<Vector2> ll(5), utm(5), px(5);
 
   // lon, lat coordinates
@@ -219,13 +219,13 @@ TEST( GeoReference, UTM_to_LonLat ) {
     Vector2 check_lonlat = utm_georef.pixel_to_lonlat(px[i]);
 
     // At this latitude, 1 degree is ~111km lat and ~81km lon
-    EXPECT_VECTOR_NEAR( check_point, utm[i], 1 ); // Accurate within 1m
-    EXPECT_VECTOR_NEAR( check_lonlat, ll[i], 1e-5 );
+    EXPECT_VECTOR_NEAR(check_point, utm[i], 1); // Accurate within 1m
+    EXPECT_VECTOR_NEAR(check_lonlat, ll[i], 1e-5);
   }
 
 }
 
-TEST( GeoReference, LonLat_to_UTM ) {
+TEST(GeoReference, LonLat_to_UTM) {
 
   // Set up a UTM object. The "within-zone" part can be constant.
   
@@ -248,13 +248,13 @@ TEST( GeoReference, LonLat_to_UTM ) {
     std::stringstream s;
     s << "+proj=utm +zone=" << zone << " +units=m";
     std::string proj_string = s.str();
-    georef.set_proj4_projection_str(proj_string );
+    georef.set_proj4_projection_str(proj_string);
     
     // Test lonlat to pixel conversion.
     Vector2 pixel = georef.lonlat_to_pixel(Vector2(longitude, 44.059883787682551));
     //std::cout << std::setprecision(10) << "pixel = " << pixel << std::endl;
     const double EPS = 1e-2;
-    EXPECT_VECTOR_NEAR( pixel, Vector2(500988.2534,4878523.61), EPS);
+    EXPECT_VECTOR_NEAR(pixel, Vector2(500988.2534,4878523.61), EPS);
 
     longitude += ZONE_WIDTH;
   }
@@ -262,7 +262,7 @@ TEST( GeoReference, LonLat_to_UTM ) {
 
 // TODO(oalexan1): Fix this test.
 #if 0
-TEST( GeoReference, IOLoop ) {
+TEST(GeoReference, IOLoop) {
   // Make a dummy image and projection transform
   ImageView<PixelRGB<float> > test_image(2,2);
   test_image(0,0) = PixelRGB<float>(1,2,3);
@@ -277,8 +277,8 @@ TEST( GeoReference, IOLoop ) {
 
   {
     // Pack into dummy GeoReference
-    Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
-    GeoReference test_georeference( test_datum, test_transform );
+    Datum test_datum("monkey", "dog", "cow", 7800, 6600, 3);
+    GeoReference test_georeference(test_datum, test_transform);
 
     // Write it to a temporary file
     UnlinkName test_filename("georeference_test.tif");
@@ -295,15 +295,15 @@ TEST( GeoReference, IOLoop ) {
 
     // Verify that the pixels are identical
     typedef ImageView<PixelRGB<float> >::iterator iterator;
-    for ( iterator test = test_image.begin(), retn = retn_image.begin();
-          test != test_image.end(); test++, retn++ )
-      EXPECT_PIXEL_EQ( *retn, *test );
+    for (iterator test = test_image.begin(), retn = retn_image.begin();
+         test != test_image.end(); test++, retn++)
+      EXPECT_PIXEL_EQ(*retn, *test);
 
     // Check the proj4 strings and transform matrices
-    EXPECT_STREQ( boost::trim_copy(retn_georeference.proj4_str()).c_str(),
-                  boost::trim_copy(test_georeference.proj4_str()).c_str() );
-    EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
-                             test_georeference.transform() );
+    EXPECT_STREQ(boost::trim_copy(retn_georeference.proj4_str()).c_str(),
+                 boost::trim_copy(test_georeference.proj4_str()).c_str());
+    EXPECT_MATRIX_DOUBLE_EQ(retn_georeference.transform(),
+                            test_georeference.transform());
     // TODO: Fix this test!
 /*
     std::cout << "INPUT: " << test_georeference << std::endl;
@@ -318,9 +318,9 @@ TEST( GeoReference, IOLoop ) {
 
   { // Test that spherical is handled correctly
     Datum test_datum("D_MOON");
-    GeoReference test_georef( test_datum, test_transform );
+    GeoReference test_georef(test_datum, test_transform);
 
-    UnlinkName test_filename( "georeference_test.tif" );
+    UnlinkName test_filename("georeference_test.tif");
     ASSERT_NO_THROW(
       write_gdal_image(test_filename, test_image,
                                  test_georef, GdalWriteOptions()));
@@ -328,23 +328,23 @@ TEST( GeoReference, IOLoop ) {
     GeoReference retn_georef;
     ImageView<PixelRGB<float> > retn_image;
     // Note: The function below got wiped. Read the image and georef separately.
-    EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georef,
-                                           test_filename ) );
+    EXPECT_TRUE(read_georeferenced_image(retn_image, retn_georef,
+                                          test_filename));
 
-    EXPECT_STREQ( boost::trim_copy(retn_georef.proj4_str()).c_str(),
-                  boost::trim_copy(test_georef.proj4_str()).c_str() );
-    EXPECT_MATRIX_DOUBLE_EQ( retn_georef.transform(),
-                             test_georef.transform() );
+    EXPECT_STREQ(boost::trim_copy(retn_georef.proj4_str()).c_str(),
+                 boost::trim_copy(test_georef.proj4_str()).c_str());
+    EXPECT_MATRIX_DOUBLE_EQ(retn_georef.transform(),
+                            test_georef.transform());
 
   }
 
   { // Test that georef png can't be written
     UnlinkName fail_filename("bird.png");
-    Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
-    GeoReference test_georeference( test_datum, test_transform );
-    EXPECT_THROW( write_gdal_image(fail_filename, test_image,
-                                    test_georeference, GdalWriteOptions()),
-                  NoImplErr );
+    Datum test_datum("monkey", "dog", "cow", 7800, 6600, 3);
+    GeoReference test_georeference(test_datum, test_transform);
+    EXPECT_THROW(write_gdal_image(fail_filename, test_image,
+                                   test_georeference, GdalWriteOptions()),
+                 NoImplErr);
   }
 }
 #endif
@@ -494,12 +494,12 @@ void georefMatchTest(const GeoReference &georef)
       // Also check that we can go from lon to lon (at least in a limited range)
       Vector2 lonlat3 = georef.point_to_lonlat(point2);
 
-      EXPECT_LT(fabs(pixel1 [0] - pixel2 [0]), MAX_PIXEL_DIFF ); // Did we reproject back to the same pixel?
-      EXPECT_LT(fabs(pixel1 [1] - pixel2 [1]), MAX_PIXEL_DIFF );
-      EXPECT_LT(fabs(point1 [0] - point2 [0]), MAX_POINT_DIFF ); // Did we go back and forth through the same point?
-      EXPECT_LT(fabs(point1 [1] - point2 [1]), MAX_POINT_DIFF );
-      EXPECT_LT(fabs(pixel1 [0] - pixel3 [0]), MAX_PIXEL_DIFF ); // Can we handle longitudes offset by 360 degrees?
-      EXPECT_LT(fabs(pixel1 [1] - pixel3 [1]), MAX_PIXEL_DIFF );
+      EXPECT_LT(fabs(pixel1 [0] - pixel2 [0]), MAX_PIXEL_DIFF); // Did we reproject back to the same pixel?
+      EXPECT_LT(fabs(pixel1 [1] - pixel2 [1]), MAX_PIXEL_DIFF);
+      EXPECT_LT(fabs(point1 [0] - point2 [0]), MAX_POINT_DIFF); // Did we go back and forth through the same point?
+      EXPECT_LT(fabs(point1 [1] - point2 [1]), MAX_POINT_DIFF);
+      EXPECT_LT(fabs(pixel1 [0] - pixel3 [0]), MAX_PIXEL_DIFF); // Can we handle longitudes offset by 360 degrees?
+      EXPECT_LT(fabs(pixel1 [1] - pixel3 [1]), MAX_PIXEL_DIFF);
       EXPECT_LT(fabs(lonlat1[0] - lonlat3[0]), MAX_DEGREE_DIFF); // Can we go back and forth to the same longitude?
       EXPECT_LT(fabs(lonlat1[1] - lonlat3[1]), MAX_DEGREE_DIFF);
 
@@ -509,7 +509,7 @@ void georefMatchTest(const GeoReference &georef)
 
       // Make sure that the rate of change horizontally does not vary much as we move through pixels.
       if (c > 1) {
-        EXPECT_LT(fabs(diffX   - lastDiffX  ), MAX_POINT_CHANGE_DIFF);
+        EXPECT_LT(fabs(diffX   - lastDiffX), MAX_POINT_CHANGE_DIFF);
         EXPECT_LT(fabs(diffLon - lastDiffLon), MAX_DEGREE_CHANGE_DIFF);
       }
 
@@ -527,7 +527,7 @@ void georefMatchTest(const GeoReference &georef)
 /// Check back-and-forth conversions for several equirectangular test cases
 /// - Our code can't handle all test cases, but it should be able to handle
 ///   anything that is likely to be seen.
-TEST( GeoReference, eqcReverseTest) {
+TEST(GeoReference, eqcReverseTest) {
 
   //std::cout << "Default init.\n";
   GeoReference georef;
@@ -596,7 +596,7 @@ TEST( GeoReference, eqcReverseTest) {
   georefMatchTest(georef); // Run a set of tests on the georef
 }
 
-TEST( GeoReference, orthoTest) {
+TEST(GeoReference, orthoTest) {
 
   Matrix3x3 affine;
   Datum d;
@@ -618,7 +618,7 @@ TEST( GeoReference, orthoTest) {
 }
 
 
-TEST( GeoReference, albersTestNegLon) {
+TEST(GeoReference, albersTestNegLon) {
   Matrix3x3 affine;
   Datum d;
   std::string proj_str = "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";
@@ -640,7 +640,7 @@ TEST( GeoReference, albersTestNegLon) {
   EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
 }
 
-TEST( GeoReference, albersTestHighLon) {
+TEST(GeoReference, albersTestHighLon) {
   Matrix3x3 affine;
   Datum d;
   std::string proj_str = "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=200 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs";

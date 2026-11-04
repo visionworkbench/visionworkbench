@@ -68,7 +68,7 @@ namespace vw {
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2()) const;
 
     /// Write CAHVORE model to file.
     void write(std::string const& filename);
@@ -85,13 +85,13 @@ namespace vw {
     Vector3   E;
     double    P; // We don't have T as it is redundant information
   private:
-    bool check_line( std::istream& istream, char letter );
+    bool check_line(std::istream& istream, char letter);
   };
 
   // Function to "map" the CAHVORE parameters into CAHV:
-  CAHVModel linearize_camera( CAHVOREModel const& camera_model,
-                              Vector2i const& cahvore_image_size,
-                              Vector2i const& cahv_image_size );
+  CAHVModel linearize_camera(CAHVOREModel const& camera_model,
+                             Vector2i const& cahvore_image_size,
+                             Vector2i const& cahv_image_size);
 
 } // namespace vw
 

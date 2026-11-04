@@ -140,13 +140,13 @@ void cutPoly(// inputs -- the polygons
       for (int pIterCut = 0; pIterCut < (int)cutHalfP.size(); pIterCut++){
         if (cutHalfP[pIterCut] > 0){
           // Append only non-empty polygons
-          Pout.push_back( cutHalfP[pIterCut] );
+          Pout.push_back(cutHalfP[pIterCut]);
         }
       }
       
       for (int vIter = 0; vIter < (int)cutHalfX.size(); vIter++){
-        Xout.push_back( cutHalfX[vIter] );
-        Yout.push_back( cutHalfY[vIter] );
+        Xout.push_back(cutHalfX[vIter]);
+        Yout.push_back(cutHalfY[vIter]);
       }
       
     }
@@ -259,7 +259,7 @@ void cutToHalfSpace(// inputs
   
   int numPtsOnCutline = ptsOnCutline.size();
   if (numPtsOnCutline == 0){
-    cutNumPolys.push_back( cutX.size() );
+    cutNumPolys.push_back(cutX.size());
     return;
   }
 
@@ -399,7 +399,7 @@ void processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
   
   // Sort the cutline points along the cutline (the sort direction
   // does not matter).
-  sort( ptsOnCutline.begin(), ptsOnCutline.end(), lessThan );
+  sort(ptsOnCutline.begin(), ptsOnCutline.end(), lessThan);
 
   // Find the position of each outward and each inward point on the cutline
   std::vector<int> outwardPositions, inwardPositions;

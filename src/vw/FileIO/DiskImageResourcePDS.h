@@ -35,20 +35,20 @@ namespace vw {
   class DiskImageResourcePDS : public DiskImageResource {
   public:
 
-    DiskImageResourcePDS( std::string const& filename )
-      : DiskImageResource( filename ),
-        m_image_data_offset( 0 ),
-        m_invalid_as_alpha( false )
+    DiskImageResourcePDS(std::string const& filename)
+      : DiskImageResource(filename),
+        m_image_data_offset(0),
+        m_invalid_as_alpha(false)
     {
       m_pds_data_filename = ""; // For PDS images that have a separate file with image data.
-      open( filename );
+      open(filename);
     }
 
-    DiskImageResourcePDS( std::string const& filename,
-                          ImageFormat const& /*format*/ )
-      : DiskImageResource( filename )
+    DiskImageResourcePDS(std::string const& filename,
+                         ImageFormat const& /*format*/)
+      : DiskImageResource(filename)
     {
-      vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
+      vw_throw(NoImplErr() << "The PDS driver does not yet support creation of PDS files.");
     }
 
     virtual ~DiskImageResourcePDS() {}
@@ -59,14 +59,14 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
 
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const;
+    virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
     virtual void flush() {}
 
     /// Query for a string value in the PDS header.  Places the value
     /// in the result field and returns true if the value is found,
     /// otherwise returns false.
-    bool query( std::string const& key, std::string& result ) const {
+    bool query(std::string const& key, std::string& result) const {
       std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(key);
       if (query_object != m_header_entries.end()) {
         result = (*query_object).second;
@@ -78,10 +78,10 @@ namespace vw {
     /// Query for a floating-point value in the PDS header.  Places
     /// the value in the result field and returns true if the value is
     /// found, otherwise returns false.
-    bool query( std::string const& key, float& result ) const {
+    bool query(std::string const& key, float& result) const {
       std::string result_str;
-      if( query( key, result_str ) ) {
-        result = (float)atof( result_str.c_str() );
+      if(query(key, result_str)) {
+        result = (float)atof(result_str.c_str());
         return true;
       }
       return false;
@@ -92,10 +92,10 @@ namespace vw {
     /// that value, so order does matter.  Places the value in the
     /// result field and returns true if a matching field is found,
     /// otherwise returns false.
-    bool query( std::vector<std::string> const& keys, std::string& result ) const {
-      for( unsigned i = 0; i < keys.size(); ++i ) {
+    bool query(std::vector<std::string> const& keys, std::string& result) const {
+      for(unsigned i = 0; i < keys.size(); ++i) {
         std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(keys[i]);
-        if( query_object != m_header_entries.end() ) {
+        if(query_object != m_header_entries.end()) {
           result = (*query_object).second;
           return true;
         }
@@ -108,10 +108,10 @@ namespace vw {
     /// extract that value, so order does matter.  Places the value in
     /// the result field and returns true if a matching field is
     /// found, otherwise returns false.
-    bool query( std::vector<std::string> const& keys, float& result ) const {
+    bool query(std::vector<std::string> const& keys, float& result) const {
       std::string result_str;
-      if( query( keys, result_str ) ) {
-        result = (float)atof( result_str.c_str() );
+      if(query(keys, result_str)) {
+        result = (float)atof(result_str.c_str());
         return true;
       }
       return false;
@@ -122,15 +122,15 @@ namespace vw {
     void treat_invalid_data_as_alpha();
 
 
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
-    static DiskImageResource* construct_open( std::string const& filename );
+    static DiskImageResource* construct_open(std::string const& filename);
 
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format);
 
     virtual bool has_block_write()  const {return false;}
     virtual bool has_nodata_write() const {return false;}

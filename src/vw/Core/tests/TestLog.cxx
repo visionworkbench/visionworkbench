@@ -65,7 +65,7 @@ struct TestLogTask {
 
     m_log(InfoMessage,m_ns) << start;
 
-    while( !m_terminate ) {
+    while(!m_terminate) {
       Thread::sleep_ms(100);
       m_log(InfoMessage,m_ns) << tick;
     }
@@ -78,8 +78,8 @@ struct TestLogTask {
 
 
 TEST(Log, Stringify) {
-  EXPECT_EQ( "1234", stringify("1234") );
-  EXPECT_EQ( "1234", stringify(1234) );
+  EXPECT_EQ("1234", stringify("1234"));
+  EXPECT_EQ("1234", stringify(1234));
 }
 
 /*
@@ -129,22 +129,22 @@ TEST(Log, RuleSet) {
 
   const MessageLevel v = VerboseDebugMessage;
 
-  EXPECT_FALSE( rs(InfoMessage+1, "console"));
-  EXPECT_TRUE(  rs(InfoMessage, "console"));
-  EXPECT_FALSE( rs(v+1, "verbose"));
-  EXPECT_TRUE(  rs(v, "verbose"));
-  EXPECT_TRUE(  rs(v+1, "every"));
-  EXPECT_TRUE(  rs(v, "every"));
+  EXPECT_FALSE(rs(InfoMessage+1, "console"));
+  EXPECT_TRUE(rs(InfoMessage, "console"));
+  EXPECT_FALSE(rs(v+1, "verbose"));
+  EXPECT_TRUE(rs(v, "verbose"));
+  EXPECT_TRUE(rs(v+1, "every"));
+  EXPECT_TRUE(rs(v, "every"));
 
-  EXPECT_TRUE( rs(v, "unqual"));
+  EXPECT_TRUE(rs(v, "unqual"));
   EXPECT_FALSE(rs(v, "unqual.foo"));
-  EXPECT_TRUE( rs(v, "prefix"));
-  EXPECT_TRUE( rs(v, "prefix.foo"));
+  EXPECT_TRUE(rs(v, "prefix"));
+  EXPECT_TRUE(rs(v, "prefix.foo"));
   EXPECT_FALSE(rs(v, "foo.prefix"));
   EXPECT_FALSE(rs(v, "foo.prefix.bar"));
   EXPECT_FALSE(rs(v, "suffix"));
-  EXPECT_TRUE( rs(v, "foo.suffix"));
-  EXPECT_TRUE( rs(v, "foo.bar.suffix"));
+  EXPECT_TRUE(rs(v, "foo.suffix"));
+  EXPECT_TRUE(rs(v, "foo.bar.suffix"));
   EXPECT_FALSE(rs(v, "suffix.foo"));
   EXPECT_FALSE(rs(v, "bar.suffix.foo"));
   EXPECT_FALSE(rs(v, "foo.falsesuffix"));
@@ -158,9 +158,9 @@ TEST(Log, RuleSet) {
   all.add_rule(WarningMessage, "off");
 
   EXPECT_FALSE(all(v, "console"));
-  EXPECT_TRUE( all(v, "any"));
+  EXPECT_TRUE(all(v, "any"));
   EXPECT_FALSE(all(v, "off"));
-  EXPECT_TRUE( all(v, "any.all"));
+  EXPECT_TRUE(all(v, "any.all"));
 }
 
 TEST(Log, RuleSetIllegal) {
@@ -189,8 +189,8 @@ TEST(Log, MultiThreadLog) {
   std::vector<std::pair<TheTask, TheThread> > threads(100);
 
   for (size_t i = 0; i < threads.size(); ++i) {
-    TheTask task(   new TestLogTask(log,"log test") );
-    TheThread thread( new Thread(task) );
+    TheTask task(new TestLogTask(log,"log test"));
+    TheThread thread(new Thread(task));
     threads[i] = std::make_pair(task, thread);
   }
 
@@ -221,18 +221,18 @@ TEST(Log, MultiThreadLog) {
     }
     else if (typ == "Tick") {
       ASSERT_TRUE(status.count(id));
-      EXPECT_EQ( "Start", status[id] );
+      EXPECT_EQ("Start", status[id]);
     }
     else if (typ == "Stop") {
       ASSERT_TRUE(status.count(id));
-      EXPECT_EQ( "Start", status[id] );
+      EXPECT_EQ("Start", status[id]);
       status[id] = "Stop";
     }
     else
       FAIL() << "Unknown message [" << typ << "]";
   }
 
-  EXPECT_EQ( threads.size(), status.size() );
+  EXPECT_EQ(threads.size(), status.size());
 
   for (Map::const_iterator i = status.begin(), end = status.end(); i != end; ++i) {
     EXPECT_EQ("Stop", i->second) << "Thread " << i->first << " out of order";
@@ -295,7 +295,7 @@ TEST(Log, ProgressCallback) {
   raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
            boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
-  TerminalProgressCallback pc( "test", "\tTesting: ");
+  TerminalProgressCallback pc("test", "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
     pc.report_progress(i);
     Thread::sleep_ms(0);
@@ -305,9 +305,9 @@ TEST(Log, ProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
+  EXPECT_EQ(80u, out.size()-last_line_idx-2);
   EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
-  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr);
 }
 
 TEST(Log, HiresProgressCallback) {
@@ -316,7 +316,7 @@ TEST(Log, HiresProgressCallback) {
   raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
            boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
-  TerminalProgressCallback pc( "test", "\tTesting: ", InfoMessage, 2);
+  TerminalProgressCallback pc("test", "\tTesting: ", InfoMessage, 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);
     if (i % 50 == 0)
@@ -327,9 +327,9 @@ TEST(Log, HiresProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
+  EXPECT_EQ(80u, out.size()-last_line_idx-2);
   EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
-  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr);
 }
 
 TEST(Log, ProgressHide) {
@@ -343,11 +343,11 @@ TEST(Log, ProgressHide) {
   vw_log().console_log().rule_set().add_rule(vw::NoMessage, "*.progress");
 
   // Can't see progress bar
-  TerminalProgressCallback pc( "test", "Rawr:" );
+  TerminalProgressCallback pc("test", "Rawr:");
   pc.report_progress(.1);
   pc.report_progress(.2);
 
-  EXPECT_EQ( sstr.str().size(), 0u );
+  EXPECT_EQ(sstr.str().size(), 0u);
 
   vw_log().console_log().rule_set().clear();
 
@@ -355,7 +355,7 @@ TEST(Log, ProgressHide) {
   pc.report_progress(.5);
   pc.report_finished();
 
-  EXPECT_GT( sstr.str().size(), 0u );
+  EXPECT_GT(sstr.str().size(), 0u);
 }
 
 TEST(Log, FlushAndNewline) {
@@ -504,19 +504,19 @@ TEST(Log, WarningsCanBeTurnedOff4) {
 TEST(Log, LazyIsEnabled) {
   vw_log().console_log().rule_set().add_rule(InfoMessage, "test");
 
-  EXPECT_TRUE(  vw_log().is_enabled() );
-  EXPECT_FALSE( vw_log().is_enabled(DebugMessage) );
-  EXPECT_TRUE(  vw_log().is_enabled(InfoMessage,"test") );
-  EXPECT_FALSE( vw_log().is_enabled(DebugMessage,"test") );
-  EXPECT_FALSE( vw_log().is_enabled(InfoMessage,"other") );
+  EXPECT_TRUE(vw_log().is_enabled());
+  EXPECT_FALSE(vw_log().is_enabled(DebugMessage));
+  EXPECT_TRUE(vw_log().is_enabled(InfoMessage,"test"));
+  EXPECT_FALSE(vw_log().is_enabled(DebugMessage,"test"));
+  EXPECT_FALSE(vw_log().is_enabled(InfoMessage,"other"));
 
   std::ostringstream sstr;
   boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
   new_log->rule_set().add_rule(EveryMessage, "other");
   vw_log().add(new_log);
 
-  EXPECT_TRUE(  vw_log().is_enabled(InfoMessage,"other") );
-  EXPECT_TRUE(  vw_log().is_enabled(VerboseDebugMessage,"other") );
+  EXPECT_TRUE(vw_log().is_enabled(InfoMessage,"other"));
+  EXPECT_TRUE(vw_log().is_enabled(VerboseDebugMessage,"other"));
 
   // How it should work with a macro
   std::ostringstream sstr2;
@@ -527,7 +527,7 @@ TEST(Log, LazyIsEnabled) {
 
   VW_OUT(InfoMessage,"other2") << "Printed" << std::flush;
   VW_OUT(DebugMessage,"other2") << "NotPrinted" << std::flush;
-  EXPECT_EQ( "Printed", sstr2.str() );
+  EXPECT_EQ("Printed", sstr2.str());
 
   // This would then be lazy
   uint64 start = vw::Stopwatch::microtime();

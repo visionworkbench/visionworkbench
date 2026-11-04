@@ -40,7 +40,7 @@ namespace vw {
   struct NullOperation : public PreFilterBase<NullOperation> {
     template <class ImageT>
     EdgeExtensionView<ImageT,ConstantEdgeExtension>
-    filter( ImageViewBase<ImageT> const& image ) const {
+    filter(ImageViewBase<ImageT> const& image) const {
       return edge_extend(image.impl(),ConstantEdgeExtension());
     }
   };
@@ -50,11 +50,11 @@ namespace vw {
   // instead of being skipped. Needs mask-aware weighted filtering.
   struct LaplacianOfGaussian : public PreFilterBase<LaplacianOfGaussian> {
     float kernel_width;
-    LaplacianOfGaussian( float size ) : kernel_width(size) {}
+    LaplacianOfGaussian(float size) : kernel_width(size) {}
 
     template <class ImageT>
     ConvolutionView<SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>, ImageView<typename DefaultKernelT<typename ImageT::pixel_type>::type>, ConstantEdgeExtension>
-    filter( ImageViewBase<ImageT> const& image ) const {
+    filter(ImageViewBase<ImageT> const& image) const {
       return laplacian_filter(gaussian_filter(image.impl(),kernel_width));
     }
   };
@@ -64,12 +64,12 @@ namespace vw {
   // instead of being skipped. Needs mask-aware weighted filtering.
   struct SubtractedMean : public PreFilterBase<SubtractedMean> {
     float kernel_width;
-    SubtractedMean( float size ) : kernel_width(size) {}
+    SubtractedMean(float size) : kernel_width(size) {}
 
     template <class ImageT>
     BinaryPerPixelView<EdgeExtensionView<ImageT, ConstantEdgeExtension>,SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>,vw::ArgArgDifferenceFunctor>
-    filter( ImageViewBase<ImageT> const& image ) const {
-      return edge_extend(image.impl(),ConstantEdgeExtension()) - gaussian_filter( image.impl(), kernel_width );
+    filter(ImageViewBase<ImageT> const& image) const {
+      return edge_extend(image.impl(),ConstantEdgeExtension()) - gaussian_filter(image.impl(), kernel_width);
     }
   };
 

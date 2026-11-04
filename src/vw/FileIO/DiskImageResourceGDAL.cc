@@ -63,7 +63,7 @@ namespace {
   }
   // GDAL warns when GDALClose is called on a NULL, even though it's documented
   // as being okay...
-  void GDALCloseNullOk( GDALDatasetH x ) {
+  void GDALCloseNullOk(GDALDatasetH x) {
     if (x)
       ::GDALClose(x);
   }
@@ -85,7 +85,7 @@ namespace vw {
       case VW_CHANNEL_FLOAT32: return GDT_Float32;
       case VW_CHANNEL_FLOAT64: return GDT_Float64;
       default:
-        vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << vw_type << ")." );
+        vw_throw(IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << vw_type << ").");
         return (GDALDataType)0; // never reached
       }
     }
@@ -105,7 +105,7 @@ namespace vw {
       case GDT_Float32: return VW_CHANNEL_FLOAT32;
       case GDT_Float64: return VW_CHANNEL_FLOAT64;
       default:
-        vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << gdal_type << ")." );
+        vw_throw(IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << gdal_type << ").");
         return (ChannelTypeEnum)0; // never reached
       }
     }
@@ -162,7 +162,7 @@ namespace vw {
         retval.push_back("SRTMHGT");             // NASA SRTM data.
       }
       else
-        vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
+        vw_throw(IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension.");
       return retval;
     }
   };
@@ -178,22 +178,22 @@ namespace vw {
     // argument specified by the user.
     std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
 
-    BOOST_FOREACH( std::string const& i, gdal_format_string ) {
+    BOOST_FOREACH(std::string const& i, gdal_format_string) {
       VW_OUT(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << i << std::endl;
       driver = GetGDALDriverManager()->GetDriverByName(i.c_str());
-      if( driver == NULL )
+      if(driver == NULL)
         continue;
 
       if (need_create) {
         CSLConstList metadata = driver->GetMetadata();
-        if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
+        if(!CSLFetchBoolean(metadata, GDAL_DCAP_CREATE, FALSE)) {
           VW_OUT(WarningMessage, "fileio") << "GDAL driver " << i << " does not support create." << std::endl;
           driver = NULL;
           unsupported_driver = true;
         }
       }
 
-      if ( driver != NULL )
+      if (driver != NULL)
         break;
     }
     if (!driver)
@@ -251,10 +251,10 @@ namespace vw {
     return val;
   }
 
-  void DiskImageResourceGDAL::set_nodata_write( double v ) {
+  void DiskImageResourceGDAL::set_nodata_write(double v) {
     Mutex::Lock lock(d::gdal());
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
-    if (dataset->GetRasterBand(1)->SetNoDataValue( v ) != CE_None)
+    if (dataset->GetRasterBand(1)->SetNoDataValue(v) != CE_None)
       vw_throw(IOErr() << "DiskImageResourceGDAL: Unable to set nodata value");
   }
 
@@ -293,7 +293,7 @@ namespace vw {
 
     VW_OUT(DebugMessage, "fileio") << "\tDriver: " <<
       dataset->GetDriver()->GetDescription() <<
-      dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) << std::endl;
+      dataset->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME) << std::endl;
 
     VW_OUT(DebugMessage, "fileio") << "\tSize is " <<
       dataset->GetRasterXSize() << "x" <<
@@ -304,22 +304,22 @@ namespace vw {
     // Commented out the color interpretation checks because the reader (below)
     // can't really cope well with the default multi-plane interpretation
     // and this is a quicker work-around than actually fixing the problem. -mdh
-    if ( dataset->GetRasterCount() == 1 /* &&
-                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex */ ) {
+    if (dataset->GetRasterCount() == 1 /* &&
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex */) {
       m_format.pixel_format = VW_PIXEL_GRAY;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 2 /* &&
+    } else if (dataset->GetRasterCount() == 2 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex &&
-                dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_AlphaBand */ ) {
+                dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_AlphaBand */) {
       m_format.pixel_format = VW_PIXEL_GRAYA;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 3 /* &&
+    } else if (dataset->GetRasterCount() == 3 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand */) {
       m_format.pixel_format = VW_PIXEL_RGB;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 4 /* &&
+    } else if (dataset->GetRasterCount() == 4 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand &&
@@ -332,18 +332,18 @@ namespace vw {
     }
     m_format.channel_type = gdal_pix_fmt_to_vw_channel_id::value(dataset->GetRasterBand(1)->GetRasterDataType());
     // Special limited read-only support for palette-based images
-    if( dataset->GetRasterCount() == 1 &&
-        dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_PaletteIndex &&
-        m_format.channel_type == VW_CHANNEL_UINT8 ) {
+    if(dataset->GetRasterCount() == 1 &&
+       dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_PaletteIndex &&
+       m_format.channel_type == VW_CHANNEL_UINT8) {
       m_format.pixel_format = VW_PIXEL_RGBA;
       m_format.planes = 1;
       GDALColorTable *color_table = dataset->GetRasterBand(1)->GetColorTable();
       int num_entries = color_table->GetColorEntryCount();
-      m_palette.resize( num_entries );
+      m_palette.resize(num_entries);
       GDALColorEntry color;
-      for( int i=0; i<num_entries; ++i ) {
-        color_table->GetColorEntryAsRGB( i, &color );
-        m_palette[i] = PixelRGBA<uint8>( color.c1, color.c2, color.c3, color.c4 );
+      for(int i=0; i<num_entries; ++i) {
+        color_table->GetColorEntryAsRGB(i, &color);
+        m_palette[i] = PixelRGBA<uint8>(color.c1, color.c2, color.c3, color.c4);
       }
     }
 
@@ -351,10 +351,10 @@ namespace vw {
   }
 
   /// Bind the resource to a file for writing.
-  void DiskImageResourceGDAL::create( std::string const& filename,
-                                      ImageFormat const& format,
-                                      Vector2i block_size,
-                                      Options const& user_options )
+  void DiskImageResourceGDAL::create(std::string const& filename,
+                                     ImageFormat const& format,
+                                     Vector2i block_size,
+                                     Options const& user_options)
   {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
@@ -402,31 +402,31 @@ namespace vw {
       m_write_dataset_ptr.reset();
     }
 
-    int num_bands = std::max( m_format.planes, num_channels( m_format.pixel_format ) );
+    int num_bands = std::max(m_format.planes, num_channels(m_format.pixel_format));
 
     // returns Maybe driver, and whether it
     // found a ro driver when a rw one was requested
     std::pair<GDALDriver *, bool> ret = gdal_get_driver_locked(m_filename, true);
 
-    if( ret.first == NULL ) {
-      if( ret.second )
-        vw_throw( vw::NoImplErr() << "Could not write: " << m_filename << ".  Selected GDAL driver not supported." );
+    if(ret.first == NULL) {
+      if(ret.second)
+        vw_throw(vw::NoImplErr() << "Could not write: " << m_filename << ".  Selected GDAL driver not supported.");
       else
-        vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
+        vw_throw(vw::IOErr() << "Error opening selected GDAL file I/O driver.");
     }
 
     GDALDriver *driver = ret.first;
     char **options = NULL;
 
-    if( m_format.pixel_format == VW_PIXEL_GRAYA || m_format.pixel_format == VW_PIXEL_RGBA ) {
-      options = CSLSetNameValue( options, "ALPHA", "YES" );
+    if(m_format.pixel_format == VW_PIXEL_GRAYA || m_format.pixel_format == VW_PIXEL_RGBA) {
+      options = CSLSetNameValue(options, "ALPHA", "YES");
     }
-    if( m_format.pixel_format != VW_PIXEL_SCALAR ) {
-      options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+    if(m_format.pixel_format != VW_PIXEL_SCALAR) {
+      options = CSLSetNameValue(options, "INTERLEAVE", "PIXEL");
     }
-    if( m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ||
-        m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
-      options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
+    if(m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ||
+       m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
+      options = CSLSetNameValue(options, "PHOTOMETRIC", "RGB");
     }
 
     // If the user has specified a block size, we set the option for it here.
@@ -434,20 +434,20 @@ namespace vw {
       std::ostringstream x_str, y_str;
       x_str << m_blocksize[0];
       y_str << m_blocksize[1];
-      options = CSLSetNameValue( options, "TILED", "YES" );
-      options = CSLSetNameValue( options, "BLOCKXSIZE", x_str.str().c_str() );
-      options = CSLSetNameValue( options, "BLOCKYSIZE", y_str.str().c_str() );
+      options = CSLSetNameValue(options, "TILED", "YES");
+      options = CSLSetNameValue(options, "BLOCKXSIZE", x_str.str().c_str());
+      options = CSLSetNameValue(options, "BLOCKYSIZE", y_str.str().c_str());
     }
 
-    BOOST_FOREACH( Options::value_type const& i, m_options )
-      options = CSLSetNameValue( options, i.first.c_str(), i.second.c_str() );
+    BOOST_FOREACH(Options::value_type const& i, m_options)
+      options = CSLSetNameValue(options, i.first.c_str(), i.second.c_str());
 
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(m_format.channel_type);
 
     m_write_dataset_ptr.reset(
-        driver->Create( m_filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options ),
+        driver->Create(m_filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options),
         GDALCloseNullOk);
-    CSLDestroy( options );
+    CSLDestroy(options);
 
     if (m_blocksize[0] == -1 || m_blocksize[1] == -1) {
       m_blocksize = default_block_size();
@@ -478,10 +478,10 @@ namespace vw {
   }
 
   /// Read the disk image into the given buffer.
-  void DiskImageResourceGDAL::read( ImageBuffer const& dest, BBox2i const& bbox ) const
+  void DiskImageResourceGDAL::read(ImageBuffer const& dest, BBox2i const& bbox) const
   {
-    VW_ASSERT( channels() == 1 || planes()==1,
-               LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
+    VW_ASSERT(channels() == 1 || planes()==1,
+              LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes.");
 
     ImageFormat src_fmt = m_format;
     src_fmt.cols = bbox.width();
@@ -495,16 +495,16 @@ namespace vw {
 
       boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
 
-      if( m_palette.empty() ) {
-        for ( int32 p = 0; p < planes(); ++p ) {
-          for ( int32 c = 0; c < channels(); ++c ) {
+      if(m_palette.empty()) {
+        for (int32 p = 0; p < planes(); ++p) {
+          for (int32 c = 0; c < channels(); ++c) {
             // Only one of channels() or planes() will be nonzero.
             GDALRasterBand  *band = dataset->GetRasterBand(c+p+1);
             GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
             CPLErr result =
-                band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                band->RasterIO(GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                             (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c,
-                            src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
+                            src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride);
               if (result != CE_None) {
                 vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
                     << CPLGetLastErrorMsg() << "'" << std::endl;
@@ -517,24 +517,24 @@ namespace vw {
         size_t num_index = size_t(bbox.width()) * bbox.height();
         std::vector<uint8> index_data(num_index);
         CPLErr result =
-            band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                        index_data.data(), bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
+            band->RasterIO(GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                        index_data.data(), bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width());
         if (result != CE_None) {
           vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
               << CPLGetLastErrorMsg() << "'" << std::endl;
         }
         PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) src.data;
-        for( size_t i=0; i<num_index; ++i )
+        for(size_t i=0; i<num_index; ++i)
           rgba_data[i] = m_palette[index_data[i]];
       }
     }
 
-    convert( dest, src, m_rescale );
+    convert(dest, src, m_rescale);
   }
 
 
   // Write the given buffer into the disk image.
-  void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
+  void DiskImageResourceGDAL::write(ImageBuffer const& src, BBox2i const& bbox)
   {
     ImageFormat dst_fmt = m_format;
     dst_fmt.cols = bbox.width();
@@ -543,7 +543,7 @@ namespace vw {
     boost::scoped_array<uint8> dst_data(new uint8[dst_fmt.byte_size()]);
     ImageBuffer dst(dst_fmt, dst_data.get());
 
-    convert( dst, src, m_rescale );
+    convert(dst, src, m_rescale);
 
     {
       Mutex::Lock lock(d::gdal());
@@ -555,9 +555,9 @@ namespace vw {
           GDALRasterBand *band = get_dataset_ptr()->GetRasterBand(c+p+1);
 
           CPLErr result =
-              band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+              band->RasterIO(GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                           (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c,
-                          dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
+                          dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride);
           if (result != CE_None) {
             vw_out(WarningMessage, "fileio") << "RasterIO trouble: '"
                                              << CPLGetLastErrorMsg() << "'" << std::endl;
@@ -597,8 +597,8 @@ namespace vw {
   // so this signature mirrors that.
   const char* const* DiskImageResourceGDAL::get_metadata() const {
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
-    if( dataset == NULL ) {
-      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << "." );
+    if(dataset == NULL) {
+      vw_throw(IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << ".");
     }
     return dataset->GetMetadata();
   }
@@ -618,14 +618,14 @@ namespace vw {
   }
 
   // A FileIO hook to open a file for reading
-  vw::DiskImageResource* DiskImageResourceGDAL::construct_open( std::string const& filename ) {
-    return new DiskImageResourceGDAL( filename );
+  vw::DiskImageResource* DiskImageResourceGDAL::construct_open(std::string const& filename) {
+    return new DiskImageResourceGDAL(filename);
   }
 
   // A FileIO hook to open a file for writing
-  vw::DiskImageResource* DiskImageResourceGDAL::construct_create( std::string const& filename,
-                                                                  ImageFormat const& format ) {
-    return new DiskImageResourceGDAL( filename, format );
+  vw::DiskImageResource* DiskImageResourceGDAL::construct_create(std::string const& filename,
+                                                                 ImageFormat const& format) {
+    return new DiskImageResourceGDAL(filename, format);
   }
 } // namespace vw
 

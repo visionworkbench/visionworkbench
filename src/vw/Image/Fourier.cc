@@ -110,14 +110,14 @@ cv::Mat fftshift(cv::Mat const& in, bool reverse) {
   }
 
   // Create quadrants for the input and output images
-  cv::Mat q0_in(in, cv::Rect(  0,   0, cxi,   cyi  ));
-  cv::Mat q1_in(in, cv::Rect(cxi,   0, w-cxi, cyi  ));
-  cv::Mat q2_in(in, cv::Rect(  0, cyi, cxi,   h-cyi));
+  cv::Mat q0_in(in, cv::Rect(0,   0, cxi,   cyi));
+  cv::Mat q1_in(in, cv::Rect(cxi,   0, w-cxi, cyi));
+  cv::Mat q2_in(in, cv::Rect(0, cyi, cxi,   h-cyi));
   cv::Mat q3_in(in, cv::Rect(cxi, cyi, w-cxi, h-cyi));
 
-  cv::Mat q0_out(out, cv::Rect(  0,   0, cxo,   cyo  ));
-  cv::Mat q1_out(out, cv::Rect(cxo,   0, w-cxo, cyo  ));
-  cv::Mat q2_out(out, cv::Rect(  0, cyo, cxo,   h-cyo));
+  cv::Mat q0_out(out, cv::Rect(0,   0, cxo,   cyo));
+  cv::Mat q1_out(out, cv::Rect(cxo,   0, w-cxo, cyo));
+  cv::Mat q2_out(out, cv::Rect(0, cyo, cxo,   h-cyo));
   cv::Mat q3_out(out, cv::Rect(cxo, cyo, w-cxo, h-cyo));
 
   // Copy all of the opposite quadrants.

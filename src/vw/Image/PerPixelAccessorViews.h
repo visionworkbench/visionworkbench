@@ -74,15 +74,15 @@ namespace vw {
     typedef typename boost::result_of<FuncT(typename ImageT::pixel_accessor)>::type result_type;
     typedef typename boost::remove_reference<result_type>::type                     pixel_type;
 
-    UnaryPerPixelAccessorView( ImageT const& image                    ) : m_image(image), m_func() {}
-    UnaryPerPixelAccessorView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
+    UnaryPerPixelAccessorView(ImageT const& image) : m_image(image), m_func() {}
+    UnaryPerPixelAccessorView(ImageT const& image, FuncT const& func) : m_image(image), m_func(func) {}
 
     inline int32 cols  () const { return m_image.cols();   }
     inline int32 rows  () const { return m_image.rows();   }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image.origin().advance(i,j,p)); }
+    inline result_type operator()(int32 i, int32 j, int32 p=0) const { return m_func(m_image.origin().advance(i,j,p)); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -102,24 +102,24 @@ namespace vw {
                                       UnaryPerPixelAccessorView<CropView<ImageView<typename ImageT::pixel_type> >, FuncT > >::type prerasterize_type;
 
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i const& bbox, PreRastImageT const& image, true_type ) const {
-      return prerasterize_type( image.prerasterize(this->pad_bbox(bbox)), m_func );
+    prerasterize_type prerasterize_helper(BBox2i const& bbox, PreRastImageT const& image, true_type) const {
+      return prerasterize_type(image.prerasterize(this->pad_bbox(bbox)), m_func);
     }
 
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i const& bbox, PreRastImageT const& image, false_type ) const {
+    prerasterize_type prerasterize_helper(BBox2i const& bbox, PreRastImageT const& image, false_type) const {
       BBox2i adjusted_bbox = this->pad_bbox(bbox);
-      ImageView<typename ImageT::pixel_type> buf( adjusted_bbox.width(), adjusted_bbox.height(), m_image.planes() );
-      m_image.rasterize( buf, adjusted_bbox );
-      return prerasterize_type( CropView<ImageView<typename ImageT::pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(), -adjusted_bbox.min().y(),
-                                                                                               image.cols(), image.rows())), m_func);
+      ImageView<typename ImageT::pixel_type> buf(adjusted_bbox.width(), adjusted_bbox.height(), m_image.planes());
+      m_image.rasterize(buf, adjusted_bbox);
+      return prerasterize_type(CropView<ImageView<typename ImageT::pixel_type> >(buf, BBox2i(-adjusted_bbox.min().x(), -adjusted_bbox.min().y(),
+                                                                                              image.cols(), image.rows())), m_func);
     }
 
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return prerasterize_helper(bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      return prerasterize_helper(bbox, m_image, typename IsMultiplyAccessible<ImageT>::type());
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const { vw::rasterize(prerasterize(bbox), dest, bbox); }
     /// \endcond
   };
 

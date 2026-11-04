@@ -67,7 +67,7 @@ namespace vw {
                                        BBox2i region_of_interest,
                                        bool   do_horizontal_subpixel,
                                        bool   do_vertical_subpixel,
-                                       bool /*verbose*/ );
+                                       bool /*verbose*/);
 
   /// Research-y implementation of affine EM correlation.
   void
@@ -78,7 +78,7 @@ namespace vw {
                                     BBox2i region_of_interest,
                                     bool do_horizontal_subpixel,
                                     bool do_vertical_subpixel,
-                                    bool /*verbose*/ );
+                                    bool /*verbose*/);
 
   /// Affine subpixel correlation function
   /// - Similar to the _EM function but about 5X faster and sometimes less accurate.
@@ -90,7 +90,7 @@ namespace vw {
                               BBox2i region_of_interest,
                               bool   do_horizontal_subpixel,
                               bool   do_vertical_subpixel,
-                              bool /*verbose*/ );
+                              bool /*verbose*/);
 
   /// Lucas-Kanade subpixel correlation function
   /// - So far this one does not work that well.

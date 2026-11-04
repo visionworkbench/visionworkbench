@@ -54,7 +54,7 @@ fs::path make_file_relative_to_dir(fs::path const file, fs::path const dir) {
       typedef fs::path::const_iterator path_iterator;
       path_iterator file_it = file.begin();
       path_iterator dir_it = dir.begin();
-      while ( file_it != file.end() && dir_it != dir.end() ) {
+      while (file_it != file.end() && dir_it != dir.end()) {
         if (*file_it != *dir_it) break;
         ++file_it; ++dir_it;
       }
@@ -107,12 +107,12 @@ void create_out_dir(std::string out_prefix){
   return;
 }
 
-std::string strip_directory( std::string const& input){
+std::string strip_directory(std::string const& input){
  boost::filesystem::path p(input);
  return p.filename().string();
 }
 
-std::string strip_directory_and_extension( std::string const& input){
+std::string strip_directory_and_extension(std::string const& input){
  boost::filesystem::path p(input);
  return p.stem().string();
 }

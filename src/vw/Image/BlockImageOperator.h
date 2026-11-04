@@ -49,16 +49,16 @@ namespace vw {
   public:
     typedef typename ImageT::pixel_type pixel_type;
 
-    BlockImageOperator( ImageT const& image, FuncT & functor,
-                        Vector2i const& block_size,
-                        int num_threads = 0, Cache *cache = NULL )
-      : m_child           ( new ImageT(image) ),
-        m_functor         ( functor ),
-        m_block_size      ( block_size ),
-        m_num_threads     ( num_threads ),
-        m_cache_ptr       ( cache )
+    BlockImageOperator(ImageT const& image, FuncT & functor,
+                       Vector2i const& block_size,
+                       int num_threads = 0, Cache *cache = NULL)
+      : m_child           (new ImageT(image)),
+        m_functor         (functor),
+        m_block_size      (block_size),
+        m_num_threads     (num_threads),
+        m_cache_ptr       (cache)
     {
-      if( m_block_size.x() <= 0 || m_block_size.y() <= 0 )
+      if(m_block_size.x() <= 0 || m_block_size.y() <= 0)
         m_block_size = image_block::get_default_block_size<pixel_type>
           (image.rows(), image.cols(), image.planes());
 
@@ -79,7 +79,7 @@ namespace vw {
       RunFunctor functor_wrapper(*this);
 
       // Set up block processor to call the functor in parallel blocks.
-      image_block::BlockProcessor<RunFunctor> processor( functor_wrapper, m_block_size, m_num_threads );
+      image_block::BlockProcessor<RunFunctor> processor(functor_wrapper, m_block_size, m_num_threads);
 
       // Tell the block processor to do all the work.
       processor(bbox);
@@ -97,23 +97,23 @@ namespace vw {
     class RunFunctor {
       BlockImageOperator const& m_view;
     public:
-      RunFunctor( BlockImageOperator const& view)
+      RunFunctor(BlockImageOperator const& view)
         : m_view(view) {}
 
       /// Rasterize part of m_view into a buffer, then call m_functor on it.
-      void operator()( BBox2i const& bbox ) const {
+      void operator()(BBox2i const& bbox) const {
 
         // Set up the buffer where the image data will be copied to.
-        ImageView<BlockImageOperator::pixel_type> temp_image( bbox.width(), bbox.height(), 
-                                                              m_view.child().planes() );
+        ImageView<BlockImageOperator::pixel_type> temp_image(bbox.width(), bbox.height(), 
+                                                             m_view.child().planes());
 
-        if( m_view.m_cache_ptr ) {
+        if(m_view.m_cache_ptr) {
           // Ask the cache managing object to get the image tile, we might already have it.
           Vector2i block_index = m_view.m_block_manager.get_block_index(bbox);
 
           const Cache::Handle<image_block::BlockGenerator<ImageT> >& handle
             = m_view.m_block_manager.block(block_index);
-          handle->rasterize( temp_image, bbox - m_view.m_block_manager.get_block_start_pixel(block_index));
+          handle->rasterize(temp_image, bbox - m_view.m_block_manager.get_block_start_pixel(block_index));
           handle.release();
         }
         else // No cache, generate the image tile from scratch.
@@ -144,9 +144,9 @@ namespace vw {
   /// Create a BlockRasterizeView with no caching.
   /// - If each tile will only be accessed once then there is no need for a cache!
   template <class ImageT, class FuncT>
-  inline void block_op( ImageViewBase<ImageT> const& image,
-                        FuncT & functor,
-                        Vector2i const& block_size, int num_threads = 0 ) {
+  inline void block_op(ImageViewBase<ImageT> const& image,
+                       FuncT & functor,
+                       Vector2i const& block_size, int num_threads = 0) {
     BlockImageOperator<ImageT, FuncT> block_op(image.impl(), functor, block_size, num_threads);
     block_op.execute_func(bounding_box(image));
   }
@@ -154,9 +154,9 @@ namespace vw {
   /// Create a BlockImageOperator using the vw system Cache object.
   /// - Use this if there will be repeat tile access.
   template <class ImageT, class FuncT>
-  inline void block_op_cache( ImageViewBase<ImageT> const& image,
-                              FuncT & functor,
-                              Vector2i const& block_size, int num_threads = 0 ) {
+  inline void block_op_cache(ImageViewBase<ImageT> const& image,
+                             FuncT & functor,
+                             Vector2i const& block_size, int num_threads = 0) {
 
     BlockImageOperator<ImageT, FuncT> block_op(image.impl(), functor, block_size,
                                                num_threads, &vw_system_cache());

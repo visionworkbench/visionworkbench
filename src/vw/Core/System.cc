@@ -59,25 +59,25 @@ namespace {
 }
 
 vw::Settings &vw::vw_settings() {
-  system_cache_once.run( init_system_cache );
-  settings_once.run( init_settings );
+  system_cache_once.run(init_system_cache);
+  settings_once.run(init_settings);
   return *settings_ptr;
 }
 
 vw::Cache &vw::vw_system_cache() {
-  system_cache_once.run( init_system_cache );
-  settings_once.run( init_settings );
+  system_cache_once.run(init_system_cache);
+  settings_once.run(init_settings);
   settings_ptr->reload_config();
   resize_once.run(resize_cache);
   return *system_cache_ptr;
 }
 
 vw::StopwatchSet &vw::vw_stopwatch_set() {
-  stopwatch_set_once.run( init_stopwatch_set );
+  stopwatch_set_once.run(init_stopwatch_set);
   return *stopwatch_set_ptr;
 }
 
 vw::Log &vw::vw_log() {
-  log_once.run( init_log );
+  log_once.run(init_log);
   return *log_ptr;
 }

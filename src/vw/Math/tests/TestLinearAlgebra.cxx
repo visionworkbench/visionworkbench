@@ -127,8 +127,8 @@ TEST(LinearAlgebra, LeastSquaresStatic) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   x = least_squares(A,b);
 
-  EXPECT_NEAR( 0.52625521713421449830, x[0], 1e-6 );
-  EXPECT_NEAR( 0.37689005929142064427, x[1], 1e-6 );
+  EXPECT_NEAR(0.52625521713421449830, x[0], 1e-6);
+  EXPECT_NEAR(0.37689005929142064427, x[1], 1e-6);
 }
 
 TEST(LinearAlgebra, LeastSquaresUnderdetermined) {
@@ -149,8 +149,8 @@ TEST(LinearAlgebra, LeastSquaresUnderdetermined) {
 
   Vector<float,2> b_prime = A*x;
 
-  EXPECT_NEAR( 5,  b_prime[0], 1e-4 );
-  EXPECT_NEAR( 95, b_prime[1], 1e-4 );
+  EXPECT_NEAR(5,  b_prime[0], 1e-4);
+  EXPECT_NEAR(95, b_prime[1], 1e-4);
 }
 
 TEST(LinearAlgebra, LeastSquaresDynamic) {
@@ -171,9 +171,9 @@ TEST(LinearAlgebra, LeastSquaresDynamic) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   x = least_squares(A,b);
 
-  ASSERT_EQ( 2u, x.size() );
-  EXPECT_NEAR( 0.52625521713421449830, x[0], 1e-6 );
-  EXPECT_NEAR( 0.37689005929142064427, x[1], 1e-6 );
+  ASSERT_EQ(2u, x.size());
+  EXPECT_NEAR(0.52625521713421449830, x[0], 1e-6);
+  EXPECT_NEAR(0.37689005929142064427, x[1], 1e-6);
 }
 
 // Test the svd(A,s) routine with a float matrix
@@ -189,11 +189,11 @@ TEST(LinearAlgebra, SVDFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  ASSERT_EQ( 4u, s.size() );
-  EXPECT_NEAR( 744.6187691721427, s[0], 1e-4 );
-  EXPECT_NEAR( 336.4697156808418, s[1], 1.1e-4 );
-  EXPECT_NEAR( 262.4879718834515, s[2], 1e-4 );
-  EXPECT_NEAR( 5.838119793980186, s[3], 1e-4 );
+  ASSERT_EQ(4u, s.size());
+  EXPECT_NEAR(744.6187691721427, s[0], 1e-4);
+  EXPECT_NEAR(336.4697156808418, s[1], 1.1e-4);
+  EXPECT_NEAR(262.4879718834515, s[2], 1e-4);
+  EXPECT_NEAR(5.838119793980186, s[3], 1e-4);
 
   A = Matrix<float>(3,4);
   A(0,0) = 23;  A(0,1) = 1;  A(0,2) = 25; A(0,3) = 98;
@@ -203,9 +203,9 @@ TEST(LinearAlgebra, SVDFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_FLOAT_EQ( 739.852951773669f, s[0] );
-  EXPECT_FLOAT_EQ( 282.199549151858f, s[1] );
-  EXPECT_FLOAT_EQ( 16.0319746218911f, s[2] );
+  EXPECT_FLOAT_EQ(739.852951773669f, s[0]);
+  EXPECT_FLOAT_EQ(282.199549151858f, s[1]);
+  EXPECT_FLOAT_EQ(16.0319746218911f, s[2]);
 
   A = Matrix<float>(4,3);
   A(0,0) = 23;  A(0,1) = 1;  A(0,2) = 25;
@@ -216,9 +216,9 @@ TEST(LinearAlgebra, SVDFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_FLOAT_EQ( 444.786309525272f  , s[0] );
-  EXPECT_FLOAT_EQ( 292.84455931980744f, s[1] );
-  EXPECT_FLOAT_EQ( 16.649412472420977f, s[2] );
+  EXPECT_FLOAT_EQ(444.786309525272f, s[0]);
+  EXPECT_FLOAT_EQ(292.84455931980744f, s[1]);
+  EXPECT_FLOAT_EQ(16.649412472420977f, s[2]);
 }
 
 // Test the svd(A,s) routine with a double matrix
@@ -234,10 +234,10 @@ TEST(LinearAlgebra, SVDDouble) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 744.6187691721427, s[0], 1e-12 );
-  EXPECT_NEAR( 336.4697156808418, s[1], 1e-12 );
-  EXPECT_NEAR( 262.4879718834515, s[2], 1e-12 );
-  EXPECT_NEAR( 5.838119793980186, s[3], 1e-12 );
+  EXPECT_NEAR(744.6187691721427, s[0], 1e-12);
+  EXPECT_NEAR(336.4697156808418, s[1], 1e-12);
+  EXPECT_NEAR(262.4879718834515, s[2], 1e-12);
+  EXPECT_NEAR(5.838119793980186, s[3], 1e-12);
 
   A = Matrix<double>(3,4);
   A(0,0) = 23;  A(0,1) = 1;  A(0,2) = 25; A(0,3) = 98;
@@ -247,9 +247,9 @@ TEST(LinearAlgebra, SVDDouble) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 739.852951773669, s[0], 1e-12 );
-  EXPECT_NEAR( 282.199549151858, s[1], 1e-12 );
-  EXPECT_NEAR( 16.0319746218911, s[2], 1e-12 );
+  EXPECT_NEAR(739.852951773669, s[0], 1e-12);
+  EXPECT_NEAR(282.199549151858, s[1], 1e-12);
+  EXPECT_NEAR(16.0319746218911, s[2], 1e-12);
 
   A = Matrix<double>(4,3);
   A(0,0) = 23;  A(0,1) = 1;  A(0,2) = 25;
@@ -260,9 +260,9 @@ TEST(LinearAlgebra, SVDDouble) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 444.786309525272  , s[0], 1e-12 );
-  EXPECT_NEAR( 292.84455931980744, s[1], 1e-12 );
-  EXPECT_NEAR( 16.649412472420977, s[2], 1e-12 );
+  EXPECT_NEAR(444.786309525272, s[0], 1e-12);
+  EXPECT_NEAR(292.84455931980744, s[1], 1e-12);
+  EXPECT_NEAR(16.649412472420977, s[2], 1e-12);
 }
 
 // Test the svd(A,s) routine with a mixture of float and double matrix/vectors
@@ -278,10 +278,10 @@ TEST(LinearAlgebra, SVDDoubleFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 744.6187691721427, s[0], 1e-4 );
-  EXPECT_NEAR( 336.4697156808418, s[1], 1e-4 );
-  EXPECT_NEAR( 262.4879718834515, s[2], 1e-4 );
-  EXPECT_NEAR( 5.838119793980186, s[3], 1e-4 );
+  EXPECT_NEAR(744.6187691721427, s[0], 1e-4);
+  EXPECT_NEAR(336.4697156808418, s[1], 1e-4);
+  EXPECT_NEAR(262.4879718834515, s[2], 1e-4);
+  EXPECT_NEAR(5.838119793980186, s[3], 1e-4);
 }
 
 // Test the svd(A,s) routine with a mixture of float and double matrix/vectors
@@ -297,10 +297,10 @@ TEST(LinearAlgebra, SVDFloatDouble) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 744.6187691721427, s[0], 1e-12 );
-  EXPECT_NEAR( 336.4697156808418, s[1], 1e-12 );
-  EXPECT_NEAR( 262.4879718834515, s[2], 1e-12 );
-  EXPECT_NEAR( 5.838119793980186, s[3], 1e-12 );
+  EXPECT_NEAR(744.6187691721427, s[0], 1e-12);
+  EXPECT_NEAR(336.4697156808418, s[1], 1e-12);
+  EXPECT_NEAR(262.4879718834515, s[2], 1e-12);
+  EXPECT_NEAR(5.838119793980186, s[3], 1e-12);
 }
 
 // Test the svd(A,U,s,VT) routine with a float matrix
@@ -317,10 +317,10 @@ TEST(LinearAlgebra, SVDUsVTFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,U,s,VT);
 
-  ASSERT_EQ( A.rows(), U.rows() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), U.cols() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), VT.rows() );
-  ASSERT_EQ( A.cols(), VT.cols() );
+  ASSERT_EQ(A.rows(), U.rows());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), U.cols());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), VT.rows());
+  ASSERT_EQ(A.cols(), VT.cols());
 
   Matrix<float,4,4> result = U * diagonal_matrix(s) * VT;
   EXPECT_MATRIX_NEAR(A, result, 1e-3);
@@ -333,12 +333,12 @@ TEST(LinearAlgebra, SVDUsVTFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,U,s,VT);
 
-  ASSERT_EQ( A.rows(), U.rows() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), U.cols() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), VT.rows() );
-  ASSERT_EQ( A.cols(), VT.cols() );
+  ASSERT_EQ(A.rows(), U.rows());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), U.cols());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), VT.rows());
+  ASSERT_EQ(A.cols(), VT.cols());
 
-  EXPECT_MATRIX_NEAR( A, U*diagonal_matrix(s)*VT, 1e-3 );
+  EXPECT_MATRIX_NEAR(A, U*diagonal_matrix(s)*VT, 1e-3);
 
   A = Matrix<float>(4,3);
   A(0,0) = 23;  A(0,1) = 1;  A(0,2) = 25;
@@ -349,15 +349,15 @@ TEST(LinearAlgebra, SVDUsVTFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,U,s,VT);
 
-  ASSERT_EQ( A.rows(), U.rows() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), U.cols() );
-  ASSERT_EQ( std::min(A.rows(), A.cols()), VT.rows() );
-  ASSERT_EQ( A.cols(), VT.cols() );
+  ASSERT_EQ(A.rows(), U.rows());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), U.cols());
+  ASSERT_EQ(std::min(A.rows(), A.cols()), VT.rows());
+  ASSERT_EQ(A.cols(), VT.cols());
 
 // TODO: Fix this on the Mac!
 #if (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
 #else
-  EXPECT_MATRIX_NEAR( A, U * diagonal_matrix(s) * VT, 1.3e-4 );
+  EXPECT_MATRIX_NEAR(A, U * diagonal_matrix(s) * VT, 1.3e-4);
 #endif
 }
 
@@ -371,19 +371,19 @@ TEST(LinearAlgebra, QRDDouble) {
 
   qrd(A, Q, R);
 
-  EXPECT_NEAR( 1, std::fabs(det(Q)), 1e-13); // Q must be unitary <-> det 1
+  EXPECT_NEAR(1, std::fabs(det(Q)), 1e-13); // Q must be unitary <-> det 1
 
   // really unitary?
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-13 );
-  EXPECT_MATRIX_NEAR( A, Q*R, 1e-12 );
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-13);
+  EXPECT_MATRIX_NEAR(A, Q*R, 1e-12);
 
   // R must be upper triangular
-  EXPECT_EQ( 0, R(1, 0) );
-  EXPECT_EQ( 0, R(2, 1) );
-  EXPECT_EQ( 0, R(2, 0) );
-  EXPECT_EQ( 0, R(3, 2) );
-  EXPECT_EQ( 0, R(3, 1) );
-  EXPECT_EQ( 0, R(3, 0) );
+  EXPECT_EQ(0, R(1, 0));
+  EXPECT_EQ(0, R(2, 1));
+  EXPECT_EQ(0, R(2, 0));
+  EXPECT_EQ(0, R(3, 2));
+  EXPECT_EQ(0, R(3, 1));
+  EXPECT_EQ(0, R(3, 0));
 }
 
 // Test the qrd(A, Q, R) routine with float matrices
@@ -397,8 +397,8 @@ TEST(LinearAlgebra, QRDFloat) {
   qrd(A, Q, R);
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 2.5e-7); // Q must be unitary <-> det 1
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-6 );
-  EXPECT_MATRIX_NEAR( A, Q*R, 1e-3);
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-6);
+  EXPECT_MATRIX_NEAR(A, Q*R, 1e-3);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -421,8 +421,8 @@ TEST(LinearAlgebra, QRDDoubleFloatFloat) {
   qrd(A, Q, R);
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 1e-6); // Q must be unitary <-> det 1
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-6 );
-  EXPECT_MATRIX_NEAR( A, Q*R, 1e-4 );
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-6);
+  EXPECT_MATRIX_NEAR(A, Q*R, 1e-4);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -444,8 +444,8 @@ TEST(LinearAlgebra, RQDDouble) {
   rqd(A, R, Q);
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 1e-15); // Q must be unitary <-> det 1
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-15 );
-  EXPECT_MATRIX_NEAR( A, R*Q, 1e-12 );
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-15);
+  EXPECT_MATRIX_NEAR(A, R*Q, 1e-12);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -467,8 +467,8 @@ TEST(LinearAlgebra, RQDFloat) {
   rqd(A, R, Q);
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 1e-6); // Q must be unitary <-> det 1
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-6 );
-  EXPECT_MATRIX_NEAR( A, R*Q, 1e-3 );
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-6);
+  EXPECT_MATRIX_NEAR(A, R*Q, 1e-3);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -491,8 +491,8 @@ TEST(LinearAlgebra, RQDDoubleFloatFloat) {
   rqd(A, R, Q);
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 1e-20); // Q must be unitary <-> det 1
-  EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-7 );
-  EXPECT_MATRIX_NEAR( A, R*Q, 1e-4 );
+  EXPECT_MATRIX_NEAR(identity_matrix(4), Q*transpose(Q), 1e-7);
+  EXPECT_MATRIX_NEAR(A, R*Q, 1e-4);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -515,10 +515,10 @@ TEST(LinearAlgebra, PseudoInverse) {
   Matrix<float> Ap = pseudoinverse(A);
 
   // moore-penrose pseudoinverse criteria
-  EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1e-3 );
-  EXPECT_MATRIX_NEAR( Ap,   Ap*A*Ap,         1e-6 );
-  EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-4 );
-  EXPECT_MATRIX_NEAR( Ap*A, transpose(Ap*A), 1e-4 );
+  EXPECT_MATRIX_NEAR(A,    A*Ap*A,          1e-3);
+  EXPECT_MATRIX_NEAR(Ap,   Ap*A*Ap,         1e-6);
+  EXPECT_MATRIX_NEAR(A*Ap, transpose(A*Ap), 1e-4);
+  EXPECT_MATRIX_NEAR(Ap*A, transpose(Ap*A), 1e-4);
 
   float Ap_expect_[16] = {
       -0.007535090380630f, 0.003022093679622f, 0.000825360012021f,-0.000322071891793f,
@@ -527,7 +527,7 @@ TEST(LinearAlgebra, PseudoInverse) {
        0.005498699840759f,-0.000931257008338f, 0.000803150761994f,-0.000395453316709f
   };
 
-  EXPECT_MATRIX_NEAR( (MatrixProxy<float>(Ap_expect_, 4, 4)), Ap, 1e-6 );
+  EXPECT_MATRIX_NEAR((MatrixProxy<float>(Ap_expect_, 4, 4)), Ap, 1e-6);
 
   A = Matrix<float>(3,4);
   A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
@@ -537,10 +537,10 @@ TEST(LinearAlgebra, PseudoInverse) {
   Ap = pseudoinverse(A);
 
   // moore-penrose pseudoinverse criteria
-  EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1e-3 );
-  EXPECT_MATRIX_NEAR( Ap,   Ap*A*Ap,         1e-7 );
-  EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-5 );
-  EXPECT_MATRIX_NEAR( Ap*A, transpose(Ap*A), 1e-5 );
+  EXPECT_MATRIX_NEAR(A,    A*Ap*A,          1e-3);
+  EXPECT_MATRIX_NEAR(Ap,   Ap*A*Ap,         1e-7);
+  EXPECT_MATRIX_NEAR(A*Ap, transpose(A*Ap), 1e-5);
+  EXPECT_MATRIX_NEAR(Ap*A, transpose(Ap*A), 1e-5);
 
   float Ap_expect2_[12] = {
     -0.013350897144624f,  0.002778722755045f,  0.001696852752391f,
@@ -549,9 +549,9 @@ TEST(LinearAlgebra, PseudoInverse) {
     -0.001642190540437f, -0.001230077991375f,  0.001873205937403f
   };
 
-  ASSERT_EQ( A.cols(), Ap.rows() );
-  ASSERT_EQ( A.rows(), Ap.cols() );
-  EXPECT_MATRIX_NEAR( MatrixProxy<float>(Ap_expect2_, 4, 3), Ap, 1e-7 );
+  ASSERT_EQ(A.cols(), Ap.rows());
+  ASSERT_EQ(A.rows(), Ap.cols());
+  EXPECT_MATRIX_NEAR(MatrixProxy<float>(Ap_expect2_, 4, 3), Ap, 1e-7);
 
   A = Matrix<float>(4,3);
   A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
@@ -564,10 +564,10 @@ TEST(LinearAlgebra, PseudoInverse) {
 #if (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
 #else
   // moore-penrose pseudoinverse criteria
-  EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1.1e-4 );
-  EXPECT_MATRIX_NEAR( Ap,   Ap*A*Ap,         1e-8 );
-  EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-5 );
-  EXPECT_MATRIX_NEAR( Ap*A, transpose(Ap*A), 1e-5 );
+  EXPECT_MATRIX_NEAR(A,    A*Ap*A,          1.1e-4);
+  EXPECT_MATRIX_NEAR(Ap,   Ap*A*Ap,         1e-8);
+  EXPECT_MATRIX_NEAR(A*Ap, transpose(A*Ap), 1e-5);
+  EXPECT_MATRIX_NEAR(Ap*A, transpose(Ap*A), 1e-5);
 
   float Ap_expect3_[12] = {
     -0.000045251795784f,  0.001753618426299f, 0.001919340360256f,-0.000860723135862f,
@@ -575,9 +575,9 @@ TEST(LinearAlgebra, PseudoInverse) {
      0.002638947028891f,  0.006117214395082f,-0.009194090685064f, 0.003615693257945f
   };
 
-  ASSERT_EQ( A.cols(), Ap.rows() );
-  ASSERT_EQ( A.rows(), Ap.cols() );
-  EXPECT_MATRIX_NEAR( MatrixProxy<float>(Ap_expect3_, 3, 4), Ap, 1e-7);
+  ASSERT_EQ(A.cols(), Ap.rows());
+  ASSERT_EQ(A.rows(), Ap.cols());
+  EXPECT_MATRIX_NEAR(MatrixProxy<float>(Ap_expect3_, 3, 4), Ap, 1e-7);
 #endif
 }
 
@@ -605,18 +605,18 @@ TEST(LinearAlgebra, Eigen) {
   // Values are returned in no particular order
   std::sort(e.begin(), e.end(), less_cdouble);
 
-  EXPECT_NEAR( e(0).real(), -397.9430935051340, 1e-11 );
-  EXPECT_NEAR( e(0).imag(),    0.0,             1e-11 );
-  EXPECT_NEAR( e(1).real(),  -16.4778368282945, 1e-11 );
-  EXPECT_NEAR( e(1).imag(),  -38.3039533150042, 1e-11 );
-  EXPECT_NEAR( e(2).real(),  -16.4778368282945, 1e-11 );
-  EXPECT_NEAR( e(2).imag(),   38.3039533150042, 1e-11 );
-  EXPECT_NEAR( e(3).real(),  554.8987671617240, 1e-11 );
-  EXPECT_NEAR( e(3).imag(),    0.0,             1e-11 );
+  EXPECT_NEAR(e(0).real(), -397.9430935051340, 1e-11);
+  EXPECT_NEAR(e(0).imag(),    0.0,             1e-11);
+  EXPECT_NEAR(e(1).real(),  -16.4778368282945, 1e-11);
+  EXPECT_NEAR(e(1).imag(),  -38.3039533150042, 1e-11);
+  EXPECT_NEAR(e(2).real(),  -16.4778368282945, 1e-11);
+  EXPECT_NEAR(e(2).imag(),   38.3039533150042, 1e-11);
+  EXPECT_NEAR(e(3).real(),  554.8987671617240, 1e-11);
+  EXPECT_NEAR(e(3).imag(),    0.0,             1e-11);
 
   eigen(A,e,V);
 
-  EXPECT_COMPLEX_MATRIX_NEAR( A*V, V*diagonal_matrix(e), 1e-12 );
+  EXPECT_COMPLEX_MATRIX_NEAR(A*V, V*diagonal_matrix(e), 1e-12);
 }
 
 TEST(LinearAlgebra, Static) {
@@ -632,11 +632,11 @@ TEST(LinearAlgebra, Static) {
 
   Vector<float,3> x = solve(A,b);
 
-  EXPECT_VECTOR_NEAR( b, A*x, 1e-5 );
+  EXPECT_VECTOR_NEAR(b, A*x, 1e-5);
 
-  EXPECT_NEAR( 764269./272205, x(0), 1e-6 );
-  EXPECT_NEAR( -72983./30245,  x(1), 1e-6 );
-  EXPECT_NEAR( -9527./90735,   x(2), 1e-6 );
+  EXPECT_NEAR(764269./272205, x(0), 1e-6);
+  EXPECT_NEAR(-72983./30245,  x(1), 1e-6);
+  EXPECT_NEAR(-9527./90735,   x(2), 1e-6);
 }
 
 TEST(LinearAlgebra, SymmetricStatic) {
@@ -666,10 +666,10 @@ TEST(LinearAlgebra, SymmetricStatic) {
   L(1,2) = 0;
 
   // Check that answer is correct
-  EXPECT_VECTOR_NEAR( b, A*x, 1e-3 );
+  EXPECT_VECTOR_NEAR(b, A*x, 1e-3);
 
   // Check Cholesky factorization (lower-triangular)
-  EXPECT_MATRIX_FLOAT_EQ( A, L * transpose(L) );
+  EXPECT_MATRIX_FLOAT_EQ(A, L * transpose(L));
 
   float Lexpect_[9] = {
     121.675798744039000f,   0.000000000000000f,  0.000000000000000f,
@@ -678,12 +678,12 @@ TEST(LinearAlgebra, SymmetricStatic) {
   };
   Matrix<float,3,3> Lexpect(Lexpect_);
 
-  EXPECT_MATRIX_NEAR( Lexpect, L, 1e-4 );
+  EXPECT_MATRIX_NEAR(Lexpect, L, 1e-4);
 
   // Check exact values
-  EXPECT_NEAR( -0.135965535811725 , x(0), 1e-6 );
-  EXPECT_NEAR( 0.147253418731322  , x(1), 1e-6 );
-  EXPECT_NEAR( 0.009983456063811  , x(2), 1e-6 );
+  EXPECT_NEAR(-0.135965535811725, x(0), 1e-6);
+  EXPECT_NEAR(0.147253418731322, x(1), 1e-6);
+  EXPECT_NEAR(0.009983456063811, x(2), 1e-6);
 
   Matrix<float,3,2> B;
   B(0,0) = 5; B(1,0) = 95; B(2,0) = 2;
@@ -692,7 +692,7 @@ TEST(LinearAlgebra, SymmetricStatic) {
   Matrix<float> X;
   X = multi_solve_symmetric(A,B);
 
-  EXPECT_MATRIX_NEAR( B, A*X, 1e-3 );
+  EXPECT_MATRIX_NEAR(B, A*X, 1e-3);
 }
 
 TEST(LinearAlgebra, RankAndNullspace) {
@@ -703,10 +703,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
   magic(2,0) = 4; magic(2,1) = 9; magic(2,2) = 2;
 
   Matrix<double> nullsp = nullspace(magic);
-  EXPECT_EQ( 0u, nullsp.cols() );
-  EXPECT_EQ( 0u, nullsp.rows() );
-  EXPECT_EQ( 3,  rank(magic) );  // It's square yo
-  EXPECT_EQ( 0u, nullity(magic) );
+  EXPECT_EQ(0u, nullsp.cols());
+  EXPECT_EQ(0u, nullsp.rows());
+  EXPECT_EQ(3,  rank(magic));  // It's square yo
+  EXPECT_EQ(0u, nullity(magic));
 
   { // Common example of nullspace
     Matrix<double> cow(2,4);
@@ -714,19 +714,19 @@ TEST(LinearAlgebra, RankAndNullspace) {
     cow(1,0) = 2;  cow(1,1) = 0; cow(1,2) = 1; cow(1,3) = -7;
 
     nullsp = nullspace(cow);
-    EXPECT_EQ( nullsp.cols(), 2u );
-    EXPECT_EQ( nullsp.rows(), 4u );
+    EXPECT_EQ(nullsp.cols(), 2u);
+    EXPECT_EQ(nullsp.rows(), 4u);
 
     Vector<double> definition_check;
     definition_check = cow*select_col(nullsp,0);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-8 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-8);
     definition_check = cow*select_col(nullsp,1);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-8 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-8);
 
-    EXPECT_EQ( 2,  rank(cow) );
-    EXPECT_EQ( 2u, nullity(cow) );
+    EXPECT_EQ(2,  rank(cow));
+    EXPECT_EQ(2u, nullity(cow));
   }
 
   { // Data that threw an error in the past
@@ -740,26 +740,26 @@ TEST(LinearAlgebra, RankAndNullspace) {
       391777,206916,401,430857,227556,441,977,516,1
     };
 
-    MatrixProxy<float> monkey( monkey_data, 7, 9 );
+    MatrixProxy<float> monkey(monkey_data, 7, 9);
     nullsp = nullspace(monkey);
-    EXPECT_EQ( 2u, nullsp.cols() );
-    EXPECT_EQ( 9u, nullsp.rows() );
-    EXPECT_EQ( 7, rank(monkey) );
-    EXPECT_EQ( 2u, nullity(monkey) );
+    EXPECT_EQ(2u, nullsp.cols());
+    EXPECT_EQ(9u, nullsp.rows());
+    EXPECT_EQ(7, rank(monkey));
+    EXPECT_EQ(2u, nullity(monkey));
 
     Vector<double> definition_check;
     definition_check = monkey*select_col(nullsp,0);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-1 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-1);
     definition_check = monkey*select_col(nullsp,1);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-1 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-1);
 
     nullsp = nullspace(transpose(monkey));
-    EXPECT_EQ( 0u, nullsp.cols() );
-    EXPECT_EQ( 0u, nullsp.rows() );
-    EXPECT_EQ( 7, rank(transpose(monkey)) );
-    EXPECT_EQ( 0u, nullity(transpose(monkey)) );
+    EXPECT_EQ(0u, nullsp.cols());
+    EXPECT_EQ(0u, nullsp.rows());
+    EXPECT_EQ(7, rank(transpose(monkey)));
+    EXPECT_EQ(0u, nullity(transpose(monkey)));
   }
 
   {  // More Data that threw an error in the past
@@ -773,21 +773,21 @@ TEST(LinearAlgebra, RankAndNullspace) {
       1.15748e+06,708400,1265,562725,344400,615,915,560,1
     };
 
-    MatrixProxy<double> shark( shark_data, 7, 9 );
+    MatrixProxy<double> shark(shark_data, 7, 9);
     nullsp = nullspace(shark);
-    EXPECT_EQ( nullsp.cols(), 2u );
-    EXPECT_EQ( nullsp.rows(), 9u );
+    EXPECT_EQ(nullsp.cols(), 2u);
+    EXPECT_EQ(nullsp.rows(), 9u);
 
     Vector<double> definition_check;
     definition_check = shark*select_col(nullsp,0);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-5 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-5);
     definition_check = shark*select_col(nullsp,1);
-    for ( uint32 i = 0; i < definition_check.size(); i++ )
-      EXPECT_NEAR( 0, definition_check(i), 1e-5 );
+    for (uint32 i = 0; i < definition_check.size(); i++)
+      EXPECT_NEAR(0, definition_check(i), 1e-5);
 
-    EXPECT_EQ( 7, rank(shark) );
-    EXPECT_EQ( 2u, nullity(shark) );
+    EXPECT_EQ(7, rank(shark));
+    EXPECT_EQ(2u, nullity(shark));
   }
 }
 
@@ -807,31 +807,31 @@ TEST(LinearAlgebra, LU_Decomposition) {
 
     double tol = 1e-4;
     Vector<float> result = decomposition.solve(b1);
-    ASSERT_EQ( 3u, result.size() );
-    EXPECT_VECTOR_NEAR( Vector3f(4,5,6), result, tol );
+    ASSERT_EQ(3u, result.size());
+    EXPECT_VECTOR_NEAR(Vector3f(4,5,6), result, tol);
     result = decomposition.solve(b2);
-    ASSERT_EQ( 3u, result.size() );
-    EXPECT_VECTOR_NEAR( Vector3f(1.7,-3.9,0.3), result, tol );
+    ASSERT_EQ(3u, result.size());
+    EXPECT_VECTOR_NEAR(Vector3f(1.7,-3.9,0.3), result, tol);
 
     // Try again with doubles
     Matrix<double> ad = a;
     LUD<double> decompositiond(ad);
     Vector<double> resultd = decompositiond.solve(b1);
-    ASSERT_EQ( resultd.size(), 3u );
-    EXPECT_VECTOR_NEAR( Vector3(4,5,6), resultd, tol );
+    ASSERT_EQ(resultd.size(), 3u);
+    EXPECT_VECTOR_NEAR(Vector3(4,5,6), resultd, tol);
     resultd = decompositiond.solve(b2);
-    ASSERT_EQ( resultd.size(), 3u );
-    EXPECT_VECTOR_NEAR( Vector3(1.7,-3.9,0.3), resultd, tol );
+    ASSERT_EQ(resultd.size(), 3u);
+    EXPECT_VECTOR_NEAR(Vector3(1.7,-3.9,0.3), resultd, tol);
 
     // Check for singular
     a(2,2) = 9;
-    EXPECT_THROW( LUD<float> monkey(a),
-                  ArgumentErr );
+    EXPECT_THROW(LUD<float> monkey(a),
+                 ArgumentErr);
   }
   {
     // Test Non Square Error
     Matrix<double> a(4,3);
-    EXPECT_THROW( LUD<double> monkey(a),
-                  ArgumentErr );
+    EXPECT_THROW(LUD<double> monkey(a),
+                 ArgumentErr);
   }
 }

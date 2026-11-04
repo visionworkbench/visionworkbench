@@ -72,7 +72,7 @@ void WorkQueue::WorkerThread::operator()() {
       if (!m_task) // No more tasks, notify parent queue that we are finished.
         m_queue.worker_thread_complete(m_thread_id);
     }
-  } while ( m_task && !m_should_die ); // Quit if no task or when instructed
+  } while (m_task && !m_should_die); // Quit if no task or when instructed
 }
 
 
@@ -90,7 +90,7 @@ void WorkQueue::worker_thread_complete(int worker_id) {
   m_joined_event.notify_all();
 }
 
-WorkQueue::WorkQueue(int num_threads )
+WorkQueue::WorkQueue(int num_threads)
   : m_active_workers(0), m_max_workers(num_threads), m_should_die(false) {
   m_running_threads.resize(num_threads);
   for (int i = 0; i < num_threads; ++i)
@@ -104,14 +104,14 @@ void WorkQueue::notify() {
   // While there are available threads, farm out the tasks from
   // the task generator
   boost::shared_ptr<Task> task;
-  while ( !m_available_thread_ids.empty() &&
-          (task = this->get_next_task()) ) {
+  while (!m_available_thread_ids.empty() &&
+         (task = this->get_next_task())) {
     int next_available_thread_id = m_available_thread_ids.front();
     m_available_thread_ids.pop_front();
 
-    boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task,
-                                                                  next_available_thread_id,
-                                                                  m_should_die) );
+    boost::shared_ptr<WorkerThread> next_worker(new WorkerThread(*this, task,
+                                                                 next_available_thread_id,
+                                                                 m_should_die));
     boost::shared_ptr<Thread> thread(new Thread(next_worker));
     m_running_threads[next_available_thread_id] = thread;
     m_active_workers++;

@@ -30,10 +30,10 @@ static void vw_jpeg_error_exit(j_common_ptr cinfo) {
   (*cinfo->err->format_message)(cinfo, buffer);
   int msg_code = cinfo->err->msg_code;
   jpeg_destroy(cinfo);
-  if ( msg_code == JERR_NO_SOI )
-    vw::vw_throw( vw::ArgumentErr() << "JpegIO: Cannot open non-jpeg files.\n" );
+  if (msg_code == JERR_NO_SOI)
+    vw::vw_throw(vw::ArgumentErr() << "JpegIO: Cannot open non-jpeg files.\n");
   else
-    vw::vw_throw( vw::IOErr() << "JpegIO error: " << buffer );
+    vw::vw_throw(vw::IOErr() << "JpegIO error: " << buffer);
 }
 
 
@@ -175,7 +175,7 @@ void JpegIOCompress::open() {
       m_ctx.in_color_space = JCS_RGB;
       break;
     default:
-        vw_throw( IOErr() << "JpegIOCompress: Unsupported pixel type (" << fmt().pixel_format << ")." );
+        vw_throw(IOErr() << "JpegIOCompress: Unsupported pixel type (" << fmt().pixel_format << ").");
   }
 
   m_cstride = m_ctx.input_components;

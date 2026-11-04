@@ -90,10 +90,10 @@ namespace math {
     VectorT const& impl() const { return *static_cast<VectorT const*>(this); }
 
     // Arithmetic operators
-    template <class T> VectorT& operator+=( T const& v ) { return impl() = impl() + v; }
-    template <class T> VectorT& operator-=( T const& v ) { return impl() = impl() - v; }
-    template <class T> VectorT& operator*=( T        s ) { return impl() = impl() * s; } // TODO: Why not const input?
-    template <class T> VectorT& operator/=( T        s ) { return impl() = impl() / s; }
+    template <class T> VectorT& operator+=(T const& v) { return impl() = impl() + v; }
+    template <class T> VectorT& operator-=(T const& v) { return impl() = impl() - v; }
+    template <class T> VectorT& operator*=(T        s) { return impl() = impl() * s; } // TODO: Why not const input?
+    template <class T> VectorT& operator/=(T        s) { return impl() = impl() / s; }
   };
 
 
@@ -109,7 +109,7 @@ namespace math {
   class VectorNoTmp {
     VectorT const& m_val;
   public:
-    VectorNoTmp( VectorT const& val ) : m_val( val ) {}
+    VectorNoTmp(VectorT const& val) : m_val(val) {}
     VectorT const& impl() const { return m_val; }
   };
 
@@ -117,8 +117,8 @@ namespace math {
   /// of temporary objects during vector assignment in cases where the
   /// user deems it safe.  Use with care.
   template <class VectorT>
-  VectorNoTmp<VectorT> no_tmp( VectorBase<VectorT> const& val ) {
-    return VectorNoTmp<VectorT>( val.impl() );
+  VectorNoTmp<VectorT> no_tmp(VectorBase<VectorT> const& val) {
+    return VectorNoTmp<VectorT>(val.impl());
   }
 
 
@@ -126,8 +126,8 @@ namespace math {
   /// operations in specific cases for efficiency, using template specialization.
   template <class DstVecT, class SrcVecT>
   struct VectorAssignImpl {
-    static void assign( DstVecT& dst, SrcVecT const& src ) {
-      std::copy( src.begin(), src.end(), dst.begin() );
+    static void assign(DstVecT& dst, SrcVecT const& src) {
+      std::copy(src.begin(), src.end(), dst.begin());
     }
   };
 
@@ -135,8 +135,8 @@ namespace math {
   /// operation in specific cases for efficiency, using template specialization.
   template <class VectorT>
   struct VectorClearImpl {
-    static void clear( VectorT& vec ) {
-      std::fill( vec.begin(), vec.end(), typename VectorT::value_type() );
+    static void clear(VectorT& vec) {
+      std::fill(vec.begin(), vec.end(), typename VectorT::value_type());
     }
   };
 
@@ -145,13 +145,13 @@ namespace math {
   /// - For all other types, this just tries a regular assignment operation.
   template <class VectorT>
   typename std::enable_if<std::is_base_of<VectorBase<VectorT>,VectorT>::value, void>::type
-  set_all( VectorT &vec, typename VectorT::value_type val ) {
+  set_all(VectorT &vec, typename VectorT::value_type val) {
     vec.set_all(val);
   }
   // Handle other types
   template <class ElemT1, class ElemT2>
   typename std::enable_if<!std::is_base_of<VectorBase<ElemT1>,ElemT1>::value, void>::type
-  set_all( ElemT1 &val1, ElemT2 val2 ) {
+  set_all(ElemT1 &val1, ElemT2 val2) {
     val1 = val2;
   }
 
@@ -173,11 +173,11 @@ namespace math {
     typedef std::ptrdiff_t difference_type;
     typedef std::random_access_iterator_tag iterator_category;
 
-    IndexingVectorIterator( VectorT& vector, difference_type index ) :
+    IndexingVectorIterator(VectorT& vector, difference_type index) :
       m_vector(&vector), m_index(index) {}
 
     reference operator*() const { return (*m_vector)[m_index]; }
-    reference operator[]( difference_type n ) const {
+    reference operator[](difference_type n) const {
       return (*m_vector)[m_index + n];
     }
 
@@ -190,12 +190,12 @@ namespace math {
       auto tmp = *this; --m_index; return tmp;
     }
 
-    IndexingVectorIterator& operator+=( difference_type n ) {
+    IndexingVectorIterator& operator+=(difference_type n) {
       if (m_vector->size() == 0) return *this;
       m_index += n;
       return *this;
     }
-    IndexingVectorIterator& operator-=( difference_type n ) {
+    IndexingVectorIterator& operator-=(difference_type n) {
       if (m_vector->size() == 0) return *this;
       m_index -= n;
       return *this;
@@ -276,31 +276,31 @@ namespace math {
     }
 
     /// Constructor for size 1 vectors
-    Vector( ElemT e1 ) {
+    Vector(ElemT e1) {
       static_assert(SizeN == 1, "");
       (*this)[0] = e1;
     }
 
     /// Constructor for size 2 vectors
-    Vector( ElemT e1, ElemT e2 ) {
+    Vector(ElemT e1, ElemT e2) {
       static_assert(SizeN == 2, "");
       (*this)[0] = e1; (*this)[1] = e2;
     }
 
     /// Constructor for size 3 vectors
-    Vector( ElemT e1, ElemT e2, ElemT e3 ) {
+    Vector(ElemT e1, ElemT e2, ElemT e3) {
       static_assert(SizeN == 3, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3;
     }
 
     /// Constructor for size 4 vectors
-    Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
+    Vector(ElemT e1, ElemT e2, ElemT e3, ElemT e4) {
       static_assert(SizeN == 4, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4;
     }
 
     /// Constructor for size 5 vectors
-    Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5 ) {
+    Vector(ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5) {
       static_assert(SizeN == 5, "");
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4; (*this)[4] = e5;
     }
@@ -308,32 +308,32 @@ namespace math {
     /// Constructs a vector from given densely-packed data.  This
     /// constructor copies the data.  If you wish to make a shallow
     /// proxy object instead, see vw::VectorProxy.
-    Vector( const ElemT data[SizeN] ) {
-      std::copy( data, data+SizeN, begin() );
+    Vector(const ElemT data[SizeN]) {
+      std::copy(data, data+SizeN, begin());
     }
 
     /// Standard copy constructor.
-    Vector( Vector const& v ) : core_( v.core_ ) {}
+    Vector(Vector const& v) : core_(v.core_) {}
 
     /// Generalized copy constructor, from arbitrary VW vector expressions.
     template <class T>
-    Vector( VectorBase<T> const& v ) {
-      VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
+    Vector(VectorBase<T> const& v) {
+      VW_ASSERT(v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << ".");
       VectorAssignImpl<Vector,T>::assign(*this,v.impl());
     }
 
     /// Standard copy assignment operator.
-    Vector& operator=( Vector const& v ) {
-      Vector tmp( v );
+    Vector& operator=(Vector const& v) {
+      Vector tmp(v);
       core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    Vector& operator=( VectorBase<T> const& v ) {
-      VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
-      Vector tmp( v );
+    Vector& operator=(VectorBase<T> const& v) {
+      VW_ASSERT(v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << ".");
+      Vector tmp(v);
       core_ = tmp.core_;
       return *this;
     }
@@ -341,8 +341,8 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Vector& operator=( VectorNoTmp<T> const& v ) {
-      VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
+    Vector& operator=(VectorNoTmp<T> const& v) {
+      VW_ASSERT(v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << ".");
       VectorAssignImpl<Vector,T>::assign(*this,v.impl());
       return *this;
     }
@@ -353,22 +353,22 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( size_t new_size, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot change size of fixed-size Vector." );
+    void set_size(size_t new_size, bool /*preserve*/ = false) {
+      VW_ASSERT(new_size==size(), ArgumentErr() << "Cannot change size of fixed-size Vector.");
     }
 
     /// Set all vector elements to a single value
     /// - If we care in the future, we could speed this up using a helper
     ///   implementation struct similar to VectorAssignImpl
-    void set_all( ElemT val ) {
+    void set_all(ElemT val) {
       for (size_t i=0; i<SizeN; ++i)
         core_[i] = val;
     }
 
-          reference_type operator()( size_t i )       { return core_[i]; }
-    const_reference_type operator()( size_t i ) const { return core_[i]; }
-          reference_type operator[]( size_t i )       { return core_[i]; }
-    const_reference_type operator[]( size_t i ) const { return core_[i]; }
+          reference_type operator()(size_t i)       { return core_[i]; }
+    const_reference_type operator()(size_t i) const { return core_[i]; }
+          reference_type operator[](size_t i)       { return core_[i]; }
+    const_reference_type operator[](size_t i) const { return core_[i]; }
 
 
           reference_type x()       { static_assert(SizeN >= 1, ""); return core_[0]; }
@@ -392,7 +392,7 @@ namespace math {
 
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,2>,SrcVecT> {
-    static void assign( Vector<DstElemT,2>& dst, SrcVecT const& src ) {
+    static void assign(Vector<DstElemT,2>& dst, SrcVecT const& src) {
       dst(0) = (DstElemT) src(0);
       dst(1) = (DstElemT) src(1);
     }
@@ -400,7 +400,7 @@ namespace math {
 
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,3>,SrcVecT> {
-    static void assign( Vector<DstElemT,3>& dst, SrcVecT const& src ) {
+    static void assign(Vector<DstElemT,3>& dst, SrcVecT const& src) {
       dst(0) = (DstElemT) src(0);
       dst(1) = (DstElemT) src(1);
       dst(2) = (DstElemT) src(2);
@@ -409,7 +409,7 @@ namespace math {
 
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,4>,SrcVecT> {
-    static void assign( Vector<DstElemT,4>& dst, SrcVecT const& src ) {
+    static void assign(Vector<DstElemT,4>& dst, SrcVecT const& src) {
       dst(0) = (DstElemT) src(0);
       dst(1) = (DstElemT) src(1);
       dst(2) = (DstElemT) src(2);
@@ -419,29 +419,29 @@ namespace math {
 
   template <class ElemT>
   struct VectorClearImpl<Vector<ElemT,2> > {
-    static void clear( Vector<ElemT,2>& v ) {
+    static void clear(Vector<ElemT,2>& v) {
       v(0) = v(1) = ElemT(0);
     }
   };
 
   template <class ElemT>
   struct VectorClearImpl<Vector<ElemT,3> > {
-    static void clear( Vector<ElemT,3>& v ) {
+    static void clear(Vector<ElemT,3>& v) {
       v(0) = v(1) = v(2) = ElemT();
     }
   };
 
   template <class ElemT>
   struct VectorClearImpl<Vector<ElemT,4> > {
-    static void clear( Vector<ElemT,4>& v ) {
+    static void clear(Vector<ElemT,4>& v) {
       v(0) = v(1) = v(2) = v(3) = ElemT();
     }
   };
 
   template <class ElemT, size_t N>
   struct VectorClearImpl<Vector<ElemT,N> > {
-    static void clear( Vector<ElemT,N>& v ) {
-      std::memset( &v(0), 0, N*sizeof(ElemT) );
+    static void clear(Vector<ElemT,N>& v) {
+      std::memset(&v(0), 0, N*sizeof(ElemT));
     }
   };
 
@@ -469,35 +469,35 @@ namespace math {
     Vector() {}
 
     /// Constructs a zero vector of the given size.
-    Vector( size_t size ) : core_(size) {}
+    Vector(size_t size) : core_(size) {}
 
     /// Constructs a vector of the given size from given
     /// densely- packed data.  This constructor copies the data.
     /// If you wish to make a shallow proxy object instead, see
     /// vw::VectorProxy.
-    Vector( size_t size, const ElemT *data ) : core_(data, data+size) {}
+    Vector(size_t size, const ElemT *data) : core_(data, data+size) {}
 
     /// Standard copy constructor.
-    Vector( Vector const& v ) : core_( v.core_ ) {}
+    Vector(Vector const& v) : core_(v.core_) {}
 
     /// Generalized copy constructor, from arbitrary VW vector expressions.
     template <class T>
-    Vector( VectorBase<T> const& v ) {
-      set_size( v.impl().size() );
+    Vector(VectorBase<T> const& v) {
+      set_size(v.impl().size());
       VectorAssignImpl<Vector,T>::assign(*this,v.impl());
     }
 
     /// Standard copy assignment operator.
-    Vector& operator=( Vector const& v ) {
-      Vector tmp( v );
+    Vector& operator=(Vector const& v) {
+      Vector tmp(v);
       core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    Vector& operator=( VectorBase<T> const& v ) {
-      Vector tmp( v );
+    Vector& operator=(VectorBase<T> const& v) {
+      Vector tmp(v);
       core_ = tmp.core_;
       return *this;
     }
@@ -505,8 +505,8 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Vector& operator=( VectorNoTmp<T> const& v ) {
-      if( v.impl().size()==size() ) {
+    Vector& operator=(VectorNoTmp<T> const& v) {
+      if(v.impl().size()==size()) {
         VectorAssignImpl<Vector,T>::assign(*this,v.impl());
         return *this;
       }
@@ -519,20 +519,20 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( size_t new_size, bool preserve = false ) {
+    void set_size(size_t new_size, bool preserve = false) {
       core_.resize(new_size, preserve);
     }
 
     /// Set all vector elements to a single value
-    void set_all( ElemT val ) {
+    void set_all(ElemT val) {
       for (size_t i=0; i<core_.size(); ++i)
         core_[i] = val;
     }
 
-          reference_type operator()( size_t i )       { return core_[i]; }
-    const_reference_type operator()( size_t i ) const { return core_[i]; }
-          reference_type operator[]( size_t i )       { return core_[i]; }
-    const_reference_type operator[]( size_t i ) const { return core_[i]; }
+          reference_type operator()(size_t i)       { return core_[i]; }
+    const_reference_type operator()(size_t i) const { return core_[i]; }
+          reference_type operator[](size_t i)       { return core_[i]; }
+    const_reference_type operator[](size_t i) const { return core_[i]; }
 
           iterator begin()       { return core_.begin(); }
     const_iterator begin() const { return core_.begin(); }
@@ -563,21 +563,21 @@ namespace math {
     typedef const ElemT* const_iterator;
 
     /// Constructs a vector proxy.
-    VectorProxy( ElemT *ptr ) : m_ptr(ptr) {}
+    VectorProxy(ElemT *ptr) : m_ptr(ptr) {}
 
     /// Standard copy assignment operator.
-    VectorProxy& operator=( VectorProxy const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      Vector<value_type> tmp( v );
+    VectorProxy& operator=(VectorProxy const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
+      Vector<value_type> tmp(v);
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    VectorProxy& operator=( VectorBase<T> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      Vector<value_type> tmp( v );
+    VectorProxy& operator=(VectorBase<T> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
+      Vector<value_type> tmp(v);
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
@@ -585,8 +585,8 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    VectorProxy& operator=( VectorNoTmp<T> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+    VectorProxy& operator=(VectorNoTmp<T> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
       VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
@@ -597,19 +597,19 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( size_t new_size, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
+    void set_size(size_t new_size, bool /*preserve*/ = false) {
+      VW_ASSERT(new_size==size(), ArgumentErr() << "Cannot resize a vector proxy.");
     }
 
-    void set_all( ElemT val ) {
+    void set_all(ElemT val) {
       for (size_t i=0; i<SizeN; ++i)
         m_ptr[i] = val;
     }
 
-          reference_type operator()( size_t i )       { return m_ptr[i]; }
-    const_reference_type operator()( size_t i ) const { return m_ptr[i]; }
-          reference_type operator[]( size_t i )       { return m_ptr[i]; }
-    const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
+          reference_type operator()(size_t i)       { return m_ptr[i]; }
+    const_reference_type operator()(size_t i) const { return m_ptr[i]; }
+          reference_type operator[](size_t i)       { return m_ptr[i]; }
+    const_reference_type operator[](size_t i) const { return m_ptr[i]; }
 
           reference_type x()       { static_assert(SizeN >= 1, ""); return m_ptr[0]; }
     const_reference_type x() const { static_assert(SizeN >= 1, ""); return m_ptr[0]; }
@@ -652,21 +652,21 @@ namespace math {
     typedef const ElemT* const_iterator;
 
     /// Constructs a vector with zero size.
-    VectorProxy( size_t size, ElemT *ptr ) : m_ptr(ptr), m_size(size) {}
+    VectorProxy(size_t size, ElemT *ptr) : m_ptr(ptr), m_size(size) {}
 
     /// Standard copy assignment operator.
-    VectorProxy& operator=( VectorProxy const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      Vector<value_type> tmp( v );
+    VectorProxy& operator=(VectorProxy const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
+      Vector<value_type> tmp(v);
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    VectorProxy& operator=( VectorBase<T> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      Vector<value_type> tmp( v );
+    VectorProxy& operator=(VectorBase<T> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
+      Vector<value_type> tmp(v);
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
@@ -674,8 +674,8 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    VectorProxy& operator=( VectorNoTmp<T> const& v ) {
-      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+    VectorProxy& operator=(VectorNoTmp<T> const& v) {
+      VW_ASSERT(v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment.");
       VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
@@ -686,19 +686,19 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( size_t new_size, bool /*preserve*/ = false ) {
-      VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
+    void set_size(size_t new_size, bool /*preserve*/ = false) {
+      VW_ASSERT(new_size==size(), ArgumentErr() << "Cannot resize a vector proxy.");
     }
 
-    void set_all( ElemT val ) {
+    void set_all(ElemT val) {
       for (size_t i=0; i<m_size; ++i)
         m_ptr[i] = val;
     }
 
-          reference_type operator()( size_t i )       { return m_ptr[i]; }
-    const_reference_type operator()( size_t i ) const { return m_ptr[i]; }
-          reference_type operator[]( size_t i )       { return m_ptr[i]; }
-    const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
+          reference_type operator()(size_t i)       { return m_ptr[i]; }
+    const_reference_type operator()(size_t i) const { return m_ptr[i]; }
+          reference_type operator[](size_t i)       { return m_ptr[i]; }
+    const_reference_type operator[](size_t i) const { return m_ptr[i]; }
 
           iterator begin()       { return m_ptr; }
     const_iterator begin() const { return m_ptr; }
@@ -710,8 +710,8 @@ namespace math {
   /// Shallow proxy view of an block of memory as a vector.
   template <class DataT>
   VectorProxy<DataT>
-  vector_proxy( DataT* data, size_t size) {
-    return VectorProxy<DataT>( data, size );
+  vector_proxy(DataT* data, size_t size) {
+    return VectorProxy<DataT>(data, size);
   }
 
 
@@ -752,11 +752,11 @@ namespace math {
                                      typename VectorT::iterator>::type iterator;
     typedef typename VectorT::const_iterator const_iterator;
 
-    explicit VectorTranspose( VectorT& v ) : m_vector(v) {}
+    explicit VectorTranspose(VectorT& v) : m_vector(v) {}
 
     template <class OtherT>
-    VectorTranspose& operator=( VectorTranspose<OtherT> const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
+    VectorTranspose& operator=(VectorTranspose<OtherT> const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vectors must have same size in transposed vector assignment");
       m_vector = v.child();
       return *this;
     }
@@ -768,10 +768,10 @@ namespace math {
       return m_vector.size();
     }
 
-          reference_type operator()( size_t i )       { return child()(i); }
-    const_reference_type operator()( size_t i ) const { return child()(i); }
-          reference_type operator[]( size_t i )       { return child()[i]; }
-    const_reference_type operator[]( size_t i ) const { return child()[i]; }
+          reference_type operator()(size_t i)       { return child()(i); }
+    const_reference_type operator()(size_t i) const { return child()(i); }
+          reference_type operator[](size_t i)       { return child()[i]; }
+    const_reference_type operator[](size_t i) const { return child()[i]; }
 
           iterator begin()       { return child().begin(); }
     const_iterator begin() const { return child().begin(); }
@@ -782,25 +782,25 @@ namespace math {
 
   /// Vector transpose.
   template <class VectorT>
-  inline VectorTranspose<VectorT> transpose( VectorBase<VectorT>& vector ) {
-    return VectorTranspose<VectorT>( vector.impl() );
+  inline VectorTranspose<VectorT> transpose(VectorBase<VectorT>& vector) {
+    return VectorTranspose<VectorT>(vector.impl());
   }
 
   /// Vector transpose (const overload).
   template <class VectorT>
-  inline VectorTranspose<const VectorT> transpose( VectorBase<VectorT> const& vector ) {
-    return VectorTranspose<const VectorT>( vector.impl() );
+  inline VectorTranspose<const VectorT> transpose(VectorBase<VectorT> const& vector) {
+    return VectorTranspose<const VectorT>(vector.impl());
   }
 
   /// Vector transpose (transpose overload).
   template <class VectorT>
-  inline VectorT& transpose( VectorTranspose<VectorT>& vector ) {
+  inline VectorT& transpose(VectorTranspose<VectorT>& vector) {
     return vector.child();
   }
 
   /// Vector transpose (const transpose overload).
   template <class VectorT>
-  inline VectorT const& transpose( VectorTranspose<VectorT> const& vector ) {
+  inline VectorT const& transpose(VectorTranspose<VectorT> const& vector) {
     return vector.child();
   }
 
@@ -828,19 +828,19 @@ namespace math {
                                      typename VectorT::iterator>::type iterator;
     typedef typename VectorT::const_iterator const_iterator;
 
-    SubVector( VectorT& v, size_t pos, size_t size ) : m_vector(v), m_pos(pos), m_size(size) {}
+    SubVector(VectorT& v, size_t pos, size_t size) : m_vector(v), m_pos(pos), m_size(size) {}
 
     /// Standard copy assignment operator.
-    SubVector& operator=( SubVector const& v ) {
-      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment" );
+    SubVector& operator=(SubVector const& v) {
+      VW_ASSERT(v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment");
       VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,v.impl());
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class OtherT>
-    SubVector& operator=( VectorBase<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
+    SubVector& operator=(VectorBase<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment");
       VectorAssignImpl<SubVector,OtherT >::assign(*this,v.impl());
       return *this;
     }
@@ -848,8 +848,8 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class OtherT>
-    SubVector& operator=( VectorNoTmp<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
+    SubVector& operator=(VectorNoTmp<OtherT> const& v) {
+      VW_ASSERT(v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment");
       VectorAssignImpl<SubVector,OtherT>::assign(*this,v.impl());
       return *this;
     }
@@ -860,15 +860,15 @@ namespace math {
 
     size_t size() const { return m_size; }
 
-    void set_all( value_type val ) {
+    void set_all(value_type val) {
       for (size_t i=0; i<m_size; ++i)
         this->operator()(i) = val;
     }
 
-          reference_type operator()( size_t i )       { return child()(m_pos+i); }
-    const_reference_type operator()( size_t i ) const { return child()(m_pos+i); }
-          reference_type operator[]( size_t i )       { return child()(m_pos+i); }
-    const_reference_type operator[]( size_t i ) const { return child()(m_pos+i); }
+          reference_type operator()(size_t i)       { return child()(m_pos+i); }
+    const_reference_type operator()(size_t i) const { return child()(m_pos+i); }
+          reference_type operator[](size_t i)       { return child()(m_pos+i); }
+    const_reference_type operator[](size_t i) const { return child()(m_pos+i); }
 
           iterator begin()       { return child().begin() + m_pos; }
     const_iterator begin() const { return child().begin() + m_pos; }
@@ -878,13 +878,13 @@ namespace math {
   };
 
   template <class VectorT>
-  inline SubVector<VectorT> subvector( VectorBase<VectorT>& vector, size_t pos, size_t size ) {
-    return SubVector<VectorT>( vector.impl(), pos, size );
+  inline SubVector<VectorT> subvector(VectorBase<VectorT>& vector, size_t pos, size_t size) {
+    return SubVector<VectorT>(vector.impl(), pos, size);
   }
 
   template <class VectorT>
-  inline SubVector<const VectorT> subvector( VectorBase<VectorT> const& vector, size_t pos, size_t size ) {
-    return SubVector<const VectorT>( vector.impl(), pos, size );
+  inline SubVector<const VectorT> subvector(VectorBase<VectorT> const& vector, size_t pos, size_t size) {
+    return SubVector<const VectorT>(vector.impl(), pos, size);
   }
 
 
@@ -945,16 +945,16 @@ namespace math {
 
     typedef iterator const_iterator;
 
-    VectorUnaryFunc( VectorT const& v ) : v(v) {}
+    VectorUnaryFunc(VectorT const& v) : v(v) {}
 
     template <class Arg1>
-    VectorUnaryFunc( VectorT const& v, Arg1 a1 ) : v(v), func(a1) {}
+    VectorUnaryFunc(VectorT const& v, Arg1 a1) : v(v), func(a1) {}
 
     VectorT const& child() const { return v; }
     size_t size() const { return child().size(); }
 
-    const_reference_type operator()( size_t i ) const { return func(child()(i)); }
-    const_reference_type operator[]( size_t i ) const { return func(child()(i)); }
+    const_reference_type operator()(size_t i) const { return func(child()(i)); }
+    const_reference_type operator[](size_t i) const { return func(child()(i)); }
 
     iterator begin() const { return iterator(child().begin(),func); }
     iterator end  () const { return iterator(child().end(),  func); }
@@ -1026,21 +1026,21 @@ namespace math {
       FuncT func;
     };
 
-    VectorBinaryFunc( Vector1T const& v1, Vector2T const& v2 ) : v1(v1), v2(v2), func() {
-      VW_ASSERT( v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc" );
+    VectorBinaryFunc(Vector1T const& v1, Vector2T const& v2) : v1(v1), v2(v2), func() {
+      VW_ASSERT(v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc");
     }
 
     template <class Arg1>
-    VectorBinaryFunc( Vector1T const& v1, Vector2T const& v2, Arg1 a1 ) : v1(v1), v2(v2), func(a1) {
-      VW_ASSERT( v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc" );
+    VectorBinaryFunc(Vector1T const& v1, Vector2T const& v2, Arg1 a1) : v1(v1), v2(v2), func(a1) {
+      VW_ASSERT(v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc");
     }
 
     Vector1T const& child1() const { return v1; }
     Vector2T const& child2() const { return v2; }
     size_t size() const { return child1().size(); }
 
-    const_reference_type operator()( size_t i ) const { return func(child1()(i),child2()(i)); }
-    const_reference_type operator[]( size_t i ) const { return func(child1()[i],child2()[i]); }
+    const_reference_type operator()(size_t i) const { return func(child1()(i),child2()(i)); }
+    const_reference_type operator[](size_t i) const { return func(child1()[i],child2()[i]); }
 
     typedef iterator const_iterator;
     iterator begin() const { return iterator(child1().begin(),child2().begin(),func); }
@@ -1061,13 +1061,13 @@ namespace math {
   /// object.
   template <class VectorT>
   Vector<typename VectorT::value_type, VectorSize<VectorT>::value>
-  inline eval( VectorBase<VectorT> const& v ) {
+  inline eval(VectorBase<VectorT> const& v) {
     return v;
   }
 
   /// Forwarding overload for plain Vector objects.
   template <class ElemT, size_t SizeN>
-  inline Vector<ElemT,SizeN> const& eval( Vector<ElemT,SizeN> const& v ) {
+  inline Vector<ElemT,SizeN> const& eval(Vector<ElemT,SizeN> const& v) {
     return v;
   }
 
@@ -1078,12 +1078,12 @@ namespace math {
 
   /// Dumps a vector to a std::ostream
   template <class VectorT>
-  inline std::ostream& operator<<( std::ostream& os, VectorBase<VectorT> const& v ) {
+  inline std::ostream& operator<<(std::ostream& os, VectorBase<VectorT> const& v) {
     VectorT const& vr = v.impl();
     size_t size = vr.size();
     os << "Vector" << size << '(';
-    if( size > 0 ) os << vr(0);
-    for( size_t i=1; i<size; ++i ) os << ',' << vr(i);
+    if(size > 0) os << vr(0);
+    for(size_t i=1; i<size; ++i) os << ',' << vr(i);
     return os << ')';
   }
 
@@ -1091,7 +1091,7 @@ namespace math {
   /// Reads a vector from a std::istream
   //  - TODO: There must be a better way or place for this!
   template <class VectorT>
-  inline std::istream& operator>>( std::istream& is, VectorBase<VectorT> & v ) {
+  inline std::istream& operator>>(std::istream& is, VectorBase<VectorT> & v) {
     VectorT & vr = v.impl();
     
     // Record where we started reading so we can go back to it if the read fails
@@ -1105,7 +1105,7 @@ namespace math {
     char buffer[6];
     if (!is.read(buffer, 6)) {
       is.seekg(start_pos, std::ios_base::beg);
-      vw_throw( IOErr() << "Vector::<< Did not find 'Vector'\n" );
+      vw_throw(IOErr() << "Vector::<< Did not find 'Vector'\n");
     }
     // Read in the size
     const size_t MAX_DIGITS = 5; // This is a really long vector to be in string form!
@@ -1117,19 +1117,19 @@ namespace math {
       }
       if (num_str.size() == MAX_DIGITS) {
         is.seekg(start_pos, std::ios_base::beg);
-        vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+        vw_throw(IOErr() << "Vector::<< Failed to read vector size'\n");
       }
       num_str += next_char;
     }
     if (!is.good()) {
       is.seekg(start_pos, std::ios_base::beg);
-      vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+      vw_throw(IOErr() << "Vector::<< Failed to read vector size'\n");
     }
     // Set the read size
     size_t size = atoi(num_str.c_str());
     if (size < 1) {
       is.seekg(start_pos, std::ios_base::beg);
-      vw_throw( IOErr() << "Vector::<< Failed to read vector size'\n" );
+      vw_throw(IOErr() << "Vector::<< Failed to read vector size'\n");
     }
     vr.set_size(size);
     
@@ -1143,19 +1143,19 @@ namespace math {
     is.get(next_char);
     if (next_char != ')'){
       is.seekg(start_pos, std::ios_base::beg);
-      vw_throw( IOErr() << "Vector::<< Failed to close off vector'\n" );
+      vw_throw(IOErr() << "Vector::<< Failed to close off vector'\n");
     }
     return is;
   }
 
   /// Dumps a transposed vector to a std::ostream
   template <class VectorT>
-  inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
+  inline std::ostream& operator<<(std::ostream& os, VectorTranspose<VectorT> const& v) {
     VectorT const& vr = v.child();
     size_t size = vr.size();
     os << "Vector" << size << '(';
-    if( size > 0 ) os << vr(0);
-    for( size_t i=1; i<size; ++i ) os << ',' << vr(i);
+    if(size > 0) os << vr(0);
+    for(size_t i=1; i<size; ++i) os << ',' << vr(i);
     return os << ")'";
   }
 
@@ -1171,7 +1171,7 @@ namespace math {
   /// they have the same dimensions and their elements are all
   /// equivalent with respect to the standard c++ operator==().
   template <class Vector1T, class Vector2T>
-  inline bool operator==( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+  inline bool operator==(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
     if (v1.impl().size() != v2.impl().size()) { return false; }
 
     typename Vector1T::const_iterator iter1 = v1.impl().begin();
@@ -1187,7 +1187,7 @@ namespace math {
   /// if you have introduced std::equal into the global namespace then
   /// you will have to explicitly request this one as vw::math::equal().
   template <class Vector1T, class Vector2T>
-  inline bool equal( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0 ) {
+  inline bool equal(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0) {
     if (v1.impl().size() != v2.impl().size()) { return false; }
 
     typename Vector1T::const_iterator iter1 = v1.impl().begin();
@@ -1201,7 +1201,7 @@ namespace math {
   /// only if they have the same dimensions and their elements are all
   /// return true when compared with the standard c++ operator==().
   template <class Vector1T, class Vector2T>
-  inline bool operator!=( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+  inline bool operator!=(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
     return ! (v1 == v2);
   }
 
@@ -1210,7 +1210,7 @@ namespace math {
   /// dimensions and their elements are equal to within the specified
   /// tolerance.
   template <class Vector1T, class Vector2T>
-  inline bool not_equal( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0 ) {
+  inline bool not_equal(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0) {
     return ! equal(v1, v2, epsilon);
   }
 
@@ -1222,21 +1222,21 @@ namespace math {
   /// Elementwise sum of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor>
-  inline elem_sum( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor>( v1.impl(), v2.impl() );
+  inline elem_sum(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor>(v1.impl(), v2.impl());
   }
 
   /// Sum of two vectors (same as elem_sum).
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor>
-  inline operator+( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return elem_sum( v1, v2 );
+  inline operator+(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return elem_sum(v1, v2);
   }
 
   /// Sum of two transposed vectors.
   template <class Vector1T, class Vector2T>
   VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor> >
-  inline operator+( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
+  inline operator+(VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2) {
     return transpose(v1.child()+v2.child());
   }
 
@@ -1244,37 +1244,37 @@ namespace math {
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> > >::type
-  inline elem_sum( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >( v.impl(), s );
+  inline elem_sum(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise sum of a vector and a scalar.
   template <class VectorT, class ScalarT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> > >::type
-  inline elem_sum( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >( v.impl(), s );
+  inline elem_sum(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise difference of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor>
-  inline elem_diff( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor>( v1.impl(), v2.impl() );
+  inline elem_diff(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor>(v1.impl(), v2.impl());
   }
 
   /// Difference of two vectors (same as elem_diff).
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor>
-  inline operator-( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return elem_diff( v1, v2 );
+  inline operator-(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return elem_diff(v1, v2);
   }
 
   /// Difference of two transposed vectors.
   template <class Vector1T, class Vector2T>
   VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor> >
-  inline operator-( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
+  inline operator-(VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2) {
     return transpose(v1.child()-v2.child());
   }
 
@@ -1282,47 +1282,47 @@ namespace math {
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgDifferenceFunctor<ScalarT> > >::type
-  inline elem_diff( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgDifferenceFunctor<ScalarT> >( v.impl(), s );
+  inline elem_diff(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgDifferenceFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise difference of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValDifferenceFunctor<ScalarT> > >::type
-  inline elem_diff( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValDifferenceFunctor<ScalarT> >( v.impl(), s );
+  inline elem_diff(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValDifferenceFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise product of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgProductFunctor>
-  inline elem_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgProductFunctor>( v1.impl(), v2.impl() );
+  inline elem_prod(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgProductFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise product of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > >::type
-  inline elem_prod( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> >( v.impl(), s );
+  inline elem_prod(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Product of a scalar and a vector (same as elem_prod).
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > >::type
-  inline operator*( ScalarT s, VectorBase<VectorT> const& v ) {
-    return elem_prod( s, v );
+  inline operator*(ScalarT s, VectorBase<VectorT> const& v) {
+    return elem_prod(s, v);
   }
 
   /// Product of a scalar and a transposed vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > > >::type
-  inline operator*( ScalarT s, VectorTranspose<VectorT> const& v ) {
+  inline operator*(ScalarT s, VectorTranspose<VectorT> const& v) {
     return transpose(s*v.child());
   }
 
@@ -1330,23 +1330,23 @@ namespace math {
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > >::type
-  inline elem_prod( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> >( v.impl(), s );
+  inline elem_prod(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Product of a vector and a scalar (same as elem_prod).
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > >::type
-  inline operator*( VectorBase<VectorT> const& v, ScalarT s ) {
-    return elem_prod( v, s );
+  inline operator*(VectorBase<VectorT> const& v, ScalarT s) {
+    return elem_prod(v, s);
   }
 
   /// Product of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > > >::type
-  inline operator*( VectorTranspose<VectorT> const& v, ScalarT s ) {
+  inline operator*(VectorTranspose<VectorT> const& v, ScalarT s) {
     return transpose(v.child()*s);
   }
 
@@ -1354,51 +1354,51 @@ namespace math {
   /// Elementwise quotient of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgQuotientFunctor>
-  inline elem_quot( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgQuotientFunctor>( v1.impl(), v2.impl() );
+  inline elem_quot(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgQuotientFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise quotient of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgQuotientFunctor<ScalarT> > >::type
-  inline elem_quot( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgQuotientFunctor<ScalarT> >( v.impl(), s );
+  inline elem_quot(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgQuotientFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise quotient of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > >::type
-  inline elem_quot( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> >( v.impl(), s );
+  inline elem_quot(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Quotient of a vector and a scalar (same as elem_quot).
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > >::type
-  inline operator/( VectorBase<VectorT> const& v, ScalarT s ) {
-    return elem_quot( v, s );
+  inline operator/(VectorBase<VectorT> const& v, ScalarT s) {
+    return elem_quot(v, s);
   }
 
   /// Quotient of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > > >::type
-  inline operator/( VectorTranspose<VectorT> const& v, ScalarT s ) {
+  inline operator/(VectorTranspose<VectorT> const& v, ScalarT s) {
     return transpose(v.child()/s);
   }
 
 #define __VW_UNARY_VECTOR_FUNCTOR(name,func)                                      \
   template <class VectorT>                                                        \
-  VectorUnaryFunc<VectorT, func> inline name( VectorBase<VectorT> const& v ) {    \
-    return VectorUnaryFunc<VectorT, func>( v.impl() );                            \
+  VectorUnaryFunc<VectorT, func> inline name(VectorBase<VectorT> const& v) {    \
+    return VectorUnaryFunc<VectorT, func>(v.impl());                            \
   }                                                                               \
                                                                                   \
   template <class VectorT>                                                        \
   VectorTranspose<const VectorUnaryFunc<VectorT, func> >                          \
-  inline name( VectorTranspose<VectorT> const& v ) {                              \
+  inline name(VectorTranspose<VectorT> const& v) {                              \
     return transpose(name(v.child()));                                            \
   }
 
@@ -1434,144 +1434,144 @@ namespace math {
   /// Elementwise equality of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgEqualityFunctor>
-  inline elem_eq( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgEqualityFunctor>( v1.impl(), v2.impl() );
+  inline elem_eq(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgEqualityFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise equality of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> > >::type
-  inline elem_eq( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> >( v.impl(), s );
+  inline elem_eq(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise equality of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> > >::type
-  inline elem_eq( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> >( v.impl(), s );
+  inline elem_eq(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise inequality of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgInequalityFunctor>
-  inline elem_neq( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgInequalityFunctor>( v1.impl(), v2.impl() );
+  inline elem_neq(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgInequalityFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise inequality of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> > >::type
-  inline elem_neq( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> >( v.impl(), s );
+  inline elem_neq(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise inequality of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> > >::type
-  inline elem_neq( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> >( v.impl(), s );
+  inline elem_neq(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise less-than of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanFunctor>
-  inline elem_lt( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanFunctor>( v1.impl(), v2.impl() );
+  inline elem_lt(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise less-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> > >::type
-  inline elem_lt( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> >( v.impl(), s );
+  inline elem_lt(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise less-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> > >::type
-  inline elem_lt( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> >( v.impl(), s );
+  inline elem_lt(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise less-than-or-equal-to of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanOrEqualFunctor>
-  inline elem_lte( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanOrEqualFunctor>( v1.impl(), v2.impl() );
+  inline elem_lte(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanOrEqualFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise less-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_lte( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> >( v.impl(), s );
+  inline elem_lte(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise less-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_lte( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> >( v.impl(), s );
+  inline elem_lte(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise greater-than of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanFunctor>
-  inline elem_gt( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanFunctor>( v1.impl(), v2.impl() );
+  inline elem_gt(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise greater-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> > >::type
-  inline elem_gt( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> >( v.impl(), s );
+  inline elem_gt(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise greater-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> > >::type
-  inline elem_gt( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> >( v.impl(), s );
+  inline elem_gt(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> >(v.impl(), s);
   }
 
 
   /// Elementwise greater-than-or-equal-to of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanOrEqualFunctor>
-  inline elem_gte( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanOrEqualFunctor>( v1.impl(), v2.impl() );
+  inline elem_gte(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanOrEqualFunctor>(v1.impl(), v2.impl());
   }
 
   /// Elementwise greater-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_gte( ScalarT s, VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
+  inline elem_gte(ScalarT s, VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> >(v.impl(), s);
   }
 
   /// Elementwise greater-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename std::enable_if< IsScalar<ScalarT>::value,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> > >::type
-  inline elem_gte( VectorBase<VectorT> const& v, ScalarT s ) {
-    return VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
+  inline elem_gte(VectorBase<VectorT> const& v, ScalarT s) {
+    return VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> >(v.impl(), s);
   }
 
 
@@ -1581,49 +1581,49 @@ namespace math {
 
   /// Vector 1-norm
   template <class VectorT>
-  inline typename VectorT::value_type norm_1( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type norm_1(VectorBase<VectorT> const& v) {
     double result = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    for( ; i != end ; ++i ) result += fabs( *i );
+    for(; i != end ; ++i) result += fabs(*i);
     return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Square of vector 2-norm
   template <class VectorT>
-  inline double norm_2_sqr( VectorBase<VectorT> const& v ) {
+  inline double norm_2_sqr(VectorBase<VectorT> const& v) {
     double result = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    for( ; i != end ; ++i ) result += (*i) * (*i);
+    for(; i != end ; ++i) result += (*i) * (*i);
     return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Vector 2-norm
   template <class VectorT>
-  inline double norm_2( VectorBase<VectorT> const& v ) {
-    return sqrt( norm_2_sqr(v) );
+  inline double norm_2(VectorBase<VectorT> const& v) {
+    return sqrt(norm_2_sqr(v));
   }
 
   /// Vector infinity-norm
   template <class VectorT>
-  inline typename VectorT::value_type norm_inf( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type norm_inf(VectorBase<VectorT> const& v) {
     double result = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    for( ; i != end ; ++i ) {
-      double a = fabs( *i );
-      if( a > result ) result = a;
+    for(; i != end ; ++i) {
+      double a = fabs(*i);
+      if(a > result) result = a;
     }
     return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Index of the element with the largest magnitude
   template <class VectorT>
-  inline size_t index_norm_inf( VectorBase<VectorT> const& v ) {
+  inline size_t index_norm_inf(VectorBase<VectorT> const& v) {
     double maxval = -1;
     size_t index=0, result=0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    for( ; i != end ; ++i, ++index ) {
-      double a = fabs( *i );
-      if( a > maxval ) {
+    for(; i != end ; ++i, ++index) {
+      double a = fabs(*i);
+      if(a > maxval) {
         maxval = a;
         result = index;
       }
@@ -1633,54 +1633,54 @@ namespace math {
 
   /// Sum of elements
   template <class VectorT>
-  inline typename VectorT::value_type sum( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type sum(VectorBase<VectorT> const& v) {
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    if( i == end ) return typename VectorT::value_type();
+    if(i == end) return typename VectorT::value_type();
     typename VectorT::value_type result = *(i++);
-    for( ; i != end ; ++i ) result += *i;
+    for(; i != end ; ++i) result += *i;
     return result;
   }
 
   /// Product of elements
   template <class VectorT>
-  inline typename VectorT::value_type prod( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type prod(VectorBase<VectorT> const& v) {
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    if( i == end ) return typename VectorT::value_type(1);
+    if(i == end) return typename VectorT::value_type(1);
     typename VectorT::value_type result = *(i++);
-    for( ; i != end ; ++i ) result *= *i;
+    for(; i != end ; ++i) result *= *i;
     return result;
   }
 
   /// Maximium of elements
   template <class VectorT>
-  inline typename VectorT::value_type max( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type max(VectorBase<VectorT> const& v) {
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    if( i == end ) return typename VectorT::value_type(0);
+    if(i == end) return typename VectorT::value_type(0);
     typename VectorT::value_type result = *(i++);
-    for( ; i != end ; ++i )
-      if ( *i > result )
+    for(; i != end ; ++i)
+      if (*i > result)
         result = *i;
     return result;
   }
 
   /// Minimium of elements
   template <class VectorT>
-  inline typename VectorT::value_type min( VectorBase<VectorT> const& v ) {
+  inline typename VectorT::value_type min(VectorBase<VectorT> const& v) {
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    if( i == end ) return typename VectorT::value_type(0);
+    if(i == end) return typename VectorT::value_type(0);
     typename VectorT::value_type result = *(i++);
-    for( ; i != end ; ++i )
-      if ( *i < result )
+    for(; i != end ; ++i)
+      if (*i < result)
         result = *i;
     return result;
   }
 
   /// Fill all elements with a given value
   template <class VectorT, class ValT>
-  inline void fill( VectorBase<VectorT> &v, ValT const& val  ) {
+  inline void fill(VectorBase<VectorT> &v, ValT const& val) {
     typename VectorT::iterator i = v.impl().begin(), end = v.impl().end();
-    if( i == end ) return;
-    for( ; i != end ; ++i ) *i = val;
+    if(i == end) return;
+    for(; i != end ; ++i) *i = val;
   }
 
 
@@ -1691,17 +1691,17 @@ namespace math {
   /// Returns a normalized (unit) vector.
   template <class VectorT>
   VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >
-  inline normalize( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >( v.impl(), norm_2(v) );
+  inline normalize(VectorBase<VectorT> const& v) {
+    return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >(v.impl(), norm_2(v));
   }
 
   /// Returns a homogenized vector.
   template <class VectorT>
   Vector<typename VectorT::value_type>
-  inline hom( VectorBase<VectorT> const& v ) {
+  inline hom(VectorBase<VectorT> const& v) {
     Vector<typename VectorT::value_type> r;
-    r.set_size( v.impl().size()+1 );
-    subvector( r, 0, v.impl().size() ) = subvector( v, 0, v.impl().size() );
+    r.set_size(v.impl().size()+1);
+    subvector(r, 0, v.impl().size()) = subvector(v, 0, v.impl().size());
     r(v.impl().size()) = 1;
     return r;
   }
@@ -1709,46 +1709,46 @@ namespace math {
   /// Returns a dehomogenized (projected) vector.
   template <class VectorT>
   Vector<typename VectorT::value_type>
-  inline dehom( VectorBase<VectorT> const& v ) {
-    return subvector( VectorUnaryFunc<VectorT, ArgValQuotientFunctor<typename VectorT::value_type> >( v.impl(), v.impl()(v.impl().size()-1) ), 0, v.impl().size()-1 );
+  inline dehom(VectorBase<VectorT> const& v) {
+    return subvector(VectorUnaryFunc<VectorT, ArgValQuotientFunctor<typename VectorT::value_type> >(v.impl(), v.impl()(v.impl().size()-1)), 0, v.impl().size()-1);
   }
 
   /// Vector dot product
   template <class Vector1T, class Vector2T>
   typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type
-  inline dot_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+  inline dot_prod(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
     typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type result =
       typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type();
     typename Vector1T::const_iterator i1 = v1.impl().begin(), end1 = v1.impl().end();
     typename Vector2T::const_iterator i2 = v2.impl().begin();
-    for( ; i1 != end1 ; ++i1, ++i2 ) result += *i1 * *i2;
+    for(; i1 != end1 ; ++i1, ++i2) result += *i1 * *i2;
     return result;
   }
 
   /// Vector inner product via transpose
   template <class Vector1T, class Vector2T>
   typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type
-  inline operator*( VectorTranspose<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return dot_prod( v1.child(), v2 );
+  inline operator*(VectorTranspose<Vector1T> const& v1, VectorBase<Vector2T> const& v2) {
+    return dot_prod(v1.child(), v2);
   }
 
   /// Vector cross product. (Only valid for 3-element vectors.)
   template <class Vector1T, class Vector2T>
   Vector<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type, 3>
-  inline cross_prod( VectorBase<Vector1T> const& v1_, VectorBase<Vector2T> const& v2_ ) {
+  inline cross_prod(VectorBase<Vector1T> const& v1_, VectorBase<Vector2T> const& v2_) {
     typedef Vector<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type, 3> result_type;
     Vector1T const& v1 = v1_.impl();
     Vector2T const& v2 = v2_.impl();
-    return result_type( v1[1]*v2[2]-v1[2]*v2[1], v1[2]*v2[0]-v1[0]*v2[2], v1[0]*v2[1]-v1[1]*v2[0] );
+    return result_type(v1[1]*v2[2]-v1[2]*v2[1], v1[2]*v2[0]-v1[0]*v2[2], v1[0]*v2[1]-v1[1]*v2[0]);
   }
 
   // Polynomial Evaluation of vector using Horner's Scheme
   // Vector3(a,b,c) = a*x*x+b*x + c
   template <class VectorT>
-  inline double polyval( VectorBase<VectorT> const& v, double x ) {
+  inline double polyval(VectorBase<VectorT> const& v, double x) {
     double b = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
-    for( ; i != end; ++i ) {
+    for(; i != end; ++i) {
       b = *i + b*x;
     }
     return b;

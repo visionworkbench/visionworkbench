@@ -121,7 +121,7 @@ void PinholeModel::read(std::string const& filename) {
   std::ifstream cam_file;
   cam_file.open(filename.c_str());
   if (cam_file.fail())
-    vw_throw( IOErr() << "PinholeModel::read_file: Could not open file: " << filename );
+    vw_throw(IOErr() << "PinholeModel::read_file: Could not open file: " << filename);
 
   // Check for version number on the first line
   int file_version = 1; // The default version written before the 2016 changes
@@ -136,62 +136,62 @@ void PinholeModel::read(std::string const& filename) {
     if (file_version == 4) {
       // Version 4 added support for multiple camera types.
       if (line.find("PINHOLE") == std::string::npos)
-        vw_throw( ArgumentErr() << "PinholeModel::read_file: Expected PINHOLE type, but got type "
-                                << line );
+        vw_throw(ArgumentErr() << "PinholeModel::read_file: Expected PINHOLE type, but got type "
+                               << line);
       std::getline(cam_file, line); // Grab the following line
     }
 
   }else{
     // Check if the first line is correct
     if (sscanf(line.c_str(),"fu = %lf", &m_fu) != 1)
-      vw_throw( IOErr() << "PinholeModel::read_file(): A Pinhole camera file must "
-                << "start either with the VERSION line or the focal length. Got instead:\n"
-                << line << "\n" );
+      vw_throw(IOErr() << "PinholeModel::read_file(): A Pinhole camera file must "
+               << "start either with the VERSION line or the focal length. Got instead:\n"
+               << line << "\n");
   }
   
   // Start parsing all the parameters from the lines.
   if (!cam_file.good() || sscanf(line.c_str(),"fu = %lf", &m_fu) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the x focal length\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the x focal length\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"fv = %lf", &m_fv) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the y focal length\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the y focal length\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"cu = %lf", &m_cu) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the x principal point\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the x principal point\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"cv = %lf", &m_cv) != 1) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the y principal point\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the y principal point\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"u_direction = %lf %lf %lf", 
         &m_u_direction(0), &m_u_direction(1), &m_u_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the u direction vector\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the u direction vector\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"v_direction = %lf %lf %lf", 
         &m_v_direction(0), &m_v_direction(1), &m_v_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the v direction vector\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the v direction vector\n");
   }
 
   std::getline(cam_file, line);
   if (!cam_file.good() || sscanf(line.c_str(),"w_direction = %lf %lf %lf", 
         &m_w_direction(0), &m_w_direction(1), &m_w_direction(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the w direction vector\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the w direction vector\n");
   }
 
   // Read extrinsic parameters
@@ -199,17 +199,17 @@ void PinholeModel::read(std::string const& filename) {
   if (!cam_file.good() || sscanf(line.c_str(),"C = %lf %lf %lf", 
         &m_camera_center(0), &m_camera_center(1), &m_camera_center(2)) != 3) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (the camera center) vector\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file: Could not read C (the camera center) vector\n");
   }
 
   std::getline(cam_file, line);
-  if ( !cam_file.good() ||
-       sscanf(line.c_str(), "R = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-              &m_rotation(0,0), &m_rotation(0,1), &m_rotation(0,2),
-              &m_rotation(1,0), &m_rotation(1,1), &m_rotation(1,2),
-              &m_rotation(2,0), &m_rotation(2,1), &m_rotation(2,2)) != 9 ) {
+  if (!cam_file.good() ||
+      sscanf(line.c_str(), "R = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+             &m_rotation(0,0), &m_rotation(0,1), &m_rotation(0,2),
+             &m_rotation(1,0), &m_rotation(1,1), &m_rotation(1,2),
+             &m_rotation(2,0), &m_rotation(2,1), &m_rotation(2,2)) != 9) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the rotation matrix\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the rotation matrix\n");
   }
 
   // The pitch line does not exist in older files, so don't fail if it is missing.
@@ -219,7 +219,7 @@ void PinholeModel::read(std::string const& filename) {
   if (line.find("pitch") != std::string::npos) {
     if (!cam_file.good() || sscanf(line.c_str(),"pitch = %lf", &m_pixel_pitch) != 1) {
       cam_file.close();
-      vw_throw( IOErr() << "PinholeModel::read_file(): Could not read the pixel pitch\n" );
+      vw_throw(IOErr() << "PinholeModel::read_file(): Could not read the pixel pitch\n");
     }
     lens_start = cam_file.tellg();
     std::getline(cam_file, line); // After reading the pitch, read the next line.
@@ -241,7 +241,7 @@ void PinholeModel::read(std::string const& filename) {
 
   if (!found_name && (file_version > 2)) {
     cam_file.close();
-    vw_throw( IOErr() << "PinholeModel::read_file(): Distortion name required in this file version!\n" );
+    vw_throw(IOErr() << "PinholeModel::read_file(): Distortion name required in this file version!\n");
   }
   
   // If there was no line containing the distortion model name (true for old files)
@@ -326,8 +326,8 @@ void PinholeModel::write(std::string const& filename) const {
   // Set the path an open the output file for writing
   std::string file_path = fs::path(filename).replace_extension(".tsai").string();
   std::ofstream cam_file(file_path.c_str());
-  if( !cam_file.is_open() ) 
-    vw_throw( IOErr() << "PinholeModel::write: Could not open file: " << file_path );
+  if(!cam_file.is_open()) 
+    vw_throw(IOErr() << "PinholeModel::write: Could not open file: " << file_path);
 
   // Write the pinhole camera model parts
   //   # digits to survive double->text->double conversion
@@ -416,10 +416,10 @@ Vector2 PinholeModel::point_to_pixel_no_distortion(Vector3 const& point) const {
   // - The pixel coordinate is de-homogenized by dividing by the denominator.
   double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
                        m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
-  Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
-                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
-                           (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
-                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
+  Vector2 pixel = Vector2((m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
+                           m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
+                          (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
+                           m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
 
   // Divide by pixel pitch to convert from metric units to pixels if the intrinsic
   //   values were not specified in pixel units (in that case m_pixel_pitch == 1.0)
@@ -440,10 +440,10 @@ Vector3 PinholeModel::pixel_to_vector (Vector2 const& pix) const {
   // Compute the direction of the ray emanating from the camera center.
   Vector3 p(0,0,1);
   subvector(p,0,2) = undistorted_pix;
-  return normalize( m_inv_camera_transform * p);
+  return normalize(m_inv_camera_transform * p);
 }
 
-Vector3 PinholeModel::camera_center(Vector2 const& /*pix*/ ) const {
+Vector3 PinholeModel::camera_center(Vector2 const& /*pix*/) const {
   return m_camera_center;
 };
 
@@ -452,7 +452,7 @@ void PinholeModel::set_camera_center(Vector3 const& position) {
   rebuild_camera_matrix();
 }
 
-Quaternion<double> PinholeModel::camera_pose(Vector2 const& /*pix*/ ) const {
+Quaternion<double> PinholeModel::camera_pose(Vector2 const& /*pix*/) const {
   return Quaternion<double>(m_rotation);
 }
 
@@ -502,20 +502,20 @@ void PinholeModel::set_intrinsic_parameters(double f_u, double f_v,
 }
 
 Vector2 PinholeModel::focal_length() const { return Vector2(m_fu,m_fv); }
-void PinholeModel::set_focal_length(Vector2 const& f, bool rebuild ) {
+void PinholeModel::set_focal_length(Vector2 const& f, bool rebuild) {
   m_fu = f[0]; m_fv = f[1];
   if (rebuild) rebuild_camera_matrix();
 }
 Vector2 PinholeModel::point_offset() const { return Vector2(m_cu,m_cv); }
-void PinholeModel::set_point_offset(Vector2 const& c, bool rebuild ) {
+void PinholeModel::set_point_offset(Vector2 const& c, bool rebuild) {
   m_cu = c[0]; m_cv = c[1];
   if (rebuild) rebuild_camera_matrix();
 }
 double PinholeModel::pixel_pitch() const { return m_pixel_pitch; }
-void PinholeModel::set_pixel_pitch( double pitch ) { m_pixel_pitch = pitch; }
+void PinholeModel::set_pixel_pitch(double pitch) { m_pixel_pitch = pitch; }
 
 
-void PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
+void PinholeModel::set_camera_matrix(Matrix<double,3,4> const& p) {
 #if defined(VW_HAVE_PKG_LAPACK)
   // Solving for camera center
   Matrix<double> cam_nullsp = nullspace(p);
@@ -526,14 +526,14 @@ void PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
   // Solving for intrinsics with RQ decomposition
   Matrix<double> M = submatrix(p,0,0,3,3);
   Matrix<double> R,Q;
-  rqd( M, R, Q );
+  rqd(M, R, Q);
   Matrix<double> sign_fix(3,3);
   sign_fix.set_identity();
-  if ( R(0,0) < 0 )
+  if (R(0,0) < 0)
     sign_fix(0,0) = -1;
-  if ( R(1,1) < 0 )
+  if (R(1,1) < 0)
     sign_fix(1,1) = -1;
-  if ( R(2,2) < 0 )
+  if (R(2,2) < 0)
     sign_fix(2,2) = -1;
   R = R*sign_fix;
   Q = sign_fix*Q;
@@ -550,13 +550,13 @@ void PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
   m_cu = R(0,2);
   m_cv = R(1,2);
 
-  if ( fabs(R(0,1)) >= 1.2 )
+  if (fabs(R(0,1)) >= 1.2)
     vw_out(WarningMessage,"camera") << "Significant skew not modelled by pinhole camera\n";
 
   // Rebuild
   rebuild_camera_matrix();
 #else
-  vw_throw( NoImplErr() << "PinholeModel::set_Camera_Matrix is unavailable without LAPACK" );
+  vw_throw(NoImplErr() << "PinholeModel::set_Camera_Matrix is unavailable without LAPACK");
 #endif
 }
 
@@ -597,12 +597,12 @@ void PinholeModel::rebuild_camera_matrix() {
   // The vectors u,v, and w must be orthonormal.
 
   /*   check for orthonormality of u,v,w              */
-  VW_LINE_ASSERT( dot_prod(m_u_direction, m_v_direction) == 0 );
-  VW_LINE_ASSERT( dot_prod(m_u_direction, m_w_direction) == 0 );
-  VW_LINE_ASSERT( dot_prod(m_v_direction, m_w_direction) == 0 );
-  VW_LINE_ASSERT( fabs( norm_2(m_u_direction) - 1 ) < 0.001 );
-  VW_LINE_ASSERT( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
-  VW_LINE_ASSERT( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
+  VW_LINE_ASSERT(dot_prod(m_u_direction, m_v_direction) == 0);
+  VW_LINE_ASSERT(dot_prod(m_u_direction, m_w_direction) == 0);
+  VW_LINE_ASSERT(dot_prod(m_v_direction, m_w_direction) == 0);
+  VW_LINE_ASSERT(fabs(norm_2(m_u_direction) - 1) < 0.001);
+  VW_LINE_ASSERT(fabs(norm_2(m_v_direction) - 1) < 0.001);
+  VW_LINE_ASSERT(fabs(norm_2(m_w_direction) - 1) < 0.001);
 
   Matrix<double,3,3> uvwRotation;
 
@@ -660,7 +660,7 @@ void PinholeModel::apply_transform(vw::Matrix3x3 const & rotation,
 // This is not applying a scale transform to the camera, that is done in apply_transform().  
 PinholeModel scale_camera(PinholeModel const& camera_model, double scale) {
   if (scale == 0)
-    vw_throw( ArgumentErr() << "PinholeModel::scale_camera cannot have zero scale value!" );
+    vw_throw(ArgumentErr() << "PinholeModel::scale_camera cannot have zero scale value!");
   Vector2 focal  = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   boost::shared_ptr<LensDistortion> lens = camera_model.lens_distortion()->copy();

@@ -34,8 +34,8 @@ namespace vw {
 // IP descriptor distance metrics
 
 float
-L2NormMetric::operator()( InterestPoint const& ip1, InterestPoint const& ip2,
-                          float maxdist ) const {
+L2NormMetric::operator()(InterestPoint const& ip1, InterestPoint const& ip2,
+                         float maxdist) const {
                             
   float dist = 0.0;
   for (size_t i = 0; i < ip1.descriptor.size(); i++) {
@@ -46,9 +46,9 @@ L2NormMetric::operator()( InterestPoint const& ip1, InterestPoint const& ip2,
 }
 
 // This could be simplified a lot if the description length was constant!
-float HammingMetric::operator()( InterestPoint const& ip1, 
-                                  InterestPoint const& ip2,
-                                  float maxdist ) const {
+float HammingMetric::operator()(InterestPoint const& ip1, 
+                                 InterestPoint const& ip2,
+                                 float maxdist) const {
   float dist = 0.0;
   
   // To use optimized code, first break the descriptor into units of 8, then 4, then 1.
@@ -205,9 +205,9 @@ void InterestPointMatcher<MetricT>::operator()
   if (!quiet)
     progress_callback.report_progress(0);
 
-  BOOST_FOREACH( InterestPoint ip, ip1 ) {
+  BOOST_FOREACH(InterestPoint ip, ip1) {
     if (progress_callback.abort_requested())
-      vw_throw( Aborted() << "Aborted by ProgressCallback");
+      vw_throw(Aborted() << "Aborted by ProgressCallback");
 
     if (!quiet)
       progress_callback.report_incremental_progress(inc_amt);
@@ -218,25 +218,25 @@ void InterestPointMatcher<MetricT>::operator()
       vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
       for (size_t i=0; i<ip.descriptor.size(); i++)
         uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
-      num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
+      num_matches_found = kd_uchar.knn_search(uchar_descriptor, indices, distances, KNN);
     }
     else {
       // Use float
-      num_matches_found = kd_float.knn_search( ip.descriptor, indices, distances, KNN );
+      num_matches_found = kd_float.knn_search(ip.descriptor, indices, distances, KNN);
     }
 
     if (num_matches_found < KNN) {
       // If we did not get two nearest neighbors, return no match for this point.
-      index_list.push_back( (size_t)(-1) ); // Last value of size_t
+      index_list.push_back((size_t)(-1)); // Last value of size_t
     } else {
 
       // Copy the two nearest matches
       std::vector<InterestPoint> nearest_records(KNN);
       auto iterator = ip2.begin();
-      std::advance( iterator, indices[0] );
+      std::advance(iterator, indices[0]);
       nearest_records[0] = *iterator;
       iterator = ip2.begin();
-      std::advance( iterator, indices[1] );
+      std::advance(iterator, indices[1]);
       nearest_records[1] = *iterator;
 
       double dist0 = m_distance_metric(nearest_records[0], ip);
@@ -244,9 +244,9 @@ void InterestPointMatcher<MetricT>::operator()
 
       // As a final check, make sure the nearest record is significantly closer than the next one.
       if (dist0 < m_threshold * dist1) {
-        index_list.push_back( indices[0] );
+        index_list.push_back(indices[0]);
       } else {
-        index_list.push_back( (size_t)(-1) ); // Last value of size_t
+        index_list.push_back((size_t)(-1)); // Last value of size_t
       }
     } // End both valid case
   }
@@ -274,7 +274,7 @@ void InterestPointMatcher<MetricT>::operator()
 
   // Loop through ip1 and index_list
   auto index_list_iter = index_list.begin();
-  BOOST_FOREACH( InterestPoint ip, ip1 ) {
+  BOOST_FOREACH(InterestPoint ip, ip1) {
 
     // Get and check the match index
     auto ip2_iter = ip2.begin();
@@ -283,7 +283,7 @@ void InterestPointMatcher<MetricT>::operator()
       // Skip points without a match
 
       // Get the ip2 that corresponds to the current ip1 and store the point pair
-      std::advance( ip2_iter, list_position);
+      std::advance(ip2_iter, list_position);
       matched_ip1.push_back(ip);
       matched_ip2.push_back(*ip2_iter);
     }
@@ -314,16 +314,16 @@ void InterestPointMatcherSimple<MetricT>::operator()
     return;
   }
 
-  std::vector<int> match_index( ip1.size() );
+  std::vector<int> match_index(ip1.size());
 
   float inc_amt = 1.0f / float(ip1.size());
   if (!quiet)
     progress_callback.report_progress(0);
 
   // Loop through one vector of IPs
-  for (size_t i = 0; i < ip1.size(); i++ ) {
+  for (size_t i = 0; i < ip1.size(); i++) {
     if (progress_callback.abort_requested())
-      vw_throw( Aborted() << "Aborted by ProgressCallback" );
+      vw_throw(Aborted() << "Aborted by ProgressCallback");
 
     if (!quiet)
       progress_callback.report_incremental_progress(inc_amt);
@@ -331,26 +331,26 @@ void InterestPointMatcherSimple<MetricT>::operator()
     double first_pick = 1e100, second_pick = 1e100;
     match_index[i] = -1;
     // Compare ip1's feature against all of ip2's
-    for (size_t j = 0; j < ip2.size(); j++ ) {
+    for (size_t j = 0; j < ip2.size(); j++) {
 
-      if ( ip1[i].polarity != ip2[j].polarity )
+      if (ip1[i].polarity != ip2[j].polarity)
         continue;
 
       // Use the selected distance metric to measure the distance between the points
-      double distance = m_distance_metric( ip1[i], ip2[j] );
+      double distance = m_distance_metric(ip1[i], ip2[j]);
 
-      if ( distance < first_pick ) {
+      if (distance < first_pick) {
         match_index[i] = j;
         second_pick = first_pick;
         first_pick = distance;
-      } else if ( distance < second_pick ) {
+      } else if (distance < second_pick) {
         second_pick = distance;
       }
 
     }
 
     // Checking to see if the match is strong enough
-    if ( first_pick > m_threshold * second_pick )
+    if (first_pick > m_threshold * second_pick)
       match_index[i] = -1;
   } // End double loop through IPs
 
@@ -358,10 +358,10 @@ void InterestPointMatcherSimple<MetricT>::operator()
     progress_callback.report_finished();
 
   // Building matched_ip1 & matched_ip2
-  for (size_t i = 0; i < ip1.size(); i++ ) {
-    if ( match_index[i] != -1 ) {
-      matched_ip1.push_back( ip1[i] );
-      matched_ip2.push_back( ip2[match_index[i]] );
+  for (size_t i = 0; i < ip1.size(); i++) {
+    if (match_index[i] != -1) {
+      matched_ip1.push_back(ip1[i]);
+      matched_ip2.push_back(ip2[match_index[i]]);
     }
   }
 

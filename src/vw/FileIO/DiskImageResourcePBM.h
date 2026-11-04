@@ -41,10 +41,10 @@ namespace vw {
 
     // Standard DiskImageResource interface:
 
-    DiskImageResourcePBM( std::string const& filename ); // Reading
+    DiskImageResourcePBM(std::string const& filename); // Reading
 
-    DiskImageResourcePBM( std::string const& filename,
-                          ImageFormat const& format ); // Writing
+    DiskImageResourcePBM(std::string const& filename,
+                         ImageFormat const& format); // Writing
 
     virtual ~DiskImageResourcePBM() {}
 
@@ -59,19 +59,19 @@ namespace vw {
     virtual void flush() {}
 
     /// Bind the resource to a file for reading.
-    void open( std::string const& filename );
+    void open(std::string const& filename);
 
     /// Bind the resource to a file for writing.
-    void create( std::string const& filename,
-                 ImageFormat const& format );
+    void create(std::string const& filename,
+                ImageFormat const& format);
 
     // Factory functions
-    static DiskImageResource* construct_open( std::string const& filename ) {
-      return new DiskImageResourcePBM( filename );
+    static DiskImageResource* construct_open(std::string const& filename) {
+      return new DiskImageResourcePBM(filename);
     }
-    static DiskImageResource* construct_create( std::string const& filename,
-                                                ImageFormat const& format ) {
-      return new DiskImageResourcePBM( filename, format );
+    static DiskImageResource* construct_create(std::string const& filename,
+                                               ImageFormat const& format) {
+      return new DiskImageResourcePBM(filename, format);
     }
 
     // Use ascii modes instead of binary ones? (default is binary)

@@ -48,32 +48,32 @@ namespace vw {
   public:
     VarArray() : m_data(), m_size(0) {}
 
-    VarArray( VarArray const& other ) : m_data(new T[other.size()]), m_size(other.size()) {
-      std::copy( other.begin(), other.end(), begin() );
+    VarArray(VarArray const& other) : m_data(new T[other.size()]), m_size(other.size()) {
+      std::copy(other.begin(), other.end(), begin());
     }
 
-    VarArray( size_t size ) : m_data(new T[size]), m_size(size) {
+    VarArray(size_t size) : m_data(new T[size]), m_size(size) {
       std::uninitialized_fill(begin(),end(),T());
     }
 
     template <class IterT>
-    VarArray( IterT b, IterT e ) : m_data(new T[e-b]), m_size(e-b) {
+    VarArray(IterT b, IterT e) : m_data(new T[e-b]), m_size(e-b) {
       std::copy(b,e,begin());
     }
 
-    VarArray& operator=( VarArray const& other ) {
-      boost::shared_array<T> new_data( new T[other.size()] );
-      std::copy( other.begin(), other.end(), new_data.get() );
+    VarArray& operator=(VarArray const& other) {
+      boost::shared_array<T> new_data(new T[other.size()]);
+      std::copy(other.begin(), other.end(), new_data.get());
       m_data = new_data;
       m_size = other.size();
       return *this;
     }
 
-    inline T& operator[]( size_t i ) {
+    inline T& operator[](size_t i) {
       return m_data[i];
     }
 
-    inline T const& operator[]( size_t i ) const {
+    inline T const& operator[](size_t i) const {
       return m_data[i];
     }
 
@@ -88,29 +88,29 @@ namespace vw {
 
     size_t size() const { return m_size; }
 
-    void resize( size_t new_size, bool preserve = true ) {
-      if( new_size == m_size ) return;
-      if( new_size == 0 ) {
+    void resize(size_t new_size, bool preserve = true) {
+      if(new_size == m_size) return;
+      if(new_size == 0) {
         m_data.reset();
         m_size = 0;
         return;
       }
-      boost::shared_array<T> new_data( new T[new_size] );
-      if( preserve ) {
-        if( new_size > m_size ) {
-          std::copy( m_data.get(), m_data.get()+m_size, new_data.get() );
-          std::uninitialized_fill( new_data.get()+m_size, new_data.get()+new_size, T() );
+      boost::shared_array<T> new_data(new T[new_size]);
+      if(preserve) {
+        if(new_size > m_size) {
+          std::copy(m_data.get(), m_data.get()+m_size, new_data.get());
+          std::uninitialized_fill(new_data.get()+m_size, new_data.get()+new_size, T());
         }
-        else std::copy( m_data.get(), m_data.get()+new_size, new_data.get() );
+        else std::copy(m_data.get(), m_data.get()+new_size, new_data.get());
       }
-      else std::uninitialized_fill( new_data.get(), new_data.get()+new_size, T() );
+      else std::uninitialized_fill(new_data.get(), new_data.get()+new_size, T());
       m_data = new_data;
       m_size = new_size;
     }
 
-    void swap( VarArray& other ) {
-      std::swap( m_data, other.m_data );
-      std::swap( m_size, other.m_size );
+    void swap(VarArray& other) {
+      std::swap(m_data, other.m_data);
+      std::swap(m_size, other.m_size);
     }
   };
 

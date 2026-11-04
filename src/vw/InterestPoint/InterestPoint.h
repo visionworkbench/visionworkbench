@@ -142,7 +142,7 @@ namespace vw {
   }
 
   /// Helpful functors
-  void remove_descriptor( InterestPoint & ip );
+  void remove_descriptor(InterestPoint & ip);
 
   /// Convert a an InterestPointList into a dense matrix of IP descriptors, one per row.
   template <class LIST_T, typename T>
@@ -151,12 +151,12 @@ namespace vw {
     // Construct a plain matrix
     const size_t num_points        = ip_list.size();
     const size_t descriptor_length = ip_list.begin()->size();
-    ip_matrix.set_size( num_points, descriptor_length );
+    ip_matrix.set_size(num_points, descriptor_length);
 
     typename LIST_T::const_iterator ip_iter;
     size_t matrix_row = 0;
     for (ip_iter=ip_list.begin(); ip_iter != ip_list.end(); ++ip_iter) {
-      std::copy( ip_iter->begin(), ip_iter->end(), ip_matrix[matrix_row].begin() );
+      std::copy(ip_iter->begin(), ip_iter->end(), ip_matrix[matrix_row].begin());
       ++matrix_row;
     }
   }

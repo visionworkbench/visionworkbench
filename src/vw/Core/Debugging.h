@@ -48,7 +48,7 @@ namespace vw {
     timeval m_begin;
 #endif
   public:
-    Timer( std::string const& desc, MessageLevel level=InfoMessage, std::string const& log_namespace = "console" );
+    Timer(std::string const& desc, MessageLevel level=InfoMessage, std::string const& log_namespace = "console");
 
     ~Timer();
   };

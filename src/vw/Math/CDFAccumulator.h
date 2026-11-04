@@ -60,7 +60,7 @@ public:
   ValT quantile(double const& arg) const;
 
   // Predefine functions
-  ValT median        () const { return quantile(0.5 ); }
+  ValT median        () const { return quantile(0.5); }
   ValT first_quartile() const { return quantile(0.25); }
   ValT third_quartile() const { return quantile(0.75); }
 

@@ -103,7 +103,7 @@ namespace math {
     /// result_type and jacobian_type types behave like vector and
     /// matrix objects, respectively.
     template <class DomainT>
-    inline Matrix<double> jacobian( DomainT const& x ) const {
+    inline Matrix<double> jacobian(DomainT const& x) const {
 
       // Get nominal function value
       Vector<double> h0 = impl().operator()(x);
@@ -113,7 +113,7 @@ namespace math {
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for ( unsigned i=0; i<x.size(); ++i ){
+      for (unsigned i=0; i<x.size(); ++i){
         DomainT xi = x;
 
         // Variable step size, depending on parameter value
@@ -133,7 +133,7 @@ namespace math {
     /// to override this method in your base class implementation
     /// unless you are working with unusual result_space topologies.
     template <class T>
-    inline T difference( T const& a, T const& b ) const {
+    inline T difference(T const& a, T const& b) const {
       return (a-b);
     }
   }; // End LeastSquaresModelBase
@@ -175,13 +175,13 @@ namespace math {
 #define VW_MATH_LM_MAX_ITER (100)
 
   template <class ImplT>
-  typename ImplT::domain_type levenberg_marquardt( LeastSquaresModelBase<ImplT> const& least_squares_model,
-                                                   typename ImplT::domain_type const& seed,
-                                                   typename ImplT::result_type const& observation,
-                                                   int &status,
-                                                   double abs_tolerance = VW_MATH_LM_ABS_TOL,
-                                                   double rel_tolerance = VW_MATH_LM_REL_TOL,
-                                                   double max_iterations = VW_MATH_LM_MAX_ITER) {
+  typename ImplT::domain_type levenberg_marquardt(LeastSquaresModelBase<ImplT> const& least_squares_model,
+                                                  typename ImplT::domain_type const& seed,
+                                                  typename ImplT::result_type const& observation,
+                                                  int &status,
+                                                  double abs_tolerance = VW_MATH_LM_ABS_TOL,
+                                                  double rel_tolerance = VW_MATH_LM_REL_TOL,
+                                                  double max_iterations = VW_MATH_LM_MAX_ITER) {
 
     status = optimization::eDidNotConverge;
 
@@ -240,7 +240,7 @@ namespace math {
         // Increase diagonal elements to dynamically mix gradient
         // descent and Gauss-Newton.
         Matrix<double> hessian_lm = hessian;
-        for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
+        for (unsigned i=0; i < hessian_lm.rows(); ++i){
           hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
         }
 
@@ -256,7 +256,7 @@ namespace math {
             // By construction, hessian_lm is symmetric and
             // positive-definite.
             delta_x = solve_symmetric(hessian_lm, del_J);
-          }catch ( const ArgumentErr& e ) {
+          }catch (const ArgumentErr& e) {
             // If lambda is very small, the matrix becomes numerically
             // singular. In that case use the more general
             // least_squares solver.
@@ -342,7 +342,7 @@ namespace math {
     /// \endcond
 
     template <class DomainT>
-    inline Matrix<double, NO, NI> jacobian( DomainT const& x ) const {
+    inline Matrix<double, NO, NI> jacobian(DomainT const& x) const {
 
       // Get nominal function value
       //std::cout << "x; = " << x << std::endl;
@@ -359,7 +359,7 @@ namespace math {
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
       Vector<double, NO> hi;
-      for ( unsigned i=0; i<x.size(); ++i ){
+      for (unsigned i=0; i<x.size(); ++i){
         DomainT xi = x;
 
         // Variable step size, depending on parameter value
@@ -377,7 +377,7 @@ namespace math {
     }
 
     template <class T>
-    inline T difference( T const& a, T const& b ) const {
+    inline T difference(T const& a, T const& b) const {
       return (a-b);
     }
   }; // End LeastSquaresModelBaseSQ
@@ -386,7 +386,7 @@ namespace math {
   /// As the similar function above, but with a fixed, square matrix size.
   /// - VW_OUT statements have also been disabled for speed.
   template <class ImplT, int NI, int NO>
-  typename ImplT::domain_type levenberg_marquardtFixed( LeastSquaresModelBaseFixed<ImplT, NI, NO> const& least_squares_model,
+  typename ImplT::domain_type levenberg_marquardtFixed(LeastSquaresModelBaseFixed<ImplT, NI, NO> const& least_squares_model,
                                                    typename ImplT::domain_type const& seed,
                                                    typename ImplT::result_type const& observation,
                                                    int &status,
@@ -471,7 +471,7 @@ namespace math {
         // descent and Gauss-Newton.
         hessian_lm = hessian;
         //Matrix<double> hessian_lm = hessian;
-        for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
+        for (unsigned i=0; i < hessian_lm.rows(); ++i){
           hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
         }
 
@@ -488,7 +488,7 @@ namespace math {
             // By construction, hessian_lm is symmetric and
             // positive-definite.
             delta_x = solve_symmetric(hessian_lm, del_J);
-          }catch ( const ArgumentErr& e ) {
+          }catch (const ArgumentErr& e) {
             // If lambda is very small, the matrix becomes numerically
             // singular. In that case use the more general
             // least_squares solver.

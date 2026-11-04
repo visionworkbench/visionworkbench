@@ -35,10 +35,10 @@ namespace vw {
    BBox2i const& left_region,      ///< The ROI of the left and right images
    BBox2i const& right_region,     ///  to use in order to do our computations.
    BBox2i const& disparity_region, ///< The ROI in the entire output image
-   BBox2i const& search_range ) const { /// Range of input disparity values in region
+   BBox2i const& search_range) const { /// Range of input disparity values in region
     
     // Rasterize the ROIs of the left and right input images.
-    ImageView<PixelGray<float>> left_raster  = crop(left_filtered_image, left_region );
+    ImageView<PixelGray<float>> left_raster  = crop(left_filtered_image, left_region);
     ImageView<PixelGray<float>> right_raster = crop(right_filtered_image,right_region);
 
     // Allocate a buffer to store the costs of the 9 nearest disparities for each 
@@ -71,10 +71,10 @@ namespace vw {
 
     double ratio = 1.0; // The exact value here does not affect things much
     std::vector<SearchParam> big_zones, zones;
-    subdivide_regions( integer_disparity,
-                       bounding_box(integer_disparity),
-                       big_zones, m_kernel_size );
-    BOOST_FOREACH( SearchParam& zone, big_zones ) {
+    subdivide_regions(integer_disparity,
+                      bounding_box(integer_disparity),
+                      big_zones, m_kernel_size);
+    BOOST_FOREACH(SearchParam& zone, big_zones) {
 
       double len1 = zone.image_region().area();
       double len2 = zone.disparity_range().area();
@@ -87,13 +87,13 @@ namespace vw {
                ++dy){
             BBox2i box(dx, dy, 1, 1);
             PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
-            for_each_pixel( crop(integer_disparity, box), accumulator );
-            if ( !accumulator.is_valid() ) 
+            for_each_pixel(crop(integer_disparity, box), accumulator);
+            if (!accumulator.is_valid()) 
               continue;
             zones.push_back
-              ( SearchParam( box,
-                             BBox2i(accumulator.minimum(),
-                                    accumulator.maximum() + Vector2i(1,1) ) ) );
+              (SearchParam(box,
+                            BBox2i(accumulator.minimum(),
+                                   accumulator.maximum() + Vector2i(1,1))));
               
           }
         } // End loop through pixels in the zone
@@ -101,21 +101,21 @@ namespace vw {
     } // End loop through initial zones
       
       // Loop through the final zones
-    BOOST_FOREACH( SearchParam& zone, zones ) {
+    BOOST_FOREACH(SearchParam& zone, zones) {
         
       zone.disparity_range().expand(1);
         
-      ImageView<AccumT> cost_metric( zone.image_region().width(), zone.image_region().height() );
+      ImageView<AccumT> cost_metric(zone.image_region().width(), zone.image_region().height());
 
       // Note: The zone locations are relative to the cropped output disparity region
       BBox2i left_zone = zone.image_region();
       left_zone.max() += m_kernel_size - Vector2i(1,1);
 
       // Loop through all the disparity values for this zone
-      for ( int32 dx = 0; dx < zone.disparity_range().width(); ++dx ) {
-        for ( int32 dy = 0; dy < zone.disparity_range().height(); ++dy ) {
+      for (int32 dx = 0; dx < zone.disparity_range().width(); ++dx) {
+        for (int32 dy = 0; dy < zone.disparity_range().height(); ++dy) {
 
-          Vector2i disparity( dx, dy ); // Relative disparity number.
+          Vector2i disparity(dx, dy); // Relative disparity number.
 
           Vector2i disparity_abs = disparity + zone.disparity_range().min(); // Absolute disparity
 
@@ -128,13 +128,13 @@ namespace vw {
           CostType cost_function(left_raster_crop, right_raster_crop, m_kernel_size);    
           cost_metric = fast_box_sum<AccumChannelT>(cost_function(left_raster_crop,
                                                                   right_raster_crop),
-                                                    m_kernel_size );
+                                                    m_kernel_size);
           //cost_function.cost_modification( cost_metric, disparity );
-          cost_function.cost_modification( cost_metric, Vector2i(0,0) );
+          cost_function.cost_modification(cost_metric, Vector2i(0,0));
 
-          VW_DEBUG_ASSERT( (zone.image_region().width()  == cost_metric.cols()) &&
-                           (zone.image_region().height() == cost_metric.rows()),
-                           MathErr() << "Cost Metric seems to have wrong size" );
+          VW_DEBUG_ASSERT((zone.image_region().width()  == cost_metric.cols()) &&
+                          (zone.image_region().height() == cost_metric.rows()),
+                          MathErr() << "Cost Metric seems to have wrong size");
 
           // Now take the fast evaluate cost function and see where
           // the cost patch they apply
@@ -146,16 +146,16 @@ namespace vw {
           PatchAcc  patch_row  = cost_patch.origin();
           MetricAcc metric_row = cost_metric.origin();
           IDispAcc  idisp_row  = integer_disparity.origin();
-          patch_row.advance( zone.image_region().min().x(), zone.image_region().min().y() );
-          idisp_row.advance( zone.image_region().min().x(), zone.image_region().min().y() );
+          patch_row.advance(zone.image_region().min().x(), zone.image_region().min().y());
+          idisp_row.advance(zone.image_region().min().x(), zone.image_region().min().y());
             
           // Loop through rows of the zone
-          for ( int32 j = zone.image_region().height(); j; --j ) {
+          for (int32 j = zone.image_region().height(); j; --j) {
             PatchAcc  patch_col  = patch_row;
             MetricAcc metric_col = metric_row;
             IDispAcc  idisp_col  = idisp_row;
             // Loop through columns of the zone
-            for ( int32 i = zone.image_region().width(); i; --i ) {
+            for (int32 i = zone.image_region().width(); i; --i) {
               Vector2i delta = disparity_abs - (*idisp_col).child();
                 
               // Given the current disparity and location within the zone, assign the 
@@ -184,23 +184,23 @@ namespace vw {
                 (*patch_col)[8] = *metric_col;
                 }
               */                
-              if ( delta == Vector2i(-1,-1) ) {
+              if (delta == Vector2i(-1,-1)) {
                 (*patch_col)[0] = *metric_col;
-              } else if ( delta == Vector2i( 0, -1 ) ) {
+              } else if (delta == Vector2i(0, -1)) {
                 (*patch_col)[1] = *metric_col;
-              } else if ( delta == Vector2i( 1, -1 ) ) {
+              } else if (delta == Vector2i(1, -1)) {
                 (*patch_col)[2] = *metric_col;
-              } else if ( delta == Vector2i( -1, 0 ) ) {
+              } else if (delta == Vector2i(-1, 0)) {
                 (*patch_col)[3] = *metric_col;
-              } else if ( delta == Vector2i( 0, 0 ) ) {
+              } else if (delta == Vector2i(0, 0)) {
                 (*patch_col)[4] = *metric_col;
-              } else if ( delta == Vector2i( 1, 0 ) ) {
+              } else if (delta == Vector2i(1, 0)) {
                 (*patch_col)[5] = *metric_col;
-              } else if ( delta == Vector2i( -1, 1 ) ) {
+              } else if (delta == Vector2i(-1, 1)) {
                 (*patch_col)[6] = *metric_col;
-              } else if ( delta == Vector2i( 0, 1 ) ) {
+              } else if (delta == Vector2i(0, 1)) {
                 (*patch_col)[7] = *metric_col;
-              } else if ( delta == Vector2i( 1, 1 ) ) {
+              } else if (delta == Vector2i(1, 1)) {
                 (*patch_col)[8] = *metric_col;
               }
               patch_col.next_col();
@@ -218,28 +218,28 @@ namespace vw {
     } // end loop through zones
 
       // Calculate the new floating point location
-    ImageView<PixelMask<Vector2f> > result( disparity_region.width(),
-                                            disparity_region.height() );
+    ImageView<PixelMask<Vector2f> > result(disparity_region.width(),
+                                           disparity_region.height());
     typedef typename ImageView<PixelMask<Vector2f> >::pixel_accessor ResultAcc;
     ResultAcc result_row = result.origin();
     IDispAcc  idisp_row  = integer_disparity.origin();
     PatchAcc  patch_row  = cost_patch.origin();
-    for ( int32 j = disparity_region.height(); j; --j ) {
+    for (int32 j = disparity_region.height(); j; --j) {
       ResultAcc result_col = result_row;
       IDispAcc  idisp_col  = idisp_row;
       PatchAcc  patch_col  = patch_row;
-      for ( int32 i = disparity_region.width(); i; --i ) {
+      for (int32 i = disparity_region.width(); i; --i) {
         // Given our 9 points of cost around our disparity pixel
         // (patch_col), find the 2D minimum and that will be our
         // floating point update.
-        if ( is_valid( *idisp_col ) ) {
-          if ( !std::equal( (*patch_col).begin()+1, (*patch_col).end(),
-                            (*patch_col).begin() ) ) {
+        if (is_valid(*idisp_col)) {
+          if (!std::equal((*patch_col).begin()+1, (*patch_col).end(),
+                           (*patch_col).begin())) {
             // First, compute the parameters of the hyperbolic surface by
             // fitting the nine points in 'points' using a linear least
             // squares fit.  This process is fairly fast, since we have
             // already pre-computed the inverse of the A matrix in Ax = b.
-            Vector<float,6> x( m_p_A_matrix * (*patch_col) );
+            Vector<float,6> x(m_p_A_matrix * (*patch_col));
             // With these parameters, we have a closed form expression for
             // the surface.  We compute the derivative, and find the point
             // where the slope is zero.  This is our maximum.
@@ -247,12 +247,12 @@ namespace vw {
             //  Max is at [x,y] where:
             //   dz/dx = 2ax + cy + d = 0
             //   dz/dy = 2by + cx + e = 0
-            float denom = 4 * x[0] * x[1] - ( x[2] * x[2] ); // = 4ab - c^2
-            Vector2f offset( ( x[2] * x[4] - 2 * x[1] * x[3] ) / denom,
-                             ( x[2] * x[3] - 2 * x[0] * x[4] ) / denom );
+            float denom = 4 * x[0] * x[1] - (x[2] * x[2]); // = 4ab - c^2
+            Vector2f offset((x[2] * x[4] - 2 * x[1] * x[3]) / denom,
+                            (x[2] * x[3] - 2 * x[0] * x[4]) / denom);
             const float MAX_SUBPIXEL_SHIFT = 5.0; // TODO: Experiment with this!
-            if ( norm_2(offset) < MAX_SUBPIXEL_SHIFT )
-              *result_col = PixelMask<Vector2f>( remove_mask(*idisp_col) + offset );
+            if (norm_2(offset) < MAX_SUBPIXEL_SHIFT)
+              *result_col = PixelMask<Vector2f>(remove_mask(*idisp_col) + offset);
             else
               *result_col = PixelMask<Vector2f>(*idisp_col);
           } else {
@@ -302,27 +302,27 @@ namespace vw {
     if (m_prefilter_mode == PREFILTER_LOG) {
       vw::LaplacianOfGaussian prefilter(m_prefilter_width);
       return prerasterize_type(evaluate(disparity_subsection,
-                                        prefilter.filter(m_left_image ),
+                                        prefilter.filter(m_left_image),
                                         prefilter.filter(m_right_image),
                                         left_region, right_region, bbox,
-                                        entire_search_range ),
+                                        entire_search_range),
                                -bbox.min().x(), -bbox.min().y(), cols(), rows());
     } else {
       if (m_prefilter_mode == PREFILTER_MEANSUB) {
         vw::SubtractedMean prefilter(m_prefilter_width);
         return prerasterize_type(evaluate(disparity_subsection,
-                                          prefilter.filter(m_left_image ),
+                                          prefilter.filter(m_left_image),
                                           prefilter.filter(m_right_image),
                                           left_region, right_region, bbox,
-                                          entire_search_range ),
+                                          entire_search_range),
                                  -bbox.min().x(), -bbox.min().y(), cols(), rows());
       } else { // PREFILTER_NONE
         vw::NullOperation prefilter;
         return prerasterize_type(evaluate(disparity_subsection,
-                                          prefilter.filter(m_left_image ),
+                                          prefilter.filter(m_left_image),
                                           prefilter.filter(m_right_image),
                                           left_region, right_region, bbox,
-                                          entire_search_range ),
+                                          entire_search_range),
                                  -bbox.min().x(), -bbox.min().y(), cols(), rows());
       }
     }
@@ -334,10 +334,10 @@ namespace vw {
                     ImageViewRef<PixelGray<float>> const& left_image,
                     ImageViewRef<PixelGray<float>> const& right_image,
                     PrefilterModeType prefilter_mode, float prefilter_width,
-                    Vector2i const& kernel_size ) {
+                    Vector2i const& kernel_size) {
     typedef ParabolaSubpixelView result_type;
-    return result_type( disparity.impl(), left_image.impl(), right_image.impl(),
-                        prefilter_mode, prefilter_width, kernel_size );
+    return result_type(disparity.impl(), left_image.impl(), right_image.impl(),
+                       prefilter_mode, prefilter_width, kernel_size);
   }
 
 } // namespace vw

@@ -150,17 +150,17 @@ namespace vw {
 
   /// Function to apply a functor to each pixel of an input image.
   template <class ViewT, class FuncT>
-  void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func, const ProgressCallback &progress ) {
+  void for_each_pixel_(const ImageViewBase<ViewT> &view_, FuncT &func, const ProgressCallback &progress) {
     const ViewT& view = view_.impl();
     typedef typename ViewT::pixel_accessor pixel_accessor;
     pixel_accessor plane_acc = view.origin();
-    for( int32 plane = view.planes(); plane; --plane ) { // Loop through planes
+    for(int32 plane = view.planes(); plane; --plane) { // Loop through planes
       pixel_accessor row_acc = plane_acc;
-      for( int32 row = 0; row<view.rows(); ++row ) { // Loop through rows
+      for(int32 row = 0; row<view.rows(); ++row) { // Loop through rows
         progress.report_fractional_progress(row,view.rows());
         pixel_accessor col_acc = row_acc;
-        for( int32 col = view.cols(); col; --col ) { // Loop through columns
-          func( *col_acc );  // Apply the functor to this pixel value
+        for(int32 col = view.cols(); col; --col) { // Loop through columns
+          func(*col_acc);  // Apply the functor to this pixel value
           col_acc.next_col();
         }
         row_acc.next_row();
@@ -172,34 +172,34 @@ namespace vw {
 
   /// Overload with default no progress callback.
   template <class ViewT, class FuncT>
-  void for_each_pixel( const ImageViewBase<ViewT> &view, FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
+  void for_each_pixel(const ImageViewBase<ViewT> &view, FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
     for_each_pixel_<ViewT,FuncT>(view,func,progress);
   }
   /// Const functor overload
   template <class ViewT, class FuncT>
-  void for_each_pixel( const ImageViewBase<ViewT> &view, const FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
+  void for_each_pixel(const ImageViewBase<ViewT> &view, const FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
     for_each_pixel_<ViewT,const FuncT>(view,func,progress);
   }
 
   /// Overload for applying a functor to two input images.
   template <class View1T, class View2T, class FuncT>
-  void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, FuncT &func ) {
+  void for_each_pixel_(const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, FuncT &func) {
     const View1T& view1 = view1_.impl();
     const View2T& view2 = view2_.impl();
-    VW_ASSERT( view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes(),
-               ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions." );
+    VW_ASSERT(view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes(),
+              ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions.");
     typedef typename View1T::pixel_accessor pixel_accessor_1;
     typedef typename View2T::pixel_accessor pixel_accessor_2;
     pixel_accessor_1 plane_acc_1 = view1.origin();
     pixel_accessor_2 plane_acc_2 = view2.origin();
-    for( int32 plane = view1.planes(); plane; --plane ) {
+    for(int32 plane = view1.planes(); plane; --plane) {
       pixel_accessor_1 row_acc_1 = plane_acc_1;
       pixel_accessor_2 row_acc_2 = plane_acc_2;
-      for( int32 row = view1.rows(); row; --row ) {
+      for(int32 row = view1.rows(); row; --row) {
         pixel_accessor_1 col_acc_1 = row_acc_1;
         pixel_accessor_2 col_acc_2 = row_acc_2;
-        for( int32 col = view1.cols(); col; --col ) {
-          func( *col_acc_1, *col_acc_2 );
+        for(int32 col = view1.cols(); col; --col) {
+          func(*col_acc_1, *col_acc_2);
           col_acc_1.next_col();
           col_acc_2.next_col();
         }
@@ -212,40 +212,40 @@ namespace vw {
   }
 
   template <class View1T, class View2T, class FuncT>
-  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, FuncT &func ) {
+  void for_each_pixel(const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, FuncT &func) {
     for_each_pixel_<View1T,View2T,FuncT>(view1,view2,func);
   }
 
   template <class View1T, class View2T, class FuncT>
-  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const FuncT &func ) {
+  void for_each_pixel(const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const FuncT &func) {
     for_each_pixel_<View1T,View2T,const FuncT>(view1,view2,func);
   }
 
   /// Overload for applying a functor to three input images.
   template <class View1T, class View2T, class View3T, class FuncT>
-  void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, const ImageViewBase<View3T> &view3_, FuncT &func ) {
+  void for_each_pixel_(const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, const ImageViewBase<View3T> &view3_, FuncT &func) {
     const View1T& view1 = view1_.impl();
     const View2T& view2 = view2_.impl();
     const View3T& view3 = view3_.impl();
-    VW_ASSERT( view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes() &&
-               view1.cols()==view3.cols() && view1.rows()==view3.rows() && view1.planes()==view3.planes(),
-               ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions." );
+    VW_ASSERT(view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes() &&
+              view1.cols()==view3.cols() && view1.rows()==view3.rows() && view1.planes()==view3.planes(),
+              ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions.");
     typedef typename View1T::pixel_accessor pixel_accessor_1;
     typedef typename View2T::pixel_accessor pixel_accessor_2;
     typedef typename View3T::pixel_accessor pixel_accessor_3;
     pixel_accessor_1 plane_acc_1 = view1.origin();
     pixel_accessor_2 plane_acc_2 = view2.origin();
     pixel_accessor_3 plane_acc_3 = view3.origin();
-    for( int32 plane = view1.planes(); plane; --plane ) {
+    for(int32 plane = view1.planes(); plane; --plane) {
       pixel_accessor_1 row_acc_1 = plane_acc_1;
       pixel_accessor_2 row_acc_2 = plane_acc_2;
       pixel_accessor_3 row_acc_3 = plane_acc_3;
-      for( int32 row = view1.rows(); row; --row ) {
+      for(int32 row = view1.rows(); row; --row) {
         pixel_accessor_1 col_acc_1 = row_acc_1;
         pixel_accessor_2 col_acc_2 = row_acc_2;
         pixel_accessor_3 col_acc_3 = row_acc_3;
-        for( int32 col = view1.cols(); col; --col ) {
-          func( *col_acc_1, *col_acc_2, *col_acc_3 );
+        for(int32 col = view1.cols(); col; --col) {
+          func(*col_acc_1, *col_acc_2, *col_acc_3);
           col_acc_1.next_col();
           col_acc_2.next_col();
           col_acc_3.next_col();
@@ -261,12 +261,12 @@ namespace vw {
   }
 
   template <class View1T, class View2T, class View3T, class FuncT>
-  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, FuncT &func ) {
+  void for_each_pixel(const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, FuncT &func) {
     for_each_pixel_<View1T,View2T,View3T,FuncT>(view1,view2,view3,func);
   }
 
   template <class View1T, class View2T, class View3T, class FuncT>
-  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, const FuncT &func ) {
+  void for_each_pixel(const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, const FuncT &func) {
     for_each_pixel_<View1T,View2T,View3T,const FuncT>(view1,view2,view3,func);
   }
 
@@ -280,21 +280,21 @@ namespace vw {
   /// the default optimized rasterization behavior.  This can be
   /// useful in some cases, such as when the views are heavily subsampled.
   template <class SrcT, class DestT>
-  inline void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
+  inline void rasterize(SrcT const& src, DestT const& dest, BBox2i bbox) {
     typedef typename DestT::pixel_type     DestPixelT;
     typedef typename SrcT::pixel_accessor  SrcAccT;
     typedef typename DestT::pixel_accessor DestAccT;
-    VW_ASSERT( int(dest.cols())==bbox.width() && int(dest.rows())==bbox.height() && dest.planes()==src.planes(),
-               ArgumentErr() << "rasterize: Source and destination must have same dimensions." );
+    VW_ASSERT(int(dest.cols())==bbox.width() && int(dest.rows())==bbox.height() && dest.planes()==src.planes(),
+              ArgumentErr() << "rasterize: Source and destination must have same dimensions.");
     SrcAccT  splane = src.origin().advance(bbox.min().x(),bbox.min().y());
     DestAccT dplane = dest.origin();
-    for( int32 plane=src.planes(); plane; --plane ) {
+    for(int32 plane=src.planes(); plane; --plane) {
       SrcAccT  srow = splane;
       DestAccT drow = dplane;
-      for( int32 row=bbox.height(); row; --row ) {
+      for(int32 row=bbox.height(); row; --row) {
         SrcAccT  scol = srow;
         DestAccT dcol = drow;
-        for( int32 col=bbox.width(); col; --col ) {
+        for(int32 col=bbox.width(); col; --col) {
 #ifdef __llvm__
           // LLVM doesn't like ProceduralPixelAccessor's operator*
           // that returns a non reference. We can work around if we
@@ -317,8 +317,8 @@ namespace vw {
 
   /// A convenience overload to rasterize the entire source.
   template <class SrcT, class DestT>
-  inline void rasterize( SrcT const& src, DestT const& dest ) {
-    rasterize( src, dest, BBox2i(0,0,src.cols(),src.rows()) );
+  inline void rasterize(SrcT const& src, DestT const& dest) {
+    rasterize(src, dest, BBox2i(0,0,src.cols(),src.rows()));
   }
 
   /// A specialization for resizable destination views.
@@ -328,79 +328,79 @@ namespace vw {
   /// \see vw::rasterize
   template <class SrcT, class DestT>
   typename boost::enable_if<IsResizable<DestT>, void>::type
-  inline rasterize( SrcT const& src, DestT& dest, BBox2i bbox ) {
-    dest.set_size( bbox.width(), bbox.height(), src.planes() );
-    rasterize( src, const_cast<DestT const&>(dest), bbox );
+  inline rasterize(SrcT const& src, DestT& dest, BBox2i bbox) {
+    dest.set_size(bbox.width(), bbox.height(), src.planes());
+    rasterize(src, const_cast<DestT const&>(dest), bbox);
   }
 
   /// A convenience overload to rasterize the entire source.
   template <class SrcT, class DestT>
   typename boost::enable_if<IsResizable<DestT>, void>::type
-  inline rasterize( SrcT const& src, DestT& dest ) {
-    dest.set_size( src.cols(), src.rows(), src.planes() );
-    rasterize( src, const_cast<DestT const&>(dest), BBox2i(0,0,src.cols(),src.rows()) );
+  inline rasterize(SrcT const& src, DestT& dest) {
+    dest.set_size(src.cols(), src.rows(), src.planes());
+    rasterize(src, const_cast<DestT const&>(dest), BBox2i(0,0,src.cols(),src.rows()));
   }
 
   template <class Image1T, class Image2T>
-  inline bool equal( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2) {
+  inline bool equal(ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2) {
     if (m1.impl().cols()!=m2.impl().cols() || m1.impl().rows()!=m2.impl().rows() || m1.impl().planes()!=m2.impl().planes())
       return false;
     return std::equal(m1.impl().begin(), m1.impl().end(), m2.impl().begin());
   }
 
   template <class Image1T, class Image2T, class PredT>
-  inline bool equal( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2, PredT p) {
+  inline bool equal(ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2, PredT p) {
     if (m1.impl().cols()!=m2.impl().cols() || m1.impl().rows()!=m2.impl().rows() || m1.impl().planes()!=m2.impl().planes())
       return false;
     return std::equal(m1.impl().begin(), m1.impl().end(), m2.impl().begin(), p);
   }
 
   template <class Image1T, class Image2T>
-  inline bool operator==( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2 ) {
+  inline bool operator==(ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2) {
     return vw::equal(m1, m2);
   }
 
   template <class Image1T, class Image2T>
-  inline bool operator!=( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2 ) {
+  inline bool operator!=(ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2) {
     return !vw::equal(m1, m2);
   }
 
   // Is there a better place to put this function?
   /// Draw a line of a single pixel in an image.
   template <class ImageT, class ValueT>
-  void draw_line( ImageViewBase<ImageT>& image,
-                  ValueT const& value,
-                  Vector2i const& start,
-                  Vector2i const& end ) {
+  void draw_line(ImageViewBase<ImageT>& image,
+                 ValueT const& value,
+                 Vector2i const& start,
+                 Vector2i const& end) {
 
     BBox2i bound = bounding_box(image.impl());
-    if ( !bound.contains( start ) ||
-         !bound.contains( end ) )
+    if (!bound.contains(start) ||
+        !bound.contains(end))
       return;
     Vector2i delta = end - start;
     float inc_amt = 1/norm_2(delta);
-    for ( float r=0; r<1.0; r+=inc_amt ) {
-      int i = (int)(0.5 + start.x() + r*float(delta.x()) );
-      int j = (int)(0.5 + start.y() + r*float(delta.y()) );
+    for (float r=0; r<1.0; r+=inc_amt) {
+      int i = (int)(0.5 + start.x() + r*float(delta.x()));
+      int j = (int)(0.5 + start.y() + r*float(delta.y()));
       image.impl()(i,j) = value;
     }
   }
 
   /// Dumps a matrix to a std::ostream
   template <class ImageT>
-  inline std::ostream& operator<<( std::ostream& os, ImageViewBase<ImageT> const& m ) {
+  inline std::ostream& operator<<(std::ostream& os, ImageViewBase<ImageT> const& m) {
     ImageT const& mr = m.impl();
     size_t rows = mr.rows(), cols = mr.cols(), planes = mr.planes();
     os << "ImageViewBase[" << planes << 'x' << rows << 'x' << cols << "](";
-    for( size_t p=0; p<planes; ++p ) {
+    for(size_t p=0; p<planes; ++p) {
       if (p != 0)
         os << ',';
       os << '(';
-      for( size_t r=0; r<rows; ++r ) {
+      for(size_t r=0; r<rows; ++r) {
         if (r != 0)
           os << ',';
         os << '(' << mr(0,r,p);
-        for( size_t c=1; c<cols; ++c ) {
+        for(size_t c=1; c<cols; ++c) {
           os << ',' << mr(c,r,p);
         }
         os << ')';

@@ -130,13 +130,13 @@ namespace vw {
 
     // NED to ECEF transform. This takes into account that the planet is an
     // ellipsoid and the curent elevation above it. 
-    Vector3 geodetic_to_cartesian( Vector3 const& llh ) const;
+    Vector3 geodetic_to_cartesian(Vector3 const& llh) const;
 
     /// Return the rotation matrix for converting from NED to ECEF.
     /// This can handle the planet being an ellipsoid.
     Matrix3x3 lonlat_to_ned_matrix(Vector3 const& llh) const;
 
-    Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
+    Vector3 cartesian_to_geodetic(Vector3 const& xyz) const;
   };
 
   std::ostream& operator<<(std::ostream& os, const Datum& datum);
@@ -148,8 +148,8 @@ namespace vw {
   // Free associated functions
   vw::Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec);
-  vw::Vector3 datum_intersection( Datum const& datum,
-                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec );
+  vw::Vector3 datum_intersection(Datum const& datum,
+                              vw::Vector3 camera_ctr, vw::Vector3 camera_vec);
   
 } // namespace vw
 

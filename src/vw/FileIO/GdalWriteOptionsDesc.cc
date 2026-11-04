@@ -38,7 +38,7 @@ namespace boost { namespace program_options {
   };
   
   typed_2_value<vw::Vector2i>*
-  value( vw::Vector2i* v ) {
+  value(vw::Vector2i* v) {
     typed_2_value<vw::Vector2i>* r =
       new typed_2_value<vw::Vector2i>(v);
     return r;
@@ -48,7 +48,7 @@ namespace boost { namespace program_options {
   template <>
   void validate(boost::any& v,
                 const std::vector<std::string>& values,
-                vw::Vector2i*, long ) {
+                vw::Vector2i*, long) {
     validators::check_first_occurrence(v);
 
     // Concatenate and then split again, so that the user can mix
@@ -57,14 +57,14 @@ namespace boost { namespace program_options {
     std::vector<std::string> cvalues;
     boost::split(cvalues, joined, is_any_of(", "), boost::token_compress_on);
 
-    if ( cvalues.size() != 2 )
+    if (cvalues.size() != 2)
       boost::throw_exception(invalid_syntax(invalid_syntax::missing_parameter));
 
     try {
-      vw::Vector2i output(boost::lexical_cast<vw::int32>( cvalues[0]),
-                          boost::lexical_cast<vw::int32>( cvalues[1]));
+      vw::Vector2i output(boost::lexical_cast<vw::int32>(cvalues[0]),
+                          boost::lexical_cast<vw::int32>(cvalues[1]));
       v = output;
-    } catch (boost::bad_lexical_cast const& e ) {
+    } catch (boost::bad_lexical_cast const& e) {
       boost::throw_exception(validation_error(validation_error::invalid_option_value));
     }
   }

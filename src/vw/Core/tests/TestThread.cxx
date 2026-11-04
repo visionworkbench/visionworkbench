@@ -47,7 +47,7 @@ class TestTask {
       m_condition.notify_all();
 
       int count = 0;
-      while( !terminate ) {
+      while(!terminate) {
         Thread::sleep_ms(100);
         if (count++ > 50) {
           std::cerr << "Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occurred?" << std::endl;
@@ -74,7 +74,7 @@ class TestThreadIdTask {
     TestThreadIdTask() : terminate(false) {}
 
     void operator()() {
-      while( !terminate )
+      while(!terminate)
         Thread::sleep_ms(100);
     }
 
@@ -84,18 +84,18 @@ class TestThreadIdTask {
 TEST(Thread, ThreadAndMutex) {
   Mutex condition_mutex;
   Condition index_updated_event;
-  boost::shared_ptr<TestTask> task( new TestTask(condition_mutex, index_updated_event) );
-  ASSERT_EQ( 0, task->value );
+  boost::shared_ptr<TestTask> task(new TestTask(condition_mutex, index_updated_event));
+  ASSERT_EQ(0, task->value);
 
   Thread *thread;
 
   {
     Mutex::Lock cond_lock(condition_mutex);
-    thread = new Thread( task );
+    thread = new Thread(task);
     index_updated_event.wait(cond_lock);
   }
 
-  EXPECT_EQ( 1, task->value );
+  EXPECT_EQ(1, task->value);
 
   task->kill();
   {
@@ -103,7 +103,7 @@ TEST(Thread, ThreadAndMutex) {
     index_updated_event.wait(cond_lock);
   }
 
-  EXPECT_EQ( 3, task->value );
+  EXPECT_EQ(3, task->value);
   thread->join();
   delete thread;
 }
@@ -113,17 +113,17 @@ TEST(Thread, ThreadId) {
   // Start by testing my own ID.
   int64 id;
   id = Thread::id();
-  ASSERT_EQ( 0, id );
+  ASSERT_EQ(0, id);
 
   // Make sure that it stays the same after repeated calls
   id = Thread::id();
-  EXPECT_EQ( 0, id );
+  EXPECT_EQ(0, id);
   id = Thread::id();
-  EXPECT_EQ( 0, id );
+  EXPECT_EQ(0, id);
 
-  boost::shared_ptr<TestThreadIdTask> task1( new TestThreadIdTask() );
-  boost::shared_ptr<TestThreadIdTask> task2( new TestThreadIdTask() );
-  boost::shared_ptr<TestThreadIdTask> task3( new TestThreadIdTask() );
+  boost::shared_ptr<TestThreadIdTask> task1(new TestThreadIdTask());
+  boost::shared_ptr<TestThreadIdTask> task2(new TestThreadIdTask());
+  boost::shared_ptr<TestThreadIdTask> task3(new TestThreadIdTask());
   Thread thread1(task1);
   Thread thread2(task2);
   Thread thread3(task3);
@@ -138,11 +138,11 @@ TEST(Thread, ThreadId) {
 }
 
 TEST(Thread, RunOnce) {
-  EXPECT_EQ( 0, once_value );
-  once.run( run_once_func );
-  EXPECT_EQ( 1, once_value );
-  once.run( run_once_func );
-  EXPECT_EQ( 1, once_value );
+  EXPECT_EQ(0, once_value);
+  once.run(run_once_func);
+  EXPECT_EQ(1, once_value);
+  once.run(run_once_func);
+  EXPECT_EQ(1, once_value);
 }
 
 struct ReturnFalse {

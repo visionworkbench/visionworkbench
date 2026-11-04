@@ -24,21 +24,21 @@
 
 using namespace vw;
 
-TEST( Exif, ReadData ) {
+TEST(Exif, ReadData) {
 
   ExifData exif_data;
   exif_data.import_data(TEST_SRCDIR"/test.jpg");
   {
     double exposure;
     bool found = exif_data.get_tag_value(EXIF_ExposureTime, exposure);
-    EXPECT_TRUE( found );
-    EXPECT_NEAR( exposure, 0.0125, 1e-8 );
+    EXPECT_TRUE(found);
+    EXPECT_NEAR(exposure, 0.0125, 1e-8);
   }
   {
     double fstop;
     bool found = exif_data.get_tag_value(EXIF_FNumber, fstop);
-    EXPECT_TRUE( found );
-    EXPECT_NEAR( fstop, 5.8, 1e-8 );
+    EXPECT_TRUE(found);
+    EXPECT_NEAR(fstop, 5.8, 1e-8);
   }
 
   {

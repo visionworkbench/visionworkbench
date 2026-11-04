@@ -207,18 +207,18 @@ private: // Variables
 public: // Functions
 
   // Constructor
-  Sentinel1CleanBordersView( ImageT  const& input_image)
+  Sentinel1CleanBordersView(ImageT  const& input_image)
                   : m_input_image(input_image){}
 
   inline int32 cols  () const { return m_input_image.cols(); }
   inline int32 rows  () const { return m_input_image.rows(); }
   inline int32 planes() const { return 1; }
 
-  inline result_type operator()( int32 i, int32 j, int32 p=0 ) const
+  inline result_type operator()(int32 i, int32 j, int32 p=0) const
   { return 0; } // NOT IMPLEMENTED!
  
   typedef ProceduralPixelAccessor<Sentinel1CleanBordersView<ImageT> > pixel_accessor;
-  inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+  inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
   // Determin which edges of the image this tile is on
   void check_bbox_edges(BBox2i const& bbox, bool &left, bool &right, bool &top, bool &bottom) const {
@@ -230,7 +230,7 @@ public: // Functions
 
   // This function does most of the work
   typedef CropView<ImageView<result_type> > prerasterize_type;
-  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+  inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
     ImageView<result_type> output_tile = crop(m_input_image, bbox);
 
@@ -346,13 +346,13 @@ public: // Functions
     } // End bottom edge case
 
     // Return the tile we created with fake borders to make it look the size of the entire output image
-    return prerasterize_type(output_tile, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
+    return prerasterize_type(output_tile, -bbox.min().x(), -bbox.min().y(), cols(), rows());
 
   } // End prerasterize function
 
  template <class DestT>
- inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-   vw::rasterize( prerasterize(bbox), dest, bbox );
+ inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+   vw::rasterize(prerasterize(bbox), dest, bbox);
  }
 }; // End class Sentinel1CleanBordersView
 
@@ -452,8 +452,8 @@ int main(int argc, char **argv) {
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
+    po::store(po::command_line_parser(argc, argv).options(options).positional(p).run(), vm);
+    po::notify(vm);
   } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
@@ -461,12 +461,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if( vm.count("help") ) {
+  if(vm.count("help")) {
     std::cout << usage.str();
     return 0;
   }
 
-  if( vm.count("output-path") < 1 ) {
+  if(vm.count("output-path") < 1) {
     std::cerr << "Error: must specify the output file!" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;

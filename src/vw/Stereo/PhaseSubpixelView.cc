@@ -150,7 +150,7 @@ void phase_correlation_subpixel(ImageViewRef<float> const& left_image,
   cv::minMaxLoc(conv, NULL, &maxVal, NULL, &maxLoc);
 
   // Convert peak location back to the input pixel coordinates.
-  float initial_shift_x = (maxLoc.x<width /2) ? (maxLoc.x) : (maxLoc.x-width );
+  float initial_shift_x = (maxLoc.x<width /2) ? (maxLoc.x) : (maxLoc.x-width);
   float initial_shift_y = (maxLoc.y<height/2) ? (maxLoc.y) : (maxLoc.y-height);
   initial_shift_x /= static_cast<float>(INITIAL_PAD_FACTOR);
   initial_shift_y /= static_cast<float>(INITIAL_PAD_FACTOR);
@@ -169,7 +169,7 @@ void phase_correlation_subpixel(ImageViewRef<float> const& left_image,
 
     boost::shared_ptr<cv::Mat> ocv_ptr(&conv, boost::null_deleter());
     ImageResourceView<float> ocv_view(new ImageResourceOpenCV(ocv_ptr));
-    write_image( "conv.tif", ocv_view);
+    write_image("conv.tif", ocv_view);
   }
 
   // End of the first pass, stop here if the output resolution is low.

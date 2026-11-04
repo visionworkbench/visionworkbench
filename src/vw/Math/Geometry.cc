@@ -69,13 +69,13 @@ HomographyFittingFunctor::NormSimilarity(std::vector<Vector3> const& pts) const 
   size_t dimension = 3;
 
   Vector2 translation;
-  for ( size_t i = 0; i < num_points; i++ )
+  for (size_t i = 0; i < num_points; i++)
     translation+=subvector(pts[i],0,dimension-1);
   translation /= num_points;
 
   double scale = 0;
-  for ( size_t i = 0; i < num_points; i++ )
-    scale += norm_2( subvector(pts[i],0,dimension-1) - translation );
+  for (size_t i = 0; i < num_points; i++)
+    scale += norm_2(subvector(pts[i],0,dimension-1) - translation);
   scale = num_points*sqrt(2.)/scale;
 
   Matrix3x3 t;
@@ -88,20 +88,20 @@ HomographyFittingFunctor::NormSimilarity(std::vector<Vector3> const& pts) const 
 }
 
 vw::Matrix3x3
-HomographyFittingFunctor::BasicDLT( std::vector<Vector3 > const& input,
-                                    std::vector<Vector3 > const& output )  const {
-  VW_ASSERT( input.size() == 4 && output.size() == 4,
-             vw::ArgumentErr() << "DLT in this implementation expects to have only 4 inputs." );
-  VW_ASSERT( input[0][input[0].size()-1] == 1,
-             vw::ArgumentErr() << "Input data doesn't seem to be normalized.");
-  VW_ASSERT( output[0][output[0].size()-1] == 1,
-             vw::ArgumentErr() << "Secondary input data doesn't seem to be normalized.");
-  VW_ASSERT( input[0].size() == 3,
-             vw::ArgumentErr() << "BasicDLT only supports homogeneous 2D vectors.");
+HomographyFittingFunctor::BasicDLT(std::vector<Vector3 > const& input,
+                                   std::vector<Vector3 > const& output)  const {
+  VW_ASSERT(input.size() == 4 && output.size() == 4,
+            vw::ArgumentErr() << "DLT in this implementation expects to have only 4 inputs.");
+  VW_ASSERT(input[0][input[0].size()-1] == 1,
+            vw::ArgumentErr() << "Input data doesn't seem to be normalized.");
+  VW_ASSERT(output[0][output[0].size()-1] == 1,
+            vw::ArgumentErr() << "Secondary input data doesn't seem to be normalized.");
+  VW_ASSERT(input[0].size() == 3,
+            vw::ArgumentErr() << "BasicDLT only supports homogeneous 2D vectors.");
 
   vw::Matrix<double,8,9> A;
-  for ( uint8 i = 0; i < 4; i++ )
-    for ( uint8 j = 0; j < 3; j++ ) {
+  for (uint8 i = 0; i < 4; i++)
+    for (uint8 j = 0; j < 3; j++) {
       // Filling in -wi'*xi^T
       A(i,j+3) = -output[i][2]*input[i][j];
       // Filling in yi'*xi^T
@@ -115,8 +115,8 @@ HomographyFittingFunctor::BasicDLT( std::vector<Vector3 > const& input,
   Matrix<double> nullsp = nullspace(A);
   nullsp /= nullsp(8,0);
   Matrix3x3 H;
-  for ( uint8 i = 0; i < 3; i++ )
-    for ( uint8 j = 0; j < 3; j++ )
+  for (uint8 i = 0; i < 3; i++)
+    for (uint8 j = 0; j < 3; j++)
       H(i,j) = nullsp(i*3+j,0);
   return H;
 }
@@ -167,7 +167,7 @@ void find_3D_transform_no_outliers(vw::Matrix<double> const & in_vec,
       
       ColView inCol1 (in,  col), inCol2 (in,  next_col);
       ColView outCol1(out, col), outCol2(out, next_col);
-      dist_in  += vw::math::norm_2(inCol2  - inCol1 );
+      dist_in  += vw::math::norm_2(inCol2  - inCol1);
       dist_out += vw::math::norm_2(outCol2 - outCol1);
     }
 
@@ -311,13 +311,13 @@ struct Similarity3DFittingFunctor {
   result_type operator()(std::vector<vw::Vector3> const& in_vec,
                          std::vector<vw::Vector3> const& out_vec,
                          vw::Matrix<double> const& /* initial_guess */
-                         = vw::Matrix<double>() ) const {
+                         = vw::Matrix<double>()) const {
     // check consistency
     if (in_vec.size() != out_vec.size())
-      vw_throw( vw::ArgumentErr() << "There must be as many inputs as outputs to be "
-                << "able to compute a transform between them.\n");
+      vw_throw(vw::ArgumentErr() << "There must be as many inputs as outputs to be "
+               << "able to compute a transform between them.\n");
     if (in_vec.size() < min_elements_needed_for_fit(vw::Vector3()))
-      vw_throw( vw::ArgumentErr() << "Cannot compute a transformation. Insufficient data.\n");
+      vw_throw(vw::ArgumentErr() << "Cannot compute a transformation. Insufficient data.\n");
 
     // Convert to expected format
     // TODO(oalexan1): Eliminate the matrix format altogether
