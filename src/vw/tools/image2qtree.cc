@@ -298,7 +298,7 @@ GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
     input_georef.set_transverse_mercator(opt.proj.lat, opt.proj.lon,
                                           opt.proj.scale);
   if (opt.proj.type == "UTM")
-    input_georef.set_UTM(abs(opt.proj.utm_zone), opt.proj.utm_zone > 0);
+    input_georef.set_UTM(std::abs(opt.proj.utm_zone), opt.proj.utm_zone > 0);
 
   // Handle nudge arguments (x and y shifts in projected coordinates)
   if (opt.nudge_x || opt.nudge_y) {

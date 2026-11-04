@@ -166,7 +166,7 @@ TEST(Algorithms, Grassfire_no_border) {
 
   for (int r=0; r<5; ++r) {
     for (int c=0; c<5; ++c) {
-      uint16 ans = abs(2-r) + abs(2-c);
+      uint16 ans = std::abs(2-r) + std::abs(2-c);
       EXPECT_EQ(ans, g(c,r));
     }
   }

@@ -62,14 +62,8 @@
 #include <iterator>
 #include <type_traits>
 #include <vector>
-#include <algorithm>
-#include <cmath>
 
 namespace vw {
-
-  using std::min;
-  using std::max;
-  using std::abs;
 
   /// A type function to compute the dimension of a vector expression
   /// at compile time (or zero for dynamically-sized vectors).

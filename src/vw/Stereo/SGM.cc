@@ -1657,7 +1657,7 @@ SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
   if (m_kernel_size == 1) { // Special handling for single pixel case
     int diff = static_cast<int>(left_image (left_x,  left_y)) -
                static_cast<int>(right_image(right_x, right_y));
-    return static_cast<CostType>(abs(diff));
+    return static_cast<CostType>(std::abs(diff));
   }
 
   const CostType MAX_RESULT = 255; // For uint8
@@ -1695,7 +1695,7 @@ SemiGlobalMatcher::get_cost_block(ImageView<uint8> const& left_image,
     for (int i=-half_kernel_size; i<=half_kernel_size; i++) {
       diff = static_cast<int>(left_image (left_x +i, left_y +j)) -
              static_cast<int>(right_image(right_x+i, right_y+j));
-      sum += abs(diff);
+      sum += std::abs(diff);
     }
   }
   sum /= count;

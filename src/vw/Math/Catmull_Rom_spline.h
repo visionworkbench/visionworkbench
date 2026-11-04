@@ -105,7 +105,7 @@ catmull_rom<Point>::catmull_rom(std::vector<Point>&& points, bool closed, typena
     m_pnts[0] = tmp;
 
     m_s[0] = -detail::alpha_distance<Point>(m_pnts[0], m_pnts[1], alpha);
-    if (abs(m_s[0]) < std::numeric_limits<typename Point::value_type>::epsilon())
+    if (std::abs(m_s[0]) < std::numeric_limits<typename Point::value_type>::epsilon())
     {
         throw std::domain_error("The first and last point should not be the same.\n");
     }
@@ -113,7 +113,7 @@ catmull_rom<Point>::catmull_rom(std::vector<Point>&& points, bool closed, typena
     for (size_t i = 2; i < m_s.size(); ++i)
     {
         typename Point::value_type d = detail::alpha_distance<Point>(m_pnts[i], m_pnts[i-1], alpha);
-        if (abs(d) < std::numeric_limits<typename Point::value_type>::epsilon())
+        if (std::abs(d) < std::numeric_limits<typename Point::value_type>::epsilon())
         {
             throw std::domain_error("The control points of the Catmull-Rom curve are too close together; this will lead to ill-conditioning.\n");
         }

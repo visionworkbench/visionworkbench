@@ -1101,7 +1101,7 @@ void dPoly::sortFromLargestToSmallest(bool counter_cc) {
     int numV = m_numVerts[s];
 
     boxDims[s].point = dPoint(xur[s] - xll[s], yur[s] - yll[s]);
-    boxDims[s].area  = abs(signedPolyArea(numV, vecPtr(m_xv) + start, vecPtr(m_yv) + start,
+    boxDims[s].area  = std::abs(signedPolyArea(numV, vecPtr(m_xv) + start, vecPtr(m_yv) + start,
                                           counter_cc));
     boxDims[s].index = s;
   }
@@ -1171,12 +1171,12 @@ void dPoly::sortBySizeAndMaybeAddBigContainingRect(// inputs
 
   double xll, yll, xur, yur;
   bdBox(xll, yll, xur, yur);
-  bigXll = min(xll, bigXll); bigXur = max(xur, bigXur);
-  bigYll = min(yll, bigYll); bigYur = max(yur, bigYur);
+  bigXll = std::min(xll, bigXll); bigXur = std::max(xur, bigXur);
+  bigYll = std::min(yll, bigYll); bigYur = std::max(yur, bigYur);
 
   // Add the extra term to ensure we get a box strictly bigger than
   // the polygons and the big window (this will help with sorting below).
-  double extra = max(abs(bigXur - bigXll), abs(bigYur - bigYll)) + 10.0;
+  double extra = std::max(std::abs(bigXur - bigXll), std::abs(bigYur - bigYll)) + 10.0;
   bigXll -= extra; bigXur += extra;
   bigYll -= extra; bigYur += extra;
 
