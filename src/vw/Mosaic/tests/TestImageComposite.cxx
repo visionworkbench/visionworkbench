@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace vw;
-using namespace vw::mosaic;
 
 ImageView<uint32> make(uint32 x) {
   ImageView<uint32> img(8,8);

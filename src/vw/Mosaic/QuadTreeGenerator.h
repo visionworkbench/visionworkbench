@@ -50,7 +50,6 @@
 
 
 namespace vw {
-namespace mosaic {
 
   // This feature, or something like it, should be implemented better and
   // moved somewhere into the Image module.
@@ -360,7 +359,6 @@ namespace mosaic {
     sparse_image_check_type m_sparse_image_check;
   };
 
-} // namespace mosaic
 } // namespace vw
 
 #endif // __VW_MOSAIC_QUADTREEGENERATOR_H__

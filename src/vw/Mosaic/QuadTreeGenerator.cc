@@ -24,7 +24,6 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
-namespace mosaic {
 
   std::string QuadTreeGenerator::simple_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name() );
@@ -97,5 +96,4 @@ namespace mosaic {
     progress_callback.report_finished();
   }
 
-} // namespacw vw::mosaic
 } // namespace vw

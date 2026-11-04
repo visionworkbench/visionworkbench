@@ -43,7 +43,6 @@
 #include <vw/Image/ImageChannels.h>
 
 namespace vw {
-namespace mosaic {
 
   // *******************************************************************
   // PositionedImage
@@ -307,7 +306,6 @@ namespace mosaic {
 
   };
 
-} // namespace mosaic
 
   // This specializes the SparseImageCheck template for the
   // ImageComposite type of ImageView.  The ImageComposite might be
@@ -315,10 +313,10 @@ namespace mosaic {
   // able to check to see whether an arbitrary bbox intersects with
   // any of the the ImageComposite's source images.
   template <class PixelT>
-  class SparseImageCheck<mosaic::ImageComposite<PixelT> > {
-    mosaic::ImageComposite<PixelT> const& composite;
+  class SparseImageCheck<vw::ImageComposite<PixelT> > {
+    vw::ImageComposite<PixelT> const& composite;
   public:
-    SparseImageCheck(mosaic::ImageComposite<PixelT> const& source) : composite(source) {}
+    SparseImageCheck(vw::ImageComposite<PixelT> const& source) : composite(source) {}
     bool operator() (BBox2i const& bbox) {
       return composite.sparse_check(bbox);
     }
@@ -328,7 +326,7 @@ namespace mosaic {
 
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback const& progress_callback ) const {
+void vw::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback const& progress_callback ) const {
   vw_out(DebugMessage, "mosaic") << "Generating masks..." << std::endl;
   std::vector<Cache::Handle<GrassfireGenerator> > grassfires;
   for( unsigned i=0; i<sources.size(); ++i )
@@ -370,7 +368,7 @@ void vw::mosaic::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback co
 
 
 template <class PixelT>
-boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosaic::ImageComposite<PixelT>::PyramidGenerator::generate() const {
+boost::shared_ptr<typename vw::ImageComposite<PixelT>::Pyramid> vw::ImageComposite<PixelT>::PyramidGenerator::generate() const {
   vw_out(DebugMessage, "mosaic") << "ImageComposite generating pyramid " << m_index << std::endl;
   boost::shared_ptr<Pyramid> ptr( new Pyramid );
   ImageView<pixel_type> source = copy(*m_composite.sources[m_index]);
@@ -409,7 +407,7 @@ boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosa
 
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const& image, int x, int y ) {
+void vw::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const& image, int x, int y ) {
   sourcerefs.push_back( image );
   sources.push_back( m_cache.insert( SourceGenerator( image ) ) );
   alphas.push_back( m_cache.insert( AlphaGenerator( *this, pyramids.size() ) ) );
@@ -432,7 +430,7 @@ void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const&
 
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::prepare( vw::ProgressCallback const& progress_callback ) {
+void vw::ImageComposite<PixelT>::prepare( vw::ProgressCallback const& progress_callback ) {
   // Translate bboxes to origin
   for( unsigned i=0; i<sources.size(); ++i )
     bboxes[i] -= view_bbox.min();
@@ -448,8 +446,8 @@ void vw::mosaic::ImageComposite<PixelT>::prepare( vw::ProgressCallback const& pr
 }
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
-                                                  vw::ProgressCallback const& progress_callback ) {
+void vw::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
+                                          vw::ProgressCallback const& progress_callback ) {
   view_bbox = total_bbox;
   prepare( progress_callback );
 }
@@ -465,7 +463,7 @@ void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
 // Generates a full-resolution patch of the mosaic corresponding
 // to the given bounding box.
 template <class PixelT>
-vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i const& patch_bbox ) const {
+vw::ImageView<PixelT> vw::ImageComposite<PixelT>::blend_patch( BBox2i const& patch_bbox ) const {
 #if VW_DEBUG_LEVEL > 1
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
 #endif
@@ -570,7 +568,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
 // Generates a full-resolution patch of the mosaic corresponding
 // to the given bounding box WITHOUT blending.
 template <class PixelT>
-vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox2i const& patch_bbox ) const {
+vw::ImageView<PixelT> vw::ImageComposite<PixelT>::draft_patch( BBox2i const& patch_bbox ) const {
 #if VW_DEBUG_LEVEL > 1
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
 #endif

@@ -21,7 +21,6 @@
 #include <boost/algorithm/string.hpp>
 
 using namespace vw;
-using namespace vw::mosaic;
 
 boost::shared_ptr<QuadTreeConfig> QuadTreeConfig::make(const std::string& type) {
   typedef boost::shared_ptr<QuadTreeConfig> ptr_t;

@@ -78,7 +78,7 @@ static void write_match_image(std::string const& out_file_name,
     sub_scale = 1;
 
   // Paste the two scaled input images into a composite image
-  mosaic::ImageComposite<PixelRGB<uint8> > composite;
+  vw::ImageComposite<PixelRGB<uint8> > composite;
   if ( irsrc1->has_nodata_read() ) {
     composite.insert( pixel_cast_rescale<PixelRGB<uint8> >
                       (resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >

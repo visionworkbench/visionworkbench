@@ -29,7 +29,6 @@
 #include <vw/Mosaic/QuadTreeConfig.h>
 
 namespace vw {
-namespace mosaic {
 
   struct KMLQuadTreeConfigData;
 
@@ -71,7 +70,6 @@ namespace mosaic {
     boost::shared_ptr<KMLQuadTreeConfigData> m_data;
   };
 
-} // namespace mosaic
 } // namespace vw
 
 #endif // __VW_MOSAIC_KMLQUADTREECONFIG_H__

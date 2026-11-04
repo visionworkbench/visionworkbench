@@ -23,7 +23,6 @@
 #include <boost/shared_ptr.hpp>
 
 namespace vw {
-namespace mosaic {
 
   class QuadTreeGenerator;
 
@@ -40,6 +39,6 @@ namespace mosaic {
     static boost::shared_ptr<QuadTreeConfig> make(const std::string& type);
   };
 
-}} // namespace vw::mosaic
+} // namespace vw
 
 #endif

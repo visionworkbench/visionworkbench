@@ -98,7 +98,6 @@ namespace vw {
     }
   };
 
-namespace mosaic {
 
   struct KMLQuadTreeConfigData {
     BBox2       m_longlat_bbox;
@@ -351,5 +350,4 @@ namespace mosaic {
     }
   }
 
-} // namespace mosaic
 } // namespace vw

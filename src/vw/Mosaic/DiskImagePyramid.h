@@ -41,7 +41,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Math/Statistics.h>
 
-namespace vw { namespace mosaic {
+namespace vw {
 
   namespace fs = boost::filesystem;
 
@@ -485,6 +485,6 @@ namespace vw { namespace mosaic {
     clip = crop(m_pyramid[level], region_out);
   }
 
-}} // End namespace vw::mosaic
+} // namespace vw
 
 #endif // __VW_MOSAIC_DISKIMAGEPYRAMID_H__
