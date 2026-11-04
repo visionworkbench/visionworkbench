@@ -53,7 +53,7 @@ namespace vw {
 template <class ViewT>
 void histogram(const ImageViewBase<ViewT> &view, int num_bins,
                double min_val, double max_val,
-               math::Histogram &hist) {
+               vw::Histogram &hist) {
 
   VW_ASSERT(num_bins > 0,
             ArgumentErr() << "histogram: number of input bins must be positive");
@@ -80,7 +80,7 @@ void histogram(const ImageViewBase<ViewT> &view, int num_bins,
 template <class ViewT>
 double otsu_threshold(const ImageViewBase<ViewT> &view) {
 
-  math::Histogram hist;
+  vw::Histogram hist;
   int num_bins = 256;
   double max_val = -std::numeric_limits<double>::max();
   double min_val = -max_val;
@@ -252,7 +252,7 @@ void percentile_scale_convert(ImageViewBase<ViewT> const& input_image,
   find_image_min_max(input_image, min_val, max_val);
 
   // Compute the input image histogram
-  math::Histogram hist;
+  vw::Histogram hist;
   histogram(input_image, num_bins, min_val, max_val, hist);
 
   // Find the bins at the input percentiles

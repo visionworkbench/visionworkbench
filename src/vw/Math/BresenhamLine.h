@@ -25,7 +25,6 @@
 #include <vw/Math/Vector.h>
 
 namespace vw {
-namespace math {
 
 
   /// Class implementing Bresenham line tracing algorithm
@@ -120,7 +119,6 @@ namespace math {
     }
   };
 
-} // end namespace math
 } // end namespace vw
 
 #endif//__VW_MATH_BRESENHAMLINE_H__

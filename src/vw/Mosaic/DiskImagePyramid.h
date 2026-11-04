@@ -111,7 +111,7 @@ namespace vw {
                              ImageViewRef<PixelT>>::type
   custom_read(std::string const& file, int overview_level = -1){
     if (overview_level < 0)
-      return vw::read_channels<vw::math::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
+      return vw::read_channels<vw::VectorSize<PixelT>::value, typename PixelT::value_type>(file, 0);
     // Read the given overview. It preserves the band count of the full image.
     boost::shared_ptr<vw::DiskImageResourceGDAL>
       rsrc(new vw::DiskImageResourceGDAL(file, overview_level));
@@ -264,7 +264,7 @@ namespace vw {
     double pct = 0.01; // 1% outliers at either end
     double outlier_factor = 4;
     double b = 0.0, e = 0.0;
-    vw::math::find_outlier_brackets(vals, pct, outlier_factor, b, e);
+    vw::find_outlier_brackets(vals, pct, outlier_factor, b, e);
 
     // Tighten the bounds
     std::sort(vals.begin(), vals.end());

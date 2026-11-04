@@ -30,7 +30,6 @@
 #include <vw/Math/LinearAlgebra.h>
 
 namespace vw {
-namespace math {
 
   // Compute the relative orientation of two sets of unit 3-vectors,
   // represented as 3xn matrices.  Specifically, computes the unit
@@ -79,7 +78,6 @@ namespace math {
     return Quat(real(select_col(evecs, index)));
   }
 
-} // namespace math
 } // namespace vw
 
 #endif // __VW_MATH_POSEESTIMATION_H__

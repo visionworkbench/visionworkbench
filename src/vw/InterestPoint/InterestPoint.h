@@ -146,7 +146,7 @@ namespace vw {
 
   /// Convert a an InterestPointList into a dense matrix of IP descriptors, one per row.
   template <class LIST_T, typename T>
-  void ip_list_to_matrix(LIST_T const& ip_list, math::Matrix<T> &ip_matrix) {
+  void ip_list_to_matrix(LIST_T const& ip_list, vw::Matrix<T> &ip_matrix) {
 
     // Construct a plain matrix
     const size_t num_points        = ip_list.size();

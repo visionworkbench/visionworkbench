@@ -32,7 +32,7 @@ using namespace vw;
 // If camera center weight is given, use that to constrain the
 // camera center, not just its height.
 template <class CAM>
-class CameraSolveLmaHt: public vw::math::LeastSquaresModelBase<CameraSolveLmaHt<CAM>> {
+class CameraSolveLmaHt: public vw::LeastSquaresModelBase<CameraSolveLmaHt<CAM>> {
   std::vector<vw::Vector3> const& m_xyz;
   CAM m_camera_model;
   double m_cam_height, m_cam_weight, m_cam_ctr_weight;
@@ -130,7 +130,7 @@ void fitCam(std::vector<Vector3> const& xyz_vec,
   CameraSolveLmaHt<CAM>
     lma_model(xyz_vec, out_cam, cam_height, cam_weight, cam_ctr_weight, datum); // setup
   camera_to_vector(out_cam, seed); // initial guess
-  final_params = math::levenberg_marquardt(lma_model, seed, out_vec,
+  final_params = vw::levenberg_marquardt(lma_model, seed, out_vec,
               status, abs_tolerance, rel_tolerance, max_iterations); // solve
   vector_to_camera(out_cam, final_params); // form the optimized camera
 

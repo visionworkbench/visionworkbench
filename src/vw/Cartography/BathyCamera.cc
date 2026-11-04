@@ -48,24 +48,24 @@ public:
   m_refraction_index(refraction_index) {
 
     // Form local coordinate system using the ECEF point
-    vw::math::formBasis(ecef_point, m_x_axis, m_y_axis, m_normal);
+    vw::formBasis(ecef_point, m_x_axis, m_y_axis, m_normal);
   }
 
   // Intersect a ray with the tangent plane and return 2D coordinates in the tangent
   // plane coordinate system.
   vw::Vector2 rayPlaneIntersect(vw::Vector3 const& ray_pt, vw::Vector3 const& ray_dir) const {
 
-    double denom = vw::math::dot_prod(ray_dir, m_normal);
+    double denom = vw::dot_prod(ray_dir, m_normal);
     if (std::abs(denom) < 1e-10)
       vw::vw_throw(vw::ArgumentErr() << "Ray is parallel to tangent plane.\n");
 
-    double t = vw::math::dot_prod(m_origin - ray_pt, m_normal) / denom;
+    double t = vw::dot_prod(m_origin - ray_pt, m_normal) / denom;
     vw::Vector3 intersection = ray_pt + t * ray_dir;
 
     // Project intersection onto tangent plane axes
     vw::Vector3 offset = intersection - m_origin;
-    double x = vw::math::dot_prod(offset, m_x_axis);
-    double y = vw::math::dot_prod(offset, m_y_axis);
+    double x = vw::dot_prod(offset, m_x_axis);
+    double y = vw::dot_prod(offset, m_y_axis);
 
     return vw::Vector2(x, y);
   }
@@ -190,7 +190,7 @@ vw::Vector2 point_to_pixel(vw::CameraModel const* cam,
   BathyFunctorEcef bathy_func(ecef_point, cam, ecef_plane, refraction_index);
 
   // Set up Newton-Raphson solver with numerical Jacobian
-  vw::math::NewtonRaphson nr(bathy_func);
+  vw::NewtonRaphson nr(bathy_func);
 
   // TODO(oalexan1): Study what ecef point is between takes in bundle_adjust,
   // so how much ceres moves it for numerical differences. This wil inform the

@@ -144,11 +144,11 @@ TEST(GeoTransform, StereographicSingularity) {
   // Test forward bbox actually hits the limit of platecarre
   GeoReference ll_georef, stereo_georef;
 
-  Matrix3x3 transform = math::identity_matrix<3>();
+  Matrix3x3 transform = vw::identity_matrix<3>();
   transform(1,1) = -1; transform(1,2) = 90;
   ll_georef.set_transform(transform);
 
-  transform = math::identity_matrix<3>();
+  transform = vw::identity_matrix<3>();
   transform(0,0) = transform(1,1) = 1e4;
   transform(0,2) = transform(1,2) = -1e6;
   stereo_georef.set_transform(transform);

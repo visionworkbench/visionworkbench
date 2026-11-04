@@ -29,7 +29,6 @@
 #include <vector>
 
 namespace vw {
-namespace math {
 
 /// CDF (Cumulative Distribution Function) Accumulator
 /// Actually it's an approximation. It allows for a more memory efficient
@@ -75,6 +74,6 @@ private: // Variables
   double m_q0, m_qm;  // quantile min and max;
 }; // End class CDFAccumulator
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_CDFACCUMULATOR_H__

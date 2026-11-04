@@ -20,7 +20,6 @@
 #include <cmath>
 
 namespace vw {
-namespace math {
 
 // Form an orthonormal basis from a vector
 // Given input vector V, returns orthonormal basis vectors X, Y, Z where:
@@ -29,7 +28,7 @@ namespace math {
 // - All three form a right-handed orthonormal coordinate system
 void formBasis(Vector3 const& V, Vector3& X, Vector3& Y, Vector3& Z) {
   // Normalize V to get Z
-  double norm = vw::math::norm_2(V);
+  double norm = vw::norm_2(V);
   if (norm == 0.0)
     vw::vw_throw(vw::ArgumentErr() << "Cannot form basis from zero vector");
 
@@ -53,7 +52,7 @@ void formBasis(Vector3 const& V, Vector3& X, Vector3& Y, Vector3& Z) {
   X[idx2] = Z[idx1];
 
   // Normalize X
-  X = X / vw::math::norm_2(X);
+  X = X / vw::norm_2(X);
 
   // Cross product to get Y, ensuring right-handed system
   Y = cross_prod(Z, X);
@@ -84,4 +83,4 @@ void computePlaneTangents(Vector3 const& normal, double offset,
   tangent2 = normalize(tangent2) * offset;
 }
 
-}} // namespace vw::math
+} // namespace vw

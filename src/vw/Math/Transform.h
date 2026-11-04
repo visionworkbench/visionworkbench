@@ -46,7 +46,7 @@ namespace vw {
   class Transform {
     double m_tolerance;
 
-    class ForwardLMA : public math::LeastSquaresModelBase<ForwardLMA> {
+    class ForwardLMA : public vw::LeastSquaresModelBase<ForwardLMA> {
       const Transform* m_tx;
     public:
       ForwardLMA(const Transform* tx) : m_tx(tx) {}
@@ -59,7 +59,7 @@ namespace vw {
       }
     };
 
-    class ReverseLMA : public math::LeastSquaresModelBase<ReverseLMA> {
+    class ReverseLMA : public vw::LeastSquaresModelBase<ReverseLMA> {
       const Transform* m_tx;
     public:
       ReverseLMA(const Transform* tx) : m_tx(tx) {}

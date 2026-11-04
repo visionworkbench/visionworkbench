@@ -794,10 +794,10 @@ void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & dispar
           rhs(5,4) = rhs(4,5);
 
           // Solves lhs = rhs * x, and stores the result in-place in lhs.
-          const math::f77_int n = 6;
-          const math::f77_int nrhs = 1;
-          math::f77_int info;
-          math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
+          const vw::f77_int n = 6;
+          const vw::f77_int nrhs = 1;
+          vw::f77_int info;
+          vw::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
           //normalize the mean of the noise
           mean_noise = mean_noise_tmp/sum_gamma_noise;
@@ -1144,10 +1144,10 @@ void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity
         rhs(5,4) = rhs(4,5);
 
         // Solves lhs = rhs * x, and stores the result in-place in lhs.
-        const math::f77_int n = 6;
-        const math::f77_int nrhs = 1;
-        math::f77_int info;
-        math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
+        const vw::f77_int n = 6;
+        const vw::f77_int nrhs = 1;
+        vw::f77_int info;
+        vw::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
         //Termination
         //if (in_curr_sum_I_e_val < 0)
@@ -1365,10 +1365,10 @@ void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map
         rhs(1,0) = rhs(0,1);
 
         // Solves lhs = rhs * x, and stores the result in-place in lhs.
-        const math::f77_int n    = 2;
-        const math::f77_int nrhs = 1;
-        math::f77_int info;
-        math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
+        const vw::f77_int n    = 2;
+        const vw::f77_int nrhs = 1;
+        vw::f77_int info;
+        vw::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
         d += lhs; // Update the affine transform
 

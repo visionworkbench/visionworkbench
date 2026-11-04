@@ -78,7 +78,6 @@
 #define VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS 20
 
 namespace vw {
-namespace math{
 
   class ConstantStepSize {
     double stepsize;
@@ -240,6 +239,6 @@ namespace math{
     return pos;
   }
 
-} } // namespace vw::math
+ } // namespace vw
 
 #endif // #ifndef __VW_MATH_CONJUGATEGRADIENT_H__

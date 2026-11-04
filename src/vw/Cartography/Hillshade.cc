@@ -96,7 +96,7 @@ namespace vw {
     // Set the direction of the light source.
     // - Starts in an image space "ENU" coordinate system pointed toward E (right)
     Vector3f light_0(1,0,0);
-    Vector3f light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
+    Vector3f light = vw::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
 
     // Compute the surface normals
 

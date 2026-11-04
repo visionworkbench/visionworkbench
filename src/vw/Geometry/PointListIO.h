@@ -31,7 +31,6 @@
 
 
 namespace vw {
-namespace math {
 
   /// This function writes a list of points from any container that
   /// supports the size() and operator[] methods.  The container is
@@ -139,6 +138,6 @@ namespace math {
     }
   }
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH__POINT_LIST_IO_H__

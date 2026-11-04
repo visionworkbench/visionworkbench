@@ -46,7 +46,6 @@
 #include <boost/graph/bandwidth.hpp>
 
 namespace vw {
-namespace math {
 
   //------------------------------------------------------------------
   //                 Sparse Skyline Matrix
@@ -695,6 +694,6 @@ namespace math {
     return skyline;
   }
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif//__VW_MATH_SPARSE_SKYLINE_MATRIX_H__

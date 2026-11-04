@@ -39,7 +39,6 @@
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
-namespace math {
 
   namespace detail {
     template <typename T>
@@ -602,7 +601,6 @@ namespace math {
     }
   };
 
-} // namespace math
 } // namespace vw
 
 #endif // __VW_MATH_LINEAR_ALGEBRA_H__

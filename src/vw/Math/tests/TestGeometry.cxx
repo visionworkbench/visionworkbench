@@ -23,7 +23,6 @@
 #include <vw/Math/EulerAngles.h>
 
 using namespace vw;
-using namespace vw::math;
 
 TEST(Geometry, HomographyFittingFunctor) {
   static double A_data[] = {

@@ -27,7 +27,6 @@
 #include <vw/Math/LinearAlgebra.h>
 
 namespace vw {
-namespace math {
 
 // Newton-Raphson method to find X in 2D such that func(X) = outY. Use either the
 // supplied Jacobian or the internal numerical Jacobian. The function and the
@@ -65,6 +64,6 @@ struct numericalJacobian {
   NewtFuncType m_func;       
 };
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_NEWTON_RAPHSON_H__

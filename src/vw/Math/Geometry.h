@@ -35,7 +35,6 @@
 #include <algorithm>
 
 namespace vw {
-namespace math {
 
   /// Normalizes a degree longitude value into either the -180 to 180 range (default) or the 0-360 range.
   double normalize_longitude(double lon, bool center_on_zero=true);
@@ -548,6 +547,6 @@ void find_3D_transform(vw::Matrix<double> const & in,
                        vw::Vector2        const & ransac_params = vw::Vector2(1e+4, 1.0),
                        bool                       quiet = false);
   
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __MATH_GEOMETRY_H__

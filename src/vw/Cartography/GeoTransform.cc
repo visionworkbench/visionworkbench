@@ -64,7 +64,6 @@ namespace vw {
     return str_out;
   }
   
-  using vw::math::BresenhamLine;
 
   // Create transform between given proj strings. Note that what is returned
   // are pointers, by reference.

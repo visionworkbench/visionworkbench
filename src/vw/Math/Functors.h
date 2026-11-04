@@ -48,7 +48,6 @@
 #endif
 
 namespace vw {
-  namespace math {
 
     template <class T> struct StdMathType              { typedef double type; };
     template <>        struct StdMathType<float      > { typedef float type; };
@@ -586,15 +585,8 @@ namespace vw {
         double m_squared; ///< Store sum of differences squared
     }; // End class StdDevSlidingFunctor
 
-  } // namespace math
 
   // I'm not even really sure why the math namespace exists anymore.... -MDH
-  using math::Accumulator;
-  using math::MinMaxAccumulator;
-  using math::MedianAccumulator;
-  using math::MeanAccumulator;
-  using math::StdDevAccumulator;
-  using math::StdDevSlidingFunctor;
 
 } // namespace vw
 

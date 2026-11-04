@@ -21,7 +21,6 @@
 /// Provides a generic bounding box.
 
 namespace vw {
-namespace math {
 
 
 // *****************************************************************************************
@@ -358,14 +357,13 @@ inline BBox<RealT, DimN> elem_quot(BBox<RealT, DimN> const& bbox, VectorBase<Vec
 
 
 
-} // namespace math
 
 
 // A helper function to grow a floating-point bounding box
 // to the smallest enclosing integer bounding box.
 template <class RealT1, size_t DimN1>
 inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
-grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox) {
+grow_bbox_to_int(vw::BBox<RealT1, DimN1> const& bbox) {
   BBox<int32,DimN1> result;
   for (size_t i = 0; i < DimN1; i++) {
 

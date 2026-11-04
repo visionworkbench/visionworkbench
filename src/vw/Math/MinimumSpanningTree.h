@@ -34,7 +34,6 @@
 
 
 namespace vw {
-namespace math {
 
   class EdgePrimitive {
   public:
@@ -75,6 +74,6 @@ namespace math {
     EdgePrimitive ***edges;
   };
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH__MINIMUM_SPANNING_TREE_H__

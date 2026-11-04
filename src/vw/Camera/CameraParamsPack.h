@@ -34,8 +34,8 @@ void camera_to_vector(CAM const& P, vw::Vector<double> & C) {
   vw::Vector3 ctr = P.camera_center();
   vw::Vector3 axis_angle = P.camera_pose().axis_angle();
   C.set_size(6);
-  vw::math::subvector(C, 0, 3) = ctr;
-  vw::math::subvector(C, 3, 3) = axis_angle;
+  vw::subvector(C, 0, 3) = ctr;
+  vw::subvector(C, 3, 3) = axis_angle;
 }
 
 // Pack a vector into a pinhole or optical bar model. We assume the model
@@ -47,7 +47,7 @@ void vector_to_camera(CAM & P, vw::Vector<double> const& C) {
     vw::vw_throw(vw::LogicErr() << "Expecting a vector of size 6.\n");
 
   vw::Vector3 ctr = subvector(C, 0, 3);
-  vw::Quat rotation = vw::math::axis_angle_to_quaternion(subvector(C, 3, 3));
+  vw::Quat rotation = vw::axis_angle_to_quaternion(subvector(C, 3, 3));
   P.set_camera_center(ctr);
   P.set_camera_pose(rotation);
 }

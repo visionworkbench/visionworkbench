@@ -57,7 +57,6 @@
 #include <type_traits>
 
 namespace vw {
-namespace math {
 
   /// A type function to compute the number of rows of a matrix
   /// expression at compile time (or zero for dynamically-sized vectors).
@@ -1438,7 +1437,7 @@ namespace math {
   /// and their elements are equal to within the specified tolerance.
   /// Note that if you have introduced std::equal into the global
   /// namespace then you will have to explicitly request this one as
-  /// vw::math::equal().
+  /// vw::equal().
   template <class Matrix1T, class Matrix2T>
   inline bool equal(MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0) {
     if (m1.impl().rows() != m2.impl().rows() ||
@@ -2281,15 +2280,9 @@ namespace math {
   }
 
 
-} // namespace math
 
   // Typedefs for commonly-used static vector types and using
   // directives for backwards compatability.
-  using math::Matrix;
-  using math::MatrixBase;
-  using math::MatrixProxy;
-  using math::identity_matrix;
-  using math::diagonal_matrix;
   typedef Matrix<float64,2,2> Matrix2x2;
   typedef Matrix<float64,3,3> Matrix3x3;
   typedef Matrix<float64,4,4> Matrix4x4;

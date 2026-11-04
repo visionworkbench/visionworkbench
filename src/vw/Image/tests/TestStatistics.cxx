@@ -512,7 +512,7 @@ TEST(Statistics, MedianChannel) {
 
 TEST(Statistics, Histogram) {
   
-  vw::math::Histogram hist;
+  vw::Histogram hist;
   int num_bins = 256;
   double min_val = -1.0, max_val = -1.0;
 

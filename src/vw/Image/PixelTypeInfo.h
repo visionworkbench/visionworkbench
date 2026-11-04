@@ -334,7 +334,7 @@ namespace vw {
   public:
     template <class SourceT>
     inline DestT operator()(SourceT source) const {
-      return DestT(math::impl::_round(source));
+      return DestT(vw::impl::_round(source));
     }
     inline DestT operator()(DestT source) const {
       return source;
@@ -362,7 +362,7 @@ namespace vw {
     inline DestT operator()(SourceT source) const {
       if(source > boost::integer_traits<DestT>::max()) return boost::integer_traits<DestT>::max();
       else if(source < boost::integer_traits<DestT>::min()) return boost::integer_traits<DestT>::min();
-      else return DestT(math::impl::_round(source));
+      else return DestT(vw::impl::_round(source));
     }
     inline DestT operator()(DestT source) const {
       return source;

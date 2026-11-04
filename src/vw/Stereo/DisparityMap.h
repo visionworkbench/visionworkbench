@@ -1068,7 +1068,7 @@ namespace vw {
   struct DisparityCdfFunctor {
   private:
     size_t count;
-    vw::math::CDFAccumulator<float> xCdf, yCdf;
+    vw::CDFAccumulator<float> xCdf, yCdf;
   public:
     DisparityCdfFunctor() : count(0) {}
     

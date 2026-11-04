@@ -179,14 +179,14 @@ void InterestPointMatcher<MetricT>::operator()
   float inc_amt = 1.0f/float(ip1_size);
 
   // Set up FLANNTree objects of all the different types we may need.
-  math::FLANNTree<float>         kd_float(m_flann_method);
-  math::FLANNTree<unsigned char> kd_uchar(m_flann_method);
+  vw::FLANNTree<float>         kd_float(m_flann_method);
+  vw::FLANNTree<unsigned char> kd_uchar(m_flann_method);
 
   Matrix<float>         ip2_matrix_float;
   Matrix<unsigned char> ip2_matrix_uchar;
 
   // Pack the IP descriptors into a matrix and feed it to the chosen FLANNTree object
-  const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
+  const bool use_uchar_FLANN = (MetricT::flann_type == vw::FLANN_DistType_Hamming);
   if (use_uchar_FLANN) {
     ip_list_to_matrix(ip2, ip2_matrix_uchar);
     kd_uchar.load_match_data(ip2_matrix_uchar, MetricT::flann_type);

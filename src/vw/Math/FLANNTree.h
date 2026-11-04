@@ -27,7 +27,6 @@
 #include <boost/noncopyable.hpp>
 
 namespace vw {
-namespace math {
 
 enum FLANN_DistType {FLANN_DistType_Unsupported, 
                      FLANN_DistType_L2, 
@@ -133,6 +132,6 @@ public: // Functions
 
 };
 
-}} // end namespace vw::math
+} // end namespace vw
 
 #endif//__VW_MATH_FLANNTREE_H__

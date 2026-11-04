@@ -22,7 +22,6 @@
 #include <vw/Math/MatrixSparseSkyline.h>
 
 using namespace vw;
-using namespace vw::math;
 
 static const double DELTA = 1e-4;
 
@@ -394,7 +393,7 @@ TEST(SparseSkyline, ReorderOptimization) {
 
   // Optimized method;
   std::vector<size_t> new_ordering = cuthill_mckee_ordering(sparse,1);
-  math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse(sparse, new_ordering);
+  vw::MatrixReorganize<MatrixSparseSkyline<float> > rsparse(sparse, new_ordering);
 
   Vector<size_t> new_skyline = solve_for_skyline(rsparse);
   Vector<double> x_reorder = sparse_solve(rsparse,
@@ -418,7 +417,7 @@ TEST(SparseSkyline, ReorderOptimization) {
 
 TEST(SparseSkyline, ReorderConstCorrectness) {
   // Checking that SparseSkyline works
-  math::MatrixSparseSkyline<double> sparse(1,1);
+  vw::MatrixSparseSkyline<double> sparse(1,1);
   ASSERT_EQ(1u, sparse.cols());
   ASSERT_EQ(1u, sparse.rows());
   sparse(0,0) = 1;
@@ -428,11 +427,11 @@ TEST(SparseSkyline, ReorderConstCorrectness) {
   EXPECT_EQ(0u, skyline[0]);
 
   { // Applying second layers that could goof const
-    math::MatrixTranspose<math::MatrixSparseSkyline<double> > tsparse(sparse);
+    vw::MatrixTranspose<vw::MatrixSparseSkyline<double> > tsparse(sparse);
     ASSERT_EQ(1u, tsparse.cols());
     ASSERT_EQ(1u, tsparse.rows());
     EXPECT_EQ(1, tsparse(0,0));
-    const math::MatrixTranspose<math::MatrixSparseSkyline<double> > ctsparse(sparse);
+    const vw::MatrixTranspose<vw::MatrixSparseSkyline<double> > ctsparse(sparse);
     ASSERT_EQ(1u, ctsparse.cols());
     ASSERT_EQ(1u, ctsparse.rows());
     EXPECT_EQ(1, ctsparse(0,0));
@@ -441,11 +440,11 @@ TEST(SparseSkyline, ReorderConstCorrectness) {
     // Another example of the error
     std::vector<size_t> reorder(1);
     reorder[0] = 0;
-    math::MatrixReorganize<math::MatrixSparseSkyline<double> > rsparse(sparse, reorder);
+    vw::MatrixReorganize<vw::MatrixSparseSkyline<double> > rsparse(sparse, reorder);
     ASSERT_EQ(1u, rsparse.cols());
     ASSERT_EQ(1u, rsparse.rows());
     EXPECT_EQ(1, rsparse(0,0));
-    const math::MatrixReorganize<math::MatrixSparseSkyline<double> > crsparse(sparse, reorder);
+    const vw::MatrixReorganize<vw::MatrixSparseSkyline<double> > crsparse(sparse, reorder);
     ASSERT_EQ(1u, crsparse.cols());
     ASSERT_EQ(1u, crsparse.rows());
     EXPECT_EQ(1, crsparse(0,0));

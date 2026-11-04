@@ -21,7 +21,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace math;
 
 TEST(Euler, basic_euler_rotation) {
   // Should rotate the vector [0 1 0] 90 degrees around the x-axis

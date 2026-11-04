@@ -69,7 +69,7 @@ namespace {
   }
 
   void split_bbox(SpatialTree::BBoxT &bbox, int num_quadrants, boost::scoped_array<SpatialTree::BBoxT>& quadrant_bboxes) {
-    using namespace ::vw::math::vector_containment_comparison;
+    using namespace ::vw::vector_containment_comparison;
     SpatialTree::VectorT center = bbox.center();
     SpatialTree::VectorT diagonal_vec = bbox.size() * 0.5;
     int dim = center.size();
@@ -87,8 +87,8 @@ namespace {
       }
     }
     for (i = 0; i < num_quadrants; i++) {
-      quadrant_bboxes[i].max() = ::vw::math::vector_containment_comparison::max(center, quadrant_bboxes[i].min());
-      quadrant_bboxes[i].min() = ::vw::math::vector_containment_comparison::min(center, quadrant_bboxes[i].min());
+      quadrant_bboxes[i].max() = ::vw::vector_containment_comparison::max(center, quadrant_bboxes[i].min());
+      quadrant_bboxes[i].min() = ::vw::vector_containment_comparison::min(center, quadrant_bboxes[i].min());
     }
 
     // Debugging:
@@ -109,7 +109,7 @@ namespace {
   }
 
   void grow_bbox_on_grid(SpatialTree::BBoxT &bbox, const SpatialTree::BBoxT &new_bbox) {
-    using namespace ::vw::math::vector_containment_comparison;
+    using namespace ::vw::vector_containment_comparison;
     double d, f;
     unsigned p = 1, p_;
     int i;

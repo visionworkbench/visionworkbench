@@ -27,7 +27,6 @@
 #include <vw/Core/Log.h>
 
 namespace vw {
-namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
   template <class MatrixT>
@@ -194,6 +193,6 @@ namespace math {
                            1-2*(q[2]*q[2]+q[3]*q[3])));
   }
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_EULER_ANGLES_H__

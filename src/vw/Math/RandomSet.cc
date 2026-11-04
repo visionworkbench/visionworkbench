@@ -22,7 +22,6 @@
 #include <random>
 
 namespace vw{
-namespace math{
 
   // Given a vector of integers, pick a random subset. 
   
@@ -75,4 +74,4 @@ namespace math{
     pick_random_subset(output_len, input, output);
   }
   
-}} // End namespace vw::math
+} // End namespace vw

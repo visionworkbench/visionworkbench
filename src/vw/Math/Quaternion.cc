@@ -18,7 +18,6 @@
 #include <vw/Math/Quaternion.h>
 
 namespace vw {
-namespace math {
 
 Quat slerp(double alpha, Quat const& a, Quat const& b, int spin) {
   const double SLERP_EPSILON = 1.0E-6;              // a tiny number
@@ -96,4 +95,4 @@ Quat slerp_n(std::vector<double> const& w, std::vector<Quat> const& Q, int spin)
   return slerp_n(w2, Q2, spin);
 }
 
-}} // namespace vw::math
+} // namespace vw

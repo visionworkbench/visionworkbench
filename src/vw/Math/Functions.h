@@ -37,7 +37,6 @@
 #include <complex>
 
 namespace vw {
-namespace math {
   // These function implementations are defined in namespace impl
   // to avoid ambiguous collisions with system-defined implementations
   // on platforms that provide them.
@@ -149,7 +148,6 @@ namespace impl {
     return sqrtl(x*x + y*y);
   }
 } // namespace impl
-} // namespace math
 
   using ::fabs;
   using ::acos;
@@ -170,14 +168,14 @@ namespace impl {
   using ::atan2;
   using ::pow;
 
-  using math::impl::mod;
+  using vw::impl::mod;
 
 #ifdef WIN32
-  using math::impl::erf;
-  using math::impl::erfc;
-  using math::impl::hypot;
-  using math::impl::hypotl;
-  using math::impl::hypotf;
+  using vw::impl::erf;
+  using vw::impl::erfc;
+  using vw::impl::hypot;
+  using vw::impl::hypotl;
+  using vw::impl::hypotf;
 #else
   using ::acosh;
   using ::asinh;

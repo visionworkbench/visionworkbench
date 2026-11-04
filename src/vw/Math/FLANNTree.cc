@@ -23,7 +23,6 @@
 #pragma GCC diagnostic pop
 
 namespace vw {
-namespace math {
 
 // This variable and lock will be used to print a message once
 bool flann_message_printed = false;
@@ -360,4 +359,4 @@ size_t FLANNTree<unsigned char>::size2() const {
   }; // end switch
 }
 
-}}
+}

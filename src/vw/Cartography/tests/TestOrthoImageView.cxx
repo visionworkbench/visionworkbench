@@ -91,7 +91,7 @@ protected:
     for (uint32 i = 0; i < 20; i++)
       for (uint32 j = 0; j <20; j++)
         DEM(i,j) = 10000 - 100*(pow(10.-i,2.)+pow(10.-j,2));
-    Matrix<double> geotrans = vw::math::identity_matrix<3>();
+    Matrix<double> geotrans = vw::identity_matrix<3>();
     geotrans(0,2) = 85;
     geotrans(0,0) = 0.5;
     geotrans(1,1) = -0.5;

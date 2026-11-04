@@ -422,7 +422,7 @@ TEST(Matrix, Transpose) {
   EXPECT_EQ(4, r(1,1));
 
   // Invoking the const iterator (in MatrixCol)
-  math::MatrixTranspose<Matrix2x2f > trans(m);
+  vw::MatrixTranspose<Matrix2x2f > trans(m);
   Vector<float> cv = select_col(trans,0);
   ASSERT_EQ(2u, cv.size());
   EXPECT_EQ(1, cv(0));
@@ -470,7 +470,7 @@ TEST(Matrix, Inverse) {
 
 TEST(Matrix, IndexingIterator) {
   typedef Matrix2x2 Mat;
-  typedef math::IndexingMatrixIterator<Mat> Iter;
+  typedef vw::IndexingMatrixIterator<Mat> Iter;
 
   Mat m1(3,4,5,6);
 

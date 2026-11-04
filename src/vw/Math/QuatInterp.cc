@@ -250,7 +250,7 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
   VW_ASSERT(low_i >= 0 && high_i < (int)m_pose_samples.size(),
             ArgumentErr() << "Out of bounds in SLERPPoseInterpolation.\n");
 
-  return vw::math::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
+  return vw::slerp(norm_t, m_pose_samples[low_i], m_pose_samples[high_i], 0);
 }
 
 /// Simple slerp interpolation between a table of pointing directions arranged on a grid.
@@ -313,7 +313,7 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
     Quat ll(0, p[0], p[1], p[2]);
     p = m_directions[high_irow][low_icol];
     Quat hl(0, p[0], p[1], p[2]);
-    L = vw::math::slerp(norm_row, ll, hl, 0);
+    L = vw::slerp(norm_row, ll, hl, 0);
   }
 
   {
@@ -322,13 +322,13 @@ Vector3 SlerpGridPointingInterpolation::operator()(vw::Vector2 const& pix) const
     Quat lh(0, p[0], p[1], p[2]);
     p = m_directions[high_irow][high_icol];
     Quat hh(0, p[0], p[1], p[2]);
-    H = vw::math::slerp(norm_row, lh, hh, 0);
+    H = vw::slerp(norm_row, lh, hh, 0);
   }
 
   Vector3 result;
   if (m_col0 <= col && col <= m_col_end) {
     // Within range, interpolate
-    Quat Res = vw::math::slerp(norm_col, L, H, 0);
+    Quat Res = vw::slerp(norm_col, L, H, 0);
     result = Vector3(Res.x(), Res.y(), Res.z());
   } else {
     // Extrapolate. Have to spell out the math per coordinate,
@@ -370,5 +370,5 @@ Quat SmoothSLERPPoseInterpolation::operator()(double t) const {
   for (size_t i = 0; i < indices.size(); i++)
     Q.push_back(m_pose_samples[indices[i]]);
 
-  return vw::math::slerp_n(wts, Q, 0);
+  return vw::slerp_n(wts, Q, 0);
 }

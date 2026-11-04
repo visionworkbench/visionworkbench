@@ -463,8 +463,8 @@ float detect_water(LandsatToaPixelType const& pixel) {
     dark_values[2] = pixel[NIR];
     dark_values[3] = pixel[SWIR2];
     dark_values[4] = pixel[SWIR1];
-    float mean  = math::mean(dark_values);
-    float std   = math::standard_deviation(dark_values, mean);
+    float mean  = vw::mean(dark_values);
+    float std   = vw::standard_deviation(dark_values, mean);
     float z;
     if (mean == 0)
       z = 1.0;

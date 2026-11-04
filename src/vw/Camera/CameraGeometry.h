@@ -126,7 +126,7 @@ struct InterestPoint;
                             std::vector<Vector<double> > const& output) const;
 
     // Non-linear solution to an over-constrained problem
-    class CameraMatrixModelLMA : public math::LeastSquaresModelBase<CameraMatrixModelLMA> {
+    class CameraMatrixModelLMA : public vw::LeastSquaresModelBase<CameraMatrixModelLMA> {
       std::vector<Vector<double> > m_world_input;
       std::vector<Vector<double> > m_image_output;
 
@@ -283,7 +283,7 @@ struct InterestPoint;
         A(i,8) = 1;
       }
 
-      VW_ASSERT(math::rank(A) >= 8, MathErr() << "Measurements produce rank deficient A.");
+      VW_ASSERT(vw::rank(A) >= 8, MathErr() << "Measurements produce rank deficient A.");
 
       // Pulling singular vector of smallest singular value of A
       Matrix<double> U,VT;
@@ -353,7 +353,7 @@ struct InterestPoint;
     }
 
     // Non-linear solution to an over-constrained problem
-    class ProjectiveModelLMA : public math::LeastSquaresModelBase<ProjectiveModelLMA> {
+    class ProjectiveModelLMA : public vw::LeastSquaresModelBase<ProjectiveModelLMA> {
 
     public:
       typedef Vector<double> result_type; // reprojective error

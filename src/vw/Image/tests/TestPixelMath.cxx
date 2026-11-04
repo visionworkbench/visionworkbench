@@ -280,27 +280,27 @@ TEST(PixelMath, Square) {
 
 TEST(PixelMath, AcosFunctor) {
   ToyType<double> x(0.5);
-  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::math::ArgAcosFunctor()(x)));
-  vw::math::ArgAcosFunctor f;  // Pulled out to workaround gcc 3.2 bug
+  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::ArgAcosFunctor()(x)));
+  vw::ArgAcosFunctor f;  // Pulled out to workaround gcc 3.2 bug
   EXPECT_NEAR(f(x)[0], acos(x[0]), 1e-8);
 }
 
 TEST(PixelMath, ArgArgHypotFunctor) {
   ToyType<double> x(3), y(4);
-  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::math::ArgArgHypotFunctor()(x,y)));
-  vw::math::ArgArgHypotFunctor f;  // Pulled out to workaround gcc 3.2 bug
+  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::ArgArgHypotFunctor()(x,y)));
+  vw::ArgArgHypotFunctor f;  // Pulled out to workaround gcc 3.2 bug
   EXPECT_NEAR(f(x,y)[0], hypot(x[0],y[0]), 1e-8);
 }
 
 TEST(PixelMath, ArgValHypotFunctor) {
   ToyType<double> x(3), y(4);
-  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::math::ArgValHypotFunctor<ToyType<double> >(y)(x)));
-  EXPECT_NEAR(vw::math::ArgValHypotFunctor<ToyType<double> >(y)(x)[0], hypot(x[0],y[0]), 1e-8);
+  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::ArgValHypotFunctor<ToyType<double> >(y)(x)));
+  EXPECT_NEAR(vw::ArgValHypotFunctor<ToyType<double> >(y)(x)[0], hypot(x[0],y[0]), 1e-8);
 }
 
 TEST(PixelMath, ValArgHypotFunctor) {
   ToyType<double> x(3), y(4);
-  ASSERT_TRUE((boost::is_same< ToyType<double>, boost::result_of<vw::math::ValArgHypotFunctor<ToyType<double> >(ToyType<double>)>::type >::value));
-  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y)));
-  EXPECT_NEAR(vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y)[0], hypot(x[0],y[0]), 1e-8);
+  ASSERT_TRUE((boost::is_same< ToyType<double>, boost::result_of<vw::ValArgHypotFunctor<ToyType<double> >(ToyType<double>)>::type >::value));
+  ASSERT_TRUE(is_of_type<ToyType<double> >(vw::ValArgHypotFunctor<ToyType<double> >(x)(y)));
+  EXPECT_NEAR(vw::ValArgHypotFunctor<ToyType<double> >(x)(y)[0], hypot(x[0],y[0]), 1e-8);
 }

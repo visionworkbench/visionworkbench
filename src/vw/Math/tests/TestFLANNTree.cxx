@@ -22,7 +22,6 @@
 
 using std::vector;
 using namespace vw;
-using namespace vw::math;
 
 // Make sure that vector bounds are respected in small data sets
 TEST(FLANNTree, boundsLimiting) {
@@ -36,7 +35,7 @@ TEST(FLANNTree, boundsLimiting) {
   }
 
   std::string flann_method = "kmeans";
-  math::FLANNTree<float> tree(flann_method);
+  vw::FLANNTree<float> tree(flann_method);
   tree.load_match_data(locations, FLANN_DistType_L2);
   Vector<int>    indices;
   Vector<double> distance;

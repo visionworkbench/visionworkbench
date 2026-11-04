@@ -364,10 +364,10 @@ public: // Functions
     if (means.size() > 0) {
       // Compute the standard deviation of the means
       // - Currently both are set to zero if all pixels are invalid.
-      mean_of_means = math::mean(means);
+      mean_of_means = vw::mean(means);
       is_valid = (mean_of_means > 0);
       if (is_valid)
-        stddev_of_means = math::standard_deviation(means, mean_of_means);
+        stddev_of_means = vw::standard_deviation(means, mean_of_means);
     }
 
     // Set up the output image tile - only 1 by 1 pixel!
@@ -639,7 +639,7 @@ bool compute_global_threshold(ImageViewRef<RadarTypeM> const& preprocessed_image
   // This number is in the rescaled units of the preprocessed image.
   const double MAX_THRESHOLD_STDDEV = 10.0;
   
-  double threshold_stddev = math::standard_deviation(optimal_tile_thresholds, threshold_mean);
+  double threshold_stddev = vw::standard_deviation(optimal_tile_thresholds, threshold_mean);
   
   std::cout << "Mean of tile thresholds: " << threshold_mean   << std::endl;
   std::cout << "STD  of tile thresholds: " << threshold_stddev << std::endl;

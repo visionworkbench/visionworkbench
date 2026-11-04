@@ -39,7 +39,6 @@
 #include <list>
 
 namespace vw {
-namespace math {
 
   template <class ElemT>
   class DisjointSet {
@@ -129,6 +128,6 @@ namespace math {
     unsigned num_elems;
   };
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_DISJOINTSET_H__

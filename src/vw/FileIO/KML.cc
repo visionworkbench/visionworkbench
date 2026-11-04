@@ -152,7 +152,7 @@ namespace vw {
 
     // Converts from GE's default rotation which is oriented over the
     // site frame to a standard planetocentric rotation.
-    Matrix3x3 correction_rot = vw::math::euler_to_rotation_matrix((90-lat)*M_PI/180, (90+lon)*M_PI/180, 0, "xzy");
+    Matrix3x3 correction_rot = vw::euler_to_rotation_matrix((90-lat)*M_PI/180, (90+lon)*M_PI/180, 0, "xzy");
 
     Vector3 angles = rotation_matrix_to_euler_zxy(pose.rotation_matrix()*correction_rot);
     double heading = angles(0)*180/M_PI, tilt = angles(1)*180/M_PI, roll = angles(2)*180/M_PI;

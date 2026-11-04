@@ -29,7 +29,6 @@
 #include <string>
 
 namespace vw {
-namespace math {
 
 void Histogram::initialize(size_t num_bins, double min_value, double max_value) {
 
@@ -112,4 +111,4 @@ void Histogram::write_to_disk(std::string const& path) const {
   f.close();
 }
 
-}} // namespace vw::math
+} // namespace vw

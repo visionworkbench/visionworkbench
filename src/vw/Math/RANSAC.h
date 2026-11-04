@@ -59,7 +59,6 @@
 #include <vw/Core/Settings.h>
 
 namespace vw {
-namespace math {
 
   VW_DEFINE_EXCEPTION(RANSACErr, Exception);
 
@@ -70,7 +69,7 @@ namespace math {
     double operator() (RelationT  const& H,
                        ContainerT const& p1,
                        ContainerT const& p2) const {
-      return vw::math::norm_2(p2 - H * p1);
+      return vw::norm_2(p2 - H * p1);
     }
   };
 
@@ -95,7 +94,7 @@ namespace math {
       if (inter_result[dim] != 1)
         inter_result /= inter_result[dim];
 
-      return vw::math::norm_2(p2_h - inter_result);
+      return vw::norm_2(p2_h - inter_result);
     }
   };
 
@@ -352,6 +351,6 @@ namespace math {
     return ransac_instance(p1,p2);
   }
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __MATH_RANSAC_H__

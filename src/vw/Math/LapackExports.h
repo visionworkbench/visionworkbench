@@ -29,7 +29,6 @@
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
-namespace math {
 
 // There are seemingly two bloodlines of lapack. One decends directly from the
 // fortran libs, and one is a c library formed by running f2c on the fortran
@@ -235,7 +234,6 @@ namespace math {
 
   /// \endcond
 
-} // namespace math
 } // namespace vw
 
 

@@ -20,10 +20,9 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Exception.h>
 
-#define CHECK() vw::math::detail::_check_info(info, VW_CURRENT_FUNCTION, __FILE__, __LINE__)
+#define CHECK() vw::detail::_check_info(info, VW_CURRENT_FUNCTION, __FILE__, __LINE__)
 
 namespace vw {
-namespace math {
 
 
   namespace detail {
@@ -149,4 +148,4 @@ D_getrf(d, double);
 D_getrs(s, float);
 D_getrs(d, double);
 
-}} // vw::math
+} // vw

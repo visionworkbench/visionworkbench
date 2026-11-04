@@ -23,7 +23,6 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Cartography/PointImageManipulation.h>
 
-using vw::math::BresenhamLine;
 
 namespace vw {
 
@@ -207,7 +206,7 @@ namespace detail {
 
   /// Apply a function to evenly spaced locations along a line of pixels
   template <class FunctionT>
-  void bresenham_apply(math::BresenhamLine line, size_t step,
+  void bresenham_apply(vw::BresenhamLine line, size_t step,
                         FunctionT& f) {
     while (line.is_good()) { // Run until the end of the line
       f(*line); // Execute the function on this pixel location
@@ -333,7 +332,7 @@ double demHeightGuess(vw::ImageViewRef<vw::PixelMask<float>> const& dem) {
 // optimization is position on the ray. The cost function is difference between
 // datum height and interpolated DEM height at current point on the ray.
 class RayDEMIntersectionLMA:
-  public math::LeastSquaresModelBase<RayDEMIntersectionLMA> {
+  public vw::LeastSquaresModelBase<RayDEMIntersectionLMA> {
 
   // TODO(oalexan1): Must use nodata edge extension, not constant edge extension.
   // We don't want to extrapolate. Check if this changes results. It should not.
@@ -686,21 +685,21 @@ void sampleImageBoundary(int cols, int rows, int num_samples, bool quick,
   // BresenhamLine is the last point before the endpoint.
 
   // Left to right across the top side
-  bresenham_apply(math::BresenhamLine(0,0,cols,0), image_step, functor);
+  bresenham_apply(vw::BresenhamLine(0,0,cols,0), image_step, functor);
 
   // Top to bottom down the right side
-  bresenham_apply(math::BresenhamLine(cols-1,0,cols-1,rows), image_step, functor);
+  bresenham_apply(vw::BresenhamLine(cols-1,0,cols-1,rows), image_step, functor);
 
   // Right to left across the bottom side
-  bresenham_apply(math::BresenhamLine(cols-1,rows-1,0,rows-1), image_step, functor);
+  bresenham_apply(vw::BresenhamLine(cols-1,rows-1,0,rows-1), image_step, functor);
 
   // Bottom to top up the left side
-  bresenham_apply(math::BresenhamLine(0,rows-1,0,0), image_step, functor);
+  bresenham_apply(vw::BresenhamLine(0,rows-1,0,0), image_step, functor);
 
   if (!quick) {
     // Do the x pattern
-    bresenham_apply(math::BresenhamLine(0,0,cols-1,rows-1), image_step, functor);
-    bresenham_apply(math::BresenhamLine(0,rows-1,cols-1,0), image_step, functor);
+    bresenham_apply(vw::BresenhamLine(0,0,cols-1,rows-1), image_step, functor);
+    bresenham_apply(vw::BresenhamLine(0,rows-1,cols-1,0), image_step, functor);
   }
 
   return;

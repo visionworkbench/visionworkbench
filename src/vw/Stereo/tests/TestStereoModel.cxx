@@ -28,7 +28,6 @@
 #include <vw/Stereo/StereoView.h>
 
 using namespace vw;
-using namespace vw::math;
 
 TEST(StereoModel, PinholeStereo) {
   Vector3 pos1, pos2;
@@ -103,11 +102,11 @@ TEST(StereoView, PixelMaskVec2) {
   pose2.set_identity();
 
   vw::PinholeModel pin1(Vector3(),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   vw::PinholeModel pin2(Vector3(1,0,0),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   ImageView<PixelMask<Vector2f> > disparity(3,1);
@@ -129,11 +128,11 @@ TEST(StereoView, Vec2) {
   pose2.set_identity();
 
   vw::PinholeModel pin1(Vector3(),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   vw::PinholeModel pin2(Vector3(1,0,0),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   ImageView<Vector2f> disparity(3,1);
@@ -156,11 +155,11 @@ TEST(StereoView, PixelMaskFloat) {
   pose2.set_identity();
 
   vw::PinholeModel pin1(Vector3(),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   vw::PinholeModel pin2(Vector3(1,0,0),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   ImageView<PixelMask<float> > disparity(3,1);
@@ -182,11 +181,11 @@ TEST(StereoView, Float) {
   pose2.set_identity();
 
   vw::PinholeModel pin1(Vector3(),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   vw::PinholeModel pin2(Vector3(1,0,0),
-                        math::identity_matrix<3>(),
+                        vw::identity_matrix<3>(),
                         1, 1, 1, 0);
 
   ImageView<float> disparity(3,1);

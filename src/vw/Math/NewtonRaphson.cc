@@ -20,7 +20,6 @@
 #include <vw/Math/NewtonRaphson.h>
 
 namespace vw {
-namespace math {
 
 numericalJacobian::numericalJacobian(NewtFuncType func): m_func(func) {}
     
@@ -118,4 +117,4 @@ vw::Vector2 NewtonRaphson::solve(vw::Vector2 const& guessX,  // initial guess
   return bestX;
 }
 
-}} // end namespace vw::math
+} // end namespace vw

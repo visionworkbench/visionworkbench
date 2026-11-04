@@ -44,7 +44,6 @@
 #include <vw/Core/Log.h>
 
 namespace vw {
-namespace math {
   template <class FuncT, class DomainT>
   DomainT particle_swarm_optimization(FuncT const& func, DomainT const& min, DomainT const& max,
                                       bool verbose = false, int restarts = 1,
@@ -115,7 +114,7 @@ namespace math {
           v[i] = w*v[i] + c1*elem_prod(r1, x_hat[i] - x[i]) + c2*elem_prod(r2, g_hat - x[i]);
 
           // enforce maximum velocity
-          double norm = vw::math::norm_2_sqr(v[i]);
+          double norm = vw::norm_2_sqr(v[i]);
           if (norm > v_max*v_max)
             v[i] /= vw::sqrt(norm);
 
@@ -141,7 +140,6 @@ namespace math {
 
     return g_hat;
   }
-}
 }
 
 #endif /* __VW_MATH_PARTICLE_SWARM_OPTIMIZATION_H__ */

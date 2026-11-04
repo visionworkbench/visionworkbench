@@ -140,7 +140,7 @@ namespace vw {
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
                         Vector3 const& translation  = Vector3(),
-                        Quat    const& rotation     = Quat(math::identity_matrix<3>()),
+                        Quat    const& rotation     = Quat(vw::identity_matrix<3>()),
                         Vector2 const& pixel_offset = Vector2(),
                         double scale = 1.0);
 

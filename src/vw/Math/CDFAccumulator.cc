@@ -27,7 +27,6 @@
 #include <vector>
 
 namespace vw {
-namespace math {
 
 template <class ValT>
 void CDFAccumulator<ValT>::resize(size_t buffersize, size_t quantiles) {
@@ -188,4 +187,4 @@ ValT CDFAccumulator<ValT>::approximate_stddev(float const& stepping) const {
 template class CDFAccumulator<float>;
 template class CDFAccumulator<double>;
 
-}} // namespace vw::math
+} // namespace vw

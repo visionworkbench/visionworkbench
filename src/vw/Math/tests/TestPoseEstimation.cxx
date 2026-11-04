@@ -23,7 +23,6 @@
 #include <vw/Math/PoseEstimation.h>
 
 using namespace vw;
-using namespace vw::math;
 
 TEST(PoseEstimation, RelativeOrientation)
 {

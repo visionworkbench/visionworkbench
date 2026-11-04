@@ -45,7 +45,7 @@ namespace vw {
   /// float operator() (const InterestPoint& ip1, const InterestPoint &ip2, float maxdist = DBL_MAX)
   ///
   /// --> This one is for interoperability with our FLANNTRee class which does all our heavy-duty matching.
-  /// static const math::FLANN_DistType flann_type=FLANN_DistType;
+  /// static const vw::FLANN_DistType flann_type=FLANN_DistType;
 
   /// L2 Norm: returns Euclidean distance squared between pair of
   /// interest point descriptors.  Optional argument "maxdist" to
@@ -53,14 +53,14 @@ namespace vw {
   struct L2NormMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
                       float maxdist = std::numeric_limits<float>::max()) const;
-    static const math::FLANN_DistType flann_type = math::FLANN_DistType_L2;
+    static const vw::FLANN_DistType flann_type = vw::FLANN_DistType_L2;
   };
 
   /// Hamming distance for binary descriptors
   struct HammingMetric {
     float operator() (InterestPoint const& ip1, InterestPoint const& ip2,
                       float maxdist = std::numeric_limits<float>::max()) const;
-    static const math::FLANN_DistType flann_type = math::FLANN_DistType_Hamming;
+    static const vw::FLANN_DistType flann_type = vw::FLANN_DistType_Hamming;
   };
 
   // ---------------------------------------------------------------------------

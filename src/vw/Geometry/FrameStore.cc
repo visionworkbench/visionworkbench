@@ -25,7 +25,6 @@
 
 namespace vw {
     using namespace std;
-    using namespace vw::math;
 
     FrameHandle const FrameStore::NULL_HANDLE = FrameHandle(NULL);
 

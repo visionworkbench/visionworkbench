@@ -62,9 +62,14 @@
 #include <iterator>
 #include <type_traits>
 #include <vector>
+#include <algorithm>
+#include <cmath>
 
 namespace vw {
-namespace math {
+
+  using std::min;
+  using std::max;
+  using std::abs;
 
   /// A type function to compute the dimension of a vector expression
   /// at compile time (or zero for dynamically-sized vectors).
@@ -1185,7 +1190,7 @@ namespace math {
   /// are considered equal if they have the same dimensions and their
   /// elements are equal to within the specified tolerance.  Note that
   /// if you have introduced std::equal into the global namespace then
-  /// you will have to explicitly request this one as vw::math::equal().
+  /// you will have to explicitly request this one as vw::equal().
   template <class Vector1T, class Vector2T>
   inline bool equal(VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0) {
     if (v1.impl().size() != v2.impl().size()) { return false; }
@@ -1754,14 +1759,9 @@ namespace math {
     return b;
   }
 
-} // namespace math
 
   // Typedefs for commonly-used static vector types and using
   // directives for backwards compatability.
-  using math::Vector;
-  using math::VectorBase;
-  using math::VectorProxy;
-  using math::set_all;
   typedef Vector<float64,2> Vector2;
   typedef Vector<float64,3> Vector3;
   typedef Vector<float64,4> Vector4;

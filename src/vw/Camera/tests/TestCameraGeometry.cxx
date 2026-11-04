@@ -33,7 +33,7 @@ class CameraGeometryTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     // Create Camera
-    Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+    Matrix<double,3,3> pose = vw::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
     pinhole = PinholeModel(Vector3(-1,4,2),
                            pose, 600, 700,
                            500, 500);
@@ -130,7 +130,7 @@ TEST_F(CameraGeometryTest, DISABLED_RansacSolve) {
     world_m[j][2] = rand()%200;
   }
 
-  math::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac(CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 100, 2, world_m.size()/2, true);
+  vw::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac(CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 100, 2, world_m.size()/2, true);
   Matrix<double> P(ransac(world_m,image_m));
   ASSERT_EQ(P.rows(), 3u);
   ASSERT_EQ(P.cols(), 4u);
@@ -180,7 +180,7 @@ protected:
                             700, 700, 640, 480, Vector3(1,0,0),
                             Vector3(0,1,0), Vector3(0,0,1));
     pinhole2 = PinholeModel(Vector3(-.7,-.7,0),
-                            Matrix3x3(1,0,0,0,0,1,0,-1,0)*math::rotation_y_axis(M_PI/6),
+                            Matrix3x3(1,0,0,0,0,1,0,-1,0)*vw::rotation_y_axis(M_PI/6),
                             700, 700, 640, 480, Vector3(1,0,0),
                             Vector3(0,1,0), Vector3(0,0,1));
 

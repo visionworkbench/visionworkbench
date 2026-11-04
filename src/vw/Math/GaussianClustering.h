@@ -47,7 +47,7 @@ namespace vw {
     typedef Vector<double, DimensionsT> VectorD;
     typedef typename ContainerT::iterator IterT;
 
-    std::vector<math::CDFAccumulator<double> > cdf(DimensionsT);
+    std::vector<vw::CDFAccumulator<double> > cdf(DimensionsT);
     size_t num_samples = 0;
 
     // Working out best spot to place seeds for clusters
@@ -174,7 +174,7 @@ namespace vw {
     typedef double VectorD;
     typedef typename ContainerT::iterator IterT;
 
-    math::CDFAccumulator<double> cdf;
+    vw::CDFAccumulator<double> cdf;
     size_t num_samples = 0;
 
     // Working out best spot to place seeds for clusters

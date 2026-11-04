@@ -380,19 +380,19 @@ void GeoReference::init_proj() {
 // object, and m_gdal_spatial_ref.exportToWkt() will return an empty string.
 GeoReference::GeoReference(): m_pixel_interpretation(PixelAsArea), m_projcs_name("") {
   
-  set_transform(vw::math::identity_matrix<3>());
+  set_transform(vw::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
 
 GeoReference::GeoReference(Datum const& datum):
       m_pixel_interpretation(PixelAsArea), m_datum(datum), m_projcs_name("") {
-  set_transform(vw::math::identity_matrix<3>());
+  set_transform(vw::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
 
 GeoReference::GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation):
  m_pixel_interpretation (pixel_interpretation), m_datum(datum), m_projcs_name("") {
-  set_transform(vw::math::identity_matrix<3>());
+  set_transform(vw::identity_matrix<3>());
   set_geographic(); // will call init_proj()
 }
 
@@ -420,8 +420,8 @@ void GeoReference::set_transform(Matrix3x3 transform) {
   m_shifted_transform = m_transform;
   m_shifted_transform(0,2) += 0.5*m_transform(0,0);
   m_shifted_transform(1,2) += 0.5*m_transform(1,1);
-  m_inv_transform         = vw::math::inverse(m_transform);
-  m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
+  m_inv_transform         = vw::inverse(m_transform);
+  m_inv_shifted_transform = vw::inverse(m_shifted_transform);
 
   // If the georef is already fully initialized, update lon-lat box.
   // Otherwise this is called from a constructor, and a subsequent 
@@ -960,7 +960,7 @@ Vector3 GeoReference::geodetic_to_point(Vector3 llh) const {
   if (std::isnan(llh[2]))
     return llh;
   
-  Vector2 xy = lonlat_to_point(vw::math::subvector(llh, 0, 2));
+  Vector2 xy = lonlat_to_point(vw::subvector(llh, 0, 2));
   return Vector3(xy[0], xy[1], llh[2]);
 }
   
@@ -970,7 +970,7 @@ Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
   if (std::isnan(point[2]))
     return point;
   
-  Vector2 ll = point_to_lonlat(vw::math::subvector(point, 0, 2));
+  Vector2 ll = point_to_lonlat(vw::subvector(point, 0, 2));
   return Vector3(ll[0], ll[1], point[2]);
 }
   
@@ -1070,13 +1070,13 @@ void sample_int_box(BBox2 const& pixel_bbox, std::vector<vw::Vector2> & points) 
   // produce a lonlat boundary that is within at least one pixel of
   // the pole. This will also help catch terminator boundaries from
   // orthographic projections.
-  vw::math::BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
+  vw::BresenhamLine l1(pixel_bbox.min(), pixel_bbox.max());
   while (l1.is_good()) {
     points.push_back(*l1);
     l1++;
   }
-  vw::math::BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width(), 0),
-                             pixel_bbox.max() - Vector2i(pixel_bbox.width(), 0));
+  vw::BresenhamLine l2(pixel_bbox.min() + Vector2i(pixel_bbox.width(), 0),
+                       pixel_bbox.max() - Vector2i(pixel_bbox.width(), 0));
   while (l2.is_good()) {
     points.push_back(*l2);
     l2++;
@@ -1246,7 +1246,7 @@ BBox2 GeoReference::lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsampl
 
   // It is possible that this may not required. However in the
   // cartography it seems better to be rigorous than sorry.
-  vw::math::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+  vw::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
   while (l1.is_good()) {
     try {
       point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l1),
@@ -1254,7 +1254,7 @@ BBox2 GeoReference::lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsampl
     } catch (const std::exception& e) {}
     ++l1;
   }
-  vw::math::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+  vw::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
   while (l2.is_good()) {
     try {
       point_bbox.grow(lonlat_to_point(elem_prod(Vector2(*l2),lower_fraction)
@@ -1290,7 +1290,7 @@ BBox2 GeoReference::point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsample
   }
   
   // This X pattern is to capture in crossing of the poles.
-  vw::math::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
+  vw::BresenhamLine l1(Vector2i(), Vector2i(nsamples,nsamples));
   while (l1.is_good()) {
     try {
       lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l1), lower_fraction)
@@ -1299,7 +1299,7 @@ BBox2 GeoReference::point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsample
     ++l1;
   }
 
-  vw::math::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
+  vw::BresenhamLine l2(Vector2i(nsamples,0), Vector2i(0,nsamples));
   while (l2.is_good()) {
     try {
       lonlat_bbox.grow(point_to_lonlat(elem_prod(Vector2(*l2), lower_fraction)

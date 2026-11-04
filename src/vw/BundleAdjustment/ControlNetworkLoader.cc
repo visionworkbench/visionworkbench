@@ -856,7 +856,7 @@ void vw::subsample_control_network(vw::ControlNetwork const& cnet,
     if (budget < 0 || (int)indices.size() <= budget)
       return;
     std::vector<int> keep;
-    vw::math::pick_random_indices_in_range(indices.size(), budget, keep);
+    vw::pick_random_indices_in_range(indices.size(), budget, keep);
     std::set<int> keep_set;
     for (size_t it = 0; it < keep.size(); it++)
       keep_set.insert(indices[keep[it]]);
@@ -895,7 +895,7 @@ void vw::subsample_gcp_by_tri_ratio(vw::ControlNetwork & cnet, double ratio) {
     return;
 
   std::vector<int> keep;
-  vw::math::pick_random_indices_in_range(gcp_indices.size(), gcp_budget, keep);
+  vw::pick_random_indices_in_range(gcp_indices.size(), gcp_budget, keep);
   std::set<int> keep_set;
   for (size_t it = 0; it < keep.size(); it++)
     keep_set.insert(gcp_indices[keep[it]]);

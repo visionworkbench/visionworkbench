@@ -97,7 +97,7 @@ namespace vw {
     ///
     CAHVModel(double f, Vector2 const& pixel_size,
               double xmin, double /*xmax*/, double ymin, double /*ymax*/,
-              math::Matrix<double, 4, 4> const& view_matrix);
+              vw::Matrix<double, 4, 4> const& view_matrix);
 
     /// Initialize the CAHV vectors indirectly using pinhole camera parameters:
     ///

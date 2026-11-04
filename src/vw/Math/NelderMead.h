@@ -35,7 +35,6 @@
 #include <vw/Core/Log.h>
 
 namespace vw {
-namespace math {
 
   namespace optimization {
     enum NM_STATUS_CODES { eNelderMeadDidNotConverge = -1,
@@ -238,6 +237,6 @@ namespace math {
     return nelder_mead(func, seed, scale, status, verbose, restarts, tolerance, max_iterations);
   }
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_NELDER_MEAD_H__

@@ -21,7 +21,6 @@
 #include <vw/Math/NelderMead.h>
 
 using namespace vw;
-using namespace vw::math;
 
 static const double DELTA = 1e-4;
 

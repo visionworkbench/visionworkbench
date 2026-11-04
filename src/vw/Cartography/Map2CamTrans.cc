@@ -99,7 +99,7 @@ namespace vw {
       // image pixel is same as DEM pixel up to numerical precision.
       vw::Vector2 grid_pix = round(dem_pix);
       bool snap_to_grid
-         = (vw::math::norm_2(dem_pix - grid_pix) < 1e-6 &&
+         = (vw::norm_2(dem_pix - grid_pix) < 1e-6 &&
             m_dem_georef.transform()(0,0) == m_image_georef.transform()(0,0));
       if (snap_to_grid)
         dem_pix = grid_pix;

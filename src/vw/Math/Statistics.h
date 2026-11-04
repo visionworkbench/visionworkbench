@@ -34,7 +34,6 @@
 #include <vw/Core/Exception.h>
 
 namespace vw {
-namespace math {
 
 //---------------------------------------------------------------------------------
 
@@ -324,6 +323,6 @@ bool find_outlier_brackets(std::vector<T> const& vec,
 
 // Histogram methods are non-template and live in Statistics.cc.
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __MATH_STATISTICS_H__

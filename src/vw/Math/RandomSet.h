@@ -27,7 +27,6 @@
 #include <vector>
 
 namespace vw {
-namespace math {
 
   // Given a vector of integers, pick a random subset. Must have
   // output_len <= input_len. The output elements are not sorted.
@@ -40,6 +39,6 @@ namespace math {
   void pick_random_indices_in_range(int input_len, int output_len,
                                     std::vector<int> & output);
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_RANDOM_SET_H__

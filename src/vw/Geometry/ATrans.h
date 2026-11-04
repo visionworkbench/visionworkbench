@@ -60,18 +60,18 @@ namespace vw
     {
     public:
       /** Vector type (translation part) */
-      typedef vw::math::Vector<ElemT, SizeN> VectorT;
+      typedef vw::Vector<ElemT, SizeN> VectorT;
       /** Matrix type (rotation part) */
-      typedef vw::math::Matrix<ElemT, SizeN, SizeN> MatrixT;
+      typedef vw::Matrix<ElemT, SizeN, SizeN> MatrixT;
 
       /** Default constructor */
       ATrans() {}
       /** Initializing constructor */
       ATrans(VectorT const& p, MatrixT const& r) : m_p(p), m_r(r) {}
       /** Initialize from transformation matrix */
-      ATrans(vw::math::Matrix<ElemT, SizeN + 1, SizeN + 1> const& m);
+      ATrans(vw::Matrix<ElemT, SizeN + 1, SizeN + 1> const& m);
       /** Initialize from transformation matrix */
-      ATrans(vw::math::Matrix<ElemT, 0, 0> const& m);
+      ATrans(vw::Matrix<ElemT, 0, 0> const& m);
 
 
       /** Const accessor of the translation vector. */
@@ -100,7 +100,7 @@ namespace vw
       VectorT operator*(VectorT const& rhs) const;
 
       /** Conversion to matrix N+1 */
-      operator vw::math::Matrix<ElemT, SizeN + 1, SizeN + 1>();
+      operator vw::Matrix<ElemT, SizeN + 1, SizeN + 1>();
 
     protected:
       /** Position vector of the affine transform. */
@@ -113,7 +113,7 @@ namespace vw
     inline
     ATrans<ElemT, SizeN> inverse(ATrans<ElemT, SizeN> const& atrans) throw()
     {
-      typename ATrans<ElemT, SizeN>::MatrixT mI = math::inverse(atrans.rotation());
+      typename ATrans<ElemT, SizeN>::MatrixT mI = vw::inverse(atrans.rotation());
       return ATrans<ElemT, SizeN>(-(mI * atrans.translation()), mI);
     }
 
@@ -127,7 +127,7 @@ namespace vw
 
     template<class ElemT, int SizeN>
     inline
-    ATrans<ElemT, SizeN>::ATrans(vw::math::Matrix<ElemT, SizeN + 1, SizeN + 1> const& m) :
+    ATrans<ElemT, SizeN>::ATrans(vw::Matrix<ElemT, SizeN + 1, SizeN + 1> const& m) :
         m_p(m(0, 3), m(1,3), m(2, 3))
     {
       for (int i = 0; i < SizeN; ++i) {
@@ -139,7 +139,7 @@ namespace vw
 
     template<class ElemT, int SizeN>
     inline
-    ATrans<ElemT, SizeN>::ATrans(vw::math::Matrix<ElemT, 0,0> const& m) :
+    ATrans<ElemT, SizeN>::ATrans(vw::Matrix<ElemT, 0,0> const& m) :
         m_p(m(0, 3), m(1,3), m(2, 3))
     {
       for (int i = 0; i < SizeN; ++i) {
@@ -176,9 +176,9 @@ namespace vw
 
     template<class ElemT, int SizeN>
     inline
-    ATrans<ElemT, SizeN>::operator vw::math::Matrix<ElemT, SizeN+1, SizeN+1>()
+    ATrans<ElemT, SizeN>::operator vw::Matrix<ElemT, SizeN+1, SizeN+1>()
     {
-      vw::math::Matrix<ElemT, SizeN+1, SizeN+1> m;
+      vw::Matrix<ElemT, SizeN+1, SizeN+1> m;
       return m;
     }
 

@@ -37,7 +37,7 @@ namespace vw {
   // See LinescanErr.h for an alternative 2D to 2D implementation which is about
   // 3x faster.
   
-  class CameraGenericLMA: public math::LeastSquaresModelBaseFixed<CameraGenericLMA, 2, 3> {
+  class CameraGenericLMA: public vw::LeastSquaresModelBaseFixed<CameraGenericLMA, 2, 3> {
     const CameraModel* m_model;
     Vector3 m_point;
   public:

@@ -32,7 +32,6 @@
 #include <boost/static_assert.hpp>
 
 namespace vw {
-namespace math {
 
   // TODO: Move these to Vector.h and delete this namespace
   /// \cond INTERNAL
@@ -297,10 +296,8 @@ struct Int2Type
   // End functions for BBox
   //--------------------------------------------------------------------
 
-} // namespace math
 
   // Convenience typedefs
-  using math::BBox;
   typedef BBox<float64, 2> BBox2;
   typedef BBox<float64, 3> BBox3;
   typedef BBox<float64, 4> BBox4;
@@ -321,12 +318,12 @@ struct Int2Type
   /// to the smallest enclosing integer bounding box.
   template <class RealT1, size_t DimN1>
   inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
-  grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox);
+  grow_bbox_to_int(vw::BBox<RealT1, DimN1> const& bbox);
 
   // For BBoxes that are already int, do nothing
   template <class RealT1, size_t DimN1>
   inline typename boost::enable_if<boost::is_integral<RealT1>,BBox<RealT1,DimN1> >::type
-  grow_bbox_to_int(math::BBox<RealT1, DimN1> const& bbox) { return bbox; }
+  grow_bbox_to_int(vw::BBox<RealT1, DimN1> const& bbox) { return bbox; }
 } // namespace vw
 
 

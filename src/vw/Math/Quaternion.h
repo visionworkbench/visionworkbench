@@ -43,7 +43,6 @@
 #include <vw/Math/Matrix.h>
 
 namespace vw {
-namespace math {
 
   class QuaternionImplementation {
   public:
@@ -502,7 +501,7 @@ namespace math {
   // (in radian) to a quaternion
   template<class VectorT>
   inline Quaternion<typename VectorT::value_type> axis_angle_to_quaternion(const VectorBase<VectorT>& axis_angle) {
-    typename VectorT::value_type norm2 = vw::math::norm_2(axis_angle.impl());
+    typename VectorT::value_type norm2 = vw::norm_2(axis_angle.impl());
     if (norm2 != 0)
       return Quaternion<typename VectorT::value_type>(axis_angle.impl()/norm2, norm2);
     else
@@ -518,7 +517,7 @@ namespace math {
     typedef typename VectorT::value_type ElemT;
 
     // from OpenCV Documentation on cvRodrigues2
-    ElemT theta = vw::math::norm_2(rotation_vector.impl());
+    ElemT theta = vw::norm_2(rotation_vector.impl());
     vw::Vector<ElemT, 3> r = rotation_vector.impl()/theta;
     Matrix<ElemT, 3, 3> m;
 
@@ -526,10 +525,10 @@ namespace math {
       m(0, 0) = 0;      m(0, 1) = -r.z(); m(0, 2) = r.y();
       m(1, 0) = r.z();  m(1, 1) = 0;      m(1, 2) = -r.x();
       m(2, 0) = -r.y(); m(2, 1) = r.x();  m(2, 2) = 0;
-      return vw::math::cos(theta)*vw::math::identity_matrix<3>() + (1 - vw::math::cos(theta)) * r * vw::math::transpose(r) + vw::math::sin(theta) * m;
+      return vw::cos(theta)*vw::identity_matrix<3>() + (1 - vw::cos(theta)) * r * vw::transpose(r) + vw::sin(theta) * m;
     }
     else
-      return vw::math::identity_matrix<3>();
+      return vw::identity_matrix<3>();
   }
 
 
@@ -540,19 +539,17 @@ namespace math {
   inline Vector<typename MatrixT::value_type, 3> matrix_to_axis_angle(const MatrixBase<MatrixT>& q) {
     Vector<typename MatrixT::value_type, 3> res(Quaternion<typename MatrixT::value_type>(q.impl()).axis_angle());
     if (res.x() < 0 && res.y() < 0 && res.z() < 0)
-      res -= 2.0*M_PI * res /vw::math::norm_2(res);
+      res -= 2.0*M_PI * res /vw::norm_2(res);
     return res;
   }
 
-} // namespace math
 
-  using math::Quaternion;
   typedef Quaternion<double> Quat;
   typedef Quaternion<float> Quatf;
 
 } // namespace vw
 
-namespace vw { namespace math {
+namespace vw {
 
   // Quaternion interpolation
   Quat slerp(double alpha, Quat const& a, Quat const& b, int spin);
@@ -561,6 +558,6 @@ namespace vw { namespace math {
   // w[0]*Q[0] + ... + w[n-1]*Q[n-1]. This is experimental.
   // We assume the sum of weights is 1.
   Quat slerp_n(std::vector<double> const& w, std::vector<Quat> const& Q, int spin);
-}}
+}
 
 #endif // __VW_QUATERNION_H__

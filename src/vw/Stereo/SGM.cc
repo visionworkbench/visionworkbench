@@ -1506,7 +1506,7 @@ create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
   vw_out(DebugMessage, "stereo") << "Creating subpixel disparity image...\n";
 
   // DEBUG
-  //math::Histogram hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
+  //vw::Histogram hist_dx(201, -1.0, 1.0), hist_dy(201, -1.0, 1.0);
   //std::ofstream rawFile("raw.csv");
 
   // For each element in the accumulated costs matrix,

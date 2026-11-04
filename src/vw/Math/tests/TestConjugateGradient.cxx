@@ -22,7 +22,6 @@
 #include <vw/Math/ConjugateGradient.h>
 
 using namespace vw;
-using namespace vw::math;
 
 // This quadratic function has a single minimum at [0.1962, 0.4846].
 struct QuadraticFunction {

@@ -22,7 +22,6 @@
 #include <vw/Math/LevenbergMarquardt.h>
 
 using namespace vw;
-using namespace vw::math;
 
 struct TestLeastSquaresModel : public LeastSquaresModelBase<TestLeastSquaresModel> {
 
@@ -93,6 +92,6 @@ TEST(LevenbergMarquardt, levenberg_marquardt) {
   //TODO: Vet this.
   Vector4 expected_best(0.101358, 1.15485, 1.12093, 0.185534);
 
-  EXPECT_EQ(vw::math::optimization::eConvergedRelTolerance, status);
+  EXPECT_EQ(vw::optimization::eConvergedRelTolerance, status);
   EXPECT_VECTOR_NEAR(expected_best, best, 1e-5);
 }

@@ -67,7 +67,7 @@ TEST(Quaternion, AxisAngle) {
 
   // Arbitrary axis
   Vector3 axis(1.2, -2.3, 3.4);
-  axis /= math::norm_2(axis);
+  axis /= vw::norm_2(axis);
 
   for (double angle = -4*M_PI; angle < 4*M_PI; angle += .1) {
     Quat q(axis, angle);
@@ -75,14 +75,14 @@ TEST(Quaternion, AxisAngle) {
     double test_angle;
     q.axis_angle(test_axis, test_angle);
 
-    if (math::dot_prod(test_axis, axis) < 0) {
+    if (vw::dot_prod(test_axis, axis) < 0) {
       test_axis = -test_axis;
       test_angle = -test_angle;
     }
 
     EXPECT_NEAR(0, fmod(angle - test_angle, M_PI*2), DELTA);
     if (fabs(fmod(angle, M_PI*2)) > 1e-10) {
-      EXPECT_NEAR(0, math::norm_2(test_axis - axis), DELTA);
+      EXPECT_NEAR(0, vw::norm_2(test_axis - axis), DELTA);
     }
   }
 }
@@ -92,7 +92,7 @@ TEST(Quaternion, Rotation) {
   Vector3 test_vec(0.1, 0.84, 0.23);
 
   double theta = 32*M_PI/180;  // 32 degree rotation
-  Matrix3x3 rotation = math::identity_matrix<3>();
+  Matrix3x3 rotation = vw::identity_matrix<3>();
   rotation(0,0) = cos(theta);
   rotation(0,1) = -sin(theta);
   rotation(1,0) = sin(theta);
@@ -201,7 +201,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
   Vector3 z(0, 0, M_PI/2.);
 
   // Test constructor taking normalized axis and angle
-  Quat q_x(x / math::norm_2(x), math::norm_2(x));
+  Quat q_x(x / vw::norm_2(x), vw::norm_2(x));
   Vector3 test(2.13, -812.183, 18.31);
   // rotate vector test by 90° around x axis and compare
   Vector3 diff_1(Vector3(2.13, -18.31, -812.183) - q_x.rotate(test));
@@ -210,7 +210,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
   EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  Vector3 diff_2(Vector3(2.13, -18.31, -812.183) -  math::axis_angle_to_quaternion(x).rotate(test));
+  Vector3 diff_2(Vector3(2.13, -18.31, -812.183) -  vw::axis_angle_to_quaternion(x).rotate(test));
   EXPECT_NEAR(diff_2.x(), 0, DELTA);
   EXPECT_NEAR(diff_2.y(), 0, DELTA);
   EXPECT_NEAR(diff_2.z(), 0, DELTA);
@@ -232,7 +232,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
 
 
   // Test constructor taking normalized axis and angle
-  Quat q_y(y / math::norm_2(y), math::norm_2(y));
+  Quat q_y(y / vw::norm_2(y), vw::norm_2(y));
   Vector3 test_y(-58.12, -81.19, -48);
   // rotate vector test by 90° around y axis and compare
   diff_1 = Vector3(Vector3(-48, -81.19, 58.12) - q_y.rotate(test_y));
@@ -241,7 +241,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
   EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  diff_2 = Vector3(Vector3(-48, -81.19, 58.12) -  math::axis_angle_to_quaternion(y).rotate(test_y));
+  diff_2 = Vector3(Vector3(-48, -81.19, 58.12) -  vw::axis_angle_to_quaternion(y).rotate(test_y));
   EXPECT_NEAR(diff_2.x(), 0, DELTA);
   EXPECT_NEAR(diff_2.y(), 0, DELTA);
   EXPECT_NEAR(diff_2.z(), 0, DELTA);
@@ -263,7 +263,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
 
 
   // Test constructor taking normalized axis and angle
-  Quat q_z(z / math::norm_2(z), math::norm_2(z));
+  Quat q_z(z / vw::norm_2(z), vw::norm_2(z));
   Vector3 test_z(183.12, 845.43, 73.2);
   // rotate vector test by 90° around z axis and compare
   diff_1 = Vector3(Vector3(-845.43, 183.12, 73.2) - q_z.rotate(test_z));
@@ -272,7 +272,7 @@ TEST(Quaternion, AxisAngleQuaternion) {
   EXPECT_NEAR(diff_1.z(), 0, DELTA);
 
   // Test standalone method taking nonnormalized axis with angle = |axis|
-  diff_2 = Vector3(Vector3(-845.43, 183.12, 73.2) -  math::axis_angle_to_quaternion(z).rotate(test_z));
+  diff_2 = Vector3(Vector3(-845.43, 183.12, 73.2) -  vw::axis_angle_to_quaternion(z).rotate(test_z));
   EXPECT_NEAR(diff_2.x(), 0, DELTA);
   EXPECT_NEAR(diff_2.y(), 0, DELTA);
   EXPECT_NEAR(diff_2.z(), 0, DELTA);
@@ -339,7 +339,7 @@ TEST(Quaternion, AxisAngleToFromMatrix) {
 TEST(Quaternion, AxisAngleQuaternionMatrixRandom) {
   for (int i = 0; i < 1000; i++) {
     Vector3 v(std::rand(), std::rand(), std::rand());
-    v /= math::norm_2(v); // normalize
+    v /= vw::norm_2(v); // normalize
     v *= 2.0 * M_PI * std::rand() / RAND_MAX; // rotation angle between 0 and 2 pi
 
     Quat q(axis_angle_to_quaternion(v));
@@ -373,7 +373,7 @@ TEST(Quaternion, AxisAngleQuaternionMatrixRandom) {
     EXPECT_NEAR(m(2,2), m_q(2,2), DELTA);
 
     // test if m is unitary
-    Matrix3x3 prod(m*math::transpose(m));
+    Matrix3x3 prod(m*vw::transpose(m));
     EXPECT_NEAR(1, prod(0,0), DELTA);
     EXPECT_NEAR(0, prod(0,1), DELTA);
     EXPECT_NEAR(0, prod(0,2), DELTA);
@@ -403,7 +403,7 @@ TEST(Quaternion, AxisAngleQuaternionMatrixRandom) {
     EXPECT_NEAR(0, diff.z(), DELTA);
 
     // rotation in one direction by (transposed) matrix and other by standard quaternion should give original vector
-    Vector3 null_op(math::transpose(m)*q.rotate(test));
+    Vector3 null_op(vw::transpose(m)*q.rotate(test));
     EXPECT_NEAR(test.x(), null_op.x(), DELTA);
     EXPECT_NEAR(test.y(), null_op.y(), DELTA);
     EXPECT_NEAR(test.z(), null_op.z(), DELTA);

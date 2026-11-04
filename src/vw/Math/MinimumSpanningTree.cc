@@ -26,8 +26,8 @@ namespace {
 
   int edge_primitive_compare(const void *a_, const void *b_)
   {
-    const vw::math::EdgePrimitive **a = (const vw::math::EdgePrimitive**)a_;
-    const vw::math::EdgePrimitive **b = (const vw::math::EdgePrimitive**)b_;
+    const vw::EdgePrimitive **a = (const vw::EdgePrimitive**)a_;
+    const vw::EdgePrimitive **b = (const vw::EdgePrimitive**)b_;
     if ((*a)->cost() == (*b)->cost())
       return 0;
     else if ((*a)->cost() < (*b)->cost())
@@ -39,7 +39,6 @@ namespace {
 
 
 namespace vw {
-namespace math {
 
   MinimumSpanningTree::MinimumSpanningTree(int num_primitives_, EdgePrimitive **prims_) {
     VW_ASSERT(num_primitives > 0, ArgumentErr() << "No primitives provided!");
@@ -174,4 +173,4 @@ namespace math {
     }
   }
 
-}} // namespace vw::math
+} // namespace vw

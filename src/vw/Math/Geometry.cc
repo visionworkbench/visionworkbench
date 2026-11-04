@@ -26,7 +26,7 @@
 
 using namespace vw;
 
-namespace vw { namespace math {
+namespace vw {
 
 double normalize_longitude(double lon, bool center_on_zero) {
   const double MULTIPLE = 360.0;
@@ -152,7 +152,7 @@ void find_3D_transform_no_outliers(vw::Matrix<double> const & in_vec,
             vw::ArgumentErr() << "find_3D_transform(): Must have at least "
             << "three data points.\n");
     
-  typedef vw::math::MatrixCol<vw::Matrix<double>> ColView;
+  typedef vw::MatrixCol<vw::Matrix<double>> ColView;
 
   // First find the scale, by finding the ratio of sums of some distances,
   // then bring the datasets to the same scale.
@@ -167,8 +167,8 @@ void find_3D_transform_no_outliers(vw::Matrix<double> const & in_vec,
       
       ColView inCol1 (in,  col), inCol2 (in,  next_col);
       ColView outCol1(out, col), outCol2(out, next_col);
-      dist_in  += vw::math::norm_2(inCol2  - inCol1);
-      dist_out += vw::math::norm_2(outCol2 - outCol1);
+      dist_in  += vw::norm_2(inCol2  - inCol1);
+      dist_out += vw::norm_2(outCol2 - outCol1);
     }
 
     if (num_segments < 1 || dist_in <= 0 || dist_out <= 0) 
@@ -206,13 +206,13 @@ void find_3D_transform_no_outliers(vw::Matrix<double> const & in_vec,
 
   if (transform_type != "translation") {
     // SVD
-    vw::Matrix<double> cov = in * vw::math::transpose(out);
+    vw::Matrix<double> cov = in * vw::transpose(out);
     vw::Matrix<float> U, VT;
     vw::Vector<float> s;
-    vw::math::svd(cov, U, s, VT);
+    vw::svd(cov, U, s, VT);
     
     // Find the rotation
-    double d = vw::math::det(vw::math::transpose(VT) * vw::math::transpose(U));
+    double d = vw::det(vw::transpose(VT) * vw::transpose(U));
     if (d > 0)
       d = 1.0;
     else
@@ -220,7 +220,7 @@ void find_3D_transform_no_outliers(vw::Matrix<double> const & in_vec,
     vw::Matrix3x3 I;
     I.set_identity();
     I(2, 2) = d;
-    rotation = vw::math::transpose(VT) * I * vw::math::transpose(U);
+    rotation = vw::transpose(VT) * I * vw::transpose(U);
   }
   
   translation = scale*(out_ctr - rotation*in_ctr);
@@ -429,7 +429,7 @@ void find_3D_transform(vw::Matrix<double> const & in,
                 min_num_output_inliers, reduce_min_num_output_inliers_if_no_fit);
     transform = ransac(in_pts, out_pts);
     inlier_indices = ransac.inlier_indices(transform, in_pts, out_pts);
-  } catch (const vw::math::RANSACErr& e) {
+  } catch (const vw::RANSACErr& e) {
     if (!quiet)
       vw_out() << "RANSAC failed: " << e.what() << "\n";
     return;
@@ -439,8 +439,8 @@ void find_3D_transform(vw::Matrix<double> const & in,
     vw_out() << "Found " << inlier_indices.size() << " / " << num_pts << " inliers.\n";
 
   // Create the outputs
-  rotation = vw::math::submatrix(transform, 0, 0, 3, 3);
-  scale = pow(vw::math::det(rotation), 1.0/3.0);
+  rotation = vw::submatrix(transform, 0, 0, 3, 3);
+  scale = pow(vw::det(rotation), 1.0/3.0);
   rotation /= scale;
   for (int it = 0; it < 3; it++) 
     translation[it] = transform(it, 3);
@@ -448,5 +448,5 @@ void find_3D_transform(vw::Matrix<double> const & in,
   return;
 }
 
-}} // End namespace vw::math
+} // End namespace vw
  

@@ -64,7 +64,7 @@ void window_median_filter(std::vector<T> const& v_in, std::vector<T> &v_out, con
     locals.push_back(v_in[i+half_width]);
   
     // Compute the median of the neigbors
-    v_out[i] = math::median(locals);
+    v_out[i] = vw::median(locals);
   
     // Drop oldest value
     locals.pop_front();
@@ -138,10 +138,10 @@ public:
     double mean_trail=0, mean_lead=0, dev_trail=0;
     double trail_count  = static_cast<double>(m_trail_list.size());
     double percent_zero = m_trail_zero_count / trail_count;
-    mean_lead = math::mean(m_lead_list);
+    mean_lead = vw::mean(m_lead_list);
     if (percent_zero < 1.0) { // Save time on big blank regions
       mean_trail = m_trail_sum / trail_count;
-      dev_trail  = math::standard_deviation(m_trail_list, mean_trail);
+      dev_trail  = vw::standard_deviation(m_trail_list, mean_trail);
     }
     
     const double MAX_DEV_TRAIL    = 5;    // After STD_DEV of trail portion is higher, not a good jump

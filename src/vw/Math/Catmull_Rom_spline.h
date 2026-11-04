@@ -25,7 +25,6 @@
 #include <cstddef>
 namespace vw {
 
-  namespace math{
 
     namespace detail
     {
@@ -287,6 +286,6 @@ Point catmull_rom<Point>::prime(const typename Point::value_type s) const
 }
 
 
-}}
+}
 
 #endif

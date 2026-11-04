@@ -168,7 +168,7 @@ void pick_pair_subset(std::vector<T> & ip1,
   if (max_pairwise_matches >= 0 && (int)ip1.size() > max_pairwise_matches) {
 
     std::vector<int> subset;
-    vw::math::pick_random_indices_in_range(ip1.size(), max_pairwise_matches, subset);
+    vw::pick_random_indices_in_range(ip1.size(), max_pairwise_matches, subset);
     std::sort(subset.begin(), subset.end()); // sort the indices; not strictly necessary
     
     std::vector<T> ip1_full, ip2_full;

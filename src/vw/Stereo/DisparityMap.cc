@@ -66,7 +66,7 @@ namespace vw {
     matA[2][2] = numPoints; // n
         
     // Now solve Ax = b (3x3)*(3x1) = (3x1)
-    planeDesc = vw::math::solve(matA, vecB); // Throws!
+    planeDesc = vw::solve(matA, vecB); // Throws!
 
     return true;
   }

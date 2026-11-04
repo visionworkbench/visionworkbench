@@ -25,7 +25,7 @@ using namespace vw;
 
 // Special LMA Models to reverse the distortion.
 // TODO(oalexan1): Standardize all to using Newton-Raphson.
-struct DistortOptimizeFunctor:  public math::LeastSquaresModelBaseFixed<DistortOptimizeFunctor, 2, 2> {
+struct DistortOptimizeFunctor:  public vw::LeastSquaresModelBaseFixed<DistortOptimizeFunctor, 2, 2> {
   typedef Vector2 result_type;
   typedef Vector2 domain_type;
   typedef Matrix<double, 2, 2> jacobian_type;
@@ -177,8 +177,8 @@ LensDistortion::distorted_coordinates(const PinholeModel& cam, Vector2 const& v)
   int status;
   // Must push the solver really hard, to make sure bundle adjust gets accurate values
   // to play with.
-  Vector2 solution = math::levenberg_marquardtFixed(model, v, v, status, 1e-16, 1e-16, 100);
-  //VW_DEBUG_ASSERT(status != math::optimization::eConvergedRelTolerance,
+  Vector2 solution = vw::levenberg_marquardtFixed(model, v, v, status, 1e-16, 1e-16, 100);
+  //VW_DEBUG_ASSERT(status != vw::optimization::eConvergedRelTolerance,
   //                 PixelToRayErr() << "distorted_coordinates: failed to converge.");
 
   // Check if it failed badly to converge. That it did not converge is not on its own
@@ -386,7 +386,7 @@ Vector2 TsaiLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   double tol = 1e-9; // stop when the change is less than this
   
   // Newton-Raphson solver with the analytical Jacobian
-  vw::math::NewtonRaphson nr(*this, TsaiDistortionJacFun(m_distortion));
+  vw::NewtonRaphson nr(*this, TsaiDistortionJacFun(m_distortion));
   vw::Vector2 undist_guess_pix(dx, dy), distorted_pix(dx, dy);
   Vector2 U = nr.solve(undist_guess_pix, distorted_pix, step, tol);
 
@@ -647,7 +647,7 @@ Vector2 FisheyeLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   // better not be too small. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-9;
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
@@ -793,7 +793,7 @@ Vector2 EquisolidLensDistortion::undistorted_coordinates(const PinholeModel& cam
   // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-9;
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
@@ -937,7 +937,7 @@ Vector2 StereographicLensDistortion::undistorted_coordinates(const PinholeModel&
   // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-9;
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
@@ -1082,7 +1082,7 @@ Vector2 OrthographicLensDistortion::undistorted_coordinates(const PinholeModel& 
   // numerical Jacobian. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-9;
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset
@@ -1301,7 +1301,7 @@ Vector2 AdjustableTsaiLensDistortion::undistorted_coordinates(const PinholeModel
   double tol = 1e-9; // stop when the change is less than this
   
   // Newton-Raphson solver with the numerical Jacobian
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   vw::Vector2 undist_guess_pix(dx, dy), distorted_pix(dx, dy);
   Vector2 U = nr.solve(undist_guess_pix, distorted_pix, step, tol);
 
@@ -1579,7 +1579,7 @@ Vector2 RPCLensDistortion::undistorted_coordinates(const PinholeModel& cam,
   // better not be too small. A tolerance of 1e-9 is likely adequate.
   vw::Vector2 guess = p_0;
   double step = 1e-6, tol = 1e-9;
-  vw::math::NewtonRaphson nr(*this);
+  vw::NewtonRaphson nr(*this);
   Vector2 U = nr.solve(guess, p_0, step, tol);
 
   // Multiply by focal length and add the offset

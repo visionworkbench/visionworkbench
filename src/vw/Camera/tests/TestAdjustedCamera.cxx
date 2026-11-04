@@ -59,7 +59,7 @@ TEST(AdjustedCameraModel, StandardConstruct) {
 
 TEST(AdjustedCameraModel, AdjustedConstruct) {
 
-  Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+  Matrix<double,3,3> pose = vw::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
 
   // Create an imaginary 1000x1000 pixel imager
   boost::shared_ptr<CameraModel> pinhole(

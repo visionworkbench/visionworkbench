@@ -298,8 +298,8 @@ namespace vw {
     //      the maximum based on kernel size and current bbox.
     // - max_pyramid_levels is the number of levels not including the original resolution level.
     // - Each pyramid level is shrunk by the (reduced size) kernel size on that level.
-    int32 smallest_bbox      = math::min(bbox.size()); // Get smallest/largest of height/width
-    int32 largest_kernel     = math::max(m_kernel_size);
+    int32 smallest_bbox      = vw::min(bbox.size()); // Get smallest/largest of height/width
+    int32 largest_kernel     = vw::max(m_kernel_size);
     int32 max_pyramid_levels = std::floor(log(smallest_bbox)/log(2.0f)
                                           - log(largest_kernel)/log(2.0f));
     if (m_max_level_by_search < max_pyramid_levels)

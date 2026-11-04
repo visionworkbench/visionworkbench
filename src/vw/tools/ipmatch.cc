@@ -387,10 +387,10 @@ int main(int argc, char** argv) {
         // of points.  Points that don't meet this geometric
         // constraint are rejected as outliers.
         if (ransac_constraint == "similarity") {
-          math::RandomSampleConsensus<math::SimilarityFittingFunctor, 
-                                      math::InterestPointErrorMetric> 
-              ransac(math::SimilarityFittingFunctor(),
-                     math::InterestPointErrorMetric(),
+          vw::RandomSampleConsensus<vw::SimilarityFittingFunctor, 
+                                      vw::InterestPointErrorMetric> 
+              ransac(vw::SimilarityFittingFunctor(),
+                     vw::InterestPointErrorMetric(),
                      ransac_iterations,
                      inlier_threshold,
                      ransac_ip1.size()/2, true);
@@ -398,10 +398,10 @@ int main(int argc, char** argv) {
           std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
-          math::RandomSampleConsensus<math::HomographyFittingFunctor, 
-                                      math::InterestPointErrorMetric> 
-              ransac(math::HomographyFittingFunctor(),
-                     math::InterestPointErrorMetric(),
+          vw::RandomSampleConsensus<vw::HomographyFittingFunctor, 
+                                      vw::InterestPointErrorMetric> 
+              ransac(vw::HomographyFittingFunctor(),
+                     vw::InterestPointErrorMetric(),
                      ransac_iterations,
                      inlier_threshold,
                      ransac_ip1.size()/2, true);
@@ -409,7 +409,7 @@ int main(int argc, char** argv) {
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "fundamental") {
-          math::RandomSampleConsensus<vw::FundamentalMatrix8PFittingFunctor, 
+          vw::RandomSampleConsensus<vw::FundamentalMatrix8PFittingFunctor, 
                                       vw::FundamentalMatrixDistanceErrorMetric> 
               ransac(vw::FundamentalMatrix8PFittingFunctor(),
                      vw::FundamentalMatrixDistanceErrorMetric(), 
@@ -428,7 +428,7 @@ int main(int argc, char** argv) {
                    << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
           return 1;
         }
-      } catch (const vw::math::RANSACErr& e) {
+      } catch (const vw::RANSACErr& e) {
         vw_out() << "RANSAC Failed: " << e.what() << "\n";
         
         vw_out() << "Consider re-running ipfind with a larger value of --ip-per-tile. "

@@ -31,7 +31,7 @@ namespace vw {
 /// If a positive camera weight is specified, use that as a constraint to not
 /// move the camera center too much during optimization.
 template <class CAM>
-class CameraSolveLMA: public vw::math::LeastSquaresModelBase<CameraSolveLMA<CAM>> {
+class CameraSolveLMA: public vw::LeastSquaresModelBase<CameraSolveLMA<CAM>> {
   std::vector<vw::Vector3> const& m_xyz;
   vw::Vector3 m_camera_center;
   double m_camera_weight;
@@ -255,9 +255,9 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     Vector<double> seed;
     CameraSolveLMA<PinholeModel> lma_model(input_xyz, out_model, camera_weight);
     camera_to_vector(out_model, seed);
-    final_params = math::levenberg_marquardt(lma_model, seed, reorg_pixels,
-                                             status, abs_tolerance, rel_tolerance,
-                                             max_iterations);
+    final_params = vw::levenberg_marquardt(lma_model, seed, reorg_pixels,
+                                           status, abs_tolerance, rel_tolerance,
+                                           max_iterations);
 
     vector_to_camera(out_model, final_params);
 
@@ -285,7 +285,7 @@ void apply_rot_trans_scale(vw::PinholeModel & P, vw::Vector<double> const& C) {
 /// Find the rotation + translation + scale that best projects given
 /// xyz points into given pixels for the input pinhole cameras (each
 /// pinhole camera has a few xyz and pixels).
-class CameraSolveRotTransScale: public vw::math::LeastSquaresModelBase<CameraSolveRotTransScale> {
+class CameraSolveRotTransScale: public vw::LeastSquaresModelBase<CameraSolveRotTransScale> {
 
   std::vector< std::vector<Vector3> > const& m_xyz;
   vw::Vector<double> const& m_pixel_vec; // for debugging
@@ -395,7 +395,7 @@ double find_median_scale_change(std::vector<vw::PinholeModel> const & orig_cams,
   if (scales.empty())
     vw_throw(LogicErr() << "Could not find two images with at least 3 GCP each.\n");
 
-  double median_scale = vw::math::median_in_place(scales);
+  double median_scale = vw::median_in_place(scales);
 
   return median_scale;
 }
@@ -488,7 +488,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
 
   // The initial transform to world coordinates
   Vector<double> C;
-  vw::math::find_3D_transform(in_pts, out_pts, rotation, translation, scale);
+  vw::find_3D_transform(in_pts, out_pts, rotation, translation, scale);
 
   // Copy into C
   transform_to_vector(C, rotation, translation, scale);
@@ -524,7 +524,7 @@ void align_cameras_to_ground(std::vector<std::vector<Vector3>> const& xyz,
   int status = 0;
   CameraSolveRotTransScale lma_model(xyz, pixel_vec, cams);
   Vector<double> final_params
-    = vw::math::levenberg_marquardt(lma_model, C, pixel_vec,
+    = vw::levenberg_marquardt(lma_model, C, pixel_vec,
                     status, abs_tolerance, rel_tolerance,
                     max_iterations);
 
@@ -609,7 +609,7 @@ void addRpcPenalty(double penalty_weight,
 /// distorted (output) points, optionally penalizing higher-degree RPC coefficients.
 template <class DistModelT>
 struct DistortionOptimizeFunctor:
-    public math::LeastSquaresModelBase< DistortionOptimizeFunctor<DistModelT> > {
+    public vw::LeastSquaresModelBase< DistortionOptimizeFunctor<DistModelT> > {
   typedef Vector<double> result_type;
   typedef Vector<double> domain_type;
   typedef Matrix<double> jacobian_type;
@@ -847,8 +847,8 @@ double create_approx_pinhole_model(CameraModel const* input_model,
                                                        penalty_weight);
 
     // Find model_params by doing a best fit
-    model_params = math::levenberg_marquardt(solver_model, seed,
-                                             pass_distorted_coords, status);
+    model_params = vw::levenberg_marquardt(solver_model, seed,
+                                           pass_distorted_coords, status);
     // Check the error
     new_model = DistModelT(model_params);
     mean_error = 0.0;
@@ -993,7 +993,7 @@ void fit_camera_to_xyz(std::string const& camera_type,
       CameraSolveLMA<vw::OpticalBarModel>
         lma_model(xyz_vec, *((vw::OpticalBarModel*)out_cam.get()), camera_weight);
       camera_to_vector(*((vw::OpticalBarModel*)out_cam.get()), seed);
-      final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
+      final_params = vw::levenberg_marquardt(lma_model, seed, pixel_vec,
                            status, abs_tolerance, rel_tolerance,
                            max_iterations);
       vector_to_camera(*((vw::OpticalBarModel*)out_cam.get()), final_params);
@@ -1001,7 +1001,7 @@ void fit_camera_to_xyz(std::string const& camera_type,
       CameraSolveLMA<PinholeModel> lma_model(xyz_vec, *((PinholeModel*)out_cam.get()),
                                              camera_weight);
       camera_to_vector(*((PinholeModel*)out_cam.get()), seed);
-      final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
+      final_params = vw::levenberg_marquardt(lma_model, seed, pixel_vec,
                            status, abs_tolerance, rel_tolerance,
                            max_iterations);
       vector_to_camera(*((PinholeModel*)out_cam.get()), final_params);

@@ -97,7 +97,7 @@ void fitPlaneToPoints(std::vector<vw::Vector3> const& points,
   vw::Vector<double> rhs(3);
   rhs[0] = Sxz; rhs[1] = Syz; rhs[2] = Sz;
 
-  vw::Vector<double> coef = vw::math::solve_symmetric(M, rhs);
+  vw::Vector<double> coef = vw::solve_symmetric(M, rhs);
   double alpha = coef[0], beta = coef[1], gamma = coef[2];
 
   // The fitted equation z = alpha*x + beta*y + gamma rewrites as

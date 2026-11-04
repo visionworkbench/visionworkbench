@@ -34,8 +34,8 @@ void vector_to_transform(vw::Vector<double> const & C,
   if (C.size() != 7)
     vw_throw(LogicErr() << "Expecting a vector of size 7.\n");
 
-  translation = vw::math::subvector(C, 0, 3);
-  rotation    = vw::math::axis_angle_to_quaternion(subvector(C, 3, 3)).rotation_matrix();
+  translation = vw::subvector(C, 0, 3);
+  rotation    = vw::axis_angle_to_quaternion(subvector(C, 3, 3)).rotation_matrix();
   scale       = C[6];
 
   return;
@@ -50,8 +50,8 @@ void transform_to_vector(vw::Vector<double>  & C,
   vw::Vector3 axis_angle = vw::Quat(rotation).axis_angle();
 
   C.set_size(7);
-  vw::math::subvector(C, 0, 3) = translation;
-  vw::math::subvector(C, 3, 3) = axis_angle;
+  vw::subvector(C, 0, 3) = translation;
+  vw::subvector(C, 3, 3) = axis_angle;
   C[6] = scale;
 
   return;

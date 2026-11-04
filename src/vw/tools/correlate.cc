@@ -153,8 +153,8 @@ int main(int argc, char *argv[]) {
     vw::read_match_file(match_file, matched_ip1, matched_ip2, matches_as_txt);
     std::vector<Vector3> ransac_ip1 = vw::iplist_to_vectorlist(matched_ip1);
     std::vector<Vector3> ransac_ip2 = vw::iplist_to_vectorlist(matched_ip2);
-    vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> 
-        ransac(vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true);
+    vw::RandomSampleConsensus<vw::HomographyFittingFunctor, vw::InterestPointErrorMetric> 
+        ransac(vw::HomographyFittingFunctor(), vw::InterestPointErrorMetric(), 100, 30, ransac_ip1.size()/2, true);
     alignment = ransac(ransac_ip2, ransac_ip1);
 
     DiskImageView<PixelGray<float> > right_disk_image(right_file_name);

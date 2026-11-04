@@ -625,7 +625,7 @@ void PinholeModel::apply_transform(vw::Matrix4x4 const & transform) {
     vw_throw(ArgumentErr() << "Expecting a similarity transform with value "
              << "1 in the lower-right corner.");
   
-  vw::Matrix3x3 R = vw::math::submatrix(transform, 0, 0, 3, 3);
+  vw::Matrix3x3 R = vw::submatrix(transform, 0, 0, 3, 3);
   vw::Vector3   T;
   for (int r = 0; r < 3; r++) 
     T[r] = transform(r, 3);

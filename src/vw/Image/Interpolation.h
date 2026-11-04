@@ -80,7 +80,7 @@ namespace vw {
       typedef typename FloatType<channel_type>::type real_type;
       typedef typename CompoundChannelCast<pixel_type,real_type>::type result_type;
 
-      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+      int32 x = vw::impl::_floor(i), y = vw::impl::_floor(j);
 
       // Stop evaluation here if we are at an integer pixel.
       // Otherwise, if the current pixel is valid, but one of the
@@ -140,7 +140,7 @@ namespace vw {
       typedef typename CompoundChannelType<PixelT>::type channel_type;
       typedef typename CompoundChannelCast<PixelT,double>::type result_type;
 
-      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+      int32 x = vw::impl::_floor(i), y = vw::impl::_floor(j);
 
       // Stop evaluation here if we are at an integer pixel.
       // Otherwise, if the current pixel is valid, but one of the
@@ -219,7 +219,7 @@ namespace vw {
     }
     template <class ViewT>
     typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, int32 p) const {
-      int32 x = math::impl::_round(i), y = math::impl::_round(j);
+      int32 x = vw::impl::_round(i), y = vw::impl::_round(j);
       return view(x,y,p);
     }
   };
@@ -380,7 +380,7 @@ namespace vw {
       typedef float v4f[4] __attribute__ ((aligned (16)));
 
       // Compute integers and normalized offsets.  7.5% of samples.
-      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+      int32 x = vw::impl::_floor(i), y = vw::impl::_floor(j);
       float normx = i-x, normy = j-y;
 
       // Compute the bicubic coefficients.  The next three bits get

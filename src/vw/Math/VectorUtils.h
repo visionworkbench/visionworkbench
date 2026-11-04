@@ -25,7 +25,6 @@
 #include <vw/Math/Vector.h>
 
 namespace vw {
-namespace math {
 
   // Form an orthonormal basis from a vector
   // Given input vector V, returns orthonormal basis vectors X, Y, Z where:
@@ -40,6 +39,6 @@ namespace math {
   void computePlaneTangents(Vector3 const& normal, double offset,
                             Vector3& tangent1, Vector3& tangent2);
 
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_MATH_VECTOR_UTILS_H__

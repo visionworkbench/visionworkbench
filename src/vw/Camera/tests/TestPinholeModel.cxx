@@ -92,7 +92,7 @@ TEST(PinholeModel, TsaiDistortion) {
   TsaiLensDistortion lens(distortion_vec);
   // Create an imaginary 1000x1000 pixel imager
   PinholeModel pinhole(Vector3(0,0,0),                 // camera center
-                       math::identity_matrix<3>(),     // camera pose
+                       vw::identity_matrix<3>(),     // camera pose
                        500,500,                        // fx, fy
                        500,500,                        // cx, cy
                        &lens);
@@ -112,7 +112,7 @@ TEST(PinholeModel, TsaiDistortion) {
 }
 
 TEST(PinholeModel, ScalePinhole) {
-  Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
+  Matrix<double,3,3> rot = vw::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
   double distortion_arr[] = {-0.2796604335308075, 0.1031486615538597,
                              -0.0007824968779459596, 0.0009675505571067333};
   Vector<double> distortion_vec(sizeof(distortion_arr)/sizeof(double), distortion_arr);
@@ -142,7 +142,7 @@ TEST(PinholeModel, ScalePinhole) {
 
 TEST(PinholeModel, ProjectiveMatrix) {
   // First set control camera
-  Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+  Matrix<double,3,3> pose = vw::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
 
   // Create an imaginary 1000x1000 pixel imager
   PinholeModel control_pinhole(Vector3(0,4,-10),
@@ -206,7 +206,7 @@ protected:
 
   /// Init with a set of constants and no lens distortion
   virtual void SetUp() {
-    expect_rot = vw::math::euler_to_rotation_matrix(1.15, 0.0, -1.57, "xyz");
+    expect_rot = vw::euler_to_rotation_matrix(1.15, 0.0, -1.57, "xyz");
     pinhole = PinholeModel(Vector3(-0.329, 0.065, -0.82),
                            expect_rot,
                            605.320556640625,

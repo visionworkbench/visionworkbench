@@ -38,7 +38,6 @@
 #include <boost/concept_check.hpp>
 
 namespace vw {
-namespace math {
 
   /// First thing we need is a generic idea of a measurement function
   /// or model function.  The model function needs to provide a way to
@@ -563,6 +562,6 @@ namespace math {
   
   
   
-}} // namespace vw::math
+} // namespace vw
 
 #endif // __VW_OPTIMIZATION_H__

@@ -199,10 +199,10 @@ namespace vw {
       int    n  = m_table.cols() - 1;
       double px = n * (p.x() - m_bbox.min().x()) / (m_bbox.max().x() - m_bbox.min().x());
       double py = n * (p.y() - m_bbox.min().y()) / (m_bbox.max().y() - m_bbox.min().y());
-      int32  ix = math::impl::_floor(px);
+      int32  ix = vw::impl::_floor(px);
       if(ix < 0) ix = 0;
       if(ix >= n) ix = n-1;
-      int32 iy = math::impl::_floor(py);
+      int32 iy = vw::impl::_floor(py);
       if(iy < 0) iy = 0;
       if(iy >= n) iy = n-1;
       double normx = px-ix, normy = py-iy;

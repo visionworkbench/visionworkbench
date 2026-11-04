@@ -53,7 +53,6 @@ namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 using namespace vw;
-using namespace vw::math;
 using std::string;
 using vw::tools::Usage;
 using std::cout;

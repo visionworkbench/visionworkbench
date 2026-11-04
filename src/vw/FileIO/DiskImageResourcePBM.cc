@@ -189,7 +189,7 @@ void DiskImageResourcePBM::read(ImageBuffer const& dest, BBox2i const& bbox)  co
   }
 
   if (m_magic != "P1" && m_magic != "P4")
-    normalize(image_data, data_size, m_max_value);
+    ::normalize(image_data, data_size, m_max_value);
 
   ImageBuffer src(m_format, image_data.get());
   convert(dest, src, m_rescale);

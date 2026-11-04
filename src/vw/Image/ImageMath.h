@@ -286,144 +286,144 @@ namespace vw {
   // *******************************************************************
 
   /// Computes the arccosine, \f$\cos^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(acos, vw::math::ArgAcosFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(acos, vw::ArgAcosFunctor)
 
   /// Computes the arcsine, \f$\sin^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(asin, vw::math::ArgAsinFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(asin, vw::ArgAsinFunctor)
 
   /// Computes the arctangent, \f$\tan^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(atan, vw::math::ArgAtanFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(atan, vw::ArgAtanFunctor)
 
   /// Computes the cosine, \f$\cos x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(cos, vw::math::ArgCosFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(cos, vw::ArgCosFunctor)
 
   /// Computes the sine, \f$\sin x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(sin, vw::math::ArgSinFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(sin, vw::ArgSinFunctor)
 
   /// Computes the tangent, \f$\tan x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(tan, vw::math::ArgTanFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(tan, vw::ArgTanFunctor)
 
   /// Computes the hyperbolic cosine, \f$\cosh x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(cosh, vw::math::ArgCoshFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(cosh, vw::ArgCoshFunctor)
 
   /// Computes the hyperbolic sine, \f$\sinh x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(sinh, vw::math::ArgSinhFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(sinh, vw::ArgSinhFunctor)
 
   /// Computes the hyperbolic tangent, \f$\tanh x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(tanh, vw::math::ArgTanhFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(tanh, vw::ArgTanhFunctor)
 
   /// Computes the base-e exponential, \f$e^x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(exp, vw::math::ArgExpFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(exp, vw::ArgExpFunctor)
 
   /// Computes the natural logarithm, \f$\ln x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(log, vw::math::ArgLogFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(log, vw::ArgLogFunctor)
 
   /// Computes the base-10 logarithm, \f$\log_{10} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(log10, vw::math::ArgLog10Functor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(log10, vw::ArgLog10Functor)
 
   /// Computes the square root of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(sqrt, vw::math::ArgSqrtFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(sqrt, vw::ArgSqrtFunctor)
 
   /// Computes the smallest integer not less than each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(ceil, vw::math::ArgCeilFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(ceil, vw::ArgCeilFunctor)
 
   /// Computes the largest integer not greater than each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(floor, vw::math::ArgFloorFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(floor, vw::ArgFloorFunctor)
 
   /// Computes the two-argument arctangent of each pixel from two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(atan2, vw::math::ArgArgAtan2Functor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(atan2, vw::ArgArgAtan2Functor)
 
   /// Computes the two-argument arctangent of each pixel of an image with a scalar.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(atan2, vw::math::ArgValAtan2Functor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(atan2, vw::ArgValAtan2Functor)
 
   /// Computes the two-argument arctangent of a scalar with each pixel of an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(atan2, vw::math::ValArgAtan2Functor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(atan2, vw::ValArgAtan2Functor)
 
   /// Computes the power function, \f$x^y\f$, of each pixel from two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(pow, vw::math::ArgArgPowFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(pow, vw::ArgArgPowFunctor)
 
   /// Computes the given power of each pixel of an image.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(pow, vw::math::ArgValPowFunctor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(pow, vw::ArgValPowFunctor)
 
   /// Raises a scalar to the power of each pixel of an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(pow, vw::math::ValArgPowFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(pow, vw::ValArgPowFunctor)
 
   /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$,  of each pixel from two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(hypot, vw::ArgArgHypotFunctor)
 
   /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of each pixel of an image with a scalar.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(hypot, vw::ArgValHypotFunctor)
 
   /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of a scalar with each pixel of an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(hypot, vw::ValArgHypotFunctor)
 
 #ifndef WIN32
 
   /// Computes the hyperbolic arccosine, \f$\cosh^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(acosh, vw::ArgAcoshFunctor)
 
   /// Computes the hyperbolic arcsine, \f$\sinh^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(asinh, vw::ArgAsinhFunctor)
 
   /// Computes the hyperbolic arctangent, \f$\tanh^{-1} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(atanh, vw::ArgAtanhFunctor)
 
 #ifdef VW_HAVE_EXP2
   /// Computes the base-2 exponential, \f$2^x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(exp2, vw::ArgExp2Functor)
 #endif
 
 #ifdef VW_HAVE_LOG2
   /// Computes the base-2 logarithm, \f$\log_{2} x\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(log2, vw::ArgLog2Functor)
 #endif
 
 #ifdef VW_HAVE_TGAMMA
   /// Computes the gamma function of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::math::ArgTgammaFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::ArgTgammaFunctor)
 #endif
 
   /// Computes the base-e exponential minus one, \f$e^x-1\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::ArgExpm1Functor)
 
   /// Computes the natural logarithm of one plus each pixel in an image, \f$\ln(1+x)\f$.
-  VW_IMAGE_MATH_UNARY_FUNCTION(log1p, vw::math::ArgLog1pFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(log1p, vw::ArgLog1pFunctor)
 
   /// Computes the cube root of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(cbrt, vw::math::ArgCbrtFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(cbrt, vw::ArgCbrtFunctor)
 
   /// Computes the error function of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(erf, vw::math::ArgErfFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(erf, vw::ArgErfFunctor)
 
   /// Computes the complementary error function of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(erfc, vw::math::ArgErfcFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(erfc, vw::ArgErfcFunctor)
 
   /// Computes the natural lograithm of the absolute value of the gamma function of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(lgamma, vw::math::ArgLgammaFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(lgamma, vw::ArgLgammaFunctor)
 
   /// Computes the nearest integer to each pixel in an image, rounding half-way cases away from zero.
-  VW_IMAGE_MATH_UNARY_FUNCTION(round, vw::math::ArgRoundFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(round, vw::ArgRoundFunctor)
 
   /// Takes the integer part of each pixel in an image by simple truncation.
-  VW_IMAGE_MATH_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(trunc, vw::ArgTruncFunctor)
 
   /// Returns an image equal to first argument but with the sign of each pixel adjusted to match the corresponding sign in the second argument.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(copysign, vw::math::ArgArgCopysignFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(copysign, vw::ArgArgCopysignFunctor)
 
   /// Returns an image equal to first argument but with the sign of each pixel adjusted to match the sign of the second argument.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(copysign, vw::math::ArgValCopysignFunctor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(copysign, vw::ArgValCopysignFunctor)
 
   /// Returns an image equal to second argument but with the magnitude of each pixel adjusted to match the magnitude of the first argument.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(copysign, vw::math::ValArgCopysignFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(copysign, vw::ValArgCopysignFunctor)
 
   /// Computes the positive difference of two images, <TT>(x>y)?(x-y):0</TT>.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(fdim, vw::math::ArgArgFdimFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(fdim, vw::ArgArgFdimFunctor)
 
   /// Computes the positive difference between an image and a scalar, <TT>(x>y)?(x-y):0</TT>.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(fdim, vw::math::ArgValFdimFunctor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(fdim, vw::ArgValFdimFunctor)
 
   /// Computes the positive difference between a scalar and an image, <TT>(x>y)?(x-y):0</TT>.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(fdim, vw::math::ValArgFdimFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(fdim, vw::ValArgFdimFunctor)
 
 #endif // WIN32
 
@@ -431,26 +431,26 @@ namespace vw {
   /// image is complex then the resulting image has the corresponding
   /// real pixel type.  If the source image is real then this function
   /// effectively performs no operation.
-  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(real, vw::math::ArgRealFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(real, vw::ArgRealFunctor)
 
   /// Takes the complex part of each pixel in an image.  If the source
   /// image is complex then the resulting image has the corresponding
   /// real pixel type.  If the source image is real then this function
   /// effectively returns an image of zeros.
-  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(imag, vw::math::ArgImagFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(imag, vw::ArgImagFunctor)
 
   /// Computes the absolute value of each pixel in an image.
   /// If the source image is complex then the resulting image has the
   /// corresponding real pixel type.
-  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(abs, vw::math::ArgAbsFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(abs, vw::ArgAbsFunctor)
 
   /// Computes the complex conjugate of each pixel in an image.
   /// If the source image is real then this function effectively performs
   /// no operation.
-  VW_IMAGE_MATH_UNARY_FUNCTION(conj, vw::math::ArgConjFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(conj, vw::ArgConjFunctor)
 
   /// Computes the square of each pixel in an image
-  VW_IMAGE_MATH_UNARY_FUNCTION(square, vw::math::ArgSquareFunctor)
+  VW_IMAGE_MATH_UNARY_FUNCTION(square, vw::ArgSquareFunctor)
 
 } // namespace vw
 

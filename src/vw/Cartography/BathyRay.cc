@@ -156,7 +156,7 @@ fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
   // Sample 3 points on the plane by moving along two orthogonal tangent
   // vectors that lie in the plane.
   vw::Vector3 tangent1, tangent2;
-  vw::math::computePlaneTangents(normal, offset_meters, tangent1, tangent2);
+  vw::computePlaneTangents(normal, offset_meters, tangent1, tangent2);
   vw::Vector3 pt0 = proj_on_plane;
   vw::Vector3 pt1 = proj_on_plane + tangent1;
   vw::Vector3 pt2 = proj_on_plane + tangent2;
@@ -247,7 +247,7 @@ bool refineLocalPlaneFromRaster(BathyPlane const& bp,
   vw::Vector3 u = s1 - s0;
   vw::Vector3 w = s2 - s0;
   vw::Vector3 normal = cross_prod(u, w);
-  double normal_norm = vw::math::norm_2(normal);
+  double normal_norm = vw::norm_2(normal);
   if (normal_norm < 1e-12)
     return false; // degenerate triangle, fall back to global plane
   normal /= normal_norm;
@@ -472,11 +472,11 @@ void testSnellLaw(std::vector<double> const& plane,
   // normal are in the same plane in projected coordinates
 
   // 1. In projected coordinates
-  vw::Vector3 in_out_normal = vw::math::cross_prod(in_proj_dir, out_proj_dir);
+  vw::Vector3 in_out_normal = vw::cross_prod(in_proj_dir, out_proj_dir);
   double plane_error = dot_prod(in_out_normal, proj_normal);
 
   // 2. In unprojected coordinates
-  in_out_normal = vw::math::cross_prod(in_ecef_dir, out_ecef_dir);
+  in_out_normal = vw::cross_prod(in_ecef_dir, out_ecef_dir);
   plane_error = dot_prod(in_out_normal, ecef_normal);
 }
 

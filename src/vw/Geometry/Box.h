@@ -41,7 +41,7 @@ namespace vw {
   // *******************************************************************
 
   /// A box shape class, which derives almost all of its implementation
-  /// from the math::BBox superclass.
+  /// from the vw::BBox superclass.
   template <class RealT, int DimN = 0>
   class Box : public ShapeBase<Box<RealT, DimN>, RealT, DimN>,
               public BBox<RealT,DimN> {

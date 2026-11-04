@@ -22,7 +22,6 @@
 #include <vw/Math/LinearAlgebra.h>
 
 using namespace vw;
-using namespace vw::math;
 
 TEST(LinearAlgebra, LeastSquaresLapackHang) {
   double hessian[64][64] = {

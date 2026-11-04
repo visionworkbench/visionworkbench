@@ -32,9 +32,9 @@ TEST(Statistics, vector_stats) {
     vec[i] = static_cast<double>(i);
   }
   
-  EXPECT_EQ(2, vw::math::mean(vec));
-  EXPECT_EQ(2, vw::math::median(vec));
-  EXPECT_NEAR(1.58114, vw::math::standard_deviation(vec, 2), DELTA);
+  EXPECT_EQ(2, vw::mean(vec));
+  EXPECT_EQ(2, vw::median(vec));
+  EXPECT_NEAR(1.58114, vw::standard_deviation(vec, 2), DELTA);
   
 }
 
@@ -43,7 +43,7 @@ TEST(Statistics, histogram) {
   int    num_bins =  9;
   double min_val  =  2;
   double max_val  = 10;
-  math::Histogram hist(num_bins, min_val, max_val);
+  vw::Histogram hist(num_bins, min_val, max_val);
   
   hist(4);
   hist(6);
@@ -64,7 +64,6 @@ TEST(Statistics, histogram) {
 }
 
 
-using namespace vw::math;
 
 TEST(Statistics, CDF_cauchy) {
   boost::mt19937 random_gen(42);

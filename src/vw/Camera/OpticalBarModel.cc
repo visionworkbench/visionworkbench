@@ -246,7 +246,7 @@ Vector3 OpticalBarModel::get_velocity(vw::Vector2 const& pixel) const {
   Matrix3x3 pose = camera_pose(pixel).rotation_matrix();
 
   // Recover the satellite attitude relative to the tilted camera position
-  Matrix3x3 m = pose*vw::math::rotation_x_axis(m_forward_tilt_radians);
+  Matrix3x3 m = pose*vw::rotation_x_axis(m_forward_tilt_radians);
   
   return m * Vector3(0, m_speed, 0);
 }
@@ -278,7 +278,7 @@ Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
   Quat q_initial = axis_angle_to_quaternion(m_initial_pose);
   Quat q_final   = axis_angle_to_quaternion(m_final_pose); 
   int spin = 0; // No spin
-  return vw::math::slerp(dt, q_initial, q_final, spin);
+  return vw::slerp(dt, q_initial, q_final, spin);
 }
 
 Vector3 OpticalBarModel::pixel_to_vector(Vector2 const& pix) const {
@@ -341,7 +341,7 @@ Vector2 OpticalBarModel::point_to_pixel(Vector3 const& point) const {
   // Find pix so that err_func(pix) = ans, where guess is the pix initial guess
   vw::Vector2 ans(0, 0);
   LinescanErr err_func(this, point, guess);
-  vw::math::NewtonRaphson nr(err_func);
+  vw::NewtonRaphson nr(err_func);
   Vector2 pix = nr.solve(guess, ans, step, tol);
   
   return pix;

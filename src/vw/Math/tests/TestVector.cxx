@@ -356,7 +356,7 @@ TEST(Vector, set_all) {
 
 TEST(Vector, IndexingIterator) {
   typedef Vector2 Vec;
-  typedef math::IndexingVectorIterator<Vec> Iter;
+  typedef vw::IndexingVectorIterator<Vec> Iter;
 
   Vec v1(3,4);
 
