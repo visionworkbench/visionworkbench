@@ -19,7 +19,7 @@
 // a vw::BathyPlane and answers a single ray/pixel question with Snell's
 // law refraction applied where appropriate. Pure plane and refraction
 // math lives in SnellLaw and BathyData; this file is the layer that joins
-// those primitives to a vw::camera::CameraModel. The BathyStereoModel
+// those primitives to a vw::CameraModel. The BathyStereoModel
 // triangulator is a separate consumer and lives in its own file.
 
 #ifndef __VW_CARTOGRAPHY_BATHYCAMERA_H__
@@ -30,9 +30,7 @@
 
 namespace vw {
 
-namespace camera {
   class CameraModel;
-}
 
 // Intersect a ray from camera center along camera direction with the datum at
 // given semi-axes, with optional bathymetry correction. If the ray passes
@@ -47,7 +45,7 @@ vw::Vector3 datumBathyIntersection(vw::Vector3 const& cam_ctr,
 
 // Project an ECEF point to pixel, accounting for bathymetry if the point
 // is below the bathy plane (water surface).
-vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
+vw::Vector2 point_to_pixel(vw::CameraModel const* cam,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
                            vw::Vector3 const& ecef_point);

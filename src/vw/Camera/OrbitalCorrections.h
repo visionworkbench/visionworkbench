@@ -34,7 +34,6 @@ namespace vw {
 const double DEFAULT_EARTH_RADIUS      = 6371000.0;  // In meters.
 const double DEFAULT_SURFACE_ELEVATION = 0.0;
 
-namespace camera {
 
   /// Returns the velocity corrected to account for the planetary rotation.
   /// - For efficiency, requires the uncorrected look vector at this location.
@@ -60,7 +59,6 @@ namespace camera {
                                                   Vector3 const& uncorrected_vector,
                                                   vw::Quaternion<double> & corr_rot);
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_ORBITALCORRECTIONS_H__
-

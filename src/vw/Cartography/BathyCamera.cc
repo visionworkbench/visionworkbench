@@ -40,7 +40,7 @@ namespace {
 class BathyFunctorEcef {
 public:
   BathyFunctorEcef(vw::Vector3 const& ecef_point,
-                   vw::camera::CameraModel const* cam,
+                   vw::CameraModel const* cam,
                    std::vector<double> const& ecef_plane,
                    double refraction_index):
   m_cam(cam), m_origin(ecef_point),
@@ -93,7 +93,7 @@ public:
     return rayPlaneIntersect(refracted_pt, refracted_dir);
   }
 
-  vw::camera::CameraModel const* m_cam; // Camera pointer
+  vw::CameraModel const* m_cam; // Camera pointer
   vw::Vector3 m_origin;                 // Origin of tangent plane (ECEF point P)
   std::vector<double> m_ecef_plane;     // Local ECEF plane coefficients [A,B,C,-D]
   double m_refraction_index;            // Index of refraction
@@ -158,7 +158,7 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
 // lies below the water surface. Fits a local ECEF tangent plane. Good for
 // shallow-water bathymetry so the point is at most meters deep. Degrades for
 // deep points and steep off-nadir rays.
-vw::Vector2 point_to_pixel(vw::camera::CameraModel const* cam,
+vw::Vector2 point_to_pixel(vw::CameraModel const* cam,
                            vw::BathyPlane const& bathy_plane,
                            double refraction_index,
                            vw::Vector3 const& ecef_point) {

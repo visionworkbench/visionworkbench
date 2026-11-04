@@ -28,7 +28,6 @@
 #include <vw/Image/Transform.h>
 
 namespace vw {
-namespace camera{
 
   /// This transform functor can be used along with the machinery in
   /// vw/Transform.h to warp an image from one camera's perspective
@@ -226,6 +225,6 @@ namespace camera{
 
 
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_TRANSFORM_H__

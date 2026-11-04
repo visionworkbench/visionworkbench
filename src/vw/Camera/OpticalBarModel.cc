@@ -26,7 +26,6 @@
 #include <iomanip>
 
 namespace vw {
-namespace camera {
 
 OpticalBarModel::OpticalBarModel(): 
   m_motion_compensation(1.0),
@@ -598,4 +597,4 @@ std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model)
   return os;
 }
 
-}} // namespace asp::camera
+} // namespace asp

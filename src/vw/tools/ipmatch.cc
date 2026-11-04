@@ -409,10 +409,10 @@ int main(int argc, char** argv) {
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "fundamental") {
-          math::RandomSampleConsensus<camera::FundamentalMatrix8PFittingFunctor, 
-                                      camera::FundamentalMatrixDistanceErrorMetric> 
-              ransac( camera::FundamentalMatrix8PFittingFunctor(),
-                      camera::FundamentalMatrixDistanceErrorMetric(), 
+          math::RandomSampleConsensus<vw::FundamentalMatrix8PFittingFunctor, 
+                                      vw::FundamentalMatrixDistanceErrorMetric> 
+              ransac( vw::FundamentalMatrix8PFittingFunctor(),
+                      vw::FundamentalMatrixDistanceErrorMetric(), 
                       ransac_iterations, 
                       inlier_threshold, 
                       ransac_ip1.size()/2, true );

@@ -29,7 +29,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
-namespace camera {
 
   /// This constructor takes a filename and reads in a camera model
   /// from the file.  The file may contain either CAHV parameters or
@@ -102,7 +101,7 @@ namespace camera {
   // Pinhole using operator=(PinholeModel const& pin_model), the
   // original pinhole model should be recovered. Reference:
   // https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2003JE002199
-  vw::camera::PinholeModel CAHVModel::toPinhole() {
+  vw::PinholeModel CAHVModel::toPinhole() {
     
     double Hc = dot_prod(A, H);           // optical center x
     double fH = norm_2(cross_prod(A, H)); // focal length x
@@ -132,7 +131,7 @@ namespace camera {
     // Use no distortion, and set pixel pitch to 1
     LensDistortion const* distortion = NULL;
     double pixel_pitch = 1.0;
-    return vw::camera::PinholeModel(C, inverse(R), fH, fV, Hc, Vc, distortion, pixel_pitch);
+    return vw::PinholeModel(C, inverse(R), fH, fV, Hc, Vc, distortion, pixel_pitch);
   }
   
   CAHVModel::CAHVModel(double f, Vector2 const& pixel_size,
@@ -362,4 +361,4 @@ namespace camera {
     return str;
   }
 
-}} // namespace vw::camera
+} // namespace vw

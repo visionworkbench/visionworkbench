@@ -29,7 +29,6 @@
 #include <vw/Image/EdgeExtension.h>
 
 namespace vw {
-namespace camera {
 
   template <class ViewT>
   ImageView<PixelRGB<typename CompoundChannelType<typename ViewT::pixel_type>::type > >
@@ -66,6 +65,6 @@ namespace camera {
     return output_image;
   }
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_BAYER__

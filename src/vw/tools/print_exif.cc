@@ -21,7 +21,8 @@
 #include <cstdlib>
 #include <iostream>
 
-using namespace vw::camera;
+using namespace vw;
+
 
 int main(int argc, char** argv) {
 

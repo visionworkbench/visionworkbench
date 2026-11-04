@@ -19,7 +19,7 @@
 /// \file CAHVOREModel.h
 ///
 /// This file contains the CAHVORE camera model.  This camera
-/// model is a refinement of the \ref vw::camera::CAHVORModel: it adds extra terms
+/// model is a refinement of the \ref vw::CAHVORModel: it adds extra terms
 /// to model fisheye lenses
 ///
 #ifndef __VW_CAMERAMODEL_CAHVORE_H__
@@ -29,7 +29,6 @@
 #include <vw/Camera/CameraModel.h>
 
 namespace vw {
-namespace camera {
 
   class CAHVModel;
 
@@ -94,6 +93,6 @@ namespace camera {
                               Vector2i const& cahvore_image_size,
                               Vector2i const& cahv_image_size );
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif//__VW_CAMERAMODEL_CAHVORE_H__

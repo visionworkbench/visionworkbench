@@ -24,7 +24,6 @@
 
 namespace vw {
 
-using namespace vw::camera;
 using namespace vw;
 
 // Solve for best fitting camera that projects given xyz locations at
@@ -148,7 +147,7 @@ void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
                    double cam_height, double cam_weight, double cam_ctr_weight,
                    vw::Datum const& datum,
                    std::vector<double> const& pixel_values,
-                   vw::camera::OpticalBarModel & out_cam) {
+                   vw::OpticalBarModel & out_cam) {
   fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
 }
 
@@ -158,7 +157,7 @@ void fitPinhole(std::vector<Vector3> const& xyz_vec,
                 double cam_height, double cam_weight, double cam_ctr_weight,
                 vw::Datum const& datum,
                 std::vector<double> const& pixel_values,
-                vw::camera::PinholeModel & out_cam) {
+                vw::PinholeModel & out_cam) {
 
   fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
 }

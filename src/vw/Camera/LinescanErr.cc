@@ -21,7 +21,6 @@
 #include <iomanip>
 
 namespace vw {
-namespace camera {
 
 // Find two vectors that are perpendicular to each other and to the input unit
 // vector.
@@ -105,4 +104,4 @@ vw::Vector2 LinescanErr::operator()(vw::Vector2 const& pix) const {
   return vw::Vector2(dot1, dot2);
 }
 
-}} // namespace asp::camera
+} // namespace asp

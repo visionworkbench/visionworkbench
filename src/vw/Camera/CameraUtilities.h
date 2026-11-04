@@ -36,7 +36,6 @@
 
 namespace vw {
 
-namespace camera {
 
 // These functions are defined in the .cc file:
 
@@ -95,6 +94,6 @@ PinholeModel fitPinholeModel(CameraModel const* in_model,
                              double camera_to_ground_dist = 0,
                              double penalty_weight = 0.0);
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERAMODEL_CAMERAUTILITIES_H__

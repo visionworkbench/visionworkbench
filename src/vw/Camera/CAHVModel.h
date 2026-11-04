@@ -26,7 +26,6 @@
 #include <vw/Camera/CameraModel.h>
 
 namespace vw {
-namespace camera {
 
   class PinholeModel;
 
@@ -38,7 +37,7 @@ namespace camera {
   /// points can be projected onto the image plane.  The CAHV model is
   /// computationally efficient, however it does not model lens
   /// distortion.  For this, its close relative the CAHVOR model
-  /// should be used.  Refer to vw::camera::CAHVORModel for more
+  /// should be used.  Refer to vw::CAHVORModel for more
   /// information.
   ///
   /// References:
@@ -78,7 +77,7 @@ namespace camera {
 
     // Convert CAHV to Pinhole. Reference:
     // https://agupubs.onlinelibrary.wiley.com/doi/epdf/10.1029/2003JE002199
-    vw::camera::PinholeModel toPinhole();
+    vw::PinholeModel toPinhole();
     
     virtual std::string type() const;
 
@@ -149,6 +148,6 @@ namespace camera {
 
   std::ostream& operator<<(std::ostream& str, CAHVModel const& model);
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif //__CAMERAMODEL_CAHV_H__

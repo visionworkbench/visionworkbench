@@ -28,7 +28,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::camera;
 
 class CameraGeometryTest : public ::testing::Test {
 protected:
@@ -51,7 +50,7 @@ protected:
         Vector2 pixel = pinhole.point_to_pixel( subvector(coord,0,3) );
         world_m.push_back(coord);
         image_m.push_back( Vector3( pixel[0], pixel[1], 1.0 ) );
-      } catch(vw::camera::PointToPixelErr){} // Skip points that don't project
+      } catch(vw::PointToPixelErr){} // Skip points that don't project
     }
 
     // Building even noiser data

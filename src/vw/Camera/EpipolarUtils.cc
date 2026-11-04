@@ -32,7 +32,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
-namespace camera {
 
 void
 resize_epipolar_cameras_to_fit(PinholeModel const& cam1,      PinholeModel const& cam2,
@@ -221,4 +220,4 @@ void epipolar_transformed_cahv_images(
   }
 }
 
-}} // end namespace vw::camera
+} // end namespace vw

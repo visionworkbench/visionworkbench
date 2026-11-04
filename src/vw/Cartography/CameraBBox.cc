@@ -28,7 +28,7 @@ using vw::math::BresenhamLine;
 namespace vw {
 
 Vector3 datum_intersection(Datum const& datum,
-                           camera::CameraModel const* model,
+                           vw::CameraModel const* model,
                            Vector2 const& pix) {
   return datum_intersection(datum, model->camera_center(pix), model->pixel_to_vector(pix));
 }
@@ -60,7 +60,7 @@ namespace detail {
   /// projected onto a datum.
   class CameraDatumHelper {
     vw::GeoReference const& m_georef; // alias
-    boost::shared_ptr<camera::CameraModel> m_camera;
+    boost::shared_ptr<vw::CameraModel> m_camera;
     Vector2      m_last_intersect;
     std::vector<Vector2> *m_coords;
 
@@ -70,7 +70,7 @@ namespace detail {
     double scale;
 
     CameraDatumHelper(GeoReference const& georef,
-                      boost::shared_ptr<camera::CameraModel> camera,
+                      boost::shared_ptr<vw::CameraModel> camera,
                       bool center=false,
                       std::vector<Vector2> *coords = NULL):
       m_georef(georef), m_camera(camera), m_coords(coords), last_valid(false),
@@ -114,7 +114,7 @@ namespace detail {
   /// Class to accumulate some information about a series of DEM intersections
   class CameraDemHelper {
     GeoReference m_dem_georef, m_target_georef;
-    boost::shared_ptr<camera::CameraModel> m_camera;
+    boost::shared_ptr<vw::CameraModel> m_camera;
     vw::ImageViewRef<vw::PixelMask<float>> m_dem;
     double m_height_guess;
     std::vector<Vector3> *m_coords;
@@ -127,7 +127,7 @@ namespace detail {
     CameraDemHelper(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                     GeoReference const& dem_georef,
                     GeoReference const& target_georef, // return box in this projection
-                    boost::shared_ptr<camera::CameraModel> camera,
+                    boost::shared_ptr<vw::CameraModel> camera,
                     double height_guess,
                     std::vector<Vector3> *coords = NULL): 
         m_dem_georef(dem_georef),
@@ -145,7 +145,7 @@ namespace detail {
                               vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                               GeoReference const& dem_georef,
                               GeoReference const& target_georef,
-                              boost::shared_ptr<camera::CameraModel> camera,
+                              boost::shared_ptr<vw::CameraModel> camera,
                               vw::Vector3 const& xyz_guess, double height_guess,
                               // Outputs
                               Vector2 & point, Vector3 & xyz) {
@@ -637,7 +637,7 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
 
 // Camera footprint on the datum.
 BBox2 camera_bbox(vw::GeoReference const& georef,
-                  boost::shared_ptr<camera::CameraModel> camera_model,
+                  boost::shared_ptr<vw::CameraModel> camera_model,
                   int32 cols, int32 rows, float &scale,
                   std::vector<Vector2> *coords) {
 
@@ -711,7 +711,7 @@ void sampleImageBoundary(int cols, int rows, int num_samples, bool quick,
 void sampleDemBoundary(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                       GeoReference const& dem_georef,
                       GeoReference const& target_georef,
-                      boost::shared_ptr<vw::camera::CameraModel> const& camera_model,
+                      boost::shared_ptr<vw::CameraModel> const& camera_model,
                       // TODO(oalexan1): Must be image_cols, image_rows
                       int image_cols, int image_rows, int num_samples,
                       // Outputs
@@ -827,7 +827,7 @@ double calcMeanGsd(int cols, int rows,
                    vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                    GeoReference const& dem_georef,
                    GeoReference const& target_georef,
-                   boost::shared_ptr<vw::camera::CameraModel> const& camera_model,
+                   boost::shared_ptr<vw::CameraModel> const& camera_model,
                    double height_guess) {
 
   std::vector<double> gsd;
@@ -922,7 +922,7 @@ double calcMeanGsd(int cols, int rows,
 BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   GeoReference const& dem_georef,
                   GeoReference const& target_georef, // return box in this projection
-                  boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                  boost::shared_ptr<vw::CameraModel> camera_model,
                   int32 cols, int32 rows, float &mean_gsd,
                   bool quick,
                   std::vector<Vector3> *coords,
@@ -977,7 +977,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
 
 // Overload with no scale return
 BBox2 camera_bbox(GeoReference const& dem_georef,
-                  boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                  boost::shared_ptr<vw::CameraModel> camera_model,
                   int32 cols, int32 rows) {
   float scale = -1.0; // will be updated
   return camera_bbox(dem_georef, camera_model, cols, rows, scale);
@@ -987,7 +987,7 @@ BBox2 camera_bbox(GeoReference const& dem_georef,
 BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   GeoReference const& dem_georef,
                   GeoReference const& target_georef,
-                  boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                  boost::shared_ptr<vw::CameraModel> camera_model,
                   int32 cols, int32 rows) {
 
   float mean_gsd = -1.0; // will be updated

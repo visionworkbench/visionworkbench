@@ -38,7 +38,6 @@ namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
 
 namespace vw {
-namespace camera {
 
 PinholeModel::PinholeModel(): m_distortion(DistortPtr(new NullLensDistortion)),
                               m_camera_center(Vector3(0,0,0)),
@@ -766,5 +765,4 @@ std::ostream& operator<<(std::ostream& str,
   return str;
 }
 
-} // end namespace camera
 } // end namespace vw

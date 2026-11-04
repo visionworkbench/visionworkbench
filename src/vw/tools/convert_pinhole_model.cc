@@ -47,7 +47,6 @@
 namespace po = boost::program_options;
 
 using namespace vw;
-using namespace vw::camera;
 
 // TODO(oalexan1): Make all options below use the Options structure
 struct Options: vw::GdalWriteOptions {};

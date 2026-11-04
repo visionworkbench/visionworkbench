@@ -27,7 +27,7 @@ namespace vw {
 
   // This transform is not thread-safe, unless caching is turned off. Use
   // mapproj_trans_copy() to make a copy. See that function for more details.
-  Map2CamTrans::Map2CamTrans(vw::camera::CameraModel const* cam,
+  Map2CamTrans::Map2CamTrans(vw::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
                               std::string const& dem_file,
@@ -47,7 +47,7 @@ namespace vw {
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
 
-    m_invalid_pix = vw::camera::CameraModel::invalid_pixel();
+    m_invalid_pix = vw::CameraModel::invalid_pixel();
 
     // This is the full masked DEM. There is also m_cropped_masked_dem,
     // which should be used per tile.
@@ -287,7 +287,7 @@ namespace vw {
     return TransformPtr(new Map2CamTrans(*t_ptr));
   }
 
-  Datum2CamTrans::Datum2CamTrans(camera::CameraModel const* cam,
+  Datum2CamTrans::Datum2CamTrans(vw::CameraModel const* cam,
                                   GeoReference const& image_georef,
                                   GeoReference const& dem_georef,
                                   float dem_height,
@@ -299,7 +299,7 @@ namespace vw {
     m_call_from_mapproject(call_from_mapproject),
     m_nearest_neighbor(nearest_neighbor) {
 
-    m_invalid_pix = camera::CameraModel::invalid_pixel();
+    m_invalid_pix = vw::CameraModel::invalid_pixel();
   }
 
   Vector2 Datum2CamTrans::reverse(const Vector2 &p) const{

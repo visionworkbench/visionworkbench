@@ -29,7 +29,6 @@
 #include <vw/Camera/CameraModel.h>
 
 namespace vw {
-namespace camera {
 
   // A camera model to approximate the type of optical bar cameras
   // that were used in the Corona and Hexagon satellites.
@@ -60,7 +59,7 @@ namespace camera {
 
   // Data is at https://earthexplorer.usgs.gov/
 
-  class OpticalBarModel : public vw::camera::CameraModel {
+  class OpticalBarModel : public vw::CameraModel {
 
   public:
     //------------------------------------------------------------------
@@ -232,6 +231,6 @@ namespace camera {
   /// Output stream method
   std::ostream& operator<<( std::ostream& os, OpticalBarModel const& camera_model);
 
-}}      // namespace asp::camera
+}      // namespace asp
 
 #endif  //_ASP_CAMERA_OPTICALBAR_MODEL_H_

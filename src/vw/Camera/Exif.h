@@ -44,7 +44,6 @@
 #include <string>
 
 namespace vw {
-namespace camera {
 
   struct ExifDateTime {
     uint16 m_year;       // 4-digit
@@ -227,6 +226,6 @@ namespace camera {
     size_t get_thumbnail_location() const;
   };
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif  // __VW_CAMERA_EXIF_H__

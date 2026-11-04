@@ -29,7 +29,6 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
-namespace camera {
 
   // Forward declaration
   class PinholeModel;
@@ -511,6 +510,6 @@ namespace camera {
                             Vector<double> const& num_y, Vector<double> const& den_y);
   };
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_LENS_DISTORTION_H__

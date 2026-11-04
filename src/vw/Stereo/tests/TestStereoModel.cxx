@@ -29,7 +29,6 @@
 
 using namespace vw;
 using namespace vw::stereo;
-using namespace vw::camera;
 using namespace vw::math;
 
 TEST( StereoModel, PinholeStereo ) {
@@ -39,11 +38,11 @@ TEST( StereoModel, PinholeStereo ) {
   Matrix3x3 pose1, pose2;
   pose1.set_identity();
   pose2.set_identity();
-  camera::PinholeModel pin1( pos1, pose1,
-                             1, 1, 0, 0);
+  vw::PinholeModel pin1( pos1, pose1,
+                         1, 1, 0, 0);
 
-  camera::PinholeModel pin2( pos2, pose2,
-                             1, 1, 0, 0);
+  vw::PinholeModel pin2( pos2, pose2,
+                         1, 1, 0, 0);
 
   Vector3 point(2,0,1);
   Vector2 px1 = pin1.point_to_pixel(point);
@@ -66,13 +65,13 @@ TEST( StereoModel, AdjustedStereo ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  boost::shared_ptr<CameraModel> pin1 = boost::shared_ptr<CameraModel>(new camera::PinholeModel( pos1, pose1, 1, 1, 0, 0));
-  boost::shared_ptr<CameraModel> pin2 = boost::shared_ptr<CameraModel>(new camera::PinholeModel( pos2, pose2, 1, 1, 0, 0));
+  boost::shared_ptr<CameraModel> pin1 = boost::shared_ptr<CameraModel>(new vw::PinholeModel( pos1, pose1, 1, 1, 0, 0));
+  boost::shared_ptr<CameraModel> pin2 = boost::shared_ptr<CameraModel>(new vw::PinholeModel( pos2, pose2, 1, 1, 0, 0));
 
   Vector3 point(2,0,1);
 
-  camera::AdjustedCameraModel adj1(pin1);
-  camera::AdjustedCameraModel adj2(pin2);
+  vw::AdjustedCameraModel adj1(pin1);
+  vw::AdjustedCameraModel adj2(pin2);
 
   // Set a "random" rotation
   Quaternion<double> q1 = euler_to_quaternion(M_PI/8, M_PI/12, M_PI/15, "xyz");
@@ -104,13 +103,13 @@ TEST(StereoView, PixelMaskVec2) {
   pose1.set_identity();
   pose2.set_identity();
 
-  camera::PinholeModel pin1( Vector3(),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin1( Vector3(),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
-  camera::PinholeModel pin2( Vector3(1,0,0),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin2( Vector3(1,0,0),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
   ImageView<PixelMask<Vector2f> > disparity(3,1);
   disparity(1,0) = PixelMask<Vector2f>( Vector2f(-1,0) );
@@ -130,13 +129,13 @@ TEST( StereoView, Vec2 ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  camera::PinholeModel pin1( Vector3(),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin1( Vector3(),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
-  camera::PinholeModel pin2( Vector3(1,0,0),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin2( Vector3(1,0,0),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
   ImageView<Vector2f> disparity(3,1);
   disparity(0,0) = Vector2f(-1.5,0);
@@ -157,13 +156,13 @@ TEST( StereoView, PixelMaskFloat ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  camera::PinholeModel pin1( Vector3(),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin1( Vector3(),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
-  camera::PinholeModel pin2( Vector3(1,0,0),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin2( Vector3(1,0,0),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
   ImageView<PixelMask<float> > disparity(3,1);
   disparity(1,0) = PixelMask<float>(-1);
@@ -183,13 +182,13 @@ TEST( StereoView, Float ) {
   pose1.set_identity();
   pose2.set_identity();
 
-  camera::PinholeModel pin1( Vector3(),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin1( Vector3(),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
-  camera::PinholeModel pin2( Vector3(1,0,0),
-                             math::identity_matrix<3>(),
-                             1, 1, 1, 0);
+  vw::PinholeModel pin2( Vector3(1,0,0),
+                         math::identity_matrix<3>(),
+                         1, 1, 1, 0);
 
   ImageView<float> disparity(3,1);
   disparity(0,0) = -1.5;

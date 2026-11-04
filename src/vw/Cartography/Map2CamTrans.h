@@ -39,15 +39,15 @@
 // Then it becomes thread-safe. See the locations where this is called, for more
 // details.
 
-namespace vw { namespace camera{
+namespace vw {
   class CameraModel; // forward declaration
-}}
+}
 
 namespace vw {
 
 class Map2CamTrans: public TransformBase<Map2CamTrans> {
 public:
-  camera::CameraModel const* m_cam;
+  vw::CameraModel const* m_cam;
   GeoReference         m_image_georef, m_dem_georef;
   std::string          m_dem_file;
   DiskImageView<float> m_dem;
@@ -75,7 +75,7 @@ public:
   mutable BBox2i                           m_cached_rv_box;
 
 public:
-  Map2CamTrans(camera::CameraModel const* cam,
+  Map2CamTrans(vw::CameraModel const* cam,
                 GeoReference const& image_georef,
                 GeoReference const& dem_georef,
                 std::string  const& dem_file,
@@ -100,7 +100,7 @@ public:
 
 /// Variant of Map2CamTrans that accepts a constant elevation instead of a DEM.
 class Datum2CamTrans: public TransformBase<Map2CamTrans> {
-  camera::CameraModel const* m_cam;
+  vw::CameraModel const* m_cam;
   GeoReference m_image_georef, m_dem_georef;
   float        m_dem_height;
   Vector2i m_image_size;
@@ -108,7 +108,7 @@ class Datum2CamTrans: public TransformBase<Map2CamTrans> {
   Vector2      m_invalid_pix;
 
 public:
-  Datum2CamTrans(camera::CameraModel const* cam,
+  Datum2CamTrans(vw::CameraModel const* cam,
                   GeoReference const& image_georef,
                   GeoReference const& dem_georef,
                   float               dem_height,

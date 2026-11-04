@@ -56,7 +56,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
-namespace camera {
 
   typedef enum {
     UBYTE = 1,
@@ -81,7 +80,7 @@ namespace camera {
 const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 
 
-}} // namespace vw::camera
+} // namespace vw
 
 // --------------------------------------------------------------
 //                   ExifData
@@ -92,7 +91,7 @@ const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 // TODO: from FileIO, and really belongs there. FileIO doesn't support a
 // TODO: general comments thing right now, though
 
-vw::camera::ExifData::~ExifData() {
+vw::ExifData::~ExifData() {
   typedef std::map<unsigned int, ExifTagData>::iterator iterator;
   for (iterator tag = tags.begin(); tag != tags.end(); tag++) {
     if ((*tag).second.type == StringType) {
@@ -102,7 +101,7 @@ vw::camera::ExifData::~ExifData() {
 }
 
 // Convert a 16 bit unsigned value to file's native byte order
-void vw::camera::ExifData::Put16u(void * Short, unsigned short PutValue) {
+void vw::ExifData::Put16u(void * Short, unsigned short PutValue) {
   if (MotorolaOrder){
     ((uint8 *)Short)[0] = (uint8)(PutValue>>8);
     ((uint8 *)Short)[1] = (uint8)PutValue;
@@ -113,7 +112,7 @@ void vw::camera::ExifData::Put16u(void * Short, unsigned short PutValue) {
 }
 
 // Convert a 16 bit unsigned value from file's native byte order
-int vw::camera::ExifData::Get16u(const void * Short) {
+int vw::ExifData::Get16u(const void * Short) {
   if (MotorolaOrder){
     return (((uint8 *)Short)[0] << 8) | ((uint8 *)Short)[1];
   } else {
@@ -122,7 +121,7 @@ int vw::camera::ExifData::Get16u(const void * Short) {
 }
 
 // Convert a 32 bit signed value from file's native byte order
-int vw::camera::ExifData::Get32s(const void * Long) {
+int vw::ExifData::Get32s(const void * Long) {
   if (MotorolaOrder){
     return  ((( char *)Long)[0] << 24) | (((uint8 *)Long)[1] << 16)
             | (((uint8 *)Long)[2] << 8 ) | (((uint8 *)Long)[3] << 0 );
@@ -133,7 +132,7 @@ int vw::camera::ExifData::Get32s(const void * Long) {
 }
 
 // Convert a 32 bit unsigned value to file's native byte order
-void vw::camera::ExifData::Put32u(void * Value, unsigned PutValue) {
+void vw::ExifData::Put32u(void * Value, unsigned PutValue) {
   if (MotorolaOrder){
     ((uint8 *)Value)[0] = (uint8)(PutValue>>24);
     ((uint8 *)Value)[1] = (uint8)(PutValue>>16);
@@ -148,11 +147,11 @@ void vw::camera::ExifData::Put32u(void * Value, unsigned PutValue) {
 }
 
 // Convert a 32 bit unsigned value from file's native byte order
-unsigned vw::camera::ExifData::Get32u(const void * Long) {
+unsigned vw::ExifData::Get32u(const void * Long) {
   return (unsigned)Get32s(Long) & 0xffffffff;
 }
 
-double vw::camera::ExifData::convert_any_format(const void * ValuePtr, int Format) {
+double vw::ExifData::convert_any_format(const void * ValuePtr, int Format) {
   double Value = 0;
   int Num, Den;
 
@@ -207,11 +206,11 @@ double vw::camera::ExifData::convert_any_format(const void * ValuePtr, int Forma
   return Value;
 }
 
-const unsigned char * vw::camera::ExifData::dir_entry_addr(const unsigned char * start, int entry) {
+const unsigned char * vw::ExifData::dir_entry_addr(const unsigned char * start, int entry) {
   return (start + 2 + 12 * entry);
 }
 
-void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase,
+void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase,
                                 unsigned ExifLength, int NestingLevel) {
   VW_ASSERT( NestingLevel <= 4, IOErr() << "Maximum directory nesting exceeded (corrupt Exif header)." );
 
@@ -343,7 +342,7 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
   }
 }
 
-int vw::camera::ExifData::process_tiff_header(const unsigned char * buffer) {
+int vw::ExifData::process_tiff_header(const unsigned char * buffer) {
   // Bytes 0-1 of TIFF header indicate byte order
   if (memcmp(buffer, "II", 2) == 0) {
     MotorolaOrder = 0; //Intel order
@@ -363,7 +362,7 @@ int vw::camera::ExifData::process_tiff_header(const unsigned char * buffer) {
   return first_offset;
 }
 
-void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned int length) {
+void vw::ExifData::process_exif(unsigned char * ExifSection, unsigned int length) {
 
   // Check the EXIF header component
   static uint8 ExifHeader[] = "Exif\0\0";
@@ -375,7 +374,7 @@ void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned in
   process_exif_dir(ExifSection + 8 + first_offset, ExifSection + 8, length - 8, 0);
 }
 
-bool vw::camera::ExifData::read_tiff_ifd(const std::string &filename) {
+bool vw::ExifData::read_tiff_ifd(const std::string &filename) {
   // Memory-map the file so we can use the same process_exif_dir function
   // unchanged for both jpg and tiff).
 
@@ -407,7 +406,7 @@ bool vw::camera::ExifData::read_tiff_ifd(const std::string &filename) {
   return true;
 }
 
-bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
+bool vw::ExifData::read_jpeg_sections(FILE* infile) {
   unsigned int pos = 0;
   int a = fgetc(infile);
 
@@ -476,7 +475,7 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
   return false;
 }
 
-bool vw::camera::ExifData::import_data(std::string const &filename) {
+bool vw::ExifData::import_data(std::string const &filename) {
   tags.clear();
   FILE * infile = fopen(filename.c_str(), "rb"); // Unix ignores 'b', windows needs it.
 
@@ -501,7 +500,7 @@ bool vw::camera::ExifData::import_data(std::string const &filename) {
   return ret;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) const {
+bool vw::ExifData::get_tag_value(const uint16 tag, int &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -517,7 +516,7 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) const {
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) const {
+bool vw::ExifData::get_tag_value(const uint16 tag, double &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -533,7 +532,7 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) const 
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) const {
+bool vw::ExifData::get_tag_value(const uint16 tag, std::string &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   if ((*tag_iter).second.type != StringType) return false;
@@ -541,11 +540,11 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) c
   return true;
 }
 
-unsigned int vw::camera::ExifData::get_exif_location() const {
+unsigned int vw::ExifData::get_exif_location() const {
   return ExifLocation;
 }
 
-void vw::camera::ExifData::print_debug() {
+void vw::ExifData::print_debug() {
   typedef std::map<unsigned int, ExifTagData>::const_iterator iterator;
   for (iterator tag = tags.begin(); tag != tags.end(); tag++) {
     printf("Tag %04x: ", (*tag).first);

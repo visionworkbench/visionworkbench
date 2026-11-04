@@ -31,7 +31,6 @@
 
 using namespace vw;
 using namespace vw::test;
-using namespace vw::camera;
 
 template <template<class> class TraitT, class T>
 static bool bool_trait( T const& /*arg*/ ) {

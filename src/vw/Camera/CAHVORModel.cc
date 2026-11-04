@@ -23,7 +23,6 @@
 #include <boost/foreach.hpp>
 
 using namespace vw;
-using namespace camera;
 
 // Overloaded constructor - this one reads in the file name
 // where the CAVHOR camera model is saved.
@@ -457,9 +456,9 @@ Vector2 CAHVORModel::point_to_pixel(Vector3 const& point) const {
 // (identical to A) and R (all terms zero) will not be output. Note
 // that image warping will be necessary in order to use the new
 // models.
-CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
-                                    Vector2i const& cahvor_image_size,
-                                    Vector2i const& cahv_image_size ) {
+CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
+                                Vector2i const& cahvor_image_size,
+                                Vector2i const& cahv_image_size ) {
 
   CAHVModel output_camera;
   output_camera.C = camera_model.C;
@@ -546,10 +545,10 @@ CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
   return output_camera;
 }
 
-CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
-                                    int32 ix, int32 iy, int32 ox, int32 oy ) {
-  return vw::camera::linearize_camera( camera_model,
-                                       Vector2i( ix, iy), Vector2i(ox, oy) );
+CAHVModel vw::linearize_camera( CAHVORModel const& camera_model,
+                                int32 ix, int32 iy, int32 ox, int32 oy ) {
+  return vw::linearize_camera( camera_model,
+                               Vector2i( ix, iy), Vector2i(ox, oy) );
 }
 
 // Note: the second derivatives with respect to motion of the point are the

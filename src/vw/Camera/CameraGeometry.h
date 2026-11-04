@@ -39,7 +39,6 @@ namespace vw {
 // Forward Declare
 struct InterestPoint;
 
-namespace camera {
 
   // Transform Functors
   template <class VectorT>
@@ -435,6 +434,6 @@ namespace camera {
     }
   };
 
-}} // end vw::camera
+} // end vw
 
 #endif//__CAMERA_CAMERA_GEOMETRY_H__

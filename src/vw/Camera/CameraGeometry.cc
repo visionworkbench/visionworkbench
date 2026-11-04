@@ -20,10 +20,9 @@
 #include <vw/InterestPoint/InterestPoint.h>
 
 using namespace vw;
-using namespace camera;
 
 template <>
-Vector3 camera::Convert2HomogenousVec2( vw::InterestPoint const& ip ) {
+Vector3 vw::Convert2HomogenousVec2( vw::InterestPoint const& ip ) {
   return Vector3( ip.x, ip.y , 1 );
 }
 

@@ -23,7 +23,6 @@
 #include <vw/Camera/Exif.h>
 
 using namespace vw;
-using namespace vw::camera;
 
 TEST( Exif, ReadData ) {
 

@@ -49,7 +49,7 @@ namespace vw {
     TerrainImageT m_terrain;
     GeoReference  m_georef; // make a copy
     // There is a big assumption here that the user's camera model is thread safe.
-    camera::CameraModel* m_camera_model;
+    vw::CameraModel* m_camera_model;
     InterpolationView<EdgeExtensionView<CameraImageT, EdgeT>, InterpT> m_camera_image;
     CameraImageT  m_camera_image_ref;
     InterpT       m_interp_func;
@@ -90,7 +90,7 @@ namespace vw {
     typedef ProceduralPixelAccessor<OrthoImageView> pixel_accessor;
 
     OrthoImageView(TerrainImageT const& terrain, GeoReference const& georef,
-                   CameraImageT const& camera_image, camera::CameraModel* camera_model,
+                   CameraImageT const& camera_image, vw::CameraModel* camera_model,
                    InterpT const& interp_func, EdgeT const& edge_func) :
       m_terrain(terrain), m_georef(georef), m_camera_model(camera_model),
       m_camera_image(interpolate(camera_image, m_interp_func, m_edge_func)),
@@ -241,7 +241,7 @@ namespace vw {
   orthoproject(ImageViewBase<TerrainImageT> const& terrain_image,
                GeoReference const& georef,
                ImageViewBase<CameraImageT> const& camera_image,
-               camera::CameraModel* camera_model,
+               vw::CameraModel* camera_model,
                InterpT const& interp_func,
                EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>(terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
@@ -254,7 +254,7 @@ namespace vw {
   orthoproject_markNoProcessedData(ImageViewBase<TerrainImageT> const& terrain_image,
                                    GeoReference const& georef,
                                    ImageViewBase<CameraImageT> const& camera_image,
-                                   camera::CameraModel* camera_model,
+                                   vw::CameraModel* camera_model,
                                    InterpT const& interp_func,
                                    EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>(terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);

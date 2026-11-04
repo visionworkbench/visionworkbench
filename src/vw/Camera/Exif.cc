@@ -44,7 +44,7 @@
 //                   ExifView
 // --------------------------------------------------------------
 
-vw::camera::ExifView::ExifView(std::string const& filename) {
+vw::ExifView::ExifView(std::string const& filename) {
   if (!m_data.import_data(filename)) {
     vw_throw(ExifErr() << "Could not parse EXIF data out of \"" << filename << "\".");
   }
@@ -52,28 +52,28 @@ vw::camera::ExifView::ExifView(std::string const& filename) {
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(ExifTag tag, int32& value) const {
+void vw::ExifView::query_by_tag(ExifTag tag, int32& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(ExifTag tag, double& value) const {
+void vw::ExifView::query_by_tag(ExifTag tag, double& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(ExifTag tag, std::string& value) const {
+void vw::ExifView::query_by_tag(ExifTag tag, std::string& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(ExifTag tag, vw::camera::ExifDateTime& value) const {
+void vw::ExifView::query_by_tag(ExifTag tag, vw::ExifDateTime& value) const {
   std::string date_in_ascii;
   bool success = m_data.get_tag_value(tag, date_in_ascii);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
@@ -88,41 +88,41 @@ void vw::camera::ExifView::query_by_tag(ExifTag tag, vw::camera::ExifDateTime& v
 }
 
 // Camera info
-std::string vw::camera::ExifView::get_make() const {
+std::string vw::ExifView::get_make() const {
   std::string make;
   query_by_tag(EXIF_Make, make);
   return make;
 }
 
-std::string vw::camera::ExifView::get_model() const {
+std::string vw::ExifView::get_model() const {
   std::string model;
   query_by_tag(EXIF_Model, model);
   return model;
 }
 
 // Get date and time of file modification from EXIF
-vw::camera::ExifDateTime vw::camera::ExifView::get_modification_time() const {
-  vw::camera::ExifDateTime date_time;
+vw::ExifDateTime vw::ExifView::get_modification_time() const {
+  vw::ExifDateTime date_time;
   query_by_tag(EXIF_DateTime, date_time);
   return date_time;
 }
 
 // Get date and time of image capture from EXIF
-vw::camera::ExifDateTime vw::camera::ExifView::get_capture_time() const {
-  vw::camera::ExifDateTime date_time;
+vw::ExifDateTime vw::ExifView::get_capture_time() const {
+  vw::ExifDateTime date_time;
   query_by_tag(EXIF_DateTimeOriginal, date_time);
   return date_time;
 }
 
 // Get date and time of image digitization from EXIF
-vw::camera::ExifDateTime vw::camera::ExifView::get_digitization_time() const {
-  vw::camera::ExifDateTime date_time;
+vw::ExifDateTime vw::ExifView::get_digitization_time() const {
+  vw::ExifDateTime date_time;
   query_by_tag(EXIF_DateTimeDigitized, date_time);
   return date_time;
 }
 
 // Camera settings
-double vw::camera::ExifView::get_f_number() const {
+double vw::ExifView::get_f_number() const {
   double value;
   try {
     query_by_tag(EXIF_FNumber, value);
@@ -133,7 +133,7 @@ double vw::camera::ExifView::get_f_number() const {
   }
 }
 
-double vw::camera::ExifView::get_exposure_time() const {
+double vw::ExifView::get_exposure_time() const {
   double value;
   try {
     query_by_tag(EXIF_ExposureTime, value);
@@ -144,7 +144,7 @@ double vw::camera::ExifView::get_exposure_time() const {
   }
 }
 
-double vw::camera::ExifView::get_iso() const {
+double vw::ExifView::get_iso() const {
   double value;
   try {
     query_by_tag(EXIF_ISOSpeedRatings, value);
@@ -157,7 +157,7 @@ double vw::camera::ExifView::get_iso() const {
 }
 
 // Returns focal length of camera in mm, as if image sensor were 36mm x 24mm
-double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
+double vw::ExifView::get_focal_length_35mm_equiv() const {
   double value;
   try {
     query_by_tag(EXIF_FocalLengthIn35mmFilm, value); // 0 if unknown
@@ -198,7 +198,7 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
 }
 
 // Returns the x & y focal lengths in pixels (good for working with vw::camera)
-vw::Vector2 vw::camera::ExifView::get_focal_length_pix() const {
+vw::Vector2 vw::ExifView::get_focal_length_pix() const {
   double focal_length; // mm
   vw::Vector2 focal_plane_res;
   query_by_tag(EXIF_FocalLength, focal_length);
@@ -225,7 +225,7 @@ vw::Vector2 vw::camera::ExifView::get_focal_length_pix() const {
 }
 
 // Returns image size, useful if the image is never really opened.
-vw::Vector2i vw::camera::ExifView::get_image_size() const {
+vw::Vector2i vw::ExifView::get_image_size() const {
   vw::Vector2i image_size;
   query_by_tag(EXIF_PixelXDimension, image_size[0]);
   query_by_tag(EXIF_PixelYDimension, image_size[1]);
@@ -233,7 +233,7 @@ vw::Vector2i vw::camera::ExifView::get_image_size() const {
 }
 
 // FIXME: report in some logical way when value doesn't exist
-double vw::camera::ExifView::get_aperture_value() const {
+double vw::ExifView::get_aperture_value() const {
   double value;
   try {
     query_by_tag(EXIF_ApertureValue, value);
@@ -244,7 +244,7 @@ double vw::camera::ExifView::get_aperture_value() const {
   }
 }
 
-double vw::camera::ExifView::get_time_value() const {
+double vw::ExifView::get_time_value() const {
   double value;
   try {
     query_by_tag(EXIF_ShutterSpeedValue, value);
@@ -255,7 +255,7 @@ double vw::camera::ExifView::get_time_value() const {
   }
 }
 
-double vw::camera::ExifView::get_exposure_value() const {
+double vw::ExifView::get_exposure_value() const {
   return get_time_value() + get_aperture_value();
 }
 
@@ -267,14 +267,14 @@ double vw::camera::ExifView::get_exposure_value() const {
 // reflected light meter calibration constant.  See
 // http://en.wikipedia.org/wiki/Light_meter#Exposure_meter_calibration
 //
-double vw::camera::ExifView::get_film_speed_value() const {
+double vw::ExifView::get_film_speed_value() const {
   double iso = (double)get_iso();
   const double N = 1/3.125;
   //  const double K = 12.5;
   return log(iso * N)/log(2.); // log2(value) = log(value)/log(2)
 }
 
-double vw::camera::ExifView::get_luminance_value() const {
+double vw::ExifView::get_luminance_value() const {
   double Bv;
   try{
     query_by_tag(EXIF_BrightnessValue, Bv);
@@ -300,7 +300,7 @@ double vw::camera::ExifView::get_luminance_value() const {
 // reflected light meter calibration constant.  See
 // http://en.wikipedia.org/wiki/Light_meter#Exposure_meter_calibration
 //
-double vw::camera::ExifView::get_average_luminance() const {
+double vw::ExifView::get_average_luminance() const {
   // const double N = 1/3.125;
   const double K = 12.5;
 
@@ -316,9 +316,9 @@ double vw::camera::ExifView::get_average_luminance() const {
   }
 }
 
-size_t vw::camera::ExifView::get_thumbnail_location() const {
+size_t vw::ExifView::get_thumbnail_location() const {
   int32 offset;
   // query_by_tag throws if tag isn't found
-  query_by_tag(vw::camera::EXIF_ThumbnailOffset, offset);
+  query_by_tag(vw::EXIF_ThumbnailOffset, offset);
   return offset + m_data.get_exif_location();
 }

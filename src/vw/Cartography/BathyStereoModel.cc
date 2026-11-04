@@ -92,7 +92,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
 
       Vector2 pix = pixVec[p];
       if (pix != pix || // i.e., NaN
-          pix == camera::CameraModel::invalid_pixel())
+          pix == vw::CameraModel::invalid_pixel())
         continue;
 
       camDirs.push_back(m_cameras[p]->pixel_to_vector(pix));
@@ -231,7 +231,7 @@ Vector3 BathyStereoModel::operator()(std::vector<Vector2> const& pixVec,
       return tri_pt;
     }
 
-  } catch (const camera::PixelToRayErr& /*e*/) {}
+  } catch (const vw::PixelToRayErr& /*e*/) {}
 
   // We arrive here only when there's bad luck
   did_bathy = false;

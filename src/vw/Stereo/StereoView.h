@@ -28,9 +28,7 @@
 
 namespace vw {
 
-  namespace camera {
     class CameraModel;
-  }
 
 namespace stereo {
 
@@ -72,8 +70,8 @@ namespace stereo {
     typedef ProceduralPixelAccessor<StereoView> pixel_accessor;
 
     StereoView( DisparityImageT const& disparity_map,
-                vw::camera::CameraModel const* camera_model1,
-                vw::camera::CameraModel const* camera_model2) :
+                vw::CameraModel const* camera_model1,
+                vw::CameraModel const* camera_model2) :
       m_disparity_map(disparity_map),
       m_stereo_model(camera_model1, camera_model2) {}
 
@@ -124,8 +122,8 @@ namespace stereo {
 
   template <class ImageT>
   StereoView<ImageT> stereo_triangulate( ImageViewBase<ImageT> const& v,
-                                         vw::camera::CameraModel const* camera1,
-                                         vw::camera::CameraModel const* camera2 ) {
+                                         vw::CameraModel const* camera1,
+                                         vw::CameraModel const* camera2 ) {
     return StereoView<ImageT>( v.impl(), camera1, camera2 );
   }
 

@@ -22,7 +22,6 @@
 
 #include <set>
 using namespace vw;
-using namespace camera;
 
 // Special LMA Models to reverse the distortion.
 // TODO(oalexan1): Standardize all to using Newton-Raphson.
@@ -31,9 +30,9 @@ struct DistortOptimizeFunctor:  public math::LeastSquaresModelBaseFixed<DistortO
   typedef Vector2 domain_type;
   typedef Matrix<double, 2, 2> jacobian_type;
 
-  const camera::PinholeModel   &m_cam;
-  const camera::LensDistortion &m_distort;
-  DistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d):
+  const vw::PinholeModel   &m_cam;
+  const vw::LensDistortion &m_distort;
+  DistortOptimizeFunctor(const vw::PinholeModel& cam, const vw::LensDistortion& d):
     m_cam(cam), m_distort(d) {}
   inline result_type operator()(domain_type const& x) const {
     return m_distort.undistorted_coordinates(m_cam, x);
@@ -194,8 +193,8 @@ LensDistortion::distorted_coordinates(const PinholeModel& cam, Vector2 const& v)
   return solution;
 }
 
-std::ostream& camera::operator<<(std::ostream & os,
-                                 const camera::LensDistortion& ld) {
+std::ostream& vw::operator<<(std::ostream & os,
+                             const vw::LensDistortion& ld) {
   ld.write(os);
   return os;
 }

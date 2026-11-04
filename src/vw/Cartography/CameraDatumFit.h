@@ -27,10 +27,8 @@
 
 namespace vw { 
 
-namespace camera {              
   class PinholeModel;
   class OpticalBarModel;
-}
 
 
 // Find the best-fitting pinhole model given xyz points and pixel values.
@@ -38,14 +36,14 @@ void fitPinhole(std::vector<Vector3> const& xyz_vec,
                 double cam_height, double cam_weight, double cam_ctr_weight,
                 vw::Datum const& datum,
                 std::vector<double> const& pixel_values,
-                vw::camera::PinholeModel & out_cam);
+                vw::PinholeModel & out_cam);
 
 // Find the best-fitting optical bar model given xyz points and pixel values.
 void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
                    double cam_height, double cam_weight, double cam_ctr_weight,
                    vw::Datum const& datum,
                    std::vector<double> const& pixel_values,
-                   vw::camera::OpticalBarModel & out_cam);
+                   vw::OpticalBarModel & out_cam);
 
 } // namespace vw
 

@@ -26,16 +26,15 @@
 
 #include <boost/shared_ptr.hpp>
 
-namespace vw { namespace camera {
+namespace vw {
                 
 // Estimate the GSD at the given pixel given an estimate of the ground point
 // along the ray (or close to the ray). This can throw exceptions.
-double estimatedGSD(vw::camera::CameraModel const* camera_model, 
+double estimatedGSD(vw::CameraModel const* camera_model, 
                     vw::BBox2i const& image_bbox,
                     vw::Vector2 const& pixel,
                     vw::Vector3 const& position);                
                 
-}} // end namespace vw::camera
+} // end namespace vw
 
 #endif // __VW_CAMERA_CAMERAIMAGE_H__
-

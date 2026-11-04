@@ -23,7 +23,6 @@
 /// These currently only work for Earth.
 
 namespace vw {
-namespace camera {
 
 Vector3 get_rotation_corrected_velocity(Vector3 const& camera_center,
                                         Vector3 const& camera_velocity,
@@ -128,5 +127,4 @@ Vector3 apply_atmospheric_refraction_correction(Vector3 const& camera_center,
   return corrected;
 }
 
-} // End namespace camera
 } // End namespace vw

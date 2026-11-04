@@ -27,7 +27,6 @@
 
 using namespace vw;
 using namespace vw::test;
-using namespace vw::camera;
 
 
 TEST(OpticalBarModel, CreateCamera) {

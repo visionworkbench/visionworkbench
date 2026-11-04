@@ -24,8 +24,8 @@
 #include <iostream>
 
 
-std::ostream& vw::camera::operator<<(std::ostream& ostr,
-                                     vw::camera::AdjustedCameraModel const& cam ) {
+std::ostream& vw::operator<<(std::ostream& ostr,
+                             vw::AdjustedCameraModel const& cam ) {
   ostr.precision(18);
   ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
        << " Rot:          " << cam.m_rotation
@@ -36,7 +36,6 @@ std::ostream& vw::camera::operator<<(std::ostream& ostr,
 }
 
 namespace vw {
-namespace camera {
 
 Quaternion<double>
 CameraModel::camera_pose(Vector2 const& pix) const {
@@ -255,5 +254,4 @@ boost::shared_ptr<CameraModel> unadjusted_model(boost::shared_ptr<CameraModel> c
   return cam;
 }
 
-} // End namespace camera
 } // End namespace vw

@@ -53,8 +53,8 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 using namespace vw;
-using vw::camera::PinholeModel;
-using vw::camera::LensDistortion;
+using vw::PinholeModel;
+using vw::LensDistortion;
 
 // Global variables, to make it easier to invoke the function do_work
 // with many channels and channel types.
@@ -286,7 +286,7 @@ void do_work() {
   }
   
   // Save the camera model for the undistorted image
-  PinholeModel out_model = vw::camera::strip_lens_distortion(camera_model);
+  PinholeModel out_model = vw::strip_lens_distortion(camera_model);
   out_model.set_point_offset(out_model.point_offset() - offset*out_model.pixel_pitch());
   
   std::string out_cam_path = fs::path(output_file_name).replace_extension(".tsai").string();

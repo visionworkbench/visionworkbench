@@ -30,7 +30,6 @@
 #include <boost/random.hpp>
 
 using namespace vw;
-using namespace vw::camera;
 using namespace vw::test;
 
 TEST( PinholeModel, StandardConstruct ) {
@@ -169,7 +168,7 @@ TEST( PinholeModel, ProjectiveMatrix ) {
 
       world_m.push_back( Vector4(point[0],point[1],point[2],1) );
       image_m.push_back( Vector3(pixel[0],pixel[1],1) );
-    } catch(vw::camera::PointToPixelErr) {}
+    } catch(vw::PointToPixelErr) {}
   }
 
   // Building Camera Matrix

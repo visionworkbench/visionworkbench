@@ -50,14 +50,14 @@ namespace vw { namespace stereo {
 
   
 // Constructor with n cameras
-StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
+StereoModel::StereoModel(vector<const vw::CameraModel *> const& cameras,
                          double angle_tol):
   m_cameras(cameras),
   m_angle_tol(angle_tol) {}
   
 // Constructor with two cameras
-StereoModel::StereoModel(camera::CameraModel const* camera_model1,
-                         camera::CameraModel const* camera_model2,
+StereoModel::StereoModel(vw::CameraModel const* camera_model1,
+                         vw::CameraModel const* camera_model2,
                          double angle_tol) {
   m_cameras.clear();
   m_cameras.push_back(camera_model1);
@@ -115,7 +115,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
       
       Vector2 pix = pixVec[p];
       if (pix != pix || // i.e., NaN
-          pix == camera::CameraModel::invalid_pixel() ) 
+          pix == vw::CameraModel::invalid_pixel() ) 
         continue;
       
       camDirs.push_back(m_cameras[p]->pixel_to_vector(pix));
@@ -141,7 +141,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
 
     return result;
     
-  } catch (const camera::PixelToRayErr& /*e*/) {
+  } catch (const vw::PixelToRayErr& /*e*/) {
   }
   return Vector3();
 }

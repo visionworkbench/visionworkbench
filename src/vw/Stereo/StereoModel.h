@@ -27,9 +27,7 @@ namespace vw {
   template <class PixelT> struct PixelMask;
 
   // forward declaration
-  namespace camera {
     class CameraModel;
-  }
 
 namespace stereo {
 
@@ -49,11 +47,11 @@ namespace stereo {
     // Constructors / Destructors
     //------------------------------------------------------------------
     // Constructor with n cameras
-    StereoModel(std::vector<const camera::CameraModel *> const& cameras,
+    StereoModel(std::vector<const vw::CameraModel *> const& cameras,
                 double angle_tol = 0.0);
     // Constructor with two cameras
-    StereoModel(camera::CameraModel const* camera_model1,
-                camera::CameraModel const* camera_model2,
+    StereoModel(vw::CameraModel const* camera_model1,
+                vw::CameraModel const* camera_model2,
                 double angle_tol = 0.0);
 
     // This class does not modify the input models.
@@ -97,7 +95,7 @@ namespace stereo {
 
   protected:
 
-    std::vector<const camera::CameraModel *> m_cameras;
+    std::vector<const vw::CameraModel *> m_cameras;
     double m_angle_tol;
 
     //------------------------------------------------------------------

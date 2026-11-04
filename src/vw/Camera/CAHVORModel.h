@@ -19,7 +19,7 @@
 /// \file CAHVORModel.h
 ///
 /// This file contains the CAHVOR pinhole camera model.  This camera
-/// model is a refinement of the \ref vw::camera::CAHVModel: it adds extra terms
+/// model is a refinement of the \ref vw::CAHVModel: it adds extra terms
 /// to model basic radial camera distortion.
 ///
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__
@@ -32,7 +32,6 @@
 #include <string>
 
 namespace vw {
-namespace camera {
 
   class CAHVModel;
 
@@ -99,6 +98,6 @@ namespace camera {
   CAHVModel linearize_camera( CAHVORModel const& camera_model,
                               int32 ix, int32 iy, int32 ox, int32 oy ) VW_DEPRECATED;
 
-}}      // namespace vw::camera
+}      // namespace vw
 
 #endif  //__CAMERAMODEL_CAHVOR_H__

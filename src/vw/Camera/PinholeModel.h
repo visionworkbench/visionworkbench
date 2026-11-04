@@ -30,7 +30,6 @@
 #include <fstream>
 
 namespace vw {
-namespace camera {
 
   class LensDistortion;
 
@@ -318,6 +317,6 @@ namespace camera {
   /// Write a description of a PinholeModel to the stream.
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);
 
-}}      // namespace vw::camera
+}      // namespace vw
 
 #endif  //__CAMERAMODEL_PINHOLE_H__

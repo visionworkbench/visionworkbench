@@ -26,7 +26,6 @@
 #include <vw/Camera/CameraModel.h>
 
 namespace vw {
-namespace camera {
 
 // Pack a pinhole or optical bar model's rotation and camera center into a vector
 template <class CAM>
@@ -65,6 +64,6 @@ void transform_to_vector(vw::Vector<double>  & C,
                          vw::Vector3   const & translation,
                          double    const & scale);
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif  //__CAMERA_PARAMS_PACK_H__

@@ -31,7 +31,6 @@
 #include <boost/shared_ptr.hpp>
 
 namespace vw {
-namespace camera {
 
 /// Adjust a pair of epipolar-aligned cameras so that the input images are fully
 /// contained in the transformed images.
@@ -73,6 +72,6 @@ void epipolar_transformed_cahv_images(
         ImageViewRef<PixelMask<float>> & right_image_out,
         ValueEdgeExtension<PixelMask<float>> const& edge_ext);
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_EPIPOLARUTILS_H__

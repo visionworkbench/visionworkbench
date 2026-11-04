@@ -23,7 +23,6 @@
 #include <boost/foreach.hpp>
 
 using namespace vw;
-using namespace vw::camera;
 
 bool CAHVOREModel::check_line( std::istream& istream, char letter ) {
   char r1,r2;
@@ -300,9 +299,9 @@ Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
                   dot_prod(rp,V) / alpha );
 }
 
-CAHVModel camera::linearize_camera( CAHVOREModel const& camera_model,
-                                    Vector2i const& cahvore_image_size,
-                                    Vector2i const& cahv_image_size ) {
+CAHVModel vw::linearize_camera( CAHVOREModel const& camera_model,
+                                Vector2i const& cahvore_image_size,
+                                Vector2i const& cahv_image_size ) {
   // Limit to field of view
   const static double limfov = M_PI * 3/4; // 135 degrees field of view.
   const bool minfov          = true;       // Yes, minimize the common field of view

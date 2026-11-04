@@ -40,7 +40,6 @@
 #include <cstdio>
 
 namespace vw {
-namespace camera {
 
 
   typedef enum { IntType, DoubleType, StringType } ExifDataType;
@@ -90,6 +89,6 @@ namespace camera {
     void print_debug();
   };
 
-}} // namespace vw::camera
+} // namespace vw
 
 #endif // __VW_CAMERA_EXIF_DATA_H__

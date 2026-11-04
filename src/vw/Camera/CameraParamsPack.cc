@@ -24,7 +24,6 @@
 #include <vw/Camera/CameraParamsPack.h>
 
 namespace vw {
-namespace camera {
 
 // Unpack a vector into a rotation + translation + scale
 void vector_to_transform(vw::Vector<double> const & C,
@@ -58,4 +57,4 @@ void transform_to_vector(vw::Vector<double>  & C,
   return;
 }
 
-}} // end namespace vw::camera
+} // end namespace vw

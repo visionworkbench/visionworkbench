@@ -27,7 +27,6 @@
 #include <ctime>
 
 using namespace vw;
-using namespace vw::camera;
 using namespace vw::test;
 
 TEST( CAHVModel, PinholeConversion ) {

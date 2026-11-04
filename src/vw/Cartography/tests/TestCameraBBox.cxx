@@ -28,7 +28,6 @@
 
 using namespace vw;
 using namespace vw::test;
-using namespace vw::camera;
 
 // Load a pinhole camera and an associated low res DEM in Antarctica.
 class CameraBBoxTest :  public ::testing::Test {
@@ -121,7 +120,7 @@ TEST( CameraBBox, CameraBBoxDEM11 ) {
   ImageViewRef< PixelMask<double> > dem = create_mask
     (channel_cast<double>(DiskImageView<float>(demPath)), dem_nodata_val);
 
-  boost::shared_ptr<vw::camera::CameraModel> camPtr(new PinholeModel("/home/smcmich1/data/icebridge_bulk/AN_20111114/nav_camera/DMS_20111114_164409_04413.tsai_M1.tsai"));
+  boost::shared_ptr<vw::CameraModel> camPtr(new PinholeModel("/home/smcmich1/data/icebridge_bulk/AN_20111114/nav_camera/DMS_20111114_164409_04413.tsai_M1.tsai"));
 
   float res;
   BBox2 image_bbox = camera_bbox( dem, georef, georef, camPtr, 5616, 3744, res, false );

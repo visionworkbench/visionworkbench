@@ -26,7 +26,6 @@
 
 namespace vw {
 
-namespace camera {
 
   // Levenberg Marquardt solver for line number (y) and column number (x) for
   // the given point in space (ie, point_to_pixel) The obtained solution pixel
@@ -60,6 +59,6 @@ namespace camera {
     }
   }; // End class CameraGenericLMA
   
-}} // end vw::camera
+} // end vw
 
 #endif//__CAMERA_CAMERA_SOLVE_H__

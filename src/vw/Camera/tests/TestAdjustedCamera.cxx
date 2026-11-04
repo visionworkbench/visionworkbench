@@ -24,7 +24,6 @@
 #include <vw/Camera/LensDistortion.h>
 
 using namespace vw;
-using namespace vw::camera;
 using namespace vw::test;
 
 TEST( AdjustedCameraModel, StandardConstruct ) {

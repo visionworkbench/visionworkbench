@@ -57,7 +57,7 @@ void safe_measurement(vw::InterestPoint& ip) {
 }
 
 double vw::triangulate_control_point(ControlPoint& cp,
-                                     std::vector<boost::shared_ptr<camera::CameraModel>>
+                                     std::vector<boost::shared_ptr<vw::CameraModel>>
                                      const& camera_models,
                                      double min_angle_radians,
                                      double forced_triangulation_distance,

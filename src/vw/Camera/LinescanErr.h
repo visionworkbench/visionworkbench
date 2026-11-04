@@ -24,7 +24,6 @@
 
 namespace vw {
 
-namespace camera {
 
   // Find the projection of a ground point into a linescan camera by 
   // employing the 2D to 2D Newton-Raphson method in a plane that is
@@ -49,6 +48,6 @@ public:
   
 }; // End class LinescanErr
 
-}} // end vw::camera
+} // end vw
 
 #endif // __CAMERA_LINESCAN_ERR_H__

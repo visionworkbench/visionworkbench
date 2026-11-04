@@ -35,7 +35,7 @@ namespace vw {
 
   // Intersect the ray back-projected from the camera with the datum.
   Vector3 datum_intersection(Datum const& datum,
-                             camera::CameraModel const* model,
+                             vw::CameraModel const* model,
                              Vector2 const& pix);
 
   // Return the intersection between the ray emanating from the
@@ -70,13 +70,13 @@ namespace vw {
   /// defined by georef. Scale is MPP as georeference space is in meters.
   /// - If coords is provided the intersection coordinates will be stored there.
   BBox2 camera_bbox(GeoReference const& georef,
-                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    boost::shared_ptr<vw::CameraModel> camera_model,
                     int32 cols, int32 rows, float &scale,
                     std::vector<Vector2> *coords=0);
 
   /// Overload with no scale return
   BBox2 camera_bbox(GeoReference const& dem_georef,
-                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    boost::shared_ptr<vw::CameraModel> camera_model,
                     int32 cols, int32 rows);
 
   /// Intersections that take into account DEM topography
@@ -93,7 +93,7 @@ namespace vw {
   BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                     GeoReference const& dem_georef,
                     GeoReference const& target_georef, // return box in this projection
-                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    boost::shared_ptr<vw::CameraModel> camera_model,
                     int32 cols, int32 rows, float &mean_gsd,
                     bool quick=false,
                     std::vector<Vector3> *coords = NULL,
@@ -103,7 +103,7 @@ namespace vw {
   BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                     GeoReference const& dem_georef,
                     GeoReference const& target_georef,
-                    boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                    boost::shared_ptr<vw::CameraModel> camera_model,
                     int32 cols, int32 rows);
 
 } // namespace vw

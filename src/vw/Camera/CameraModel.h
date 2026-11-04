@@ -33,7 +33,6 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
-namespace camera {
 
   /// This is the abstract base class for a camera model object.  You
   /// should create a child that adheres to the interface set forth
@@ -72,7 +71,7 @@ namespace camera {
     /// point appears in the image.  It is possible that the selected
     /// point will not be imaged by the camera (e.g. if it lies behind
     /// the camera).  In this case the method should vw_throw a
-    /// vw::camera::PointToPixelErr()
+    /// vw::PointToPixelErr()
     virtual Vector2 point_to_pixel (Vector3 const& point) const = 0;
 
     /// Returns a pointing vector from the camera center through the
@@ -240,9 +239,8 @@ namespace camera {
     return inverse(camera_pose).rotate(point - camera_position);
   }
 
-} // namespace camera
 
-  typedef boost::shared_ptr<camera::CameraModel> CamPtr; // this shows up a lot
+  typedef boost::shared_ptr<vw::CameraModel> CamPtr; // this shows up a lot
 } // namespace vw
 
 #endif // __VW_CAMERA_CAMERAMODEL_H__

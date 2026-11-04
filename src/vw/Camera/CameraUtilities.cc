@@ -26,7 +26,6 @@
 #include <vw/Math/Geometry.h>
 
 namespace vw {
-namespace camera {
 
 /// Find the camera model that best projects given xyz points into given pixels.
 /// If a positive camera weight is specified, use that as a constraint to not
@@ -84,21 +83,21 @@ public:
 }; // End class CameraSolveLMA
 
 /// Load a pinhole camera model of any supported type
-boost::shared_ptr<vw::camera::CameraModel>
+boost::shared_ptr<vw::CameraModel>
 load_pinhole_camera_model(std::string const& path) {
 
   std::string lcase_file = boost::to_lower_copy(path);
   if (boost::ends_with(lcase_file,".cahvore")) {
-    return boost::shared_ptr<vw::camera::CameraModel>(new vw::camera::CAHVOREModel(path));
+    return boost::shared_ptr<vw::CameraModel>(new vw::CAHVOREModel(path));
   } else if (boost::ends_with(lcase_file,".cahvor") ||
              boost::ends_with(lcase_file,".cmod")) {
-    return boost::shared_ptr<vw::camera::CameraModel>(new vw::camera::CAHVORModel(path));
+    return boost::shared_ptr<vw::CameraModel>(new vw::CAHVORModel(path));
   } else if (boost::ends_with(lcase_file,".cahv") ||
               boost::ends_with(lcase_file,".pin")) {
-    return boost::shared_ptr<vw::camera::CameraModel>(new vw::camera::CAHVModel(path));
+    return boost::shared_ptr<vw::CameraModel>(new vw::CAHVModel(path));
   } else if (boost::ends_with(lcase_file,".pinhole") ||
               boost::ends_with(lcase_file,".tsai")) {
-    return boost::shared_ptr<vw::camera::CameraModel>(new vw::camera::PinholeModel(path));
+    return boost::shared_ptr<vw::CameraModel>(new vw::PinholeModel(path));
   } else {
     vw::vw_throw(vw::ArgumentErr() << "PinholeStereoSession: unsupported camera file type.\n");
   }
@@ -106,7 +105,7 @@ load_pinhole_camera_model(std::string const& path) {
 
 
 /// Load a pinhole, CAHV, CAHVOR, or CAHVORE model and convert to CAHV.
-boost::shared_ptr<vw::camera::CAHVModel>
+boost::shared_ptr<vw::CAHVModel>
 load_cahv_pinhole_camera_model(std::string const& image_path,
                                std::string const& camera_path) {
   // Get the image size
@@ -116,24 +115,24 @@ load_cahv_pinhole_camera_model(std::string const& image_path,
   // Load the appropriate camera model object and if necessary
   // convert it to the CAHVModel type.
   std::string lcase_file = boost::to_lower_copy(camera_path);
-  boost::shared_ptr<vw::camera::CAHVModel> cahv(new vw::camera::CAHVModel);
+  boost::shared_ptr<vw::CAHVModel> cahv(new vw::CAHVModel);
   if (boost::ends_with(lcase_file, ".cahvore")) {
-    vw::camera::CAHVOREModel cahvore(camera_path);
-    *(cahv.get()) = vw::camera::linearize_camera(cahvore, image_size, image_size);
+    vw::CAHVOREModel cahvore(camera_path);
+    *(cahv.get()) = vw::linearize_camera(cahvore, image_size, image_size);
   } else if (boost::ends_with(lcase_file, ".cahvor")  ||
              boost::ends_with(lcase_file, ".cmod")) {
-    vw::camera::CAHVORModel cahvor(camera_path);
-    *(cahv.get()) = vw::camera::linearize_camera(cahvor, image_size, image_size);
+    vw::CAHVORModel cahvor(camera_path);
+    *(cahv.get()) = vw::linearize_camera(cahvor, image_size, image_size);
 
   } else if (boost::ends_with(lcase_file, ".cahv") ||
               boost::ends_with(lcase_file, ".pin")) {
-    *(cahv.get()) = vw::camera::CAHVModel(camera_path);
+    *(cahv.get()) = vw::CAHVModel(camera_path);
 
   } else if (boost::ends_with(lcase_file, ".pinhole") ||
               boost::ends_with(lcase_file, ".tsai")) {
     // The CAHV class is constructed from a Pinhole model.
-    vw::camera::PinholeModel left_pin(camera_path);
-    *(cahv.get()) = vw::camera::strip_lens_distortion(left_pin);
+    vw::PinholeModel left_pin(camera_path);
+    *(cahv.get()) = vw::strip_lens_distortion(left_pin);
 
   } else {
     vw_throw(vw::ArgumentErr() << "load_cahv_pinhole_camera_model - unsupported camera file type.\n");
@@ -268,7 +267,7 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
 // Apply a given rotation + translation + scale to a pinhole model. We
 // assume the model already has set its optical center, focal length,
 // etc.
-void apply_rot_trans_scale(vw::camera::PinholeModel & P, vw::Vector<double> const& C) {
+void apply_rot_trans_scale(vw::PinholeModel & P, vw::Vector<double> const& C) {
 
   if (C.size() != 7)
     vw_throw(LogicErr() << "Expecting a vector of size 7.\n");
@@ -290,7 +289,7 @@ class CameraSolveRotTransScale: public vw::math::LeastSquaresModelBase<CameraSol
 
   std::vector< std::vector<Vector3> > const& m_xyz;
   vw::Vector<double> const& m_pixel_vec; // for debugging
-  std::vector<vw::camera::PinholeModel> m_cameras;
+  std::vector<vw::PinholeModel> m_cameras;
 
 public:
 
@@ -301,7 +300,7 @@ public:
   /// Instantiate the solver with a set of xyz to pixel pairs and pinhole models
   CameraSolveRotTransScale(std::vector< std::vector<Vector3> > const& xyz,
           vw::Vector<double> const& pixel_vec,
-          std::vector<vw::camera::PinholeModel> const& cameras):
+          std::vector<vw::PinholeModel> const& cameras):
     m_xyz(xyz), m_pixel_vec(pixel_vec), m_cameras(cameras) {
 
     // Sanity check
@@ -314,7 +313,7 @@ public:
   inline result_type operator()(domain_type const& C, bool verbose = false) const {
 
     // Create the camera models
-    std::vector<vw::camera::PinholeModel> cameras = m_cameras; // make a copy local to this function
+    std::vector<vw::PinholeModel> cameras = m_cameras; // make a copy local to this function
     for (size_t it = 0; it < cameras.size(); it++)
       apply_rot_trans_scale(cameras[it], C); // update its parameters
 
@@ -365,8 +364,8 @@ public:
 // Given orig_cams individually scaled cameras in aux_cams, get the median scale
 // change from the first set to the second one. It is important to do the
 // median, since scaling the cameras individually is a bit of a shaky business.
-double find_median_scale_change(std::vector<vw::camera::PinholeModel> const & orig_cams,
-                std::vector<vw::camera::PinholeModel> const & aux_cams,
+double find_median_scale_change(std::vector<vw::PinholeModel> const & orig_cams,
+                std::vector<vw::PinholeModel> const & aux_cams,
                 std::vector< std::vector<vw::Vector3>> const& xyz) {
 
   int num_cams = orig_cams.size();
@@ -615,14 +614,14 @@ struct DistortionOptimizeFunctor:
   typedef Vector<double> domain_type;
   typedef Matrix<double> jacobian_type;
 
-  const camera::PinholeModel& m_cam;
+  const vw::PinholeModel& m_cam;
   const std::vector<Vector2>& m_undist_coords;
   double m_penalty_weight;
 
   /// Init the object with the pinhole model and the list of undistorted image coordinates.
   /// - The list of distorted image coordinates in a Vector<double> (packed alternating col, row)
   ///    must be passed to the solver function.
-  DistortionOptimizeFunctor(const camera::PinholeModel& cam,
+  DistortionOptimizeFunctor(const vw::PinholeModel& cam,
                             const std::vector<Vector2>& undist_coords,
                             double penalty_weight = 0.0):
     m_cam(cam), m_undist_coords(undist_coords), m_penalty_weight(penalty_weight) {}
@@ -956,7 +955,7 @@ void fit_camera_to_xyz(std::string const& camera_type,
   double scale;
   find_3D_transform(in, out, rotation, translation, scale);
   if (camera_type == "opticalbar")
-    ((vw::camera::OpticalBarModel*)out_cam.get())->apply_transform(rotation,
+    ((vw::OpticalBarModel*)out_cam.get())->apply_transform(rotation,
                                     translation, scale);
   else
     ((PinholeModel*)out_cam.get())->apply_transform(rotation, translation, scale);
@@ -991,13 +990,13 @@ void fit_camera_to_xyz(std::string const& camera_type,
     double camera_weight = 0; // if camera_weight > 0, need to add 3 zero values to pixel_vec
 
     if (camera_type == "opticalbar") {
-      CameraSolveLMA<vw::camera::OpticalBarModel>
-        lma_model(xyz_vec, *((vw::camera::OpticalBarModel*)out_cam.get()), camera_weight);
-      camera_to_vector(*((vw::camera::OpticalBarModel*)out_cam.get()), seed);
+      CameraSolveLMA<vw::OpticalBarModel>
+        lma_model(xyz_vec, *((vw::OpticalBarModel*)out_cam.get()), camera_weight);
+      camera_to_vector(*((vw::OpticalBarModel*)out_cam.get()), seed);
       final_params = math::levenberg_marquardt(lma_model, seed, pixel_vec,
                            status, abs_tolerance, rel_tolerance,
                            max_iterations);
-      vector_to_camera(*((vw::camera::OpticalBarModel*)out_cam.get()), final_params);
+      vector_to_camera(*((vw::OpticalBarModel*)out_cam.get()), final_params);
     } else {
       CameraSolveLMA<PinholeModel> lma_model(xyz_vec, *((PinholeModel*)out_cam.get()),
                                              camera_weight);
@@ -1026,4 +1025,4 @@ void fit_camera_to_xyz(std::string const& camera_type,
   } // End camera refinement case
 }
 
-}} // end namespace vw::camera
+} // end namespace vw

@@ -31,11 +31,9 @@
 
 namespace vw {
 
-namespace camera {
   class CameraModel;
-}
 
-typedef boost::shared_ptr<camera::CameraModel> CamPtr;
+typedef boost::shared_ptr<vw::CameraModel> CamPtr;
 
 class BathyStereoModel: public vw::stereo::StereoModel {
 public:
@@ -43,13 +41,13 @@ public:
   //------------------------------------------------------------------
   // Constructors / Destructors
   //------------------------------------------------------------------
-  BathyStereoModel(std::vector<const vw::camera::CameraModel *> const& cameras,
+  BathyStereoModel(std::vector<const vw::CameraModel *> const& cameras,
                     double angle_tol = 0.0):
     vw::stereo::StereoModel(cameras, angle_tol),
     m_bathy_correct(false) {}
 
-  BathyStereoModel(vw::camera::CameraModel const* camera_model1,
-                    vw::camera::CameraModel const* camera_model2,
+  BathyStereoModel(vw::CameraModel const* camera_model1,
+                    vw::CameraModel const* camera_model2,
                     double angle_tol = 0.0):
     vw::stereo::StereoModel(camera_model1, camera_model2, angle_tol),
     m_bathy_correct(false), m_single_bathy_plane(true) {}
