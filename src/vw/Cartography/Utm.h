@@ -20,7 +20,6 @@
 #define __VW_CARTOGRAPHY_UTM_H__
 
 namespace vw {
-namespace cartography {
 
 // Find the UTM zone. Must be called for the WGS84 datum,
 // with lat <= 84 && lat >= -80.
@@ -29,6 +28,6 @@ int getUTMZone(double latitude, double longitude);
 // Compare with https://www.geoplaner.com/
 void testUtm();
   
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_UTM_H__

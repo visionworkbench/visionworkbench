@@ -35,7 +35,6 @@
 #include <boost/algorithm/string.hpp>
 
 namespace vw {
-namespace cartography {
 
   // This is to ensure a given warning for a given file is printed only once.
   static std::set<std::string> pix_sign_warning, non_normal_georef_warning;
@@ -240,4 +239,4 @@ namespace cartography {
     non_normal_georef_warning.insert(filename);
   }
 
-}} // namespace vw::cartography
+} // namespace vw

@@ -34,7 +34,6 @@
 // TODO: We don't use this class for anything, why not??
 
 namespace vw {
-namespace cartography {
 
   /// This image view projects a camera image onto a given digital
   /// elevation model.
@@ -261,12 +260,11 @@ namespace cartography {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>(terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
 
-} // namespace cartography
 
   /// \cond INTERNAL
   // Type traits
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT, bool markNoProcessedData>
-  struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, markNoProcessedData> > : public IsFloatingPointIndexable<TerrainImageT> {};
+  struct IsFloatingPointIndexable< vw::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, markNoProcessedData> > : public IsFloatingPointIndexable<TerrainImageT> {};
   /// \endcond
 
 } // namespace vw

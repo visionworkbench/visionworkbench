@@ -75,7 +75,7 @@ be stored.
 namespace vw {
 
 Chipper::Chipper(PointBuffer& buffer, int blockSize, 
-                 bool have_georef, vw::cartography::GeoReference const& georef,
+                 bool have_georef, vw::GeoReference const& georef,
                  int num_out_cols, int num_out_rows,
                  vw::ImageView<vw::Vector3> & outImg)
   :m_inbuf(buffer), m_blockSize(blockSize),

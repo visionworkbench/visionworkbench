@@ -219,7 +219,7 @@ void do_work() {
   PixelT edge_extension_val = PixelT(0);
   
   bool has_georef = false;
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   vw_out() << "Writing: " << output_file_name << std::endl;
   TerminalProgressCallback tpc("vw", "");
 

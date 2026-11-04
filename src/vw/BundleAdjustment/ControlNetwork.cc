@@ -129,7 +129,7 @@ namespace ba {
   }
 
   void ControlNetwork::write_in_gcp_format(std::string const& filename,
-                                           cartography::Datum const& d) const {
+                                           vw::Datum const& d) const {
 
     const std::string UNSPECIFIED_DATUM = "unspecified_datum";
     if (d.name() == UNSPECIFIED_DATUM)

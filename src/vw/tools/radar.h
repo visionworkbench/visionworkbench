@@ -249,16 +249,16 @@ void preprocess_sentinel1_image(ImageT const& input_image, BBox2i const& roi,
   // Preprocess image and write it to disk.
   // - Perform median filter to correct speckles (see section 2.1.4)
   int kernel_size = 3;
-  cartography::block_write_gdal_image(temporary_path,
-                                      apply_mask(normalize(median_filter_view(sentinel1_dn_to_db(crop(input_image, roi)), 
-                                                                              Vector2i(kernel_size, kernel_size)
-                                                                             ),
+  vw::block_write_gdal_image(temporary_path,
+                             apply_mask(normalize(median_filter_view(sentinel1_dn_to_db(crop(input_image, roi)), 
+                                                                     Vector2i(kernel_size, kernel_size)
+                                                                    ),
                                                  global_min, global_max, PROC_MIN, PROC_MAX),
-                                                 nodata_value
-                                                ),
-                                      nodata_value,
-                                      write_options,
-                                      TerminalProgressCallback("vw", "\t--> Preprocessing:"));
+                                        nodata_value
+                                       ),
+                             nodata_value,
+                             write_options,
+                             TerminalProgressCallback("vw", "\t--> Preprocessing:"));
 
   // Return a view of the image on disk so it never gets recomputed.
   processed_image = create_mask(DiskImageView<RadarType>(temporary_path), nodata_value);
@@ -681,15 +681,15 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
  
   // Load the georeference from the input image
   // - The input image won't be georeferenced unless it goes through gdalwarp.
-  cartography::GeoReference georef;
-  bool have_georef = cartography::read_georeference(georef, input_image_path);
+  vw::GeoReference georef;
+  bool have_georef = vw::read_georeference(georef, input_image_path);
   if (!have_georef)
     vw_throw(ArgumentErr() << "Failed to read image georeference!");
   georef = crop(georef, roi); // Account for the input ROI
   if (debug)
     std::cout << "Read georeference: " << georef << std::endl;
   
-  double input_meters_per_pixel = cartography::get_image_meters_per_pixel(roi.width(), roi.height(), georef);
+  double input_meters_per_pixel = vw::get_image_meters_per_pixel(roi.width(), roi.height(), georef);
   std::cout << "Computed image pixel resolution in meters: " << input_meters_per_pixel << std::endl;
   
   // Read nodata value
@@ -816,7 +816,7 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
                                                                                      FLOOD_DETECT_LAND), 
                                                                  DEM_STATS_SUBSAMPLE_FACTOR)
                    );
-  cartography::GeoReference low_res_georef = resample(georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
+  vw::GeoReference low_res_georef = resample(georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
 
   // Compute mean radar value of pixels under initial water threshold
   // - This is also computed at a lower resolution to increase speed.
@@ -876,8 +876,8 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
     DiskImageView<float> dem(dem_path);
 
-    cartography::GeoReference dem_georef;
-    if (!cartography::read_georeference(dem_georef, dem_path))
+    vw::GeoReference dem_georef;
+    if (!vw::read_georeference(dem_georef, dem_path))
       vw_throw(ArgumentErr() << "Failed to read DEM georeference!");
 
     std::cout << "Input DEM file found, using it to complete the calculations.\n";
@@ -885,14 +885,14 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
     // Generate a low-resolution DEM masked by the initial flood detection
     // - This is used to compute image-wide statistics in a more reasonable amount of time
     ImageView<DemPixelType> low_res_dem = subsample(create_mask(dem, dem_nodata_value), DEM_STATS_SUBSAMPLE_FACTOR);
-    cartography::GeoReference low_res_dem_georef = resample(dem_georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
+    vw::GeoReference low_res_dem_georef = resample(dem_georef, 1.0/DEM_STATS_SUBSAMPLE_FACTOR);
 
     ImageViewRef<PixelMask<float> > low_res_dem_in_image_coords = 
-      cartography::geo_transform(low_res_dem, low_res_dem_georef, low_res_georef,
-                                 low_res_raw_water.cols(), low_res_raw_water.rows(), ConstantEdgeExtension());
+      vw::geo_transform(low_res_dem, low_res_dem_georef, low_res_georef,
+                        low_res_raw_water.cols(), low_res_raw_water.rows(), ConstantEdgeExtension());
     ImageViewRef<PixelMask<float> > dem_in_image_coords = 
-      cartography::geo_transform(create_mask(dem, dem_nodata_value), dem_georef, georef,
-                                 preprocessed_image.cols(), preprocessed_image.rows(), ConstantEdgeExtension());
+      vw::geo_transform(create_mask(dem, dem_nodata_value), dem_georef, georef,
+                        preprocessed_image.cols(), preprocessed_image.rows(), ConstantEdgeExtension());
 
     if (debug) {
       block_write_gdal_image("geotrans_dem.tif",
@@ -975,4 +975,3 @@ void sar_martinis(std::string const& input_image_path, std::string const& output
 
 }} // end namespace vw/radar
 #endif
-

@@ -95,7 +95,7 @@ typedef ImageViewRef<WorldView23PixelType> WorldView23Image;
 /// Loads an image from either Spot6 or Spot7 (they are the same format)
 void load_spot67_image(std::vector<std::string> const& input_paths,
                        Spot67Image & image,
-                       cartography::GeoReference &georef) {
+                       vw::GeoReference &georef) {
   
   std::string image_path = find_string_in_list(input_paths, ".tif");
   if (image_path.empty())
@@ -114,7 +114,7 @@ void load_spot67_image(std::vector<std::string> const& input_paths,
 /// Load a Worldview 2 or 3 multispectral image
 void load_worldview23_image(std::vector<std::string> const& input_paths,
                             WorldView23Image & image,
-                            cartography::GeoReference &georef) {
+                            vw::GeoReference &georef) {
 
   // Find the image file
   std::string image_path = find_string_in_list(input_paths, ".tif");
@@ -424,7 +424,7 @@ void detect_water_worldview23(std::vector<std::string> const& image_files,
 
   // Load the image and metadata
   WorldView23Image wv_image;
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   load_worldview23_image(image_files, wv_image, georef);
  
   WorldViewMetadataContainer metadata;
@@ -512,7 +512,7 @@ void detect_water_spot67(std::vector<std::string> const& image_files,
 
   // Load image, no useful metadata available.
   Spot67Image spot_image;
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   load_spot67_image(image_files, spot_image, georef);
 
   if (debug) {
@@ -554,4 +554,3 @@ void detect_water_spot67(std::vector<std::string> const& image_files,
 }} // end namespace vw::multispectral
 
 #endif
-

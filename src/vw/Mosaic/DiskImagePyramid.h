@@ -420,8 +420,8 @@ namespace vw { namespace mosaic {
         fs::create_directories(proxy_dir);
       } catch (...) {}
 
-      bool ok = cartography::build_overviews(base_file, factors, "AVERAGE",
-                                             proxy_dir);
+      bool ok = vw::build_overviews(base_file, factors, "AVERAGE",
+                                    proxy_dir);
       if (ok) {
         // Each coarser level reads the matching overview of the same file.
         for (size_t k = 0; k < factors.size(); k++) {

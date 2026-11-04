@@ -31,7 +31,7 @@
 
 #include <boost/shared_ptr.hpp>
 
-namespace vw { namespace cartography {
+namespace vw {
 
   // Intersect the ray back-projected from the camera with the datum.
   Vector3 datum_intersection(Datum const& datum,
@@ -106,7 +106,6 @@ namespace vw { namespace cartography {
                     boost::shared_ptr<vw::camera::CameraModel> camera_model,
                     int32 cols, int32 rows);
 
-} // namespace cartography
 } // namespace vw
 
 #endif // VW_HAVE_PKG_CAMERA

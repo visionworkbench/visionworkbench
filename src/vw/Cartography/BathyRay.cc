@@ -139,7 +139,7 @@ vw::Vector3 rasterPixelToStereographicPoint(BathyPlane const& bp,
 // interpret 1.0 as 1 degree (~111 km) and produce a bogus tangent.
 std::vector<double>
 fitLocalEcefPlaneToProjPlane(std::vector<double> const& plane,
-                             vw::cartography::GeoReference const& plane_proj,
+                             vw::GeoReference const& plane_proj,
                              vw::Vector3 const& proj_pt,
                              double offset_meters) {
 
@@ -269,7 +269,7 @@ bool refineLocalPlaneFromRaster(BathyPlane const& bp,
 bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
                             vw::Vector3 const& in_dir,
                             std::vector<double> const& plane,
-                            vw::cartography::GeoReference const& plane_proj,
+                            vw::GeoReference const& plane_proj,
                             double mean_height,
                             vw::Vector3 & intersect_ecef,
                             vw::Vector3 & intersect_proj_pt,
@@ -291,8 +291,8 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
 
   // Intersect the ray with the mean water surface, this will give us the
   // initial guess for intersecting with that surface.
-  intersect_ecef = vw::cartography::datum_intersection(major_radius, minor_radius,
-                                                       in_ecef, in_dir);
+  intersect_ecef = vw::datum_intersection(major_radius, minor_radius,
+                                          in_ecef, in_dir);
 
   // The fact that we trace a ray below in projected coordinates, even if very
   // close to the bathy plane and very short, can still introduce some small
@@ -344,7 +344,7 @@ bool rayBathyPlaneIntersect(vw::Vector3 const& in_ecef,
 // ECEF.
 bool curvedSnellLawAgainstPlane(vw::Vector3 const& in_ecef, vw::Vector3 const& in_dir,
                                 std::vector<double> const& plane,
-                                vw::cartography::GeoReference const& plane_proj,
+                                vw::GeoReference const& plane_proj,
                                 double refraction_index, double mean_height,
                                 vw::Vector3 & out_ecef, vw::Vector3 & out_dir) {
 
@@ -447,7 +447,7 @@ bool curvedSnellLaw(vw::Vector3 const& in_ecef,
 
 // Test Snell's law in projected and unprojected coordinates
 void testSnellLaw(std::vector<double> const& plane,
-                  vw::cartography::GeoReference const& plane_proj,
+                  vw::GeoReference const& plane_proj,
                   double refraction_index,
                   vw::Vector3 const& out_ecef,
                   vw::Vector3 const& in_ecef_dir, vw::Vector3 const& out_ecef_dir,

@@ -34,7 +34,6 @@ typedef struct pj_ctx PJ_CONTEXT;
 typedef struct PJconsts PJ;  
 
 namespace vw {
-namespace cartography {
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also
@@ -340,8 +339,8 @@ namespace cartography {
   // Update a georeference based on an srs string and/or datum.
   // This function is more likely to remember the datum name than set_wkt().
   void set_srs_string(std::string srs_string, bool have_user_datum,
-                      vw::cartography::Datum const& user_datum,
-                      vw::cartography::GeoReference & georef);
+                      vw::Datum const& user_datum,
+                      vw::GeoReference & georef);
 
   // Georeference I/O operations
 
@@ -382,6 +381,6 @@ namespace cartography {
   void sample_float_box(BBox2 const& box, std::vector<vw::Vector2> & points,
                         int num_steps = 100);
   
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__

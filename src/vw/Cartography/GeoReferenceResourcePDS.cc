@@ -29,7 +29,6 @@
 #include <boost/algorithm/string.hpp>
 
 namespace vw {
-namespace cartography {
 
   bool read_pds_georeference(GeoReference& georef, DiskImageResourcePDS const& resource) {
 
@@ -77,4 +76,4 @@ namespace cartography {
     return !failed;
   }
 
-}} // namespace vw::cartography
+} // namespace vw

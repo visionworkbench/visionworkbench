@@ -22,7 +22,6 @@
 /// \file Projection.h Multiple classes for geographic projections.
 
 namespace vw {
-namespace cartography {
 
   /// Abstract base class for geographic projections
   struct GeoProjection {
@@ -71,6 +70,6 @@ namespace cartography {
   };
 
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_PROJECTION_H__

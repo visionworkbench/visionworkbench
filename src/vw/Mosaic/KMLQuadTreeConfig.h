@@ -33,7 +33,7 @@ namespace mosaic {
 
   struct KMLQuadTreeConfigData;
 
-  cartography::GeoReference kml_output_georef(uint32 xresolution, uint32 yresolution = 0);
+  vw::GeoReference kml_output_georef(uint32 xresolution, uint32 yresolution = 0);
 
   class KMLQuadTreeConfig : public QuadTreeConfig {
   public:
@@ -62,7 +62,7 @@ namespace mosaic {
     // *after* calling configure() or your changes will be overwritten.
     void configure( QuadTreeGenerator& qtree ) const;
 
-    cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
+    vw::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 
   private:
     // The implementation is stored in a shared pointer so that it can

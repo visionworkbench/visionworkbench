@@ -43,7 +43,7 @@ namespace vw { namespace camera{
   class CameraModel; // forward declaration
 }}
 
-namespace vw { namespace cartography {
+namespace vw {
 
 class Map2CamTrans: public TransformBase<Map2CamTrans> {
 public:
@@ -126,6 +126,6 @@ public:
 // Make a copy of Map2CamTrans
 TransformPtr mapproj_trans_copy(TransformPtr trans);
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif//__VW_CARTOGRAPHY_MAP_TRANSFORM_H__

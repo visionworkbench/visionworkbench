@@ -25,7 +25,7 @@
 
 using vw::math::BresenhamLine;
 
-namespace vw { namespace cartography {
+namespace vw {
 
 Vector3 datum_intersection(Datum const& datum,
                            camera::CameraModel const* model,
@@ -37,7 +37,7 @@ Vector3 datum_intersection(Datum const& datum,
 // current camera pixel with the datum ellipsoid. The return value
 // is a map projected point location (the intermediate between
 // lon-lat-altitude and pixel).
-Vector2 geospatial_intersect(vw::cartography::GeoReference const& georef,
+Vector2 geospatial_intersect(vw::GeoReference const& georef,
                              Vector3 const& camera_ctr, Vector3 const& camera_vec,
                              bool& has_intersection) {
 
@@ -59,7 +59,7 @@ namespace detail {
   /// A class to help identify the extent of an image when
   /// projected onto a datum.
   class CameraDatumHelper {
-    vw::cartography::GeoReference const& m_georef; // alias
+    vw::GeoReference const& m_georef; // alias
     boost::shared_ptr<camera::CameraModel> m_camera;
     Vector2      m_last_intersect;
     std::vector<Vector2> *m_coords;
@@ -338,7 +338,7 @@ class RayDEMIntersectionLMA:
   // TODO(oalexan1): Must use nodata edge extension, not constant edge extension.
   // We don't want to extrapolate. Check if this changes results. It should not.
   InterpolationView<EdgeExtensionView<vw::ImageViewRef<vw::PixelMask<float>>, ConstantEdgeExtension>, BilinearInterpolation> m_interp_dem;
-  vw::cartography::GeoReference const& m_georef; // alias
+  vw::GeoReference const& m_georef; // alias
   Vector3      m_camera_ctr;
   Vector3      m_camera_vec;
   bool         m_treat_nodata_as_zero;
@@ -370,7 +370,7 @@ public:
 
   /// Constructor
   RayDEMIntersectionLMA(vw::ImageViewRef<vw::PixelMask<float>> const& dem_image,
-                        vw::cartography::GeoReference const& georef,
+                        vw::GeoReference const& georef,
                         Vector3 const& camera_ctr,
                         Vector3 const& camera_vec,
                         bool treat_nodata_as_zero):
@@ -565,10 +565,10 @@ bool traceRayToDemFromSeed(RayDEMIntersectionLMA & model,
 // Seed the trace from where the ray meets the datum, offset by a representative
 // DEM height. This is always near the surface, so it is a robust seed. Returns
 // Vector3() if the ray misses the datum.
-Vector3 datumSeedForRay(vw::cartography::GeoReference const& georef,
+Vector3 datumSeedForRay(vw::GeoReference const& georef,
                         double height_guess,
                         Vector3 const& camera_ctr, Vector3 const& camera_vec) {
-  return vw::cartography::datum_intersection
+  return vw::datum_intersection
     (georef.datum().semi_major_axis() + height_guess,
      georef.datum().semi_minor_axis() + height_guess,
      camera_ctr, camera_vec);
@@ -581,7 +581,7 @@ Vector3 datumSeedForRay(vw::cartography::GeoReference const& georef,
 // treat_nodata_as_zero is false or true.
 Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 vw::ImageViewRef<vw::PixelMask<float>> const& dem_image,
-                                vw::cartography::GeoReference const& georef,
+                                vw::GeoReference const& georef,
                                 bool treat_nodata_as_zero,
                                 bool & has_intersection,
                                 double height_error_tol,  // secant convergence
@@ -591,7 +591,7 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
   // Must estimate the height guess if not provided, as otherwise the results
   // can be inaccurate.
   if (std::isnan(height_guess))
-    height_guess = vw::cartography::demHeightGuess(dem_image);
+    height_guess = vw::demHeightGuess(dem_image);
 
   try {
     has_intersection = false;
@@ -636,7 +636,7 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
 }
 
 // Camera footprint on the datum.
-BBox2 camera_bbox(cartography::GeoReference const& georef,
+BBox2 camera_bbox(vw::GeoReference const& georef,
                   boost::shared_ptr<camera::CameraModel> camera_model,
                   int32 cols, int32 rows, float &scale,
                   std::vector<Vector2> *coords) {
@@ -734,7 +734,7 @@ void sampleDemBoundary(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
   dem_step = std::max(dem_step, 1);          // step amount must be > 0
 
   std::vector<Vector2> dem_pixels;
-  vw::cartography::detail::sample_points_on_dem(dem, dem_step, dem_pixels);
+  vw::detail::sample_points_on_dem(dem, dem_step, dem_pixels);
 
   // Project the sampled points into the camera
   for (size_t it = 0; it < dem_pixels.size(); it++) {
@@ -929,7 +929,7 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
                   int num_samples) {
   
   // An estimate of the DEM height above the datum
-  double height_guess = vw::cartography::demHeightGuess(dem);
+  double height_guess = vw::demHeightGuess(dem);
 
   // Testing to see if we should be centering on zero. The logic here is consistent
   // with point2dem.
@@ -994,4 +994,4 @@ BBox2 camera_bbox(vw::ImageViewRef<vw::PixelMask<float>> const& dem,
   return camera_bbox(dem, dem_georef, target_georef, camera_model, cols, rows, mean_gsd);
 }
 
-}} // end namespace vw::cartography
+} // namespace vw

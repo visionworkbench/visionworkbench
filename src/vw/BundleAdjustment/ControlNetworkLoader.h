@@ -75,7 +75,7 @@ namespace ba {
   /// Return the number of added control points.
   int add_ground_control_points(ControlNetwork& cnet,
                                  std::vector<std::string> const& gcp_files,
-                                 cartography::Datum const& datum,
+                                 vw::Datum const& datum,
                                  bool skip_datum_check = false);
 
   // Randomly thin the triangulated (tie) points and the ground control points

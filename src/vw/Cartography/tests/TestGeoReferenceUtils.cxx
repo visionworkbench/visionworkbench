@@ -25,7 +25,6 @@
 #include <iomanip>
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 
 TEST(GeoReferenceUtils, CropAndResample) {
@@ -77,7 +76,7 @@ TEST(GeoReferenceUtils, CropAndResample) {
 TEST( GeoReferenceUtils, gdal_write_checks ) {
 
   // Init a georef, the numbers are pretty arbitrary, it just must be valid
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   georef.set_geographic();
   georef.set_proj4_projection_str("+proj=longlat +a=3396190 +b=3396190 +no_defs ");
   georef.set_well_known_geogcs("D_MARS");
@@ -120,4 +119,3 @@ TEST( GeoReferenceUtils, haversine_distance) {
   EXPECT_NEAR(9.74744, d1/denom, 0.0001);
   EXPECT_NEAR(9.74744, d2/denom, 0.0001);
 }
-

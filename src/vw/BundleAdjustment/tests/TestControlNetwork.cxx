@@ -94,12 +94,12 @@ TEST( ControlNetwork, Construction ) {
   EXPECT_EQ(cnet.num_tie_points(),            cnet_csv.num_tie_points());
   EXPECT_EQ(cnet.num_ground_control_points(), cnet_csv.num_ground_control_points());
   
-  //EXPECT_NO_THROW(cnet_csv.write_in_gcp_format("cn_gcp_format.csv", cartography::Datum("WGS84")));
+  //EXPECT_NO_THROW(cnet_csv.write_in_gcp_format("cn_gcp_format.csv", vw::Datum("WGS84")));
   cnet_csv.add_image_name("image1.tif");
   cnet_csv.add_image_name("image2.tif");
   cnet_csv.add_image_name("image3.tif");
   cnet_csv.add_image_name("image4.tif");
-  cnet_csv.write_in_gcp_format("cn_gcp_format.csv", cartography::Datum("WGS84"));
+  cnet_csv.write_in_gcp_format("cn_gcp_format.csv", vw::Datum("WGS84"));
   
   
   // Check clearing

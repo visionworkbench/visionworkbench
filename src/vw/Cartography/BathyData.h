@@ -53,7 +53,7 @@ struct BathyPlane {
   // local stereographic projection. For raster input this is whatever
   // georef the input file carried (may be geographic lon/lat). Use it
   // for raster pixel lookups (pixel_to_point, point_to_pixel) only.
-  vw::cartography::GeoReference plane_proj;
+  vw::GeoReference plane_proj;
 
   // Always a local stereographic projection with meter-scale x, y axes.
   // Identical to plane_proj when plane_proj is stereographic (text
@@ -62,7 +62,7 @@ struct BathyPlane {
   // all downstream plane math (signedDistToPlane, rayPlaneIntersect,
   // Snell's law in proj coords, local-tangent fallback) can assume
   // meter-scale axes by construction.
-  vw::cartography::GeoReference stereographic_proj;
+  vw::GeoReference stereographic_proj;
 
   // Optional image of water-surface heights.
   vw::ImageView<vw::PixelMask<float>> water_surface;
@@ -91,7 +91,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 // by projecting it into the mask. Same pixel convention as areMasked(): nearest
 // pixel, a point outside the mask is land, an invalid pixel is water.
 bool isWaterInOrthoMask(ImageViewRef<PixelMask<float>> const& ortho_mask,
-                        cartography::GeoReference const& ortho_georef,
+                        vw::GeoReference const& ortho_georef,
                         Vector3 const& xyz);
 
 // Read a bathy mask. Water pixels are those with non-positive values or
@@ -125,11 +125,11 @@ void readBathyPlanes(std::string const& bathy_plane_files,
 // Project an ECEF point to local projection coordinates using the
 // projection's datum. Bathy code is the primary user; nothing here is
 // bathy-specific in implementation.
-vw::Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
+vw::Vector3 bathyProjPoint(vw::GeoReference const& projection,
                            vw::Vector3 const& xyz);
 
 // Inverse of bathyProjPoint: from local projection coordinates back to ECEF.
-vw::Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
+vw::Vector3 bathyUnprojPoint(vw::GeoReference const& projection,
                              vw::Vector3 const& proj_pt);
 
 // Signed distance from an ECEF point xyz to the water surface described

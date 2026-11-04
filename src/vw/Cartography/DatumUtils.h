@@ -25,8 +25,8 @@
 namespace vw {
 
 // This can catch user mistakes
-void checkDatumConsistency(vw::cartography::Datum const& datum1,
-                           vw::cartography::Datum const& datum2,
+void checkDatumConsistency(vw::Datum const& datum1,
+                           vw::Datum const& datum2,
                            bool warn_only);
 
 } // namespace vw

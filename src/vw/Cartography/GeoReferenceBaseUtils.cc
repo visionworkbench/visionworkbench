@@ -23,7 +23,6 @@
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
-namespace cartography {
 
 // Convert from projected coordinates to ECEF
 vw::Vector3 projToEcef(GeoReference const& georef,
@@ -45,7 +44,7 @@ vw::Vector3 ecefToProj(GeoReference const& georef,
 // and the georeference, and will return a PixelMasked image, the nodata
 // value, and the georeference.
 void readGeorefImage(std::string const& image_file, 
-  float & nodata_val, vw::cartography::GeoReference & georef,
+  float & nodata_val, vw::GeoReference & georef,
   vw::ImageViewRef<vw::PixelMask<float>> & masked_image) {
 
   // Initial value, in case the image has no nodata field
@@ -61,7 +60,7 @@ void readGeorefImage(std::string const& image_file,
   masked_image = vw::create_mask(image, nodata_val);
 
   // Read the georeference, and throw an exception if it is missing
-  bool has_georef = vw::cartography::read_georeference(georef, image_file);
+  bool has_georef = vw::read_georeference(georef, image_file);
   if (!has_georef)
     vw::vw_throw(vw::ArgumentErr() << "Missing georeference in: "
                                     << image_file << ".\n");
@@ -71,7 +70,7 @@ void readGeorefImage(std::string const& image_file,
 // pixel value in the image. If the point is outside the image, return
 // an invalid pixel.
 vw::PixelMask<float> closestPixelVal(vw::ImageViewRef<vw::PixelMask<float>> const& image,
-                                     vw::cartography::GeoReference const& georef,
+                                     vw::GeoReference const& georef,
                                      vw::Vector3 const& ecef) {
 
   // Convert the point to lon-lat-height
@@ -91,4 +90,4 @@ vw::PixelMask<float> closestPixelVal(vw::ImageViewRef<vw::PixelMask<float>> cons
   return image(col, row);  
 }
 
-}} // vw::cartography
+} // namespace vw

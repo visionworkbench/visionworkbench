@@ -32,7 +32,6 @@
 /// It is a wrapper around the GDAL OGRSpatialReference class.
 
 namespace vw {
-namespace cartography {
 
   /// A geodetic datum, i.e. a reference ellipsoid coordinate system
   /// for a planetary body.
@@ -152,6 +151,6 @@ namespace cartography {
   vw::Vector3 datum_intersection( Datum const& datum,
                               vw::Vector3 camera_ctr, vw::Vector3 camera_vec );
   
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_DATUM_H__

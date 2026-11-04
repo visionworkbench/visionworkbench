@@ -311,7 +311,7 @@ namespace ba {
 
     // Write to a csv file in the same format used for ground control points.
     void write_in_gcp_format(std::string const& filename,
-                             cartography::Datum const& d) const;
+                             vw::Datum const& d) const;
 
   }; // End class ControlNetwork
 

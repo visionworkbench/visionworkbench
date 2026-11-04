@@ -327,7 +327,7 @@ void load_landsat_metadata(std::vector<std::string> const& image_files,
 
 /// Loads the georeference for a Landsat file
 void load_landsat_georef(std::vector<std::string> const& image_files,
-                         cartography::GeoReference &georef) {
+                         vw::GeoReference &georef) {
 
   /// Each channel should contain the same georeference so
   ///  we probably won't need to run more iterations of this loop.
@@ -529,7 +529,7 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
   LandsatImage ls_image;
   load_landsat_image(ls_image, image_files, landsat_type);
 
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   load_landsat_georef(image_files, georef);
 
   
@@ -594,4 +594,3 @@ void detect_water(std::vector<std::string> const& image_files, std::string const
 }} // end namespace vw::landsat
 
 #endif
-

@@ -25,7 +25,6 @@
 #include <vw/Cartography/GeoReferenceUtils.h>
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 
 

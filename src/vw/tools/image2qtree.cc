@@ -54,7 +54,6 @@ namespace po = boost::program_options;
 
 using namespace vw;
 using namespace vw::math;
-using namespace vw::cartography;
 using namespace vw::mosaic;
 using std::string;
 using vw::tools::Usage;

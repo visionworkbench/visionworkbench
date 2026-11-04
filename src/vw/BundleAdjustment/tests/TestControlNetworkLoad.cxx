@@ -81,7 +81,7 @@ TEST( GCPLoad, LoadingGCP ) {
 
   ControlNetwork cnet("testing");
   std::vector<std::string> gcp_files;
-  cartography::Datum datum;
+  vw::Datum datum;
 
   cnet.add_image_name("170lo.tif");
   cnet.add_image_name("171lo.tif");
@@ -93,4 +93,3 @@ TEST( GCPLoad, LoadingGCP ) {
   vw::ba::add_ground_control_points(cnet, gcp_files, datum);
   EXPECT_EQ(27, cnet.size());
 }
-

@@ -314,13 +314,13 @@ void readField(OGRFeature *poFeature,
 void read_shapefile(std::string const& file,
                     std::string const& poly_color,
                     bool & has_geo,
-                    vw::cartography::GeoReference & geo,
+                    vw::GeoReference & geo,
                     std::vector<vw::geometry::dPoly> & polyVec,
                     std::string const& fieldName) {
 
   // Make sure the outputs are initialized
   has_geo = false;
-  geo = vw::cartography::GeoReference();
+  geo = vw::GeoReference();
   polyVec.clear();
 
   std::string layer_str = boost::filesystem::path(file).stem().string();
@@ -373,7 +373,7 @@ void read_shapefile(std::string const& file,
   // that the map from projected coordinates to pixel coordinates (point_to_pixel())
   // to be the identity.
   if (has_geo)
-    geo.set_pixel_interpretation(vw::cartography::GeoReference::PixelAsPoint);
+    geo.set_pixel_interpretation(vw::GeoReference::PixelAsPoint);
 
   OGRFeature *poFeature = NULL;
   poLayer->ResetReading();
@@ -397,7 +397,7 @@ void read_shapefile(std::string const& file,
 // will be displayed in QGIS at the centroid of each polygon. In the latter 
 // case have to also write a QML file.
 void write_shapefile(std::string const& shapeFile,
-                     bool has_geo, vw::cartography::GeoReference const& geo,
+                     bool has_geo, vw::GeoReference const& geo,
                      std::vector<vw::geometry::dPoly> const& polyVec,
                      std::string const& fieldName,
                      std::vector<int> const& fieldValues) {
@@ -545,7 +545,7 @@ void write_shapefile(std::string const& shapeFile,
 // Write a single dPoly to a shapefile (this can still have multiple polygons)
 void write_shapefile(std::string const& file,
                      bool has_geo,
-                     vw::cartography::GeoReference const& geo,
+                     vw::GeoReference const& geo,
                      vw::geometry::dPoly const& poly) {
 
   std::vector<vw::geometry::dPoly> polyVec;

@@ -30,10 +30,9 @@
 #pragma GCC diagnostic pop
 
 /// \file GeoReferenceResourceGDAL.h
-/// Functions to read/write a \ref vw::cartography::GeoReference from GDAL.
+/// Functions to read/write a \ref vw::GeoReference from GDAL.
 
 namespace vw {
-namespace cartography {
 
   bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
   void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
@@ -54,6 +53,6 @@ namespace cartography {
   // a file that may trigger this warning.
   void silence_warning_for_non_normal_georef(std::string const& filename);
    
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_GEOREFERENCEHELPERGDAL_H__

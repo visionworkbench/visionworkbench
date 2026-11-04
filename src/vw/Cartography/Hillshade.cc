@@ -42,7 +42,6 @@
 /// \file Hillshade.cc. Hillshade images with georeference.
 
 namespace vw {
-namespace cartography {
 
   /// Do the hillshade work.
   void do_hillshade(std::string const& input_file_name,
@@ -52,8 +51,8 @@ namespace cartography {
                     bool align_to_georef,
                     vw::GdalWriteOptions const& opt) {
 
-    cartography::GeoReference georef;
-    bool has_georef = cartography::read_georeference(georef, input_file_name);
+    vw::GeoReference georef;
+    bool has_georef = vw::read_georeference(georef, input_file_name);
     if (!has_georef)
       vw_throw(ArgumentErr() << "Input image must be georeferenced!");
 
@@ -129,9 +128,9 @@ namespace cartography {
     vw_out() << "Writing shaded relief image: " << output_file_name << "\n";
     bool has_nodata = false;
     double nodata_val = std::numeric_limits<double>::quiet_NaN();
-    vw::cartography::block_write_gdal_image(output_file_name, shaded_image,
-                                            has_georef, georef, has_nodata, nodata_val, opt,
-                                            TerminalProgressCallback("hillshade", "Writing:"));
+    vw::block_write_gdal_image(output_file_name, shaded_image,
+                               has_georef, georef, has_nodata, nodata_val, opt,
+                               TerminalProgressCallback("hillshade", "Writing:"));
   } // End function do_hillshade()
 
   /// Entry point. Always reads as float, which handles all input types.
@@ -145,5 +144,4 @@ namespace cartography {
                  nodata_value, blur_sigma, align_to_georef, opt);
   }
 
-}} // namespace vw::cartography
-
+} // namespace vw

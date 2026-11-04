@@ -22,12 +22,12 @@
 #include <cpl_string.h>
 #include <iostream>
 
-vw::cartography::Datum::Datum(std::string const& name,
-                              std::string const& spheroid_name,
-                              std::string const& meridian_name,
-                              double semi_major_axis,
-                              double semi_minor_axis,
-                              double meridian_offset):
+vw::Datum::Datum(std::string const& name,
+                 std::string const& spheroid_name,
+                 std::string const& meridian_name,
+                 double semi_major_axis,
+                 double semi_minor_axis,
+                 double meridian_offset):
     m_name(name),
     m_spheroid_name(spheroid_name),
     m_meridian_name(meridian_name),
@@ -53,7 +53,7 @@ vw::cartography::Datum::Datum(std::string const& name,
 }
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
-void vw::cartography::Datum::set_datum_from_spatial_ref(
+void vw::Datum::set_datum_from_spatial_ref(
   OGRSpatialReference const& gdal_spatial_ref) {
 
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
@@ -87,7 +87,7 @@ void vw::cartography::Datum::set_datum_from_spatial_ref(
 }
 
 // Set the datum using a WKT string
-void vw::cartography::Datum::set_wkt(std::string const& wkt) {
+void vw::Datum::set_wkt(std::string const& wkt) {
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.importFromWkt(&wkt[0]) != OGRERR_NONE)
     vw_throw( ArgumentErr() << "Failed to parse: \"" << wkt << "\"." );
@@ -97,7 +97,7 @@ void vw::cartography::Datum::set_wkt(std::string const& wkt) {
 
 // Set the datum using a Proj.4 string. It is preferred to set the datum
 // using a WKT.
-void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str) {
+void vw::Datum::set_datum_from_proj_str(std::string const& proj_str) {
 
   OGRSpatialReference gdal_spatial_ref;
   if (gdal_spatial_ref.importFromProj4(proj_str.c_str()) != OGRERR_NONE)
@@ -106,7 +106,7 @@ void vw::cartography::Datum::set_datum_from_proj_str(std::string const& proj_str
   set_datum_from_spatial_ref(gdal_spatial_ref);
 }
 
-void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
+void vw::Datum::set_well_known_datum(std::string const& name) {
   // Ensure proper initialization. Meridian name and axes will be over-written
   // for non-Earth datums. 
   m_meridian_name   = "Greenwich";
@@ -183,13 +183,13 @@ void vw::cartography::Datum::set_well_known_datum(std::string const& name) {
   vw::vw_throw( vw::InputErr() << "Unknown datum: " << name << ".");
 }
 
-void vw::cartography::Datum::set_semi_major_axis(double val) {
+void vw::Datum::set_semi_major_axis(double val) {
   *this = Datum(m_name, m_spheroid_name, m_meridian_name, 
                 val, // update the semi-major axis
                 m_semi_minor_axis, m_meridian_offset);
 }
 
-void vw::cartography::Datum::set_semi_minor_axis(double val) {
+void vw::Datum::set_semi_minor_axis(double val) {
   *this = Datum(m_name, m_spheroid_name, m_meridian_name, 
                 m_semi_major_axis,
                 val, // update the semi-minor axis 
@@ -197,7 +197,7 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
 }
 
 // return meridian radius of curvature.  NOT geocentric radius
-double vw::cartography::Datum::radius(double /*lon*/, double lat) const {
+double vw::Datum::radius(double /*lon*/, double lat) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;
@@ -212,7 +212,7 @@ double vw::cartography::Datum::radius(double /*lon*/, double lat) const {
   return sqrt(x*x + y*y);
 }
 
-double vw::cartography::Datum::geocentric_latitude(double lat) const {
+double vw::Datum::geocentric_latitude(double lat) const {
    // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;
@@ -228,7 +228,7 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
   return atan((1-e2)*tan(lat * M_PI / 180.0));
 }
 
-double vw::cartography::Datum::radius_of_curvature(double /*lon*/, double lat) const {
+double vw::Datum::radius_of_curvature(double /*lon*/, double lat) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;
@@ -245,7 +245,7 @@ double vw::cartography::Datum::radius_of_curvature(double /*lon*/, double lat) c
 }
 
 // return meridian radius of curvature.  NOT geocentric radius
-double vw::cartography::Datum::geocentric_radius(double /*lon*/, double lat, double alt) const {
+double vw::Datum::geocentric_radius(double /*lon*/, double lat, double alt) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis + alt;
@@ -263,7 +263,7 @@ double vw::cartography::Datum::geocentric_radius(double /*lon*/, double lat, dou
   return sqrt(Rn*Rn*(clat*clat + (1-e2)*(1-e2)*slat*slat));
 }
 
-double vw::cartography::Datum::inverse_flattening() const {
+double vw::Datum::inverse_flattening() const {
   if (m_semi_major_axis == m_semi_minor_axis)
     return 0;
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
@@ -271,7 +271,7 @@ double vw::cartography::Datum::inverse_flattening() const {
 
 // NED to ECEF transform. This takes into account that the planet is an
 // ellipsoid and the curent elevation above it. 
-vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector3 const& llh) const {
+vw::Matrix3x3 vw::Datum::lonlat_to_ned_matrix(vw::Vector3 const& llh) const {
   
   double lon = llh.x();
   double lat = llh.y();
@@ -348,7 +348,7 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix(vw::Vector3 const& ll
   return R;
 }
 
-vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
+vw::Vector3 vw::Datum::geodetic_to_cartesian(vw::Vector3 const& llh) const {
 
   double a  = m_semi_major_axis;
   double b  = m_semi_minor_axis;
@@ -379,7 +379,7 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian(vw::Vector3 const& llh
 //
 // This is an improvement over the 1988/Proj4's implementation as it's
 // a smidgen faster and it still works near the center of the datum.
-vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xyz ) const {
+vw::Vector3 vw::Datum::cartesian_to_geodetic( vw::Vector3 const& xyz ) const {
   const double a2 = m_semi_major_axis * m_semi_major_axis;
   const double b2 = m_semi_minor_axis * m_semi_minor_axis;
   const double e2 = 1 - b2 / a2;
@@ -449,7 +449,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
 }
 
 // Get the wkt string from the datum.
-std::string vw::cartography::Datum::get_wkt() const {
+std::string vw::Datum::get_wkt() const {
   char *wkt;
   m_ogr_datum.exportToWkt(&wkt);
   std::string result(wkt);
@@ -466,7 +466,7 @@ std::vector<std::string> const datum_keys = {"Geodetic Datum --> Name: ",
                                              "Proj4 Str: "};
 
 
-std::ostream& vw::cartography::operator<<(std::ostream& os, vw::cartography::Datum const& datum) {
+std::ostream& vw::operator<<(std::ostream& os, vw::Datum const& datum) {
   std::ostringstream oss; // To use custom precision
   oss.precision(17);
   // Note how the key words below are used in read_datum_from_str() to read back the datum
@@ -485,8 +485,8 @@ std::ostream& vw::cartography::operator<<(std::ostream& os, vw::cartography::Dat
 
 // A function which reads a datum from a string. It reverses
 // what operator<< does.
-bool vw::cartography::read_datum_from_str(std::string const& str, 
-                                          vw::cartography::Datum & datum) {
+bool vw::read_datum_from_str(std::string const& str, 
+                             vw::Datum & datum) {
 
   size_t prev_pos = 0, curr_pos = 0; // these will go forward
   std::vector<std::string> vals;
@@ -521,19 +521,19 @@ bool vw::cartography::read_datum_from_str(std::string const& str,
     prev_pos = curr_pos;
   }
 
-  datum = vw::cartography::Datum(vals[0], // name
-                                 vals[1], // spheroid name
-                                 vals[4], // meridian name
-                                 atof(vals[2].c_str()), // semi-major axis
-                                 atof(vals[3].c_str()), // semi-minor axis
-                                 atof(vals[5].c_str())); // meridian offset
+  datum = vw::Datum(vals[0], // name
+                    vals[1], // spheroid name
+                    vals[4], // meridian name
+                    atof(vals[2].c_str()), // semi-major axis
+                    atof(vals[3].c_str()), // semi-minor axis
+                    atof(vals[5].c_str())); // meridian offset
 
   return true;
 }
 
 vw::Vector3
-vw::cartography::datum_intersection(double semi_major_axis, double semi_minor_axis,
-                                    vw::Vector3 camera_ctr, vw::Vector3 camera_vec) {
+vw::datum_intersection(double semi_major_axis, double semi_minor_axis,
+                       vw::Vector3 camera_ctr, vw::Vector3 camera_vec) {
 
   // The datum is a spheroid. To simplify the calculations, scale
   // everything in such a way that the spheroid becomes a
@@ -558,9 +558,9 @@ vw::cartography::datum_intersection(double semi_major_axis, double semi_minor_ax
 }
 
 // Intersect the ray back-projected from the camera with the datum.
-vw::Vector3 vw::cartography::datum_intersection(vw::cartography::Datum const& datum,
-                                                vw::Vector3 camera_ctr, 
-                                                vw::Vector3 camera_vec) {
-  return vw::cartography::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
-                                             camera_ctr, camera_vec);
+vw::Vector3 vw::datum_intersection(vw::Datum const& datum,
+                                   vw::Vector3 camera_ctr, 
+                                   vw::Vector3 camera_vec) {
+  return vw::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
+                                camera_ctr, camera_vec);
 }

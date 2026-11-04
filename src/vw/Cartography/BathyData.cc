@@ -180,7 +180,7 @@ bool areMasked(ImageViewRef<PixelMask<float>> const& left_mask,
 
 // Check if an ECEF point is over water in a single georeferenced (ortho) mask.
 bool isWaterInOrthoMask(ImageViewRef<PixelMask<float>> const& ortho_mask,
-                        cartography::GeoReference const& ortho_georef,
+                        vw::GeoReference const& ortho_georef,
                         Vector3 const& xyz) {
 
   Vector3 llh = ortho_georef.datum().cartesian_to_geodetic(xyz);
@@ -196,13 +196,13 @@ bool isWaterInOrthoMask(ImageViewRef<PixelMask<float>> const& ortho_mask,
 }
 
 // Compute the projected coordinates of an ECEF point.
-Vector3 bathyProjPoint(vw::cartography::GeoReference const& projection,
+Vector3 bathyProjPoint(vw::GeoReference const& projection,
                        Vector3 const& xyz) {
   return projection.geodetic_to_point(projection.datum().cartesian_to_geodetic(xyz));
 }
 
 // Reverse this operation.
-Vector3 bathyUnprojPoint(vw::cartography::GeoReference const& projection,
+Vector3 bathyUnprojPoint(vw::GeoReference const& projection,
                          Vector3 const& proj_pt) {
   return projection.datum().geodetic_to_cartesian(projection.point_to_geodetic(proj_pt));
 }
@@ -262,7 +262,7 @@ void signedDistToPlanes(std::vector<BathyPlane> const& bathy_plane_vec,
 // on line 1, comment on line 2, projection center lat/lon on line 3.
 void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp) {
   std::vector<double> & bathy_plane = bp.bathy_plane;
-  vw::cartography::GeoReference & plane_proj = bp.plane_proj;
+  vw::GeoReference & plane_proj = bp.plane_proj;
 
   std::ifstream handle;
   handle.open(bathy_plane_file.c_str());
@@ -303,7 +303,7 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
     if (!(iss >> proj_lat >> proj_lon))
       vw_throw(vw::IOErr() << "Could not read the projection latitude and longitude.\n");
   }
-  vw::cartography::Datum datum("WGS_1984");
+  vw::Datum datum("WGS_1984");
   plane_proj.set_datum(datum);
   plane_proj.set_stereographic(proj_lat, proj_lon, scale);
 
@@ -335,7 +335,7 @@ void readBathyPlaneFromText(std::string const& bathy_plane_file, BathyPlane & bp
 void readBathyPlaneFromRaster(std::string const& bathy_plane_file,
                               BathyPlane & bp) {
   std::vector<double> & bathy_plane = bp.bathy_plane;
-  vw::cartography::GeoReference & plane_proj = bp.plane_proj;
+  vw::GeoReference & plane_proj = bp.plane_proj;
 
   // Read the water-surface raster as a lazy masked view. The file nodata is
   // masked so the anti-aliased downsampling below averages only valid pixels.
@@ -472,7 +472,7 @@ void readBathyPlane(std::string const& bathy_plane_file, BathyPlane & bp) {
 
   bool is_raster = false;
   try {
-    is_raster = vw::cartography::read_georeference(bp.plane_proj, bathy_plane_file);
+    is_raster = vw::read_georeference(bp.plane_proj, bathy_plane_file);
   } catch (...) {
     is_raster = false;
   }

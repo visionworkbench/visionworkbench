@@ -23,7 +23,7 @@
 #include <vw/Image/ImageChannels.h>
 #include <vw/Camera/CameraModel.h>
 
-namespace vw { namespace cartography {
+namespace vw {
 
   // This transform is not thread-safe, unless caching is turned off. Use
   // mapproj_trans_copy() to make a copy. See that function for more details.
@@ -55,7 +55,7 @@ namespace vw { namespace cartography {
 
     // An estimate of the DEM height can help the reliability of intersecting
     // a ray with the DEM.
-    m_height_guess = vw::cartography::demHeightGuess(m_masked_dem);
+    m_height_guess = vw::demHeightGuess(m_masked_dem);
 
     // Set up interpolation interface to the data we loaded into memory. The
     // nearest neighbor logic is useful when mapprojecting a mask.
@@ -161,7 +161,7 @@ namespace vw { namespace cartography {
     bool has_intersection = false;
 
     vw::Vector3 prev_xyz(0, 0, 0); // do not have an initial guess
-    vw::Vector3 xyz = vw::cartography::camera_pixel_to_dem_xyz
+    vw::Vector3 xyz = vw::camera_pixel_to_dem_xyz
        (m_cam->camera_center(p), m_cam->pixel_to_vector(p), m_masked_dem,
         m_dem_georef, treat_nodata_as_zero, has_intersection,
         height_error_tol, prev_xyz, m_height_guess);
@@ -348,4 +348,4 @@ namespace vw { namespace cartography {
     return out_box;
   }
 
-}} // namespace vw::cartography
+} // namespace vw

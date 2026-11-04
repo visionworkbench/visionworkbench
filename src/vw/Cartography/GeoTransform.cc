@@ -28,7 +28,6 @@
 #include <proj.h>
 
 namespace vw {
-namespace cartography {
 
   // Wipe the +proj and other entries from a projection before appending a new one,
   // as otherwise PROJ gets confused. Must make sure to keep the radius.
@@ -480,5 +479,4 @@ namespace cartography {
       }
     }
   }
-}} // namespace vw::cartography
-
+} // namespace vw

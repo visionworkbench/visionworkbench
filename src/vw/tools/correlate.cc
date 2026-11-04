@@ -265,11 +265,11 @@ int main( int argc, char *argv[] ) {
     vw::GdalWriteOptions geo_opt;
     geo_opt.raster_tile_size = Vector2i(1024, 1024);
     if (stereo_algorithm == VW_CORRELATION_BM) {
-      vw::cartography::block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
+      vw::block_write_gdal_image("disparity.tif", disparity_map, geo_opt);
     }
     else { // SGM/MGM needs to be rasterized in a single tile.
       ImageView<PixelMask<Vector2f> > result = disparity_map;
-      vw::cartography::block_write_gdal_image("disparity.tif", result, geo_opt);
+      vw::block_write_gdal_image("disparity.tif", result, geo_opt);
     }
   }
 

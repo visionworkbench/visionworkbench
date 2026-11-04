@@ -28,7 +28,6 @@
 /// Very small standalone utilities for working with georeferences and images
 
 namespace vw {
-namespace cartography {
 
 vw::Vector3 projToEcef(GeoReference const& georef, vw::Vector3 const& proj);
 vw::Vector3 ecefToProj(GeoReference const& georef, vw::Vector3 const& ecef);
@@ -37,16 +36,16 @@ vw::Vector3 ecefToProj(GeoReference const& georef, vw::Vector3 const& ecef);
 // and the georeference, and will return a PixelMasked image, the nodata
 // value, and the georeference.
 void readGeorefImage(std::string const& image_file, 
-  float & nodata_val, vw::cartography::GeoReference & georef,
+  float & nodata_val, vw::GeoReference & georef,
   vw::ImageViewRef<vw::PixelMask<float>> & masked_image);
 
 // Given a georeferenced image and a point in ECEF, return the closest
 // pixel value in the image. If the point is outside the image, return
 // an invalid pixel.
 vw::PixelMask<float> closestPixelVal(vw::ImageViewRef<vw::PixelMask<float>> const& image,
-                                     vw::cartography::GeoReference const& georef,
+                                     vw::GeoReference const& georef,
                                      vw::Vector3 const& ecef);
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_GEOREFERENCE_BASE_UTILS_H__

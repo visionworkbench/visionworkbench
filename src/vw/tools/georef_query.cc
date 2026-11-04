@@ -94,7 +94,7 @@ int main( int argc, char *argv[] )
 
 
   // Load the input DEM georeference
-  cartography::GeoReference georef; 
+  vw::GeoReference georef; 
   boost::scoped_ptr<DiskImageResource> inputImage(DiskImageResource::open(inputImagePath));
   if (!read_georeference(georef, *inputImage)) {
     //vw_out() << "Failed to read input image!\n";
@@ -188,11 +188,3 @@ int main( int argc, char *argv[] )
 
   return 0;
 }
-
-
-
-
-
-
-
-

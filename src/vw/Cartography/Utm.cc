@@ -23,7 +23,6 @@
 #include <cmath>
 
 namespace vw {
-namespace cartography {
 
 // Auxiliary function, it does not give the final zone
 int getLongitudeZone(double longitude) {
@@ -120,4 +119,4 @@ void testUtm() {
     << " got: " << getUTMZone(lat, lon) << "\n";
 } 
 
-}} // end namespace vw::cartography
+} // namespace vw

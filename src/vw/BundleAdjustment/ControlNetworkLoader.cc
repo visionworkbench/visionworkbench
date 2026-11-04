@@ -655,7 +655,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 }
 
 // A little function to parse the WKT
-bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
+bool parseDatum(std::string const& wkt, vw::Datum & datum) {
 
   std::string buff, val;
   std::istringstream is(wkt);
@@ -678,7 +678,7 @@ bool parseDatum(std::string const& wkt, vw::cartography::Datum & datum) {
 
 int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
                                       std::vector<std::string> const& gcp_files,
-                                      cartography::Datum const& datum,
+                                      vw::Datum const& datum,
                                       bool skip_datum_check) {
 
   namespace fs = boost::filesystem;
@@ -686,7 +686,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
   std::vector<std::string> const& image_files = cnet.get_image_list();
 
   // Initalize this as the datum passed from outside. 
-  vw::cartography::Datum local_datum = datum;
+  vw::Datum local_datum = datum;
 
   // Creating a version of image_files that doesn't contain the path.
   typedef std::map<std::string,size_t> LookupType;
@@ -721,7 +721,7 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
       if (line.size() > 0 && line[0] == '#' && line.find("WKT:") != std::string::npos &&
           count == 0) {
         count++; // for next time
-        cartography::Datum gcp_datum;
+        vw::Datum gcp_datum;
         if (!parseDatum(line, gcp_datum))
           continue;
 

@@ -149,7 +149,7 @@ void load_modis_image(ModisImage &image, std::vector<std::string> const& image_f
 
 /// Loads the georeference for a MODIS file
 void load_modis_georef(std::vector<std::string> const& image_files,
-                       cartography::GeoReference &georef) {
+                       vw::GeoReference &georef) {
 
   size_t num_images = image_files.size();
   for (size_t i=0; i<num_images; ++i) {
@@ -161,7 +161,7 @@ void load_modis_georef(std::vector<std::string> const& image_files,
 
     // Scale the georef of lower resolution channels    
     double scale = get_modis_file_scale_factor(path);
-    georef = cartography::resample(georef, scale);
+    georef = vw::resample(georef, scale);
       
     return;
   }
@@ -463,4 +463,3 @@ def apply_dem(domain, water_fraction, speckleFilter=False):
 */
 
 #endif
-

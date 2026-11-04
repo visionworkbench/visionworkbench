@@ -30,7 +30,7 @@
 #include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
 
-using vw::cartography::GeoReference;
+using vw::GeoReference;
 
 namespace vw {
 

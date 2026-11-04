@@ -23,8 +23,8 @@ namespace vw {
 
 // This can catch user mistakes. If warn_only is false, and the error is huge,
 // this will throw an exception. Otherwise it will print a warning.
-void checkDatumConsistency(vw::cartography::Datum const& datum1,                        
-                           vw::cartography::Datum const& datum2,
+void checkDatumConsistency(vw::Datum const& datum1,                        
+                           vw::Datum const& datum2,
                            bool warn_only) {
 
   double err1 = std::abs(datum1.semi_major_axis() - datum2.semi_major_axis());

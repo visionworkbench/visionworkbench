@@ -35,7 +35,6 @@
 /// Vector3 that contain xyz or lon, lat, altitude triples.
 
 namespace vw {
-namespace cartography {
 
   // Functors. View operations are lower in this file.
 
@@ -369,6 +368,6 @@ namespace cartography {
     return LonLatRadToXYZEstimateFunctor::apply(lon_lat_alt, east_positive);
   }
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_POINTIMAGEMANIPLULATION_H__

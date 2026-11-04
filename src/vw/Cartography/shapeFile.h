@@ -71,7 +71,7 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
 void read_shapefile(std::string const& file,
         std::string const& poly_color,
         bool & has_geo,
-        vw::cartography::GeoReference & geo,
+        vw::GeoReference & geo,
         std::vector<vw::geometry::dPoly> & polyVec,
         std::string const& fieldName = "");
 
@@ -80,7 +80,7 @@ void read_shapefile(std::string const& file,
 // case have to also write a QML file.
 void write_shapefile(std::string const& file,
           bool has_geo,
-          vw::cartography::GeoReference const& geo,
+          vw::GeoReference const& geo,
           std::vector<vw::geometry::dPoly> const& polyVec,
           std::string const& fieldName = "",
           std::vector<int> const& fieldValues = std::vector<int>()); 
@@ -88,7 +88,7 @@ void write_shapefile(std::string const& file,
 // Write a single dPoly to a shapefile (this can still have multiple polygons)
 void write_shapefile(std::string const& file,
           bool has_geo,
-          vw::cartography::GeoReference const& geo,
+          vw::GeoReference const& geo,
           vw::geometry::dPoly const& poly);
 
 // Bounding box of a shapefile

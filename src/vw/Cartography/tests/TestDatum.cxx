@@ -24,7 +24,6 @@
 #include <boost/assign/std/vector.hpp>
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 
 using namespace boost::assign;

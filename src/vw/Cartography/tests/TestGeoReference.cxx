@@ -25,7 +25,6 @@
 #include <vw/FileIO/GdalWriteOptions.h>
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 
 TEST( GeoReference, Core) {
@@ -675,6 +674,3 @@ TEST( GeoReference, albersTestHighLon) {
 //  }
 //  EXPECT_TRUE(false);
 //}
-
-
-

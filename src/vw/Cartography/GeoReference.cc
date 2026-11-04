@@ -47,13 +47,12 @@
 // VW will always be built with GDAL support.
 
 namespace vw {
-namespace cartography {
 
 // Update a georeference based on an srs string and/or datum.
 // This function is more likely to remember the datum name than set_wkt().
 void set_srs_string(std::string srs_string, bool have_user_datum,
-                    vw::cartography::Datum const& user_datum,
-                    vw::cartography::GeoReference & georef) {
+                    vw::Datum const& user_datum,
+                    vw::GeoReference & georef) {
 
   // When an EPSG code is provided, store the name so that
   //  it shows up when the GeoReference object is written
@@ -216,7 +215,7 @@ size_t remove_proj4_duplicates(std::string const& str_in, std::string &str_out) 
 // semi-minor axes differ by a bit more than 1e-4.
 // Return true if the data copy took place.
 bool copyFromDatum(OGRSpatialReference & gdal_spatial_ref, 
-                   vw::cartography::Datum const& datum) {
+                   vw::Datum const& datum) {
 
   // The datum name can be null, and this can result in a crash.
   // Cannot continue in this case.
@@ -282,17 +281,17 @@ void fixDatum(OGRSpatialReference & gdal_spatial_ref) {
     
   if (semi_major == 6378137) {
     // Try WGS84
-    vw::cartography::Datum datum;
+    vw::Datum datum;
     datum.set_well_known_datum("WGS84");
     copyFromDatum(gdal_spatial_ref, datum);
   } else if (semi_major == 1737400) {
     // Try the moon
-    vw::cartography::Datum datum;
+    vw::Datum datum;
     datum.set_well_known_datum("D_MOON");
     copyFromDatum(gdal_spatial_ref, datum);
   } else if (semi_major == 3396190) {
     // Try Mars
-    vw::cartography::Datum datum;
+    vw::Datum datum;
     datum.set_well_known_datum("D_MARS");
     copyFromDatum(gdal_spatial_ref, datum);
   } 
@@ -701,7 +700,7 @@ void GeoReference::set_wkt(std::string const& wkt) {
     return;
   
   // A copy of the existing datum, before the reset.
-  vw::cartography::Datum prior_datum = m_datum;
+  vw::Datum prior_datum = m_datum;
 
   // Set the spatial reference object from the WKT string  
   m_gdal_spatial_ref.importFromWkt(wkt.c_str());
@@ -1366,4 +1365,4 @@ std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
   return os;
 }
 
-}} // vw::cartography
+} // namespace vw

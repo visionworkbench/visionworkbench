@@ -32,7 +32,7 @@ using namespace vw::camera;
 
 TEST(OpticalBarModel, CreateCamera) {
 
-  //vw::cartography::Datum d("WGS84");
+  //vw::Datum d("WGS84");
   /*
   //Vector3 llh(-122.065046, 37.419733, 250000);
   Vector3 llh(0.0, 90.0, 250000);
@@ -202,4 +202,3 @@ TEST(OpticalBarModel, CreateCamera) {
   //EXPECT_EQ(error, -999);
   
 }
-

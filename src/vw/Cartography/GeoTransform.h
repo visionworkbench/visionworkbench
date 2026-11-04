@@ -30,7 +30,6 @@
 /// \file GeoTransform.h Tools for converting points and images between geographic datums.
 
 namespace vw {
-namespace cartography {
 
 
   /// A structure to allow the fast and accurate conversion of coordinates between
@@ -245,6 +244,6 @@ namespace cartography {
                              GeoReference const& src_georef,
                              GeoReference const& dst_georef);
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __GEO_TRANSFORM_H__

@@ -36,7 +36,6 @@
 //       Is there any reason to use these????
 
 namespace vw {
-namespace cartography {
 
   // ---------------- XYZ to LON LAT ALT CONVERSION ------------------
 
@@ -182,6 +181,6 @@ namespace cartography {
     return LonLatRadToXYZFunctor::apply(lon_lat_alt, east_positive);
   }
 
-}} // namespace vw::cartography
+} // namespace vw
 */
 #endif

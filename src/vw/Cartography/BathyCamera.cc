@@ -116,8 +116,8 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
                                double refraction_index) {
 
   // First, intersect ray with datum
-  Vector3 xyz = vw::cartography::datum_intersection(major_axis, minor_axis,
-                                                    cam_ctr, cam_dir);
+  Vector3 xyz = vw::datum_intersection(major_axis, minor_axis,
+                                       cam_ctr, cam_dir);
 
   // If intersection failed, return zero vector
   if (xyz == Vector3(0, 0, 0))
@@ -144,8 +144,8 @@ Vector3 datumBathyIntersection(Vector3 const& cam_ctr,
     return Vector3(0, 0, 0);
 
   // Continue refracted ray to datum
-  Vector3 refracted_xyz = vw::cartography::datum_intersection(major_axis, minor_axis,
-                                                              out_xyz, out_dir);
+  Vector3 refracted_xyz = vw::datum_intersection(major_axis, minor_axis,
+                                                 out_xyz, out_dir);
 
   // If refracted intersection failed, return zero vector
   if (refracted_xyz == Vector3(0, 0, 0))

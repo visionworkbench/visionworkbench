@@ -24,7 +24,6 @@
 /// \file Hillshade.h. Hillshade images with georeference.
 
 namespace vw {
-namespace cartography {
 
   /// Redirect to the function with the required data type.
   void do_multitype_hillshade(std::string const& input_file,
@@ -34,7 +33,6 @@ namespace cartography {
                               bool align_to_georef,
                               vw::GdalWriteOptions const& opt);
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_HILLSHADE_H__
-

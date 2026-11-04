@@ -30,7 +30,6 @@
 /// \file GeoReferenceUtils.h Tools for working with GeoReference objects
 
 namespace vw {
-namespace cartography {
 
 // Typedef for string-to-string map commonly used for GDAL keyword metadata
 typedef std::map<std::string, std::string> StrMap;
@@ -79,7 +78,7 @@ void block_write_gdal_image(
     const std::string& filename,
     ImageViewBase<ImageT> const& image,
     bool has_georef,
-    cartography::GeoReference const& georef,
+    vw::GeoReference const& georef,
     bool has_nodata,
     double nodata,
     GdalWriteOptions const& opt,
@@ -115,7 +114,7 @@ void write_gdal_image(
     const std::string& filename,
     ImageViewBase<ImageT> const& image,
     bool has_georef,
-    cartography::GeoReference const& georef,
+    vw::GeoReference const& georef,
     bool has_nodata,
     double nodata,
     GdalWriteOptions const& opt,
@@ -127,7 +126,7 @@ template <class ImageT>
 void write_gdal_image(
     const std::string& filename,
     ImageViewBase<ImageT> const& image,
-    cartography::GeoReference const& georef,
+    vw::GeoReference const& georef,
     GdalWriteOptions const& opt,
     ProgressCallback const& progress_callback = ProgressCallback::dummy_instance(),
     StrMap const& keywords = StrMap());
@@ -137,7 +136,7 @@ template <class ImageT>
 void write_gdal_image(
     const std::string& filename,
     ImageViewBase<ImageT> const& image,
-    cartography::GeoReference const& georef,
+    vw::GeoReference const& georef,
     double nodata,
     GdalWriteOptions const& opt,
     ProgressCallback const& progress_callback = ProgressCallback::dummy_instance(),
@@ -172,7 +171,7 @@ template <class ImageT>
 void block_write_gdal_image(const std::string& filename,
                             ImageViewBase<ImageT> const& image,
                             bool has_georef,
-                            cartography::GeoReference const& georef,
+                            vw::GeoReference const& georef,
                             bool has_nodata,
                             double nodata,
                             GdalWriteOptions const& opt,
@@ -183,9 +182,9 @@ void block_write_gdal_image(const std::string& filename,
   if (has_nodata) rsrc->set_nodata_write(nodata);
 
   for (auto i = keywords.begin(); i != keywords.end(); i++)
-    cartography::write_header_string(*rsrc, i->first, i->second);
+    vw::write_header_string(*rsrc, i->first, i->second);
 
-  if (has_georef) cartography::write_georeference(*rsrc, georef);
+  if (has_georef) vw::write_georeference(*rsrc, georef);
 
   block_write_image(*rsrc, image.impl(), progress_callback, opt.num_threads);
   
@@ -206,7 +205,7 @@ void block_write_gdal_image(const std::string& filename,
   bool has_nodata = false;
   bool has_georef = false;
   float nodata = std::numeric_limits<float>::quiet_NaN();
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   block_write_gdal_image(filename, image, has_georef, georef, has_nodata, nodata, opt,
                          progress_callback, keywords);
 }
@@ -221,7 +220,7 @@ void block_write_gdal_image(const std::string& filename,
                             StrMap const& keywords) {
   bool has_nodata = true;
   bool has_georef = false;
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   block_write_gdal_image(filename, image, has_georef, georef, has_nodata, nodata, opt,
                          progress_callback, keywords);
 }
@@ -235,7 +234,7 @@ template <class ImageT>
 void write_gdal_image(const std::string& filename,
                       ImageViewBase<ImageT> const& image,
                       bool has_georef,
-                      cartography::GeoReference const& georef,
+                      vw::GeoReference const& georef,
                       bool has_nodata,
                       double nodata,
                       GdalWriteOptions const& opt,
@@ -246,9 +245,9 @@ void write_gdal_image(const std::string& filename,
   if (has_nodata) rsrc->set_nodata_write(nodata);
 
   for (auto i = keywords.begin(); i != keywords.end(); i++)
-    cartography::write_header_string(*rsrc, i->first, i->second);
+    vw::write_header_string(*rsrc, i->first, i->second);
 
-  if (has_georef) cartography::write_georeference(*rsrc, georef);
+  if (has_georef) vw::write_georeference(*rsrc, georef);
 
   write_image(*rsrc, image.impl(), progress_callback);
   
@@ -263,7 +262,7 @@ void write_gdal_image(const std::string& filename,
 template <class ImageT>
 void write_gdal_image(const std::string& filename,
                       ImageViewBase<ImageT> const& image,
-                      cartography::GeoReference const& georef,
+                      vw::GeoReference const& georef,
                       GdalWriteOptions const& opt,
                       ProgressCallback const& progress_callback,
                       StrMap const& keywords) {
@@ -278,7 +277,7 @@ void write_gdal_image(const std::string& filename,
 template <class ImageT>
 void write_gdal_image(const std::string& filename,
                       ImageViewBase<ImageT> const& image,
-                      cartography::GeoReference const& georef,
+                      vw::GeoReference const& georef,
                       double nodata,
                       GdalWriteOptions const& opt,
                       ProgressCallback const& progress_callback,
@@ -299,12 +298,11 @@ void write_gdal_image(const std::string& filename,
   bool has_nodata = false;
   bool has_georef = false;
   float nodata = std::numeric_limits<float>::quiet_NaN();
-  cartography::GeoReference georef;
+  vw::GeoReference georef;
   write_gdal_image(filename, image, has_georef, georef, has_nodata, nodata, opt, 
                    progress_callback, keywords);
 }
 
-}  // namespace cartography
 }  // namespace vw
 
 #endif  // __VW_CARTOGRAPHY_GEOREFERENCE_UTILS_H__

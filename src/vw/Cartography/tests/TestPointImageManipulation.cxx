@@ -24,7 +24,6 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 
 // Spherical transform that is ignorant of flattened datums.

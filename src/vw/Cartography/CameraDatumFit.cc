@@ -22,7 +22,7 @@
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/CameraParamsPack.h>
 
-namespace vw { namespace cartography {
+namespace vw {
 
 using namespace vw::camera;
 using namespace vw;
@@ -37,7 +37,7 @@ class CameraSolveLmaHt: public vw::math::LeastSquaresModelBase<CameraSolveLmaHt<
   std::vector<vw::Vector3> const& m_xyz;
   CAM m_camera_model;
   double m_cam_height, m_cam_weight, m_cam_ctr_weight;
-  vw::cartography::Datum m_datum;
+  vw::Datum m_datum;
   Vector3 m_input_cam_ctr;
 
 public:
@@ -50,7 +50,7 @@ public:
   CameraSolveLmaHt(std::vector<vw::Vector3> const& xyz,
                     CAM const& camera_model,
                     double cam_height, double cam_weight, double cam_ctr_weight,
-                    vw::cartography::Datum const& datum):
+                    vw::Datum const& datum):
     m_xyz(xyz),
     m_camera_model(camera_model),
     m_cam_height(cam_height), m_cam_weight(cam_weight), m_cam_ctr_weight(cam_ctr_weight),
@@ -99,7 +99,7 @@ public:
 template<class CAM>
 void fitCam(std::vector<Vector3> const& xyz_vec,
             double cam_height, double cam_weight, double cam_ctr_weight,
-            vw::cartography::Datum const& datum,
+            vw::Datum const& datum,
             std::vector<double> const& pixel_values,
             CAM & out_cam) {
 
@@ -146,7 +146,7 @@ void fitCam(std::vector<Vector3> const& xyz_vec,
 // recompilation of templates.
 void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
                    double cam_height, double cam_weight, double cam_ctr_weight,
-                   vw::cartography::Datum const& datum,
+                   vw::Datum const& datum,
                    std::vector<double> const& pixel_values,
                    vw::camera::OpticalBarModel & out_cam) {
   fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
@@ -156,10 +156,10 @@ void fitOpticalBar(std::vector<Vector3> const& xyz_vec,
 // Also a wrapper, as above.
 void fitPinhole(std::vector<Vector3> const& xyz_vec,
                 double cam_height, double cam_weight, double cam_ctr_weight,
-                vw::cartography::Datum const& datum,
+                vw::Datum const& datum,
                 std::vector<double> const& pixel_values,
                 vw::camera::PinholeModel & out_cam) {
 
   fitCam(xyz_vec, cam_height, cam_weight, cam_ctr_weight, datum, pixel_values, out_cam);
 }
-}} // end namespace vw::cartography
+} // namespace vw

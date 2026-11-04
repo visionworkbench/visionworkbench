@@ -30,7 +30,6 @@
 #if defined(VW_HAVE_PKG_PROTOBUF) && defined(VW_HAVE_PKG_CAMERA) 
 
 using namespace vw;
-using namespace vw::cartography;
 using namespace vw::test;
 using namespace vw::camera;
 

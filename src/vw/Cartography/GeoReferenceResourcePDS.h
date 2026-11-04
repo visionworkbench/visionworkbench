@@ -28,15 +28,14 @@
 #include <boost/algorithm/string.hpp>
 #pragma GCC diagnostic pop
 
-/// \file GeoReferenceResourcePDS.h Functions to read/write a \ref vw::cartography::GeoReference from PDS.
+/// \file GeoReferenceResourcePDS.h Functions to read/write a \ref vw::GeoReference from PDS.
 
 namespace vw {
-namespace cartography {
 
   bool read_pds_georeference( GeoReference& georef, DiskImageResourcePDS const& resource );
   // We do not support writing PDS images at this time.
   // void write_pds_georeference( DiskImageResourcePDS& resource, GeoReference const& georef );
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // __VW_CARTOGRAPHY_GEOREFERENCEHELPERPDS_H__

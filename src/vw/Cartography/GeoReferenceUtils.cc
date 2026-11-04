@@ -23,7 +23,6 @@
 #include <boost/filesystem.hpp>
 
 namespace vw {
-namespace cartography {
 
 GeoReference crop(GeoReference const& input,
                   double upper_left_x, double upper_left_y,
@@ -233,4 +232,4 @@ bool build_overviews(std::string const& filename,
   return ok;
 }
 
-}} // vw::cartography
+} // namespace vw
