@@ -25,7 +25,6 @@
 #include <vw/Math/Vector.h>
 
 namespace vw {
-namespace geometry {
 
   // *******************************************************************
   // class ShapeBase
@@ -160,6 +159,6 @@ namespace geometry {
     return shape1.shape_impl() != shape2.shape_impl();
   }
 
-}} // namespace vw::geometry
+} // namespace vw
 
 #endif // __VW_GEOMETRY_SHAPE_H__

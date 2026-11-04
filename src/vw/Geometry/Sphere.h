@@ -31,7 +31,6 @@
 #include <vw/Geometry/Shape.h>
 
 namespace vw {
-namespace geometry {
 
   // *******************************************************************
   // class SphereBase
@@ -389,10 +388,9 @@ namespace geometry {
     }
   };
 
-} // namespace math
 
   // Convenience typedefs
-  using geometry::Sphere;
+  using vw::Sphere;
   typedef Sphere<float64, 2> Sphere2;
   typedef Sphere<float64, 3> Sphere3;
   typedef Sphere<float64, 4> Sphere4;

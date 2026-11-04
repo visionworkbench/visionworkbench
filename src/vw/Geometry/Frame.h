@@ -26,7 +26,6 @@
 
 namespace vw
 {
-  namespace geometry {
 
     /**
      * Class representing a named coordinate transform.
@@ -117,6 +116,5 @@ namespace vw
       Transform m_trans;
       Extras * m_extras;
     };
-  }
 }
 #endif // vw_Math_Frame_h

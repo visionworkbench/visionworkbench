@@ -30,7 +30,7 @@
 
 // Shape file functions
 
-namespace vw { namespace geometry {
+namespace vw {
 
 // Convert a single point to OGRPoint
 void toOGR(double x, double y, OGRPoint & P);
@@ -44,27 +44,27 @@ void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
       OGRLinearRing & R);
 
 // Convert a polygon set to OGRPolygon
-void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P);
+void toOGR(vw::dPoly const& poly, OGRPolygon & P);
 
 // Convert a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P);
 
 // Read a polygon set from OGR
 void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
-              std::string const& layer_str, vw::geometry::dPoly & poly);
+              std::string const& layer_str, vw::dPoly & poly);
 
 // Read an OGR polygonal line (line string)
 void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
-              std::string const& layer_str, vw::geometry::dPoly & poly);
+              std::string const& layer_str, vw::dPoly & poly);
 
 // Read polygons from OGR multipolygon
 void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
-              std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
+              std::string const& layer_str, std::vector<vw::dPoly> & polyVec,
               bool append);
 
 // Read polygons from OGR geometry
 void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
-              std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
+              std::string const& layer_str, std::vector<vw::dPoly> & polyVec,
               bool append);
 
 // Read a shapefile. Integer values stored at fieldName will become annotations.
@@ -72,7 +72,7 @@ void read_shapefile(std::string const& file,
         std::string const& poly_color,
         bool & has_geo,
         vw::GeoReference & geo,
-        std::vector<vw::geometry::dPoly> & polyVec,
+        std::vector<vw::dPoly> & polyVec,
         std::string const& fieldName = "");
 
 // Write a set of dPolys to a shapefile. Can also have a field with values that 
@@ -81,7 +81,7 @@ void read_shapefile(std::string const& file,
 void write_shapefile(std::string const& file,
           bool has_geo,
           vw::GeoReference const& geo,
-          std::vector<vw::geometry::dPoly> const& polyVec,
+          std::vector<vw::dPoly> const& polyVec,
           std::string const& fieldName = "",
           std::vector<int> const& fieldValues = std::vector<int>()); 
 
@@ -89,10 +89,10 @@ void write_shapefile(std::string const& file,
 void write_shapefile(std::string const& file,
           bool has_geo,
           vw::GeoReference const& geo,
-          vw::geometry::dPoly const& poly);
+          vw::dPoly const& poly);
 
 // Bounding box of a shapefile
-void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
+void shapefile_bdbox(const std::vector<vw::dPoly> & polyVec,
           // outputs
           double & xll, double & yll,
           double & xur, double & yur);
@@ -102,16 +102,16 @@ void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
 void mergeOGRPolygons(std::string const& poly_color,
                       std::string const& layer_str,
                       std::vector<OGRGeometry*>& ogr_polys,
-                      std::vector<vw::geometry::dPoly>& polyVec); // output
+                      std::vector<vw::dPoly>& polyVec); // output
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void convexHull(std::vector<vw::Vector3> const& points,
-                vw::geometry::dPoly & poly); // output
+                vw::dPoly & poly); // output
 
 // Write a QML file for displaying data associated with a field in a shapefile.
 // The qml and shapefile must have same base name.
 void writeQml(std::string const& qml_file, std::string const& field_name);
 
-}} // end namespace vw::geometry
+} // end namespace vw
 
 #endif // VW_CARTOGRAPHY_SHAPEFILE_H

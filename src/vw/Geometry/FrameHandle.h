@@ -22,8 +22,6 @@
 
 namespace vw
 {
-  namespace geometry
-  {
     // forward declaration
     class FrameStore;
     class Frame;
@@ -49,7 +47,6 @@ namespace vw
 
       friend class FrameStore;
     };
-  }
 }
 
 #endif // vw_geometry_FrameHandle_h

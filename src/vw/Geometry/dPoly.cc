@@ -33,7 +33,7 @@
 #include <string>
 #include <map>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 using namespace std;
 
@@ -1747,4 +1747,4 @@ void dPoly::appendAndShiftMarkedPolys(// Inputs
   return;
 }
 
-}}
+}

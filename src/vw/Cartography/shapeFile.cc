@@ -31,7 +31,7 @@
 
 #include <boost/filesystem/path.hpp>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 // Convert a single point to OGRPoint
 void toOGR(double x, double y, OGRPoint & P) {
@@ -83,7 +83,7 @@ void toOGR(const double * xv, const double * yv, int startPos, int numVerts,
 }
 
 // Convert a set of polygons to OGR
-void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P) {
+void toOGR(vw::dPoly const& poly, OGRPolygon & P) {
 
   P = OGRPolygon(); // reset
 
@@ -115,7 +115,7 @@ void toOGR(vw::geometry::dPoly const& poly, OGRPolygon & P) {
 void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P) {
 
   // First make a dPoly
-  vw::geometry::dPoly poly;
+  vw::dPoly poly;
   std::vector<double> x, y;
   x.clear(); y.clear();
   for (size_t i = 0; i < points.size(); i++) {
@@ -124,7 +124,7 @@ void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P) {
   }
   bool isPolyClosed = true; // only closed polygons are supported
   std::string color = "green", layer = "layer0"; // needed by the API
-  poly.setPolygon(x.size(), vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
+  poly.setPolygon(x.size(), vw::vecPtr(x), vw::vecPtr(y),
                   isPolyClosed, color, layer);
 
   // Covert to OGR polygon
@@ -133,7 +133,7 @@ void toOGR(std::vector<vw::Vector3> const& points, OGRPolygon & P) {
 
 // Extract a polygon from OGR
 void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
-              std::string const& layer_str, vw::geometry::dPoly & poly) {
+              std::string const& layer_str, vw::dPoly & poly) {
 
   bool isPolyClosed = true; // only closed polygons are supported
 
@@ -182,7 +182,7 @@ void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
       y.resize(len);
     }
 
-    poly.appendPolygon(len, vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
+    poly.appendPolygon(len, vw::vecPtr(x), vw::vecPtr(y),
                         isPolyClosed, poly_color, layer_str);
 
   }
@@ -190,7 +190,7 @@ void fromOGR(OGRPolygon *poPolygon, std::string const& poly_color,
 
 // Extract a polygonal line (line string) from OGR
 void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
-              std::string const& layer_str, vw::geometry::dPoly & poly) {
+              std::string const& layer_str, vw::dPoly & poly) {
 
   bool isPolyClosed = false; // polygonal lines are not closed
 
@@ -208,14 +208,14 @@ void fromOGR(OGRLineString *poLineString, std::string const& poly_color,
     y.push_back(P.getY());
   }
 
-  poly.appendPolygon(x.size(), vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
+  poly.appendPolygon(x.size(), vw::vecPtr(x), vw::vecPtr(y),
                       isPolyClosed, poly_color, layer_str);
 
 }
 
 // Extract a multi-polygon from OGR
 void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
-             std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
+             std::string const& layer_str, std::vector<vw::dPoly> & polyVec,
              bool append) {
 
   if (!append) polyVec.clear();
@@ -227,7 +227,7 @@ void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
     if (wkbFlatten(currPolyGeom->getGeometryType()) != wkbPolygon) continue;
 
     OGRPolygon *poPolygon = (OGRPolygon*) currPolyGeom;
-    vw::geometry::dPoly poly;
+    vw::dPoly poly;
     fromOGR(poPolygon, poly_color, layer_str, poly);
     polyVec.push_back(poly);
   }
@@ -235,7 +235,7 @@ void fromOGR(OGRMultiPolygon *poMultiPolygon, std::string const& poly_color,
 
 // Read polygons from OGR geometry
 void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
-             std::string const& layer_str, std::vector<vw::geometry::dPoly> & polyVec,
+             std::string const& layer_str, std::vector<vw::dPoly> & polyVec,
              bool append) {
 
   if (!append) polyVec.clear();
@@ -251,9 +251,9 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
     x.push_back(poPoint->getX());
     y.push_back(poPoint->getY());
 
-    vw::geometry::dPoly poly;
+    vw::dPoly poly;
     bool isPolyClosed = true; // only closed polygons are supported
-    poly.setPolygon(x.size(), vw::geometry::vecPtr(x), vw::geometry::vecPtr(y),
+    poly.setPolygon(x.size(), vw::vecPtr(x), vw::vecPtr(y),
                     isPolyClosed, poly_color, layer_str);
     polyVec.push_back(poly);
 
@@ -264,13 +264,13 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
 
   } else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPolygon) {
     OGRPolygon *poPolygon = (OGRPolygon*)poGeometry;
-    vw::geometry::dPoly poly;
+    vw::dPoly poly;
     fromOGR(poPolygon, poly_color, layer_str, poly);
     polyVec.push_back(poly);
 
   } else if (wkbFlatten (poGeometry ->getGeometryType()) == wkbLineString) {
     OGRLineString *poLineString = (OGRLineString*)poGeometry;
-    vw::geometry::dPoly poly;
+    vw::dPoly poly;
     fromOGR(poLineString, poly_color, layer_str, poly);
     polyVec.push_back(poly);
   }
@@ -280,7 +280,7 @@ void fromOGR(OGRGeometry *poGeometry, std::string const& poly_color,
 // Add it as an annotation at the polygon centroid.
 void readField(OGRFeature *poFeature,
                std::string const& fieldName,
-               std::vector<vw::geometry::dPoly> & polyVec) {
+               std::vector<vw::dPoly> & polyVec) {
 
   // Cannot handle an empty polygon
   if (polyVec.empty() || polyVec.back().get_totalNumVerts() == 0)
@@ -301,11 +301,11 @@ void readField(OGRFeature *poFeature,
   // Form the annotation         
   double midx = 0.5 * (xll + xur);
   double midy = 0.5 * (yll + yur);
-  vw::geometry::anno a;
+  vw::anno a;
   a.x = midx;
   a.y = midy;
   a.label = num2str(val);
-  std::vector<vw::geometry::anno> annotations;
+  std::vector<vw::anno> annotations;
   annotations.push_back(a);
   polyVec.back().set_annotations(annotations);
 }
@@ -315,7 +315,7 @@ void read_shapefile(std::string const& file,
                     std::string const& poly_color,
                     bool & has_geo,
                     vw::GeoReference & geo,
-                    std::vector<vw::geometry::dPoly> & polyVec,
+                    std::vector<vw::dPoly> & polyVec,
                     std::string const& fieldName) {
 
   // Make sure the outputs are initialized
@@ -398,7 +398,7 @@ void read_shapefile(std::string const& file,
 // case have to also write a QML file.
 void write_shapefile(std::string const& shapeFile,
                      bool has_geo, vw::GeoReference const& geo,
-                     std::vector<vw::geometry::dPoly> const& polyVec,
+                     std::vector<vw::dPoly> const& polyVec,
                      std::string const& fieldName,
                      std::vector<int> const& fieldValues) {
 
@@ -432,7 +432,7 @@ void write_shapefile(std::string const& shapeFile,
   int min_verts = 0, max_verts = 0;
   for (size_t vecIter = 0; vecIter < polyVec.size(); vecIter++) {
 
-    vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
+    vw::dPoly const& poly = polyVec[vecIter]; // alias
 
     const double * xv        = poly.get_xv();
     const double * yv        = poly.get_yv();
@@ -481,7 +481,7 @@ void write_shapefile(std::string const& shapeFile,
   size_t featureId = 0;
   for (size_t vecIter = 0; vecIter < polyVec.size(); vecIter++) {
 
-    vw::geometry::dPoly const& poly = polyVec[vecIter]; // alias
+    vw::dPoly const& poly = polyVec[vecIter]; // alias
     if (poly.get_totalNumVerts() == 0) continue;
 
     const double * xv        = poly.get_xv();
@@ -546,15 +546,15 @@ void write_shapefile(std::string const& shapeFile,
 void write_shapefile(std::string const& file,
                      bool has_geo,
                      vw::GeoReference const& geo,
-                     vw::geometry::dPoly const& poly) {
+                     vw::dPoly const& poly) {
 
-  std::vector<vw::geometry::dPoly> polyVec;
+  std::vector<vw::dPoly> polyVec;
   polyVec.push_back(poly);
   write_shapefile(file, has_geo, geo, polyVec);
 }
 
 // Bounding box of a shapefile
-void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
+void shapefile_bdbox(const std::vector<vw::dPoly> & polyVec,
                      // outputs
                      double & xll, double & yll,
                      double & xur, double & yur) {
@@ -577,7 +577,7 @@ void shapefile_bdbox(const std::vector<vw::geometry::dPoly> & polyVec,
 void mergeOGRPolygons(std::string const& poly_color,
                       std::string const& layer_str,
                       std::vector<OGRGeometry*>& ogr_polys,
-                      std::vector<vw::geometry::dPoly>& polyVec) {
+                      std::vector<vw::dPoly>& polyVec) {
 
   // The doc of this function says that the elements in ogr_polys will
   // be taken care of. We are responsible only for the vector of pointers
@@ -585,7 +585,7 @@ void mergeOGRPolygons(std::string const& poly_color,
   int pbIsValidGeometry = 0;
   const char** papszOptions = NULL;
   OGRGeometry* good_geom
-    = OGRGeometryFactory::organizePolygons(vw::geometry::vecPtr(ogr_polys),
+    = OGRGeometryFactory::organizePolygons(vw::vecPtr(ogr_polys),
                                            ogr_polys.size(),
                                            &pbIsValidGeometry,
                                            papszOptions);
@@ -627,10 +627,10 @@ void mergeOGRPolygons(std::string const& poly_color,
 
 // Find the convex hull of a set of 3D points to OGRPolygon. Ignore the third coordinate.
 void convexHull(std::vector<vw::Vector3> const& points,
-                vw::geometry::dPoly & poly) {
+                vw::dPoly & poly) {
 
   // Initalize the output
-  poly = vw::geometry::dPoly();
+  poly = vw::dPoly();
   
   if (points.size() == 0)
     return;
@@ -649,12 +649,12 @@ void convexHull(std::vector<vw::Vector3> const& points,
   // Convert to dPoly
   std::string poly_color = "green", layer_str = "layer0"; // needed by the API
   bool append = false;
-  std::vector<vw::geometry::dPoly> polyVec;
+  std::vector<vw::dPoly> polyVec;
   fromOGR(hull_poly, poly_color, layer_str, polyVec, append);
   
   // If the polyVec is empty, make sure we return an empty vector
   if (polyVec.size() == 0) {
-    poly = vw::geometry::dPoly();
+    poly = vw::dPoly();
     return;
   }
   
@@ -704,4 +704,4 @@ void writeQml(std::string const& qml_file, std::string const& field_name) {
   }
 }
 
-}} // end namespace vw::geometry
+} // end namespace vw

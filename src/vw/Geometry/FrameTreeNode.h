@@ -25,7 +25,6 @@
 
 namespace vw
 {
-  namespace geometry {
     /**
      * @brief A tree node with a Frame as payload.
      * A frame-tree is expected to adhere to the following requirements:
@@ -107,7 +106,6 @@ namespace vw
      * @WARNING: Don't merge trees of nodes from different allocation categories (heap vs stack).
      */
     void merge_frame_trees(FrameTreeNode * target_tree, FrameTreeNode * source_tree);
-  }
 }
 
 #endif // vw_geometry_FrameTreeNode_h

@@ -35,7 +35,6 @@
 #include <vw/Geometry/Shape.h>
 
 namespace vw {
-namespace geometry {
 
   // *******************************************************************
   // class Box
@@ -168,10 +167,9 @@ namespace geometry {
     box = Box<RealT,DimN>(points[0], points[1]);
   }
 
-} // namespace geometry
 
   // Convenience typedefs
-  using geometry::Box;
+  using vw::Box;
   typedef Box<float64, 2> Box2;
   typedef Box<float64, 3> Box3;
   typedef Box<float64, 4> Box4;

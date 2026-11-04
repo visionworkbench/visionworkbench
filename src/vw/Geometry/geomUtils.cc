@@ -26,7 +26,7 @@
 #include <vw/Geometry/geomUtils.h>
 #include <vw/Geometry/edgeUtils.h>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 using namespace std;
 
@@ -536,4 +536,4 @@ bool isPointInPolyOrOnEdges(double x, double y, int n, const double* xv, const d
   return isInsideOrOnEdges;
 }
 
-}}
+}

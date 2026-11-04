@@ -29,7 +29,6 @@
 
 namespace vw
 {
-  namespace geometry {
     /**
      * Generic Tree container.
      *
@@ -486,6 +485,5 @@ namespace vw
         }
       }
     };
-  }
 }
 #endif // vw_geometry_TreeNode_h

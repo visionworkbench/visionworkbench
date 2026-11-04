@@ -25,7 +25,6 @@
 
 namespace vw
 {
-  namespace geometry {
     template<class ElemT, int SizeN>
     class ATrans;
 
@@ -182,10 +181,9 @@ namespace vw
       vw::math::Matrix<ElemT, SizeN+1, SizeN+1> m;
       return m;
     }
-  }
 
-  typedef geometry::ATrans<double, 3> ATrans3;
-  typedef geometry::ATrans<float, 3> ATrans3f;
+  typedef vw::ATrans<double, 3> ATrans3;
+  typedef vw::ATrans<float, 3> ATrans3f;
 }
 
 #endif // vw_geometry_ATrans_h

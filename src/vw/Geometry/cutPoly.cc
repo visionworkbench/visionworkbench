@@ -23,7 +23,7 @@
 #include <vw/Geometry/baseUtils.h>
 #include <vw/Geometry/edgeUtils.h>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 #define DEBUG_CUT_POLY 0 // Must be 0 in production code
 
@@ -441,4 +441,4 @@ void processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
   return;
 }
 
-}}
+}

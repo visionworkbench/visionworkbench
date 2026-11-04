@@ -23,7 +23,7 @@
 #include <vw/Geometry/baseUtils.h>
 #include <vw/Geometry/geomUtils.h>
 
-namespace vw { namespace geometry {
+namespace vw {
   
 enum AnnoType {
   fileAnno = 0, vertAnno, polyAnno, layerAnno, lastAnno
@@ -259,6 +259,6 @@ private:
   std::vector<anno>        m_layerAnno;     // Anno showing layer number
 };
 
-}}
+}
 
 #endif // VW_GEOMETRY_DPOLY_H

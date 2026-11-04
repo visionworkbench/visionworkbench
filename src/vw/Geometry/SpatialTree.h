@@ -30,7 +30,6 @@
 #include <vw/Math/BBox.h>
 
 namespace vw {
-namespace geometry {
 
   class GeomPrimitive {
   public:
@@ -103,6 +102,6 @@ namespace geometry {
     SpatialTreeNode *m_root_node;
   };
 
-}} // namespace vw::math
+} // namespace vw::math
 
 #endif // _SPATIAL_TREE_H_

@@ -23,8 +23,6 @@
 
 namespace vw
 {
-namespace geometry
-{
   using namespace std;
 
     Frame::Transform
@@ -235,5 +233,4 @@ namespace geometry
       // walk elements
       return matchNode(start_frame, first, last);
     }
-  }
 }

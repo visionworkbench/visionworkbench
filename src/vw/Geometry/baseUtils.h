@@ -23,7 +23,7 @@
 #include <sstream>
 
 // TODO(oalexan1): Move these to vw/Core.
-namespace vw { namespace geometry {
+namespace vw {
   
   template<class T>
   const T * vecPtr(const std::vector<T>& X){
@@ -71,6 +71,6 @@ namespace vw { namespace geometry {
     vals.resize(n);
   }
   
-}}
+}
 
 #endif // VW_GEOMETRY_BASEUTILS_H

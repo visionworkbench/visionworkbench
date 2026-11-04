@@ -27,8 +27,6 @@
 
 namespace vw
 {
-namespace geometry
-{
   // forward declaration
   class FrameStore;
 
@@ -355,7 +353,6 @@ namespace geometry
       /** The vector of root nodes. */
       FrameTreeNodeVector m_root_nodes;
     };
-  }
 }
 
 

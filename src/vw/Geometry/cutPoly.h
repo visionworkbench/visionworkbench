@@ -25,7 +25,7 @@
 #include <string>
 #include <vw/Geometry/geomUtils.h>
 
-namespace vw { namespace geometry {
+namespace vw {
 
   struct valIndex{
     double val;
@@ -67,7 +67,7 @@ namespace vw { namespace geometry {
                       std::vector<double> & cutY,
                       std::vector<int>    & cutNumPolys);
 
-}}
+}
 
 #endif // VW_GEOMETRY_CUTPOLYUTILS_H
   

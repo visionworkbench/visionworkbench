@@ -24,7 +24,7 @@
 #include <vw/Geometry/edgeUtils.h>
 #include <vw/Geometry/baseUtils.h>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 bool edgeIntersectsBox(// Input: arbitrary edge
 		       double bx, double by,
@@ -220,4 +220,4 @@ void cutEdge(double x0, double y0, double x1, double y1,
   return;
 }
 
-}}
+}

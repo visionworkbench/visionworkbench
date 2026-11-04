@@ -24,7 +24,6 @@
 #include <memory>
 
 namespace vw {
-  namespace geometry {
     using namespace std;
     using namespace vw::math;
 
@@ -143,7 +142,7 @@ namespace vw {
         string searchName = "/" + name;
         FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
         for (first = m_root_nodes.begin(); first != last; ++first) {
-          FrameTreeNode * node = ::vw::geometry::lookup(*first, searchName);
+          FrameTreeNode * node = ::vw::lookup(*first, searchName);
 
           if (node != NULL)
             return FrameHandle(node);
@@ -163,7 +162,7 @@ namespace vw {
                   (!searchName.empty() && searchName[0] == '/')) {
         FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
         for (first = m_root_nodes.begin(); first != last; ++first) {
-          FrameTreeNode * node = ::vw::geometry::lookup(*first, searchName);
+          FrameTreeNode * node = ::vw::lookup(*first, searchName);
 
           if (node != NULL)
             return FrameHandle(node);
@@ -171,7 +170,7 @@ namespace vw {
         return NULL;
       }
 
-      return ::vw::geometry::lookup(scope.node, searchName);
+      return ::vw::lookup(scope.node, searchName);
     }
 
 
@@ -398,7 +397,7 @@ namespace vw {
       VW_ASSERT (frame.node != NULL && source.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as parameter.");
 
-      return vw::geometry::get_transform_of(frame.node, source.node, trans);
+      return vw::get_transform_of(frame.node, source.node, trans);
     }
 
     Vector3
@@ -409,7 +408,7 @@ namespace vw {
       VW_ASSERT (frame.node != NULL && source.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as parameter.");
 
-      return vw::geometry::get_transform(frame.node, source.node) * trans;
+      return vw::get_transform(frame.node, source.node) * trans;
     }
 
     Frame::Transform
@@ -420,7 +419,7 @@ namespace vw {
       VW_ASSERT (source.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as frame parameter.");
 
-      return vw::geometry::get_transform(frame.node, source.node);
+      return vw::get_transform(frame.node, source.node);
     }
 
     void
@@ -431,7 +430,7 @@ namespace vw {
       VW_ASSERT (frame.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as parameter.");
 
-      vw::geometry::set_transform(frame.node, wrt_frame.node, update);
+      vw::set_transform(frame.node, wrt_frame.node, update);
     }
 
     void
@@ -442,7 +441,7 @@ namespace vw {
       VW_ASSERT (frame.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as parameter.");
 
-      vw::geometry::set_transform(frame.node, NULL, update);
+      vw::set_transform(frame.node, NULL, update);
     }
 
     bool
@@ -462,7 +461,7 @@ namespace vw {
       if (start_frame != NULL_HANDLE) {
         VW_ASSERT (tree->data().name() == start_frame.node->data().name(),
                    vw::LogicErr() << "Tree root node does not match start node.");
-        vw::geometry::merge_frame_trees(tree, start_frame.node);
+        vw::merge_frame_trees(tree, start_frame.node);
         tree->recursive_delete();
         return true;
       }
@@ -471,7 +470,7 @@ namespace vw {
       FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
       for (first = m_root_nodes.begin(); first != last; ++first) {
         if ((*first)->data().name() == tree->data().name()) {
-          vw::geometry::merge_frame_trees(*first, tree);
+          vw::merge_frame_trees(*first, tree);
           tree->recursive_delete();
           return true;
         }
@@ -552,5 +551,4 @@ namespace vw {
       }
     }
 
-  }
 }

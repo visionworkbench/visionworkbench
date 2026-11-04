@@ -18,7 +18,7 @@
 #ifndef VW_GEOMETRY_EDGEUTILS_H
 #define VW_GEOMETRY_EDGEUTILS_H
 
-namespace vw { namespace geometry {
+namespace vw {
   
   bool edgeIntersectsBox(// Input: arbitrary edge
                          double bx, double by,
@@ -59,7 +59,6 @@ namespace vw { namespace geometry {
                double nx, double ny, double H,
                double & cutx, double & cuty);
   
-}}
+}
 
 #endif // VW_GEOMETRY_EDGEUTILS_H
-

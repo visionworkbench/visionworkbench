@@ -27,7 +27,7 @@
 #include <set>
 #include <cassert>
 
-namespace vw { namespace geometry {
+namespace vw {
 
 struct dPoint{
   double x, y;
@@ -192,6 +192,6 @@ std::ostream& operator<<(std::ostream& os, const anno& A);
 
   linTrans transAroundPt(const matrix2 & M, dPoint P);
 
-}} // end namespace vw::geometry
+} // end namespace vw
                                                                    
 #endif // VW_GEOMETRY_GEOMUTILS_H
