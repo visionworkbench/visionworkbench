@@ -21,7 +21,6 @@
 
 using namespace vw;
 using namespace vw::test;
-using namespace std;
 
 // spike operator new... every nothrow new fails [this lets us ask for
 // unlimited memory without the system actually trying to give it]

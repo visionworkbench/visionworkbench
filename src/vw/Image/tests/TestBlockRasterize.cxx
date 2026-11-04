@@ -21,7 +21,6 @@
 #include <vw/Image/BlockImageOperator.h>
 
 using namespace vw;
-using namespace std;
 
 TEST(BlockRasterize, Basic) {
   typedef ImageView<uint32> Image;

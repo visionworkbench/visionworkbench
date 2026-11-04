@@ -19,11 +19,11 @@
 #include <vw/Geometry/FrameTreeNode.h>
 #include <algorithm>
 #include <iterator>
+#include <deque>
 
 
 namespace vw
 {
-  using namespace std;
 
     Frame::Transform
     get_transform(FrameTreeNode const * target, FrameTreeNode const * source)
@@ -121,11 +121,11 @@ namespace vw
     }
 
     namespace {
-      vector<string> splitPath(string const& path)
+      std::vector<std::string> splitPath(std::string const& path)
       {
-        vector<string> elements;
+        std::vector<std::string> elements;
 
-        string::const_iterator first, last = path.end();
+        std::string::const_iterator first, last = path.end();
         for (first = path.begin(); first < last; ++first) {
 
           // skip /
@@ -133,13 +133,13 @@ namespace vw
             continue;
 
           // search next /
-          string::const_iterator start;
+          std::string::const_iterator start;
           for (start = first; first != last; ++first) {
             if (*first == '/')
               break;
           }
 
-          string element(start, first);
+          std::string element(start, first);
           if (element != ".")
             elements.push_back(element);
         }
@@ -148,8 +148,8 @@ namespace vw
       }
 
       FrameTreeNode * matchNode(FrameTreeNode * node,
-                                vector<string>::const_iterator first,
-                                vector<string>::const_iterator last)
+                                std::vector<std::string>::const_iterator first,
+                                std::vector<std::string>::const_iterator last)
       {
         for (; first != last; ++first) {
 
@@ -167,12 +167,12 @@ namespace vw
           // triple dot is breadth-first search
           else if (*first == "...") {
 
-            vector<string>::const_iterator next = first;
+            std::vector<std::string>::const_iterator next = first;
             ++next;
 
             // breadth first search for next element
-            deque<FrameTreeNode *> nodes;
-            back_insert_iterator<deque<FrameTreeNode *> > iter(nodes);
+            std::deque<FrameTreeNode *> nodes;
+            std::back_insert_iterator<std::deque<FrameTreeNode *> > iter(nodes);
             nodes.push_back(node);
             //node->copy_children(iter);
             while (!nodes.empty()) {
@@ -215,9 +215,9 @@ namespace vw
       if (start_frame == NULL)
         return NULL;
 
-      vector<string> elements = splitPath(path);
-      vector<string>::const_iterator first = elements.begin();
-      vector<string>::const_iterator last = elements.end();
+      std::vector<std::string> elements = splitPath(path);
+      std::vector<std::string>::const_iterator first = elements.begin();
+      std::vector<std::string>::const_iterator last = elements.end();
 
       if (!path.empty() && path[0] == '/') {
 

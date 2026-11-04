@@ -19,7 +19,6 @@
 #include <gtest/gtest_VW.h>
 #include <vw/Mosaic/ImageComposite.h>
 
-using namespace std;
 using namespace vw;
 
 ImageView<uint32> make(uint32 x) {

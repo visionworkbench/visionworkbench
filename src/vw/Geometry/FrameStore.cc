@@ -24,8 +24,7 @@
 #include <memory>
 
 namespace vw {
-    using namespace std;
-
+    
     FrameHandle const FrameStore::NULL_HANDLE = FrameHandle(NULL);
 
     FrameStore::~FrameStore() throw()
@@ -96,7 +95,7 @@ namespace vw {
       VW_ASSERT (frame.node != NULL,
                  vw::LogicErr() << "NULL handle not allowed as parameter.");
 
-      string name;
+      std::string name;
       FrameTreeNodeVector const& ancestry = frame.node->ancestry();
       FrameTreeNodeVector::const_iterator first, last = ancestry.end();
       for (first = ancestry.begin(); first != last; ++first) {
@@ -138,7 +137,7 @@ namespace vw {
       if (scope == NULL &&
                   !name.empty() && name[0] != '/') {
         // try to explicitly resolve the root frames
-        string searchName = "/" + name;
+        std::string searchName = "/" + name;
         FrameTreeNodeVector::const_iterator first, last = m_root_nodes.end();
         for (first = m_root_nodes.begin(); first != last; ++first) {
           FrameTreeNode * node = ::vw::lookup(*first, searchName);
@@ -148,7 +147,7 @@ namespace vw {
         }
       }
 
-      string searchName = name;
+      std::string searchName = name;
 
       // if not explicitly state otherwise, we search for .../name
       if (!name.empty() && name[0] != '/') {
@@ -176,14 +175,14 @@ namespace vw {
     namespace {
       class Append
       {
-        vector<string>& s_;
+        std::vector<std::string>& s_;
       public:
-        Append(vector<string>& s) :
+        Append(std::vector<std::string>& s) :
             s_(s) {}
         void operator() (FrameTreeNode const * node) {
-          string full_name;
-          vector<FrameTreeNode *> const& ancestry = node->ancestry();
-          vector<FrameTreeNode *>::const_iterator first, last = ancestry.end();
+          std::string full_name;
+          std::vector<FrameTreeNode *> const& ancestry = node->ancestry();
+          std::vector<FrameTreeNode *>::const_iterator first, last = ancestry.end();
           for (first = ancestry.begin(); first != last; ++first) {
             full_name += "/" + (*first)->data().name();
           }
@@ -204,7 +203,7 @@ namespace vw {
     {
       RecursiveMutex::Lock lock(m_mutex);
 
-      vector<string> names;
+      std::vector<std::string> names;
 
       Nothing n;
       Append app(names);

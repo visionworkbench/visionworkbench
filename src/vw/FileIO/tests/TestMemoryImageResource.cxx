@@ -39,10 +39,9 @@
 
 namespace fs = boost::filesystem;
 using namespace vw;
-using namespace std;
 
 struct MemoryImageResourceTest : public ::testing::TestWithParam<std::string> {
-  void slurp(const string& filename, vector<uint8>& data) {
+  void slurp(const std::string& filename, std::vector<uint8>& data) {
     ifstream f(filename.c_str(), ios::binary);
     ASSERT_TRUE(f.is_open());
 
@@ -69,7 +68,7 @@ TEST_P(MemoryImageResourceTest, Zero) {
 }
 
 TEST_P(MemoryImageResourceTest, BasicRead) {
-  vector<uint8> raw;
+  std::vector<uint8> raw;
   slurp(GetParam(), raw);
 
   boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), &*raw.begin(), raw.size()));
@@ -132,8 +131,8 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
   EXPECT_SEQ_NEAR(src, img1, 6);
 }
 
-vector<string> test_paths() {
-  vector<string> v;
+std::vector<std::string> test_paths() {
+  std::vector<std::string> v;
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   v.push_back("rgb2x2.png");
   v.push_back("rgb4x4_halfalpha.png");

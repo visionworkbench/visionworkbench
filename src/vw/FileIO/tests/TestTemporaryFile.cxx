@@ -41,27 +41,26 @@
 
 namespace fs = boost::filesystem;
 
-using namespace std;
 using namespace vw;
 
-string get_directory(const TemporaryFile& f) {
+std::string get_directory(const TemporaryFile& f) {
   return fs::path(f.filename()).parent_path().string();
 }
 
-string get_directory(const TemporaryDir& f) {
+std::string get_directory(const TemporaryDir& f) {
   return fs::path(f.filename()).parent_path().string();
 }
 
-string get_prefix(const TemporaryFile& f, size_t len) {
+std::string get_prefix(const TemporaryFile& f, size_t len) {
   return fs::path(f.filename()).filename().string().substr(0, len);
 }
 
-string get_prefix(const TemporaryDir& f, size_t len) {
+std::string get_prefix(const TemporaryDir& f, size_t len) {
   return fs::path(f.filename()).filename().string().substr(0, len);
 }
 
-string get_suffix(const TemporaryFile& f, size_t len) {
-  string fn = fs::path(f.filename()).filename().string();
+std::string get_suffix(const TemporaryFile& f, size_t len) {
+  std::string fn = fs::path(f.filename()).filename().string();
   return fn.substr(fn.size()-len, len);
 }
 
@@ -103,7 +102,7 @@ void _check(TemporaryFile& a, uint32 line, std::string dir = "", const std::stri
 }
 
 TEST(TemporaryFile, NoArg) {
-  std::string fn;
+  std::std::string fn;
   {
     TemporaryFile a;
     fn = a.filename();
@@ -113,7 +112,7 @@ TEST(TemporaryFile, NoArg) {
 }
 
 TEST(TemporaryFile, NoDelete) {
-  string fn;
+  std::string fn;
   {
     TemporaryFile a(TEST_OBJDIR, false);
     fn = a.filename();

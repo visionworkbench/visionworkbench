@@ -35,7 +35,6 @@
 
 namespace vw {
 
-using namespace std;
 
 // A double precision polygon class
 
@@ -65,10 +64,10 @@ void dPoly::bdBox(double & xll, double & yll, double & xur, double & yur) const 
     return;
   }
 
-  xll = *min_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
-  yll = *min_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
-  xur = *max_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
-  yur = *max_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
+  xll = *std::min_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
+  yll = *std::min_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
+  xur = *std::max_element(vecPtr(m_xv), vecPtr(m_xv) + m_totalNumVerts);
+  yur = *std::max_element(vecPtr(m_yv), vecPtr(m_yv) + m_totalNumVerts);
 
   return;
 };
@@ -94,8 +93,8 @@ void dPoly::bdBoxes(std::vector<double> & xll, std::vector<double> & yll,
     }else{
       const double * px = vecPtr(m_xv) + start;
       const double * py = vecPtr(m_yv) + start;
-      x0 = *min_element(px, px + numV); x1 = *max_element(px, px + numV);
-      y0 = *min_element(py, py + numV); y1 = *max_element(py, py + numV);
+      x0 = *std::min_element(px, px + numV); x1 = *std::max_element(px, px + numV);
+      y0 = *std::min_element(py, py + numV); y1 = *std::max_element(py, py + numV);
     }
     xll.push_back(x0); xur.push_back(x1);
     yll.push_back(y0); yur.push_back(y1);
@@ -244,9 +243,9 @@ void dPoly::clipPoly(// inputs
   const double * yv               = get_yv();
   const int    * numVerts         = get_numVerts();
   int numPolys                    = get_numPolys();
-  const vector<char> isPolyClosed = get_isPolyClosed();
-  const vector<string> colors     = get_colors();
-  const vector<string> layers     = get_layers();
+  const std::vector<char> isPolyClosed = get_isPolyClosed();
+  const std::vector<std::string> colors     = get_colors();
+  const std::vector<std::string> layers     = get_layers();
 
   int start = 0;
   for (int pIter = 0; pIter < numPolys; pIter++) {
@@ -254,11 +253,11 @@ void dPoly::clipPoly(// inputs
     if (pIter > 0) start += numVerts[pIter - 1];
 
     int  isClosed = isPolyClosed [pIter];
-    string color  = colors       [pIter];
-    string layer  = layers       [pIter];
+    std::string color  = colors       [pIter];
+    std::string layer  = layers       [pIter];
 
-    vector<double> cutXv, cutYv;
-    vector<int> cutNumVerts;
+    std::vector<double> cutXv, cutYv;
+    std::vector<int> cutNumVerts;
     cutXv.clear(); cutYv.clear(); cutNumVerts.clear();
 
     if (m_isPointCloud) {
@@ -304,7 +303,7 @@ void dPoly::clipPoly(// inputs
 
   // Cutting inherits the annotations at the vertices of the uncut
   // polygons which are in the cutting box.
-  vector<anno> annotations, annoInBox;
+  std::vector<anno> annotations, annoInBox;
 
   for (int annoType = fileAnno; annoType < lastAnno; annoType++) {
 
@@ -365,7 +364,7 @@ void dPoly::rotate(double angle) { // The angle is given in degrees
     m_yv[i] = tmpy;
   }
 
-  vector<anno> annotations;
+  std::vector<anno> annotations;
   for (int annoType = fileAnno; annoType < lastAnno; annoType++) {
     get_annoByType(annotations, (AnnoType)annoType);
     for (int i = 0; i < (int)annotations.size(); i++) {
@@ -390,7 +389,7 @@ void dPoly::scale(double scale) {
     m_yv[i] *= scale;
   }
 
-  vector<anno> annotations;
+  std::vector<anno> annotations;
   for (int annoType = fileAnno; annoType < lastAnno; annoType++) {
 
     get_annoByType(annotations, (AnnoType)annoType);
@@ -471,7 +470,7 @@ void dPoly::applyTransform(double a11, double a12, double a21, double a22,
     m_yv[i] = y;
   }
 
-  vector<anno> annotations;
+  std::vector<anno> annotations;
   for (int annoType = fileAnno; annoType < lastAnno; annoType++) {
     get_annoByType(annotations, (AnnoType)annoType);
     for (int i = 0; i < (int)annotations.size(); i++) {
@@ -507,10 +506,10 @@ void dPoly::appendPolygons(const dPoly & poly) {
   const double * yv         = poly.get_yv();
   const int    * numVerts   = poly.get_numVerts();
   int numPolys              = poly.get_numPolys();
-  vector<char> isPolyClosed = poly.get_isPolyClosed();
-  vector<string> colors     = poly.get_colors();
-  vector<string> layers     = poly.get_layers();
-  vector<anno> annotations;  poly.get_annotations(annotations);
+  std::vector<char> isPolyClosed = poly.get_isPolyClosed();
+  std::vector<std::string> colors     = poly.get_colors();
+  std::vector<std::string> layers     = poly.get_layers();
+  std::vector<anno> annotations;  poly.get_annotations(annotations);
 
   int start = 0;
   for (int pIter = 0; pIter < numPolys; pIter++) {
@@ -518,8 +517,8 @@ void dPoly::appendPolygons(const dPoly & poly) {
     if (pIter > 0) start += numVerts[pIter - 1];
 
     bool isClosed = isPolyClosed [pIter];
-    string color  = colors       [pIter];
-    string layer  = layers       [pIter];
+    std::string color  = colors       [pIter];
+    std::string layer  = layers       [pIter];
     int pSize     = numVerts     [pIter];
 
     appendPolygon(pSize, xv + start, yv + start, isClosed, color, layer);
@@ -826,7 +825,7 @@ void dPoly::eraseOnePoly(int polyIndex) {
 
   assert(0 <= polyIndex && polyIndex < m_numPolys);
 
-  map<int, int> mark;
+  std::map<int, int> mark;
   mark[polyIndex] = 1;
   eraseMarkedPolys(mark);
 
@@ -1087,12 +1086,12 @@ void dPoly::sortFromLargestToSmallest(bool counter_cc) {
   using namespace dPoly_local_functions;
 
   // Find the bounding boxes of polygons
-  vector<double> xll, yll, xur, yur;
+  std::vector<double> xll, yll, xur, yur;
   bdBoxes(xll, yll, xur, yur);
 
   int numPolys = xll.size();
 
-  vector<ptAndIndex> boxDims;
+  std::vector<ptAndIndex> boxDims;
   int start = 0;
   boxDims.resize(numPolys);
   for (int s = 0; s < numPolys; s++) {
@@ -1107,16 +1106,16 @@ void dPoly::sortFromLargestToSmallest(bool counter_cc) {
   }
 
   // Sort the bounding boxes, this will tell us how to sort the polygons
-  sort(boxDims.begin(), boxDims.end(), greaterThanPtIndex);
+  std::sort(boxDims.begin(), boxDims.end(), greaterThanPtIndex);
 
   // Sort the polygons using auxiliary storage
 
-  vector<double> l_xv           = m_xv;
-  vector<double> l_yv           = m_yv;
-  vector<int>    l_numVerts     = m_numVerts;
-  vector<char>   l_isPolyClosed = m_isPolyClosed;
-  vector<string> l_colors       = m_colors;
-  vector<string> l_layers       = m_layers;
+  std::vector<double> l_xv           = m_xv;
+  std::vector<double> l_yv           = m_yv;
+  std::vector<int>    l_numVerts     = m_numVerts;
+  std::vector<char>   l_isPolyClosed = m_isPolyClosed;
+  std::vector<std::string> l_colors       = m_colors;
+  std::vector<std::string> l_layers       = m_layers;
 
   for (int s = 0; s < numPolys; s++) {
     int index          = boxDims[s].index;
@@ -1162,8 +1161,8 @@ void dPoly::sortBySizeAndMaybeAddBigContainingRect(// inputs
   const double         * xv       = get_xv();
   const double         * yv       = get_yv();
   const int            * numVerts = get_numVerts();
-  const vector<string> & colors   = get_colors();
-  const vector<string> & layers   = get_layers();
+  const std::vector<std::string> & colors   = get_colors();
+  const std::vector<std::string> & layers   = get_layers();
 
   double signedArea = signedPolyArea(numVerts[0], xv, yv, counter_cc);
 
@@ -1223,9 +1222,9 @@ bool dPoly::readPoly(std::string filename,
 
   // To do: The test below will succeed if filename is a directory.
   // This is probably not right.
-  ifstream fh(filename.c_str());
+  std::ifstream fh(filename.c_str());
   if (!fh) {
-    cerr << "Error: Could not open " << filename << endl;
+    std::cerr << "Error: Could not open " << filename << std::endl;
     return false;
   }
 
@@ -1233,8 +1232,8 @@ bool dPoly::readPoly(std::string filename,
   int beg = 0, end = 0;
 
   anno annotation;
-  string layer, line;
-  string color = "yellow"; // default color for polygons
+  std::string layer, line;
+  std::string color = "yellow"; // default color for polygons
 
   while (getline(fh, line)) {
 
@@ -1274,7 +1273,7 @@ bool dPoly::readPoly(std::string filename,
 
     // Extract the coordinates of the current vertex and the layer
     // The format we expect is: x y ; layerNo (e.g., 2.3 -1.2 ; 5:16)
-    istringstream iss_xy (line);
+    std::istringstream iss_xy (line);
     double x, y;
     if (iss_xy >> x >> y) {
 
@@ -1295,8 +1294,8 @@ bool dPoly::readPoly(std::string filename,
     // "next" statement, or if we treat a polygon as just a set of
     // points (point cloud) then close the current polygon and start a
     // new one.
-    istringstream iss_next(line);
-    string val;
+    std::istringstream iss_next(line);
+    std::string val;
     bool isLastVertexOfCurrPoly = (isLastLine                               ||
                                    ((iss_next >> val) && (val == "next")) ||
                                    isPointCloud
@@ -1344,7 +1343,7 @@ void dPoly::writePoly(std::string const& filename, std::string const& defaultCol
 
   std::ofstream out(filename.c_str());
   if (!out.is_open()) {
-    cerr << "Error: Could not write: " << filename << endl;
+    std::cerr << "Error: Could not write: " << filename << std::endl;
     return;
   }
 
@@ -1356,7 +1355,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
 
   out.precision(17);
   
-  string color = defaultColor, prevColor = defaultColor;
+  std::string color = defaultColor, prevColor = defaultColor;
 
   int start = 0, annoCount = 0;
   for (int pIter = 0; pIter < m_numPolys; pIter++) { // iterate over polygons
@@ -1367,10 +1366,10 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
     if (pIter < (int)m_colors.size())
       color = m_colors[pIter];
     if (color != prevColor || pIter == 0)
-      out << "color = " << color << endl;
+      out << "color = " << color << std::endl;
     prevColor = color;
 
-    string layer = "";
+    std::string layer = "";
     if (pIter < (int)m_layers.size()) layer = m_layers[pIter];
     if (!layer.empty()) layer = " ; " + layer;
 
@@ -1380,7 +1379,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
     for (int vIter = 0; vIter < m_numVerts[pIter]; vIter++) { // iterate over vertices
 
       int pos = start + vIter;
-      out << m_xv[pos] << ' ' << m_yv[pos] << layer << endl;
+      out << m_xv[pos] << ' ' << m_yv[pos] << layer << std::endl;
 
       // Put one annotation for each vertex, if possible
       if (annoCount < (int)m_annotations.size()) {
@@ -1397,7 +1396,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
       // Repeat last vertex for closed poly
     
       assert(m_numVerts[pIter] > 0);
-     out << m_xv[start] << ' ' << m_yv[start] << layer << endl;
+     out << m_xv[start] << ' ' << m_yv[start] << layer << std::endl;
     }
 #endif
     
@@ -1408,7 +1407,7 @@ void dPoly::writePoly(std::ofstream & out, std::string const& defaultColor,
       if (emptyLineAsSeparator)
         out <<"\n";
       else
-        out << "NEXT" << endl;
+        out << "NEXT" << std::endl;
     }
   }
 
@@ -1427,8 +1426,8 @@ bool dPoly::getColorInCntFile(const std::string & line, std::string & color) {
   // Minor function. Out of the line: "#Color = #ff00" return the string "#ff00"
   // and append "00" to it to make it a valid color.
 
-  istringstream iss(line);
-  string equal, colorTag;
+  std::istringstream iss(line);
+  std::string equal, colorTag;
   if (! (iss >> colorTag >> equal >> color)) return false;
   if (colorTag != "#Color" && colorTag != "#color") return false;
   while (color[0] == '#' && color.size() < 7) color += "0";
@@ -1444,15 +1443,15 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
 
   assert(type == "pol" || type == "cnt");
 
-  string color = "yellow";
-  string layer = "";
+  std::string color = "yellow";
+  std::string layer = "";
 
   reset();
   m_isPointCloud = isPointCloud;
 
-  ifstream fh(filename.c_str());
+  std::ifstream fh(filename.c_str());
   if(!fh) {
-    cerr << "Could not open " << filename << endl;
+    std::cerr << "Could not open " << filename << std::endl;
     return false;
   }
 
@@ -1460,9 +1459,9 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
   while (1) {
     char c = fh.peek();
     if (c != '#' && c != '!') break;
-    string line;
+    std::string line;
     getline(fh, line);
-    string lColor;
+    std::string lColor;
     if (getColorInCntFile(line, lColor)) color = lColor;
   }
 
@@ -1481,9 +1480,9 @@ bool dPoly::read_pol_or_cnt_format(std::string filename,
     }else{
       // Extract the number of vertices and/or color for cnt file.
       // Skip lines with comments.
-      string line;
+      std::string line;
       if (!getline(fh, line)) return true;
-      string lColor; if (getColorInCntFile(line, lColor)) color = lColor;
+      std::string lColor; if (getColorInCntFile(line, lColor)) color = lColor;
       if (!line.empty() && line[0] == '#') continue;
       numVerts = int(atof(line.c_str()));
     }
@@ -1553,7 +1552,7 @@ void dPoly::buildGrid(double xl, double yl, double xh, double yh,
   reset();
 
   if (gridSize <= 0) {
-    cerr << "Must have positive grid size." << endl;
+    std::cerr << "Must have positive grid size." << std::endl;
     return;
   }
 
@@ -1563,7 +1562,7 @@ void dPoly::buildGrid(double xl, double yl, double xh, double yh,
   int nx = (int)ceil((xh - xl)/gridSize);
   int ny = (int)ceil((yh - yl)/gridSize);
 
-  string layer = "";
+  std::string layer = "";
   bool isPolyClosed = true;
 
   for (int i = 0; i <= nx; i++) {
@@ -1669,7 +1668,7 @@ void dPoly::eraseMarkedPolys(std::map<int, int> const& mark) {
   // Erase the polygons matching the given mark.
   // See also the function named eraseOnePoly().
 
-  vector<char> dmark, imark;
+  std::vector<char> dmark, imark;
   dmark.assign(m_totalNumVerts, 0);
   imark.assign(m_numPolys, 0);
 
@@ -1700,7 +1699,7 @@ void dPoly::eraseMarkedPolys(std::map<int, int> const& mark) {
 }
 
 void dPoly::eraseMarkedAnnos(std::map<int, int> const& mark) {
-  vector<char> amark;
+  std::vector<char> amark;
   amark.assign(m_annotations.size(), 0);
   for (size_t it = 0; it < m_annotations.size(); it++) {
     if (mark.find(it) == mark.end()) continue;
@@ -1712,14 +1711,14 @@ void dPoly::eraseMarkedAnnos(std::map<int, int> const& mark) {
 
 void dPoly::erasePolysIntersectingBox(double xll, double yll, double xur, double yur) {
 
-  map<int, int> mark;
+  std::map<int, int> mark;
   markPolysIntersectingBox(xll, yll, xur, yur, // Inputs
                            mark);              // Outputs
   eraseMarkedPolys(mark);
 }
 
 void dPoly::eraseAnnosIntersectingBox(double xll, double yll, double xur, double yur) {
-  map<int, int> amark;
+  std::map<int, int> amark;
   markAnnosIntersectingBox(xll, yll, xur, yur, // Inputs
                            amark);             // Outputs
   eraseMarkedAnnos(amark);

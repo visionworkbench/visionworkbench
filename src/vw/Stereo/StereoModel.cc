@@ -25,7 +25,6 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Core/Exception.h>
-using namespace std;
 
 namespace vw {
 
@@ -50,7 +49,7 @@ namespace vw {
 
   
 // Constructor with n cameras
-StereoModel::StereoModel(vector<const vw::CameraModel *> const& cameras,
+StereoModel::StereoModel(std::vector<const vw::CameraModel *> const& cameras,
                          double angle_tol):
   m_cameras(cameras),
   m_angle_tol(angle_tol) {}
@@ -94,7 +93,7 @@ bool StereoModel::are_nearly_parallel(double angle_tol,
 
 // Note: Classes RPCStereoModel and BathyStereoModel inherit from this
 // class and re-implement this function.
-Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
+Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
                                 Vector3& errorVec) const {
   
   // Initialize the outputs
@@ -107,7 +106,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
   
   try {
 
-    vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
+    std::vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
     camDirs.clear(); camCtrs.clear();
     
     // Pick the valid rays
@@ -146,7 +145,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
   return Vector3();
 }
 
-Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
+Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
                                 double& error) const {
   Vector3 errorVec;
   Vector3 result = operator()(pixVec, errorVec);
@@ -156,7 +155,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
   
 Vector3 StereoModel::operator()(Vector2 const& pix1,
                                 Vector2 const& pix2, Vector3& errorVec) const {
-  vector<Vector2> pixVec;
+  std::vector<Vector2> pixVec;
   pixVec.push_back(pix1);
   pixVec.push_back(pix2);
   return operator()(pixVec, errorVec); 
@@ -184,8 +183,8 @@ double StereoModel::robust_1_minus_cos(double x){
   return x*x/2;
 }
   
-Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
-                                       vector<Vector3> const& camCtrs,
+Vector3 StereoModel::triangulate_point(std::vector<Vector3> const& camDirs,
+                                       std::vector<Vector3> const& camCtrs,
                                        Vector3& errorVec){
   
 
@@ -304,7 +303,7 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
 
   vw_out() << "\tStereoModel computing points: Done.                  \n";
   vw_out() << "\tMean error = " << mean_error/double(point_count)
-           << ",  Max error = " << max_error << endl;
+           << ",  Max error = " << max_error << std::endl;
     return xyz;
 }
   

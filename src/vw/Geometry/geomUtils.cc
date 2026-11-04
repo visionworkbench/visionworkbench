@@ -28,7 +28,6 @@
 
 namespace vw {
 
-using namespace std;
 
 std::ostream& operator<<(std::ostream& os, const anno& A) {
   os << A.x << ' ' << A.y << ' ' << A.label << std::endl;
@@ -109,9 +108,9 @@ void snapPolyLineTo45DegAngles(bool isClosedPolyLine,
     if (xv[v] != round(xv[v]) ||
          yv[v] != round(yv[v]) ||
          !(dx == 0 || dy == 0 || std::abs(dx) == std::abs(dy))) {
-      cerr << "Error: Expecting integer vertices with 45 degree angles."  << endl;
-      cerr << "Instead, got the vector (" << dx << ", " << dy << ") "
-           << "with starting point " << xv[v] << ' ' << yv[v] << endl;
+      std::cerr << "Error: Expecting integer vertices with 45 degree angles."  << std::endl;
+      std::cerr << "Instead, got the vector (" << dx << ", " << dy << ") "
+           << "with starting point " << xv[v] << ' ' << yv[v] << std::endl;
     }
   }
 
@@ -231,14 +230,14 @@ bool searchForColor(std::string lineStr, // input, not a reference on purpose
   char * pch = strtok (start, delimiter);
   if (pch == NULL) return false;
 
-  color = string(pch);
+  color = std::string(pch);
   int numColors = sizeof(xgraph_colors)/sizeof(char*);
 
   // If the color is given as a number, per xgraph's conventions
   // (e.g., red is color 2), convert that number to the color name.
   if ('0' <= pch[0] && pch[0] <= '9') {
     int colorIndex = atoi(pch)%numColors;
-    color = string(xgraph_colors[colorIndex]);
+    color = std::string(xgraph_colors[colorIndex]);
   }
 
   if (!color.empty()) 
@@ -253,8 +252,8 @@ bool searchForAnnotation(std::string lineStr, anno & annotation) {
   // anno xval yval label
   // Return true on success.
 
-  istringstream iss (lineStr);
-  string an, label;
+  std::istringstream iss (lineStr);
+  std::string an, label;
   double x, y;
 
   if ((!(iss >> an >> x >> y)) || an != "anno") {
@@ -293,7 +292,7 @@ void searchForLayer(std::string   lineStr, // input
 
   int l2 = atoi(start2);
 
-  ostringstream strout;
+  std::ostringstream strout;
   strout << l1 << ':' << l2;
   layer = strout.str();
 

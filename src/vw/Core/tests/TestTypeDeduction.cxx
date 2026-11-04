@@ -20,7 +20,6 @@
 #include <vw/Core/TypeDeduction.h>
 
 using namespace vw;
-using namespace std;
 
 // These tests generated with this python script (requires >= python 2.7):
 #if 0
