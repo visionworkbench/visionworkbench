@@ -886,4 +886,3 @@ namespace vw { namespace stereo {
   } // End function prerasterize
 
 }} // namespace stereo
-

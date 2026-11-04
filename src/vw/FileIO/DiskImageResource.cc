@@ -292,4 +292,3 @@ vw::Vector2i vw::file_image_size( std::string const& input ) {
   Vector2i size( rsrc->cols(), rsrc->rows() );
   return size;
 }
-

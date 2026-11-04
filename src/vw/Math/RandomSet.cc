@@ -76,4 +76,3 @@ namespace math{
   }
   
 }} // End namespace vw::math
-

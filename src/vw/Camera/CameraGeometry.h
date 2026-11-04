@@ -37,7 +37,7 @@
 namespace vw {
 
 // Forward Declare
-namespace ip { struct InterestPoint; }
+struct InterestPoint;
 
 namespace camera {
 
@@ -49,7 +49,7 @@ namespace camera {
     return Vector3( v[0], v[1], v[2] );
   }
   template <>
-  Vector3 Convert2HomogenousVec2( ip::InterestPoint const& ip );
+  Vector3 Convert2HomogenousVec2( vw::InterestPoint const& ip );
 
   // Measurement Prep Functors
   struct SimilarityNormalizingFunctor {

@@ -31,7 +31,6 @@
 #include <deque>
 
 namespace vw {
-namespace ip {
 
 /// InterestDetector implementation for all detectors with operate off of an integral image.
 class IntegralInterestPointDetector:
@@ -77,7 +76,7 @@ public:
 
   static const int IP_DEFAULT_SCALES = 8;
   typedef vw::ImageView<float> ImageT;
-  typedef vw::ip::ImageInterestData<ImageT, vw::ip::OBALoGInterestOperator> DataT;
+  typedef vw::ImageInterestData<ImageT, vw::OBALoGInterestOperator> DataT;
 
   IntegralAutoGainDetector(size_t max_points = 200, size_t scales = IP_DEFAULT_SCALES):
     IntegralAutoGainDetector(OBALoGInterestOperator(0), scales, max_points) {}
@@ -96,12 +95,12 @@ protected:
   int m_scales, m_max_points;
 
   // Helper function
-  void threshold(vw::ip::InterestPointList& points,
+  void threshold(vw::InterestPointList& points,
                  DataT const& img_data,
                  int const& scale, float threshold_lvl) const;
   
 }; // End class IntegralAutoGainDetector
 
-}} // end vw::ip
+} // namespace vw
 
 #endif//__VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__

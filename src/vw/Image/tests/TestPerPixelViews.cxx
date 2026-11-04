@@ -322,4 +322,3 @@ TEST( PerPixelView, UnaryIndex ) {
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>(ppv) );
   ASSERT_TRUE( bool_trait<IsImageView>(ppv) );
 }
-

@@ -27,7 +27,7 @@
 #include <vw/Image/Filter.h>
 #include <vector>
 
-namespace vw { namespace ip {
+namespace vw {
 
 /// Construct a 2D Gaussian kernel. This is templatized so that kernel
 /// could be any 2D array that provides the appropriate accessors and
@@ -50,6 +50,6 @@ int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
   return 0;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif

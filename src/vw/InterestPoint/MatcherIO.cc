@@ -32,7 +32,7 @@
 
 namespace fs = boost::filesystem;
 
-namespace vw { namespace ip {
+namespace vw {
 
 // The file system limit on the length of a single path component is 255 bytes
 // on most file systems. Budget the generated names against this, with a margin.
@@ -531,4 +531,4 @@ void read_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
     read_binary_match_file(match_file, ip1, ip2);
 }
 
-}} // namespace vw::ip
+} // namespace vw

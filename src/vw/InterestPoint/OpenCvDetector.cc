@@ -46,7 +46,6 @@
 #include <vw/Image/Manipulation.h>
 
 namespace vw {
-namespace ip {
 
 void get_opencv_wrapper(vw::ImageViewRef<float> const& input_image,
                         cv::Mat & cv_image,
@@ -263,6 +262,6 @@ OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
   return ip_list;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // End case with OpenCV installed

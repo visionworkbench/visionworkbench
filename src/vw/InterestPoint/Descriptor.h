@@ -33,7 +33,6 @@
 #include <vw/InterestPoint/DetectorBase.h>
 
 namespace vw {
-namespace ip {
 
 /// Base class for interest point description generator classes.
 /// - Use these classes to generate descriptions of detected interest points.
@@ -470,6 +469,6 @@ void SGradDescriptorGenerator::compute_descriptor(ImageViewBase<ViewT> const& su
     (*first) *= sqr_length_inv;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif //__VW_INTERESTPOINT_DESCRIPTOR_H__

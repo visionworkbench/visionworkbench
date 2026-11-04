@@ -36,7 +36,6 @@
 #endif
 
 namespace vw {
-namespace ip {
 
   //======================================================================
   // Interest Point distance metrics
@@ -130,6 +129,6 @@ namespace ip {
                          std::vector<InterestPoint>& ip2);
 
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // _INTEREST_POINT_MATCHER_H_

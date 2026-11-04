@@ -44,7 +44,6 @@
 #include <iterator>
 
 namespace vw {
-namespace ip {
 
   /// This class performs interest point detection on a source image
   /// without using scale space methods.
@@ -437,6 +436,6 @@ int ScaledInterestPointDetector<InterestT>::write_images(std::vector<DataT> cons
   return 0;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // __VW_INTEREST_POINT_INTEREST_POINT_DETECTOR_H__

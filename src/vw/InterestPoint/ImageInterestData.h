@@ -37,7 +37,7 @@
 #include <opencv2/features2d.hpp>
 #endif
 
-namespace vw { namespace ip {
+namespace vw {
 
   /// ImageInterestData
   ///
@@ -140,6 +140,6 @@ namespace vw { namespace ip {
     const integral_type *m_integral;
   }; // End class ImageInterestData
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif //__IMAGE_INTEREST_DATA_H__

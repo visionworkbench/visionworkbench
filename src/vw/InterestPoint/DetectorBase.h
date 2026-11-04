@@ -41,7 +41,6 @@
 #include <iterator>
 
 namespace vw {
-namespace ip {
 
   /// A CRTP InterestDetector base class.
   ///
@@ -331,6 +330,6 @@ InterestPointList detect_interest_points(vw::ImageViewRef<float> const& view,
   return ip_list;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // __VW_INTEREST_POINT_DETECTOR_BASE_H__

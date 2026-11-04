@@ -48,7 +48,6 @@
 #include <vw/FileIO/GdalWriteOptionsDesc.h>
 
 using namespace vw;
-using namespace vw::ip;
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -436,7 +435,7 @@ int main(int argc, char** argv) {
     } else {
       // Shorten the name if needed to fit the file system limit. This shares
       // the logic with the rest of ASP. See the match file naming docs.
-      std::string vwip_file = vw::ip::shorten_vwip_name(file_prefix);
+      std::string vwip_file = vw::shorten_vwip_name(file_prefix);
       vw_out() << "Writing output file " << vwip_file << std::endl;
       write_binary_ip_file(vwip_file, ip);
     }

@@ -35,7 +35,6 @@
 #include <vw/InterestPoint/InterestPoint.h>
 
 namespace vw {
-namespace ip {
 
 
 // TODO: Should this move to InterestOperator.h?
@@ -163,6 +162,6 @@ namespace ip {
 
 
 
-}} // end vw::ip
+} // namespace vw
 
 #endif//__VW_INTEGRAL_INTEREST_OPERATOR_H__

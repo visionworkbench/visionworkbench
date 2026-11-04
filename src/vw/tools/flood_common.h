@@ -124,4 +124,3 @@ double compute_earth_sun_distance(int year, int month, int day, int hour, int mi
 } // end namespace vw
 
 #endif
-

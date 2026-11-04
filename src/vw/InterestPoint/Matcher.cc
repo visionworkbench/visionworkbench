@@ -28,7 +28,7 @@
 
 #include <set>
 
-namespace vw { namespace ip {
+namespace vw {
 
 //==================================================================================
 // IP descriptor distance metrics
@@ -374,4 +374,4 @@ template class InterestPointMatcher<HammingMetric>;
 template class InterestPointMatcherSimple<L2NormMetric>;
 template class InterestPointMatcherSimple<HammingMetric>;
 
-}} // namespace vw::ip
+} // namespace vw

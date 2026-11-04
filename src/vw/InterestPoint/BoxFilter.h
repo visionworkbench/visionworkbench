@@ -32,7 +32,6 @@
 #include <vw/Image/EdgeExtension.h>
 
 namespace vw {
-namespace ip {
 
   // Defining Box Filter Object
   // _____________________________________________________________
@@ -131,7 +130,6 @@ namespace ip {
     return BoxFilterView<ImageT>( integral.impl(), box );
   }
 
-}}
+}
 
 #endif//__VW_INTERESTPOINT_BOX_FILTER_H__
-

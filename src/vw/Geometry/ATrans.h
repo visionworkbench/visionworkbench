@@ -189,4 +189,3 @@ namespace vw
 }
 
 #endif // vw_geometry_ATrans_h
-

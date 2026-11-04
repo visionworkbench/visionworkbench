@@ -337,4 +337,3 @@ uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int 
 }
 
 } // end namespace vw
-

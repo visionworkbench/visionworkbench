@@ -506,4 +506,3 @@ void vw::DiskImageResourceTIFF::check_retval(const int retval, const int error_v
     vw_throw( vw::IOErr() << "check_retval: " << tiff_error_msg );
   }
 }
-

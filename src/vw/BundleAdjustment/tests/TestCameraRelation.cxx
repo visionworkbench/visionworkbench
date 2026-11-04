@@ -27,7 +27,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::ip;
 using namespace vw::ba;
 
 class CircleTest : public ::testing::Test {
@@ -116,5 +115,3 @@ TEST_F( CircleTest, JFeature ) {
   EXPECT_EQ( list.size(), 4u );
 
 }
-
-

@@ -145,4 +145,3 @@ namespace math {
 }
 
 #endif /* __VW_MATH_PARTICLE_SWARM_OPTIMIZATION_H__ */
-

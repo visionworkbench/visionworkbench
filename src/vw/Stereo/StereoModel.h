@@ -118,4 +118,3 @@ namespace stereo {
 }}      // namespace vw::stereo
 
 #endif  // __VW_STEREO_STEREOMODEL_H__
-

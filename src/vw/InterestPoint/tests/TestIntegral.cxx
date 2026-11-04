@@ -27,7 +27,6 @@
 #include <vw/FileIO/DiskImageIO.h>
 
 using namespace vw;
-using namespace vw::ip;
 
 TEST( Integral, IntegralSumming ) {
   ImageView<float> graffiti;

@@ -442,4 +442,3 @@ void processPointsOnCutline(std::vector<valIndex> & ptsOnCutline){
 }
 
 }}
-

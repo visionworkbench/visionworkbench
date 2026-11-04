@@ -22,7 +22,6 @@
 #include <vw/InterestPoint/InterestPoint.h>
 #include <fstream>
 namespace vw {
-namespace ip {
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
@@ -103,7 +102,7 @@ std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& ipli
 
 /// Helpful functors
 void remove_descriptor(InterestPoint & ip) {
-  ip.descriptor = ip::InterestPoint::descriptor_type(); // this should free up the memory
+  ip.descriptor = vw::InterestPoint::descriptor_type(); // this should free up the memory
 }
 
 /// Generates a human readable string
@@ -119,4 +118,4 @@ std::string InterestPoint::to_string() const {
   return s.str();
 }
 
-}} // namespace vw::ip
+} // namespace vw

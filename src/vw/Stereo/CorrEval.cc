@@ -317,4 +317,3 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
 }
   
 }} // end namespace vw::stereo
-

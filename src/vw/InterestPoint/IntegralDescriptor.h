@@ -30,7 +30,6 @@
 #include <vw/InterestPoint/IntegralImage.h>
 
 namespace vw {
-namespace ip {
 
   // Simple Scaled Gradient Descriptor (v2), using integral images. Descriptors
   // rotate and scale their own response rather than cropping the image.
@@ -174,6 +173,6 @@ namespace ip {
 
   // -- held for the moment --
 
-}}
+}
 
 #endif//__VW_INTERESTPOINT_INTEGRAL_DESCRIPTOR_H__

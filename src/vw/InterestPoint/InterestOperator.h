@@ -33,7 +33,6 @@
 #include <vw/InterestPoint/ImageInterestData.h>
 
 namespace vw {
-namespace ip {
 
   // These various InterestOperator classes (and the one on IntegralInterestOperator.h)
   //  all conform to a class pattern but do not derive from anything.
@@ -114,6 +113,6 @@ namespace ip {
   /// Type traits for Log interest
   template <> struct InterestPeakType <LogInterestOperator> { static const int peak_type = IP_MINMAX; };
 
-}} //namespace vw::ip
+} // namespace vw
 
 #endif // __VW_INTERESTPOINT_INTERESTVIEW_H__

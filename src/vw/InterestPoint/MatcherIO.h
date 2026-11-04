@@ -28,7 +28,6 @@
 #include <vector>
 
 namespace vw {
-namespace ip {
 
   /// Return the basename with no extension, and shorten it if need be.
   /// If filename starts with out_prefix followed by dash, strip those.
@@ -81,6 +80,6 @@ namespace ip {
   void read_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                        std::vector<InterestPoint> &ip2, bool plain_text);
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // _INTEREST_POINT_MATCHER_IO_H_

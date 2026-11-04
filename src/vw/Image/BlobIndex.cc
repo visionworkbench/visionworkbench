@@ -582,4 +582,3 @@ BlobIndexThreaded::const_bbox_iterator
 BlobIndexThreaded::bbox_end() const { return m_blob_bbox.end(); }
 
 } // end namespace vw
-

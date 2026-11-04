@@ -47,5 +47,3 @@ TEST(InpaintView, compile) {
   InpaintView< ImageView<PixelMask<uint8> > > ipView( dummy, bindex, true, PixelMask<uint8>());
   
 }
-
-

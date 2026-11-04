@@ -26,7 +26,6 @@
 #include <algorithm>
 
 using namespace vw;
-using namespace vw::ip;
 
 TEST( Matcher, IPComparison ) {
   std::vector<InterestPoint> ip_list;
@@ -113,5 +112,3 @@ TEST( Matcher, Matcher ) {
 
   EXPECT_EQ( matched_indexes[0], 3 );
 }
-
-

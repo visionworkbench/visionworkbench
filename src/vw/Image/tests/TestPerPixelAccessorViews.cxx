@@ -122,5 +122,3 @@ TEST(PixelIterator, PixelLineIterator) {
   EXPECT_VECTOR_EQ(Vector2i(10, 0), *line); line++;
   EXPECT_FALSE(line.is_good());
 }
-
-

@@ -768,5 +768,3 @@ std::ostream& operator<<(std::ostream& str,
 
 } // end namespace camera
 } // end namespace vw
-
-

@@ -48,7 +48,6 @@
 #include <iostream>
 
 using namespace vw;
-using namespace vw::ip;
 
 #include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
@@ -150,14 +149,14 @@ void mergeMatchFiles(std::vector<std::string> const& files,
   }
 
   // Index by left ip x and y to avoid repetition
-  std::map<std::pair<double, double>, std::pair<vw::ip::InterestPoint, vw::ip::InterestPoint>>
+  std::map<std::pair<double, double>, std::pair<vw::InterestPoint, vw::InterestPoint>>
     ip_map;
 
   for (size_t file_it = 0; file_it + 1 < files.size(); file_it++) {
     std::cout << "Reading: " << files[file_it] << std::endl;
 
-    std::vector<vw::ip::InterestPoint> left_ip, right_ip;
-    vw::ip::read_binary_match_file(files[file_it], left_ip, right_ip);
+    std::vector<vw::InterestPoint> left_ip, right_ip;
+    vw::read_binary_match_file(files[file_it], left_ip, right_ip);
     for (size_t ip_it = 0; ip_it < left_ip.size(); ip_it++) {
 
       ip_map[std::make_pair(left_ip[ip_it].x, left_ip[ip_it].y)] =
@@ -165,7 +164,7 @@ void mergeMatchFiles(std::vector<std::string> const& files,
     }
   }
 
-  std::vector<vw::ip::InterestPoint> left_ip(ip_map.size()), right_ip(ip_map.size());
+  std::vector<vw::InterestPoint> left_ip(ip_map.size()), right_ip(ip_map.size());
   int count = 0;
   for (auto it = ip_map.begin(); it != ip_map.end(); it++) {
     left_ip[count] = (it->second).first;
@@ -272,11 +271,11 @@ int main(int argc, char** argv) {
     }
     // This logic handles both cases. The read and write functions will check
     // the extensions of the input and output files for correctness.
-    std::vector<vw::ip::InterestPoint> ip1, ip2;
+    std::vector<vw::InterestPoint> ip1, ip2;
     vw_out() << "Reading: " << input_file_names[0] << "\n";
-    vw::ip::read_match_file(input_file_names[0], ip1, ip2, txt_to_binary);
+    vw::read_match_file(input_file_names[0], ip1, ip2, txt_to_binary);
     vw_out() << "Writing: " << input_file_names[1] << "\n";
-    vw::ip::write_match_file(input_file_names[1], ip1, ip2, binary_to_txt);
+    vw::write_match_file(input_file_names[1], ip1, ip2, binary_to_txt);
     return 0;
   }
 
@@ -316,7 +315,7 @@ int main(int argc, char** argv) {
   if (vwip_paths.empty()) {
     for (size_t it = 0; it < image_paths.size(); it++) {
       std::string path_no_ext = fs::path(image_paths[it]).replace_extension("").string();
-      vwip_paths.push_back(vw::ip::shorten_vwip_name(path_no_ext));
+      vwip_paths.push_back(vw::shorten_vwip_name(path_no_ext));
     }
   }
   
@@ -445,8 +444,8 @@ int main(int argc, char** argv) {
         final_ip2.push_back(matched_ip2[index]);
       }
 
-      std::string match_file = vw::ip::match_filename(output_prefix, image_paths[i],
-                                                      image_paths[j], matches_as_txt);
+      std::string match_file = vw::match_filename(output_prefix, image_paths[i],
+                                                  image_paths[j], matches_as_txt);
 
       vw::create_out_dir(match_file);
 

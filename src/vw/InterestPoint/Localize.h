@@ -29,7 +29,6 @@
 #include <vw/Math/Vector.h>
 
 namespace vw {
-namespace ip {
 
   /// Fits a quadratic curve to three samples to compute the
   /// subpixel shift to the fitted peak.
@@ -136,6 +135,6 @@ namespace ip {
     return true;
   }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // __INTERESTPOINT_LOCALIZE_H__

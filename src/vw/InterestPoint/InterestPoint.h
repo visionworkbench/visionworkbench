@@ -39,7 +39,7 @@
 #include <opencv2/features2d.hpp>
 #endif
 
-namespace vw { namespace ip {
+namespace vw {
 
   /// A class for storing information about an interest point.
   struct InterestPoint {
@@ -161,6 +161,6 @@ namespace vw { namespace ip {
     }
   }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif //__INTEREST_POINT_H__

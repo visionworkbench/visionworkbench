@@ -19,7 +19,6 @@
 #include <cmath>
 
 namespace vw {
-namespace ip {
 
 /// Using an integral image, compute the summed value of a region
 /// in the original image.
@@ -53,4 +52,4 @@ IntegralBlock(ImageView<float> const& integral,
   return result;
 }
 
-}} // end namespace vw::ip
+} // namespace vw

@@ -22,7 +22,6 @@
 #include <vw/InterestPoint/MatcherIO.h>
 
 using namespace vw;
-using namespace vw::ip;
 using namespace vw::test;
 
 TEST( InterestData, VWIP_IO_Loop ) {

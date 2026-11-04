@@ -23,7 +23,6 @@
 #include <vw/InterestPoint/IntegralInterestOperator.h>
 
 namespace vw {
-namespace ip {
 
   const double OBALoGInterestOperator::SCALE_LOG_SIGMA[10] = {1.2, 1.5, 1.875, 2.34375, 2.9296875, 3.662109, 4.577636, 5.722046, 7.152557, 8.9406967};
   const int OBALoGInterestOperator::SCALE_BOX_WIDTH[10][6] =
@@ -60,5 +59,4 @@ namespace ip {
      {1,-1,1,-1,1,-1}, // S 8
      {1,-1,1,-1,1,-1}};// S 9
 
-}
 }

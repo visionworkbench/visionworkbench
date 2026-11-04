@@ -53,7 +53,7 @@ namespace {
 const int MAX_TRI_FAILURE_WARNINGS = 100;
 
 // Utility for checking that the point is BA safe
-void safe_measurement(ip::InterestPoint& ip) {
+void safe_measurement(vw::InterestPoint& ip) {
   if (ip.scale <= 0) ip.scale = 10;
 }
 
@@ -277,7 +277,7 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
 }
 
 // Notation
-typedef std::pair<std::vector<ip::InterestPoint>, std::vector<ip::InterestPoint>> MATCH_PAIR;
+typedef std::pair<std::vector<vw::InterestPoint>, std::vector<vw::InterestPoint>> MATCH_PAIR;
 typedef std::map<std::pair<int, int>, MATCH_PAIR> MATCH_MAP;
 typedef std::tuple<double, double, double> ipTriplet; // (ip.x, ip.y, ip.scale)
 
@@ -311,8 +311,8 @@ void matchesToMvg(MATCH_MAP const& match_map,
       out_pair = std::make_pair(right_cid, left_cid);
 
     MATCH_PAIR const& match_pair = it->second;  // alias
-    std::vector<ip::InterestPoint> const& left_ip_vec = match_pair.first;
-    std::vector<ip::InterestPoint> const& right_ip_vec = match_pair.second;
+    std::vector<vw::InterestPoint> const& left_ip_vec = match_pair.first;
+    std::vector<vw::InterestPoint> const& right_ip_vec = match_pair.second;
     std::vector<IndMatch> mvg_matches;
     for (size_t ip_it = 0; ip_it < left_ip_vec.size(); ip_it++) {
       auto dist_left_ip  = ipTriplet(left_ip_vec[ip_it].x, left_ip_vec[ip_it].y,
@@ -508,7 +508,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   // Slots for the current chunk, filled in parallel (each thread writes its own).
   struct PairLoad {
-    std::vector<ip::InterestPoint> ip1, ip2;
+    std::vector<vw::InterestPoint> ip1, ip2;
     std::string err; // non-empty if the read threw, re-thrown serially below
   };
   std::vector<PairLoad> loaded;
@@ -529,7 +529,7 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
         int j;
         while ((j = next_file.fetch_add(1)) < chunk) {
           try {
-            ip::read_match_file(mf_vec[base + j].second, loaded[j].ip1, loaded[j].ip2,
+            vw::read_match_file(mf_vec[base + j].second, loaded[j].ip1, loaded[j].ip2,
                                 matches_as_txt);
           } catch (std::exception const& e) {
             // An exception must not escape the worker. Record, re-throw serially.
@@ -553,8 +553,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
       std::string const& match_file = mf_vec[base + j].second; // alias
       int index1 = pair_ind.first;
       int index2 = pair_ind.second;
-      std::vector<ip::InterestPoint>& ip1 = loaded[j].ip1; // alias
-      std::vector<ip::InterestPoint>& ip2 = loaded[j].ip2; // alias
+      std::vector<vw::InterestPoint>& ip1 = loaded[j].ip1; // alias
+      std::vector<vw::InterestPoint>& ip2 = loaded[j].ip2; // alias
 
       if (ip1.size() < min_matches) {
         vw_out(DebugMessage,"ba") << "\tRejecting " << match_file << " with "
@@ -568,8 +568,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
         vw_out() << "Match file " << match_file << " has " << ip1.size() << " matches.\n";
 
       // Remove descriptors from interest points and correct scale
-      std::for_each(ip1.begin(), ip1.end(), ip::remove_descriptor);
-      std::for_each(ip2.begin(), ip2.end(), ip::remove_descriptor);
+      std::for_each(ip1.begin(), ip1.end(), vw::remove_descriptor);
+      std::for_each(ip2.begin(), ip2.end(), vw::remove_descriptor);
       std::for_each(ip1.begin(), ip1.end(), safe_measurement);
       std::for_each(ip2.begin(), ip2.end(), safe_measurement);
 

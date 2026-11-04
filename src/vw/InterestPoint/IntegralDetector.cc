@@ -31,7 +31,6 @@
 #include <algorithm>
 
 namespace vw {
-namespace ip {
 
 /// This method of finding orientation is the same as described in SURF
 /// papers.
@@ -243,7 +242,7 @@ IntegralInterestPointDetector::process_image(vw::ImageViewRef<float> const& imag
 } // End function process_image
 
 // Helper function
-void IntegralAutoGainDetector::threshold(vw::ip::InterestPointList& points,
+void IntegralAutoGainDetector::threshold(vw::InterestPointList& points,
                                          DataT const& img_data,
                                          int const& scale, float threshold_lvl) const {
 
@@ -273,7 +272,7 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
   // Producing Integral Image
   ImageT integral_image;
   {
-    integral_image = ip::IntegralImage(original_image);
+    integral_image = vw::IntegralImage(original_image);
   }
 
   // Creating Scales
@@ -282,7 +281,7 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
   interest_data.push_back(DataT(empty_image, integral_image));
 
   // Priming scales
-  vw::ip::InterestPointList new_points;
+  vw::InterestPointList new_points;
   {
     m_interest(interest_data[0], 0);
   }
@@ -298,7 +297,7 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
       m_interest(interest_data[2], scale);
     }
 
-    vw::ip::InterestPointList scale_points;
+    vw::InterestPointList scale_points;
 
     // Detecting interest points in middle
     int32 cols = original_image.cols() - 2;
@@ -315,7 +314,7 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
       AccessT h_col = h_row;
       for (int32 c=0; c < cols; c++) {
         if (is_extrema(l_col, m_col, h_col)) {
-          scale_points.push_back(vw::ip::InterestPoint(c+1,r+1,
+          scale_points.push_back(vw::InterestPoint(c+1,r+1,
                                                     m_interest.float_scale(scale-1),
                                                     *m_col));
         }
@@ -363,5 +362,4 @@ IntegralAutoGainDetector::process_image(vw::ImageViewRef<float> const& image,
   return new_points;
 }
 
-}} // end vw::ip
-
+} // namespace vw

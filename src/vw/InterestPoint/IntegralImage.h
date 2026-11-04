@@ -30,7 +30,6 @@
 // TODO: Change the function names to meet the standard convention!
 
 namespace vw {
-namespace ip {
 
   /// Function to create an integral image of an input image.
   /// - Despite the caps, this is a function and IntegralImage is not a type!
@@ -147,6 +146,6 @@ namespace ip {
     return response;
   }
 
-}} // end namespace vw::ip
+} // namespace vw
 
 #endif // __VW_INTERESTPOINT_INTEGRALIMAGE_H__

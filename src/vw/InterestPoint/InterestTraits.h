@@ -26,7 +26,6 @@
 #include <vw/Image/ImageView.h>
 
 namespace vw {
-namespace ip {
 
   /// Type(s) of peak in the interest image that indicate a feature.
   enum { IP_MAX, IP_MIN, IP_MINMAX };
@@ -35,6 +34,6 @@ namespace ip {
   template <class InterestT>
   struct InterestPeakType { static const int peak_type = IP_MAX; };
 
-} } //namespace vw::ip
+} // namespace vw
 
 #endif

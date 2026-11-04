@@ -27,7 +27,6 @@
 #include <vw/InterestPoint/ImageOctave.h>
 
 namespace vw {
-namespace ip {
 
 // Do not search too close to image boundary.
 #define IP_BORDER_WIDTH (1)
@@ -278,6 +277,6 @@ namespace ip {
     return 0;
   }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // __INTERESTPOINT_EXTREMA_H__

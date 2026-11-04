@@ -67,4 +67,3 @@ void vw::TerminalProgressCallback::report_finished() const {
   VW_OUT(m_level, m_namespace) << "\r" << m_pre_progress_text
                                << "[" << p.str() << "]\n";
 }
-

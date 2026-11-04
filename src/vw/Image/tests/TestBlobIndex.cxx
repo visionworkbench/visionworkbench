@@ -120,6 +120,3 @@ TEST( BlobIndex, BlobSizesView ) {
   EXPECT_EQ(3,  output(5,3));
   EXPECT_EQ(0,  output(2,1));
 }
-
-
-

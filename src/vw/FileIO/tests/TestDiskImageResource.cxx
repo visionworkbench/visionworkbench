@@ -441,9 +441,3 @@ TEST( DiskImageResource, PNGComments ) {
     EXPECT_EQ( "Cow", read_rsrc.get_comment_value( 1 ) );
   }
 }
-
-
-
-
-
-

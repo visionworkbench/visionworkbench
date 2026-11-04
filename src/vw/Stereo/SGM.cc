@@ -2746,4 +2746,3 @@ void SemiGlobalMatcher::disp_index_to_xy(int min_index, int col, int row,
 
 } // end namespace stereo
 } // end namespace vw
-

@@ -24,7 +24,6 @@
 #include <vw/Image/ImageView.h>
 
 using namespace vw;
-using namespace vw::ip;
 
 TEST( BoxFilter, ApplyBoxFilter ) {
   ImageView<float> image(3,3);

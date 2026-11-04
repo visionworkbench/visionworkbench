@@ -34,7 +34,6 @@
 #include <opencv2/imgproc.hpp>
 
 namespace vw {
-namespace ip {
 
 enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0,
                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
@@ -90,7 +89,7 @@ private:
 
 }; // End class OpenCvInterestPointDetector
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif // End case with OpenCV installed
 #endif // __VW_INTEREST_POINT_OPENCV_DETECTOR_H__

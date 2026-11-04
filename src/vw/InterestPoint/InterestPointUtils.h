@@ -39,13 +39,12 @@
 #include <algorithm>
 
 namespace vw {
-namespace ip {
 
 /// Remove all pixels within a radius of the border or nodata.
 // Note: A nodata pixel is one for which pixel <= nodata.
 template <class ImageT>
 void remove_ip_near_nodata(vw::ImageViewBase<ImageT> const& image,   double nodata,
-                           vw::ip::InterestPointList      & ip_list, int    radius ){
+                           vw::InterestPointList      & ip_list, int    radius ){
 
   size_t prior_ip = ip_list.size();
 
@@ -187,6 +186,6 @@ void pick_pair_subset(std::vector<T> & ip1,
   return;
 }
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif //__INTEREST_POINT_UTILS_H__

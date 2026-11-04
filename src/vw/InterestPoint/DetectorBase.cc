@@ -25,7 +25,6 @@
 #include <vw/Image/Statistics.h>
 
 namespace vw {
-namespace ip {
 
 // Get the orientation of the point at (i0,j0,k0).  This is done by
 // computing a gaussian weighted average orientations in a region
@@ -69,4 +68,4 @@ float get_orientation(vw::ImageViewRef<float> const& x_grad,
   return atan2(avg_y_grad,avg_x_grad);
 }
 
-}} // namespace vw::ip
+} // namespace vw

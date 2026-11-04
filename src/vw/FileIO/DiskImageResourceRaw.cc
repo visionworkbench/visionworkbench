@@ -318,6 +318,3 @@ vw::ImageFormat DiskImageResourceRaw::image_format_from_spot5_DIM(std::string co
 
 
 } // end namespace vw
-
-
-

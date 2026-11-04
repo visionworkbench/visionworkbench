@@ -535,4 +535,3 @@ TEST( Statistics, OptimalThreshold ) {
   double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)
   EXPECT_NEAR(t, t0, 1e-15);
 }
-

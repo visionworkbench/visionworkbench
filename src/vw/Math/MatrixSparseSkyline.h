@@ -698,4 +698,3 @@ namespace math {
 }} // namespace vw::math
 
 #endif//__VW_MATH_SPARSE_SKYLINE_MATRIX_H__
-

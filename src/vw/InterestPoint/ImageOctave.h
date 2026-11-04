@@ -37,7 +37,7 @@
 #define INITIAL_SIGMA (1.6)
 #define CAMERA_SIGMA (0.5)
 
-namespace vw { namespace ip {
+namespace vw {
 
 /// This class provides functionality to construct an octave of images
 /// from one image, or to recursively (and destructively) construct the
@@ -214,6 +214,6 @@ public:
   }
 };
 
-}} // namespace vw::ip
+} // namespace vw
 
 #endif   // _IMAGE_OCTAVE_H_
