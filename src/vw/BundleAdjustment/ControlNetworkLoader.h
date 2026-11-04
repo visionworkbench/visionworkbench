@@ -29,7 +29,6 @@
 /// \file ControlNetworkLoader.h Functions for generating control networks
 
 namespace vw {
-namespace ba {
 
   /// Builds a control network using given camera models and original
   /// image names. This function uses Boost::FS to then find match files
@@ -50,7 +49,7 @@ namespace ba {
   
   // Triangulate the points in a control network. Do not triangulate
   // GCP or points constrained to a DEM.
-  void triangulate_control_network(vw::ba::ControlNetwork& cnet,
+  void triangulate_control_network(vw::ControlNetwork& cnet,
                                    std::vector<boost::shared_ptr<camera::CameraModel>>
                                    const& camera_models,
                                    double min_angle_radians,
@@ -85,7 +84,7 @@ namespace ba {
   // A negative budget means no limit for that category. The random selection
   // is deterministic (reproducible across runs). The two categories are
   // distinguished by the control point type.
-  void subsample_control_network(vw::ba::ControlNetwork const& cnet,
+  void subsample_control_network(vw::ControlNetwork const& cnet,
                                   int max_num_tri_points,
                                   int max_num_gcp,
                                   std::set<int> & outliers);
@@ -97,8 +96,8 @@ namespace ba {
   // deterministic. This uses the ignore flag (not an outlier set), as expected by
   // bundle_adjust. The tie points are not modified, so interest point matches
   // written out are unaffected.
-  void subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ratio);
+  void subsample_gcp_by_tri_ratio(vw::ControlNetwork & cnet, double ratio);
 
-}} //end namespace vw::ba
+} // namespace vw
 
 #endif//__VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_LOADER_H__

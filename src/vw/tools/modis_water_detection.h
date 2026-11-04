@@ -128,4 +128,3 @@ struct detect_water_fai_functor {
 }} // end namespace vw::modis
 
 #endif
-

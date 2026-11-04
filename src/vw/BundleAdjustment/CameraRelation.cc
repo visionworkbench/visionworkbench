@@ -19,7 +19,6 @@
 #include <boost/foreach.hpp>
 
 namespace vw {
-namespace ba {
 
   ControlMeasure
   JFeature::control_measure() const {
@@ -107,4 +106,4 @@ namespace ba {
   // Explicit template instantiation
   template class CameraRelationNetwork<JFeature>;
 
-}}
+}

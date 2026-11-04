@@ -79,4 +79,3 @@ void GdalWriteOptions::setVwSettingsFromOpt() {
 }
   
 } // end namespace vw
-

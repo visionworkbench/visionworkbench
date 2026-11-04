@@ -279,4 +279,3 @@ TEST(Functiors, Median) {
 
   EXPECT_NEAR( median.value(), 35.0, 1.5 );
 }
-

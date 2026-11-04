@@ -27,7 +27,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::ba;
 
 class CircleTest : public ::testing::Test {
 protected:

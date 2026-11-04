@@ -99,5 +99,3 @@ TEST(ErodeView, larger_test) {
   EXPECT_TRUE ( is_valid(eroded(4,3) ) );
 
 }
-
-

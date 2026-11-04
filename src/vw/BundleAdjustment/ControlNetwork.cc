@@ -21,7 +21,6 @@
 #include <boost/foreach.hpp>
 
 namespace vw {
-namespace ba {
 
   // ControlMeasure
 
@@ -214,4 +213,4 @@ namespace ba {
     return os;
   }
 
-}} // namespace vw::ba
+} // namespace vw

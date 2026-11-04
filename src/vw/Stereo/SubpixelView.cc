@@ -291,4 +291,3 @@ namespace vw { namespace stereo {
   // End of components for Pyramid subpixel view
 
 }} // namespace vw::stereo
-

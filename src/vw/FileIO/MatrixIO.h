@@ -88,5 +88,3 @@ namespace vw {
 } // namespace vw
 
 #endif // __VW_FILEIO_MATRIXIO_H__
-
-

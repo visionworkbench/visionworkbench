@@ -138,5 +138,3 @@ TEST( DiskImageResource , Raw ) {
   boost::shared_ptr<DiskImageResource> generic_resource_ptr;
   EXPECT_THROW(generic_resource_ptr.reset(DiskImageResource::open("sample.BIL")), vw::ArgumentErr); 
 }
-
-

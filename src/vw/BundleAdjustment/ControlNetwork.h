@@ -27,7 +27,6 @@
 #include <vw/Cartography/Datum.h>
 
 namespace vw {
-namespace ba {
 
   class ControlNetwork;
 
@@ -317,6 +316,6 @@ namespace ba {
 
   std::ostream& operator<<(std::ostream& os, ControlNetwork const& cnet);
 
-}} // namespace vw::ba
+} // namespace vw
 
 #endif // __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__

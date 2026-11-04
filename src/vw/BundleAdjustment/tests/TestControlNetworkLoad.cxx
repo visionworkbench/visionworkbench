@@ -24,7 +24,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::ba;
 using namespace vw::test;
 
 TEST( ControlNetworkLoad, LoadingGCPNET) {
@@ -90,6 +89,6 @@ TEST( GCPLoad, LoadingGCP ) {
   cnet.add_image_name("174lo.tif");
   gcp_files.push_back("sample.gcp");
 
-  vw::ba::add_ground_control_points(cnet, gcp_files, datum);
+  vw::add_ground_control_points(cnet, gcp_files, datum);
   EXPECT_EQ(27, cnet.size());
 }

@@ -31,7 +31,6 @@
 #include <boost/filesystem/fstream.hpp>
 
 using namespace vw;
-using namespace vw::ba;
 namespace fs = boost::filesystem;
 
 namespace {
@@ -57,12 +56,12 @@ void safe_measurement(vw::InterestPoint& ip) {
   if (ip.scale <= 0) ip.scale = 10;
 }
 
-double vw::ba::triangulate_control_point(ControlPoint& cp,
-                                         std::vector<boost::shared_ptr<camera::CameraModel>>
-                                         const& camera_models,
-                                         double min_angle_radians,
-                                         double forced_triangulation_distance,
-                                         vw::BathyData const& bathy_data) {
+double vw::triangulate_control_point(ControlPoint& cp,
+                                     std::vector<boost::shared_ptr<camera::CameraModel>>
+                                     const& camera_models,
+                                     double min_angle_radians,
+                                     double forced_triangulation_distance,
+                                     vw::BathyData const& bathy_data) {
 
   Vector3 position_sum(0.0, 0.0, 0.0);
   double error = 0, error_sum = 0;
@@ -226,11 +225,11 @@ double vw::ba::triangulate_control_point(ControlPoint& cp,
 
 // Triangulate the points in a control network. Do not triangulate
 // GCP or points constrained to a DEM. 
-void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
-                                         std::vector<vw::CamPtr> const& camera_models,
-                                         double min_angle_radians,
-                                         double forced_triangulation_distance,
-                                         vw::BathyData const& bathy_data) {
+void vw::triangulate_control_network(vw::ControlNetwork& cnet,
+                                     std::vector<vw::CamPtr> const& camera_models,
+                                     double min_angle_radians,
+                                     double forced_triangulation_distance,
+                                     vw::BathyData const& bathy_data) {
 
   Stopwatch watch;
   watch.start();
@@ -246,7 +245,7 @@ void vw::ba::triangulate_control_network(vw::ba::ControlNetwork& cnet,
         cpoint.type() == ControlPoint::PointFromDem)
       continue; // Skip GCPs and points from a DEM
 
-    int ans = ba::triangulate_control_point(cpoint, camera_models, min_angle_radians,
+    int ans = vw::triangulate_control_point(cpoint, camera_models, min_angle_radians,
                                             forced_triangulation_distance, bathy_data);
     num_total_points++;
     if (ans < 0)
@@ -429,11 +428,11 @@ void buildTracks(PairWiseMatches const& mvg_match_map,
 bool matchMapToCnet(std::vector<std::string> const& image_files,
                     std::vector<std::vector<ipTriplet>> const& keypoint_vec,
                     PairWiseMatches const& mvg_match_map,
-                    vw::ba::ControlNetwork& cnet) {
+                    vw::ControlNetwork& cnet) {
 
   // Wipe fully the network. This does not allow passing a name to it, but that
   // looks unnecessary.
-  cnet = ba::ControlNetwork("ASP_control_network");
+  cnet = vw::ControlNetwork("ASP_control_network");
 
   // Add image names  
   int num_images = image_files.size();
@@ -470,17 +469,17 @@ bool matchMapToCnet(std::vector<std::string> const& image_files,
   return true;
 }
 
-bool vw::ba::build_control_network(bool triangulate_control_points,
-                                   ba::ControlNetwork& cnet,
-                                   std::vector<vw::CamPtr> const& camera_models,
-                                   std::vector<std::string> const& image_files,
-                                   std::map<std::pair<int, int>, std::string> const& match_files,
-                                   size_t min_matches,
-                                   double min_angle_radians,
-                                   double forced_triangulation_distance,
-                                   int max_pairwise_matches,
-                                   bool matches_as_txt,
-                                   vw::BathyData const& bathy_data) {
+bool vw::build_control_network(bool triangulate_control_points,
+                               vw::ControlNetwork& cnet,
+                               std::vector<vw::CamPtr> const& camera_models,
+                               std::vector<std::string> const& image_files,
+                               std::map<std::pair<int, int>, std::string> const& match_files,
+                               size_t min_matches,
+                               double min_angle_radians,
+                               double forced_triangulation_distance,
+                               int max_pairwise_matches,
+                               bool matches_as_txt,
+                               vw::BathyData const& bathy_data) {
 
   // TODO(oalexan1): Must be able to handle the case when the matches
   // are from an image later in the list to an image earlier in the list.
@@ -648,8 +647,8 @@ bool vw::ba::build_control_network(bool triangulate_control_points,
 
   // Triangulate the points in a control network
   if (triangulate_control_points)
-    vw::ba::triangulate_control_network(cnet, camera_models, min_angle_radians,
-                                        forced_triangulation_distance, bathy_data);
+    vw::triangulate_control_network(cnet, camera_models, min_angle_radians,
+                                    forced_triangulation_distance, bathy_data);
 
   return true;
 }
@@ -676,10 +675,10 @@ bool parseDatum(std::string const& wkt, vw::Datum & datum) {
   return true;
 }
 
-int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
-                                      std::vector<std::string> const& gcp_files,
-                                      vw::Datum const& datum,
-                                      bool skip_datum_check) {
+int vw::add_ground_control_points(vw::ControlNetwork& cnet,
+                                  std::vector<std::string> const& gcp_files,
+                                  vw::Datum const& datum,
+                                  bool skip_datum_check) {
 
   namespace fs = boost::filesystem;
 
@@ -833,10 +832,10 @@ int vw::ba::add_ground_control_points(vw::ba::ControlNetwork& cnet,
   return num_gcp;
 }
 
-void vw::ba::subsample_control_network(vw::ba::ControlNetwork const& cnet,
-                                       int max_num_tri_points,
-                                       int max_num_gcp,
-                                       std::set<int> & outliers) {
+void vw::subsample_control_network(vw::ControlNetwork const& cnet,
+                                   int max_num_tri_points,
+                                   int max_num_gcp,
+                                   std::set<int> & outliers) {
 
   // Collect the current inlier indices, separately for triangulated (tie)
   // points and for ground control points.
@@ -844,7 +843,7 @@ void vw::ba::subsample_control_network(vw::ba::ControlNetwork const& cnet,
   for (int ipt = 0; ipt < (int)cnet.size(); ipt++) {
     if (outliers.find(ipt) != outliers.end())
       continue; // skip points already flagged as outliers
-    if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
+    if (cnet[ipt].type() == vw::ControlPoint::GroundControlPoint)
       gcp_indices.push_back(ipt);
     else
       tri_indices.push_back(ipt); // DEM-constrained points counted as tri here too
@@ -874,7 +873,7 @@ void vw::ba::subsample_control_network(vw::ba::ControlNetwork const& cnet,
   thin(gcp_indices, max_num_gcp,        "ground control points");
 }
 
-void vw::ba::subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ratio) {
+void vw::subsample_gcp_by_tri_ratio(vw::ControlNetwork & cnet, double ratio) {
 
   if (ratio < 0)
     return;
@@ -885,7 +884,7 @@ void vw::ba::subsample_gcp_by_tri_ratio(vw::ba::ControlNetwork & cnet, double ra
   for (int ipt = 0; ipt < (int)cnet.size(); ipt++) {
     if (cnet[ipt].ignore())
       continue;
-    if (cnet[ipt].type() == vw::ba::ControlPoint::GroundControlPoint)
+    if (cnet[ipt].type() == vw::ControlPoint::GroundControlPoint)
       gcp_indices.push_back(ipt);
     else
       num_tri++; // DEM-constrained points counted as tri here too

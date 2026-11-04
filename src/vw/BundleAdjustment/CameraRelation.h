@@ -34,7 +34,6 @@
 #include <map>
 
 namespace vw {
-namespace ba {
 
   // Feature Base
   template <class ImplT>
@@ -174,6 +173,6 @@ namespace ba {
     void from_cnet(ControlNetwork const& cnet);
   };
 
-}}
+}
 
 #endif//__VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__

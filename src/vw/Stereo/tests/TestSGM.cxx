@@ -72,4 +72,3 @@ TEST( SGM, constant_offset ) {
   double percent_correct = static_cast<double>(num_correct) / num_pixels;
   EXPECT_GT(percent_correct, 0.99);
 }
-

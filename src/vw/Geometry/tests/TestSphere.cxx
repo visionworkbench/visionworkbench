@@ -47,4 +47,3 @@ TEST(TestSphere, Sphere) {
   Sphere3 b2( Vector3( 0, 0, 0 ), 0 );
   EXPECT_TRUE( !b2.empty() );
 }
-

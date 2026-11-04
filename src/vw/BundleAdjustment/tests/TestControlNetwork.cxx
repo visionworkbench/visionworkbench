@@ -24,7 +24,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::ba;
 
 TEST( ControlNetwork, Construction ) {
 

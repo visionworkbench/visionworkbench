@@ -341,4 +341,3 @@ namespace vw { namespace stereo {
   }
 
 }} // namespace vw::stereo
-
