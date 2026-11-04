@@ -38,7 +38,6 @@ static void vw_jpeg_error_exit(j_common_ptr cinfo) {
 
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -288,4 +287,4 @@ void jpeg_vector_dest(j_compress_ptr cinfo, std::vector<uint8>* v) {
   cinfo->dest                   = reinterpret_cast<jpeg_destination_mgr*>(dest);
 }
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail

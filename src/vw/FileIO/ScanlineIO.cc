@@ -18,7 +18,7 @@
 
 #include <vw/FileIO/ScanlineIO.h>
 
-namespace vw { namespace fileio { namespace detail {
+namespace vw { namespace detail {
 
 const ImageFormat& ScanlineBackend::fmt() const {
   return m_fmt;
@@ -27,4 +27,4 @@ const ImageFormat& ScanlineBackend::fmt() const {
 size_t ScanlineBackend::chan_bytes() const { return m_cstride; }
 size_t ScanlineReadBackend::line_bytes() const { return m_rstride; }
 
-}}} // vw::fileio::detail
+}} // vw::detail

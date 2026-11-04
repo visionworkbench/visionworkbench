@@ -48,7 +48,7 @@
 #include <gdal_priv.h>
 
 namespace fs = boost::filesystem;
-namespace d = vw::fileio::detail;
+namespace d = vw::detail;
 
 namespace {
   bool blocksize_whitelist(const GDALDriver* driver) {

@@ -30,7 +30,6 @@ class GDALDriver;
 namespace vw {
   class Mutex;
 
-namespace fileio {
 namespace detail {
 
 Mutex& gdal() VW_WARN_UNUSED;
@@ -73,6 +72,6 @@ class GdalIOCompress : public ScanlineWriteBackend {
     void set_nodata(double value) {m_nodata = value; m_has_nodata = true;}
 };
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail
 
 #endif

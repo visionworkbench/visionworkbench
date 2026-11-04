@@ -27,7 +27,6 @@ static void png_error_handler(png_structp /*png_ptr*/, png_const_charp error_msg
 
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 PngIO::PngIO() : m_ctx(0), m_info(0) {}
@@ -236,4 +235,4 @@ void PngIOCompress::open() {
   m_cstride = num_channels(fmt().pixel_format) * channel_size(fmt().channel_type);
 }
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail

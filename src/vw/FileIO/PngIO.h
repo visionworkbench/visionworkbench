@@ -29,7 +29,6 @@ extern "C" {
 
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 // These classes exist to share code between the on-disk and in-memory versions
@@ -68,6 +67,6 @@ class PngIOCompress : public PngIO, public ScanlineWriteBackend {
     void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes);
 };
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail
 
 #endif

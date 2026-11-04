@@ -23,7 +23,7 @@
 
 namespace vw {
 
-class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
+class SrcMemoryImageResourcePNG::Data : public vw::detail::PngIODecompress {
     boost::shared_array<const uint8> m_data;
     const uint8 * m_cur;
     const uint8 * const m_end;
@@ -91,7 +91,7 @@ ImageFormat SrcMemoryImageResourcePNG::format() const {
   return m_data->fmt();
 }
 
-class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {
+class DstMemoryImageResourcePNG::Data : public vw::detail::PngIOCompress {
   std::vector<uint8> m_data;
   typedef DstMemoryImageResourcePNG::Data this_type;
 

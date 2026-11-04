@@ -23,11 +23,11 @@
 
 namespace vw {
 
-class SrcMemoryImageResourceJPEG::Data : public fileio::detail::JpegIODecompress {
+class SrcMemoryImageResourceJPEG::Data : public vw::detail::JpegIODecompress {
     boost::shared_array<const uint8> m_data;
     size_t m_len;
   protected:
-    virtual void bind() { fileio::detail::jpeg_ptr_src(&m_ctx, m_data.get(), m_len); }
+    virtual void bind() { vw::detail::jpeg_ptr_src(&m_ctx, m_data.get(), m_len); }
   public:
     Data* rewind() const {vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported");}
     Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {
@@ -83,11 +83,11 @@ ImageFormat SrcMemoryImageResourceJPEG::format() const {
   return m_data->fmt();
 }
 
-class DstMemoryImageResourceJPEG::Data : public fileio::detail::JpegIOCompress {
+class DstMemoryImageResourceJPEG::Data : public vw::detail::JpegIOCompress {
   std::vector<uint8> m_data;
 
   protected:
-    virtual void bind() { fileio::detail::jpeg_vector_dest(&m_ctx, &m_data); }
+    virtual void bind() { vw::detail::jpeg_vector_dest(&m_ctx, &m_data); }
   public:
     Data(const ImageFormat &fmt) : JpegIOCompress(fmt) {}
     const uint8* data() const {return &m_data[0];}

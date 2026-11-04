@@ -112,7 +112,6 @@ namespace { // Anonymous namespace
 
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 // TODO(oalexan1): Have this function called so valgrind does not report a leak.
@@ -310,4 +309,4 @@ void GdalIOCompress::open() {
   m_cstride = num_channels(fmt().pixel_format) * channel_size(fmt().channel_type);
 }
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail

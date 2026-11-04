@@ -40,7 +40,7 @@ namespace {
 
 namespace vw {
 
-class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress {
+class SrcMemoryImageResourceGDAL::Data : public vw::detail::GdalIODecompress {
     boost::shared_array<const uint8> m_data;
     size_t m_len;
   protected:
@@ -114,7 +114,7 @@ double SrcMemoryImageResourceGDAL::nodata_read() const {
   return value;
 }
 
-class DstMemoryImageResourceGDAL::Data : public fileio::detail::GdalIOCompress {
+class DstMemoryImageResourceGDAL::Data : public vw::detail::GdalIOCompress {
   protected:
     virtual void bind() { m_fn = make_fn("dst", this); }
   public:

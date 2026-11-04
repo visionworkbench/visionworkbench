@@ -29,7 +29,6 @@ extern "C" {
 
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 // These classes exist to share code between the on-disk and in-memory versions
@@ -74,6 +73,6 @@ class JpegIOCompress : public JpegIO, public ScanlineWriteBackend {
 void jpeg_ptr_src(j_decompress_ptr cinfo, const uint8* buffer, size_t size);
 void jpeg_vector_dest(j_compress_ptr cinfo, std::vector<uint8>* v);
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail
 
 #endif

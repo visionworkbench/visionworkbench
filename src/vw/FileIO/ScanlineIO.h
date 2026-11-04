@@ -24,7 +24,6 @@
 /// \file ScanlineIO.h Abstract scanline reading interface.
 
 namespace vw {
-namespace fileio {
 namespace detail {
 
 /// Abstract scanline reading interface.
@@ -75,6 +74,6 @@ class ScanlineWriteBackend : public ScanlineBackend {
     virtual size_t size() const = 0;
 };
 
-}}} // namespace vw::fileio::detail
+}} // namespace vw::detail
 
 #endif
