@@ -21,7 +21,6 @@
 #include <vector>
 
 namespace vw {
-namespace stereo {
 
 void disparity_median_filter(ImageView<PixelMask<Vector2f>> const& disparity_in,
                              ImageView<PixelMask<Vector2f>>      & disparity_out,
@@ -109,4 +108,4 @@ void disparity_neighbor_filter(ImageView<PixelMask<Vector2i>> const& disparity_i
   } // End loop through pixels
 }
 
-}} // namespace vw::stereo
+} // namespace vw

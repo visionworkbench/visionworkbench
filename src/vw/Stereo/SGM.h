@@ -34,7 +34,6 @@
 
 namespace vw {
 
-namespace stereo {
 
 /**
 A 2D implementation of the popular Semi-Global Matching (SGM) algorithm. This
@@ -374,7 +373,6 @@ calc_disparity_sgm(
   ImageView<uint8>       const* right_mask_ptr=0,
   SemiGlobalMatcher::DisparityImage const* prev_disparity=0);
 
-} // end namespace stereo
 } // end namespace vw
 
 #endif //__SEMI_GLOBAL_MATCHING__

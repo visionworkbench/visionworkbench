@@ -19,7 +19,6 @@
 #define __VW_STEREO_PREFILTER_ENUM_H__
 
 namespace vw {
-namespace stereo {
 
   enum PrefilterModeType {
     PREFILTER_NONE    = 0,
@@ -27,6 +26,6 @@ namespace stereo {
     PREFILTER_LOG     = 2
   };
 
-}} // end namespace vw::stereo
+} // end namespace vw
 
 #endif // __VW_STEREO_PREFILTER_ENUM_H__

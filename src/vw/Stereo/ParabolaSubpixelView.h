@@ -23,7 +23,7 @@
 #include <vw/Stereo/PrefilterEnum.h>
 
 // TODO(oalexan1): The integer disparity is in fact float. Convert all to float.
-namespace vw { namespace stereo {
+namespace vw {
 
   class ParabolaSubpixelView : public ImageViewBase<ParabolaSubpixelView> {
     ImageViewRef<PixelMask<Vector2f>> m_disparity;
@@ -116,6 +116,6 @@ namespace vw { namespace stereo {
                     PrefilterModeType prefilter_mode, float prefilter_width,
                     Vector2i const& kernel_size);
   
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif // __VW_STEREO_PARABOLASUBPIXEL_VIEW__

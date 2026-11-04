@@ -23,7 +23,6 @@
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
-using namespace vw::stereo;
 
 // TODO(oalexan1): Use here pyramid_correlate() instead of correlate(). See correlate.cc.
 #if 0

@@ -30,7 +30,6 @@
 // https://www.mathworks.com/matlabcentral/fileexchange/18401-efficient-subpixel-image-registration-by-cross-correlation
 
 namespace vw {
-namespace stereo {
 
 /// Use matrix multiplication to upsample a DFT in only a small region.
 ///  It is usually faster than doing the equivalent series of steps:
@@ -64,6 +63,6 @@ void subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                        bool use_second_refinement = true);
 
 
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif // __VW_STEREO_PHASESUBPIXEL_VIEW__

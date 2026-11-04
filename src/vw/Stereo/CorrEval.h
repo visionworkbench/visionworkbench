@@ -30,7 +30,7 @@
 // be applied over the entire image at once for a given fixed integer
 // disp value.
 
-namespace vw { namespace stereo {
+namespace vw {
 
 // Calculate left and right patches. It assumes everything was setup properly
 // and all the checks have been done.
@@ -127,6 +127,6 @@ CorrEval corr_eval(ImageViewRef<PixelMask<float>>    left,
                   prefilter_mode, prefilter_kernel_width);
 }
   
-}} // end namespace vw::stereo
+} // end namespace vw
 
 #endif //__VW_STEREO_CORR_EVAL__

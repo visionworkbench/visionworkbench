@@ -30,7 +30,6 @@ namespace vw {
 
     class CameraModel;
 
-namespace stereo {
 
   template <class T>
   inline typename boost::enable_if<IsScalar<T>,Vector2>::type
@@ -232,6 +231,6 @@ namespace stereo {
   }
 
 
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif // __VW_STEREO_STEREOVIEW_H__

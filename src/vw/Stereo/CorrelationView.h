@@ -26,7 +26,7 @@
 #include <vw/Stereo/CorrelationAlgorithms.h>
 #include <vw/Image/Manipulation.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   typedef ImageViewRef<PixelGray<float>> PixelGrayImageRef;
   typedef ImageViewRef<uint8> Int8ImageRef;
@@ -51,7 +51,7 @@ namespace vw { namespace stereo {
                            Int8ImageRef const& right_mask,
                            PrefilterModeType prefilter_mode, float prefilter_width,
                            BBox2i const& search_region, Vector2i const& kernel_size,
-                           stereo::CostFunctionType cost_type,
+                           vw::CostFunctionType cost_type,
                            int corr_timeout, double seconds_per_op,
                            float consistency_threshold,
                            int min_consistency_level,
@@ -145,7 +145,7 @@ namespace vw { namespace stereo {
     
     BBox2i           m_search_region;
     Vector2i         m_kernel_size;
-    stereo::CostFunctionType m_cost_type;
+    vw::CostFunctionType m_cost_type;
     int              m_corr_timeout;
     // How long it takes to do one corr op with given kernel and cost function
     double m_seconds_per_op;
@@ -199,7 +199,7 @@ namespace vw { namespace stereo {
                     Int8ImageRef const& right_mask,
                     PrefilterModeType prefilter_mode, float prefilter_width,
                     BBox2i const& search_region, Vector2i const& kernel_size,
-                    stereo::CostFunctionType cost_type,
+                    vw::CostFunctionType cost_type,
                     int corr_timeout, double seconds_per_op,
                     float consistency_threshold,
                     int min_consistency_level,
@@ -229,6 +229,6 @@ namespace vw { namespace stereo {
                        lr_disp_diff, region_ul, write_debug_images);
   }
   
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif//__VW_STEREO_CORRELATION_VIEW_H__

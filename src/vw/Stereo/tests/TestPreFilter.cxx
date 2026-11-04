@@ -21,7 +21,6 @@
 #include <vw/Stereo/PreFilter.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 template <typename PixelT>
 class PreProcess : public ::testing::Test {

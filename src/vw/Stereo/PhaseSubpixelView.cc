@@ -27,7 +27,6 @@
 #include <boost/core/null_deleter.hpp>
 
 namespace vw {
-namespace stereo {
 
 // Helper function to save Fourier transform magnitude for debugging
 void save_mag_from_ft(cv::Mat const& input, std::string const& path, bool do_fftshift=true) {
@@ -325,4 +324,4 @@ void subpixel_phase_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
 
 }
 
-}} // namespace vw::stereo
+} // namespace vw

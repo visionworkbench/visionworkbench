@@ -26,7 +26,7 @@
 #include <boost/foreach.hpp>
 
 // TODO(oalexan1): The integer disparity is in fact float. Convert all to float.
-namespace vw { namespace stereo {
+namespace vw {
 
   ImageView<PixelMask<Vector2f>> ParabolaSubpixelView::evaluate
   (ImageView<PixelMask<Vector2i>> const& integer_disparity,    // Cropped input disp
@@ -284,7 +284,7 @@ namespace vw { namespace stereo {
 
     // We calculate the entire search range only so that we can
     // prerasterize the sections we'll need for left and right images.
-    BBox2i entire_search_range = stereo::get_disparity_range(disparity_subsection);
+    BBox2i entire_search_range = vw::get_disparity_range(disparity_subsection);
     entire_search_range.max() += Vector2i(1,1);
     entire_search_range.expand(1); // Because we are going to check
     // the neighboring pixels
@@ -300,7 +300,7 @@ namespace vw { namespace stereo {
     // Unfortunately using the more convenient prefilter_image
     // function yields slightly different results!
     if (m_prefilter_mode == PREFILTER_LOG) {
-      stereo::LaplacianOfGaussian prefilter(m_prefilter_width);
+      vw::LaplacianOfGaussian prefilter(m_prefilter_width);
       return prerasterize_type(evaluate(disparity_subsection,
                                         prefilter.filter(m_left_image ),
                                         prefilter.filter(m_right_image),
@@ -309,7 +309,7 @@ namespace vw { namespace stereo {
                                -bbox.min().x(), -bbox.min().y(), cols(), rows());
     } else {
       if (m_prefilter_mode == PREFILTER_MEANSUB) {
-        stereo::SubtractedMean prefilter(m_prefilter_width);
+        vw::SubtractedMean prefilter(m_prefilter_width);
         return prerasterize_type(evaluate(disparity_subsection,
                                           prefilter.filter(m_left_image ),
                                           prefilter.filter(m_right_image),
@@ -317,7 +317,7 @@ namespace vw { namespace stereo {
                                           entire_search_range ),
                                  -bbox.min().x(), -bbox.min().y(), cols(), rows());
       } else { // PREFILTER_NONE
-        stereo::NullOperation prefilter;
+        vw::NullOperation prefilter;
         return prerasterize_type(evaluate(disparity_subsection,
                                           prefilter.filter(m_left_image ),
                                           prefilter.filter(m_right_image),
@@ -340,4 +340,4 @@ namespace vw { namespace stereo {
                         prefilter_mode, prefilter_width, kernel_size );
   }
 
-}} // namespace vw::stereo
+} // namespace vw

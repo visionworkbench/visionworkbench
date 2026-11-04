@@ -24,7 +24,6 @@
 
 
 using namespace vw;
-using namespace vw::stereo;
 
 template <typename PixelT>
 class PyramidViewTest : public ::testing::Test {

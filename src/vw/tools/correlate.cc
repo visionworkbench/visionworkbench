@@ -48,7 +48,6 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 using namespace vw;
-using namespace vw::stereo;
 
 // TODO(oalexan1): Make all options below use the Options structure
 struct Options: vw::GdalWriteOptions {};
@@ -205,22 +204,22 @@ int main( int argc, char *argv[] ) {
   Vector2i region_ul = Vector2i(0, 0);
   
   ImageViewRef<PixelMask<Vector2f>> disparity_map
-    = stereo::pyramid_correlate(left, right,
-                                left_mask, right_mask,
-                                stereo::PREFILTER_LOG, log,
-                                search_range, kernel_size,
-                                static_cast<vw::stereo::CostFunctionType>(cost_mode), 
-                                corr_timeout, seconds_per_op,
-                                lrthresh, min_lr_level,
-                                filter_radius, max_pyramid_levels, 
-                                static_cast<vw::stereo::CorrelationAlgorithm>(stereo_algorithm), 
-                                collar_size,
-                                sgm_subpixel_mode,
-                                sgm_search_buffer,
-                                memory_limit_mb,
-                                blob_filter_area,
-                                lr_disp_diff, region_ul, 
-                                write_debug_images);
+    = vw::pyramid_correlate(left, right,
+                            left_mask, right_mask,
+                            vw::PREFILTER_LOG, log,
+                            search_range, kernel_size,
+                            static_cast<vw::CostFunctionType>(cost_mode), 
+                            corr_timeout, seconds_per_op,
+                            lrthresh, min_lr_level,
+                            filter_radius, max_pyramid_levels, 
+                            static_cast<vw::CorrelationAlgorithm>(stereo_algorithm), 
+                            collar_size,
+                            sgm_subpixel_mode,
+                            sgm_search_buffer,
+                            memory_limit_mb,
+                            blob_filter_area,
+                            lr_disp_diff, region_ul, 
+                            write_debug_images);
   
   // TODO: Call the code used in stereo_fltr!
 

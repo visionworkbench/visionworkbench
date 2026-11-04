@@ -22,7 +22,6 @@
 #include <vw/Stereo/CostFunctions.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 template <typename PixelT>
 class CostFunction : public ::testing::Test {

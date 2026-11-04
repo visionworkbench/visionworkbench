@@ -23,7 +23,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Stereo/PrefilterEnum.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   enum PyramidSubpixelView_Algorithm {
     SUBPIXEL_LUCAS_KANADE = 0,
@@ -145,6 +145,6 @@ namespace vw { namespace stereo {
 
   // End of components for Pyramid subpixel view
 
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif // __VW_STEREO_CORRELATOR_VIEW__

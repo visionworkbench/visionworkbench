@@ -27,7 +27,6 @@
 #include <test/Helpers.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 typedef PixelMask<Vector2f> PixelDisp;
 

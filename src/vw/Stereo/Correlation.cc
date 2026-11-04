@@ -25,7 +25,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Image/Manipulation.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   /// Lower level implementation function for calc_disparity.
   /// - The inputs must already be rasterized to safe sizes!
@@ -428,4 +428,4 @@ bool subdivide_regions(ImageView<PixelMask<Vector2i> > const& disparity,
     return seconds_per_op;
   }
   
-}} // end namespace vw::stereo
+} // end namespace vw

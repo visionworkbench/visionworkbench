@@ -28,10 +28,9 @@
 #include <vw/Image/Manipulation.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 // TODO(oalexan1): Many of these are unused
-namespace vw { namespace stereo { namespace detail {
+namespace vw { namespace detail {
 
   ImageView<float> compute_spatial_weight_image(int32 kern_width, int32 kern_height,
                                                 float two_sigma_sqr) {
@@ -100,17 +99,17 @@ namespace vw { namespace stereo { namespace detail {
     return weight;
   }
 
-}}} // End namespace vw::stereo::detail
+}} // End namespace vw::detail
 
 /// Research-y implementation of affine EM correlation.
-void vw::stereo::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                                   ImageView<float> const& left_image,
-                                                   ImageView<float> const& right_image,
-                                                   int32 kern_width, int32 kern_height,
-                                                   BBox2i region_of_interest,
-                                                   bool do_horizontal_subpixel,
-                                                   bool do_vertical_subpixel,
-                                                   bool /*verbose*/ ) {
+void vw::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                           ImageView<float> const& left_image,
+                                           ImageView<float> const& right_image,
+                                           int32 kern_width, int32 kern_height,
+                                           BBox2i region_of_interest,
+                                           bool do_horizontal_subpixel,
+                                           bool do_vertical_subpixel,
+                                           bool /*verbose*/ ) {
   typedef Vector<float,6> Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
   typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
@@ -151,7 +150,7 @@ void vw::stereo::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f>
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
   ImageView<float> weight_template =
-    vw::stereo::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
+    vw::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
   // Workspace images are allocated up here out of the tight inner
   // loop.  We rasterize into these directly in the code below.
@@ -497,14 +496,14 @@ void vw::stereo::subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f>
 //
 // In this version we don't keep around future research ideas
 // since they are slow.
-void vw::stereo::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & disparity_map,
-                                                 ImageView<float> const& left_image,
-                                                 ImageView<float> const& right_image,
-                                                 int32  kern_width, int32 kern_height,
-                                                 BBox2i region_of_interest,
-                                                 bool   do_horizontal_subpixel,
-                                                 bool   do_vertical_subpixel,
-                                                 bool /*verbose*/ ) {
+void vw::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> & disparity_map,
+                                         ImageView<float> const& left_image,
+                                         ImageView<float> const& right_image,
+                                         int32  kern_width, int32 kern_height,
+                                         BBox2i region_of_interest,
+                                         bool   do_horizontal_subpixel,
+                                         bool   do_vertical_subpixel,
+                                         bool /*verbose*/ ) {
   typedef Vector<float,6>   Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
   typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
@@ -539,7 +538,7 @@ void vw::stereo::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> 
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0).impl();
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1).impl();
   ImageView<float> weight_template =
-    vw::stereo::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
+    vw::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
   // Workspace images are allocated up here out of the tight inner
   // loop.  We rasterize into these directly in the code below.
@@ -845,14 +844,14 @@ void vw::stereo::subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f>> 
 
 /// Affine subpixel correlation function
 /// - Similar to the _em function but about 5X faster and less accurate.
-void vw::stereo::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                              ImageView<float> const& left_image,
-                                              ImageView<float> const& right_image,
-                                              int32  kern_width, int32 kern_height,
-                                              BBox2i region_of_interest,
-                                              bool   do_horizontal_subpixel,
-                                              bool   do_vertical_subpixel,
-                                              bool /*verbose*/ ) {
+void vw::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                      ImageView<float> const& left_image,
+                                      ImageView<float> const& right_image,
+                                      int32  kern_width, int32 kern_height,
+                                      BBox2i region_of_interest,
+                                      bool   do_horizontal_subpixel,
+                                      bool   do_vertical_subpixel,
+                                      bool /*verbose*/ ) {
   
   typedef Vector<float,6  > Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
@@ -898,7 +897,7 @@ void vw::stereo::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &d
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
   ImageView<float> weight_template =
-    vw::stereo::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
+    vw::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
   // Workspace images are allocated up here out of the tight inner
   // loop.  We rasterize into these directly in the code below.
@@ -1200,13 +1199,13 @@ void vw::stereo::subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &d
 
 /// Lucas-Kanade subpixel correlation function
 /// - So far this one does not work that well.
-void vw::stereo::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map,
-                                          ImageView<float> const& left_image,
-                                          ImageView<float> const& right_image,
-                                          int32  kern_width, int32 kern_height,
-                                          BBox2i region_of_interest,
-                                          bool   do_horizontal_subpixel,
-                                          bool   do_vertical_subpixel) {
+void vw::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & disparity_map,
+                                  ImageView<float> const& left_image,
+                                  ImageView<float> const& right_image,
+                                  int32  kern_width, int32 kern_height,
+                                  BBox2i region_of_interest,
+                                  bool   do_horizontal_subpixel,
+                                  bool   do_vertical_subpixel) {
 
   typedef Vector<float, 2>    Vector2f;
   typedef Matrix<float, 2, 2> Matrix2x2f;
@@ -1242,7 +1241,7 @@ void vw::stereo::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & dispa
   // Get X and Y derivatives of the input images
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
-  ImageView<float> weight_template = vw::stereo::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
+  ImageView<float> weight_template = vw::detail::compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
   // Workspace images are allocated up here out of the tight inner
   // loop.  We rasterize into these directly in the code below.
@@ -1390,9 +1389,9 @@ void vw::stereo::subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f>> & dispa
   } // Y increment
 }
 
-int vw::stereo::adjust_weight_image(ImageView<float> &weight,
-                                    ImageView<PixelMask<Vector2f>> const& disparity_map_patch,
-                                    ImageView<float> const& weight_template) {
+int vw::adjust_weight_image(ImageView<float> &weight,
+                            ImageView<PixelMask<Vector2f>> const& disparity_map_patch,
+                            ImageView<float> const& weight_template) {
   float sum = 0;
   int32 num_good_pix = 0;
   typedef ImageView<float>::pixel_accessor IViewFAcc;
@@ -1439,7 +1438,7 @@ int vw::stereo::adjust_weight_image(ImageView<float> &weight,
 // check runs on integer disparity; the float subpixel disparity is
 // produced later by create_disparity_view_subpixel() at level 0.
 template <class ImageT1, class ImageT2>
-void vw::stereo::cross_corr_consistency_check(
+void vw::cross_corr_consistency_check(
     ImageViewBase<ImageT1> const& l2r,
     ImageViewBase<ImageT2> const& r2l,
     float cross_corr_threshold,
@@ -1505,13 +1504,13 @@ void vw::stereo::cross_corr_consistency_check(
 typedef PixelMask<Vector2i> PMV2i;
 
 // Production: l2r is crop of ImageView, r2l is ImageView
-template void vw::stereo::cross_corr_consistency_check(
+template void vw::cross_corr_consistency_check(
     ImageViewBase<CropView<ImageView<PMV2i>>> const&,
     ImageViewBase<ImageView<PMV2i>> const&,
     float, ImageView<PixelMask<float>>*, Vector2i, bool);
 
 // Tests: both are plain ImageView
-template void vw::stereo::cross_corr_consistency_check(
+template void vw::cross_corr_consistency_check(
     ImageViewBase<ImageView<PMV2i>> const&,
     ImageViewBase<ImageView<PMV2i>> const&,
     float, ImageView<PixelMask<float>>*, Vector2i, bool);

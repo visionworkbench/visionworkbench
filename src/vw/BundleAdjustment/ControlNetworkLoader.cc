@@ -75,7 +75,7 @@ double vw::triangulate_control_point(ControlPoint& cp,
   // minority of bad rays cannot pull the point away from the consensus.
   std::vector<Vector3> tri_pts;
 
-  double angle_tol = stereo::StereoModel::robust_1_minus_cos(min_angle_radians);
+  double angle_tol = vw::StereoModel::robust_1_minus_cos(min_angle_radians);
 
   // Ensure this is initialized
   cp.set_position((Vector3(0, 0, 0)));
@@ -141,8 +141,8 @@ double vw::triangulate_control_point(ControlPoint& cp,
           pt = bsm(pixVec, errorVec, do_bathy, did_bathy);
           error = norm_2(errorVec);
         } else {
-          stereo::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
-                                 angle_tol);
+          vw::StereoModel sm(camera_models[j_cam_id].get(), camera_models[k_cam_id].get(),
+                             angle_tol);
           pt = sm(pixVec, error);
         }
 

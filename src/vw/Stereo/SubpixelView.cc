@@ -25,7 +25,7 @@
 #include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Core/Stopwatch.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   typedef PixelMask<Vector2f> pixel_type;
   
@@ -67,16 +67,16 @@ namespace vw { namespace stereo {
     // Using the convenient prefilter function yields slightly different results here
     //  for some reason so we use this method to avoid having to redo all the tests.
     if (m_prefilter_mode == PREFILTER_LOG) {
-      stereo::LaplacianOfGaussian prefilter(m_prefilter_width);
+      vw::LaplacianOfGaussian prefilter(m_prefilter_width);
       left_image_patch  = crop(prefilter.filter(m_left_image), left_crop_bbox);
       right_image_patch = crop(prefilter.filter(m_right_image), right_crop_bbox);
     } else {
       if (m_prefilter_mode == PREFILTER_MEANSUB) {
-        stereo::SubtractedMean prefilter(m_prefilter_width);
+        vw::SubtractedMean prefilter(m_prefilter_width);
         left_image_patch  = crop(prefilter.filter(m_left_image), left_crop_bbox);
         right_image_patch = crop(prefilter.filter(m_right_image), right_crop_bbox);
       } else { // PREFILTER_NONE
-        stereo::NullOperation prefilter;
+        vw::NullOperation prefilter;
         left_image_patch  = crop(prefilter.filter(m_left_image), left_crop_bbox);
         right_image_patch = crop(prefilter.filter(m_right_image), right_crop_bbox);
       }
@@ -290,4 +290,4 @@ namespace vw { namespace stereo {
   
   // End of components for Pyramid subpixel view
 
-}} // namespace vw::stereo
+} // namespace vw

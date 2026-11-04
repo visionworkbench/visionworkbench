@@ -22,7 +22,6 @@
 #include <vw/Stereo/SGM.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 TEST( SGM, constant_offset ) {
  

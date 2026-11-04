@@ -31,7 +31,6 @@
 #include <vw/Math/Functors.h>
 
 namespace vw {
-namespace stereo {
 
   // This quickly sums pixels in a box. This does not COPY the
   // image. It is okay to crop an image before feeding to this
@@ -281,6 +280,6 @@ inline void texture_preserving_disparity_filter(ImageView<PixelMask<Vector<T, 2>
 } // end texture_preserving_disparity_filter function
 
 
-}} // end vw::stereo
+} // end vw
 
 #endif//__VW_STEREO_ALGORITHMS_H__

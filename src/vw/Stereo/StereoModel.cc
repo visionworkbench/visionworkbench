@@ -27,7 +27,7 @@
 #include <vw/Core/Exception.h>
 using namespace std;
 
-namespace vw { namespace stereo {
+namespace vw {
 
   // Two-ray triangulation. Triangulate the point by finding the
   // midpoint of the segment joining the closest points on the two
@@ -308,4 +308,4 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
     return xyz;
 }
   
-}} // vw::stereo
+} // vw

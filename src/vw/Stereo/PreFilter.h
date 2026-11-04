@@ -23,7 +23,6 @@
 #include <vw/Stereo/PrefilterEnum.h>
 
 namespace vw {
-namespace stereo {
 
   // TODO(oalexan1): Make these not use templates. It is enough for it to
   // work on an ImageView clip. Adjust the callers. At the end of day, each
@@ -83,19 +82,19 @@ prefilter_image(ImageViewBase<ImageT> const& image,
                 float             prefilter_width) {
 
   if (prefilter_mode == PREFILTER_LOG){  // LOG
-    stereo::LaplacianOfGaussian prefilter(prefilter_width);
+    vw::LaplacianOfGaussian prefilter(prefilter_width);
     return prefilter.filter(image);
   }
   if (prefilter_mode == PREFILTER_MEANSUB){  // Subtracted mean
-    stereo::SubtractedMean prefilter(prefilter_width);
+    vw::SubtractedMean prefilter(prefilter_width);
     return prefilter.filter(image);
   }
   //Default: PREFILTER_NONE
-  stereo::NullOperation prefilter;
+  vw::NullOperation prefilter;
   return prefilter.filter(image);
 }
 
 
-}} // end namespace vw::stereo
+} // end namespace vw
 
 #endif//__VW_STEREO_PREFILTER_H__

@@ -26,7 +26,6 @@
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
-using namespace vw::stereo;
 
 template <typename  PixelT>
 class Correlation : public ::testing::Test {

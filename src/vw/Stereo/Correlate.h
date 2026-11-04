@@ -27,7 +27,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Math/Vector.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   /// Set weight to zero where disparity is invalid, copy from
   /// weight_template elsewhere, then normalize. Return the count
@@ -103,6 +103,6 @@ namespace vw { namespace stereo {
                           bool   do_horizontal_subpixel,
                           bool   do_vertical_subpixel);
 
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif // __VW_STEREO_CORRELATOR_H__

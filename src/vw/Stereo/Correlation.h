@@ -29,7 +29,6 @@
 #include <utility>
 
 namespace vw {
-namespace stereo {
 
   /// This actually RASTERIZES/COPY the input images. It then makes an
   /// allocation to store current costs.
@@ -121,6 +120,6 @@ namespace stereo {
                          Vector2i const& kernel_size,
                          int32 fail_count = 0);
 
-}}
+}
 
 #endif//__VW_STEREO_CORRELATION_H__

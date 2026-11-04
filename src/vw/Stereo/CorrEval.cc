@@ -8,7 +8,7 @@
 
 // See CorrEval.h for documentation.
 
-namespace vw { namespace stereo {
+namespace vw {
 
 // Calculate left and right patches. It assumes everything was setup properly
 // and all the checks have been done.
@@ -165,7 +165,7 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
     // value.
     
     //  ImageView<PixelMask<Vector2i>> int_disp(disp.cols(), disp.rows());
-    //  std::vector<stereo::SearchParam> zones; 
+    //  std::vector<vw::SearchParam> zones; 
     //  subdivide_regions(int_disp, bounding_box(int_disp),
     //   zones, m_kernel_size);
     // Now must iterate over regions.
@@ -316,4 +316,4 @@ CorrEval::prerasterize_type CorrEval::prerasterize(vw::BBox2i const& bbox) const
                            cols(), rows());
 }
   
-}} // end namespace vw::stereo
+} // end namespace vw

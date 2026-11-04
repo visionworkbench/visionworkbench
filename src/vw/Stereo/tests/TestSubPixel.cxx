@@ -30,7 +30,6 @@
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
-using namespace vw::stereo;
 
 // This setup creates two images, image1 and image2.  image1 contains a random noise
 //  pattern and image2 contains a copy that has been "squished" towards the center
@@ -149,8 +148,8 @@ TEST_F( SubPixelCorrelate95Test, phase_simple) {
   int subpixel_accuracy=50;
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
-  vw::stereo::phase_correlation_subpixel(left_crop, right_crop,
-                                         offset, subpixel_accuracy, true); 
+  vw::phase_correlation_subpixel(left_crop, right_crop,
+                                 offset, subpixel_accuracy, true); 
   
   EXPECT_NEAR(-100, offset[0], 0.01);
   EXPECT_NEAR(-100, offset[1], 0.01);

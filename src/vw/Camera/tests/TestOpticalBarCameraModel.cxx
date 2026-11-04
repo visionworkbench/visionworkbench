@@ -148,7 +148,7 @@ TEST(OpticalBarModel, CreateCamera) {
   
   bool least_squares_refine = false;
   double angle_tol = 0.0;
-  vw::stereo::StereoModel model(cam1.get(), cam2.get(), least_squares_refine, angle_tol);
+  vw::StereoModel model(cam1.get(), cam2.get(), least_squares_refine, angle_tol);
 
   // KH4B matching pixels
   std::vector<Vector2> pixels1, pixels2;

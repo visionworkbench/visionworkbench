@@ -29,7 +29,6 @@ namespace vw {
   // forward declaration
     class CameraModel;
 
-namespace stereo {
 
   // Two-ray triangulation. Triangulate the point by finding the
   // midpoint of the segment joining the closest points on the two
@@ -113,6 +112,6 @@ namespace stereo {
                                     std::vector<Vector3> const& camDirs);
   };
 
-}}      // namespace vw::stereo
+}      // namespace vw
 
 #endif  // __VW_STEREO_STEREOMODEL_H__

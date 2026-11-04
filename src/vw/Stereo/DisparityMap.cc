@@ -19,7 +19,6 @@
 #include <vw/Stereo/DisparityMap.h>
 
 namespace vw {
-namespace stereo {
 
   StdDevImageFunc::StdDevImageFunc(int32 kernel_width, int32 kernel_height) :
     m_kernel_width(kernel_width), m_kernel_height(kernel_height) {
@@ -117,4 +116,4 @@ namespace stereo {
     return true;
   }
   
-}}    // namespace vw::stereo
+}    // namespace vw

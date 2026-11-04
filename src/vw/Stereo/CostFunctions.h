@@ -24,7 +24,6 @@
 #include <vw/Stereo/Algorithms.h>
 
 namespace vw {
-namespace stereo {
 
   template <template<class> class ResultT>
   struct BinaryReturnUnaryTemplateBind1st {
@@ -235,6 +234,6 @@ namespace stereo {
     }
   };
 
-}}
+}
 
 #endif//__VW_STEREO_COSTFUNCTIONS_H__

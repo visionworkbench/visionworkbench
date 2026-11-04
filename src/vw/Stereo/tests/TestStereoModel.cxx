@@ -28,7 +28,6 @@
 #include <vw/Stereo/StereoView.h>
 
 using namespace vw;
-using namespace vw::stereo;
 using namespace vw::math;
 
 TEST( StereoModel, PinholeStereo ) {

@@ -30,7 +30,6 @@
 
 namespace vw {
 
-namespace stereo {
 
 /// Class to compute parabola surface sub-pixel fits
 class ParabolaFit2d {
@@ -1240,7 +1239,6 @@ private: // Functions - one per direction
 
 
 
-} // End namespace stereo
 } // End namespace vw
 
 

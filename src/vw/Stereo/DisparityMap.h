@@ -43,7 +43,6 @@
 
 namespace vw {
 
-namespace stereo {
 
   //  get_disparity_range()
   //
@@ -1357,7 +1356,7 @@ template <class ViewT>
     return DisparityUpsampleView<ViewT>( view.impl() );
   }
 
-}}    // namespace vw::stereo
+}    // namespace vw
 
 
 #endif //  _VWDISPARITYMAP_H_

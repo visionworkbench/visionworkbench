@@ -34,7 +34,6 @@
 
 namespace vw {
 
-namespace stereo {
 
 // Helper function
 template <typename T>
@@ -2744,5 +2743,4 @@ void SemiGlobalMatcher::disp_index_to_xy(int min_index, int col, int row,
   dy += bounds[1];
 }
 
-} // end namespace stereo
 } // end namespace vw

@@ -24,7 +24,6 @@
 // header file everywhere.
 
 namespace vw {
-namespace stereo {
 
   enum CorrelationAlgorithm {
     VW_CORRELATION_BM        = 0, ///< Use a local sliding search window.
@@ -34,6 +33,6 @@ namespace stereo {
     VW_CORRELATION_OTHER     = 4  ///< Some external 1D stereo algorithm.
   };
 
-}} // namespace vw::stereo
+} // namespace vw
 
 #endif//__VW_STEREO_CORRELATION_ALGORITHMS_H__

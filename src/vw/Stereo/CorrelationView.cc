@@ -31,7 +31,7 @@
 #include <ctime>
 #include <vw/Image/Manipulation.h>
 
-namespace vw { namespace stereo {
+namespace vw {
 
   /// Downsample a mask by two. If at least two mask pixels in a 2x2
   /// region are on, the output pixel is on.
@@ -332,7 +332,7 @@ namespace vw { namespace stereo {
     
     // 3.0) Actually perform correlation now
     ImageView<pixel_typeI> disparity, prev_disparity, disparity_rl, prev_disparity_rl;
-    std::vector<stereo::SearchParam> zones; 
+    std::vector<vw::SearchParam> zones; 
     // Start off the search at the lowest resolution pyramid level.  This zone covers
     // the entire image and uses the disparity range that was loaded into the class.
     BBox2i initial_disparity_range = BBox2i(0, 0, 
@@ -577,10 +577,10 @@ namespace vw { namespace stereo {
           //  and flag those pixels as invalid.
           // Crop not needed for SGM!
           const bool verbose = true;
-          stereo::cross_corr_consistency_check(crop(disparity, zone.image_region()), 
-                                               disparity_rl, m_consistency_threshold,
-                                               lr_disp_diff, ul_corner_offset,
-                                               verbose);
+          vw::cross_corr_consistency_check(crop(disparity, zone.image_region()), 
+                                           disparity_rl, m_consistency_threshold,
+                                           lr_disp_diff, ul_corner_offset,
+                                           verbose);
           
           //write_image("lr_result_cons.tif", crop(disparity, zone.image_region()));
                                                
@@ -688,10 +688,10 @@ namespace vw { namespace stereo {
 
             // Find pixels where the disparity distance is greater than m_consistency_threshold
             const bool verbose = true;
-            stereo::cross_corr_consistency_check(crop(disparity, zone.image_region()),
-                                                 disparity_rl, m_consistency_threshold,
-                                                 lr_disp_diff, ul_corner_offset,
-                                                 verbose);
+            vw::cross_corr_consistency_check(crop(disparity, zone.image_region()),
+                                             disparity_rl, m_consistency_threshold,
+                                             lr_disp_diff, ul_corner_offset,
+                                             verbose);
           } // End of last level right to left disparity check
 
             // Fix the offsets to account for cropping.
@@ -885,4 +885,4 @@ namespace vw { namespace stereo {
     }
   } // End function prerasterize
 
-}} // namespace stereo
+}

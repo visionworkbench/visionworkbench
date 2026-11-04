@@ -22,7 +22,6 @@
 #include <vw/Stereo/Correlate.h>
 
 using namespace vw;
-using namespace vw::stereo;
 
 typedef PixelMask<Vector2i> PixelDisp;
 
