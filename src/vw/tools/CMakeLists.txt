@@ -9,10 +9,6 @@ INSTALL(FILES "Common.h"    DESTINATION include/vw/tools)
 
 set(COMMON_LIBS VwCore VwMath VwFileIO VwImage VwCartography)
 
-#TODO: Turn them off when components are not present
-
-#TODO: Add flood detection components
-
 # Converts a DEM to a simple color map
 add_executable(colormap colormap.cc Common.h Common.cc) 
 target_link_libraries(colormap ${COMMON_LIBS}) 
