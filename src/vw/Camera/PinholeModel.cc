@@ -34,6 +34,7 @@
 #include <string>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;
 

@@ -24,15 +24,7 @@
 
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CAHVModel.h>
-#include <vw/Camera/CAHVORModel.h>
-#include <vw/Camera/CAHVOREModel.h>
-#include <vw/Camera/CameraTransform.h>
-#include <vw/FileIO/DiskImageView.h>
-#include <vw/Image/Transform.h>
 #include <boost/shared_ptr.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
-#include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
 

@@ -23,7 +23,13 @@
 #include <vw/Camera/CameraParamsPack.h>
 #include <vw/Camera/OpticalBarModel.h>
 #include <vw/Camera/LensDistortion.h>
+#include <vw/Camera/CAHVORModel.h>
+#include <vw/Camera/CAHVOREModel.h>
+#include <vw/FileIO/DiskImageView.h>
 #include <vw/Math/Geometry.h>
+#include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
 
