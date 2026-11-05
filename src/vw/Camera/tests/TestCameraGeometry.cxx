@@ -19,9 +19,11 @@
 #include <gtest/gtest_VW.h>
 
 #include <boost/random.hpp>
+#include <boost/foreach.hpp>
 
 #include <vw/Math/RANSAC.h>
 #include <vw/Math/EulerAngles.h>
+#include <vw/Math/LinearAlgebra.h>
 #include <vw/Camera/CameraGeometry.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/PinholeModel.h>
