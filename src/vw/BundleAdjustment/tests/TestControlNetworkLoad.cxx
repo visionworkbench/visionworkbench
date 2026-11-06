@@ -26,9 +26,7 @@
 using namespace vw;
 using namespace vw::test;
 
-// Disabled: this test depends on removed API. ControlMeasure::set_serial,
-// ControlNetwork::write_binary, and add_ground_control_cnets no longer exist
-// (binary control-network IO and serial-based GCP merging were removed).
+// Disabled: removed API.
 TEST(ControlNetworkLoad, DISABLED_LoadingGCPNET) {
 
   // Creating GCP net
@@ -41,16 +39,13 @@ TEST(ControlNetworkLoad, DISABLED_LoadingGCPNET) {
     cp.set_position(Vector3(1,2,3));
     {
       ControlMeasure cm(4,5,1,1,0);
-      // cm.set_serial("image1"); // removed API
       cp.add_measure(cm);
     }
     {
       ControlMeasure cm(7,1,2,2,1);
-      // cm.set_serial("image2"); // removed API
       cp.add_measure(cm);
     }
     net.add_control_point(cp);
-    // net.write_binary(gcpnet); // removed API
   }
 
   ControlNetwork net("destination");
@@ -73,7 +68,6 @@ TEST(ControlNetworkLoad, DISABLED_LoadingGCPNET) {
 
   net.add_image_name("image1");
   net.add_image_name("image2");
-  // add_ground_control_cnets(net, gcpnets.begin(), gcpnets.end()); // removed API
 
   ASSERT_EQ(2u, net.size());
   EXPECT_EQ(ControlPoint::GroundControlPoint, net[1].type());

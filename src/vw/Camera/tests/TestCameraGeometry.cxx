@@ -96,8 +96,7 @@ TEST_F(CameraGeometryTest, LinearSolve) {
   }
 }
 
-// Disabled: the iterative camera-matrix fit is a flaky solver whose result
-// varies with the LAPACK backend (it was already disabled on Apple LAPACK).
+// Disabled: flaky solver, backend-dependent.
 TEST_F(CameraGeometryTest, DISABLED_IteratorSolve) {
   Matrix<double> P =
     CameraMatrixFittingFunctor()(noisy_world_m,
@@ -252,9 +251,7 @@ TEST_F(FundamentalMatrixStaticTest, MLAlgorithm) {
   Matrix<double> F = FundamentalMatrixMLFittingFunctor()(measure1, measure2, seed);
 
   EXPECT_EQ(2, rank(F));
-  // The Frobenius-norm normalization of F depends on the LAPACK backend, so do
-  // not assert it. The rank-2 check above and the Sampson errors below are the
-  // meaningful sanity checks.
+  // Frobenius norm is backend-dependent.
 
   for (unsigned i = 0; i < measure1.size(); i++)  {
     EXPECT_LT(FundamentalMatrixSampsonErrorMetric()(seed, Vector3(measure1[i][0], measure1[i][1], 1), 

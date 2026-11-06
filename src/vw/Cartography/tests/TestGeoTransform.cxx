@@ -28,7 +28,7 @@ using namespace vw;
 using namespace vw::test;
 
 
-// Disabled: depends on exact PROJ transform output, which drifts by version.
+// Disabled: PROJ-version sensitive.
 TEST(GeoTransform, DISABLED_safe_set_center) {
   // This test will fail if the correct grid files are not installed!
   Matrix3x3 a; // Set an affine matrix for centering in the 0-360 range.
@@ -201,7 +201,7 @@ TEST(GeoTransform, skipProjectionTest) {
   EXPECT_VECTOR_NEAR(point2, point2b, EPS);
 }
 
-// Disabled: reference-to-reference reprojection depends on exact PROJ output.
+// Disabled: PROJ-version sensitive.
 TEST(GeoTransform, DISABLED_RefToRef) {
   
   // Set up a pair of GeoReference objects which overlap but

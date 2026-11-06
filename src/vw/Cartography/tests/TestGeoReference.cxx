@@ -289,7 +289,6 @@ TEST(GeoReference, IOLoop) {
     // Reading back in and compare
     GeoReference retn_georeference;
     ImageView<PixelRGB<float>> retn_image;
-    // Note: The function below got wiped. Read the image and georef separately.
     EXPECT_TRUE(read_georeferenced_image(retn_image, retn_georeference,
                                          test_filename));
 
@@ -327,7 +326,6 @@ TEST(GeoReference, IOLoop) {
     // Read back in and compare
     GeoReference retn_georef;
     ImageView<PixelRGB<float> > retn_image;
-    // Note: The function below got wiped. Read the image and georef separately.
     EXPECT_TRUE(read_georeferenced_image(retn_image, retn_georef,
                                           test_filename));
 
@@ -527,9 +525,7 @@ void georefMatchTest(const GeoReference &georef)
 /// Check back-and-forth conversions for several equirectangular test cases
 /// - Our code can't handle all test cases, but it should be able to handle
 ///   anything that is likely to be seen.
-// Disabled: the equirectangular round-trip near the +/-180 and 360 wrap lines
-// is sensitive to the PROJ version and drifts by large amounts. The other
-// GeoReference round-trip tests below still exercise the common projections.
+// Disabled: PROJ-version sensitive.
 TEST(GeoReference, DISABLED_eqcReverseTest) {
 
   //std::cout << "Default init.\n";
@@ -599,7 +595,7 @@ TEST(GeoReference, DISABLED_eqcReverseTest) {
   georefMatchTest(georef); // Run a set of tests on the georef
 }
 
-// Disabled: orthographic round-trip is sensitive to the PROJ version.
+// Disabled: PROJ-version sensitive.
 TEST(GeoReference, DISABLED_orthoTest) {
 
   Matrix3x3 affine;
@@ -644,7 +640,7 @@ TEST(GeoReference, albersTestNegLon) {
   EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
 }
 
-// Disabled: Albers at high longitude is sensitive to the PROJ version.
+// Disabled: PROJ-version sensitive.
 TEST(GeoReference, DISABLED_albersTestHighLon) {
   Matrix3x3 affine;
   Datum d;

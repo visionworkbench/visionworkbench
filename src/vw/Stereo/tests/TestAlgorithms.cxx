@@ -35,8 +35,6 @@ static bool has_accum_type(T2) {
 }
 
 TEST(AlgorithmsTest, AbsAccumulatorType) {
-  // The accumulator type is now always float64 for floating point images.
-  // Integer image types are intentionally unsupported (they do not compile).
   EXPECT_TRUE((has_accum_type<float64,AbsAccumulatorType>(ImageView<double>())));
   EXPECT_TRUE((has_accum_type<float64,AbsAccumulatorType>(ImageView<float>())));
 }

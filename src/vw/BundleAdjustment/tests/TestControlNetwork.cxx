@@ -47,8 +47,6 @@ TEST(ControlNetwork, Construction) {
   ASSERT_EQ(cnet[3].size(), 4u);
   EXPECT_VECTOR_DOUBLE_EQ(cnet[0][0].position(),
                           Vector2(100,100));
-  // ControlMeasure::dominant() was removed; position() is now the only
-  // pixel-location accessor.
   EXPECT_VECTOR_DOUBLE_EQ(cnet[0][0].sigma(),
                           Vector2(1,1));
   EXPECT_NEAR(cnet[0][0].sigma_magnitude(),
@@ -65,8 +63,7 @@ TEST(ControlNetwork, Construction) {
   EXPECT_EQ(cnet[1].size(), 2u);
   EXPECT_EQ(cnet[2].size(), 4u);
 
-  // Checking that default settings were applied.
-  // ControlMeasure::is_pixels_dominant() was removed.
+  // Check default settings.
   EXPECT_FALSE(cnet[0][0].ignore());
   EXPECT_EQ(cnet.type(), ControlNetwork::ImageToImage);
 
@@ -80,11 +77,8 @@ TEST(ControlNetwork, Construction) {
   ostr.clear();
   ostr << cnet;
   EXPECT_GT(ostr.str().size(), 100u);
-  
-  // The ControlNetwork CSV/binary read/write API (write_csv, read_csv) was
-  // removed, so the former round-trip read/write checks are dropped here.
 
-  // Check clearing. ControlNetwork::clear() was renamed to clear_points().
+  // Check clearing.
   cnet[0].clear();
   ASSERT_EQ(cnet[0].size(), 0u);
   cnet.clear_points();

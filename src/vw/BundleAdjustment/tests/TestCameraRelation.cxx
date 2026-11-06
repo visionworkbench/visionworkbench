@@ -50,8 +50,6 @@ protected:
 };
 
 TEST(CameraRelation, Construction) {
-  // IPFeature was removed; JFeature is the current feature type. The old
-  // m_ip (InterestPoint) pixel location is now m_location (Vector2f).
   CameraRelationNetwork<JFeature> crn;
   crn.add_node(CameraNode<JFeature>(0,"monkey"));
   crn.add_node(CameraNode<JFeature>(1,"dog"));
@@ -85,7 +83,6 @@ TEST(CameraRelation, Construction) {
 
 TEST_F(CircleTest, IPFeature) {
 
-  // IPFeature was removed; exercise the conversion with JFeature instead.
   CameraRelationNetwork<JFeature> crn;
   crn.from_cnet(cnet);
   EXPECT_EQ(crn.size(), 4u);

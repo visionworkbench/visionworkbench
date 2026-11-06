@@ -21,7 +21,7 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReferenceUtils.h>
-#include <vw/Image/Manipulation.h> // for the image crop() used by block_write_gdal_image
+#include <vw/Image/Manipulation.h>
 
 #include <iomanip>
 
@@ -111,7 +111,6 @@ TEST(GeoReferenceUtils, haversine_distance) {
   // Simple check like what we use to compute image meters per pixel
 
   double radius = 6371000; // meters
-  // Current signature: haversine_circle_distance(Vector2 a, Vector2 b, double radius).
   double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823),
                                            Vector2(-79.8817279, 37.8158211), radius);
   double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211),

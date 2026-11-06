@@ -305,8 +305,7 @@ TEST(Log, ProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  // The progress bar is roughly a terminal width. Do not require an exact
-  // character count, which is cosmetic and has drifted.
+  // Bar width is not exact.
   EXPECT_GE(out.size()-last_line_idx-2, 70u);
   EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr);
@@ -329,8 +328,7 @@ TEST(Log, HiresProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  // The progress bar is roughly a terminal width. Do not require an exact
-  // character count, which is cosmetic and has drifted.
+  // Bar width is not exact.
   EXPECT_GE(out.size()-last_line_idx-2, 70u);
   EXPECT_TRUE(boost::iends_with(out, std::string("***]\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr);

@@ -497,8 +497,6 @@ TEST(Statistics, MedianChannel) {
   image1(1,0) = PixelRGBA<vw::uint8>(4,3,2,1);
   image1(2,0) = PixelRGBA<vw::uint8>(9,8,7,0);
   image1(3,0) = PixelRGBA<vw::uint8>(12,11,10,0);
-  // median_channel_value now returns the true median as a floating value
-  // (the 16 channel values have median 6.5), not a truncated uint8.
   EXPECT_EQ(median_channel_value(image1), 6.5);
   ImageView<PixelMask<PixelRGB<vw::uint8> > > image2(4,1);
   image2(0,0) = PixelMask<PixelRGB<vw::uint8> >(8,7,6);
@@ -510,8 +508,7 @@ TEST(Statistics, MedianChannel) {
   EXPECT_EQ(median_channel_value(image2), 5);
 }
 
-// Disabled: the histogram binning output changed and the fixed bin-count
-// expectations below no longer match. Needs real re-derivation, not a sanity check.
+// Disabled: binning output changed.
 TEST(Statistics, DISABLED_Histogram) {
   
   vw::Histogram hist;
@@ -530,8 +527,7 @@ TEST(Statistics, DISABLED_Histogram) {
   EXPECT_EQ(hist.get_bin_value(255), 1);
 }
 
-// Disabled: the otsu_threshold logic drifted from the Matlab graythresh
-// reference and is tracked by a nightly regression, not this unit test.
+// Disabled: drifted from reference.
 TEST(Statistics, DISABLED_OptimalThreshold) {
   double t  = otsu_threshold(im8b);
   double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)

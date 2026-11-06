@@ -27,8 +27,7 @@ TEST(BBox, Static) {
   // Hard to know how to test this one....
   BBox<float,2> b1;
 
-  // Default constructor (integer type). The box is empty; its min/max are
-  // unspecified sentinels, so only the empty() contract is meaningful here.
+  // Default-constructed integer box is empty.
   BBox<uint8,1> b2;
   EXPECT_TRUE(b2.empty());
 
