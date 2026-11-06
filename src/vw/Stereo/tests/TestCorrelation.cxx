@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,6 +20,8 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageChannels.h>  // for pixel_cast_rescale()
+#include <vw/Image/Manipulation.h>   // for crop()
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/Correlation.h>
 
@@ -71,7 +73,8 @@ typedef Correlation<uint8>             CorrelationU8;
 TEST_F(CorrelationGRAYU8, AbsDifference) {
   result_type disparity =
     calc_disparity(ABSOLUTE_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -83,7 +86,8 @@ TEST_F(CorrelationGRAYU8, AbsDifference) {
 TEST_F(CorrelationGRAYU8, SquaredDifference) {
   result_type disparity =
     calc_disparity(SQUARED_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -95,7 +99,8 @@ TEST_F(CorrelationGRAYU8, SquaredDifference) {
 TEST_F(CorrelationGRAYU8, CrossCorrelation) {
   result_type disparity =
     calc_disparity(CROSS_CORRELATION, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -107,7 +112,8 @@ TEST_F(CorrelationGRAYU8, CrossCorrelation) {
 TEST_F(CorrelationGRAYI16, AbsDifference) {
   result_type disparity =
     calc_disparity(ABSOLUTE_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -119,7 +125,8 @@ TEST_F(CorrelationGRAYI16, AbsDifference) {
 TEST_F(CorrelationGRAYI16, SquaredDifference) {
   result_type disparity =
     calc_disparity(SQUARED_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -131,7 +138,8 @@ TEST_F(CorrelationGRAYI16, SquaredDifference) {
 TEST_F(CorrelationGRAYI16, CrossCorrelation) {
   result_type disparity =
     calc_disparity(CROSS_CORRELATION, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -143,7 +151,8 @@ TEST_F(CorrelationGRAYI16, CrossCorrelation) {
 TEST_F(CorrelationGRAYF32, AbsDifference) {
   result_type disparity =
     calc_disparity(ABSOLUTE_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -155,7 +164,8 @@ TEST_F(CorrelationGRAYF32, AbsDifference) {
 TEST_F(CorrelationGRAYF32, SquaredDifference) {
   result_type disparity =
     calc_disparity(SQUARED_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -167,7 +177,8 @@ TEST_F(CorrelationGRAYF32, SquaredDifference) {
 TEST_F(CorrelationGRAYF32, CrossCorrelation) {
   result_type disparity =
     calc_disparity(CROSS_CORRELATION, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -179,7 +190,8 @@ TEST_F(CorrelationGRAYF32, CrossCorrelation) {
 TEST_F(CorrelationU8, AbsDifference) {
   result_type disparity =
     calc_disparity(ABSOLUTE_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -191,7 +203,8 @@ TEST_F(CorrelationU8, AbsDifference) {
 TEST_F(CorrelationU8, SquaredDifference) {
   result_type disparity =
     calc_disparity(SQUARED_DIFFERENCE, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());
@@ -203,7 +216,8 @@ TEST_F(CorrelationU8, SquaredDifference) {
 TEST_F(CorrelationU8, CrossCorrelation) {
   result_type disparity =
     calc_disparity(CROSS_CORRELATION, 
-                   input1, input2,
+                   pixel_cast<PixelGray<float> >(input1),
+                   pixel_cast<PixelGray<float> >(input2),
                    bounding_box(input1),
                    search_volume, kernel_size);
   ASSERT_EQ(19, disparity.cols());

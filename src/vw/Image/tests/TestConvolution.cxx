@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -21,6 +21,7 @@
 
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/Convolution.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/ImageView.h>

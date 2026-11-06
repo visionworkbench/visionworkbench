@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,6 +20,7 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageOpacity.h>
 #include <vw/Image/AutoNormalize.h>
 #include <vw/Image/ImageSurface.h>
 #include <vw/Image/Grassfire.h>

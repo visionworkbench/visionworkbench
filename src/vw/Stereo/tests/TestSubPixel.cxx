@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -23,6 +23,8 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/UtilityViews.h>   // for uniform_noise_view()
+#include <vw/Image/ImageChannels.h>  // for channel_cast_rescale()
 #include <vw/Stereo/ParabolaSubpixelView.h>
 #include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Stereo/SubpixelView.h>
@@ -99,7 +101,9 @@ TEST(ParabolaSubpixel, NullTest) {
   fill(right, 0.6);
 
   ImageView<PixelMask<Vector2f> > fdisparity =
-    parabola_subpixel(disparity, left, right,
+    parabola_subpixel(pixel_cast<PixelMask<Vector2f> >(disparity),
+                      pixel_cast<PixelGray<float> >(left),
+                      pixel_cast<PixelGray<float> >(right),
                       PREFILTER_NONE, 1.4,
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
@@ -110,7 +114,9 @@ TEST(ParabolaSubpixel, NullTest) {
   }
 
   fdisparity =
-    parabola_subpixel(disparity, left, right,
+    parabola_subpixel(pixel_cast<PixelMask<Vector2f> >(disparity),
+                      pixel_cast<PixelGray<float> >(left),
+                      pixel_cast<PixelGray<float> >(right),
                       PREFILTER_LOG, 1.4,
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
@@ -128,7 +134,9 @@ TEST(ParabolaSubpixel, NullTest) {
 
 TEST_F(SubPixelCorrelate95Test, Parabola) {
   ImageView<PixelMask<Vector2f> > disparity_map =
-    parabola_subpixel(starting_disp, image1, image2,
+    parabola_subpixel(starting_disp,
+                      pixel_cast<PixelGray<float> >(image1),
+                      pixel_cast<PixelGray<float> >(image2),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -198,7 +206,8 @@ TEST_F(SubPixelCorrelate80Test, Phase) {
   int max_pyramid_levels = 0;
   ImageView<PixelMask<Vector2f> > output_disp =
   phase_subpixel(disparity_map,
-                 left_crop, right_crop,
+                 pixel_cast<PixelGray<float> >(left_crop),
+                 pixel_cast<PixelGray<float> >(right_crop),
                  PREFILTER_LOG, 1.4,
                  Vector2i(kern_size, kern_size),
                  max_pyramid_levels);
@@ -342,8 +351,8 @@ TEST_F( SubPixelCorrelate95Test, Phase ) {
 TEST_F(SubPixelCorrelate95Test, BayesEM95) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     bayes_em_subpixel(starting_disp,
-                      channel_cast_rescale<float>(image1),
-                      channel_cast_rescale<float>(image2),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -358,8 +367,8 @@ TEST_F(SubPixelCorrelate95Test, BayesEM95) {
 TEST_F(SubPixelCorrelate90Test, BayesEM90) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     bayes_em_subpixel(starting_disp,
-                      channel_cast_rescale<float>(image1),
-                      channel_cast_rescale<float>(image2),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -374,8 +383,8 @@ TEST_F(SubPixelCorrelate90Test, BayesEM90) {
 TEST_F(SubPixelCorrelate80Test, BayesEM80) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     bayes_em_subpixel(starting_disp,
-                      channel_cast_rescale<float>(image1),
-                      channel_cast_rescale<float>(image2),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -390,8 +399,8 @@ TEST_F(SubPixelCorrelate80Test, BayesEM80) {
 TEST_F(SubPixelCorrelate70Test, BayesEM70) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     bayes_em_subpixel(starting_disp,
-                      channel_cast_rescale<float>(image1),
-                      channel_cast_rescale<float>(image2),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
     

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -20,6 +20,9 @@
 
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/CorrelationView.h>
+#include <vw/Image/UtilityViews.h>    // for uniform_noise_view(), constant_view()
+#include <vw/Image/Transform.h>       // for transform(), AffineTransform, interpolation
+#include <vw/Image/EdgeExtension.h>   // for ConstantEdgeExtension
 #include <boost/random/linear_congruential.hpp>
 
 
@@ -91,7 +94,8 @@ typedef PyramidViewTest<uint8>             PyramidViewU8;
 
 TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -104,7 +108,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   check_error(disparity_map, .909, .9985, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -117,7 +122,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   check_error(disparity_map, .91, .990, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -130,7 +136,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   check_error(disparity_map, .90, .9985, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -143,7 +150,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   check_error(disparity_map, .90, .990, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -156,7 +164,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
   check_error(disparity_map, .90, .998, "Cross Correlation");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -171,7 +180,8 @@ TEST_F(PyramidViewGRAYU8, NullPreprocess) {
 
 TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -184,7 +194,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   check_error(disparity_map, .909, .9985, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -197,7 +208,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   check_error(disparity_map, .91, .990, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -210,7 +222,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   check_error(disparity_map, .90, .9985, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -223,7 +236,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   check_error(disparity_map, .90, .990, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -236,7 +250,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
   check_error(disparity_map, .87, .99, "Cross Correlation");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -251,7 +266,8 @@ TEST_F(PyramidViewGRAYI16, NullPreprocess) {
 
 TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -264,7 +280,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   check_error(disparity_map, .909, .9985, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -277,7 +294,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   check_error(disparity_map, .91, .990, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -290,7 +308,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   check_error(disparity_map, .90, .9985, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -303,7 +322,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   check_error(disparity_map, .90, .990, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -316,7 +336,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
   check_error(disparity_map, .90, .998, "Cross Correlation");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -331,7 +352,8 @@ TEST_F(PyramidViewGRAYF32, NullPreprocess) {
 
 TEST_F(PyramidViewU8, NullPreprocess) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -344,7 +366,8 @@ TEST_F(PyramidViewU8, NullPreprocess) {
   check_error(disparity_map, .909, .9985, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -357,7 +380,8 @@ TEST_F(PyramidViewU8, NullPreprocess) {
   check_error(disparity_map, .91, .990, "Absolute Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -370,7 +394,8 @@ TEST_F(PyramidViewU8, NullPreprocess) {
   check_error(disparity_map, .90, .9985, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -383,7 +408,8 @@ TEST_F(PyramidViewU8, NullPreprocess) {
   check_error(disparity_map, .90, .990, "Squared Difference");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,
@@ -396,7 +422,8 @@ TEST_F(PyramidViewU8, NullPreprocess) {
   check_error(disparity_map, .90, .998, "Cross Correlation");
 
   disparity_map =
-    pyramid_correlate(input1, input2,
+    pyramid_correlate(pixel_cast<PixelGray<float> >(input1),
+                      pixel_cast<PixelGray<float> >(input2),
                       constant_view(uint8(255), input1),
                       constant_view(uint8(255), input2),
                       PREFILTER_NONE, 0,

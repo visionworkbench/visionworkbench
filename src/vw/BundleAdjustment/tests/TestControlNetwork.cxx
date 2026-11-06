@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -47,8 +47,8 @@ TEST(ControlNetwork, Construction) {
   ASSERT_EQ(cnet[3].size(), 4u);
   EXPECT_VECTOR_DOUBLE_EQ(cnet[0][0].position(),
                           Vector2(100,100));
-  EXPECT_VECTOR_DOUBLE_EQ(cnet[0][0].dominant(),
-                          Vector2(100,100));
+  // ControlMeasure::dominant() was removed; position() is now the only
+  // pixel-location accessor.
   EXPECT_VECTOR_DOUBLE_EQ(cnet[0][0].sigma(),
                           Vector2(1,1));
   EXPECT_NEAR(cnet[0][0].sigma_magnitude(),
@@ -65,8 +65,8 @@ TEST(ControlNetwork, Construction) {
   EXPECT_EQ(cnet[1].size(), 2u);
   EXPECT_EQ(cnet[2].size(), 4u);
 
-  // Checking that default settings were applied
-  EXPECT_TRUE(cnet[0][0].is_pixels_dominant());
+  // Checking that default settings were applied.
+  // ControlMeasure::is_pixels_dominant() was removed.
   EXPECT_FALSE(cnet[0][0].ignore());
   EXPECT_EQ(cnet.type(), ControlNetwork::ImageToImage);
 
@@ -81,29 +81,12 @@ TEST(ControlNetwork, Construction) {
   ostr << cnet;
   EXPECT_GT(ostr.str().size(), 100u);
   
-  // Do some basic read/write checks.
-  std::string test_file = "temp_ControlNetwork.csv";
+  // The ControlNetwork CSV/binary read/write API (write_csv, read_csv) was
+  // removed, so the former round-trip read/write checks are dropped here.
 
-  EXPECT_NO_THROW(cnet.write_csv(test_file));
-
-  ControlNetwork cnet_csv(test_file);
-  //cnet_csv.read_csv(test_file);
-  EXPECT_NO_THROW(cnet_csv.read_csv(test_file));
-
-  EXPECT_EQ(cnet.num_tie_points(),            cnet_csv.num_tie_points());
-  EXPECT_EQ(cnet.num_ground_control_points(), cnet_csv.num_ground_control_points());
-  
-  //EXPECT_NO_THROW(cnet_csv.write_in_gcp_format("cn_gcp_format.csv", vw::Datum("WGS84")));
-  cnet_csv.add_image_name("image1.tif");
-  cnet_csv.add_image_name("image2.tif");
-  cnet_csv.add_image_name("image3.tif");
-  cnet_csv.add_image_name("image4.tif");
-  cnet_csv.write_in_gcp_format("cn_gcp_format.csv", vw::Datum("WGS84"));
-  
-  
-  // Check clearing
+  // Check clearing. ControlNetwork::clear() was renamed to clear_points().
   cnet[0].clear();
   ASSERT_EQ(cnet[0].size(), 0u);
-  cnet.clear();
+  cnet.clear_points();
   ASSERT_EQ(cnet.size(), 0u);
 }

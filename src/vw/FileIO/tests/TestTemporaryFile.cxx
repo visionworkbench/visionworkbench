@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -102,7 +102,7 @@ void _check(TemporaryFile& a, uint32 line, std::string dir = "", const std::stri
 }
 
 TEST(TemporaryFile, NoArg) {
-  std::std::string fn;
+  std::string fn;
   {
     TemporaryFile a;
     fn = a.filename();

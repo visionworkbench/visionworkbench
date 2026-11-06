@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -21,6 +21,7 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReferenceUtils.h>
+#include <vw/Image/Manipulation.h> // for the image crop() used by block_write_gdal_image
 
 #include <iomanip>
 
@@ -109,11 +110,12 @@ TEST(GeoReferenceUtils, gdal_read_checks) {
 TEST(GeoReferenceUtils, haversine_distance) {
   // Simple check like what we use to compute image meters per pixel
 
-  double radius = 6371000; // meters  
-  double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823, radius),
-                                           Vector2(-79.8817279, 37.8158211));
-  double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211, radius),
-                                           Vector2(-79.8817279, 39.7140823));
+  double radius = 6371000; // meters
+  // Current signature: haversine_circle_distance(Vector2 a, Vector2 b, double radius).
+  double d1    = haversine_circle_distance(Vector2(-83.1074910, 39.7140823),
+                                           Vector2(-79.8817279, 37.8158211), radius);
+  double d2    = haversine_circle_distance(Vector2(-83.1074910, 37.8158211),
+                                           Vector2(-79.8817279, 39.7140823), radius);
   double denom = sqrt(30977*30977 + 18229*18229);
 
   EXPECT_NEAR(9.74744, d1/denom, 0.0001);

@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -50,16 +50,19 @@ protected:
 };
 
 TEST(CameraRelation, Construction) {
-  CameraRelationNetwork<IPFeature> crn;
-  crn.add_node(CameraNode<IPFeature>(0,"monkey"));
-  crn.add_node(CameraNode<IPFeature>(1,"dog"));
+  // IPFeature was removed; JFeature is the current feature type. The old
+  // m_ip (InterestPoint) pixel location is now m_location (Vector2f).
+  CameraRelationNetwork<JFeature> crn;
+  crn.add_node(CameraNode<JFeature>(0,"monkey"));
+  crn.add_node(CameraNode<JFeature>(1,"dog"));
   ASSERT_EQ(crn.size(), 2u);
 
   {
-    boost::shared_ptr<IPFeature> first(new IPFeature(InterestPoint(5,10),
-                                                      0));
-    boost::shared_ptr<IPFeature> second(new IPFeature(InterestPoint(10,5),
-                                                       1));
+    // JFeature(point_id, camera_id); set the pixel location separately.
+    boost::shared_ptr<JFeature> first(new JFeature(0, 0));
+    first->m_location = Vector2f(5, 10);
+    boost::shared_ptr<JFeature> second(new JFeature(1, 1));
+    second->m_location = Vector2f(10, 5);
 
     first->connection(second);
     second->connection(first);
@@ -67,23 +70,23 @@ TEST(CameraRelation, Construction) {
     crn[1].relations.push_back(second);
   }
 
-  std::list<boost::weak_ptr<IPFeature> > list;
+  std::list<boost::weak_ptr<JFeature> > list;
   (*crn[0].begin())->list_connections(list);
-  for (std::list<boost::weak_ptr<IPFeature> >::iterator it = list.begin();
+  for (std::list<boost::weak_ptr<JFeature> >::iterator it = list.begin();
        it != list.end(); it++) {
     std::ostringstream ostr;
     ostr << *(*it).lock();
     EXPECT_GT(ostr.str().size(), 20u);
   }
   EXPECT_EQ(list.size(), 2u);
-  EXPECT_EQ(list.front().lock()->m_ip.x, 10);
-  EXPECT_EQ(list.back().lock()->m_ip.x, 5);
+  EXPECT_EQ(list.front().lock()->m_location.x(), 10);
+  EXPECT_EQ(list.back().lock()->m_location.x(), 5);
 }
 
 TEST_F(CircleTest, IPFeature) {
 
-  // Convert to Camera Relation
-  CameraRelationNetwork<IPFeature> crn;
+  // IPFeature was removed; exercise the conversion with JFeature instead.
+  CameraRelationNetwork<JFeature> crn;
   crn.from_cnet(cnet);
   EXPECT_EQ(crn.size(), 4u);
   for (uint32 i = 0; i < crn.size(); i++)
@@ -92,7 +95,7 @@ TEST_F(CircleTest, IPFeature) {
   EXPECT_EQ(crn[1].relations.size(), 3u);
   EXPECT_EQ(crn[2].relations.size(), 2u);
   EXPECT_EQ(crn[3].relations.size(), 1u);
-  std::list<boost::weak_ptr<IPFeature> > list;
+  std::list<boost::weak_ptr<JFeature> > list;
   crn[3].relations.front()->list_connections(list);
   EXPECT_EQ(list.size(), 4u);
 }

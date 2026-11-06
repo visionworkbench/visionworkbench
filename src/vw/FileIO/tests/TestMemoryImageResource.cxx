@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -42,16 +42,16 @@ using namespace vw;
 
 struct MemoryImageResourceTest : public ::testing::TestWithParam<std::string> {
   void slurp(const std::string& filename, std::vector<uint8>& data) {
-    ifstream f(filename.c_str(), ios::binary);
+    std::ifstream f(filename.c_str(), std::ios::binary);
     ASSERT_TRUE(f.is_open());
 
-    f.seekg(0, ios_base::end);
+    f.seekg(0, std::ios_base::end);
     ASSERT_FALSE(f.fail());
 
     size_t size = f.tellg();
     ASSERT_FALSE(f.fail());
 
-    f.seekg(0, ios_base::beg);
+    f.seekg(0, std::ios_base::beg);
     ASSERT_FALSE(f.fail());
 
     data.resize(size, false);

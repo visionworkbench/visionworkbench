@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -35,10 +35,10 @@ static bool has_accum_type(T2) {
 }
 
 TEST(AlgorithmsTest, AbsAccumulatorType) {
-  EXPECT_TRUE((has_accum_type<double,AbsAccumulatorType>(ImageView<double>())));
-  EXPECT_TRUE((has_accum_type<float,AbsAccumulatorType>(ImageView<float>())));
-  EXPECT_TRUE((has_accum_type<int16,AbsAccumulatorType>(ImageView<uint8>())));
-  EXPECT_TRUE((has_accum_type<int32,AbsAccumulatorType>(ImageView<uint32>())));
+  // The accumulator type is now always float64 for floating point images.
+  // Integer image types are intentionally unsupported (they do not compile).
+  EXPECT_TRUE((has_accum_type<float64,AbsAccumulatorType>(ImageView<double>())));
+  EXPECT_TRUE((has_accum_type<float64,AbsAccumulatorType>(ImageView<float>())));
 }
 
 TEST(AlgorithmsTest, FastBoxFloat) {
@@ -52,7 +52,7 @@ TEST(AlgorithmsTest, FastBoxFloat) {
     }
   }
 
-  typedef AbsAccumulatorType<float>::type accum_type;
+  typedef float accum_type;
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());
@@ -80,7 +80,7 @@ TEST(AlgorithmsTest, FastBoxInt32) {
     }
   }
 
-  typedef AbsAccumulatorType<int32>::type accum_type;
+  typedef int32 accum_type;
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());
@@ -103,7 +103,7 @@ TEST(AlgorithmsTest, FastBoxDouble) {
   std::fill(&input(0,0), &input(6,0)+1, 2);
   input(6,0) = 3;
 
-  typedef AbsAccumulatorType<double>::type accum_type;
+  typedef double accum_type;
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());
@@ -128,7 +128,7 @@ TEST(AlgorithmsTest, FastBoxChar) {
   std::fill(&input(0,0), &input(6,0)+1, 40);
   input(6,0) = 50;
 
-  typedef AbsAccumulatorType<uint8>::type accum_type;
+  typedef int16 accum_type;
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());
@@ -153,7 +153,7 @@ TEST(AlgorithmsTest, FastBoxPixelU8) {
   std::fill(input.begin(), input.end(), PixelGray<uint8>(27));
   std::fill(&input(0,0), &input(6,0)+1, PixelGray<uint8>(40));
 
-  typedef AbsAccumulatorType<uint8>::type accum_type;
+  typedef int16 accum_type;
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());

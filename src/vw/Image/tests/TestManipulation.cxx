@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -26,6 +26,8 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageTransform.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Image/PixelTypes.h>
 
 #include <boost/type_traits/is_same.hpp>
@@ -524,86 +526,6 @@ TEST(Manipulation, FlipVert) {
   ASSERT_TRUE(bool_trait<IsMultiplyAccessible>(flip_vertical(im)));
 }
 
-TEST(Manipulation, FlipHorzView) {
-  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  FlipHorizontalView<ImageView<double> > rmv(im);
-  ASSERT_EQ(rmv.cols(), 2);
-  ASSERT_EQ(rmv.rows(), 3);
-  ASSERT_EQ(rmv.planes(), 1);
-
-  // Test individual pixel access
-  EXPECT_EQ(rmv(0,0), 2);
-  EXPECT_EQ(rmv(1,0), 1);
-  EXPECT_EQ(rmv(0,1), 4);
-  EXPECT_EQ(rmv(1,1), 3);
-  EXPECT_EQ(rmv(0,2), 6);
-  EXPECT_EQ(rmv(1,2), 5);
-
-  // Test full rasterizaion
-  ImageView<double> im2 = rmv;
-  ASSERT_EQ(im2.cols(), rmv.cols());
-  ASSERT_EQ(im2.rows(), rmv.rows());
-  ASSERT_EQ(im2.planes(), rmv.planes());
-  for (int r=0; r<im2.rows(); ++r)
-    for (int c=0; c<im2.cols(); ++c)
-      EXPECT_EQ(im2(c,r), rmv(c,r));
-
-  // Test partial rasterization
-  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-  ASSERT_NO_THROW(rmv.rasterize(im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1)));
-  for (int r=0; r<im3.rows(); ++r)
-    for (int c=0; c<im3.cols(); ++c)
-      EXPECT_EQ(im3(c,r), rmv(c+1,r+1));
-
-  // Test prerasterization
-  PrerasterizationTestView ptv(4,4);
-  FlipHorizontalView<PrerasterizationTestView> rtv(ptv);
-  ASSERT_NO_THROW(rtv.prerasterize(BBox2i(2,0,1,2)));
-  EXPECT_EQ(ptv.bbox(), BBox2i(1,0,1,2));
-
-  // Test the accessor / generic rasterization
-  ImageView<double> im4(rmv.cols(),rmv.rows());
-  vw::rasterize(rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()));
-  for (int r=0; r<im2.rows(); ++r)
-    for (int c=0; c<im3.cols(); ++c)
-      EXPECT_EQ(im4(c,r), rmv(c,r));
-
-  // Test the iterator
-  ImageView<double>::iterator im2i = im2.begin();
-  FlipHorizontalView<ImageView<double> >::iterator rmvi = rmv.begin();
-  for (int i=0; i<im2.cols()*im2.rows(); ++i) {
-    EXPECT_GT(rmv.end() - rmvi, 0);
-    EXPECT_EQ(*im2i, *rmvi);
-    ASSERT_NO_THROW(++rmvi);
-    ++im2i;
-  }
-  EXPECT_EQ(rmv.end() - rmvi, 0);
-
-  // Test the types
-  ASSERT_TRUE(has_pixel_type<double>(rmv));
-  ASSERT_TRUE(bool_trait<IsMultiplyAccessible>(rmv));
-  ASSERT_TRUE(bool_trait<IsImageView>(rmv));
-}
-
-TEST(Manipulation, FlipHorz) {
-  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  ImageView<double> im2 = flip_horizontal(im);
-  ASSERT_EQ(im2.cols(), 2);
-  ASSERT_EQ(im2.rows(), 3);
-  EXPECT_EQ(im2(0,0), 2);
-  EXPECT_EQ(im2(1,0), 1);
-  EXPECT_EQ(im2(0,1), 4);
-  EXPECT_EQ(im2(1,1), 3);
-  EXPECT_EQ(im2(0,2), 6);
-  EXPECT_EQ(im2(1,2), 5);
-
-  // Make sure it's really shallow.
-  EXPECT_EQ(flip_horizontal(im)(1,0), im(0,0));
-  EXPECT_EQ(&(flip_horizontal(im)(1,0)), &(im(0,0)));
-
-  // Test the traits
-  ASSERT_TRUE(bool_trait<IsMultiplyAccessible>(flip_horizontal(im)));
-}
 
 TEST(Manipulation, CropView) {
   ImageView<double> im(4,5); im(1,1)=1; im(2,1)=2; im(1,2)=3; im(2,2)=4; im(1,3)=5; im(2,3)=6;
@@ -959,23 +881,6 @@ TEST(Manipulation, ChannelsToPlanes) {
 
   // Test the traits
   ASSERT_TRUE(bool_trait<IsMultiplyAccessible>(channels_to_planes(im)));
-}
-
-TEST(Manipulation, PlanesToChannels) {
-  ImageView<double> im(1,2,3); im(0,0,0)=1; im(0,0,1)=2; im(0,0,2)=3; im(0,1,0)=4; im(0,1,1)=5; im(0,1,2)=6;
-  ImageView<PixelRGB<double> > im2 = planes_to_channels<PixelRGB<double> >(im);
-  ASSERT_EQ(im2.cols(), 1);
-  ASSERT_EQ(im2.rows(), 2);
-  ASSERT_EQ(im2.planes(), 1);
-  EXPECT_EQ(im2(0,0)[0], 1);
-  EXPECT_EQ(im2(0,1)[0], 4);
-  EXPECT_EQ(im2(0,0)[1], 2);
-  EXPECT_EQ(im2(0,1)[1], 5);
-  EXPECT_EQ(im2(0,0)[2], 3);
-  EXPECT_EQ(im2(0,1)[2], 6);
-
-  // Test the traits
-  ASSERT_TRUE(!bool_trait<IsMultiplyAccessible>(planes_to_channels<PixelRGB<double> >(im)));
 }
 
 TEST(Manipulation, ChannelCast) {

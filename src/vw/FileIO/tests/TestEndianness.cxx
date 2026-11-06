@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -21,7 +21,9 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageIO.h>
 
 using namespace vw;
 using namespace vw::test;

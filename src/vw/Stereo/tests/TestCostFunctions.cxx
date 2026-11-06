@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -78,8 +78,9 @@ TEST_F(CostFunctionGRAYF32, CrossCorrelation) {
 }
 
 TEST(CostFunction, AccumulatorType) {
-  // I'm mostly just checking to make sure they exist
-  EXPECT_TRUE((boost::is_same<float,AbsoluteCost<ImageView<float>, false >::accumulator_type>::value));
-  EXPECT_TRUE((boost::is_same<double,SquaredCost<ImageView<float>, false >::accumulator_type>::value));
-  EXPECT_TRUE((boost::is_same<double,NCCCost<ImageView<float>, false>::accumulator_type>::value));
+  // The cost functors now take a single template argument, and the
+  // accumulators are always float64, even for float32 inputs.
+  EXPECT_TRUE((boost::is_same<double,AbsoluteCost<ImageView<float> >::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,SquaredCost<ImageView<float> >::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,NCCCost<ImageView<float> >::accumulator_type>::value));
 }

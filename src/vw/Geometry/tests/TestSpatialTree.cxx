@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -212,7 +212,7 @@ TEST_P(SpatialTreeTest, Basic) {
   ASSERT_TRUE(t.check());
 }
 
-INSTANTIATE_TEST_CASE_P(Dims, SpatialTreeTest, test::Range(1u,5u));
+INSTANTIATE_TEST_CASE_P(Dims, SpatialTreeTest, ::testing::Range(1u,5u));
 
 TEST(SpatialTreeTest, Intersect) {
 
