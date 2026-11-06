@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -14,6 +14,12 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // __END_LICENSE__
+
+/// \file CensusTransform.h
+///
+
+#ifndef __VW_IMAGE_CENSUSTRANSFORM_H__
+#define __VW_IMAGE_CENSUSTRANSFORM_H__
 
 #include <vw/Math/Functions.h>
 #include <vw/Image/ImageView.h>
@@ -337,3 +343,5 @@ uint64 get_census_value_ternary_9x9(ImageView<uint8> const& image, int col, int 
 }
 
 } // end namespace vw
+
+#endif // __VW_IMAGE_CENSUSTRANSFORM_H__
