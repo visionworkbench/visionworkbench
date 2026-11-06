@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -87,7 +87,7 @@ TEST(PinholeModel, CoordinateFrame) {
 
 TEST(PinholeModel, TsaiDistortion) {
   double distortion_arr[] = {-0.2805362343788147, 0.1062035113573074,
-                             -0.0001422458299202845, 0.00116333004552871};
+                             -0.0001422458299202845, 0.00116333004552871, 0.0}; // k1 k2 p1 p2 k3
   Vector<double> distortion_vec(sizeof(distortion_arr)/sizeof(double), distortion_arr);
   TsaiLensDistortion lens(distortion_vec);
   // Create an imaginary 1000x1000 pixel imager
@@ -114,7 +114,7 @@ TEST(PinholeModel, TsaiDistortion) {
 TEST(PinholeModel, ScalePinhole) {
   Matrix<double,3,3> rot = vw::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
   double distortion_arr[] = {-0.2796604335308075, 0.1031486615538597,
-                             -0.0007824968779459596, 0.0009675505571067333};
+                             -0.0007824968779459596, 0.0009675505571067333, 0.0}; // k1 k2 p1 p2 k3
   Vector<double> distortion_vec(sizeof(distortion_arr)/sizeof(double), distortion_arr);
   TsaiLensDistortion lens(distortion_vec);
   PinholeModel pinhole4(Vector3(-0.329, 0.065, -0.82),
@@ -273,7 +273,7 @@ TEST_F(PinholeTest, NullLensDistortion) {
 
 TEST_F(PinholeTest, TsaiLensDistortion) {
   double distortion_arr[] = {-0.2796604335308075, 0.1031486615538597,
-                             -0.0007824968779459596, 0.0009675505571067333};
+                             -0.0007824968779459596, 0.0009675505571067333, 0.0}; // k1 k2 p1 p2 k3
   Vector<double> distortion_vec(sizeof(distortion_arr)/sizeof(double), distortion_arr);
   TsaiLensDistortion lens(distortion_vec);
   pinhole.set_lens_distortion(&lens);
