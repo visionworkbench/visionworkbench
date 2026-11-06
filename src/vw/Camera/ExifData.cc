@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -33,6 +33,7 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 #include <vw/Camera/ExifData.h>
 #include <vw/vw_config.h>
 
@@ -41,6 +42,7 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <vector>
 #include <utility>
 
 #if VW_HAVE_PKG_BOOST_IOSTREAMS
@@ -90,15 +92,6 @@ const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 // TODO: This file probably shouldn't exist. It duplicates some functionality
 // TODO: from FileIO, and really belongs there. FileIO doesn't support a
 // TODO: general comments thing right now, though
-
-vw::ExifData::~ExifData() {
-  typedef std::map<unsigned int, ExifTagData>::iterator iterator;
-  for (iterator tag = tags.begin(); tag != tags.end(); tag++) {
-    if ((*tag).second.type == StringType) {
-      free((*tag).second.value.s);
-    }
-  }
-}
 
 // Convert a 16 bit unsigned value to file's native byte order
 void vw::ExifData::Put16u(void * Short, unsigned short PutValue) {
@@ -201,7 +194,7 @@ double vw::ExifData::convert_any_format(const void * ValuePtr, int Format) {
       break;
 
     default:
-      printf("Warning: illegal format code %d", Format);
+      vw_out(WarningMessage) << "Illegal Exif format code " << Format << ".\n";
   }
   return Value;
 }
@@ -232,12 +225,12 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
     int Components = Get32u(DirEntry+4);
 
     if ((Format > ExifData::NUM_FORMATS) || (Format <= 0)) {
-      printf("Warning: illegal number format %d for tag %04x\n", Format, Tag);
+      vw_out(WarningMessage) << "Illegal number format " << Format << " for tag " << Tag << ".\n";
       continue;
     }
 
     if ((unsigned)Components > 0x10000) {
-      printf("Warning: illegal number of components %d for tag %04x\n", Components, Tag);
+      vw_out(WarningMessage) << "Illegal number of components " << Components << " for tag " << Tag << ".\n";
       continue;
     }
 
@@ -248,7 +241,7 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
       // If its bigger than 4 bytes, the dir entry contains an offset.
       if (OffsetVal + ByteCount > ExifLength){
         // Bogus pointer offset and / or bytecount value
-        printf("Warning: illegal value pointer for tag %04x\n", Tag);
+        vw_out(WarningMessage) << "Illegal value pointer for tag " << Tag << ".\n";
         continue;
       }
       ValuePtr = OffsetBase + OffsetVal;
@@ -261,13 +254,10 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
     switch (Format) {
       case ASCII:
       case UNDEFINED:
-        // Store as string data
+        // Store as string data. Truncate at the first null, matching the prior
+        // C-string behavior that get_tag_value reads back.
         tags[Tag].type = StringType;
-        // Next line might not work if a tag like MakerNote includes '\0' characters
-        //tags[Tag].value.s = strndup((const char *)ValuePtr, ByteCount);
-        tags[Tag].value.s = (char *)malloc(ByteCount + 1);
-        memcpy(tags[Tag].value.s, ValuePtr, ByteCount);
-        tags[Tag].value.s[ByteCount] = '\0';
+        tags[Tag].value.s = std::string((const char*)ValuePtr, ByteCount).c_str();
         break;
 
       case UBYTE:
@@ -293,7 +283,7 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
     case 0xA005:  // TAG_InteroperabilityOffset:
       const unsigned char * SubdirStart = OffsetBase + Get32u(ValuePtr);
       if (SubdirStart < OffsetBase || SubdirStart > OffsetBase+ExifLength){
-        printf("Warning: illegal exif or interop offset directory link");
+        vw_out(WarningMessage) << "Illegal Exif or interop offset directory link.\n";
       } else {
         process_exif_dir(SubdirStart, OffsetBase, ExifLength, NestingLevel+1);
       }
@@ -331,7 +321,7 @@ void vw::ExifData::process_exif_dir(const unsigned char * DirStart, const unsign
         if ((SubdirStart > OffsetBase) && (SubdirStart < OffsetBase + ExifLength + 20)) {
           // let this pass silently
         } else {
-          printf("Warning: illegal subdirectory link\n");
+          vw_out(WarningMessage) << "Illegal subdirectory link.\n";
         }
       } else {
         if (SubdirStart <= OffsetBase + ExifLength){
@@ -357,7 +347,7 @@ int vw::ExifData::process_tiff_header(const unsigned char * buffer) {
   // Bytes 4-7 contain offset of first IFD
   int first_offset = Get32u(buffer+4);
   if (first_offset < 8 || first_offset > 16){
-    printf("Warning: suspicious offset of first IFD value.\n");
+    vw_out(WarningMessage) << "Suspicious offset of first IFD value.\n";
   }
   return first_offset;
 }
@@ -433,42 +423,36 @@ bool vw::ExifData::read_jpeg_sections(FILE* infile) {
 
     VW_ASSERT(itemlen >= 2, IOErr() << "Invalid JPEG marker.");
 
-    uint8* data = (uint8 *)malloc(itemlen);
-    VW_ASSERT(data != NULL, NullPtrErr() << "Could not allocate memory.");
+    std::vector<uint8> data(itemlen);
 
     // Store first two pre-read bytes.
     data[0] = (uint8)lh;
     data[1] = (uint8)ll;
 
-    int got = fread(data+2, 1, itemlen-2, infile); // Read the whole section.
+    int got = fread(data.data()+2, 1, itemlen-2, infile); // Read the whole section.
     pos += itemlen;
     VW_ASSERT(got == itemlen - 2, IOErr() << "Premature end of file.");
 
     switch(marker){
       case M_SOS:   // stop before hitting compressed data
-        free(data);
         return false;
 
       case M_EOI:   // end of input
-        free(data);
         return false;
 
       case M_EXIF:
         // Make sure section is marked "Exif", as some software may use
         // marker 31 for other purposes.
-        if (memcmp(data+2, "Exif", 4) == 0) {
+        if (memcmp(data.data()+2, "Exif", 4) == 0) {
           ExifLocation = pos - itemlen + 8;
-          process_exif(data, itemlen);
-          free(data);
+          process_exif(data.data(), itemlen);
           return true;
         } else {
-          free(data);
           return false;
         }
 
       default:
         // Skip any other sections.
-        free(data);
         break;
     }
   }
@@ -545,18 +529,17 @@ unsigned int vw::ExifData::get_exif_location() const {
 }
 
 void vw::ExifData::print_debug() {
-  typedef std::map<unsigned int, ExifTagData>::const_iterator iterator;
-  for (iterator tag = tags.begin(); tag != tags.end(); tag++) {
-    printf("Tag %04x: ", (*tag).first);
+  for (auto tag = tags.begin(); tag != tags.end(); tag++) {
+    vw_out() << "Tag " << (*tag).first << ": ";
     switch ((*tag).second.type) {
     case IntType:
-      printf("%i\n", (*tag).second.value.i);
+      vw_out() << (*tag).second.value.i << "\n";
       break;
     case DoubleType:
-      printf("%f\n", (*tag).second.value.d);
+      vw_out() << (*tag).second.value.d << "\n";
       break;
     case StringType:
-      printf("%s\n", (*tag).second.value.s);
+      vw_out() << (*tag).second.value.s << "\n";
       break;
     }
   }

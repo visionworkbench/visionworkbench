@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -37,6 +37,7 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <map>
+#include <string>
 #include <cstdio>
 
 namespace vw {
@@ -44,14 +45,16 @@ namespace vw {
 
   typedef enum { IntType, DoubleType, StringType } ExifDataType;
 
-  typedef struct {
-    ExifDataType type;
-    union {
-      int i;
-      double d;
-      char* s;
+  // Holds one parsed Exif tag value. Text is stored in a std::string (RAII,
+  // no manual malloc/free), so the default copy and destructor are correct.
+  struct ExifTagData {
+    ExifDataType type = IntType;
+    struct {
+      int i = 0;
+      double d = 0.0;
+      std::string s;
     } value;
-  } ExifTagData;
+  };
 
   class ExifData {
   private:
@@ -77,7 +80,6 @@ namespace vw {
 
   public:
     ExifData() {}
-    ~ExifData();
 
     bool import_data(std::string const &filename);
 

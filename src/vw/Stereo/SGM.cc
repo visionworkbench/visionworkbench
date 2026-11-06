@@ -418,7 +418,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     //right_mask_checker.advance_row();
   } // End row loop
 
-  double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
+  double num_pixels = double(m_disp_bound_image.rows()) * double(m_disp_bound_image.cols());
   percent_masked  /= num_pixels;
   percent_trusted /= num_pixels;
 
@@ -600,7 +600,7 @@ bool SemiGlobalMatcher::constrain_disp_bound_image(ImageView<uint8> const &full_
   } // End of search range shrinking code
 
   // Compute some statistics for help improving the speed
-  double num_pixels = m_disp_bound_image.rows()*m_disp_bound_image.cols();
+  double num_pixels = double(m_disp_bound_image.rows()) * double(m_disp_bound_image.cols());
   area            /= num_pixels;
   shrunk_area     /= num_pixels;
   percent_shrunk  /= num_pixels;

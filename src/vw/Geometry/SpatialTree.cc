@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -18,6 +18,7 @@
 
 #include <vw/Geometry/SpatialTree.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/Exception.h>
 
 #include <cassert>
 #include <iostream> // debugging
@@ -826,10 +827,8 @@ namespace vw {
   SpatialTree::write_vrml(char *fn, int level) {
     std::ofstream os(fn);
 
-    if (os.fail()) {
-      fprintf(stderr, "write_vrml(): cannot open output file: %s\n", fn);
-      exit(-1);
-    }
+    if (os.fail())
+      vw_throw(IOErr() << "write_vrml(): cannot open output file: " << fn << ".");
 
     write_vrml(os, level);
 
