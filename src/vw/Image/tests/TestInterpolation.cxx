@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -124,6 +124,7 @@ template <class PixelT>
 struct IsFloatingPointIndexable<FloatingView<PixelT> > : public true_type {};
 }
 
+// Disabled: InterpolationView no longer passes the accessibility traits through.
 TEST(Interpolation, DISABLED_PassThrough) {
   typedef InterpolationView<FloatingView<float>, BilinearInterpolation> bilinear_view;
   typedef InterpolationView<FloatingView<float>, BicubicInterpolation> bicubic_view;

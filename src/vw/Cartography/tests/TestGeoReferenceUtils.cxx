@@ -74,7 +74,7 @@ TEST(GeoReferenceUtils, CropAndResample) {
 }
 
 
-TEST(GeoReferenceUtils, gdal_write_checks) {
+TEST(GeoReferenceUtils, gdal_write_read_checks) {
 
   // Init a georef, the numbers are pretty arbitrary, it just must be valid
   vw::GeoReference georef;
@@ -89,21 +89,18 @@ TEST(GeoReferenceUtils, gdal_write_checks) {
   affine(1,2) = -35;  // 35 deg south
   georef.set_transform(affine);
 
-  // For the test below to pass, the files must be present.
   ImageView<float> dem(100, 100);
   double nodata = -1000;
   bool has_nodata = true, has_georef = true;
   TerminalProgressCallback tpc("vw", "");
   GdalWriteOptions opt;
 
-  block_write_gdal_image("dem.tif", dem, has_georef, georef, has_nodata, nodata, opt, tpc);
-} 
+  UnlinkName demFile("dem.tif");
+  block_write_gdal_image(demFile, dem, has_georef, georef, has_nodata, nodata, opt, tpc);
 
-TEST(GeoReferenceUtils, gdal_read_checks) {
-  // Verify that our GDAL read function assigns the -180 to 180
-  // longitude range to this image that could go either way.
-  GeoReference georef;
-  EXPECT_TRUE(read_georeference(georef, "dem.tif"));
+  // Read it back and verify the -180 to 180 longitude range is assigned.
+  GeoReference georef2;
+  EXPECT_TRUE(read_georeference(georef2, demFile));
 }
 
 

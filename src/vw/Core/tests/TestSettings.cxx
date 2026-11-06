@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -51,6 +51,7 @@ TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
       ";
 
   UnlinkName file("test_vwrc");
+  UnlinkName logfile("log.txt"); // written by the logfile directive above
   std::ofstream ostr(file.c_str());
   ASSERT_TRUE(ostr.is_open()) << "Could not open test config file for writing";
   ostr << conf;

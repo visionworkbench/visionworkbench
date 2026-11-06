@@ -87,10 +87,11 @@ TEST(OpticalBarModel, CreateCamera) {
 
   // Basic file I/O
   OpticalBarModel cpy;
-  raw_ptr->write("test.tsai");
-  cpy.read ("test.tsai");  
-  EXPECT_NO_THROW(raw_ptr->write("test.tsai"));
-  EXPECT_NO_THROW(cpy.read ("test.tsai"));
+  UnlinkName tsaiFile("test.tsai");
+  raw_ptr->write(tsaiFile);
+  cpy.read (tsaiFile);
+  EXPECT_NO_THROW(raw_ptr->write(tsaiFile));
+  EXPECT_NO_THROW(cpy.read (tsaiFile));
 
   EXPECT_VECTOR_EQ(raw_ptr->get_image_size(), cpy.get_image_size());
 

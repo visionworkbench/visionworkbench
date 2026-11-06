@@ -64,13 +64,13 @@ std::string get_suffix(const TemporaryFile& f, size_t len) {
   return fn.substr(fn.size()-len, len);
 }
 
-#define check1(a)           _check(a,__LINE__)
-#define check2(a,b)         _check(a,__LINE__,b)
-#define check3(a,b,c)       _check(a,__LINE__,b,c)
-#define check4(a,b,c,d)     _check(a,__LINE__,b,c,d)
-#define check5(a,b,c,d,e)   _check(a,__LINE__,b,c,d,e)
+#define check1(a)           checkTempFile(a,__LINE__)
+#define check2(a,b)         checkTempFile(a,__LINE__,b)
+#define check3(a,b,c)       checkTempFile(a,__LINE__,b,c)
+#define check4(a,b,c,d)     checkTempFile(a,__LINE__,b,c,d)
+#define check5(a,b,c,d,e)   checkTempFile(a,__LINE__,b,c,d,e)
 
-void _check(TemporaryFile& a, uint32 line, std::string dir = "", const std::string& prefix = "tmp", const std::string& suffix = "", bool can_read = true) {
+void checkTempFile(TemporaryFile& a, uint32 line, std::string dir = "", const std::string& prefix = "tmp", const std::string& suffix = "", bool can_read = true) {
   SCOPED_TRACE(::testing::Message() << "line " << line);
 
   if (dir.empty())
@@ -138,11 +138,11 @@ TEST(TemporaryFile, Basic) {
     check5(f, TEST_OBJDIR, "prefix", "suffix", false);
 }
 
-#define checkdir0(a)           _checkdir(a,__LINE__)
-#define checkdir1(a,b)         _checkdir(a,__LINE__,b)
-#define checkdir2(a,b,c)       _checkdir(a,__LINE__,b,c)
+#define checkdir0(a)           checkTempDir(a,__LINE__)
+#define checkdir1(a,b)         checkTempDir(a,__LINE__,b)
+#define checkdir2(a,b,c)       checkTempDir(a,__LINE__,b,c)
 
-void _checkdir(TemporaryDir& a, uint32 line, std::string dir = "", const std::string& prefix = "tmp") {
+void checkTempDir(TemporaryDir& a, uint32 line, std::string dir = "", const std::string& prefix = "tmp") {
   SCOPED_TRACE(::testing::Message() << "line " << line);
 
   if (dir.empty())
