@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.15.5)
 
 project(visionworkbench)
 
+# Register the unit tests with ctest, so "ctest" (or "make test") runs them
+# and reports per-test timing. Individual tests are added via add_test in
+# cmake/Utilities.cmake.
+enable_testing()
+
 # CMake 4.0+ removed the legacy FindBoost module. Use BoostConfig.cmake
 # (shipped with modern Boost packages) instead.
 if(POLICY CMP0167)
