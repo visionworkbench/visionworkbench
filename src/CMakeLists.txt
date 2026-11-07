@@ -76,7 +76,11 @@ include_directories(../thirdparty/gtest/include)
 #include_directories(../thirdparty/gtest/)
 add_library(gtest      ../thirdparty/gtest/src/gtest-all.cc)
 add_library(gtest_main ../thirdparty/gtest/src/gtest_main.cc)
-target_link_libraries(gtest_main gtest) 
+# Rename the output so it does not clash with the gtest in the deps environment
+# (which an rpath entry would otherwise load, crashing the tests).
+set_target_properties(gtest      PROPERTIES OUTPUT_NAME vw_gtest)
+set_target_properties(gtest_main PROPERTIES OUTPUT_NAME vw_gtest_main)
+target_link_libraries(gtest_main gtest)
 
 target_compile_definitions(gtest PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
 target_compile_definitions(gtest_main PRIVATE GTEST_USE_OWN_TR1_TUPLE=1)
