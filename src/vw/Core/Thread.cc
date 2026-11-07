@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -18,8 +18,6 @@
 #include <vw/vw_config.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/FundamentalTypes.h>
-
-#include <boost/thread.hpp>
 
 namespace vw {
 namespace thread {
@@ -40,25 +38,18 @@ namespace thread {
     return *m;
   }
 
-  typedef boost::thread_specific_ptr<vw::uint64> ptr_t;
-
-  static ptr_t& vw_thread_id_ptr() {
-    static ptr_t* ptr = new ptr_t();
-    return *ptr;
-  }
-
 }} // namespace vw::thread
 
 vw::uint64 vw::Thread::id() {
 
-  // If the thread ID has not been accessed before, we initialize
-  // it with a unique ID.
-  if (thread::vw_thread_id_ptr().get() == 0) {
+  // Assign a unique ID the first time this thread asks for one, kept in
+  // thread-local storage. The global counter is bumped under a lock.
+  static thread_local bool assigned = false;
+  static thread_local vw::uint64 the_id = 0;
+  if (!assigned) {
     Mutex::Lock lock(thread::vw_thread_id_mutex());
-    thread::vw_thread_id_ptr().reset(new vw::uint64(thread::vw_thread_next_available_id++));
+    the_id = thread::vw_thread_next_available_id++;
+    assigned = true;
   }
-
-  // Then we return the result.
-  vw::uint64* result = thread::vw_thread_id_ptr().get();
-  return *result;
+  return the_id;
 }

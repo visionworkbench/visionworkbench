@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -60,14 +60,14 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #include <boost/thread/locks.hpp>
-#include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/xtime.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/version.hpp>
 #pragma GCC diagnostic pop
+
+#include <thread>
+#include <mutex>
+#include <chrono>
 
 namespace vw {
 
@@ -132,23 +132,23 @@ namespace vw {
     typedef class WriteLock Lock; /// By default, use the non-shared lock type.
   };// End class Mutex
 
-  /// A wrapper around the boost::recursive_mutex class.
-  class RecursiveMutex : private boost::recursive_mutex {
+  /// A wrapper around the std::recursive_mutex class.
+  class RecursiveMutex : private std::recursive_mutex {
 
     friend class Lock;
 
   public:
     inline RecursiveMutex() {}
 
-    void lock()   { boost::recursive_mutex::lock(); }
-    void unlock() { boost::recursive_mutex::unlock(); }
+    void lock()   { std::recursive_mutex::lock(); }
+    void unlock() { std::recursive_mutex::unlock(); }
 
     // A unique scoped lock class, used to lock and unlock a Mutex (only one can own at a time).
-    class Lock : private boost::unique_lock<RecursiveMutex>, private boost::noncopyable {
+    class Lock : private std::unique_lock<RecursiveMutex>, private boost::noncopyable {
     public:
-      inline Lock(RecursiveMutex &mutex) : boost::unique_lock<RecursiveMutex>(mutex) {}
-      void lock()   { boost::unique_lock<RecursiveMutex>::lock(); }
-      void unlock() { boost::unique_lock<RecursiveMutex>::unlock(); }
+      inline Lock(RecursiveMutex &mutex) : std::unique_lock<RecursiveMutex>(mutex) {}
+      void lock()   { std::unique_lock<RecursiveMutex>::lock(); }
+      void unlock() { std::unique_lock<RecursiveMutex>::unlock(); }
     }; // End class Lock
     
   }; // End class RecursiveLock
@@ -163,7 +163,7 @@ namespace vw {
   /// is destroyed it will join the child thread if it has not already terminated.
   class Thread : private boost::noncopyable {
 
-    boost::thread m_thread;
+    std::thread m_thread;
 
     // For some reason, the boost thread library makes a copy of the
     // Task object before handing it off to the thread.  This is
@@ -193,10 +193,13 @@ namespace vw {
     template<class TaskT>
     inline Thread(boost::shared_ptr<TaskT> task) : m_thread(TaskHelper<TaskT>(task)) {}
 
-    /// Destroys the thread. User is expected to either call join() themselves,
-    /// or let the thread run free. We don't call join() here because most users
-    /// will call join(), and a second call to join() is undefined.
-    inline ~Thread() { }
+    /// Destroys the thread. The user is expected to call join() themselves. If a
+    /// thread was not joined, let it run free (detach) rather than terminate the
+    /// process, which is what std::thread does for a joinable thread at destruction.
+    inline ~Thread() {
+      if (m_thread.joinable())
+        m_thread.detach();
+    }
 
     /// The current thread of execution blocks until this thread
     /// finishes execution of the task and all resources are reclaimed.
@@ -215,25 +218,14 @@ namespace vw {
 
     /// Cause the current thread to yield the remainder of its
     /// execution time to the kernel's scheduler.
-    static inline void yield() { boost::thread::yield(); }
+    static inline void yield() { std::this_thread::yield(); }
 
     /// Cause the current thread to sleep for a specified amount of
     /// time.  The thread will not be scheduled to run at all for the
     /// duration, so machine resources are free for other
     /// threads/processes.
     static inline void sleep_ms(uint32 milliseconds) {
-      boost::xtime xt;
-#if BOOST_VERSION >= 105000
-      boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-      boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
-      while (milliseconds >= 1000) {
-        xt.sec++;
-        milliseconds -= 1000;
-      }
-      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
-      boost::thread::sleep(xt);
+      std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
     }
   }; // End class Thread
 
