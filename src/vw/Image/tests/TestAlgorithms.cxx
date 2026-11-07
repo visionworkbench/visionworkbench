@@ -127,12 +127,12 @@ TEST(Algorithms, NormalizeRetainAlpha) {
   EXPECT_PIXEL_NEAR(Px(1.0, 0.8), n1(1,0), 1e-7);
 
   // Int16 Version
-  ImageView<PixelGrayA<int16> > im2(4,1);
+  ImageView<PixelGrayA<int16>> im2(4,1);
   im2(0,0) = PixelGrayA<int16>(-30000,-3200);
   im2(1,0) = PixelGrayA<int16>(-15000,100);
   im2(2,0) = PixelGrayA<int16>(15000,300);
   im2(3,0) = PixelGrayA<int16>(30000,32000);
-  ImageView<PixelGrayA<int16> > out2 =
+  ImageView<PixelGrayA<int16>> out2 =
     normalize_retain_alpha(im2,-30000,30000,0,30000);
 
   EXPECT_PIXEL_EQ(PixelGrayA<int16>(0,    -3200), out2(0,0));
@@ -153,9 +153,9 @@ TEST(Algorithms, Grassfirealpha) {
   EXPECT_EQ(1, g(1,2));
 
   // Just make sure this compiles
-  ImageView<PixelGray<float> > im2(5,5);
+  ImageView<PixelGray<float>> im2(5,5);
   fill(im2, 100.0);
-  ImageView<PixelGray<float> > g2;
+  ImageView<PixelGray<float>> g2;
   grassfire(im2, g2);
 }
 

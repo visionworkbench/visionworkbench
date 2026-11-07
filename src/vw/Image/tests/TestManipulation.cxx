@@ -121,7 +121,7 @@ TEST(Manipulation, Copy) {
 
 TEST(Manipulation, TransposeView) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  TransposeView<ImageView<double> > rmv(im);
+  TransposeView<ImageView<double>> rmv(im);
   ASSERT_EQ(rmv.cols(), 3);
   ASSERT_EQ(rmv.rows(), 2);
   ASSERT_EQ(rmv.planes(), 1);
@@ -165,7 +165,7 @@ TEST(Manipulation, TransposeView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  TransposeView<ImageView<double> >::iterator rmvi = rmv.begin();
+  TransposeView<ImageView<double>>::iterator rmvi = rmv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(rmv.end() - rmvi, 0);
     EXPECT_EQ(*im2i, *rmvi);
@@ -204,7 +204,7 @@ TEST(Manipulation, Transpose) {
 
 TEST(Manipulation, Rotate180View) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  Rotate180View<ImageView<double> > rmv(im);
+  Rotate180View<ImageView<double>> rmv(im);
   ASSERT_EQ(rmv.cols(), 2);
   ASSERT_EQ(rmv.rows(), 3);
   ASSERT_EQ(rmv.planes(), 1);
@@ -248,7 +248,7 @@ TEST(Manipulation, Rotate180View) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  Rotate180View<ImageView<double> >::iterator rmvi = rmv.begin();
+  Rotate180View<ImageView<double>>::iterator rmvi = rmv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(rmv.end() - rmvi, 0);
     EXPECT_EQ(*im2i, *rmvi);
@@ -285,7 +285,7 @@ TEST(Manipulation, Rotate180) {
 
 TEST(Manipulation, 90CWView) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  Rotate90CWView<ImageView<double> > rmv(im);
+  Rotate90CWView<ImageView<double>> rmv(im);
   ASSERT_EQ(rmv.cols(), 3);
   ASSERT_EQ(rmv.rows(), 2);
   ASSERT_EQ(rmv.planes(), 1);
@@ -329,7 +329,7 @@ TEST(Manipulation, 90CWView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  Rotate90CWView<ImageView<double> >::iterator rmvi = rmv.begin();
+  Rotate90CWView<ImageView<double>>::iterator rmvi = rmv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(rmv.end() - rmvi, 0);
     EXPECT_EQ(*im2i, *rmvi);
@@ -366,7 +366,7 @@ TEST(Manipulation, Rotate90CW) {
 
 TEST(Manipulation, Rotate90CCWView) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  Rotate90CCWView<ImageView<double> > rmv(im);
+  Rotate90CCWView<ImageView<double>> rmv(im);
   ASSERT_EQ(rmv.cols(), 3);
   ASSERT_EQ(rmv.rows(), 2);
   ASSERT_EQ(rmv.planes(), 1);
@@ -410,7 +410,7 @@ TEST(Manipulation, Rotate90CCWView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  Rotate90CCWView<ImageView<double> >::iterator rmvi = rmv.begin();
+  Rotate90CCWView<ImageView<double>>::iterator rmvi = rmv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(rmv.end() - rmvi, 0);
     EXPECT_EQ(*im2i, *rmvi);
@@ -447,7 +447,7 @@ TEST(Manipulation, Rotate90CCW) {
 
 TEST(Manipulation, FlipVertView) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-  FlipVerticalView<ImageView<double> > rmv(im);
+  FlipVerticalView<ImageView<double>> rmv(im);
   ASSERT_EQ(rmv.cols(), 2);
   ASSERT_EQ(rmv.rows(), 3);
   ASSERT_EQ(rmv.planes(), 1);
@@ -491,7 +491,7 @@ TEST(Manipulation, FlipVertView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  FlipVerticalView<ImageView<double> >::iterator rmvi = rmv.begin();
+  FlipVerticalView<ImageView<double>>::iterator rmvi = rmv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(rmv.end() - rmvi, 0);
     EXPECT_EQ(*im2i, *rmvi);
@@ -529,7 +529,7 @@ TEST(Manipulation, FlipVert) {
 
 TEST(Manipulation, CropView) {
   ImageView<double> im(4,5); im(1,1)=1; im(2,1)=2; im(1,2)=3; im(2,2)=4; im(1,3)=5; im(2,3)=6;
-  CropView<ImageView<double> > cv(im,1,1,2,3);
+  CropView<ImageView<double>> cv(im,1,1,2,3);
   ASSERT_EQ(cv.cols(), 2);
   ASSERT_EQ(cv.rows(), 3);
   ASSERT_EQ(cv.planes(), 1);
@@ -573,7 +573,7 @@ TEST(Manipulation, CropView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  CropView<ImageView<double> >::iterator cvi = cv.begin();
+  CropView<ImageView<double>>::iterator cvi = cv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(cv.end() - cvi, 0);
     EXPECT_EQ(*im2i, *cvi);
@@ -644,7 +644,7 @@ TEST(Manipulation, CropAssignment) {
 
 TEST(Manipulation, SubsampleView) {
   ImageView<double> im(4,5); im(0,0)=1; im(2,0)=2; im(0,2)=3; im(2,2)=4; im(0,4)=5; im(2,4)=6;
-  SubsampleView<ImageView<double> > ssv(im,2,2);
+  SubsampleView<ImageView<double>> ssv(im,2,2);
   ASSERT_EQ(ssv.cols(), 2);
   ASSERT_EQ(ssv.rows(), 3);
   ASSERT_EQ(ssv.planes(), 1);
@@ -692,7 +692,7 @@ TEST(Manipulation, SubsampleView) {
 
   // Test the iterator
   ImageView<double>::iterator im2i = im2.begin();
-  SubsampleView<ImageView<double> >::iterator ssvi = ssv.begin();
+  SubsampleView<ImageView<double>>::iterator ssvi = ssv.begin();
   for (int i=0; i<im2.cols()*im2.rows(); ++i) {
     EXPECT_GT(ssv.end() - ssvi, 0);
     EXPECT_EQ(*im2i, *ssvi);
@@ -838,7 +838,7 @@ TEST(Manipulation, SelectPlane) {
 }
 
 TEST(Manipulation, SelectChannel) {
-  ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+  ImageView<PixelRGB<double>> im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
   ImageView<double> im2 = select_channel(im,1);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
@@ -854,16 +854,16 @@ TEST(Manipulation, SelectChannel) {
   ASSERT_TRUE(bool_trait<IsMultiplyAccessible>(select_channel(im,1)));
   ASSERT_TRUE(has_pixel_type<double>(select_channel(im,1)));
   ASSERT_TRUE(has_result_type<double&>(select_channel(im,1)));
-  ASSERT_TRUE(has_pixel_type<double>(select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double> >),1)));
-  ASSERT_TRUE(has_result_type<double const&>(select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double> >),1)));
+  ASSERT_TRUE(has_pixel_type<double>(select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double>>),1)));
+  ASSERT_TRUE(has_result_type<double const&>(select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double>>),1)));
 
   // Test a non-writable view
-  ImageViewRef<PixelRGB<double> > im3 = im;
+  ImageViewRef<PixelRGB<double>> im3 = im;
   ASSERT_NO_THROW(ImageView<double> im4 = select_channel(im3,1));
 }
 
 TEST(Manipulation, ChannelsToPlanes) {
-  ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+  ImageView<PixelRGB<double>> im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
   ImageView<double> im2 = channels_to_planes(im);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
@@ -884,8 +884,8 @@ TEST(Manipulation, ChannelsToPlanes) {
 }
 
 TEST(Manipulation, ChannelCast) {
-  ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-  ImageView<PixelRGB<float> > im2 = channel_cast<float>(im);
+  ImageView<PixelRGB<double>> im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+  ImageView<PixelRGB<float>> im2 = channel_cast<float>(im);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
   ASSERT_EQ(im2.planes(), 1);
@@ -901,8 +901,8 @@ TEST(Manipulation, ChannelCast) {
 }
 
 TEST(Manipulation, ChannelCastRescale) {
-  ImageView<PixelRGB<uint8> > im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
-  ImageView<PixelRGB<float> > im2 = channel_cast_rescale<float>(im);
+  ImageView<PixelRGB<uint8>> im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
+  ImageView<PixelRGB<float>> im2 = channel_cast_rescale<float>(im);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
   ASSERT_EQ(im2.planes(), 1);
@@ -918,8 +918,8 @@ TEST(Manipulation, ChannelCastRescale) {
 }
 
 TEST(Manipulation, PixelCast) {
-  ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-  ImageView<PixelRGBA<double> > im2 = pixel_cast<PixelRGBA<double> >(im);
+  ImageView<PixelRGB<double>> im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+  ImageView<PixelRGBA<double>> im2 = pixel_cast<PixelRGBA<double>>(im);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
   ASSERT_EQ(im2.planes(), 1);
@@ -933,12 +933,12 @@ TEST(Manipulation, PixelCast) {
   EXPECT_EQ(im2(0,1)[3], 1.0);
 
   // Test the traits
-  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(pixel_cast<PixelRGBA<double> >(im)));
+  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(pixel_cast<PixelRGBA<double>>(im)));
 }
 
 TEST(Manipulation, Rescale) {
-  ImageView<PixelRGB<uint8> > im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
-  ImageView<PixelRGBA<float> > im2 = pixel_cast_rescale<PixelRGBA<float> >(im);
+  ImageView<PixelRGB<uint8>> im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
+  ImageView<PixelRGBA<float>> im2 = pixel_cast_rescale<PixelRGBA<float>>(im);
   ASSERT_EQ(im2.cols(), 1);
   ASSERT_EQ(im2.rows(), 2);
   ASSERT_EQ(im2.planes(), 1);
@@ -952,13 +952,13 @@ TEST(Manipulation, Rescale) {
   EXPECT_EQ(im2(0,1)[3], 1.0);
 
   // Test the traits
-  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(pixel_cast_rescale<PixelRGBA<double> >(im)));
+  ASSERT_FALSE(bool_trait<IsMultiplyAccessible>(pixel_cast_rescale<PixelRGBA<double>>(im)));
 }
 
 
 TEST(Manipulation, Equality) {
   ImageView<uint8> a(0,0), b(2,2);
-  CropView<ImageView<uint8> > c(b,0,0,0,0), d(b,0,0,1,1), e(b,0,0,2,2);
+  CropView<ImageView<uint8>> c(b,0,0,0,0), d(b,0,0,1,1), e(b,0,0,2,2);
   b(0,0) = 3; b(1,0) = 5; b(0,1) = 7; b(1,1) = 11;
 
   EXPECT_EQ(a,a);

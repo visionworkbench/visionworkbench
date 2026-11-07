@@ -264,7 +264,7 @@ TEST(GeoReference, LonLat_to_UTM) {
 #if 0
 TEST(GeoReference, IOLoop) {
   // Make a dummy image and projection transform
-  ImageView<PixelRGB<float> > test_image(2,2);
+  ImageView<PixelRGB<float>> test_image(2,2);
   test_image(0,0) = PixelRGB<float>(1,2,3);
   test_image(0,1) = PixelRGB<float>(4,1,4);
   test_image(1,0) = PixelRGB<float>(7,7,2);
@@ -293,7 +293,7 @@ TEST(GeoReference, IOLoop) {
                                          test_filename));
 
     // Verify that the pixels are identical
-    typedef ImageView<PixelRGB<float> >::iterator iterator;
+    typedef ImageView<PixelRGB<float>>::iterator iterator;
     for (iterator test = test_image.begin(), retn = retn_image.begin();
          test != test_image.end(); test++, retn++)
       EXPECT_PIXEL_EQ(*retn, *test);
@@ -325,7 +325,7 @@ TEST(GeoReference, IOLoop) {
                                  test_georef, GdalWriteOptions()));
     // Read back in and compare
     GeoReference retn_georef;
-    ImageView<PixelRGB<float> > retn_image;
+    ImageView<PixelRGB<float>> retn_image;
     EXPECT_TRUE(read_georeferenced_image(retn_image, retn_georef,
                                           test_filename));
 

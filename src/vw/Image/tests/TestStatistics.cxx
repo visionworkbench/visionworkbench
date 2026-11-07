@@ -31,18 +31,18 @@ using namespace vw;
 
 ImageView<vw::uint8> im8(2,1), im8b(3,2);
 ImageView<double> imf(2,1);
-ImageView<PixelMask<vw::uint8> > im8ma(2,1);
-ImageView<PixelMask<double> > imfma(2,1);
-ImageView<PixelMask<vw::uint8> > im8mb(2,1);
-ImageView<PixelMask<double> > imfmb(2,1);
-ImageView<PixelRGB<vw::uint8> > imrgb8(2,1);
-ImageView<PixelRGB<double> > imrgbf(2,1);
-ImageView<PixelRGBA<vw::uint8> > imrgba8a(2,1);
-ImageView<PixelRGBA<double> > imrgbafa(2,1);
-ImageView<PixelRGBA<vw::uint8> > imrgba8b(2,1);
-ImageView<PixelRGBA<double> > imrgbafb(2,1);
-ImageView<PixelRGBA<vw::uint8> > imrgba8c(2,1);
-ImageView<PixelRGBA<double> > imrgbafc(2,1);
+ImageView<PixelMask<vw::uint8>> im8ma(2,1);
+ImageView<PixelMask<double>> imfma(2,1);
+ImageView<PixelMask<vw::uint8>> im8mb(2,1);
+ImageView<PixelMask<double>> imfmb(2,1);
+ImageView<PixelRGB<vw::uint8>> imrgb8(2,1);
+ImageView<PixelRGB<double>> imrgbf(2,1);
+ImageView<PixelRGBA<vw::uint8>> imrgba8a(2,1);
+ImageView<PixelRGBA<double>> imrgbafa(2,1);
+ImageView<PixelRGBA<vw::uint8>> imrgba8b(2,1);
+ImageView<PixelRGBA<double>> imrgbafb(2,1);
+ImageView<PixelRGBA<vw::uint8>> imrgba8c(2,1);
+ImageView<PixelRGBA<double>> imrgbafc(2,1);
 
 void generate_data(void) {
   im8(0,0) = 24;
@@ -265,13 +265,13 @@ TEST(Statistics, SumPixel) {
   EXPECT_EQ(sum_of_pixel_values(im8mb), 0);
   EXPECT_EQ(sum_of_pixel_values(imfmb), 0.0);
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgb8), PixelRGB<int>(143,143,317));
-  ASSERT_TRUE(is_of_type<PixelRGB<vw::int32> >(sum_of_pixel_values(imrgb8)));
+  ASSERT_TRUE(is_of_type<PixelRGB<vw::int32>>(sum_of_pixel_values(imrgb8)));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgbf), PixelRGB<double>(-0.5,0.9,2.6));
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(sum_of_pixel_values(imrgbf)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(sum_of_pixel_values(imrgbf)));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgba8a), PixelRGBA<int>(48,82,135,306));
-  ASSERT_TRUE(is_of_type<PixelRGBA<vw::int32> >(sum_of_pixel_values(imrgba8a)));
+  ASSERT_TRUE(is_of_type<PixelRGBA<vw::int32>>(sum_of_pixel_values(imrgba8a)));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgbafa), PixelRGBA<double>(0.0,0.9,2.1,1.5));
-  ASSERT_TRUE(is_of_type<PixelRGBA<double> >(sum_of_pixel_values(imrgbafa)));
+  ASSERT_TRUE(is_of_type<PixelRGBA<double>>(sum_of_pixel_values(imrgbafa)));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgba8b), PixelRGBA<int>(44,82,189,255));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgbafb), PixelRGBA<double>((0.5+-0.6),0.9,3.6,1.0));
   EXPECT_PIXEL_EQ(sum_of_pixel_values(imrgba8c), PixelRGBA<int>(143,143,317,0));
@@ -325,18 +325,18 @@ TEST(Statistics, MeanPixel) {
   ASSERT_THROW(mean_pixel_value(imfmb), ArgumentErr);
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgb8),
                     PixelRGB<double>(71.5,71.5,158.5), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(mean_pixel_value(imrgb8)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(mean_pixel_value(imrgb8)));
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgbf),
                     PixelRGB<double>(-0.25,0.45,1.3), 1e-6);
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgbf),
                     PixelRGB<double>(-0.25,0.45,1.3), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(mean_pixel_value(imrgbf)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(mean_pixel_value(imrgbf)));
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgba8a),
                     PixelRGBA<double>(24,41,67.5,153), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGBA<double> >(mean_pixel_value(imrgba8a)));
+  ASSERT_TRUE(is_of_type<PixelRGBA<double>>(mean_pixel_value(imrgba8a)));
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgbafa),
                     PixelRGBA<double>(0.0,0.45,1.05,0.75), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGBA<double> >(mean_pixel_value(imrgbafa)));
+  ASSERT_TRUE(is_of_type<PixelRGBA<double>>(mean_pixel_value(imrgbafa)));
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgba8b),
                     PixelRGBA<double>(22,41,94.5,127.5), 1e-6);
   EXPECT_PIXEL_NEAR(mean_pixel_value(imrgbafb),
@@ -368,16 +368,16 @@ TEST(Statistics, WeightedMeanPixel) {
   ASSERT_THROW(weighted_mean_pixel_value(imfmb), ArgumentErr);
   EXPECT_PIXEL_NEAR(weighted_mean_pixel_value(imrgb8),
                     PixelRGB<double>(71.5,71.5,158.5), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(weighted_mean_pixel_value(imrgb8)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(weighted_mean_pixel_value(imrgb8)));
   EXPECT_PIXEL_NEAR(weighted_mean_pixel_value(imrgbf),
                     PixelRGB<double>(-0.25,0.45,1.3), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(weighted_mean_pixel_value(imrgbf)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(weighted_mean_pixel_value(imrgbf)));
   EXPECT_PIXEL_NEAR(weighted_mean_pixel_value(imrgba8a),
                     PixelRGB<double>(40,68.333333,112.5), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(weighted_mean_pixel_value(imrgba8a)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(weighted_mean_pixel_value(imrgba8a)));
   EXPECT_PIXEL_NEAR(weighted_mean_pixel_value(imrgbafa),
                     PixelRGB<double>(0,0.6,1.4), 1e-6);
-  ASSERT_TRUE(is_of_type<PixelRGB<double> >(weighted_mean_pixel_value(imrgbafa)));
+  ASSERT_TRUE(is_of_type<PixelRGB<double>>(weighted_mean_pixel_value(imrgbafa)));
   // These next two are confusing because the function assumes
   // pre-multiplied images so the test images are technically invalid
   EXPECT_PIXEL_NEAR(weighted_mean_pixel_value(imrgba8b),
@@ -492,18 +492,18 @@ TEST(Statistics, WeightedStdDevChannel) {
 
 TEST(Statistics, MedianChannel) {
   generate_data();
-  ImageView<PixelRGBA<vw::uint8> > image1(4,1);
+  ImageView<PixelRGBA<vw::uint8>> image1(4,1);
   image1(0,0) = PixelRGBA<vw::uint8>(8,7,6,5);
   image1(1,0) = PixelRGBA<vw::uint8>(4,3,2,1);
   image1(2,0) = PixelRGBA<vw::uint8>(9,8,7,0);
   image1(3,0) = PixelRGBA<vw::uint8>(12,11,10,0);
   EXPECT_EQ(median_channel_value(image1), 6.5);
-  ImageView<PixelMask<PixelRGB<vw::uint8> > > image2(4,1);
-  image2(0,0) = PixelMask<PixelRGB<vw::uint8> >(8,7,6);
-  image2(1,0) = PixelMask<PixelRGB<vw::uint8> >(4,3,2);
-  image2(2,0) = PixelMask<PixelRGB<vw::uint8> >(9,8,7);
+  ImageView<PixelMask<PixelRGB<vw::uint8>>> image2(4,1);
+  image2(0,0) = PixelMask<PixelRGB<vw::uint8>>(8,7,6);
+  image2(1,0) = PixelMask<PixelRGB<vw::uint8>>(4,3,2);
+  image2(2,0) = PixelMask<PixelRGB<vw::uint8>>(9,8,7);
   image2(2,0).invalidate();
-  image2(3,0) = PixelMask<PixelRGB<vw::uint8> >(12,11,10);
+  image2(3,0) = PixelMask<PixelRGB<vw::uint8>>(12,11,10);
   image2(3,0).invalidate();
   EXPECT_EQ(median_channel_value(image2), 5);
 }

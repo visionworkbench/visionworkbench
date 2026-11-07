@@ -1099,7 +1099,7 @@ double SemiGlobalMatcher::compute_subpixel_ratio(AccumCostType prev, AccumCostTy
 
 
 // Test out alternate subpixel methods
-ImageView<PixelMask<Vector2f> > SemiGlobalMatcher::
+ImageView<PixelMask<Vector2f>> SemiGlobalMatcher::
 create_disparity_view_subpixel(DisparityImage const& integer_disparity) {
 
   //Timer timer("Calculate Subpixel Disparity");

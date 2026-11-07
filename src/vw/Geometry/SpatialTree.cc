@@ -254,7 +254,7 @@ namespace {
     std::deque<ApplyState> m_q;
     std::priority_queue<ApplyState,
                         std::vector<ApplyState>,
-                        std::less<ApplyState> > m_pq;
+                        std::less<ApplyState>> m_pq;
     ApplySearchType m_type;
   };
 
@@ -574,10 +574,10 @@ namespace {
   class AllOverlapsFunctor : public ApplyFunctor {
   public:
     AllOverlapsFunctor(GeomPrimitive *overlap_prim) : m_overlap_prim(overlap_prim), m_alloc(true) {
-      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >;
+      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*>>;
     }
     AllOverlapsFunctor(GeomPrimitive *overlap_prim,
-                       std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+                       std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *overlaps)
                         : m_overlap_prim(overlap_prim), m_alloc(false), m_overlaps(overlaps) {}
     virtual ~AllOverlapsFunctor() {
       if (m_alloc)
@@ -593,19 +593,19 @@ namespace {
         m_overlaps->push_back(std::make_pair(m_overlap_prim, prim));
       return true; // continue processing
     }
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *overlaps() {return m_overlaps;}
   private:
     GeomPrimitive *m_overlap_prim;
     bool m_alloc;
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *m_overlaps;
   };
 
   class OverlapPairsFunctor : public ApplyFunctor {
   public:
     OverlapPairsFunctor() : m_alloc(true) {
-      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >;
+      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*>>;
     }
-    OverlapPairsFunctor(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+    OverlapPairsFunctor(std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *overlaps)
                         : m_alloc(false), m_overlaps(overlaps) {}
     virtual ~OverlapPairsFunctor() {
       if (m_alloc)
@@ -621,10 +621,10 @@ namespace {
       apply(func, state);
       return true; // continue processing
     }
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *overlaps() {return m_overlaps;}
   private:
     bool m_alloc;
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> *m_overlaps;
   };
 
   class NodeContainsBBoxFunctor : public ApplyFunctor {
@@ -812,7 +812,7 @@ namespace vw {
   }
 
   void
-  SpatialTree::overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
+  SpatialTree::overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> &overlaps) {
     OverlapPairsFunctor func(&overlaps);
     apply(func, m_num_quadrants, m_root_node);
   }

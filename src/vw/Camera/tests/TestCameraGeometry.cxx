@@ -44,7 +44,7 @@ protected:
     boost::minstd_rand random_gen(42u);
     boost::normal_distribution<double> normal(0,20);
     boost::variate_generator<boost::minstd_rand&,
-      boost::normal_distribution<double> > generator(random_gen, normal);
+      boost::normal_distribution<double>> generator(random_gen, normal);
     for (uint8 i = 0; i < 50; i++) {
       try{
         Vector4 coord(generator(), generator(), generator() + 60.0, 1.0);
@@ -68,12 +68,12 @@ protected:
   }
 
   PinholeModel pinhole;
-  std::vector<Vector<double> > world_m, image_m;
-  std::vector<Vector<double> > noisy_world_m, noisy_image_m;
+  std::vector<Vector<double>> world_m, image_m;
+  std::vector<Vector<double>> noisy_world_m, noisy_image_m;
 };
 
 TEST_F(CameraGeometryTest, LinearSolve) {
-  std::vector<Vector<double> > world_small, image_small;
+  std::vector<Vector<double>> world_small, image_small;
   for (uint32 i = 0; i < 6; i++) {
     world_small.push_back(world_m[i]);
     image_small.push_back(image_m[i]);
@@ -199,7 +199,7 @@ protected:
 
   std::vector<Vector3> world_points;
   PinholeModel pinhole1, pinhole2;
-  std::vector<Vector<double> > measure1, measure2;
+  std::vector<Vector<double>> measure1, measure2;
   Matrix<double> expected_F; // Result from Epipolar Geometry Toolbox
 };
 
@@ -236,7 +236,7 @@ TEST_F(FundamentalMatrixStaticTest, MLAlgorithm) {
   boost::minstd_rand random_gen(42u);
   boost::normal_distribution<double> normal(0.0, 4.0);
   boost::variate_generator<boost::minstd_rand&,
-    boost::normal_distribution<double> > generator(random_gen, normal);
+    boost::normal_distribution<double>> generator(random_gen, normal);
 
   // Add noise to the pixel measurements of both cameras
   for (unsigned i = 0; i < measure1.size(); i++) {

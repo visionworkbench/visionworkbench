@@ -73,8 +73,8 @@ TEST_P(MemoryImageResourceTest, BasicRead) {
 
   boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), &*raw.begin(), raw.size()));
 
-  ImageView<PixelRGBA<uint8> > disk, mem;
-  ImageView<PixelRGBA<float> > diskf, memf;
+  ImageView<PixelRGBA<uint8>> disk, mem;
+  ImageView<PixelRGBA<float>> diskf, memf;
 
   read_image(disk, GetParam());
   // simple read
@@ -206,13 +206,13 @@ protected:
 };
 
 // There's an internal switch in the code that treats RGB and Grays differently.
-typedef MemoryOpenEXR<PixelRGB<float> > MemoryOpenEXRRGBF32;
+typedef MemoryOpenEXR<PixelRGB<float>> MemoryOpenEXRRGBF32;
 TEST_F(MemoryOpenEXRRGBF32, RGB_F32) {}
-typedef MemoryOpenEXR<PixelRGBA<float> > MemoryOpenEXRRGBAF32;
+typedef MemoryOpenEXR<PixelRGBA<float>> MemoryOpenEXRRGBAF32;
 TEST_F(MemoryOpenEXRRGBAF32, RGBA_F32) {}
-typedef MemoryOpenEXR<PixelGray<float> > MemoryOpenEXRGRAYF32;
+typedef MemoryOpenEXR<PixelGray<float>> MemoryOpenEXRGRAYF32;
 TEST_F(MemoryOpenEXRGRAYF32, GRAY_F32) {}
-typedef MemoryOpenEXR<PixelGrayA<float> > MemoryOpenEXRGRAYAF32;
+typedef MemoryOpenEXR<PixelGrayA<float>> MemoryOpenEXRGRAYAF32;
 TEST_F(MemoryOpenEXRGRAYAF32, GRAYA_F32) {}
 
 #endif

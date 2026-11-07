@@ -43,7 +43,7 @@ TEST(AlgorithmsTest, FastBoxFloat) {
   ImageView<float> input(7,5);
   {
     size_t count = 1;
-    for (PixelIterator<ImageView<float> > i = input.begin();
+    for (PixelIterator<ImageView<float>> i = input.begin();
          i != input.end(); i++) {
       *i = count;
       count++;
@@ -71,7 +71,7 @@ TEST(AlgorithmsTest, FastBoxInt32) {
   ImageView<int32> input(7,5);
   {
     size_t count = 1;
-    for (PixelIterator<ImageView<int32> > i = input.begin();
+    for (PixelIterator<ImageView<int32>> i = input.begin();
          i != input.end(); i++) {
       *i = count;
       count++;
@@ -147,7 +147,7 @@ TEST(AlgorithmsTest, FastBoxChar) {
 }
 
 TEST(AlgorithmsTest, FastBoxPixelU8) {
-  ImageView<PixelGray<uint8> > input(7,5);
+  ImageView<PixelGray<uint8>> input(7,5);
   std::fill(input.begin(), input.end(), PixelGray<uint8>(27));
   std::fill(&input(0,0), &input(6,0)+1, PixelGray<uint8>(40));
 
@@ -155,11 +155,11 @@ TEST(AlgorithmsTest, FastBoxPixelU8) {
 
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(5,3)).rows());
-  ASSERT_TRUE(has_pixel_type<PixelGray<int16> >(fast_box_sum<accum_type>(input, Vector2i(5,3))));
+  ASSERT_TRUE(has_pixel_type<PixelGray<int16>>(fast_box_sum<accum_type>(input, Vector2i(5,3))));
   EXPECT_EQ(5, fast_box_sum<accum_type>(input, Vector2i(3,3)).cols());
   EXPECT_EQ(3, fast_box_sum<accum_type>(input, Vector2i(3,3)).rows());
 
-  ImageView<PixelGray<int16> > output = fast_box_sum<accum_type>(input, Vector2i(5,3));
+  ImageView<PixelGray<int16>> output = fast_box_sum<accum_type>(input, Vector2i(5,3));
   EXPECT_VW_EQ(PixelGray<int16>(470), output(0,0));
   EXPECT_VW_EQ(PixelGray<int16>(470), output(1,0));
   EXPECT_VW_EQ(PixelGray<int16>(470), output(2,0));

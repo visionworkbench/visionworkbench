@@ -91,7 +91,7 @@ TEST(Interpolation, Nearest) {
 }
 
 template <class PixelT>
-class FloatingView : public ImageViewBase<FloatingView<PixelT> > {
+class FloatingView : public ImageViewBase<FloatingView<PixelT>> {
   int32 m_cols, m_rows, m_planes;
 public:
   typedef PixelT pixel_type;
@@ -118,10 +118,10 @@ public:
 
 namespace vw {
 template <class PixelT>
-struct IsMultiplyAccessible<FloatingView<PixelT> > : public true_type {};
+struct IsMultiplyAccessible<FloatingView<PixelT>> : public true_type {};
 
 template <class PixelT>
-struct IsFloatingPointIndexable<FloatingView<PixelT> > : public true_type {};
+struct IsFloatingPointIndexable<FloatingView<PixelT>> : public true_type {};
 }
 
 // Disabled: InterpolationView no longer passes the accessibility traits through.

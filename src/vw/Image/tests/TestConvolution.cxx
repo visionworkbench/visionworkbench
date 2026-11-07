@@ -53,7 +53,7 @@ TEST(Convolution, Point1D) {
   double kernel[] = {2,3,-1};
   EXPECT_EQ(correlate_1d_at_point(src.origin(), (double*)kernel,3), 5);
   ASSERT_TRUE(is_of_type<double>(correlate_1d_at_point(ImageView<double>().origin(), (double*)0, 0)));
-  ASSERT_TRUE(is_of_type<PixelRGB<float> >(correlate_1d_at_point(ImageView<PixelRGB<uint8> >().origin(), (float*)0, 0)));
+  ASSERT_TRUE(is_of_type<PixelRGB<float>>(correlate_1d_at_point(ImageView<PixelRGB<uint8>>().origin(), (float*)0, 0)));
 }
 
 TEST(Convolution, Point2D) {
@@ -61,7 +61,7 @@ TEST(Convolution, Point2D) {
   ImageView<double> krn(2,2); krn(0,0)=2; krn(1,0)=-1; krn(0,1)=0; krn(1,1)=3;
   EXPECT_EQ(correlate_2d_at_point(src.origin(),krn.origin(),2,2), 12);
   ASSERT_TRUE(is_of_type<double>(correlate_2d_at_point(ImageView<double>().origin(), ImageView<double>().origin(), 0, 0)));
-  ASSERT_TRUE(is_of_type<PixelRGB<float> >(correlate_2d_at_point(ImageView<PixelRGB<uint8> >().origin(), ImageView<float>().origin(), 0, 0)));
+  ASSERT_TRUE(is_of_type<PixelRGB<float>>(correlate_2d_at_point(ImageView<PixelRGB<uint8>>().origin(), ImageView<float>().origin(), 0, 0)));
 }
 
 TEST(Convolution, View) {
@@ -198,10 +198,10 @@ TEST(Convolution, SeparableView_2x0) {
 }
 
 TEST(Convolution, SeparableView_Compound) {
-  ImageView<PixelGray<float32> > src(2,2); src(0,0)=1; src(1,0)=0.2; src(0,1)=0.3; src(1,1)=0.4;
+  ImageView<PixelGray<float32>> src(2,2); src(0,0)=1; src(1,0)=0.2; src(0,1)=0.3; src(1,1)=0.4;
   std::vector<double> krn; krn.push_back(1); krn.push_back(-1);
-  SeparableConvolutionView<ImageView<PixelGray<float32> >,double,ZeroEdgeExtension> cnv(src, krn, krn);
-  ASSERT_TRUE(is_of_type<PixelGray<float32> >(cnv(0,0)));
+  SeparableConvolutionView<ImageView<PixelGray<float32>>,double,ZeroEdgeExtension> cnv(src, krn, krn);
+  ASSERT_TRUE(is_of_type<PixelGray<float32>>(cnv(0,0)));
 }
 
 // This unit test catches a bug in the separable convolution code

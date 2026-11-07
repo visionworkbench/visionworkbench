@@ -36,7 +36,7 @@ namespace vw {
 /// For each pixel compute the standard deviation of the pixels in a neighborhood.
 /// - Could factor out a generic sliding buffer class, which could also implement the median filter.
 template <class ImageT, class EdgeT>
-class StdDevView : public ImageViewBase<StdDevView<ImageT,EdgeT> >
+class StdDevView : public ImageViewBase<StdDevView<ImageT,EdgeT>>
 {
 private:
   ImageT   m_image;
@@ -48,7 +48,7 @@ private:
 public:
   typedef typename ImageT::pixel_type pixel_type;  ///< The pixel type of the image view.
   typedef pixel_type                  result_type; ///< We compute the result, so we return by value.
-  typedef ProceduralPixelAccessor<StdDevView<ImageT, EdgeT> > 
+  typedef ProceduralPixelAccessor<StdDevView<ImageT, EdgeT>> 
                                       pixel_accessor; ///< The view's pixel_accessor type.
 
   /// Constructor
@@ -72,7 +72,7 @@ public:
   }
 
   // Generate the output tile
-  typedef CropView<ImageView<typename ImageT::pixel_type> > prerasterize_type;
+  typedef CropView<ImageView<typename ImageT::pixel_type>> prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
     // Rasterize the input support region
@@ -146,7 +146,7 @@ stddev_filter_view(ImageT const& image, Vector2i window_size) {
 /// - This allows for simple but unoptimized implementations.
 /// - TODO: Could ConvolutionView use this class?
 template <class ImageT, class FuncT, class EdgeT>
-class WindowFunctionView : public ImageViewBase<WindowFunctionView<ImageT,FuncT,EdgeT> >
+class WindowFunctionView : public ImageViewBase<WindowFunctionView<ImageT,FuncT,EdgeT>>
 {
 private:
   ImageT   m_image;
@@ -159,7 +159,7 @@ private:
 public:
   typedef typename ImageT::pixel_type pixel_type;  ///< The pixel type of the image view.
   typedef pixel_type                  result_type; ///< We compute the result, so we return by value.
-  typedef ProceduralPixelAccessor<WindowFunctionView<ImageT, FuncT, EdgeT> > 
+  typedef ProceduralPixelAccessor<WindowFunctionView<ImageT, FuncT, EdgeT>> 
                                       pixel_accessor; ///< The view's pixel_accessor type.
 
   /// Constructor
@@ -187,7 +187,7 @@ public:
   // Edge extension is done in the prerasterize function so the returned type does not need edge extension
   // - Currently the class does the hard work in the () function but it would probably be more efficient to
   //   do the computation on a per-tile basis.
-  typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type> >, 
+  typedef WindowFunctionView<CropView<ImageView<typename ImageT::pixel_type>>, 
                              FuncT, NoEdgeExtension> prerasterize_type;
   inline prerasterize_type prerasterize(BBox2i const& bbox) const {
     // Compute the required base of support for the input bounding box

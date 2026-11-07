@@ -68,9 +68,9 @@ TEST(CameraRelation, Construction) {
     crn[1].relations.push_back(second);
   }
 
-  std::list<boost::weak_ptr<JFeature> > list;
+  std::list<boost::weak_ptr<JFeature>> list;
   (*crn[0].begin())->list_connections(list);
-  for (std::list<boost::weak_ptr<JFeature> >::iterator it = list.begin();
+  for (std::list<boost::weak_ptr<JFeature>>::iterator it = list.begin();
        it != list.end(); it++) {
     std::ostringstream ostr;
     ostr << *(*it).lock();
@@ -92,7 +92,7 @@ TEST_F(CircleTest, IPFeature) {
   EXPECT_EQ(crn[1].relations.size(), 3u);
   EXPECT_EQ(crn[2].relations.size(), 2u);
   EXPECT_EQ(crn[3].relations.size(), 1u);
-  std::list<boost::weak_ptr<JFeature> > list;
+  std::list<boost::weak_ptr<JFeature>> list;
   crn[3].relations.front()->list_connections(list);
   EXPECT_EQ(list.size(), 4u);
 }
@@ -109,7 +109,7 @@ TEST_F(CircleTest, JFeature) {
   EXPECT_EQ(crn[1].relations.size(), 3u);
   EXPECT_EQ(crn[2].relations.size(), 2u);
   EXPECT_EQ(crn[3].relations.size(), 1u);
-  std::list<boost::weak_ptr<JFeature> > list;
+  std::list<boost::weak_ptr<JFeature>> list;
   crn[3].relations.front()->list_connections(list);
   EXPECT_EQ(list.size(), 4u);
 

@@ -45,7 +45,7 @@ protected:
   }
 };
 
-typedef CostFunction<PixelGray<float> > CostFunctionGRAYF32;
+typedef CostFunction<PixelGray<float>> CostFunctionGRAYF32;
 
 TEST_F(CostFunctionGRAYF32, AbsDiff) {
   typedef PixelChannelCast<pixel_type,AbsAccumulatorType<PixelChannelType<pixel_type>::type>::type>::type rpixel_type;
@@ -80,7 +80,7 @@ TEST_F(CostFunctionGRAYF32, CrossCorrelation) {
 TEST(CostFunction, AccumulatorType) {
   // The cost functors now take a single template argument, and the
   // accumulators are always float64, even for float32 inputs.
-  EXPECT_TRUE((boost::is_same<double,AbsoluteCost<ImageView<float> >::accumulator_type>::value));
-  EXPECT_TRUE((boost::is_same<double,SquaredCost<ImageView<float> >::accumulator_type>::value));
-  EXPECT_TRUE((boost::is_same<double,NCCCost<ImageView<float> >::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,AbsoluteCost<ImageView<float>>::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,SquaredCost<ImageView<float>>::accumulator_type>::value));
+  EXPECT_TRUE((boost::is_same<double,NCCCost<ImageView<float>>::accumulator_type>::value));
 }

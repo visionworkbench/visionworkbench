@@ -63,8 +63,8 @@ TEST_P(SpatialTreeTest, Basic) {
   SpatialTree t(b);
   std::list<GeomPrimitive*> l;
   std::list<GeomPrimitive*>::iterator i;
-  std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > overlaps;
-  std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >::iterator i2;
+  std::list<std::pair<GeomPrimitive*, GeomPrimitive*>> overlaps;
+  std::list<std::pair<GeomPrimitive*, GeomPrimitive*>>::iterator i2;
   unsigned j;
 
   Vector<double,4> p0(0.1, 0.1, 0.1, 0.1), p0_(0.2, 0.2, 0.2, 0.2);

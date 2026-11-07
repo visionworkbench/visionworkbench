@@ -83,7 +83,7 @@ protected:
 
   float32 stretch, translation;
   ImageView<uint8> image1, image2;
-  ImageView<PixelMask<Vector2f> > starting_disp;
+  ImageView<PixelMask<Vector2f>> starting_disp;
 };
 
 typedef SubPixelCorrelateTest<95> SubPixelCorrelate95Test;
@@ -94,16 +94,16 @@ typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 // Testing Parabola Subpixel View
 //--------------------------------------------------------------
 TEST(ParabolaSubpixel, NullTest) {
-  ImageView<PixelMask<Vector2i> > disparity(5,5);
+  ImageView<PixelMask<Vector2i>> disparity(5,5);
   fill(disparity, PixelMask<Vector2i>(Vector2i(1,1)));
   ImageView<float> left(5,5), right(5,5);
   fill(left, 0.5);
   fill(right, 0.6);
 
-  ImageView<PixelMask<Vector2f> > fdisparity =
-    parabola_subpixel(pixel_cast<PixelMask<Vector2f> >(disparity),
-                      pixel_cast<PixelGray<float> >(left),
-                      pixel_cast<PixelGray<float> >(right),
+  ImageView<PixelMask<Vector2f>> fdisparity =
+    parabola_subpixel(pixel_cast<PixelMask<Vector2f>>(disparity),
+                      pixel_cast<PixelGray<float>>(left),
+                      pixel_cast<PixelGray<float>>(right),
                       PREFILTER_NONE, 1.4,
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
@@ -114,9 +114,9 @@ TEST(ParabolaSubpixel, NullTest) {
   }
 
   fdisparity =
-    parabola_subpixel(pixel_cast<PixelMask<Vector2f> >(disparity),
-                      pixel_cast<PixelGray<float> >(left),
-                      pixel_cast<PixelGray<float> >(right),
+    parabola_subpixel(pixel_cast<PixelMask<Vector2f>>(disparity),
+                      pixel_cast<PixelGray<float>>(left),
+                      pixel_cast<PixelGray<float>>(right),
                       PREFILTER_LOG, 1.4,
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
@@ -133,10 +133,10 @@ TEST(ParabolaSubpixel, NullTest) {
 //typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 
 TEST_F(SubPixelCorrelate95Test, Parabola) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     parabola_subpixel(starting_disp,
-                      pixel_cast<PixelGray<float> >(image1),
-                      pixel_cast<PixelGray<float> >(image2),
+                      pixel_cast<PixelGray<float>>(image1),
+                      pixel_cast<PixelGray<float>>(image2),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -173,11 +173,11 @@ TEST_F(SubPixelCorrelate80Test, Phase) {
   const int kern_size = 15; // Optimal size is products of 2's, 3's, and 5's
   const int subpixel_accuracy = 50;
   
-  ImageView<PixelMask<Vector2f> > disparity_map = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f>> disparity_map = crop(starting_disp, rect);
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
   /*
-  ImageView<PixelMask<Vector2f> > disparity_map(rect.width(), rect.height());
+  ImageView<PixelMask<Vector2f>> disparity_map(rect.width(), rect.height());
   for(int r=0; r<rect.height(); ++r) {
     for(int c=0; c<rect.width(); ++c) {
       remove_mask(disparity_map(c,r)) = Vector2f(0,0);
@@ -204,10 +204,10 @@ TEST_F(SubPixelCorrelate80Test, Phase) {
               select_channel(disparity_map,0));
   */
   int max_pyramid_levels = 0;
-  ImageView<PixelMask<Vector2f> > output_disp =
+  ImageView<PixelMask<Vector2f>> output_disp =
   phase_subpixel(disparity_map,
-                 pixel_cast<PixelGray<float> >(left_crop),
-                 pixel_cast<PixelGray<float> >(right_crop),
+                 pixel_cast<PixelGray<float>>(left_crop),
+                 pixel_cast<PixelGray<float>>(right_crop),
                  PREFILTER_LOG, 1.4,
                  Vector2i(kern_size, kern_size),
                  max_pyramid_levels);
@@ -240,8 +240,8 @@ TEST_F( SubPixelCorrelate90Test, affine_pyr) {
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
 
-  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f>> disparity_map =
     affine_subpixel( disp_copy, left_crop, right_crop,
                        PREFILTER_LOG, 1.4,
                        Vector2i(kern_size,kern_size) );
@@ -267,8 +267,8 @@ TEST_F( SubPixelCorrelate80Test, affine_pyr) {
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
 
-  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f>> disparity_map =
     affine_subpixel( disp_copy, left_crop, right_crop,
                        PREFILTER_LOG, 1.4,
                        Vector2i(kern_size,kern_size) );
@@ -294,8 +294,8 @@ TEST_F( SubPixelCorrelate95Test, parab) {
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
 
-  ImageView<PixelMask<Vector2f> > disp_copy = crop(starting_disp, rect);
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disp_copy = crop(starting_disp, rect);
+  ImageView<PixelMask<Vector2f>> disparity_map =
     parabola_subpixel( disp_copy, left_crop, right_crop,
                        PREFILTER_LOG, 1.4,
                        Vector2i(kern_size,kern_size) );
@@ -313,8 +313,8 @@ TEST_F( SubPixelCorrelate80Test, Affine) {
   const BBox2 rect = bounding_box(image1);
   const int kern_size = 15;
 
-  ImageView<PixelMask<Vector2f> > disparity_map = crop(starting_disp, rect);
-  //ImageView<PixelMask<Vector2f> > disparity_map = starting_disp;
+  ImageView<PixelMask<Vector2f>> disparity_map = crop(starting_disp, rect);
+  //ImageView<PixelMask<Vector2f>> disparity_map = starting_disp;
   ImageView<float> left_crop  = crop(image1,rect);
   ImageView<float> right_crop = crop(image2,rect);
 
@@ -334,7 +334,7 @@ TEST_F( SubPixelCorrelate80Test, Affine) {
 
 // TODO: Add more phase tests
 TEST_F( SubPixelCorrelate95Test, Phase ) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     phase_subpixel( starting_disp, image1, image2,
                        PREFILTER_LOG, 1.4,
                        Vector2i(7,7) );
@@ -349,10 +349,10 @@ TEST_F( SubPixelCorrelate95Test, Phase ) {
 // Testing Bayes EM SubPixel
 //--------------------------------------------------------------
 TEST_F(SubPixelCorrelate95Test, BayesEM95) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     bayes_em_subpixel(starting_disp,
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -365,10 +365,10 @@ TEST_F(SubPixelCorrelate95Test, BayesEM95) {
 }
 
 TEST_F(SubPixelCorrelate90Test, BayesEM90) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     bayes_em_subpixel(starting_disp,
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -381,10 +381,10 @@ TEST_F(SubPixelCorrelate90Test, BayesEM90) {
 }
 
 TEST_F(SubPixelCorrelate80Test, BayesEM80) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     bayes_em_subpixel(starting_disp,
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
 
@@ -397,10 +397,10 @@ TEST_F(SubPixelCorrelate80Test, BayesEM80) {
 }
 
 TEST_F(SubPixelCorrelate70Test, BayesEM70) {
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
     bayes_em_subpixel(starting_disp,
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image1)),
-                      pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image2)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image1)),
+                      pixel_cast<PixelGray<float>>(channel_cast_rescale<float>(image2)),
                       PREFILTER_LOG, 1.4,
                       Vector2i(7,7));
     
@@ -419,7 +419,7 @@ TEST( SlipTest, Affine ) {
   read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
   
   // Init the disparity image.
-  ImageView<PixelMask<Vector2f> > starting_disp(image1.cols(), image1.rows());
+  ImageView<PixelMask<Vector2f>> starting_disp(image1.cols(), image1.rows());
   for(int r=0; r<starting_disp.rows(); ++r) {
     for(int c=0; c<starting_disp.cols(); ++c) {
       remove_mask(starting_disp(c,r)) = Vector2f(0,0);
@@ -427,14 +427,14 @@ TEST( SlipTest, Affine ) {
     }
   }
 
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
       affine_subpixel( starting_disp,
                        image1,
                        image2,
                        PREFILTER_LOG, 1.4, // Having a prefilter is important!
                        Vector2i(35,35) );
 
-  //ImageView<PixelMask<Vector2f> > disparity_map = starting_disp;
+  //ImageView<PixelMask<Vector2f>> disparity_map = starting_disp;
   //subpixel_optimized_affine_2d(disparity_map,
   //                  image1, image2,
   //                  35, 35,
@@ -456,7 +456,7 @@ TEST( SlipTest, EM2) {
   read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
   
   // Init the disparity image.
-  ImageView<PixelMask<Vector2f> > disparity_map(image1.cols(), image1.rows());
+  ImageView<PixelMask<Vector2f>> disparity_map(image1.cols(), image1.rows());
   for(int r=0; r<disparity_map.rows(); ++r) {
     for(int c=0; c<disparity_map.cols(); ++c) {
       remove_mask(disparity_map(c,r)) = Vector2f(0,0);
@@ -488,7 +488,7 @@ TEST( SlipTest, Phase) {
   read_image(image2, "/home/smcmich1/data/subpixel/landsat/r_crop.tif");
   
   // Init the disparity image.
-  ImageView<PixelMask<Vector2f> > starting_disp(image1.cols(), image1.rows());
+  ImageView<PixelMask<Vector2f>> starting_disp(image1.cols(), image1.rows());
   for(int r=0; r<starting_disp.rows(); ++r) {
     for(int c=0; c<starting_disp.cols(); ++c) {
       remove_mask(starting_disp(c,r)) = Vector2f(0,0);
@@ -506,7 +506,7 @@ TEST( SlipTest, Phase) {
   //            select_channel(disparity_map,0));
 
   
-  ImageView<PixelMask<Vector2f> > disparity_map =
+  ImageView<PixelMask<Vector2f>> disparity_map =
       phase_subpixel( starting_disp,
                        image1,
                        image2,

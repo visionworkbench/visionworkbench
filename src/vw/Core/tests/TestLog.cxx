@@ -186,7 +186,7 @@ TEST(Log, MultiThreadLog) {
 
   typedef boost::shared_ptr<TestLogTask> TheTask;
   typedef boost::shared_ptr<Thread>  TheThread;
-  std::vector<std::pair<TheTask, TheThread> > threads(100);
+  std::vector<std::pair<TheTask, TheThread>> threads(100);
 
   for (size_t i = 0; i < threads.size(); ++i) {
     TheTask task(new TestLogTask(log,"log test"));

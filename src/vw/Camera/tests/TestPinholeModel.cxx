@@ -156,11 +156,11 @@ TEST(PinholeModel, ProjectiveMatrix) {
                               400, 700);
 
   // Create Measurements used to solve for camera matrix
-  std::vector<Vector<double> > world_m, image_m;
+  std::vector<Vector<double>> world_m, image_m;
   boost::minstd_rand random_gen(42u);
   boost::normal_distribution<double> normal(0,20);
   boost::variate_generator<boost::minstd_rand&,
-    boost::normal_distribution<double> > generator(random_gen, normal);
+    boost::normal_distribution<double>> generator(random_gen, normal);
   while(world_m.size() < 6) {
     try {
       Vector3 point(generator(), generator(), generator()+60.0);
