@@ -20,8 +20,8 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/Algorithms.h>
-#include <vw/Image/ImageChannels.h>  // for pixel_cast_rescale()
-#include <vw/Image/Manipulation.h>   // for crop()
+#include <vw/Image/ImageChannels.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/Correlation.h>
 

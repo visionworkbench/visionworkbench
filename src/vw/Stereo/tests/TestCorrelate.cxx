@@ -20,8 +20,8 @@
 #include <test/Helpers.h>
 
 #include <vw/Stereo/Correlate.h>
-#include <vw/Image/Algorithms.h>    // for fill()
-#include <vw/Image/Manipulation.h>  // for crop(), copy()
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Manipulation.h>
 
 using namespace vw;
 

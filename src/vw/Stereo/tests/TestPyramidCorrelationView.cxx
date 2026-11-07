@@ -20,9 +20,9 @@
 
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/CorrelationView.h>
-#include <vw/Image/UtilityViews.h>    // for uniform_noise_view(), constant_view()
-#include <vw/Image/Transform.h>       // for transform(), AffineTransform, interpolation
-#include <vw/Image/EdgeExtension.h>   // for ConstantEdgeExtension
+#include <vw/Image/UtilityViews.h>
+#include <vw/Image/Transform.h>
+#include <vw/Image/EdgeExtension.h>
 #include <boost/random/linear_congruential.hpp>
 
 

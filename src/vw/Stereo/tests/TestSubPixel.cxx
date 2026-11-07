@@ -23,8 +23,8 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Image/UtilityViews.h>   // for uniform_noise_view()
-#include <vw/Image/ImageChannels.h>  // for channel_cast_rescale()
+#include <vw/Image/UtilityViews.h>
+#include <vw/Image/ImageChannels.h>
 #include <vw/Stereo/ParabolaSubpixelView.h>
 #include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Stereo/SubpixelView.h>
