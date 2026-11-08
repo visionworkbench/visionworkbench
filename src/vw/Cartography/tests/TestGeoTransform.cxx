@@ -201,8 +201,7 @@ TEST(GeoTransform, skipProjectionTest) {
   EXPECT_VECTOR_NEAR(point2, point2b, EPS);
 }
 
-// Disabled: PROJ-version sensitive.
-TEST(GeoTransform, DISABLED_RefToRef) {
+TEST(GeoTransform, RefToRef) {
   
   // Set up a pair of GeoReference objects which overlap but
   //  do not use the same longitude convention.
@@ -258,7 +257,8 @@ TEST(GeoTransform, DISABLED_RefToRef) {
   //std::cout << "point_bbox_2 = " << std::setprecision(12) << point_bbox_2 << std::endl;
   //std::cout << "point2 = " << std::setprecision(12) << point2 << std::endl;
   
-  const double EPS = 1e-4;
+  // Generous tolerance to absorb PROJ-version differences across platforms.
+  const double EPS = 1e-2;
 
   EXPECT_VECTOR_NEAR(point2, Vector2(-113.242425,-74.950475), EPS);
   EXPECT_VECTOR_NEAR(pixel2, Vector2(81.3333,74), EPS);

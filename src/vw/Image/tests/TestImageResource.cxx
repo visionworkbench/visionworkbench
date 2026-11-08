@@ -269,24 +269,6 @@ TEST_F(TestStream, WriteResize) {
   ASSERT_EQ(2*size(), fs::file_size(static_cast<std::string>(name)));
 }
 
-#if 0
-TEST_F(TestStream, ReadWriteConvert) {
-
-#if 0
-  ImageBuffer src2(fmt, src_buf);
-  // Now that we've done a write, we can do a convert read
-  src2.format.pixel_format = VW_PIXEL_SCALAR;
-  // Set up canary
-  std::copy(idata+0, idata+SIZE, dst_data);
-
-  ASSERT_NO_THROW(r.read(dst, box));
-  EXPECT_RANGE_EQ(rstr.begin(), rstr.end(), ss.str().begin(), ss.str().end());
-  EXPECT_RANGE_EQ(rdata+0, rdata+SIZE, dst_data+0, dst_data+SIZE);
-#endif
-}
-#endif
-
-
 TEST_F(TestStream, StreamError) {
   const BBox2i box(0,0,WIDTH,HEIGHT);
   const BBox2i big_box(0,0,WIDTH+1,HEIGHT+1);

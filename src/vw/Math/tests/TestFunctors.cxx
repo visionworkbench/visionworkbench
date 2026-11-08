@@ -229,20 +229,14 @@ TEST(Functors, Atanh) { TEST_UNARY_MATH_FUNCTOR(Atanh,0.5,0.549306); }
 
 #ifdef VW_HAVE_EXP2
 TEST(Functors, Exp2)  { TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0); }
-#else
-TEST(Functors, DISABLED_Exp2)  { }
 #endif
 
 #ifdef VW_HAVE_LOG2
 TEST(Functors, Log2) { TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0); }
-#else
-TEST(Functors, DISABLED_Log2) { }
 #endif
 
 #ifdef VW_HAVE_TGAMMA
 TEST(Functors, Tgamma) { TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227); }
-#else
-TEST(Functors, DISABLED_Tgamma) { }
 #endif
 
 TEST(Functors, Expm1)    { TEST_UNARY_MATH_FUNCTOR(Expm1,1.0,1.718281);  }

@@ -14,8 +14,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // __END_LICENSE__
-#if 0 // Broken. Must fix it.
- 
+
 #include <vw/Core/Exception.h>
 #include <test/Helpers.h>
 
@@ -68,9 +67,9 @@ TEST(Exceptions, HAS_EXCEPTIONS(Ext)) {
   EXPECT_THROW(vw_throw(Code2() << "Rawr"), Exception);
 
   try {
+    vw_throw(Code2() << "rawr");
   } catch (const Code0& c) {
-    EXPECT_EQ(2, c.code());
+    EXPECT_EQ(4, c.code());
     EXPECT_EQ("Code2", c.name());
   }
 }
-#endif

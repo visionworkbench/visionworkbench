@@ -508,15 +508,15 @@ TEST(Statistics, MedianChannel) {
   EXPECT_EQ(median_channel_value(image2), 5);
 }
 
-// Disabled: binning output changed.
-TEST(Statistics, DISABLED_Histogram) {
-  
+TEST(Statistics, Histogram) {
+  generate_data();
+
   vw::Histogram hist;
   int num_bins = 256;
   double min_val = -1.0, max_val = -1.0;
 
   // First get the min and max values
-  find_image_min_max(im8mb, min_val, max_val);
+  find_image_min_max(im8b, min_val, max_val);
 
   // Calc the histogram
   histogram(im8b, num_bins, min_val, max_val, hist);
@@ -527,9 +527,11 @@ TEST(Statistics, DISABLED_Histogram) {
   EXPECT_EQ(hist.get_bin_value(255), 1);
 }
 
-// Disabled: drifted from reference.
-TEST(Statistics, DISABLED_OptimalThreshold) {
+TEST(Statistics, OptimalThreshold) {
+  generate_data();
   double t  = otsu_threshold(im8b);
-  double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)
-  EXPECT_NEAR(t, t0, 0.1);
+  // otsu_threshold returns a threshold scaled to the image [min,max] range,
+  // so scale the Matlab graythresh level (in [0,1]) by the 0..255 range.
+  double t0 = 0.27843137254902 * 255.0; // Matlab graythresh(uint8_im), scaled
+  EXPECT_NEAR(t, t0, 2.0);
 }

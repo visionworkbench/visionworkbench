@@ -41,15 +41,18 @@ CHECK_CXX_SOURCE_COMPILES("void testFunc() __attribute__((warn_unused_result)); 
 
 
 # Check for some supported functions (could probably streamline ssize_t check)
-check_cxx_symbol_exists(exp2            cmath                  VW_HAVE_EXP2)
+# exp2/log2/tgamma are overloaded in C++ <cmath>, so check_cxx_symbol_exists
+# (which takes the symbol address) is ambiguous and wrongly fails even where the
+# functions exist. Probe by calling them, matching how Math/Functors.h uses them.
+CHECK_CXX_SOURCE_COMPILES("#include <cmath>\n int main(){ return (int)exp2(1.0); }"   VW_HAVE_EXP2)
+CHECK_CXX_SOURCE_COMPILES("#include <cmath>\n int main(){ return (int)log2(2.0); }"   VW_HAVE_LOG2)
+CHECK_CXX_SOURCE_COMPILES("#include <cmath>\n int main(){ return (int)tgamma(1.5); }" VW_HAVE_TGAMMA)
 check_cxx_symbol_exists(fabsl           cmath                  VW_HAVE_FABSL)
 check_cxx_symbol_exists(feenableexcept  "fenv.h"               VW_HAVE_FEENABLEEXCEPT)
 check_cxx_symbol_exists(getpid          "unistd.h;sys/types.h" VW_HAVE_GETPID)
 check_cxx_symbol_exists(getpwuid        "pwd.h;sys/types.h"    VW_HAVE_GETPWUID)
 check_cxx_symbol_exists(llabs           "stdlib.h"             VW_HAVE_LLABS)
-check_cxx_symbol_exists(log2            cmath                  VW_HAVE_LOG2)
 check_cxx_symbol_exists(mkstemps        "stdlib.h"             VW_HAVE_MKSTEMPS)
-check_cxx_symbol_exists(tgamma          cmath                  VW_HAVE_TGAMMA)
 CHECK_CXX_SOURCE_COMPILES("
                           #include <sys/types.h>
                           int main(){ssize_t a=2; return a;}" VW_HAVE_SSIZET)

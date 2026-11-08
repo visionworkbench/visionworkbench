@@ -120,31 +120,6 @@ TEST_F(CameraGeometryTest, DISABLED_IteratorSolve) {
 //  EXPECT_FALSE(true);
 }
 
-TEST_F(CameraGeometryTest, DISABLED_RansacSolve) {
-  // Add some extra wrong data points
-  // 10% are just completely wrong
-  for (uint32 i=0,j=0; i < 5 && j <50; i++, j+=10) {
-    world_m[j][0] = rand()%200-100;
-    world_m[j][1] = rand()%200-100;
-    world_m[j][2] = rand()%200;
-  }
-
-  vw::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac(CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 100, 2, world_m.size()/2, true);
-  Matrix<double> P(ransac(world_m,image_m));
-  ASSERT_EQ(P.rows(), 3u);
-  ASSERT_EQ(P.cols(), 4u);
-
-  for (uint8 i = 0; i < 10; i++) {
-    Vector3 p_result = P*world_m[i];
-    p_result /= p_result[2];
-    Vector2 cam_result =
-      pinhole.point_to_pixel(subvector(world_m[i],0,3));
-    EXPECT_VECTOR_NEAR(subvector(p_result,0,2),
-                       cam_result, 500);
-    // I don't understand why this are so far off.
-  }
-}
-
 // Test Fundamental Matrix ----------------------------------------------
 class FundamentalMatrixStaticTest : public ::testing::Test {
 protected:

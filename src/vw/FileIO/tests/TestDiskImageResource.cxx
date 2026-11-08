@@ -234,14 +234,6 @@ TEST_F(ReadImageRGBU8JPG, RGB_U8_JPG) {}
 
 typedef ReadImage<PixelRGB<float>, 2> ReadImageRGBF32JPG;
 TEST_F(ReadImageRGBF32JPG, RGB_F32_JPG) {}
-
-// These test just don't work with JPG since these images are smaller
-// than the tolerance of libjpeg.
-typedef WriteReadImage<PixelRGB<uint8>, 2> WriteReadImageRGBU8JPG;
-TEST_F(WriteReadImageRGBU8JPG, DISABLED_RGB_U8_JPG) {}
-
-typedef WriteReadImage<PixelRGB<float>, 2> WriteReadImageRGBF32JPG;
-TEST_F(WriteReadImageRGBF32JPG, DISABLED_RGB_F32_JPG) {}
 #endif
 
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
