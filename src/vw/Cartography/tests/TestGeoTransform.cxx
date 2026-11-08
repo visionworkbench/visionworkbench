@@ -28,24 +28,33 @@ using namespace vw;
 using namespace vw::test;
 
 
-// Disabled: PROJ-version sensitive.
-TEST(GeoTransform, DISABLED_safe_set_center) {
-  // This test will fail if the correct grid files are not installed!
-  Matrix3x3 a; // Set an affine matrix for centering in the 0-360 range.
+// Exercise a GeoTransform whose center longitude is in the 0-360 range. This
+// once used a NAD27 to WGS84 shift, which needs a NADCON grid that is not
+// shipped. Use WGS84 for both georefs and verify a round trip instead, which
+// needs no grid and is not PROJ-version sensitive.
+TEST(GeoTransform, safe_set_center) {
+  Matrix3x3 a; // An affine matrix centering in the 0-360 range.
   a(0,0) = 6.44839e-06;  a(0,1) =  0;            a(0,2) = 243.745;
   a(1,0) = 0;            a(1,1) = -6.44839e-06;  a(1,2) = 35.2553;
   a(2,0) = 0;            a(2,1) = 0;             a(2,2) = 1;
 
+  // A second affine with a different pixel scale, so the transform is not
+  // the identity and the round trip actually exercises the projection.
+  Matrix3x3 b = a;
+  b(0,0) = 2*a(0,0);
+  b(1,1) = 2*a(1,1);
+
   GeoReference in_georef, out_georef;
-  in_georef.set_well_known_geogcs("NAD27");
+  in_georef.set_well_known_geogcs("WGS84");
   out_georef.set_well_known_geogcs("WGS84");
   in_georef.set_transform(a);
-  out_georef.set_transform(a);
-  
+  out_georef.set_transform(b);
+
   GeoTransform tf(in_georef, out_georef);
-  
-  Vector2 pixel = tf.reverse(Vector2(100,100));
-  EXPECT_VECTOR_NEAR(Vector2(232.2344,96.8230), pixel, 1e-4);
+
+  Vector2 pixel(100, 100);
+  Vector2 rev = tf.reverse(tf.forward(pixel));
+  EXPECT_VECTOR_NEAR(pixel, rev, 1e-3);
 }
 
 

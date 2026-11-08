@@ -26,51 +26,24 @@
 using namespace vw;
 using namespace vw::test;
 
-// Disabled: removed API.
-TEST(ControlNetworkLoad, DISABLED_LoadingGCPNET) {
+// Build a control network with a ground control point and verify the point
+// count, its type, and its measures. The old GCP-network file loader this once
+// exercised was removed. GCP file loading itself is covered by GCPLoad below.
+TEST(ControlNetworkLoad, GroundControlPoint) {
 
-  // Creating GCP net
-  UnlinkName gcpnet("test.cnet");
-  std::list<std::string> gcpnets;
-  gcpnets.push_back(gcpnet);
-  {
-    ControlNetwork net("test");
-    ControlPoint cp;
-    cp.set_position(Vector3(1,2,3));
-    {
-      ControlMeasure cm(4,5,1,1,0);
-      cp.add_measure(cm);
-    }
-    {
-      ControlMeasure cm(7,1,2,2,1);
-      cp.add_measure(cm);
-    }
-    net.add_control_point(cp);
-  }
-
-  ControlNetwork net("destination");
-  {
-    ControlPoint cp;
-    cp.set_position(Vector3(9,3,4));
-    {
-      ControlMeasure cm(5,5,1,1,0);
-      cp.add_measure(cm);
-    }
-    {
-      ControlMeasure cm(5,7,1,1,1);
-      cp.add_measure(cm);
-    }
-    net.add_control_point(cp);
-  }
-  EXPECT_FALSE(gcpnets.empty());
-  EXPECT_EQ(1u, net.size());
-  EXPECT_EQ(1u, gcpnets.size());
-
+  ControlNetwork net("test");
   net.add_image_name("image1");
   net.add_image_name("image2");
 
-  ASSERT_EQ(2u, net.size());
-  EXPECT_EQ(ControlPoint::GroundControlPoint, net[1].type());
+  ControlPoint cp(ControlPoint::GroundControlPoint);
+  cp.set_position(Vector3(1,2,3));
+  cp.add_measure(ControlMeasure(4,5,1,1,0));
+  cp.add_measure(ControlMeasure(7,1,2,2,1));
+  net.add_control_point(cp);
+
+  ASSERT_EQ(1u, net.size());
+  EXPECT_EQ(ControlPoint::GroundControlPoint, net[0].type());
+  EXPECT_EQ(2u, net[0].size()); // two measures
 }
 
 TEST(GCPLoad, LoadingGCP) {

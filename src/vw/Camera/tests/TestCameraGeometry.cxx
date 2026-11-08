@@ -96,28 +96,24 @@ TEST_F(CameraGeometryTest, LinearSolve) {
   }
 }
 
-// Disabled: flaky solver, backend-dependent.
+// Disabled: the iterative camera-matrix fit is numerically unstable here,
+// projecting world points 100+ pixels off their image points, so no meaningful
+// tolerance revives it. LinearSolve above is the reliable camera-matrix test.
 TEST_F(CameraGeometryTest, DISABLED_IteratorSolve) {
   Matrix<double> P =
     CameraMatrixFittingFunctor()(noisy_world_m,
                                  noisy_image_m);
   ASSERT_EQ(P.rows(), 3u);
   ASSERT_EQ(P.cols(), 4u);
-  
-  std::cout << "IteratorSolve Matrix P = " << P << std::endl;
 
   for (uint8 i = 0; i < 10; i++) {
     Vector3 p_result = P*world_m[i];
     p_result /= p_result[2];
     Vector2 cam_result =
       pinhole.point_to_pixel(subvector(world_m[i],0,3));
-    std::cout << "world_m[i] = " << world_m[i] << std::endl;
-    std::cout << "p_result = " << p_result << std::endl;
-    std::cout << "cam_result = " << cam_result << std::endl;
     EXPECT_VECTOR_NEAR(subvector(p_result,0,2),
-                       cam_result, 20); //
+                       cam_result, 20);
   }
-//  EXPECT_FALSE(true);
 }
 
 // Test Fundamental Matrix ----------------------------------------------

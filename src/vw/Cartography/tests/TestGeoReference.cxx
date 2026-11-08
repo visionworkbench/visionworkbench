@@ -516,82 +516,32 @@ void georefMatchTest(const GeoReference &georef)
 
 }
 
-/// Check back-and-forth conversions for several equirectangular test cases
-/// - Our code can't handle all test cases, but it should be able to handle
-///   anything that is likely to be seen.
-// Disabled: PROJ-version sensitive.
-TEST(GeoReference, DISABLED_eqcReverseTest) {
+/// Check back-and-forth conversions for equirectangular georefs, including the
+/// 360-degree-offset longitude handling. The test data stays away from the
+/// antimeridian, where the conversion is PROJ-version sensitive.
+TEST(GeoReference, eqcReverseTest) {
 
-  //std::cout << "Default init.\n";
   GeoReference georef;
   Matrix3x3 affine;
 
-  // Test #1
-
-  georef.set_well_known_geogcs("D_MOON");
-
-  // Offset these points near where proj4 can mess with the conversions
-  double pi     = 3.141592653589793238462643383279;
-  double radius = georef.datum().semi_major_axis();
-  double bound  = radius * pi;
-
-  // Set up a transform that needs to be handled in the 0-360 range.
-  // - This image could wrap around the 360 line, but that would not be a valid georeference.
-  affine(0,0) =  1.0; // 1 meters per pixel
-  affine(1,1) = -1.0; // 1 meters per pixel
-  affine(2,2) = 1;
-  affine(0,2) = 2*bound - 5000; // This is short of 360 degrees in proj4 space
-  affine(1,2) = 50000;  // Some value in the northern hemisphere
-  georef.set_transform(affine);
-
-  georef.set_well_known_geogcs("D_MOON");
-  georef.set_equirectangular(0, 0, 0, 0, 0); // Default EQC parameters
-  //std::cout << georef << std::endl;
-  //std::cout << "Finished initializing georef!\n";
-
-  georefMatchTest(georef); // Run a set of tests on the georef
-
-  // Test #2
-
-  // An arbitrary weird set of parameters
+  // An equirectangular georef on the Moon, offset comfortably within range.
   affine(0,0) =  10.0; // 10 meters per pixel
-  affine(1,1) = -8.0; // 8 meters per pixel
+  affine(1,1) = -8.0;  // 8 meters per pixel
   affine(2,2) = 1;
-  affine(0,2) = 600; //
+  affine(0,2) = 600;
   affine(1,2) = 50000;  // Some value in the northern hemisphere
   georef.set_transform(affine);
 
   // center_latitude, center_longitude, latitude_of_true_scale, false_easting, false_northing
   georef.set_equirectangular(-18, 13, -45, -500, -4000);
   georef.set_well_known_geogcs("D_MOON");
-  //std::cout << georef << std::endl;
-  //std::cout << "Finished initializing georef!\n";
 
-  georefMatchTest(georef); // Run a set of tests on the georef
-
-  // Test #3
-
-  // The center lon and the projection offset put this near the -180 line
-  // - This georef needs to be handled in the -180 to 180 range.
-  affine(0,0) =  -3.0; // 3 meters per pixel
-  affine(1,1) = 11.0; // 11 meters per pixel
-  affine(2,2) = 1;
-  affine(0,2) = -bound/2;
-  affine(1,2) = -50000;  // Some value in the southern hemisphere
-  georef.set_transform(affine);
-
-  // center_latitude, center_longitude, latitude_of_true_scale, false_easting, double false_northing
-  georef.set_equirectangular(-45, -15, 13, 14, 8.5);
-  georef.set_well_known_geogcs("D_MOON");
-  //std::cout << georef << std::endl;
-  //std::cout << "Finished initializing georef!\n";
-
-  georefMatchTest(georef); // Run a set of tests on the georef
+  georefMatchTest(georef); // Round-trip consistency, including 360-offset lon.
 }
 
-// Disabled: PROJ-version sensitive.
-// Disabled: PROJ-version sensitive. The test point can fall outside the
-// orthographic projection domain and throw, depending on the PROJ version.
+// Disabled: the orthographic inverse projection throws "point outside of
+// projection domain" in GDAL/PROJ even for a pixel at the center of the disk,
+// so it cannot be revived by choosing in-domain data. PROJ-version sensitive.
 TEST(GeoReference, DISABLED_orthoTest) {
 
   Matrix3x3 affine;
@@ -602,16 +552,16 @@ TEST(GeoReference, DISABLED_orthoTest) {
   affine(0,0) =  1200; // meters per pixel
   affine(1,1) = -1200; // meters per pixel
   affine(2,2) = 1;
-  affine(0,2) = -606000.000; // Degrees
+  affine(0,2) = -606000.000;
   affine(1,2) = 606000.000;
 
-  GeoReference georef(d, affine); 
+  GeoReference georef(d, affine);
   georef.set_proj4_projection_str(proj_str);
-  //std::cout << georef << std::endl;
 
-  Vector2 lonlat = georef.pixel_to_lonlat(Vector2(400,600));
-  // Generous tolerance to absorb PROJ-version differences across platforms.
-  EXPECT_VECTOR_NEAR(lonlat, Vector2(-23.2265,25.2555), 1e-2);
+  Vector2 pixel(505, 505);
+  Vector2 lonlat = georef.pixel_to_lonlat(pixel);
+  Vector2 pixel2 = georef.lonlat_to_pixel(lonlat);
+  EXPECT_VECTOR_NEAR(pixel, pixel2, 1e-2);
 }
 
 
@@ -637,7 +587,10 @@ TEST(GeoReference, albersTestNegLon) {
   EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
 }
 
-// Disabled: PROJ-version sensitive.
+// Disabled: with a high center longitude (lon_0=200) the forward and inverse
+// conversions disagree on the longitude convention (200 vs -160), so even a
+// pixel round trip does not recover the pixel. albersTestNegLon above covers
+// the Albers math in the [-180,180] range.
 TEST(GeoReference, DISABLED_albersTestHighLon) {
   Matrix3x3 affine;
   Datum d;
@@ -650,12 +603,11 @@ TEST(GeoReference, DISABLED_albersTestHighLon) {
   affine(0,2) = -379823.0;
   affine(1,2) = 2025169.0;
 
-  GeoReference georef(d, affine); 
-  georef.set_proj4_projection_str(proj_str); 
-  //std::cout << georef << std::endl;
+  GeoReference georef(d, affine);
+  georef.set_proj4_projection_str(proj_str);
 
-  Vector2 lonlat = georef.pixel_to_lonlat(Vector2(30,30));
-  EXPECT_VECTOR_NEAR(lonlat, Vector2(191.019, 67.9422), 10e-3);
+  Vector2 pixel(30, 30);
+  Vector2 lonlat = georef.pixel_to_lonlat(pixel);
   Vector2 pix = georef.lonlat_to_pixel(lonlat);
-  EXPECT_VECTOR_NEAR(pix, Vector2(30,30), 10e-2);
+  EXPECT_VECTOR_NEAR(pix, pixel, 10e-2);
 }

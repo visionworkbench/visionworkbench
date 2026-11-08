@@ -106,27 +106,41 @@ TEST_F(CameraBBoxTest, CameraPixelToXYZ) {
 }
 
 
-/* // Make sure camera_bbox works properly in a non-toy case.
-TEST( CameraBBox, CameraBBoxDEM11 ) {
-  
-  std::string demPath = "/home/smcmich1/data/icebridge_bulk/reference_dems/ramp200dem_wgs_v2.tif";
-  GeoReference georef;
-  if (!read_georeference(georef, demPath))
-    vw_throw( ArgumentErr() << "Missing georef.\n");
+// Exercise the mean_gsd (scale) and quick-mode overload of camera_bbox on the
+// shipped DEM, asserting self-consistency rather than hardcoded reference
+// values. The active CameraBBoxDEM above covers the no-scale overload.
+TEST_F(CameraBBoxTest, CameraBBoxDEMScaleAndQuick) {
+  GeoReference dem_georef;
+  read_georeference(dem_georef, "tinyDemAN.tif");
 
+  float mean_gsd_full = -1.0;
+  BBox2 bbox_full = camera_bbox(DEM, dem_georef, dem_georef,
+                                pinhole_camera, 5616, 3744,
+                                mean_gsd_full, false);
 
-  float dem_nodata_val = -std::numeric_limits<float>::max(); 
-  vw::read_nodata_val(demPath, dem_nodata_val);
-  ImageViewRef< PixelMask<double> > dem = create_mask
-    (channel_cast<double>(DiskImageView<float>(demPath)), dem_nodata_val);
+  // The footprint must be a non-empty box with a positive ground sample dist.
+  EXPECT_FALSE(bbox_full.empty());
+  EXPECT_GT(bbox_full.width(),  0.0);
+  EXPECT_GT(bbox_full.height(), 0.0);
+  EXPECT_GT(mean_gsd_full, 0.0);
 
-  boost::shared_ptr<vw::CameraModel> camPtr(new PinholeModel("/home/smcmich1/data/icebridge_bulk/AN_20111114/nav_camera/DMS_20111114_164409_04413.tsai_M1.tsai"));
+  // It must lie within the DEM's own projected extent, since camera_bbox only
+  // reports ground the rays actually intersect.
+  BBox2 dem_pix_box(Vector2(0, 0), Vector2(DEM.cols(), DEM.rows()));
+  BBox2 dem_point_box = dem_georef.pixel_to_point_bbox(dem_pix_box);
+  dem_point_box.expand(mean_gsd_full); // one-cell generosity at the edges
+  EXPECT_TRUE(dem_point_box.contains(bbox_full));
 
-  float res;
-  BBox2 image_bbox = camera_bbox( dem, georef, georef, camPtr, 5616, 3744, res, false );
-  std::cout << image_bbox << std::endl;
-  EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(87,0), 2 );
+  // Quick mode samples only the image border. Its box must overlap the full one.
+  float mean_gsd_quick = -1.0;
+  BBox2 bbox_quick = camera_bbox(DEM, dem_georef, dem_georef,
+                                 pinhole_camera, 5616, 3744,
+                                 mean_gsd_quick, true);
+  EXPECT_FALSE(bbox_quick.empty());
+  EXPECT_GT(mean_gsd_quick, 0.0);
+  BBox2 overlap = bbox_full;
+  overlap.crop(bbox_quick);
+  EXPECT_FALSE(overlap.empty());
 }
-*/
 
 #endif
