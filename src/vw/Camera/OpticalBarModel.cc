@@ -208,15 +208,11 @@ void OpticalBarModel::compute_scan_rate() {
 // Return time at the given pixel. In the latest approach the time at last row is 1.
 double OpticalBarModel::pixel_to_time_delta(Vector2 const& pix) const {
 
-  // No testcase exists with right-to-left scan and velocity vector modeling.
-  // Will need to change how m_final_pose is handled likely in this case.
-  if (!m_scan_left_to_right && m_have_velocity_vec) 
-    vw::vw_throw(ArgumentErr() 
-             << "OpticalBarModel: Right-to-left scan mode was not tested with "
-             << "velocity vector modeling.\n");
-    
-  // Since the camera sweeps a scan through columns, use that to
-  //  determine the fraction of the way it is through the image.
+  // The scan fraction dt runs from the first-scanned edge, so the initial
+  // position and pose (iR) are the sweep start and final_pose the sweep end,
+  // for either scan direction. The model is self-consistent in both cases.
+  // Since the camera sweeps a scan through columns, use that to determine the
+  // fraction of the way it is through the image.
   const int max_col = m_image_size[0]-1;
   double scan_fraction = 0;
   if (m_scan_left_to_right)
