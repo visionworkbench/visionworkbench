@@ -205,7 +205,7 @@ void InterestPointMatcher<MetricT>::operator()
   if (!quiet)
     progress_callback.report_progress(0);
 
-  BOOST_FOREACH(InterestPoint ip, ip1) {
+  for (InterestPoint ip : ip1) {
     if (progress_callback.abort_requested())
       vw_throw(Aborted() << "Aborted by ProgressCallback");
 
@@ -274,7 +274,7 @@ void InterestPointMatcher<MetricT>::operator()
 
   // Loop through ip1 and index_list
   auto index_list_iter = index_list.begin();
-  BOOST_FOREACH(InterestPoint ip, ip1) {
+  for (InterestPoint ip : ip1) {
 
     // Get and check the match index
     auto ip2_iter = ip2.begin();

@@ -20,7 +20,6 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/CAHVModel.h>
 #include <fstream>
-#include <boost/foreach.hpp>
 
 using namespace vw;
 
@@ -482,10 +481,10 @@ CAHVModel vw::linearize_camera(CAHVORModel const& camera_model,
   vpts[4] = Vector2((cahvor_image_size[0]-1)/2,cahvor_image_size[1]-1);
   vpts[5] = cahvor_image_size - Vector2(1,1);
 
-  BOOST_FOREACH(Vector2 const& local, vpts) {
+  for (Vector2 const& local : vpts) {
     output_camera.A += camera_model.pixel_to_vector(local);
   }
-  BOOST_FOREACH(Vector2 const& local, hpts) {
+  for (Vector2 const& local : hpts) {
     output_camera.A += camera_model.pixel_to_vector(local);
   }
   output_camera.A = normalize(output_camera.A);
@@ -504,7 +503,7 @@ CAHVModel vw::linearize_camera(CAHVORModel const& camera_model,
 
   // Horizontal
   double hmin = 1, hmax = -1;
-  BOOST_FOREACH(Vector2 const& loop, hpts) {
+  for (Vector2 const& loop : hpts) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
                                   normalize(u3 - dot_prod(dn, u3) * dn)));
@@ -514,7 +513,7 @@ CAHVModel vw::linearize_camera(CAHVORModel const& camera_model,
 
   // Vertical
   double vmin = 1, vmax = -1;
-  BOOST_FOREACH(Vector2 const& loop, vpts) {
+  for (Vector2 const& loop : vpts) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
                                   normalize(u3 - dot_prod(rt, u3) * rt)));

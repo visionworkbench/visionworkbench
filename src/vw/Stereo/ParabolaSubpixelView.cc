@@ -23,7 +23,6 @@
 #include <vw/Stereo/Correlation.h>
 #include <vw/Stereo/ParabolaSubpixelView.h>
 
-#include <boost/foreach.hpp>
 
 // TODO(oalexan1): The integer disparity is in fact float. Convert all to float.
 namespace vw {
@@ -74,7 +73,7 @@ namespace vw {
     subdivide_regions(integer_disparity,
                       bounding_box(integer_disparity),
                       big_zones, m_kernel_size);
-    BOOST_FOREACH(SearchParam& zone, big_zones) {
+    for (SearchParam& zone : big_zones) {
 
       double len1 = zone.image_region().area();
       double len2 = zone.disparity_range().area();
@@ -101,7 +100,7 @@ namespace vw {
     } // End loop through initial zones
       
       // Loop through the final zones
-    BOOST_FOREACH(SearchParam& zone, zones) {
+    for (SearchParam& zone : zones) {
         
       zone.disparity_range().expand(1);
         

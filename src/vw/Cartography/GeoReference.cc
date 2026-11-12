@@ -31,7 +31,6 @@
 
 // Boost
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 
 #include <set>
 
@@ -764,7 +763,7 @@ void GeoReference::set_wkt(std::string const& wkt) {
   std::vector<std::string> input_strings, output_strings, datum_strings;
   std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
   boost::split(input_strings, trimmed_proj4_str, boost::is_any_of(" "));
-  BOOST_FOREACH(const std::string& key, input_strings) {
+  for (const std::string& key : input_strings) {
     // Pick out the parts of the projection string that pertain to
     // map projections.  We essentially want to eliminate all of
     // the strings that have to do with the datum, since those are

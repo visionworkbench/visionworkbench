@@ -27,7 +27,6 @@
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/InterestPoint.h>
 #include <vector>
-#include <boost/foreach.hpp>
 
 #ifdef VW_HAVE_PKG_FLANN
 #include <vw/Math/FLANNTree.h>

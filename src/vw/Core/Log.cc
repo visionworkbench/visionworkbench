@@ -35,7 +35,6 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/foreach.hpp>
 
 #ifdef WIN32
 #define stat _stat
@@ -405,7 +404,7 @@ bool vw::Log::is_enabled(int log_level,
   // Early exit option before iterating through m_logs
   if (m_console_log->rule_set()(log_level, log_namespace))
     return true;
-  BOOST_FOREACH(boost::shared_ptr<LogInstance> log_instance, m_logs) {
+  for (boost::shared_ptr<LogInstance> log_instance : m_logs) {
     if (log_instance->rule_set()(log_level, log_namespace))
       return true;
   }

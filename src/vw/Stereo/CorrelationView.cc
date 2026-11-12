@@ -27,7 +27,6 @@
 #include <vw/FileIO/DiskImageIO.h>
 #include <vw/Stereo/Correlation.h>
 
-#include <boost/foreach.hpp>
 #include <ctime>
 #include <vw/Image/Manipulation.h>
 
@@ -604,7 +603,7 @@ namespace vw {
         //   a bunch of tiles because we spent all our time on a slow one.
         // Sort the zones, smallest to largest.
         std::sort(zones.begin(), zones.end(), SearchParamLessThan()); 
-        BOOST_FOREACH(SearchParam const& zone, zones) {
+        for (SearchParam const& zone : zones) {
 
           // The input zone is in the normal pixel coordinates for this level.
           // We need to convert it to a bbox in the expanded base of support image at this level.
@@ -779,7 +778,7 @@ namespace vw {
         BBox2i default_disparity_range = BBox2i(0,0,m_search_region.width(),
                                                 m_search_region.height());
         
-        BOOST_FOREACH(SearchParam& zone, zones) {
+        for (SearchParam& zone : zones) {
         
           zone.image_region() *= 2;
           zone.image_region().crop(next_zone_size);
@@ -812,7 +811,7 @@ namespace vw {
           
         if (!use_sgm) { // SGM does not use zones
           std::ofstream f((ostr.str() + "_zone.txt").c_str());
-          BOOST_FOREACH(SearchParam& zone, zones) {
+          for (SearchParam& zone : zones) {
             f << zone.image_region() << " " << zone.disparity_range() << "\n";
           }
           f.close();

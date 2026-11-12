@@ -47,7 +47,6 @@
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/foreach.hpp>
 
 #include <cstdlib>
 #include <vw/Image/Manipulation.h>

@@ -18,7 +18,6 @@
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/Core/Log.h>
 
-#include <boost/foreach.hpp>
 
 namespace vw {
 
@@ -98,7 +97,7 @@ namespace vw {
 
   void ControlNetwork::add_control_points(std::vector<ControlPoint> const& points) {
     if (m_type != ControlNetwork::ImageToGround) {
-      BOOST_FOREACH(ControlPoint const& cp, points)
+      for (ControlPoint const& cp : points)
         if (cp.type() == ControlPoint::GroundControlPoint) {
           m_type = ControlNetwork::ImageToGround;
           break;
@@ -198,7 +197,7 @@ namespace vw {
   std::ostream& operator<<(std::ostream& os,
                             ControlPoint const& point) {
     os << "[Control Point: " << point.position() << "] ";
-    BOOST_FOREACH(ControlMeasure const& cm, point)
+    for (ControlMeasure const& cm : point)
       os << cm << " ";
     os << "\n";
     return os;
@@ -207,7 +206,7 @@ namespace vw {
   std::ostream& operator<<(std::ostream& os,
                             ControlNetwork const& cnet) {
     os << "Control Network: " << cnet.size() << " points.\n";
-    BOOST_FOREACH(ControlPoint const& cp, cnet)
+    for (ControlPoint const& cp : cnet)
       os << "\t" << cp;
     os << "\n";
     return os;

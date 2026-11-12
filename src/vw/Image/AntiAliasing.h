@@ -22,7 +22,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/PerPixelAccessorViews.h>
-#include <boost/foreach.hpp>
 
 namespace vw {
 
@@ -59,7 +58,7 @@ namespace vw {
       // Fancy rasterize in section of m_tile_size
       std::vector<BBox2i> subregions = subdivide_bbox(bbox, m_tile_size.x(), m_tile_size.y());
       ImageView<pixel_type> output(bbox.width(), bbox.height());
-      BOOST_FOREACH(BBox2i const& sub, subregions) {
+      for (BBox2i const& sub : subregions) {
         crop(output, sub - bbox.min()) = crop(m_child, sub);
       }
       return crop(output, -bbox.min().x(), -bbox.min().y(), cols(), rows());

@@ -29,7 +29,6 @@
 
 #include <vw/Math/Matrix.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
-#include <boost/foreach.hpp>
 #include <list>
 #include <map>
 
@@ -64,7 +63,7 @@ namespace vw {
     // Connects this feature to another
     void connection(w_ptr con, bool check=true) {
       if (check) {
-        BOOST_FOREACH(w_ptr connection, m_connections)
+        for (w_ptr connection : m_connections)
           if (connection.lock() == con.lock())
             return;
       }
@@ -74,9 +73,9 @@ namespace vw {
     // List all features connected to this one. This will traverse all
     // connections and append them to the provided list.
     void list_connections(std::list<w_ptr>& listing) {
-      BOOST_FOREACH(w_ptr connection, m_connections) {
+      for (w_ptr connection : m_connections) {
         bool contains = false;
-        BOOST_FOREACH(w_ptr pconnection, listing)
+        for (w_ptr pconnection : listing)
           if (pconnection.lock() == connection.lock()) {
             contains = true;
             break;
@@ -91,7 +90,7 @@ namespace vw {
 
     void build_map() {
       m_map.clear();
-      BOOST_FOREACH(w_ptr connection, m_connections)
+      for (w_ptr connection : m_connections)
         m_map[connection.lock()->m_camera_id] = connection;
     }
 

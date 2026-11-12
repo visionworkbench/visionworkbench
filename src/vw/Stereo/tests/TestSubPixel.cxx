@@ -28,7 +28,6 @@
 #include <vw/Stereo/ParabolaSubpixelView.h>
 #include <vw/Stereo/PhaseSubpixelView.h>
 #include <vw/Stereo/SubpixelView.h>
-#include <boost/foreach.hpp>
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
@@ -108,7 +107,7 @@ TEST(ParabolaSubpixel, NullTest) {
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
   EXPECT_EQ(fdisparity.rows(), 5);
-  BOOST_FOREACH(PixelMask<Vector2f> const& fdisp, fdisparity) {
+  for (PixelMask<Vector2f> const& fdisp : fdisparity) {
     EXPECT_TRUE(is_valid(fdisp));
     EXPECT_VECTOR_NEAR(fdisp.child(), Vector2f(1,1), 0.1);
   }
@@ -121,7 +120,7 @@ TEST(ParabolaSubpixel, NullTest) {
                       Vector2i(3,3));
   EXPECT_EQ(fdisparity.cols(), 5);
   EXPECT_EQ(fdisparity.rows(), 5);
-  BOOST_FOREACH(PixelMask<Vector2f> const& fdisp, fdisparity) {
+  for (PixelMask<Vector2f> const& fdisp : fdisparity) {
     EXPECT_TRUE(is_valid(fdisp));
     EXPECT_VECTOR_NEAR(fdisp.child(), Vector2f(1,1), 0.1);
   }

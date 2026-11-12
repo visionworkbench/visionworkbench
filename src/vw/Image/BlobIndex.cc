@@ -26,7 +26,6 @@
 
 #include <math.h>
 
-#include <boost/foreach.hpp>
 
 namespace vw {
 
@@ -437,7 +436,7 @@ public:
       // maximium allowed area. Early exit condition.
       if (m_max_area > 0) {
         int32 total_size = 0;
-        BOOST_FOREACH(uint32 src_idx, absorbtion_list[i]) {
+        for (uint32 src_idx : absorbtion_list[i]) {
           total_size += m_src_c_blob[src_idx].size();
           if (total_size > m_max_area)
             break;
@@ -448,7 +447,7 @@ public:
 
       // 2: Start absorbing!
       BlobCompressed current_blob;
-      BOOST_FOREACH(uint32 src_idx, absorbtion_list[i]) {
+      for (uint32 src_idx : absorbtion_list[i]) {
         current_blob.absorb(m_src_c_blob[src_idx]);
       }
 

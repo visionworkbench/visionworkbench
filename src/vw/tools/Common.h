@@ -114,7 +114,7 @@ class Tristate {
     }                                                                   \
     static std::string list(const std::string& delim = ", ") {          \
       std::string ret;                                                  \
-      BOOST_FOREACH(const Value& v, elems) {                            \
+      for (const Value& v : elems) {                                    \
         if (v != elems[0])                                              \
           ret += delim;                                                 \
         ret += name(v).string();                                        \

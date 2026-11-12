@@ -19,7 +19,6 @@
 #include <gtest/gtest_VW.h>
 
 #include <boost/random.hpp>
-#include <boost/foreach.hpp>
 
 #include <vw/Math/RANSAC.h>
 #include <vw/Math/EulerAngles.h>
@@ -158,7 +157,7 @@ protected:
     // - Project each hard coded world point to a pixel
     measure1.clear(); 
     measure2.clear();
-    BOOST_FOREACH(Vector3 const& point, world_points) {
+    for (Vector3 const& point : world_points) {
       measure1.push_back(pinhole1.point_to_pixel(point));
       measure2.push_back(pinhole2.point_to_pixel(point));
     }

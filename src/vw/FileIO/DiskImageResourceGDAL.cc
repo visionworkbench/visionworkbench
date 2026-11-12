@@ -42,7 +42,6 @@
 #include <list>
 #include <vector>
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/foreach.hpp>
 
 #include <gdal.h>
 #include <gdal_priv.h>
@@ -178,7 +177,7 @@ namespace vw {
     // argument specified by the user.
     std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
 
-    BOOST_FOREACH(std::string const& i, gdal_format_string) {
+    for (std::string const& i : gdal_format_string) {
       VW_OUT(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << i << std::endl;
       driver = GetGDALDriverManager()->GetDriverByName(i.c_str());
       if(driver == NULL)
@@ -439,7 +438,7 @@ namespace vw {
       options = CSLSetNameValue(options, "BLOCKYSIZE", y_str.str().c_str());
     }
 
-    BOOST_FOREACH(Options::value_type const& i, m_options)
+    for (Options::value_type const& i : m_options)
       options = CSLSetNameValue(options, i.first.c_str(), i.second.c_str());
 
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(m_format.channel_type);

@@ -37,7 +37,6 @@
 #include <vw/Image/BlobIndex.h>
 #include <vw/Image/SparseView.h>
 
-#include <boost/foreach.hpp>
 #include <vw/Image/Manipulation.h>
 
 namespace vw {
@@ -112,7 +111,7 @@ namespace vw {
           // Iterate and apply convolution separately to each channel
           typedef typename CompoundChannelCast<pixel_type,float>::type AccumulatorType;
           for (int d = 0; d < 10*max_distance*max_distance; d++)
-            BOOST_FOREACH(Vector2i const& l, processing_order) {
+            for (Vector2i const& l : processing_order) {
               typename ImageView<pixel_type>::pixel_accessor pit =
                 cropped_copy.origin();
               pit.advance(l.x() - 1, l.y() - 1);

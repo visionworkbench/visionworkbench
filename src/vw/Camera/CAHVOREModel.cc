@@ -20,7 +20,6 @@
 #include <vw/Camera/CAHVModel.h>
 #include <vw/Camera/CAHVOREModel.h>
 #include <fstream>
-#include <boost/foreach.hpp>
 
 using namespace vw;
 
@@ -340,14 +339,14 @@ CAHVModel vw::linearize_camera(CAHVOREModel const& camera_model,
 
   // Find horizontal and vertical fields of view
   double hmin = 1, hmax = -1;
-  BOOST_FOREACH(Vector2 const& loop, hpts) {
+  for (Vector2 const& loop : hpts) {
     const Vector3 u3 = camera_model.pixel_to_vector(loop);
     double cs = dot_prod(cahv_model.A, normalize(u3 - dot_prod(dn, u3) * dn));
     if (hmin > cs) hmin = cs;
     if (hmax < cs) hmax = cs;
   }
   double vmin = 1, vmax = -1;
-  BOOST_FOREACH(Vector2 const& loop, vpts) {
+  for (Vector2 const& loop : vpts) {
     const Vector3 u3 = camera_model.pixel_to_vector(loop);
     double cs = dot_prod(cahv_model.A,normalize(u3 - dot_prod(rt, u3)*rt));
     if (vmin > cs) vmin = cs;

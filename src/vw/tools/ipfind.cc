@@ -51,7 +51,6 @@ using namespace vw;
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/foreach.hpp>
 #include <fstream>
 namespace po = boost::program_options;
 
@@ -392,7 +391,7 @@ int main(int argc, char** argv) {
 
     // Delete the orientation value if requested
     if (opt.no_orientation) {
-      BOOST_FOREACH(InterestPoint& i, ip) {
+      for (InterestPoint& i : ip) {
         i.orientation = 0;
       }
     }

@@ -16,7 +16,6 @@
 // __END_LICENSE__
 
 #include <vw/BundleAdjustment/CameraRelation.h>
-#include <boost/foreach.hpp>
 
 namespace vw {
 
@@ -77,7 +76,7 @@ namespace vw {
 
     for (size_t point_id = 0; point_id < cnet.size(); point_id++) {
       std::vector<f_ptr> features_added;
-      BOOST_FOREACH(ControlMeasure const& cm, cnet[point_id]) {
+      for (ControlMeasure const& cm : cnet[point_id]) {
 
         // Ensure nodes exist for all encountered indices. The cnet
         // is sometimes created without populating the image list.

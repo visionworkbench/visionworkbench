@@ -49,7 +49,6 @@
 
 using namespace vw;
 
-#include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -439,7 +438,7 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
-      BOOST_FOREACH(size_t& index, indices) {
+      for (size_t& index : indices) {
         final_ip1.push_back(matched_ip1[index]);
         final_ip2.push_back(matched_ip2[index]);
       }
