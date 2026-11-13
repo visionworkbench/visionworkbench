@@ -66,9 +66,9 @@ TEST(IsisSpecialPixels, ValidRange) {
   EXPECT_EQ(got, want);
   EXPECT_EQ(mx, DBL_MAX);
 
-  // The INT32 range mirrors DiskImageResourceIsis exactly (the -8388614 quirk).
+  // INT32 uses the true ISIS SignedInteger valid minimum.
   isisValidRange(VW_CHANNEL_INT32, mn, mx);
-  EXPECT_EQ(mn, -8388614.0);
+  EXPECT_EQ(mn, -2147483632.0);
   EXPECT_EQ(mx,  2147483647.0);
 
   isisValidRange(VW_CHANNEL_INT16, mn, mx);

@@ -64,7 +64,7 @@ void isisValidRange(ChannelTypeEnum channel_type,
     case VW_CHANNEL_FLOAT32:
       valid_min = isis::VALID_MIN4;   valid_max = isis::VALID_MAX4;   break;
     case VW_CHANNEL_INT32:
-      valid_min = isis::IVALID_MIN4;  valid_max = isis::IVALID_MAX4;  break;
+      valid_min = isis::VALID_MINI4;  valid_max = isis::VALID_MAXI4;  break;
     case VW_CHANNEL_INT16:
       valid_min = isis::VALID_MIN2;   valid_max = isis::VALID_MAX2;   break;
     case VW_CHANNEL_UINT16:

@@ -77,12 +77,6 @@ namespace isis {
   inline const float HIGH_REPR_SAT4  = floatFromBits(0xFF7FFFFFu);
   inline const float VALID_MAX4      = FLT_MAX;
 
-  // For the INT32 (SignedInteger) valid range, ASP's DiskImageResourceIsis uses
-  // IVALID_MIN4 (the int reinterpretation of the float VALID_MIN4 bit pattern,
-  // equal to -8388614) and a literal maximum. These mirror that behavior.
-  constexpr int IVALID_MIN4 = static_cast<int>(0xFF7FFFFA);
-  constexpr int IVALID_MAX4 = 2147483647;
-
   // 4-byte signed sentinels (the true ISIS SignedInteger specials).
   constexpr int VALID_MINI4      = -2147483632;
   constexpr int NULLI4           = -2147483648;
