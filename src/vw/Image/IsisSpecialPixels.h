@@ -18,15 +18,10 @@
 /// \file IsisSpecialPixels.h
 ///
 /// This file encodes the ISIS special-pixel sentinel values, which are a fixed
-/// IEEE bit-pattern and integer-sentinel file-format convention. It does NOT
-/// include or link the ISIS library. It is low-level pixel-type logic: given a
-/// pixel data type and a pixel buffer, it masks the special pixels. The
-/// sentinel values are transcribed from the ISIS SpecialPixel.h spec, which is
-/// the source of truth.
-///
-/// An ISIS cube read through GDAL has only its Null special mapped to the band
-/// nodata. The other four specials (Lrs, Lis, His, Hrs) leak through as raw
-/// values, so a valid-range mask keyed on the data type is still needed.
+/// IEEE bit-pattern and integer-sentinel file-format convention. 
+
+/// This does not include or link the ISIS library. It is low-level pixel-type
+/// logic.
 
 #ifndef __VW_IMAGE_ISISSPECIALPIXELS_H__
 #define __VW_IMAGE_ISISSPECIALPIXELS_H__
