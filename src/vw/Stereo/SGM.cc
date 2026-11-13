@@ -20,6 +20,7 @@
 
 #include <queue>
 #include <cmath>
+#include <atomic>
 #include <vw/Stereo/SGM.h>
 #include <vw/Stereo/SGMAssist.h>
 #include <vw/Core/Debugging.h>
@@ -30,6 +31,23 @@
 #include <vw/Image/ImageThresh.h>
 
 namespace vw {
+
+// Count SGM tiles and how many came back empty (no valid search ranges, from a
+// too-small mask, a degenerate search range, or the memory limit). The caller
+// resets these before a correlation run and reports them after, so an otherwise
+// successful run that silently emptied many tiles is visible.
+namespace {
+  std::atomic<long long> g_sgm_total_tiles(0);
+  std::atomic<long long> g_sgm_empty_tiles(0);
+}
+void reset_sgm_tile_counts() {
+  g_sgm_total_tiles = 0;
+  g_sgm_empty_tiles = 0;
+}
+void get_sgm_tile_counts(long long& total, long long& empty) {
+  total = g_sgm_total_tiles.load();
+  empty = g_sgm_empty_tiles.load();
+}
 
 void SemiGlobalMatcher::set_parameters(CostFunctionType cost_type,
                                        bool use_mgm,
@@ -219,9 +237,14 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     if ((right_image_mask->cols() >= m_disp_bound_image.cols()+m_num_disp_x-1) &&
          (right_image_mask->rows() >= m_disp_bound_image.rows()+m_num_disp_y-1))
       right_mask_valid = true;
-    else
-      vw_throw(LogicErr()
-               << "Right mask size is not large enough to support search range.\n");
+    else {
+      // The right mask cannot cover the output plus the search range (a
+      // degenerate or edge tile, such as from an empty seed). Produce an empty
+      // tile rather than fail the whole run.
+      vw_out(WarningMessage)
+        << "Right mask too small for the search range. Will produce an empty tile.\n";
+      return false;
+    }
   }
 
   // The low-res disparity image must be half-resolution.
@@ -446,7 +469,7 @@ bool SemiGlobalMatcher::populate_disp_bound_image(ImageView<uint8> const* left_i
     } catch(...) { // Used too much memory!
       vw_out(InfoMessage, "stereo")
         << "Uses too much memory with conservation level " << conserve_level << ".\n"
-        << "Consider increasing --sgm-memory-limit-mb and/or decreasing the "
+        << "Consider increasing --corr-memory-limit-mb and/or decreasing the "
         << "number of threads.\n";
       result = false;
     }
@@ -1228,6 +1251,9 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   // Compute safe bounds to search through given the disparity range and kernel size.
   // - Using inclusive bounds here.
 
+  // Count every tile. The empty ones are counted at the invalid return below.
+  g_sgm_total_tiles.fetch_add(1);
+
   const int half_kernel_size = (m_kernel_size-1) / 2;
 
   // Figure out the maximum possible image extent that we can compute stereo for
@@ -1260,9 +1286,13 @@ SemiGlobalMatcher::semi_global_matching_func(ImageView<uint8> const& left_image,
   populate_constant_disp_bound_image();
 
   if (!populate_disp_bound_image(left_image_mask, right_image_mask, prev_disparity)) {
-    vw_out(WarningMessage, "stereo")
-      << "Unable to compute valid search ranges for SGM input. Increase --corr-memory-mb.\n";
-    // If the inputs are invalid, return a default disparity image.
+    // No valid search ranges for this tile. This is a small mask, a degenerate
+    // search range, or the --corr-memory-limit-mb limit. Empty the tile and keep
+    // going, rather than fail the pair. The empty count is reported by the caller.
+    g_sgm_empty_tiles.fetch_add(1);
+    vw_out(WarningMessage)
+      << "Could not compute valid search ranges for a tile. If many "
+      << "empty tiles are produced, raise --corr-memory-limit-mb.\n";
     DisparityImage disparity(m_num_output_cols, m_num_output_rows);
     return invalidate_mask(disparity);
   }

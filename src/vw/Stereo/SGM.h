@@ -353,6 +353,12 @@ private: // Functions
 
 }; // end class SemiGlobalMatcher
 
+/// Count of SGM tiles and how many came back empty (no valid search ranges).
+/// Reset before a correlation run and read after, to report silently emptied
+/// tiles (from a small mask, a degenerate search range, or the memory limit).
+void reset_sgm_tile_counts();
+void get_sgm_tile_counts(long long& total, long long& empty);
+
 /// Wrapper function for SGM that handles ROIs.
 /// - This call is set up to be easily compatible with our existing calls in the
 ///   PyramidCorrelationView class.
