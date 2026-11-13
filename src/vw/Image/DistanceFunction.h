@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2009-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -39,7 +39,19 @@ namespace vw {
   // - It is assumed that the output image fits fully in memory.
   void bounded_dist(ImageViewRef<int> image, double max_dist,
                     ImageView<double> & dist);
-  
+
+  // Clamped signed distance to the boundary between a positive (lit) region and
+  // its complement (shadow). The inputs are the grassfire distances into each
+  // region. The result is positive in the lit region (clamped at
+  // lit_blend_length), negative in the shadow region (clamped at
+  // shadow_blend_length), and the boundary is where both inputs are no more
+  // than 1 in value.
+  ImageView<double> clamped_blend_dist(ImageView<float> const& lit_grass_dist,
+                                       ImageView<float> const& shadow_grass_dist,
+                                       double lit_blend_length,
+                                       double shadow_blend_length);
+
+
   // Find the signed Euclidean distance function to boundary of invalid
   // pixels. Invalid pixels neighboring valid pixels have a distance of
   // 0. The distance is negative for other invalid pixels, and is
