@@ -587,10 +587,10 @@ Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera
                                 Vector3 xyz_guess,
                                 double height_guess) {
 
-  // Must estimate the height guess if not provided, as otherwise the results
-  // can be inaccurate.
-  if (std::isnan(height_guess))
-    height_guess = vw::demHeightGuess(dem_image);
+  // The caller must pass a height guess computed once with demHeightGuess,
+  // outside any per-point loop.
+  VW_ASSERT(!std::isnan(height_guess),
+            ArgumentErr() << "camera_pixel_to_dem_xyz: height_guess must be set.");
 
   try {
     has_intersection = false;

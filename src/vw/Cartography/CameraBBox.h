@@ -56,15 +56,16 @@ namespace vw {
   // hole in the DEM where there is no data, we return no-intersection
   // or intersection with the datum, depending on whether the variable
   // treat_nodata_as_zero is false or true.
+  // height_guess, height_error_tol, and xyz_guess are required. Compute the
+  // height guess once with demHeightGuess, outside any per-point loop.
   Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                   vw::ImageViewRef<vw::PixelMask<float>> const& dem_image,
                                   GeoReference const& georef,
                                   bool treat_nodata_as_zero,
                                   bool & has_intersection,
-                                  double height_error_tol = 1e-1,  // secant convergence
-                                  Vector3 xyz_guess       = Vector3(),
-                                  double height_guess     =
-                                  std::numeric_limits<double>::quiet_NaN());
+                                  double height_error_tol,  // secant convergence
+                                  Vector3 xyz_guess,
+                                  double height_guess);
 
   /// Compute the bounding box in points (georeference space) that is
   /// defined by georef. Scale is MPP as georeference space is in meters.

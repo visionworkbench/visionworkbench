@@ -95,7 +95,10 @@ TEST_F(CameraBBoxTest, CameraPixelToXYZ) {
                                         pinhole_camera->pixel_to_vector(input_pixel),
                                         DEM, dem_georef,
                                         treat_nodata_as_zero,
-                                        has_intersection
+                                        has_intersection,
+                                        1e-1,          // height_error_tol
+                                        Vector3(),     // xyz_guess
+                                        demHeightGuess(DEM) // height_guess
                                         );
 
   // Verification
