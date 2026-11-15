@@ -154,9 +154,7 @@ find_external_library(LZ4     ${ASP_DEPS_DIR} "" "lz4"       REQUIRED)
 find_external_library(JPEG    ${ASP_DEPS_DIR} "" "jpeg"      REQUIRED)
 find_external_library(PNG     ${ASP_DEPS_DIR} "" "png;png16" REQUIRED)
 find_external_library(TIFF    ${ASP_DEPS_DIR} "" "tiff"      REQUIRED)
-#find_external_library(GEOTIFF ${ASP_DEPS_DIR} "" "geotiff"   REQUIRED)
 find_external_library(Z       ${ASP_DEPS_DIR} "" "z"         REQUIRED)
-find_external_library(PROJ4   ${ASP_DEPS_DIR} "" "proj"      REQUIRED)
 find_external_library(GDAL    ${CUSTOM_BUILD_DIR} "" "gdal"  REQUIRED)
 
 # Use OpenCV's own CMake config so the include dir and the module
@@ -219,7 +217,7 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 # --- VW_FILEIO ------------------------------------------------------------
 get_all_source_files("FileIO" VW_FILEIO_SRC_FILES)
 get_all_source_files("FileIO/tests" VW_FILEIO_TEST_FILES)
-set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
+set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
@@ -231,7 +229,7 @@ set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
 set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera VwGeometry VwStereo
-    ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
+    ${GDAL_LIBRARIES}
     ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES})
 
 # --- VW_IMAGE ------------------------------------------------------------
