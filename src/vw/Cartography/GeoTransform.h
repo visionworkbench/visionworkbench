@@ -22,7 +22,6 @@
 #include <sstream>
 #include <string>
 
-#include <vw/Core/Thread.h>
 #include <vw/Math/Vector.h>
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
@@ -36,42 +35,26 @@ namespace vw {
   /// two GeoReference objects.
   /// - Use of this class is the ONLY safe method to convert coordinates between two
   ///   GeoReference objects that fully handles all variables.
-  /// - Be very careful using this class to convert between datums!  Not all datums will correctly convert.
-  ///   To be safe verify that your datums convert properly or use a dedicated tool such as 
-  ///   ASP's datum_convert to do the conversions.
+  /// - Coordinates pass between the two georefs through longitude and latitude,
+  ///   with no datum conversion. Use gdalwarp to change the datum of an image.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference  m_src_georef;
     GeoReference  m_dst_georef;
     BBox2         m_src_bbox, m_dst_bbox;
 
-    std::string m_src_datum_proj_str, m_dst_datum_proj_str;
-    
     bool          m_skip_map_projection;
-    bool          m_skip_datum_conversion;
-    mutable Mutex m_mutex; // Used to control access to the ProjContext objects
-
-    // TODO(oalexan1): These are not used for now as a datum conversion is not
-    // allowed. If that's ever allowed, need to add logic to free up these resources.
-    PJ_CONTEXT * m_pj_context;
-    PJ * m_pj_transform;
 
   public:
   
     /// Default constructor, does not generate a usable object.
-    GeoTransform(): m_skip_map_projection(true), m_skip_datum_conversion(true) {}
-
-    GeoTransform(GeoTransform const& other);
+    GeoTransform(): m_skip_map_projection(true) {}
 
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef,
                  BBox2 const& src_bbox = BBox2i(0, 0, 0, 0),
                  BBox2 const& dst_bbox = BBox2i(0, 0, 0, 0));
 
-    GeoTransform& operator=(GeoTransform const& other);
-
-    ~GeoTransform();
-    
     //---------------------------------------------------------------
     // These functions implement the Transform interface and allow
     //  this class to be passed in to functions expecting a Transform object.
@@ -106,19 +89,8 @@ namespace vw {
     /// Convert a point in the source to a pixel in the destination.
     Vector2 point_to_pixel(Vector2 const& v) const;
 
-    /// Converts lonlat coords, taking the datums into account.
-    /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
-    Vector2 lonlat_to_lonlat(Vector2 const& lonlat, bool forward=true) const;
-
-    /// Converts lonlatalt coords, taking the datums into account.
-    /// - The parameter 'forward' specifies whether we convert forward (true) or reverse (false).
-    Vector3 lonlatalt_to_lonlatalt(Vector3 const& lonlatalt, bool forward=true) const;
-
     /// Convert a point bounding box in the source to a point bounding box in the destination.
     BBox2 point_to_point_bbox(BBox2 const& pixel_bbox) const;
-
-    /// Convert a lonlat bounding box in the source to a lonlat bounding box in the destination.
-    BBox2 lonlat_to_lonlat_bbox(BBox2 const& pixel_bbox) const;
 
     /// Convert a pixel bounding box in the source to a point (projected coords)
     ///  bounding box in the destination.
