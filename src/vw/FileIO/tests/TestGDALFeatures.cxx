@@ -21,12 +21,10 @@
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <test/Helpers.h>
-#include <vw/vw_config.h>
 
 using namespace vw;
 using namespace vw::test;
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
 
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 
@@ -55,4 +53,3 @@ TEST(GDALFeatures, NoDataValue) {
   EXPECT_EQ(-1, r_rsrc.nodata_read());
 }
 
-#endif

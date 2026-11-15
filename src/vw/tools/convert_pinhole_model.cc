@@ -20,11 +20,6 @@
 ///   to a TsaiLensDistortion or BrownConradyDistortion with fast point-to-pixel performance.
 
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/Core/Exception.h>
 #include <vw/Image/ImageView.h>

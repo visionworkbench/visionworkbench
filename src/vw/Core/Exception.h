@@ -20,17 +20,6 @@
 ///
 /// Exception classes and related functions and macros.
 ///
-/// The Vision Workbench is intended in part to be used in flight
-/// systems, experimental multiprocessor systems, or other
-/// environments where exceptions may not be fully supported.  As a
-/// result, the use of exceptions within the Vision Workbench is
-/// tightly controlled.  In particular, the exception usage rules were
-/// designed to minimize the impact on platforms that do not support
-/// exceptions at all.  There is a standard Vision Workbench
-/// "exception" class hierarchy which is used to describe errors and
-/// can be used even on platforms that do not support the C++
-/// exception system.
-///
 /// The vw::Exception class serves as a base class for all VWB error
 /// types.  It is designed to make it easy to throw exceptions with
 /// meaningful error messages.  For example, this invocation:
@@ -53,75 +42,26 @@
 ///
 /// Note that in the example the exception was thrown by calling the
 /// vw_throw() function rather than by using the C++ throw statement.
-/// On platforms that do support C++ exceptions the default behavior
-/// for vw_throw() is to throw the exception in the usual way.
-/// However, the user can provide their own error-handling mechanism
-/// if they choose.  For example, the default behavior when exceptions
-/// are disabled is to print the error text to stderr and call
-/// abort().
-///
-/// In general the only allowed usage of exceptions within the Vision
-/// Workbench is throwing them using vw_throw().  In particular, try
-/// and catch blocks are generally prohibited, so exceptions can only
-/// be used to report fatal errors that the library is unable to
-/// recover from by itself.  Other uses of exceptions are allowed only
-/// under a few special circumstances.  If a part of the Vision
-/// Workbench depends on a third-party library that fundamentally
-/// relies on exceptions, then that part of the Vision Workbench may
-/// use exceptions as well.  However, in that case that entire portion
-/// of the Vision Workbench must be disabled when exceptions are not
-/// supported.  Similarly, if a part of the Vision Workbench that
-/// provides a high-level service cannot reasonably be written without
-/// the full use of exceptions, then this portion may also be disabled
-/// on platforms without exceptions.  In both of these cases it must
-/// be clearly documented that these features are not available on
-/// platforms that do not support exceptions.  Finally, it is legal to
-/// catch an exception within the library for the sole purpose of
-/// re-throwing an exception with a more informative data type or
-/// error message.  This purely cosmetic usage must be conditionally
-/// compiled like this:
-///  #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1) )
-/// Obviously this functionality will be disabled on platforms
-/// that do not support exceptions.
-///
-/// Exceptions are enabled or disabled based on the value of the
-/// VW_ENABLE_EXCEPTIONS macro defined in vw/config.h.  This value can be
-/// set by passing the command line options --enable-exeptions (the
-/// default) or --disable-exceptions to the configure script prior to
-/// buliding the Vision Workbench.  This option also sets an automake
-/// variable called ENABLE_EXCEPTIONS which may be used by the build
-/// system to conditionally compile entire source files.
-///
-/// In either case the default behavior of vw_throw() may be
-/// overridden by calling set_exception_handler(), passing it a
-/// pointer to a user-defined object derived from ExceptionHandler.
-/// The user specifies the error-handling behavior by overriding the
-/// abstract method handle().  When exceptions have not been disabled,
-/// the Exception class and its children define a virtual method
-/// default_throw() which the handler may call to have the exception
-/// throw itself in a type-aware manner.
+/// The default behavior of vw_throw() is to throw the exception in the
+/// usual way. It may be overridden by calling set_exception_handler(),
+/// passing it a pointer to a user-defined object derived from
+/// ExceptionHandler.
 ///
 #ifndef __VW_CORE_EXCEPTION_H__
 #define __VW_CORE_EXCEPTION_H__
 
 #include <vw/Core/Features.h>
-#include <vw/vw_config.h>
 
 #include <string>
 #include <sstream>
 #include <ostream>
 
-#if defined(VW_ENABLE_EXCEPTIONS)
 #include <exception>
-#define VW_IF_EXCEPTIONS(x) x
-#else
-#define VW_IF_EXCEPTIONS(x)
-#endif
 
 namespace vw {
 
   /// The core exception class.
-  struct Exception VW_IF_EXCEPTIONS(: public std::exception)
+  struct Exception: public std::exception
   {
 
     /// The default constructor generates exceptions with empty error
@@ -133,7 +73,7 @@ namespace vw {
 
     /// Copy Constructor
     Exception(Exception const& e) VW_NOTHROW
-      VW_IF_EXCEPTIONS(: std::exception(e)) {
+      : std::exception(e) {
       m_desc << e.m_desc.str();
     }
 
@@ -161,7 +101,7 @@ namespace vw {
     void set(std::string const& s) { m_desc.str(s); }
     void reset() { m_desc.str(""); }
 
-    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })
+    virtual void default_throw() const { throw *this; }
 
   protected:
       virtual std::ostringstream& stream() {return m_desc;}
@@ -217,7 +157,7 @@ namespace vw {
 
   #define VW_EXCEPTION_API(exception_type)                                     \
     virtual std::string name() const { return #exception_type; }               \
-    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })    \
+    virtual void default_throw() const { throw *this; }                      \
     template <class T>                                                         \
     exception_type& operator<<(T const& t) { stream() << t; return *this; }
 
@@ -262,11 +202,7 @@ namespace vw {
 
   /// Sets the application-wide exception handler.  Pass zero
   /// as an argument to reinstate the default handler.  The
-  /// default behavior is to throw the exception unless the
-  /// VW_ENABLE_EXCEPTIONS macro in vw/config.h was defined to 0
-  /// at build time, in which case the default behavior is to
-  /// print the error message at the ErrorMessage level and
-  /// to call abort().
+  /// default behavior is to throw the exception.
   void set_exception_handler(ExceptionHandler const* eh);
 
   /// Throws an exception via the Vision Workbench error

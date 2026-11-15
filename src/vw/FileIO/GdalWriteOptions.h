@@ -37,7 +37,6 @@
 #ifndef __VW_FILEIO_GDALWRITEOPTIONS_H__
 #define __VW_FILEIO_GDALWRITEOPTIONS_H__
 
-#include <vw/vw_config.h>
 #include <string>
 #include <map>
 

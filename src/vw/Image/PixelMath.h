@@ -23,7 +23,6 @@
 #ifndef __VW_IMAGE_PIXELMATH_H__
 #define __VW_IMAGE_PIXELMATH_H__
 
-#include <vw/vw_config.h>
 #include <boost/utility/enable_if.hpp>
 
 #include <vw/Core/Functors.h>
@@ -179,19 +178,12 @@ namespace vw {
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(hypot, vw::ArgValHypotFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(hypot, vw::ValArgHypotFunctor)
 
-#ifndef WIN32
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(acosh, vw::ArgAcoshFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(asinh, vw::ArgAsinhFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(atanh, vw::ArgAtanhFunctor)
-#ifdef VW_HAVE_EXP2
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(exp2, vw::ArgExp2Functor)
-#endif
-#ifdef VW_HAVE_LOG2
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(log2, vw::ArgLog2Functor)
-#endif
-#ifdef VW_HAVE_TGAMMA
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(tgamma,vw::ArgTgammaFunctor)
-#endif
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(expm1, vw::ArgExpm1Functor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(log1p, vw::ArgLog1pFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(cbrt, vw::ArgCbrtFunctor)
@@ -207,7 +199,6 @@ namespace vw {
   VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(fdim, vw::ArgArgFdimFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(fdim, vw::ArgValFdimFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(fdim, vw::ValArgFdimFunctor)
-#endif // WIN32
 
   VW_PIXEL_MATH_UNARY_FUNCTION(real, vw::ArgRealFunctor)
   VW_PIXEL_MATH_UNARY_FUNCTION(imag, vw::ArgImagFunctor)

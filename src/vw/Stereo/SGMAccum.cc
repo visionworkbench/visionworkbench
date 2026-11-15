@@ -25,7 +25,7 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Core/ThreadPool.h>
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(__SSE4_1__)
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
 #endif
@@ -34,7 +34,7 @@ namespace vw {
 
 Mutex MultiAccumRowBuffer::m_mutex;
 
-#if not defined(VW_ENABLE_SSE) || (VW_ENABLE_SSE==0)
+#if !defined(__SSE4_1__)
 // Note: local and output are the same size.
 // full_prior_buffer is always length m_num_disps and comes in initialized to a
 //  large flag value.  When the function quits the buffer must be returned to this state.
@@ -168,7 +168,7 @@ void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
 }
 #endif
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(__SSE4_1__)
 void compute_path_internals_sse(uint16* dL, uint16* d0, uint16* d1,
                                 uint16* d2, uint16* d3,
                                 uint16* d4, uint16* d5, uint16* d6,
@@ -245,7 +245,7 @@ void compute_path_internals(uint16* dL, uint16* d0, uint16* d1, uint16* d2, uint
   }
 } // end function compute_path_internals
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(__SSE4_1__)
 void SemiGlobalMatcher::evaluate_path(int col, int row, int col_p, int row_p,
                        AccumCostType* const prior,
                        AccumCostType*       full_prior_buffer,

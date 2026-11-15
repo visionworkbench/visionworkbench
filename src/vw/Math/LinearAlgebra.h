@@ -30,7 +30,6 @@
 #include <vector>
 #include <limits>
 
-#include <vw/vw_config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LapackExports.h>

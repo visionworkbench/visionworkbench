@@ -27,7 +27,6 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   set(FOUND_NAME "${name}_FOUND")
   set(LIB_NAME   "${name}_LIBRARIES")
   set(INC_NAME   "${name}_INCLUDE_DIR")
-  set(VW_NAME    "VW_HAVE_PKG_${name}") # TODO: Remove VW/ASP name!
 
   # Look in the given folder if it was provided, otherwise
   #  make halfhearted attempt to find the dependency.
@@ -67,7 +66,6 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   endif()
   # Check and display our results
   if(${FOUND_NAME})
-    set(${VW_NAME} 1)
     message(STATUS "Found include files for ${name} at ${${INC_NAME}}")
     include_directories("${${INC_NAME}}")
   else()
@@ -82,7 +80,6 @@ function(find_external_library name search_folder inc_subfolder libNameList requ
   set(${FOUND_NAME} ${${FOUND_NAME}} PARENT_SCOPE)
   set(${LIB_NAME}   ${${LIB_NAME}}   PARENT_SCOPE)
   set(${INC_NAME}   ${${INC_NAME}}   PARENT_SCOPE)
-  set(${VW_NAME}    ${${VW_NAME}}    PARENT_SCOPE)
   
   message(STATUS "Found libraries for ${name} at ${${LIB_NAME}}")
   

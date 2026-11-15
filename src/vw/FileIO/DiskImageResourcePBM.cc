@@ -21,11 +21,6 @@
 /// Provides support for the PBM file format.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>

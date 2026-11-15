@@ -21,12 +21,6 @@
 /// Provides support for the JPEG file format.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4005)
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>

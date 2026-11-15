@@ -16,24 +16,14 @@
 // __END_LICENSE__
 
 
-#include <vw/vw_config.h>
 #include <vw/FileIO/MemoryImageResource.h>
 
-#if defined(VW_HAVE_PKG_JPEG)
 #  include <vw/FileIO/MemoryImageResourceJPEG.h>
-#endif
 
-#if defined(VW_HAVE_PKG_PNG)
 #  include <vw/FileIO/MemoryImageResourcePNG.h>
-#endif
 
-#if defined(VW_HAVE_PKG_GDAL)
 #  include <vw/FileIO/MemoryImageResourceGDAL.h>
-#endif
 
-#if defined(VW_HAVE_PKG_OPENEXR)
-#  include <vw/FileIO/MemoryImageResourceOpenEXR.h>
-#endif
 
 // Turn off warnings about things we can't control
 #pragma GCC diagnostic push
@@ -66,25 +56,15 @@ namespace vw {
 
     std::string ctype = clean_type(type);
     
-#if defined(VW_HAVE_PKG_JPEG)
     if (ctype == "jpg" || ctype == "jpeg" || ctype == "image/jpeg")
       return new SrcMemoryImageResourceJPEG(data, len);
-#endif
     
-#if defined(VW_HAVE_PKG_PNG)
     if (ctype == "png" || ctype == "image/png")
       return new SrcMemoryImageResourcePNG(data, len);
-#endif
 
-#if defined(VW_HAVE_PKG_GDAL)
     if (ctype == "tif" || ctype == "tiff" || ctype == "image/tiff")
       return new SrcMemoryImageResourceGDAL(data, len);
-#endif
     
-#if defined(VW_HAVE_PKG_OPENEXR)
-    if (ctype == "exr" || ctype == "image/exr")
-      return new SrcMemoryImageResourceOpenEXR(data, len);
-#endif
     
     vw_throw(NoImplErr() << "Unsupported file format: " << type);
     return NULL;
@@ -94,25 +74,15 @@ namespace vw {
 
     std::string ctype = clean_type(type);
     
-#if defined(VW_HAVE_PKG_JPEG)
     if (ctype == "jpg" || ctype == "jpeg" || ctype == "image/jpeg")
       return new DstMemoryImageResourceJPEG(format);
-#endif
     
-#if defined(VW_HAVE_PKG_PNG)
     if (ctype == "png" || ctype == "image/png")
       return new DstMemoryImageResourcePNG(format);
-#endif
 
-#if defined(VW_HAVE_PKG_GDAL)
     if (ctype == "tif" || ctype == "tiff" || ctype == "image/tiff")
       return new DstMemoryImageResourceGDAL(format);
-#endif
     
-#if defined(VW_HAVE_PKG_OPENEXR)
-    if (ctype == "exr" || ctype == "image/exr")
-      return new DstMemoryImageResourceOpenEXR(format);
-#endif
     
     vw_throw(NoImplErr() << "Unsupported file format: " << type);
     return NULL;

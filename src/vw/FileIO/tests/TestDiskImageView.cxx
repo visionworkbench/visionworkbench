@@ -24,7 +24,6 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageIO.h>
 
-#include <vw/vw_config.h>
 #include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
@@ -35,7 +34,6 @@
 using namespace vw;
 using namespace vw::test;
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 TEST(DiskImageView, Construction) {
 
   // These contortions ensure that a copy of a DiskImageView will
@@ -61,9 +59,7 @@ TEST(DiskImageView, Construction) {
   EXPECT_EQ(image(1,1).g(), 0);
   EXPECT_EQ(image(1,1).b(), 255);
 }
-#endif
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1 &&((defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1) || (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1))
 TEST(DiskCacheImageView, Construction) {
   ImageView<PixelRGB<uint8> > orig_image;
   ASSERT_NO_THROW(read_image(orig_image, TEST_SRCDIR"/rgb2x2.png"));
@@ -100,7 +96,6 @@ TEST(DiskCacheImageView, Construction) {
   image = orig_image + PixelRGB<uint8>(20,20,20);
 
 }
-#endif
 
 // This DiskImageResource test is located in this file so that we can
 //  use DiskImageView to help us test it.

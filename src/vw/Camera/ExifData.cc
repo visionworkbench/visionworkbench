@@ -35,7 +35,6 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 #include <vw/Camera/ExifData.h>
-#include <vw/vw_config.h>
 
 #include <cstdio>
 #include <cstring>
@@ -45,15 +44,11 @@
 #include <vector>
 #include <utility>
 
-#if VW_HAVE_PKG_BOOST_IOSTREAMS
-#include <boost/iostreams/device/mapped_file.hpp>
-#else
 // For mmap() implementation of memory mapped file in read_tiff_ifd()
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#endif
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -368,14 +363,6 @@ bool vw::ExifData::read_tiff_ifd(const std::string &filename) {
   // Memory-map the file so we can use the same process_exif_dir function
   // unchanged for both jpg and tiff).
 
-#if VW_HAVE_PKG_BOOST_IOSTREAMS
-  boost::iostreams::mapped_file_source tiff_file(filename.c_str());
-  const unsigned char *buffer = (const unsigned char*) tiff_file.data();
-
-  int first_offset = process_tiff_header(buffer);
-
-  process_exif_dir(buffer + first_offset, buffer, tiff_file.size(), 0);
-#else
 // NOTE: this mmap() implementation has not been tested, but it
 // compiles. -- LJE
   int filedes = open(filename.c_str(), O_RDONLY);
@@ -391,7 +378,6 @@ bool vw::ExifData::read_tiff_ifd(const std::string &filename) {
   process_exif_dir(buffer + first_offset, buffer, length, 0);
 
   munmap((void *) buffer, length);
-#endif
 
   return true;
 }

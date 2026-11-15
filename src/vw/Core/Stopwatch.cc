@@ -20,11 +20,7 @@
 #include <vw/Core/System.h>
 
 // Time
-#ifdef WIN32
-#include <Windows.h>
-#else // For Linux
 #include <sys/time.h>
-#endif
 
 #include <iostream>
 #include <vector>
@@ -40,14 +36,6 @@ namespace vw {
 
   // Stopwatch
   uint64 Stopwatch::microtime(bool use_cpu_time) {
-#ifdef WIN32
-    if (use_cpu_time) {
-      // TODO: Find the analogous function for "clock()" for windows
-      throw NoImplErr();
-    } else {
-      return ((uint64)GetTickCount() * 1000);
-    }
-#else
     if (use_cpu_time) {
       // XXX: This provides no useful information. On any linux system after
       // 2003 or so, the clock rate is not a constant.
@@ -57,7 +45,6 @@ namespace vw {
       gettimeofday(&tv, NULL);
       return ((uint64)tv.tv_sec) * 1000000 + tv.tv_usec;
     }
-#endif
   }
 
   bool pair_string_stopwatch_elapsed_gt(const pair<string, Stopwatch> &a,

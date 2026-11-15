@@ -23,11 +23,6 @@
 /// FIXME Currently we do not support 1-bit images, though we could.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/Core/FundamentalTypes.h>

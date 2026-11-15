@@ -30,7 +30,7 @@
 
 #include <boost/smart_ptr/shared_ptr.hpp>
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(__SSE4_1__)
   #include <emmintrin.h>
   #include <smmintrin.h> // SSE4.1
 #endif

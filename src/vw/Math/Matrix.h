@@ -47,7 +47,6 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
-#include <vw/vw_config.h>
 
 #include <boost/utility/result_of.hpp>
 
@@ -418,17 +417,11 @@ namespace vw {
 
     /// Access an element
     value_type& operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return core_[row*ColsN+col];
     }
 
     /// Access an element
     value_type const& operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return core_[row*ColsN+col];
     }
 
@@ -550,17 +543,11 @@ namespace vw {
 
     /// Access an element
     value_type& operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return core_[row*m_cols+col];
     }
 
     /// Access an element
     value_type const& operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return core_[row*m_cols+col];
     }
 
@@ -636,17 +623,11 @@ namespace vw {
 
     /// Access an element
     value_type& operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return m_ptr[row*cols()+col];
     }
 
     /// Access an element
     value_type const& operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return m_ptr[row*cols()+col];
     }
 
@@ -737,17 +718,11 @@ namespace vw {
 
     /// Access an element
     value_type& operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return m_ptr[row*m_cols+col];
     }
 
     /// Access an element
     value_type const& operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return m_ptr[row*m_cols+col];
     }
 
@@ -845,17 +820,11 @@ namespace vw {
 
     /// Access an element
     reference_type operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return child()(col,row);
     }
 
     /// Access an element
     const_reference_type operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return child()(col,row);
     }
 

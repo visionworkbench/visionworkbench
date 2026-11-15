@@ -16,7 +16,6 @@
 // __END_LICENSE__
 
 
-#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/System.h>
@@ -24,17 +23,12 @@
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 
-#ifdef VW_HAVE_UNISTD_H
 #  include <unistd.h>
-#endif
 #include <istream>
 #include <stddef.h>
 #include <stdio.h>
 #include <string>
 
-#ifdef WIN32
-#  define access _access
-#endif
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>

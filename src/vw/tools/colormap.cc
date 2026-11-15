@@ -18,11 +18,6 @@
 // TODO(oalexan1): Move all logic having to do with colors only, to
 // src/vw/Image/Colormap.cc.
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/Core/Functors.h>
 #include <vw/Image/Algorithms.h>

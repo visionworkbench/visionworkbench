@@ -28,10 +28,8 @@
 
 #include <test/Helpers.h>
 
-#if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV==1)
 #include <opencv2/core.hpp>
 #include <vw/Image/ImageResourceImpl.h>
-#endif
 
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -324,7 +322,6 @@ TEST_F(TestStream, StreamError) {
   CHECK(src_data, dst_buf);
 }
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 struct ImageResourceOpenCVTest : public ::testing::Test, private boost::noncopyable {
     typedef boost::shared_ptr<cv::Mat>       mat_t;
@@ -452,4 +449,3 @@ TEST_F(ImageResourceOpenCVTest, OpenCv_Write_Discont) {
   EXPECT_RANGE_EQ(e_write_data+0, e_write_data+len, actual_data+0, actual_data+len);
 }
 
-#endif

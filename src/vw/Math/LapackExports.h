@@ -19,64 +19,13 @@
 #ifndef __VW_MATH_LAPACK_EXPORTS_H__
 #define __VW_MATH_LAPACK_EXPORTS_H__
 
-#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
-
-#if (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
-  #include <Accelerate/Accelerate.h>
-#endif
-
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
 
-// There are seemingly two bloodlines of lapack. One decends directly from the
-// fortran libs, and one is a c library formed by running f2c on the fortran
-// code. The former uses the fortran definition of integer, an int32. The
-// latter uses the f2c.h definition, long. The only reasonably safe thing to do
-// (lacking standard installation of lapack headers) is to use the type most
-// appropriate for the bloodline.
-
-#if (defined(VW_HAVE_PKG_INTEL_LAPACK) && VW_HAVE_PKG_INTEL_LAPACK==1)
-#  include <mkl_lapack.h>
-// MKL headers pollute the macro space. #define P4 breaks boost. Clean up after Intel.
-#  undef ITP
-#  undef NI
-#  undef CT
-#  undef MNI
-#  undef PNR
-#  undef DEF
-#  undef PIII
-#  undef P4
-#  undef P4P
-#  undef P4M
-   typedef MKL_INT f77_int;
-#elif (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
-//#  include <Accelerate/Accelerate.h>
-   typedef __CLPK_integer f77_int;
-#else
-#  if (defined(VW_HAVE_PKG_FLAPACK)) || \
-      (defined(VW_HAVE_PKG_SLAPACK)) || \
-      (defined(VW_HAVE_PKG_STANDALONE_FLAPACK))
-
-    //#pragma message ( "Using Fortran based LAPACK!" )
-
-    // fortran-based
-    typedef int32  f77_int;
-
-#  elif (defined(VW_HAVE_PKG_CLAPACK)) || \
-        (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS)) || \
-        (defined(VW_HAVE_PKG_LAPACK))
-
-    //#pragma message ( "Using C based LAPACK!" )
-
-    // f2c-based
-    typedef long f77_int;
-
-#   else
-// We're only installed if lapack is installed, so something is wrong at this point.
-#   error I do not know what lapack you are using
-#   endif
+  // The Fortran LAPACK uses a 32-bit integer.
+  typedef int32 f77_int;
 
   /// \cond INTERNAL
   namespace {
@@ -185,7 +134,6 @@ namespace vw {
                  f77_int *ipiv, double *b, f77_int *ldb, f77_int *info);
   } // end extern "C"
   } // anon namespace
-#endif
 
   void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
   void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);

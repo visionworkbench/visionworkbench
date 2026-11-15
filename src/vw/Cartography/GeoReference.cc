@@ -42,7 +42,6 @@
 // Proj
 // TODO(oalexan1): Wipe proj code, now the gdal wrapper is used
 
-// TODO(oalexan1): Wipe from everywhere the invocation of VW_HAVE_PKG_GDAL
 // VW will always be built with GDAL support.
 
 namespace vw {

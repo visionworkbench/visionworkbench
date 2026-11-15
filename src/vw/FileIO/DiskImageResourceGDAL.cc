@@ -22,15 +22,8 @@
 /// via GDAL.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
-#include <vw/vw_config.h>
 
-#ifdef VW_HAVE_PKG_GDAL
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
@@ -628,4 +621,3 @@ namespace vw {
   }
 } // namespace vw
 
-#endif // HAVE_PKG_GDAL

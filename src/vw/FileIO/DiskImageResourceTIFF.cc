@@ -21,11 +21,6 @@
 /// Provides support for TIFF image files.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vector>
 
@@ -39,9 +34,6 @@
 #define VW_ERROR_BUFFER_SIZE 2048
 #endif
 
-#ifdef WIN32
-#define snprintf _snprintf
-#endif
 
 namespace vw {
   class DiskImageResourceInfoTIFF {

@@ -28,11 +28,7 @@
 #include <vw/InterestPoint/InterestPoint.h>
 #include <vector>
 
-#ifdef VW_HAVE_PKG_FLANN
 #include <vw/Math/FLANNTree.h>
-#else
-#error the FLANN library is now required!
-#endif
 
 namespace vw {
 

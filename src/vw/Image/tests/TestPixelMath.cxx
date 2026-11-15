@@ -19,7 +19,6 @@
 // TestPixelMath.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/vw_config.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
 
@@ -182,35 +181,23 @@ TEST(PixelMath, FLOOR) { TEST_UNARY_MATH_FUNCTION(floor,1.5,1.0);
 void test_atan2() { TEST_BINARY_MATH_FUNCTION(atan2,2.0,1.0,1.10715); }
 void test_pow() { TEST_BINARY_MATH_FUNCTION(pow,3.0,2.0,9.0); }
 
-#ifdef WIN32
-#undef TEST_UNARY_MATH_FUNCTION
-#define TEST_UNARY_MATH_FUNCTION(name,arg,result) do {} while(false)
-#undef TEST_BINARY_MATH_FUNCTION
-#define TEST_BINARY_MATH_FUNCTION(name,arg1,arg2,result) do {} while(false)
-#endif
 
 TEST(PixelMath, ACOSH) { TEST_UNARY_MATH_FUNCTION(acosh,1.5,0.962424); }
 TEST(PixelMath, ASINH) { TEST_UNARY_MATH_FUNCTION(asinh,1.0,0.881374); }
 TEST(PixelMath, ATANH) { TEST_UNARY_MATH_FUNCTION(atanh,0.5,0.549306); }
 TEST(PixelMath, EXP2) {
-#ifdef VW_HAVE_EXP2
   TEST_UNARY_MATH_FUNCTION(exp2,1.0,2.0);
-#endif
 }
 TEST(PixelMath, EXPM1) { TEST_UNARY_MATH_FUNCTION(expm1,1.0,1.718281); }
 TEST(PixelMath, LOG2) {
-#ifdef VW_HAVE_LOG2
   TEST_UNARY_MATH_FUNCTION(log2,2.0,1.0);
-#endif
 }
 TEST(PixelMath, LOG1P) { TEST_UNARY_MATH_FUNCTION(log1p,1.0,0.693147); }
 TEST(PixelMath, CBRT) { TEST_UNARY_MATH_FUNCTION(cbrt,2.0,1.25992); }
 TEST(PixelMath, ERF) { TEST_UNARY_MATH_FUNCTION(erf,1.0,0.842701); }
 TEST(PixelMath, ERFC) { TEST_UNARY_MATH_FUNCTION(erfc,1.0,0.157299); }
 TEST(PixelMath, TGAMMA)  {
-#ifdef VW_HAVE_TGAMMA
   TEST_UNARY_MATH_FUNCTION(tgamma,1.5,0.886227);
-#endif
 }
 TEST(PixelMath, LGAMMA) { TEST_UNARY_MATH_FUNCTION(lgamma,2.5,0.284683); }
 TEST(PixelMath, ROUND) { TEST_UNARY_MATH_FUNCTION(round,1.4,1.0);

@@ -24,7 +24,6 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/FileIO/DiskImageView.h>
 
-#if defined(VW_HAVE_PKG_CAMERA) && VW_HAVE_PKG_CAMERA
 
 using namespace vw;
 using namespace vw::test;
@@ -146,4 +145,3 @@ TEST_F(CameraBBoxTest, CameraBBoxDEMScaleAndQuick) {
   EXPECT_FALSE(overlap.empty());
 }
 
-#endif

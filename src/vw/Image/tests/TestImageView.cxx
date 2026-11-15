@@ -259,48 +259,6 @@ TEST(ImageView, Iterator) {
 }
 
 TEST(ImageView, BoundsCheck) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-  ImageView<PixelRGB<vw::uint8> > test_img(2,2);
-
-  // First, test to make sure that the operator() bounds checking is
-  // working properly.
-  PixelRGB<vw::uint8> test = test_img(0,0);
-  ASSERT_NO_THROW (test = test_img(1,0));
-  ASSERT_NO_THROW (test = test_img(0,1));
-  ASSERT_NO_THROW (test = test_img(1,1));
-  ASSERT_ANY_THROW (test = test_img(0,2));
-  ASSERT_ANY_THROW (test = test_img(2,0));
-  ASSERT_ANY_THROW (test = test_img(-1,0));
-  ASSERT_ANY_THROW (test = test_img(0,-1));
-
-  // Next, test to make sure that the MemoryStridingPixelAccessor
-  // bounds checking is working properly.
-  ImageView<PixelRGB<vw::uint8> >::pixel_accessor acc = test_img.origin();
-
-  ASSERT_NO_THROW(test = *acc);
-
-  // First, check to make sure that negative indices cause an error.
-  acc.prev_col();
-  ASSERT_ANY_THROW (test = *acc);
-
-  // Proceed through colums
-  acc = test_img.origin();
-  acc.next_col();
-  ASSERT_NO_THROW (test = *acc);
-  acc.next_col();
-  ASSERT_NO_THROW (test = *acc);
-  acc.next_col();
-  ASSERT_NO_THROW (test = *acc);
-  acc.next_col();
-  ASSERT_ANY_THROW (test = *acc);
-
-  // Proceed through rows
-  acc = test_img.origin();
-  acc.next_row();
-  ASSERT_NO_THROW (test = *acc);
-  acc.next_row();
-  ASSERT_ANY_THROW (test = *acc);
-#endif
 }
 
 TEST(ImageView, ViewImageResource) {

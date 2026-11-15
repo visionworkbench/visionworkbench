@@ -35,7 +35,7 @@ VW_DEFINE_EXCEPTION_EXT(Code2, Code1) {
   int32 code() const {return 4;}
 };
 
-TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
+TEST(Exceptions, Hierarchy) {
 
   // Test exception names
   Level1Err l1;
@@ -52,7 +52,7 @@ TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
   EXPECT_THROW(throw Level2Err(), Level2Err);
 }
 
-TEST(Exceptions, HAS_EXCEPTIONS(Ext)) {
+TEST(Exceptions, Ext) {
   Code2 c;
   c << "rawr";
   EXPECT_EQ("Code2", c.name());

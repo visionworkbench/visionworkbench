@@ -22,13 +22,10 @@
 #ifndef __VW_IMAGE_IMAGERESOURCEIMPL_H__
 #define __VW_IMAGE_IMAGERESOURCEIMPL_H__
 
-#include <vw/vw_config.h>
 
 #define __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__ 1
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 # include <vw/Image/ImageResourceOpenCV.h>
-#endif
 
 #include <vw/Image/ImageResourceStream.h>
 

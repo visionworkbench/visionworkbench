@@ -19,7 +19,6 @@
 // TestImageMath.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageView.h>
@@ -375,29 +374,22 @@ TEST(ImageMath, FLOOR) { TEST_UNARY_MATH_FUNCTION(floor,1.5,1.0);
 TEST(ImageMath, ATAN2) { TEST_BINARY_MATH_FUNCTION(atan2,2.0,1.0,1.10715); }
 TEST(ImageMath, POW) { TEST_BINARY_MATH_FUNCTION(pow,3.0,2.0,9.0); }
 
-#ifndef WIN32
 TEST(ImageMath, ACOSH) { TEST_UNARY_MATH_FUNCTION(acosh,1.5,0.962424); }
 TEST(ImageMath, ASINH){ TEST_UNARY_MATH_FUNCTION(asinh,1.0,0.881374); }
 TEST(ImageMath, ATANH) { TEST_UNARY_MATH_FUNCTION(atanh,0.5,0.549306); }
 TEST(ImageMath, EXP2) {
-#ifdef VW_HAVE_EXP2
   TEST_UNARY_MATH_FUNCTION(exp2,1.0,2.0);
-#endif
 }
 TEST(ImageMath, EXPM1) { TEST_UNARY_MATH_FUNCTION(expm1,1.0,1.718281); }
 TEST(ImageMath, LOG2) {
-#ifdef VW_HAVE_LOG2
   TEST_UNARY_MATH_FUNCTION(log2,2.0,1.0);
-#endif
 }
 TEST(ImageMath, LOG1P) { TEST_UNARY_MATH_FUNCTION(log1p,1.0,0.693147); }
 TEST(ImageMath, CBRT) { TEST_UNARY_MATH_FUNCTION(cbrt,2.0,1.25992); }
 TEST(ImageMath, ERF) { TEST_UNARY_MATH_FUNCTION(erf,1.0,0.842701); }
 TEST(ImageMath, ERFC) { TEST_UNARY_MATH_FUNCTION(erfc,1.0,0.157299); }
 TEST(ImageMath, TGAMMA) {
-#ifdef VW_HAVE_TGAMMA
   TEST_UNARY_MATH_FUNCTION(tgamma,1.5,0.886227);
-#endif
 }
 TEST(ImageMath, LGAMMA) { TEST_UNARY_MATH_FUNCTION(lgamma,2.5,0.284683); }
 TEST(ImageMath, ROUND) { TEST_UNARY_MATH_FUNCTION(round,1.4,1.0);
@@ -410,4 +402,3 @@ TEST(ImageMath, COPYSIGN) { TEST_BINARY_MATH_FUNCTION(copysign,3.0,-2.0,-3.0);
   TEST_BINARY_MATH_FUNCTION(copysign,3.0,2.0,3.0); }
 TEST(ImageMath, FDIM) { TEST_BINARY_MATH_FUNCTION(fdim,3.0,2.0,1.0);
   TEST_BINARY_MATH_FUNCTION(fdim,2.0,3.0,0.0); }
-#endif

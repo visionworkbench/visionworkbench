@@ -32,10 +32,8 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/InterestPoint/InterestTraits.h>
 
-#if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV == 1)
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
-#endif
 
 namespace vw {
 

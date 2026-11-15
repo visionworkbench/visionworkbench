@@ -95,26 +95,9 @@ option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)
 set(Boost_USE_STATIC_LIBS   OFF)
 set(Boost_USE_MULTITHREADED ON )
 
-# Enable/disable SSE optimizations. SSE is x86-only, so disable it on any Arm
-# CPU (Mac arm64 and Linux aarch64), not just Mac.
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-  set(VW_ENABLE_SSE 0)
-else()
-  set(VW_ENABLE_SSE 1)
-endif()
-if (VW_ENABLE_SSE)
-  set(CXXFLAGS "${CXXFLAGS} -msse4.1")
+# SSE4.1 is x86-only. SGM uses it when the compiler defines __SSE4_1__.
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
-  message(STATUS "Enabling SSE")
-else()
-  if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-    message(STATUS "SSE optimizations are not available on Arm.")
-  else()
-    # Older Intel CPUs do not support SSE4.1
-    message(STATUS, "Disabling SSE.")
-    set(CXXFLAGS "${CXXFLAGS} -mno-sse4.1")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-sse4.1")
-  endif()
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -165,8 +148,6 @@ set(NOT_REQUIRED False)
 
 find_external_library(OPENBLAS ${ASP_DEPS_DIR} "" "openblas" "" REQUIRED)
 find_external_library(LAPACK ${ASP_DEPS_DIR} "" "lapack;blas" "" REQUIRED)
-set(VW_HAVE_PKG_LAPACK 1)
-set(VW_HAVE_PKG_FLAPACK 1)
 
 find_external_library(FLANN   ${ASP_DEPS_DIR} "" "flann_cpp" REQUIRED)
 find_external_library(LZ4     ${ASP_DEPS_DIR} "" "lz4"       REQUIRED)
@@ -184,45 +165,8 @@ find_external_library(GDAL    ${CUSTOM_BUILD_DIR} "" "gdal"  REQUIRED)
 find_package(OpenCV REQUIRED PATHS ${ASP_DEPS_DIR} NO_DEFAULT_PATH)
 set(OPENCV_LIBRARIES   ${OpenCV_LIBS})
 set(OPENCV_INCLUDE_DIR ${OpenCV_INCLUDE_DIRS})
-set(VW_HAVE_PKG_OPENCV 1)
 include_directories(${OPENCV_INCLUDE_DIR})
 message(STATUS "Found OpenCV ${OpenCV_VERSION} at ${OPENCV_INCLUDE_DIR}")
-
-if (USE_OPENEXR)
-  set(ILMBASE_LIB_NAMES Half Iex Imath IlmThread)
-  find_external_library(ILMBASE ${ASP_DEPS_DIR} "" "${ILMBASE_LIB_NAMES}" REQUIRED)
-  find_external_library(OPENEXR ${ASP_DEPS_DIR} "OpenEXR" "IlmImf;IlmThread" REQUIRED)
-  set(VW_HAVE_PKG_OPENEXR 1)
-else()
-  message(STATUS "OpenEXR will not be used.")
-  set(VW_HAVE_PKG_OPENEXR 0)
-endif()
-
-
-###########################################################################
-# These are some options that the user might like to set manually
-
-set(VW_DEFAULT_CACHE_SIZE_MB 1024)
-
-# enable image bounds checking (SLOW!) 
-set(VW_ENABLE_BOUNDS_CHECK 0)
-
-# ~/.vwrc support
-set(VW_ENABLE_CONFIG_FILE 1) 
-
-# TODO: Remove this as an option!
-# enable the C++ exception mechanism 
-set(VW_ENABLE_EXCEPTIONS 1) 
-
-
-
-# Define to `int' if <sys/types.h> does not define. 
-#define VW_ssize_t
-
-# TODO: What is this for?
-set(ENABLE_EXCEPTIONS True)
-
-###########################################################################
 
 # Libraries use paths like vw/Core/FundamentalTypes.h, so we need to
 # include the top of the tree.  These must take precedence over
@@ -276,11 +220,7 @@ set(VW_CORE_LIB_DEPENDENCIES ${Boost_LIBRARIES} pthread)
 get_all_source_files("FileIO" VW_FILEIO_SRC_FILES)
 get_all_source_files("FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage ${GDAL_LIBRARIES} ${PROJ4_LIBRARIES}
-    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} 
-    ${ILMBASE_LIBRARIES} ${Z_LIBRARIES})
-if (USE_OPENEXR)
-  list(APPEND VW_FILEIO_LIB_DEPENDENCIES ${OPENEXR_LIBRARIES})
-endif()
+    ${JPEG_LIBRARIES} ${TIFF_LIBRARIES} ${PNG_LIBRARIES} ${Z_LIBRARIES})
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)

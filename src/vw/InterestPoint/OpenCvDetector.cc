@@ -20,9 +20,7 @@
 /// Built-in classes and functions for interest point detection with OpenCV.
 ///
 
-#include <vw/vw_config.h> // defines VW_HAVE_PKG_OPENCV
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 #include <vw/Core/Settings.h>
 #include <vw/Core/ThreadPool.h>
@@ -264,4 +262,3 @@ OpenCvInterestPointDetector::process_image(vw::ImageViewRef<float> const& image,
 
 } // namespace vw
 
-#endif // End case with OpenCV installed

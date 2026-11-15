@@ -22,8 +22,6 @@
 /// \file CameraBBox.h Contains logic for bounding box, pixel intersection, and
 /// misc utilities.
 
-#include <vw/vw_config.h>
-#if defined(VW_HAVE_PKG_CAMERA)
 
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Camera/CameraModel.h>
@@ -109,6 +107,5 @@ namespace vw {
 
 } // namespace vw
 
-#endif // VW_HAVE_PKG_CAMERA
 
 #endif // __VW_CARTOGRAPHY_CAMERABBOX_H__

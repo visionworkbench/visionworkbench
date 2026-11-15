@@ -29,7 +29,6 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/ImageChannels.h>
-#include <vw/vw_config.h>
 
 #include <fstream>
 
@@ -133,86 +132,17 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
 
 std::vector<std::string> test_paths() {
   std::vector<std::string> v;
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   v.push_back("rgb2x2.png");
   v.push_back("rgb4x4_halfalpha.png");
   v.push_back("rgb4x4_alpha.png");
-#endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   v.push_back("rgb2x2.tif");
   v.push_back("rgb4x4_halfalpha.tif");
   v.push_back("rgb4x4_alpha.tif");
   // The float TIFs (rgb4x4f_*) are omitted: this test reads into a uint8 buffer, and
   // reading float data as uint8 is an ill-defined cast that legitimately differs
   // between the disk and in-memory GDAL paths. (Memory resources are not used by ASP.)
-#endif
   return v;
 }
 
 INSTANTIATE_TEST_CASE_P(FileNames, MemoryImageResourceTest, ::testing::ValuesIn(test_paths()));
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-
-// OpenEXR doesn't truly support uint8 only floats. So we'll write our own test.
-template <typename PixelT>
-class MemoryOpenEXR : public ::testing::Test {
-protected:
-
-  MemoryOpenEXR() {}
-
-  virtual void SetUp() {
-    ImageView<PixelT> src;
-
-    {
-      const size_t SIZE = 64;
-      ImageView<PixelT> src_(SIZE,SIZE);
-      for (size_t row = 0; row < SIZE; ++row) {
-        for (size_t col = 0; col < SIZE; ++col) {
-          for (size_t ch = 0; ch < CompoundNumChannels<PixelT>::value; ch++) {
-            switch (ch) {
-            case 0:
-              src_(col,row)[ch] = float(row)/SIZE; break;
-            case 1:
-              src_(col,row)[ch] = float(col)/SIZE; break;
-            case 2:
-              src_(col,row)[ch] = 1 - ((float(row) + col) / 2 / SIZE); break;
-            default:
-              src_(col,row)[ch] = float(ch + row) / SIZE;
-            }
-          }
-        }
-      }
-
-      boost::rand48 gen((uint64(t::get_random_seed())));
-      src_ += gaussian_noise_view(gen, 0.008, 0.004, src_);
-      src = gaussian_filter(src_, 2, 2, 4, 4);
-      vw::fill(vw::select_channel(src,CompoundNumChannels<PixelT>::value - 1), 0.788);
-    }
-
-    std::string type("exr");
-
-    boost::scoped_ptr<SrcImageResource> src2;
-    boost::scoped_ptr<DstMemoryImageResource> dst;
-
-    ASSERT_NO_THROW(dst.reset(DstMemoryImageResource::create(type, src.format())));
-    EXPECT_NO_THROW(write_image(*dst, src));
-    ASSERT_NO_THROW(src2.reset(SrcMemoryImageResource::open(type, dst->data(), dst->size())));
-
-    ImageView<PixelT> img1;
-    read_image(img1, *src2);
-
-    EXPECT_SEQ_NEAR(src, img1, 1);
-  }
-};
-
-// There's an internal switch in the code that treats RGB and Grays differently.
-typedef MemoryOpenEXR<PixelRGB<float>> MemoryOpenEXRRGBF32;
-TEST_F(MemoryOpenEXRRGBF32, RGB_F32) {}
-typedef MemoryOpenEXR<PixelRGBA<float>> MemoryOpenEXRRGBAF32;
-TEST_F(MemoryOpenEXRRGBAF32, RGBA_F32) {}
-typedef MemoryOpenEXR<PixelGray<float>> MemoryOpenEXRGRAYF32;
-TEST_F(MemoryOpenEXRGRAYF32, GRAY_F32) {}
-typedef MemoryOpenEXR<PixelGrayA<float>> MemoryOpenEXRGRAYAF32;
-TEST_F(MemoryOpenEXRGRAYAF32, GRAYA_F32) {}
-
-#endif

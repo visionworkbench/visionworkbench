@@ -24,11 +24,6 @@
 #include <vw/Math/Functions.h>
 #include <vw/Image/ImageView.h>
 
-// TODO: Use SSE to accelerate this operation
-//#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
-//  #include <emmintrin.h>
-//  #include <smmintrin.h> // SSE4.1
-//#endif
 
 /**
   Tools for computing the Census Transform of an image and comparing transformed pixels

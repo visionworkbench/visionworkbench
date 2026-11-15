@@ -23,7 +23,6 @@
 #include <fstream>
 namespace vw {
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
     /// Copy IP information from an OpenCV KeyPoint object.
     void InterestPoint::setFromCvKeypoint(cv::KeyPoint const& cvKey) {
@@ -51,7 +50,6 @@ namespace vw {
       return cvKey;
     }
 
-#endif
 
 bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
   if (P1.x < P2.x) 

@@ -42,11 +42,7 @@ namespace vw {
     std::string m_desc;
     MessageLevel m_level;
     std::string m_log_namespace;
-#ifdef WIN32
-    __int64 m_begin;
-#else
     timeval m_begin;
-#endif
   public:
     Timer(std::string const& desc, MessageLevel level=InfoMessage, std::string const& log_namespace = "console");
 

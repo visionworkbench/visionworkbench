@@ -29,13 +29,13 @@
 #include <vw/FileIO/DiskImageIO.h>
 
 //Matrix<double> alignMatrix;
-//write_matrix(out_prefix + "-align.exr", align_matrix);
+//write_matrix(out_prefix + "-align.tif", align_matrix);
 
 namespace vw {
 
   /// Write a matrix object to disk as an image file.  This function
-  /// is particularly useful if you write the matrix as an OpenEXR
-  /// image file; this retains the maximal amount of information.
+  /// is particularly useful if you write the matrix as a
+  /// floating-point tif; this retains the maximal amount of information.
   template <class T>
   void write_matrix(const std::string &filename, vw::Matrix<T> &out_matrix) {
 
@@ -55,8 +55,8 @@ namespace vw {
 
 
   /// Read a matrix object from an image file on disk.  This function
-  /// is particularly useful if the matrix was saved as an OpenEXR
-  /// image file; this retains the maximal amount of information.
+  /// is particularly useful if the matrix was saved as a
+  /// floating-point tif; this retains the maximal amount of information.
   template <class T>
   void read_matrix(vw::Matrix<T>& in_matrix, const std::string &filename) {
 

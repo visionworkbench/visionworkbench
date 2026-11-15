@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/vw_config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>
@@ -36,12 +35,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#ifdef WIN32
-#define stat _stat
-typedef struct _stat struct_stat;
-#else
 typedef struct stat struct_stat;
-#endif
 
 
 inline std::string

@@ -20,11 +20,6 @@
 /// An abstract base class referring to an image on disk.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/FileIO/FileUtils.h>
 #include <vw/Core/Log.h>

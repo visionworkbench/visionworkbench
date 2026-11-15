@@ -64,11 +64,7 @@ namespace vw {
     template<typename LockT>
     bool timed_wait(LockT &lock, unsigned long milliseconds) {
       boost::xtime xt;
-#if BOOST_VERSION >= 105000
       boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-      boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
       while (milliseconds >= 1000) {
         xt.sec++;
         milliseconds -= 1000;
@@ -81,11 +77,7 @@ namespace vw {
     template<typename LockT, typename Pred>
     bool timed_wait(LockT &lock, unsigned long milliseconds, Pred pred) {
       boost::xtime xt;
-#if BOOST_VERSION >= 105000
       boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-      boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
       while (milliseconds >= 1000) {
         xt.sec++;
         milliseconds -= 1000;

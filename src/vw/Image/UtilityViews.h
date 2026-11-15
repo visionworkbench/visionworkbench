@@ -27,21 +27,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/random/normal_distribution.hpp>
 
-// This is a fix for old versions of boost, the distribution uniform_01
-// was implemented with expectations of working with the variate generator.
-// instead we switch over to uniform_real as a backup solution in old boost.
-#if BOOST_VERSION <= 103800
-
-#include <boost/random/uniform_real.hpp>
-#define UNIFORM01 boost::uniform_real
-
-#else
-
 #include <boost/random/uniform_01.hpp>
 #define UNIFORM01 boost::uniform_01
-
-#endif
-
 
 #include <boost/random/variate_generator.hpp>
 #include <vw/Image/ImageViewBase.h>

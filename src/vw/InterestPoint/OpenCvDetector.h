@@ -23,9 +23,7 @@
 #ifndef __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
 #define __VW_INTEREST_POINT_OPENCV_DETECTOR_H__
 
-#include <vw/vw_config.h> // defines VW_HAVE_PKG_OPENCV
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 #include <vw/Image/ImageViewRef.h>
 #include <vw/InterestPoint/DetectorBase.h>
@@ -91,5 +89,4 @@ private:
 
 } // namespace vw
 
-#endif // End case with OpenCV installed
 #endif // __VW_INTEREST_POINT_OPENCV_DETECTOR_H__

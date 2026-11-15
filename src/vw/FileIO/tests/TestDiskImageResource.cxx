@@ -18,7 +18,6 @@
 
 // TestDiskImageResource.h
 #include <gtest/gtest_VW.h>
-#include <vw/vw_config.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
@@ -30,7 +29,6 @@
 #include <vw/FileIO/DiskImageResourceTIFF.h>
 #include <vw/FileIO/DiskImageIO.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/FileIO/DiskImageResourceOpenEXR.h>
 #include <vw/FileIO/DiskImageResourcePBM.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -112,8 +110,6 @@ protected:
       filename = TEST_SRCDIR"/rgb2x2.tif"; break;
     case 2: // JPG
       filename = TEST_SRCDIR"/rgb2x2.jpg"; break;
-    case 3: // OpenEXR
-      filename = TEST_SRCDIR"/rgb2x2.exr"; break;
     default:
       filename = TEST_SRCDIR"/rgb2x2.jpg"; break;
     }
@@ -166,10 +162,8 @@ protected:
       base = "tmp.tif"; break;
     case 2: // JPG
     default:
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
       DiskImageResourceJPEG::set_default_quality(1.0);
       DiskImageResourceJPEG::set_default_subsample_factor(1);
-#endif
       base = "tmp.jpg"; break;
     }
     UnlinkName filename(base);
@@ -200,7 +194,6 @@ protected:
   }
 };
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 typedef ReadImage<PixelRGB<uint8>, 0> ReadImageRGBU8PNG;
 TEST_F(ReadImageRGBU8PNG, RGB_U8_PNG) {}
 
@@ -212,9 +205,7 @@ TEST_F(WriteReadImageRGBU8PNG, RGB_U8_PNG) {}
 
 typedef WriteReadImage<PixelRGB<float>, 0> WriteReadImageRGBF32PNG;
 TEST_F(WriteReadImageRGBF32PNG, RGB_F32_PNG) {}
-#endif
 
-#if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
 typedef ReadImage<PixelRGB<uint8>, 1> ReadImageRGBU8TIF;
 TEST_F(ReadImageRGBU8TIF, RGB_U8_TIF) {}
 
@@ -226,20 +217,13 @@ TEST_F(WriteReadImageRGBU8TIF, RGB_U8_TIF) {}
 
 typedef WriteReadImage<PixelRGB<float>, 1> WriteReadImageRGBF32TIF;
 TEST_F(WriteReadImageRGBF32TIF, RGB_F32_TIF) {}
-#endif
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
 typedef ReadImage<PixelRGB<uint8>, 2> ReadImageRGBU8JPG;
 TEST_F(ReadImageRGBU8JPG, RGB_U8_JPG) {}
 
 typedef ReadImage<PixelRGB<float>, 2> ReadImageRGBF32JPG;
 TEST_F(ReadImageRGBF32JPG, RGB_F32_JPG) {}
-#endif
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-typedef ReadImage<PixelRGB<float>, 3> ReadImageRGBF32EXR;
-TEST_F(ReadImageRGBF32EXR, RGB_F32_EXR) {}
-#endif
 
 TEST(DiskImageResource, TestPBM) {
   const char
@@ -336,26 +320,14 @@ TEST(DiskImageResource, PBM_Case_Insentive) {
 TEST(DiskImageResource, NonExistentFiles) {
   boost::scoped_ptr<DiskImageResource> r;
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   EXPECT_THROW(r.reset(DiskImageResourceGDAL::construct_open("nonfile.tif")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   EXPECT_THROW(r.reset(DiskImageResourcePNG::construct_open("nonfile.png")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
   EXPECT_THROW(r.reset(DiskImageResourceTIFF::construct_open("nonfile.tif")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
   EXPECT_THROW(r.reset(DiskImageResourceJPEG::construct_open("nonfile.jpg")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  EXPECT_THROW(r.reset(DiskImageResourceOpenEXR::construct_open("nonfile.exr")),
-               vw::ArgumentErr);
-#endif
   EXPECT_THROW(r.reset(DiskImageResourcePDS::construct_open("nonfile.img")),
                vw::ArgumentErr);
   EXPECT_THROW(r.reset(DiskImageResourcePBM::construct_open("nonfile.pgm")),
@@ -365,27 +337,15 @@ TEST(DiskImageResource, NonExistentFiles) {
 TEST(DiskImageResource, WrongFiles) {
   boost::scoped_ptr<DiskImageResource> r;
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   EXPECT_THROW(r.reset(DiskImageResourceGDAL::construct_open("TestDiskImageResource.cxx")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   EXPECT_THROW(r.reset(DiskImageResourcePNG::construct_open("rgb2x2.jpg")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
   EXPECT_THROW(r.reset(DiskImageResourceTIFF::construct_open("rgb2x2.jpg")),
                vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
   // OSX 10.5 fails to catch this error.
   //EXPECT_THROW(r.reset(DiskImageResourceJPEG::construct_open("rgb2x2.tif")),
   //             vw::ArgumentErr);
-#endif
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  EXPECT_THROW(r.reset(DiskImageResourceOpenEXR::construct_open("rgb2x2.tif")),
-               vw::ArgumentErr);
-#endif
   EXPECT_THROW(r.reset(DiskImageResourcePDS::construct_open("rgb2x2.tif")),
                vw::ArgumentErr);
   EXPECT_THROW(r.reset(DiskImageResourcePBM::construct_open("rgb2x2.tif")),

@@ -25,7 +25,7 @@
 using namespace vw;
 using namespace vw::test;
 
-TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
+TEST(Settings, VWrc) {
 
   const char *conf = "\n\
       # Comment 1                         \n\

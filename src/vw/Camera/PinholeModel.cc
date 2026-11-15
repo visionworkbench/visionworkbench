@@ -16,7 +16,6 @@
 // __END_LICENSE__
 
 #include <vw/Core/Log.h>
-#include <vw/vw_config.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
@@ -24,9 +23,7 @@
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/CameraUtilities.h>
 
-#if defined(VW_HAVE_PKG_LAPACK)
 #include <vw/Math/LinearAlgebra.h>
-#endif
 
 #include <algorithm>
 #include <sstream>
@@ -517,7 +514,6 @@ void PinholeModel::set_pixel_pitch(double pitch) { m_pixel_pitch = pitch; }
 
 
 void PinholeModel::set_camera_matrix(Matrix<double,3,4> const& p) {
-#if defined(VW_HAVE_PKG_LAPACK)
   // Solving for camera center
   Matrix<double> cam_nullsp = nullspace(p);
   Vector<double> cam_center = select_col(cam_nullsp,0);
@@ -556,9 +552,6 @@ void PinholeModel::set_camera_matrix(Matrix<double,3,4> const& p) {
 
   // Rebuild
   rebuild_camera_matrix();
-#else
-  vw_throw(NoImplErr() << "PinholeModel::set_Camera_Matrix is unavailable without LAPACK");
-#endif
 }
 
 Matrix<double,3,4> PinholeModel::camera_matrix() const {

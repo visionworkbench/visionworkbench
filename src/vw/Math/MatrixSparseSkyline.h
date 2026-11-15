@@ -159,10 +159,6 @@ namespace vw {
 
     /// Element Access
     reference_type operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(),
-                LogicErr() << "operator() ran off end of matrix");
-#endif
       if (col > row)
         std::swap(row,col);
       if (col < m_skyline[row])
@@ -172,10 +168,6 @@ namespace vw {
 
     /// Element Access
     const_reference_type operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(),
-                LogicErr() << "operator() ran off end of matrix");
-#endif
       if (col > row)
         return m_matrix(col,row);
       return m_matrix(row,col);
@@ -572,15 +564,9 @@ namespace vw {
 
     // Element Access
     reference_type operator()(size_t row, size_t col) {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return child()(m_lookup[row],m_lookup[col]);
     }
     const_reference_type operator()(size_t row, size_t col) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT(row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix");
-#endif
       return child()(m_lookup[row],m_lookup[col]);
     }
 

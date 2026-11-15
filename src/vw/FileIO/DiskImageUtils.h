@@ -28,8 +28,8 @@
 namespace vw {
 
   /// Write a vector object to disk as an image file.  This function
-  /// is particularly useful if you write the vector as an OpenEXR
-  /// image file; this retains the maximal amount of information.
+  /// is particularly useful if you write the vector as a
+  /// floating-point tif; this retains the maximal amount of information.
   template <class T>
   void write_vector(const std::string &filename, vw::Vector<T> &out_vector) {
 
@@ -45,8 +45,8 @@ namespace vw {
   }
 
   /// Read a vector object from an image file on disk.  This function
-  /// is particularly useful if the vector was saved as an OpenEXR
-  /// image file; this retains the maximal amount of information.
+  /// is particularly useful if the vector was saved as a
+  /// floating-point tif; this retains the maximal amount of information.
   template <class T>
   void read_vector(vw::Vector<T>& in_vector, const std::string &filename) {
 

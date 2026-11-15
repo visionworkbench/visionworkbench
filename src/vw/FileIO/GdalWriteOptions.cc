@@ -24,11 +24,7 @@
 namespace vw {
 
 GdalWriteOptions::GdalWriteOptions() {
-#if defined(VW_HAS_BIGTIFF) && VW_HAS_BIGTIFF == 1
-  gdal_options["BIGTIFF"]  = "YES";
-#else
   gdal_options["BIGTIFF"] = "NO";
-#endif
   gdal_options["COMPRESS"] = "LZW";
 
   // The values below will be overwritten by the boost options

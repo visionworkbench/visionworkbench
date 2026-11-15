@@ -343,7 +343,6 @@ int main(int argc, char** argv) {
       IntegralAutoGainDetector detector(opt.ip_per_tile);
       // Cast to float pixels as that is what the detector expects.  
       ip = detect_interest_points(vw::pixel_cast<float>(image), detector, opt.ip_per_tile);
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (detector_is_opencv) {
 
       OpenCvIpDetectorType ocv_type = OPENCV_IP_DETECTOR_TYPE_SIFT;
@@ -366,12 +365,6 @@ int main(int argc, char** argv) {
       else
         ip = detect_interest_points(pixel_cast<float>(image), detector, opt.ip_per_tile);
     }
-#else // End OpenCV section
-    } else {
-      vw_out() << "Error: Cannot use ORB, BRISK, SIFT, or SURF if not compiled with OpenCV!" << std::endl;
-      exit(1); 
-    }
-#endif
 
     vw_out() << "Detected " << ip.size() << " raw keypoints.\n";
     if (ip.size() == 0) {
@@ -408,15 +401,8 @@ int main(int argc, char** argv) {
     } else if (opt.descriptor_generator == "sgrad2") {
       SGrad2DescriptorGenerator descriptor;
       describe_interest_points(image, descriptor, ip);
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     // Nothing happens here because we compute the descriptors at the same time we detect IPs.
     }
-#else
-    } else {
-      vw_out() << "Error: Cannot use SIFT, SURF, ORB or BRISK if not compiled with OpenCV!\n";
-      exit(1); 
-    }
-#endif
 
     // Print raw IP info if requested
     int limit = opt.print_num_ip;

@@ -18,7 +18,6 @@
 #ifndef __VW_FILEIO_GDALWRITEOPTIONSDESC_H__
 #define __VW_FILEIO_GDALWRITEOPTIONSDESC_H__
 
-#include <vw/vw_config.h>
 #include <boost/program_options.hpp>
 
 namespace vw {

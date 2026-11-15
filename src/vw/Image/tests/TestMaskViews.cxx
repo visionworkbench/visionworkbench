@@ -19,7 +19,6 @@
 // TestImageMath.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/vw_config.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>

@@ -21,13 +21,7 @@
 /// An abstract base class referring to an image on disk.
 ///
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
-#include <vw/vw_config.h>
 
 // For RunOnce
 #include <vw/Core/RunOnce.h>
@@ -38,27 +32,14 @@
 #include <vw/FileIO/DiskImageResourcePBM.h>
 #include <vw/FileIO/DiskImageResourceRaw.h>
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
-#endif
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
 #include <vw/FileIO/DiskImageResourceJPEG.h>
-#endif
 
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
 #include <vw/FileIO/DiskImageResourceTIFF.h>
-#endif
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-#if defined(VW_ENABLE_EXCEPTIONS) && VW_ENABLE_EXCEPTIONS==1
-#include <vw/FileIO/DiskImageResourceOpenEXR.h>
-#endif
-#endif
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
 #include <vw/FileIO/DiskImageResourceGDAL.h>
-#endif
 
 #include <vw/FileIO/DiskImageResource_internal.h>
 
@@ -150,7 +131,6 @@ static void register_default_file_types_impl() {
 #define REGISTER(ext, driver) register_file_type_internal(ext, vw::DiskImageResource ## driver::type_static(), &vw::DiskImageResource ## driver::construct_open, &vw::DiskImageResource ## driver::construct_create);
 
   // Give GDAL precedence in reading PDS images when this is supported.
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".img") &&
       vw::DiskImageResourceGDAL::gdal_has_support(".pds") &&
       vw::DiskImageResourceGDAL::gdal_has_support(".lbl")) {
@@ -159,59 +139,31 @@ static void register_default_file_types_impl() {
     REGISTER(".pds", GDAL)
     REGISTER(".lbl", GDAL)
   } else {
-#endif
   REGISTER(".img", PDS)
   REGISTER(".pds", PDS)
   REGISTER(".lbl", PDS)
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   }
-#endif
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   REGISTER(".png", PNG)
-#elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".png"))
-    REGISTER(".png", GDAL)
-  else
-    vw::vw_throw(vw::IOErr() << "GDAL does not have PNG support.");
-#endif
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
   REGISTER(".jpg", JPEG)
   REGISTER(".jpeg", JPEG)
-#elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".jpg"))
-    REGISTER(".jpg", GDAL)
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".jpeg"))
-    REGISTER(".jpeg", GDAL)
-#endif
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".jp2"))
     REGISTER(".jp2", GDAL)
   if (vw::DiskImageResourceGDAL::gdal_has_support(".j2k"))
     REGISTER(".j2k", GDAL)
-#endif
 
 // This is a little hackish but it makes it so libtiff acts as a proper fallback
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".tif") && vw::DiskImageResourceGDAL::gdal_has_support(".tiff")) {
     REGISTER(".tif", GDAL)
     REGISTER(".tiff", GDAL)
     REGISTER(".vrt", GDAL)
   } else {
-#endif
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
     REGISTER(".tif", TIFF)
     REGISTER(".tiff", TIFF)
-#endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   }
-#endif
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  REGISTER(".exr", OpenEXR)
-#endif
 
   // Filetypes that are always supported
   REGISTER(".pbm", PBM)
@@ -239,10 +191,8 @@ vw::DiskImageResource* vw::DiskImageResource::open(std::string const& filename) 
   // GDAL has support for many useful file formats, and we fall back
   // on it here in case none of the registered file handlers know how
   // to do the job.
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(extension))
     return vw::DiskImageResourceGDAL::construct_open(filename);
-#endif
 
   // If all attempts to find a suitable file driver fails, we throw an
   // exception.

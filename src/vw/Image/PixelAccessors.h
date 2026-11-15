@@ -51,10 +51,6 @@ namespace vw {
   /// const pixel type.  It is primarily intended to be used by ImageView.
   template <class PixelT>
   class MemoryStridingPixelAccessor {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    PixelT *m_base_ptr;
-    ssize_t m_num_pixels;
-#endif
     PixelT *m_ptr; ///< Pointer to whole pixels, not to bytes.
     ssize_t m_rstride, m_pstride;
   public:
@@ -62,17 +58,9 @@ namespace vw {
     typedef PixelT& result_type;
     typedef ssize_t offset_type;
 
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    MemoryStridingPixelAccessor(PixelT *ptr,
-                                ssize_t rstride, ssize_t pstride,
-                                int32 cols, int32 rows, int32 planes)
-      : m_base_ptr(ptr), m_num_pixels(ssize_t(cols) * rows * planes),
-        m_ptr(ptr), m_rstride(rstride), m_pstride(pstride) {}
-#else
     MemoryStridingPixelAccessor(PixelT *ptr, ssize_t rstride, ssize_t pstride)
       : m_ptr(ptr), m_rstride(rstride), m_pstride(pstride) {
     }
-#endif
 
     inline MemoryStridingPixelAccessor& next_col()   { ++m_ptr;            return *this; }
     inline MemoryStridingPixelAccessor& prev_col()   { --m_ptr;            return *this; }
@@ -99,11 +87,6 @@ namespace vw {
 
     /// Operator returns the pixel value at the current iterator location.
     inline result_type operator*() const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      ssize_t delta = m_ptr - m_base_ptr;
-      if (delta < 0 || delta >= m_num_pixels)
-        vw_throw(ArgumentErr() << "MemoryStridingPixelAccessor() - invalid index " << delta << " / " << (m_num_pixels-1) << ".");
-#endif
       return *m_ptr;
     }
   };

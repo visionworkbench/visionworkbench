@@ -18,7 +18,6 @@
 
 #include <gtest/gtest_VW.h>
 #include <boost/random.hpp>
-#include <vw/vw_config.h>
 #include <vw/Math/Functors.h>
 
 using namespace vw;
@@ -222,22 +221,15 @@ TEST(Functors, Floor) { TEST_UNARY_MATH_FUNCTOR(Floor, 1.5, 1.0);
 TEST(Functors, Atan2) { TEST_BINARY_MATH_FUNCTOR(Atan2,2.0,1.0,1.10715); }
 TEST(Functors, Pow)   { TEST_BINARY_MATH_FUNCTOR(Pow,3.0,2.0,9.0);  }
 
-#ifndef WIN32
 TEST(Functors, Acosh) { TEST_UNARY_MATH_FUNCTOR(Acosh,1.5,0.962424); }
 TEST(Functors, Asinh) { TEST_UNARY_MATH_FUNCTOR(Asinh,1.0,0.881374); }
 TEST(Functors, Atanh) { TEST_UNARY_MATH_FUNCTOR(Atanh,0.5,0.549306); }
 
-#ifdef VW_HAVE_EXP2
 TEST(Functors, Exp2)  { TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0); }
-#endif
 
-#ifdef VW_HAVE_LOG2
 TEST(Functors, Log2) { TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0); }
-#endif
 
-#ifdef VW_HAVE_TGAMMA
 TEST(Functors, Tgamma) { TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227); }
-#endif
 
 TEST(Functors, Expm1)    { TEST_UNARY_MATH_FUNCTOR(Expm1,1.0,1.718281);  }
 TEST(Functors, Log1p)    { TEST_UNARY_MATH_FUNCTOR(Log1p,1.0,0.693147);  }
@@ -256,7 +248,6 @@ TEST(Functors, Copysign) { TEST_BINARY_MATH_FUNCTOR(Copysign,3.0,-2.0,-3.0);
 TEST(Functors, Fdim)     { TEST_BINARY_MATH_FUNCTOR(Fdim,3.0,2.0,1.0);
                            TEST_BINARY_MATH_FUNCTOR(Fdim,2.0,3.0,0.0); }
 
-#endif
 
 
 TEST(Functiors, Median) {

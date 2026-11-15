@@ -23,26 +23,9 @@
 #ifndef __VW_CORE_FEATURES_H__
 #define __VW_CORE_FEATURES_H__
 
-#include <vw/vw_config.h>
-
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED)
 #define VW_DEPRECATED __attribute__((deprecated))
-#else
-#define VW_DEPRECATED
-#endif
-
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_NORETURN)
 #define VW_NORETURN __attribute__((noreturn))
-#else
-#define VW_NORETURN
-#endif
-
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT)
 #define VW_WARN_UNUSED __attribute__((warn_unused_result))
-#else
-#define VW_WARN_UNUSED
-#endif
-
 #define VW_NOTHROW noexcept
 
 /// The master compile-time debugging level flag.  The default value

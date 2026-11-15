@@ -28,7 +28,6 @@
 #ifndef __VW_MATH_FUNCTIONS_H__
 #define __VW_MATH_FUNCTIONS_H__
 
-#include <vw/vw_config.h>
 #include <vw/Core/FundamentalTypes.h>
 
 #include <cmath>
@@ -170,25 +169,12 @@ namespace impl {
 
   using vw::impl::mod;
 
-#ifdef WIN32
-  using vw::impl::erf;
-  using vw::impl::erfc;
-  using vw::impl::hypot;
-  using vw::impl::hypotl;
-  using vw::impl::hypotf;
-#else
   using ::acosh;
   using ::asinh;
   using ::atanh;
-#ifdef VW_HAVE_EXP2
   using ::exp2;
-#endif
-#ifdef VW_HAVE_LOG2
   using ::log2;
-#endif
-#ifdef VW_HAVE_TGAMMA
   using ::tgamma;
-#endif
   using ::expm1;
   using ::log1p;
   using ::cbrt;
@@ -200,17 +186,7 @@ namespace impl {
   using ::hypot;
   using ::copysign;
   using ::fdim;
-#endif // WIN32
 
-#if defined(__APPLE__) && defined(__POWERPC__)
-  inline long double erfl(long double arg) {
-    return erf((double)arg);
-  }
-
-  inline long double erfcl(long double arg) {
-    return erfc((double)arg);
-  }
-#endif
 
   /// Next power of 2
   inline int nextpow2(double x){

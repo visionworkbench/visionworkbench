@@ -32,20 +32,12 @@
 #include <vector>
 #include <algorithm>
 
-#include <vw/vw_config.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
 
 #include <queue>
-
-// The math.h header in FreeBSD (and possibly other platforms) does not
-// include routines for manipulating long doubles.  We disable long
-// double VW math routines here for certain platforms.
-#if defined(__FreeBSD__) || defined(_WIN32)
-#define __VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC
-#endif
 
 namespace vw {
 
@@ -102,7 +94,6 @@ namespace vw {
     // Standard Mathematical Functors
     // ********************************************************************
 
-#if !defined(__VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC)
     // This will actually create a specialization for long doubles
 #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)          \
     long double operator()(long double arg) const {   \
@@ -112,11 +103,6 @@ namespace vw {
     long double operator()(long double arg1, long double arg2) const { \
       return func##l(arg1,arg2);                                        \
     }
-#else
-    // This is basically a no-op
-#define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)
-#define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)
-#endif
 
 // Macros to easily create functors with a certain interface
 #define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
@@ -193,20 +179,13 @@ namespace vw {
     __VW_BINARY_MATH_FUNCTOR(Pow, pow)
     __VW_BINARY_MATH_FUNCTOR(Hypot, hypot)
 
-#ifndef WIN32
     __VW_UNARY_MATH_FUNCTOR(Acosh, acosh)
     __VW_UNARY_MATH_FUNCTOR(Asinh, asinh)
     __VW_UNARY_MATH_FUNCTOR(Atanh, atanh)
 
-#ifdef VW_HAVE_EXP2
     __VW_UNARY_MATH_FUNCTOR(Exp2, exp2)
-#endif
-#ifdef VW_HAVE_LOG2
     __VW_UNARY_MATH_FUNCTOR(Log2, log2)
-#endif
-#ifdef VW_HAVE_TGAMMA
     __VW_UNARY_MATH_FUNCTOR(Tgamma, tgamma)
-#endif
     __VW_UNARY_MATH_FUNCTOR(Lgamma, lgamma)
     __VW_UNARY_MATH_FUNCTOR(Expm1, expm1)
     __VW_UNARY_MATH_FUNCTOR(Log1p, log1p)
@@ -218,7 +197,6 @@ namespace vw {
 
       __VW_BINARY_MATH_FUNCTOR(Copysign, copysign)
     __VW_BINARY_MATH_FUNCTOR(Fdim, fdim)
-#endif
 
 // Clean up the macros we are finished using
 #undef __VW_UNARY_MATH_FUNCTOR
@@ -284,12 +262,8 @@ namespace vw {
 
       inline float operator()(float val) const { return ::fabsf(val); }
       inline long operator()(long val) const { return std::labs(val); }
-#ifdef VW_HAVE_FABSL
       inline long double operator()(long double val) const { return ::fabsl(val); }
-#endif
-#ifdef VW_HAVE_LLABS
       inline long long operator()(long long val) const { return ::llabs(val); }
-#endif
 
       template <class ValT>
       inline ValT operator()(std::complex<ValT> const& val) const {

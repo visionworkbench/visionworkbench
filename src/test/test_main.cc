@@ -23,9 +23,6 @@
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 
-#ifdef VW_HAVE_FENV_H
-#include <fenv.h>
-#endif
 
 namespace {
   vw::uint32 SEED;
@@ -44,10 +41,6 @@ int main(int argc, char **argv) {
   // fresh.
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
-#ifdef VW_HAVE_FEENABLEEXCEPT
-  if (getenv("VW_CATCH_FP_ERRORS"))
-    feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
-#endif
 
   if (getenv("VW_DEBUG")) {
     vw::vw_log().console_log().rule_set().add_rule(vw::VerboseDebugMessage, "*");

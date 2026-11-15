@@ -19,7 +19,6 @@
 #ifndef __VW_TESTS_CONFIG_TEST_H__
 #define __VW_TESTS_CONFIG_TEST_H__
 
-#include <vw/vw_config.h>
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
@@ -42,18 +41,6 @@
 #include <boost/function.hpp>
 #include <boost/range/iterator_range_core.hpp>
 #pragma GCC diagnostic pop
-
-#if defined(VW_ENABLE_EXCEPTIONS)
-#define HAS_EXCEPTIONS(x) x
-#else
-#define HAS_EXCEPTIONS(x) DISABLED_ ## x
-#endif
-
-#if defined(VW_ENABLE_CONFIG_FILE)
-#define HAS_CONFIG_FILE(x) x
-#else
-#define HAS_CONFIG_FILE(x) DISABLED_ ## x
-#endif
 
 namespace gi = ::testing::internal;
 

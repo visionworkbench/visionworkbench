@@ -25,12 +25,6 @@
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageResource.h>
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#include <vector>
-#endif
 #include <map>
 #include <cmath>
 

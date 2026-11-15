@@ -153,21 +153,12 @@ namespace vw {
     
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      return pixel_accessor(m_origin, m_rstride, m_pstride,
-                             cols(), rows(), planes());
-#else
       return pixel_accessor(m_origin, m_rstride, m_pstride);
-#endif
     }
 
     /// Returns the pixel at the given position in the given plane.
     /// - See the warning about using planes at the top of the class.
     inline result_type operator()(int32 col, int32 row, int32 plane=0) const {
-#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      if (col < 0 || col >= cols() || row < 0 || row >= rows() || plane < 0 || plane >= planes())
-        vw_throw(ArgumentErr() << "ImageView::operator() - invalid index [" << col << " " << row << " " << plane << "] for ImageView with dimensions [" << cols() << " " << rows() << " " << planes() << "]");
-#endif
       return *(m_origin + col + row*m_rstride + plane*m_pstride);
     }
 

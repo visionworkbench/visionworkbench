@@ -34,10 +34,8 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/InterestPoint/InterestTraits.h>
 
-#if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV == 1)
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
-#endif
 
 namespace vw {
 
@@ -112,12 +110,10 @@ namespace vw {
     /// Generates a human readable string
     std::string to_string() const;
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     /// Copy IP information from an OpenCV KeyPoint object
     void setFromCvKeypoint(cv::KeyPoint const& cvKey);
     /// Create an OpenCV KeyPoint object from this IP.
     cv::KeyPoint makeOpenCvKeypoint() const;
-#endif
   }; // End class InterestPoint
 
   bool InterestPointLessThan (InterestPoint P1, InterestPoint P2);

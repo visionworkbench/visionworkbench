@@ -18,7 +18,6 @@
 
 // TestBlockFileIO.h
 #include <gtest/gtest_VW.h>
-#include <vw/vw_config.h>
 #include <vw/FileIO/DiskImageIO.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageIO.h>
@@ -51,11 +50,9 @@ TEST(BlockFileIO, PNG_Crop) {
   test_read_crop(TEST_SRCDIR"/mural.png", "cropped.mural.png");
 }
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
 TEST(BlockFileIO, JPG_Crop) {
   test_read_crop(TEST_SRCDIR"/mural.jpg", "cropped.mural.jpg");
 }
-#endif
 
 TEST(BlockFileIO, TIF_Post_Crop) {
   UnlinkName fn1("mural.tif");

@@ -60,7 +60,6 @@
 #ifndef __VW_IMAGE_IMAGEMATH_H__
 #define __VW_IMAGE_IMAGEMATH_H__
 
-#include <vw/vw_config.h>
 #include <vw/Core/Functors.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PixelMask.h>
@@ -357,7 +356,6 @@ namespace vw {
   /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of a scalar with each pixel of an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(hypot, vw::ValArgHypotFunctor)
 
-#ifndef WIN32
 
   /// Computes the hyperbolic arccosine, \f$\cosh^{-1} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(acosh, vw::ArgAcoshFunctor)
@@ -368,20 +366,14 @@ namespace vw {
   /// Computes the hyperbolic arctangent, \f$\tanh^{-1} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(atanh, vw::ArgAtanhFunctor)
 
-#ifdef VW_HAVE_EXP2
   /// Computes the base-2 exponential, \f$2^x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(exp2, vw::ArgExp2Functor)
-#endif
 
-#ifdef VW_HAVE_LOG2
   /// Computes the base-2 logarithm, \f$\log_{2} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(log2, vw::ArgLog2Functor)
-#endif
 
-#ifdef VW_HAVE_TGAMMA
   /// Computes the gamma function of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::ArgTgammaFunctor)
-#endif
 
   /// Computes the base-e exponential minus one, \f$e^x-1\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::ArgExpm1Functor)
@@ -425,7 +417,6 @@ namespace vw {
   /// Computes the positive difference between a scalar and an image, <TT>(x>y)?(x-y):0</TT>.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(fdim, vw::ValArgFdimFunctor)
 
-#endif // WIN32
 
   /// Takes the real part of each pixel in an image.  If the source
   /// image is complex then the resulting image has the corresponding

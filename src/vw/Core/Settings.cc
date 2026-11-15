@@ -15,7 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-#include <vw/vw_config.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Cache.h>
 #include <vw/Core/Settings.h>
@@ -28,20 +27,11 @@
 
 #include <thread>
 
-#ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 
-#ifdef VW_HAVE_PWD_H
 #include <pwd.h>
-#endif
 
-#ifdef WIN32
-#define stat _stat
-typedef struct _stat struct_stat;
-#else
 typedef struct stat struct_stat;
-#endif
 
 namespace vw {
 
@@ -54,17 +44,12 @@ namespace vw {
 // recently modified.  If so, we reload the log ruleset from the file.
 void Settings::reload_config() {
 
-#ifdef VW_ENABLE_CONFIG_FILE
 
   // We CANNOT use the vw log infrastructure here, because it will
   // call reload_config and deadlock!
 
   boost::xtime xt;
-#if BOOST_VERSION >= 105000
   boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-  boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
   bool needs_reloading = false;
 
   // Every five seconds, we attempt to open the log config file to see
@@ -99,7 +84,6 @@ void Settings::reload_config() {
       parse_config_file(m_rc_filename.c_str(), *this);
     }
   }
-#endif
 }
 
 void Settings::set_rc_filename(std::string filename, bool parse_now) {
@@ -160,13 +144,11 @@ namespace {
     if ((dir = ::getenv("HOME"))) // This is hopefully set on windows and linux
       return std::string(dir) + "/.vwrc";
 
-#ifdef VW_HAVE_GETPWUID
     // Not set? Try a last ditch effort...
     struct passwd *pw;
     pw = getpwuid(getuid());
     if (pw && pw->pw_dir && strlen(pw->pw_dir))
       return std::string(pw->pw_dir) + "/.vwrc";
-#endif
     // Out of options, need to disable config.
     return std::string();
   }
@@ -193,7 +175,7 @@ namespace {
 // --threads to their children to avoid oversubscribing the machine.
 Settings::Settings():
     _VW_SET1(default_num_threads, 0),
-    _VW_SET1(system_cache_size, size_t(VW_CACHE_SIZE) * 1024 * 1024),
+    _VW_SET1(system_cache_size, size_t(1024) * 1024 * 1024),
     _VW_SET1(write_pool_size, 21), // 21 threads is about 252MB of back data for RGB f32 1024x1024 blocks
     _VW_SET1(default_tile_size, 256),
     _VW_SET1(tmp_directory, default_tmp_dir()),

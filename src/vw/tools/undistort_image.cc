@@ -21,11 +21,6 @@
 /// By default, it write images as float or double, unless multi-channel.
 /// TODO: What is the effect of interpolation in affine epipolar alignment?
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
 
 #include <vw/Core/Exception.h>
 #include <vw/Image/ImageView.h>
