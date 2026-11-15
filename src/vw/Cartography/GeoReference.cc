@@ -612,78 +612,6 @@ void GeoReference::set_proj4_projection_str(std::string const& s) {
   init_proj(); // Initialize the projection
 }
 
-// TODO(oalexan1): Wipe this
-bool GeoReference::extract_proj4_value(std::string const& proj4_string, 
-                                       std::string const& key,
-                                       std::string &s) {
-  // Try to find the key
-  size_t key_pos = proj4_string.find(key);
-  if (key_pos == std::string::npos)
-    return false;
-  size_t key_end = key_pos + key.size();
-
-  // Figure out the bounds of the number
-  size_t eq_pos    = proj4_string.find("=", key_pos);
-  size_t space_pos = proj4_string.find(" ", eq_pos);
-  if ((eq_pos == std::string::npos) ||
-        (eq_pos - key_end > 2)) // Make sure we got the right "="
-    return false;
-  if (space_pos == std::string::npos)
-    space_pos = proj4_string.size();
-  size_t start  = eq_pos + 1;
-  size_t length = space_pos - start;
-  s = proj4_string.substr(eq_pos+1, length);
-  return true;
-}
-
-// TODO(oalexan1): Wipe this
-bool GeoReference::extract_proj4_value(std::string const& proj4_string, 
-                                       std::string const& key,
-                                       double &value) {
-  std::string s;
-  if (!extract_proj4_value(proj4_string, key, s))
-    return false;
-  value = atof(s.c_str());
-  return true;
-}
-
-// Strip the "+over" text from our stored proj4 info, but don't ll_box_from_pix_box().
-// - Used to strip an extra tag out of [-180,180] range images where it is not needed.
-void GeoReference::clear_proj4_over() {
-  
-  // This requires an initialized georeference  
-  if (!m_proj_context.is_initialized())
-    vw_throw(NoImplErr() << "GeoReference::clear_proj4_over() requires an initialized georeference.");
-    
-  return;
-  // TODO(oalexan1): Remove all dependencies on proj4_str.
-  // Clear out m_proj_projection_str, then recreate the ProjContext object.
-  if (string_replace(m_proj_projection_str, "+over", "")) {
-    // If we had to make any changes, strip out any double spaces and 
-    //  trailing spaces and then update our ProjContext object.
-    string_replace(m_proj_projection_str, "  ", " ");
-    m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-    init_proj();
-  }
-}
-
-// Add the "+over" text to our stored proj4 info, but don't ll_box_from_pix_box().
-void GeoReference::set_proj4_over() {
-  return;
-  // TODO(oalexan1): Wipe this
-  // Clear out m_proj_projection_str, then recreate the ProjContext object.
-  if (m_proj_projection_str.find("+over") == std::string::npos) {
-    m_proj_projection_str.append(" +over");
-  
-    // If we had to make any changes, strip out any double spaces and 
-    //  trailing spaces and then update our ProjContext object.
-    string_replace(m_proj_projection_str, "  ", " ");
-    m_proj_projection_str = boost::trim_copy(m_proj_projection_str);
-    //m_proj_context = ProjContext(overall_proj4_str(), geo_wkt);
-    init_proj();
-  }
-}
-
 double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
   Vector2 out_pixel = lonlat_to_pixel(pixel_to_lonlat(pixel));
   Vector2 diff = out_pixel - pixel;
@@ -819,20 +747,6 @@ void GeoReference::set_wkt(std::string const& wkt) {
   if ((m_proj_projection_str.find("+over") == std::string::npos) &&
         (m_proj_projection_str.find("+proj=utm") == std::string::npos))
     m_proj_projection_str.append(" +over");
-}
-
-std::vector<double> GeoReference::get_towgs84_values(std::string const& s) {
-  std::vector<double> o;
-  std::string sub;
-  if (!extract_proj4_value(s, "+towgs84", sub))
-    return o;
-
-  o.resize(6);
-  int count = sscanf(sub.c_str(), "%lf,%lf,%lf,%lf,%lf,%lf",
-                     &o[0], &o[1], &o[2], &o[3], &o[4], &o[5]);
-  if (count != 6)
-    vw_throw(LogicErr() << "Error parsing +towgs84 from string: " << s);
-  return o;
 }
 
 // Get the wkt string from the georef. It only has projection and datum information.
@@ -973,22 +887,6 @@ Vector3 GeoReference::point_to_geodetic(Vector3 point) const {
 }
   
 // Functions for class ProjContext
-
-// TODO(oalexan1): Wipe this!
-char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
-  // TODO(oalexan1): May need to wipe this!
-  std::vector<std::string> arg_strings;
-  std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-  boost::split(arg_strings, trimmed_proj4_str, boost::is_any_of(" "));
-
-  char** strings = new char*[arg_strings.size()];
-  for (size_t i = 0; i < arg_strings.size(); ++i) {
-    strings[i] = new char[2048];
-    strncpy(strings[i], arg_strings[i].c_str(), 2048);
-  }
-  num_strings = boost::numeric_cast<int>(arg_strings.size());
-  return strings;
-}
 
 ProjContext::ProjContext(): m_lonlat_to_proj(NULL), m_proj_to_lonlat(NULL), m_init(false) {
 }

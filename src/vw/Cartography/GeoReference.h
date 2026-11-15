@@ -44,9 +44,6 @@ namespace vw {
   // duplicated on copying.
   class ProjContext {
 
-    /// 
-    char** split_proj4_string(std::string const& proj4_str, int &num_strings);
-
   public:
 
     ProjContext();
@@ -135,19 +132,6 @@ namespace vw {
 
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
-    
-    void clear_proj4_over(); ///< Clears the "+over" tag from our proj4 string.
-    void set_proj4_over  (); ///< Adds   the "+over" tag from our proj4 string.
-
-    /// Attempts to extract the value of a key= part of the proj4 string.
-    static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
-                                    std::string &s);
-    /// Attempts to extract the value of a key= part of the proj4 string and converts to double.
-    static bool extract_proj4_value(std::string const& proj4_string, std::string const& key,
-                                    double &value);
-
-    /// Parse out a six element +towgs84 value, or an empty vector if it is not found.
-    static std::vector<double> get_towgs84_values(std::string const& s);
     
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the
