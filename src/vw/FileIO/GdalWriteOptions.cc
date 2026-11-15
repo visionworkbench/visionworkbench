@@ -24,7 +24,9 @@
 namespace vw {
 
 GdalWriteOptions::GdalWriteOptions() {
-  gdal_options["BIGTIFF"] = "NO";
+  // Let GDAL switch to BigTIFF when the output may exceed 4 GB, else a large
+  // compressed output fails mid-write.
+  gdal_options["BIGTIFF"] = "IF_SAFER";
   gdal_options["COMPRESS"] = "LZW";
 
   // The values below will be overwritten by the boost options
