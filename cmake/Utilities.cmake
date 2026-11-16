@@ -93,8 +93,13 @@ if (NOT TARGET gtest_all)
 endif()
 # Call this function once for each gtest target.
 macro(add_to_custom_test_target test_target)
+  # PROJ finds proj.db only via PROJ_DATA when libproj is loaded through
+  # libgdal's $ORIGIN/. rpath, so set it, as the shipped tool wrappers do.
   add_custom_target(${test_target}_runtest
-                    COMMAND ${test_target} #cmake 2.6 required
+                    COMMAND ${CMAKE_COMMAND} -E env
+                      PROJ_DATA=${ASP_DEPS_DIR}/share/proj
+                      GDAL_DATA=${ASP_DEPS_DIR}/share/gdal
+                      $<TARGET_FILE:${test_target}>
                     DEPENDS ${test_target}
                     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
   add_dependencies(gtest_all ${test_target}_runtest)
