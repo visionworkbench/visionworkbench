@@ -20,6 +20,7 @@
 #include <vw/Math/Functions.h>
 #include <ogr_spatialref.h>
 #include <cpl_string.h>
+#include <algorithm>
 #include <iostream>
 
 vw::Datum::Datum(std::string const& name,
@@ -563,4 +564,31 @@ vw::Vector3 vw::datum_intersection(vw::Datum const& datum,
                                    vw::Vector3 camera_vec) {
   return vw::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
                                 camera_ctr, camera_vec);
+}
+
+// See the header for the rules.
+bool vw::same_datum(vw::Datum const& a, vw::Datum const& b) {
+
+  if (a.get_wkt() == b.get_wkt())
+    return true;
+
+  OGRSpatialReference const& ra = a.ogr_datum();
+  OGRSpatialReference const& rb = b.ogr_datum();
+  const char* opts[] = {"IGNORE_DATA_AXIS_TO_SRS_AXIS_MAPPING=YES", NULL};
+  if (ra.IsSameGeogCS(&rb, opts))
+    return true;
+
+  // GDAL says the datums differ. For Earth that settles it.
+  const char* body_a = ra.GetCelestialBodyName();
+  const char* body_b = rb.GetCelestialBodyName();
+  bool is_earth_a = (body_a != NULL && std::string(body_a) == "Earth");
+  bool is_earth_b = (body_b != NULL && std::string(body_b) == "Earth");
+  if (is_earth_a || is_earth_b)
+    return false;
+
+  // Other bodies: compare the shape and the prime meridian.
+  double tol = 1e-9 * std::max(std::abs(a.semi_major_axis()), std::abs(b.semi_major_axis()));
+  return std::abs(a.semi_major_axis() - b.semi_major_axis()) <= tol &&
+         std::abs(a.semi_minor_axis() - b.semi_minor_axis()) <= tol &&
+         std::abs(a.meridian_offset() - b.meridian_offset()) <= 1e-9;
 }

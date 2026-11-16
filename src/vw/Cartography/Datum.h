@@ -144,6 +144,12 @@ namespace vw {
   // A function which reads a datum from a string. It reverses
   // what operator<< does.
   bool read_datum_from_str(std::string const& str, Datum & datum);
+
+  // True if the two datums are the same per GDAL. Earth has many datums that
+  // share an ellipsoid, so for Earth that is the only test. For other bodies
+  // the datum names vary but carry no meaning beyond the shape, so they are
+  // also the same if their semi-axes and prime meridian agree.
+  bool same_datum(Datum const& a, Datum const& b);
   
   // Free associated functions
   vw::Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,

@@ -32,6 +32,16 @@ namespace vw {
     m_src_georef(src_georef), m_dst_georef(dst_georef),
     m_src_bbox(src_bbox), m_dst_bbox(dst_bbox) {
 
+    // Coordinates pass between the georefs through lon-lat, with no datum
+    // conversion, so the datums must agree.
+    Datum const& src_datum = m_src_georef.datum();
+    Datum const& dst_datum = m_dst_georef.datum();
+    if (!same_datum(src_datum, dst_datum))
+      vw_throw(ArgumentErr() << "Cannot transform between georeferences with "
+               << "different datums: " << src_datum.name() << " and "
+               << dst_datum.name() << ". Use gdalwarp to convert one to the "
+               << "datum of the other.\n");
+
     // If the lonlat to lonlat transform does not change the results, skip it.
     // This results in a very notable speedup.
     if (m_src_georef.get_wkt() == m_dst_georef.get_wkt() &&

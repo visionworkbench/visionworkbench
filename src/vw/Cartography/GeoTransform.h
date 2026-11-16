@@ -36,7 +36,8 @@ namespace vw {
   /// - Use of this class is the ONLY safe method to convert coordinates between two
   ///   GeoReference objects that fully handles all variables.
   /// - Coordinates pass between the two georefs through longitude and latitude,
-  ///   with no datum conversion. Use gdalwarp to change the datum of an image.
+  ///   with no datum conversion. The constructor throws if the datums differ
+  ///   (see same_datum()). Use gdalwarp to change the datum of an image.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference  m_src_georef;
