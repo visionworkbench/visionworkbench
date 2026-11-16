@@ -32,8 +32,7 @@ namespace vw {
     m_src_georef(src_georef), m_dst_georef(dst_georef),
     m_src_bbox(src_bbox), m_dst_bbox(dst_bbox) {
 
-    // Coordinates pass between the georefs through lon-lat, with no datum
-    // conversion, so the datums must agree.
+    // No datum conversion, so the datums must agree.
     Datum const& src_datum = m_src_georef.datum();
     Datum const& dst_datum = m_dst_georef.datum();
     if (!same_datum(src_datum, dst_datum))

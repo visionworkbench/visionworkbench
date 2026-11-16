@@ -15,10 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-// GeoTransform passes coordinates between georefs through longitude and
-// latitude, with no datum conversion, so it must refuse georefs with different
-// datums. Name variants of one non-Earth datum (same shape and prime meridian)
-// count as the same datum.
+// GeoTransform must throw on different datums.
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 
