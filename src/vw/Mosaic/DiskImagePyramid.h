@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -295,12 +295,14 @@ namespace vw {
     // that has the effect of not accidentally setting some pixels to nodata.
     // If valid_min and valid_max are not NaN, pixels outside that range
     // are treated as nodata (needed for ISIS .cub special pixels).
+    // If pyramid_cache_dir is set, the overviews are always stored there.
     DiskImagePyramid(std::string const& base_file = "",
 		     vw::GdalWriteOptions const& opt = vw::GdalWriteOptions(),
 		     int lowest_resolution_subimage_num_pixels = 1000*1000,
 		     int subsample = 2,
 		     float valid_min = std::numeric_limits<float>::quiet_NaN(),
-		     float valid_max = std::numeric_limits<float>::quiet_NaN());
+		     float valid_max = std::numeric_limits<float>::quiet_NaN(),
+		     std::string const& pyramid_cache_dir = "");
 
     // Given a region (at full resolution) and a scale factor, compute
     // the portion of the image in the region, subsampled by a factor no
@@ -375,7 +377,8 @@ namespace vw {
                                              int lowest_resolution_subimage_num_pixels,
                                              int subsample,
                                              float valid_min,
-                                             float valid_max):
+                                             float valid_max,
+                                             std::string const& pyramid_cache_dir):
     m_opt(opt), m_subsample(subsample),
     m_lowest_resolution_subimage_num_pixels(lowest_resolution_subimage_num_pixels),
     m_nodata_val(std::numeric_limits<double>::quiet_NaN()),
@@ -409,6 +412,8 @@ namespace vw {
       factors.push_back(scale);
     }
 
+    // The file whose overviews make the coarser levels
+    std::string ov_file = base_file;
     if (!factors.empty()) {
       vw_out() << "Construct an image pyramid for: " << base_file << "\n";
 
@@ -420,17 +425,27 @@ namespace vw {
         fs::create_directories(proxy_dir);
       } catch (...) {}
 
-      bool ok = vw::build_overviews(base_file, factors, "AVERAGE",
+      // With a pyramid cache dir, build the overviews on a VRT stored there.
+      if (!pyramid_cache_dir.empty()) {
+        ov_file = vw::overview_cache_vrt(base_file, pyramid_cache_dir);
+        if (ov_file.empty())
+          vw_throw(ArgumentErr() << "Could not create a VRT for " << base_file
+                   << " in pyramid cache directory: " << pyramid_cache_dir << "\n");
+      }
+
+      bool ok = vw::build_overviews(ov_file, factors, "AVERAGE",
                                     proxy_dir);
       if (ok) {
         // Each coarser level reads the matching overview of the same file.
         for (size_t k = 0; k < factors.size(); k++) {
-          m_pyramid.push_back(custom_read<PixelT>(base_file, (int)k));
-          m_pyramid_files.push_back(base_file);
+          m_pyramid.push_back(custom_read<PixelT>(ov_file, (int)k));
+          m_pyramid_files.push_back(ov_file);
           m_scales.push_back(factors[k]);
         }
         // The overview sidecar is a temporary file, removable on exit.
-        m_temporary_files.insert(base_file + ".ovr");
+        m_temporary_files.insert(ov_file + ".ovr");
+        if (ov_file != base_file)
+          m_temporary_files.insert(ov_file);
       } else {
         // No overviews: display reads the full image at all zoom levels (slower).
         factors.clear();
@@ -439,7 +454,7 @@ namespace vw {
 
     // This is expensive, so cache it going forward. Sample the coarsest level.
     int coarsest_ov = (int)factors.size() - 1; // -1 when there are no overviews
-    m_approx_bounds = approx_bounds_nocache(base_file,
+    m_approx_bounds = approx_bounds_nocache(ov_file,
                                             has_nodata, m_nodata_val,
                                             m_valid_min, m_valid_max,
                                             coarsest_ov);

@@ -165,6 +165,12 @@ bool build_overviews(std::string const& filename,
                      std::string const& resample_alg,
                      std::string const& proxy_dir);
 
+// Create (or reuse, if newer than the image) a VRT in cache_dir that points to
+// the image, so overviews built on it land in cache_dir and not next to the
+// image. Returns the VRT path, or an empty string on failure.
+std::string overview_cache_vrt(std::string const& filename,
+                               std::string const& cache_dir);
+
 // Multi-threaded block write image with, if available, nodata, georef, and
 // keywords to geoheader.
 template <class ImageT>

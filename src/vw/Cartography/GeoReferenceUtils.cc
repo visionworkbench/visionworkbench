@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -21,6 +21,9 @@
 #include <gdal_utils.h>
 #include <cpl_string.h>
 #include <boost/filesystem.hpp>
+
+#include <sstream>
+#include <functional>
 
 namespace vw {
 
@@ -230,6 +233,52 @@ bool build_overviews(std::string const& filename,
     vw_out(WarningMessage) << "Could not build overviews for: " << filename << "\n";
 
   return ok;
+}
+
+std::string overview_cache_vrt(std::string const& filename,
+                               std::string const& cache_dir) {
+
+  namespace fs = boost::filesystem;
+  std::string vrt_file;
+  try {
+    fs::create_directories(cache_dir);
+    std::string abs_file = fs::absolute(filename).string();
+
+    // Hash the full path so same-named images in different dirs do not collide
+    std::ostringstream os;
+    os << std::hex << std::hash<std::string>()(abs_file);
+    vrt_file = (fs::path(cache_dir) /
+                (os.str() + "_" + fs::path(abs_file).filename().string()
+                 + ".vrt")).string();
+
+    // Reuse a VRT newer than the image. Else recreate it, with no overviews.
+    if (fs::exists(vrt_file) &&
+        fs::last_write_time(vrt_file) >= fs::last_write_time(abs_file))
+      return vrt_file;
+    if (fs::exists(vrt_file + ".ovr"))
+      fs::remove(vrt_file + ".ovr");
+
+    GDALDatasetH src = GDALOpen(abs_file.c_str(), GA_ReadOnly);
+    if (src == NULL)
+      return "";
+    char* argv[] = {(char*)"-of", (char*)"VRT", nullptr};
+    GDALTranslateOptions* opts = GDALTranslateOptionsNew(argv, nullptr);
+    GDALDatasetH dst = NULL;
+    if (opts != NULL) {
+      dst = GDALTranslate(vrt_file.c_str(), src, opts, nullptr);
+      GDALTranslateOptionsFree(opts);
+    }
+    // The VRT refers to the source, so close it first
+    if (dst != NULL)
+      GDALClose(dst);
+    GDALClose(src);
+    if (dst == NULL)
+      return "";
+  } catch (...) {
+    return "";
+  }
+
+  return vrt_file;
 }
 
 } // namespace vw
