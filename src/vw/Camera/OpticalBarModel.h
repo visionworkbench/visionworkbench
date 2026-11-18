@@ -178,7 +178,7 @@ namespace vw {
     vw::Vector2  m_center_loc_pixels;
 
     /// The physical size of each pixel in meters (scanner resolution), along
-    /// columns (x) and rows (y). Should be 7 or 14 microns.
+    /// columns (x) and rows (y).
     vw::Vector2 m_pixel_size;
 
     /// The focal length in meters
