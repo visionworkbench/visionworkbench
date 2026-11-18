@@ -176,8 +176,8 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     // pitch ratio into the x focal length.
     Vector2 opb_pitch = opb_model.get_pixel_size();
     double pixel_pitch = opb_pitch[1];
-    double  f = opb_model.get_focal_length();
-    double fu = f * (opb_pitch[1] / opb_pitch[0]);
+    double fv = opb_model.get_focal_length();
+    double fu = fv * (opb_pitch[1] / opb_pitch[0]);
     Vector2 c = opb_model.get_optical_center();
     c *= pixel_pitch; // because OpticalBarModel optical center is in pixels
 
@@ -186,7 +186,7 @@ PinholeModel opticalbar2pinhole(OpticalBarModel const& opb_model, int sample_spa
     Vector2i image_size = opb_model.get_image_size();
     PinholeModel out_model = PinholeModel(opb_model.camera_center(image_size/2.0),
                                           opb_model.camera_pose(image_size/2.0).rotation_matrix(),
-                                          fu, f, c[0], c[1]);
+                                          fu, fv, c[0], c[1]);
     out_model.set_pixel_pitch(pixel_pitch);
 
     // This model is very rough. We will improve it by making sure it
