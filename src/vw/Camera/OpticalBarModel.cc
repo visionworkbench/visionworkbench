@@ -259,6 +259,12 @@ Vector3 OpticalBarModel::camera_center(Vector2 const& pix) const {
   return m_initial_position + dt * get_velocity(pix);
 }
 
+// The pose at the sweep start. Pixel (0, 0) is the sweep end for a right to
+// left scan, so do not evaluate the pose there.
+Quat OpticalBarModel::camera_pose() const {
+  return axis_angle_to_quaternion(m_initial_pose);
+}
+
 // Camera pose is interpolated in the newer approach.
 Quat OpticalBarModel::camera_pose(Vector2 const& pix) const {
   
@@ -551,7 +557,7 @@ void OpticalBarModel::write(std::string const& filename) const {
                       << m_initial_position[1] << " "
                       << m_initial_position[2] << "\n";
   // Store in the same format as the pinhole camera model.
-  Matrix3x3 rot_mat = camera_pose(Vector2(0,0)).rotation_matrix();
+  Matrix3x3 rot_mat = camera_pose().rotation_matrix();
   cam_file << "iR = " << rot_mat(0,0) << " " << rot_mat(0,1) << " " << rot_mat(0,2) << " "
                       << rot_mat(1,0) << " " << rot_mat(1,1) << " " << rot_mat(1,2) << " "
                       << rot_mat(2,0) << " " << rot_mat(2,1) << " " << rot_mat(2,2) << "\n";

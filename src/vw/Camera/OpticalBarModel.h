@@ -115,7 +115,7 @@ namespace vw {
 
     // These return the initial center/pose at time=0.
     vw::Vector3 camera_center() const {return m_initial_position;}
-    vw::Quat    camera_pose  () const {return camera_pose(vw::Vector2(0,0));} // Constant
+    vw::Quat    camera_pose  () const;
 
     /// Apply a given rotation + translation + scale transform to the camera.
     void apply_transform(vw::Matrix3x3 const & rotation,
