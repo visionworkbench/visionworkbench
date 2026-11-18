@@ -36,7 +36,7 @@ TEST(OpticalBarModel, CreateCamera) {
   Vector3  initial_position(gcc);
   Vector3  initial_pose = q.axis_angle();
   
-  double   pixel_size =  0.000112;
+  Vector2  pixel_size(0.000112, 0.000112);
   Vector2i image_size(3910, 2290);
   Vector2  center_loc_pixels = Vector2(1957.2358579744291, 1112.512227705716);
   double   focal_length       = 1.9600000381469727;
