@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -70,7 +70,7 @@ namespace vw {
     OpticalBarModel(std::string const& path);
     OpticalBarModel(vw::Vector2i image_size,
                     vw::Vector2  center_offset_pixels,
-                    double   pixel_size,
+                    vw::Vector2  pixel_size,
                     double   focal_length,
                     double   scan_time,
                     bool     scan_left_to_right,
@@ -127,7 +127,7 @@ namespace vw {
     double       get_focal_length  () const;
     double       get_scan_rate     () const;
     double       get_speed         () const;
-    double       get_pixel_size    () const;
+    vw::Vector2  get_pixel_size    () const;
     double       get_scan_time     () const;
     bool         get_scan_dir      () const;
     double       get_forward_tilt  () const;
@@ -145,7 +145,7 @@ namespace vw {
     void set_optical_center(vw::Vector2  optical_center);
     void set_focal_length(double focal_length);
     void set_speed(double speed);
-    void set_pixel_size(double pixel_size);
+    void set_pixel_size(vw::Vector2 const& pixel_size);
     void set_scan_time(double scan_time);
     void set_scan_dir(bool scan_l_to_r);
     void set_forward_tilt(double tilt_angle);
@@ -177,9 +177,9 @@ namespace vw {
     /// Offset from the top left of the image (film) to the camera center.
     vw::Vector2  m_center_loc_pixels;
 
-    /// The physical size of each pixel in meters (scanner resolution).
-    /// - Should be 7 or 14 microns.
-    double m_pixel_size;
+    /// The physical size of each pixel in meters (scanner resolution), along
+    /// columns (x) and rows (y). Should be 7 or 14 microns.
+    vw::Vector2 m_pixel_size;
 
     /// The focal length in meters
     // Nominal focal length for Corona is 609.602mm

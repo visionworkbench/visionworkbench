@@ -1,5 +1,5 @@
 // __BEGIN_LICENSE__
-//  Copyright (c) 2006-2013, United States Government as represented by the
+//  Copyright (c) 2006-2026, United States Government as represented by the
 //  Administrator of the National Aeronautics and Space Administration. All
 //  rights reserved.
 //
@@ -40,7 +40,7 @@ OpticalBarModel::OpticalBarModel(std::string const& path):
 
 OpticalBarModel::OpticalBarModel(vw::Vector2i image_size,
                 vw::Vector2  center_offset_pixels,
-                double   pixel_size,
+                vw::Vector2  pixel_size,
                 double   focal_length,
                 double   scan_time,
                 bool     scan_left_to_right,
@@ -90,7 +90,7 @@ double OpticalBarModel::get_scan_rate() const {
 double OpticalBarModel::get_speed() const { 
   return m_speed;               
 }
-double OpticalBarModel::get_pixel_size() const { 
+vw::Vector2 OpticalBarModel::get_pixel_size() const { 
   return m_pixel_size;          
 }
 double OpticalBarModel::get_scan_time() const { 
@@ -157,7 +157,7 @@ void OpticalBarModel::set_speed(double speed) {
   compute_scan_rate();
 }
 
-void OpticalBarModel::set_pixel_size(double pixel_size) { 
+void OpticalBarModel::set_pixel_size(vw::Vector2 const& pixel_size) { 
   m_pixel_size = pixel_size;
   compute_scan_rate();
 }
@@ -179,7 +179,7 @@ void OpticalBarModel::set_motion_compensation(double mc_factor) {
 }
 
 Vector2 OpticalBarModel::pixel_to_sensor_plane(Vector2 const& pixel) const {
-  Vector2 result = (pixel - m_center_loc_pixels) * m_pixel_size;
+  Vector2 result = elem_prod(pixel - m_center_loc_pixels, m_pixel_size);
   return result;
 }
 
@@ -410,8 +410,15 @@ void OpticalBarModel::read(std::string const& filename) {
     vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the image center\n");
   }
 
+  // The pitch is either one value for both axes, or the x and y values
   std::getline(cam_file, line);
-  if (!cam_file.good() || sscanf(line.c_str(),"pitch = %lf", &m_pixel_size) != 1) {
+  int num_pitch = 0;
+  if (cam_file.good())
+    num_pitch = sscanf(line.c_str(), "pitch = %lf %lf",
+                       &m_pixel_size[0], &m_pixel_size[1]);
+  if (num_pitch == 1)
+    m_pixel_size[1] = m_pixel_size[0];
+  if (num_pitch != 1 && num_pitch != 2) {
     cam_file.close();
     vw_throw(IOErr() << "OpticalBarModel::read_file(): Could not read the pixel pitch\n");
   }
@@ -532,7 +539,11 @@ void OpticalBarModel::write(std::string const& filename) const {
                                 << m_image_size[1]<< "\n";
   cam_file << "image_center = " << m_center_loc_pixels[0] << " "
                                 << m_center_loc_pixels[1] << "\n";
-  cam_file << "pitch = "        << m_pixel_size             << "\n";
+  // Write a single pitch value when x and y agree, for compatibility
+  if (m_pixel_size[0] == m_pixel_size[1])
+    cam_file << "pitch = " << m_pixel_size[0] << "\n";
+  else
+    cam_file << "pitch = " << m_pixel_size[0] << " " << m_pixel_size[1] << "\n";
   cam_file << "f = "            << m_focal_length           << "\n";
   cam_file << "scan_time = "   << m_scan_time     << "\n";
   cam_file << "forward_tilt = " << m_forward_tilt_radians   << "\n";
