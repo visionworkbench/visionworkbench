@@ -364,7 +364,6 @@ void OpticalBarModel::apply_transform(vw::Matrix3x3 const & rotation,
   this->set_camera_pose(pose.axis_angle());
   
   // Apply the transform to the velocity and final pose
-  // TODO(oalexan1): Must test this, but it should work as follows same logic as above.
   if (m_have_velocity_vec) {
     m_velocity = scale * rotation * m_velocity;
     vw::Quat final_quat = axis_angle_to_quaternion(m_final_pose);
